@@ -30,3 +30,6 @@ supabase/.temp/
 
 # MCP browser snapshots
 .playwright-mcp/
+
+# Python bytecode from the JARVIS companion and its tests.
+__pycache__/

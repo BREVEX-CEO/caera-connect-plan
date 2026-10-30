@@ -26,7 +26,11 @@
     "deploy:check": "node scripts/deploy.mjs --check",
     "deploy:web": "node scripts/deploy.mjs --execute",
     "deploy:rollback": "node scripts/deploy.mjs --rollback",
-    "verify:full": "node scripts/verify-full.mjs"
+    "verify:full": "node scripts/verify-full.mjs",
+    "jarvis:protocol": "node --experimental-strip-types --no-warnings scripts/jarvis-protocol.ts",
+    "jarvis:protocol-check": "node --experimental-strip-types --no-warnings scripts/jarvis-protocol.ts --check",
+    "test:jarvis": "node --experimental-strip-types --no-warnings --test tests/jarvis/*.test.ts && cd device-agent/windows && python3 -m unittest discover -s tests -t .",
+    "test:jarvis-db": "bash tests/jarvis/db/run.sh"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.110.7",

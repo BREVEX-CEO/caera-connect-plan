@@ -959,3 +959,37 @@ These are later requirements/refinements, **not literal headings of the original
 **Before writing code, read Sections 21–29 for concrete protocol, database, Windows and verification contracts.** Do not equate source traceability with implemented behavior.
 
 **Start at P00 on the inspected implementation branch.** Establish what actually exists now, implement only the next dependency-ready verified slice, and keep the product's account/security/offline boundaries intact. The source research and every index item have an explicit treatment above. The implementation wins only when real authorized workflows are safely completed and independently proven—not when a diagram, tool count, script or status message says they are.
+
+---
+
+## Implementation checkpoint — 30 October 2026 (first milestone)
+
+**Base:** `0b73f2f005db95f54e5652c4ae88389cb741bc73` on `ocade/p00-p22-implementation`. **Environment class:** disposable Linux cloud container (Node 22.22, Python 3.13, PostgreSQL 16.15 with a local Supabase stand-in, LibreOffice). No Windows machine, Office installation, hosted Supabase, deployed site, owner device or model provider was used. Status words follow §28.3.
+
+**P00 baseline (PASS, source + local database):** all 157 migrations replay cleanly into a fresh PostgreSQL with `tests/jarvis/db/supabase-stub.sql`; the live JARVIS schema owners are `jarvis_tasks` (status `running|waiting|taken_over|stopped|blocked|failed|completed`, fixed `outcome`, `controller`, `verified_actions`), `jarvis_activity` (queue + events), `jarvis_devices` (P-256 `public_key`, `last_request_ms`), `jarvis_permissions`, `ocade_service_controls` (`jarvis_execution`, `jarvis_agent`). Existing guards (server-only completion, completion matches checked actions, no action after completion, no revival after STOP, fixed outcome) were preserved and are exercised by the new tests. Gap found and closed: the browser role could still INSERT/UPDATE `jarvis_tasks` directly. No retired module was restored; the retired device protocol was read for reference only.
+
+| Package | Status | Evidence / limit |
+| --- | --- | --- |
+| P01 contracts | PASS (local) | `src/lib/jarvis/contracts.ts` (Zod registry, intent, receipt, verification, device requests) exported to `device-agent/windows/ocade_agent/protocol.json` (`npm run jarvis:protocol-check`); forged risk/capability/operation/arguments rejected in TS and Python. |
+| P02 task authority | PASS (local DB) | Forward migration `20261030120000_jarvis_task_authority.sql` + rollback: service-role-only functions for open/queue/claim/receipt/STOP/settle/revoke; `tests/jarvis/db/authority.test.sql` (cross-account, replay, stale controller, STOP races, late receipt, unknown effect → `waiting`, permission revoked before dispatch, owner pause, revocation); 5/5 mutation checks killed. Hosted RLS/PostgREST UNTESTED. |
+| P03 enrollment/trust | PASS (local) | Signed P-256 enroll → one-use 10-minute code → owner approval; monotonic timestamp replay guard; forged and replayed requests refused end to end. Windows DPAPI key sealing UNTESTED. |
+| P04 Windows companion | PARTIAL | Per-user outbound-only Python agent (`device-agent/windows/ocade_agent/`) runs on Linux; installer, signing, tray, autostart, upgrade/uninstall BLOCKED (no Windows machine, no signing authority). |
+| P05/P06 registry + MCP gateway | PASS (local) | Official MCP Python SDK 2.3.0 stdio; exact tool-list/argument pinning; unlisted tool, crash mid-write (`unknown`/`maybeChanged`), hang (deadline), stdout noise, STOP during worker start-up and mid-call all tested. |
+| P07 app discovery | NOT STARTED | — |
+| P08 scoped filesystem | PASS (Linux) | Traversal, absolute/UNC/drive/ADS/reserved names, symlink escape, write-only-new-under-`OCADE output/`, atomic write. Windows junction/8.3/long-path cases UNTESTED. |
+| P09 native Office | PARTIAL | Real recalculation and DOCX→PDF via LibreOffice PASS; Excel/Word COM path written but UNTESTED (no Windows/Office). |
+| P10–P12 UIA, PyAutoGUI, Playwright, deep bridges | NOT STARTED | pywinauto/PyAutoGUI require real Windows; not simulated. |
+| P13 supervisor | PARTIAL | Deterministic Journey 1 pilot (`src/lib/jarvis/supervisor.ts`), request-driven, idempotent keys, ambiguity → question. Online model planning BLOCKED: no authorised provider credentials/consent in this environment; unsupported outcomes are refused, never improvised. |
+| P14 scheduler/leases | PARTIAL | One open task per device/conversation and one claimed action per task enforced in SQL; UI-window leases not started. |
+| P15 journal/recovery | PASS (local) | Intent-before-effect SQLite journal; lost ACK resends stored receipt; interrupted write reported `unknown` and never re-run. Reconciliation of an `unknown` task beyond STOP is not implemented (task stays `waiting`). |
+| P16 verifier | PASS (local) | Separate verifier process re-reads original and saved outputs; server binds verifier hashes to actor receipts; tampered totals/formulas/original detected; missing outputs stay unverified. |
+| P17 STOP/revoke | PASS (local) | STOP fences planner and dispatch, cancels in-flight calls and kills the OCADE-owned worker; late receipts recorded without revival; revoked devices refused. Remote STOP while disconnected and Windows process-tree kill UNTESTED. |
+| P18 product UI | NOT STARTED | Server functions exist (`src/lib/jarvis/functions.ts`); the JARVIS composer is still disabled. |
+| P19 first vertical slice | PARTIAL | `tests/jarvis/e2e.test.ts`: real authority module + real migrations in PostgreSQL + real signed Python companion + real MCP workers + LibreOffice → workbook, DOCX, PDF → independent verification → `completed` with 7/7 checks. Not yet from the OCADE UI, not on Windows, not with Excel/Word. |
+| P20–P22 | NOT STARTED | — |
+
+**Gates on this tree:** `npm run typecheck`, `lint`, `routes:stable`, `supabase:types-check`, `build`, `audit:secrets`, `jarvis:protocol-check` PASS; `npm run test:jarvis` 12/12 Node + 17/17 Python PASS; `npm run test:jarvis-db` PASS. `format:check` FAILS on `AGENTS.md` and `docs/DECISIONS.md`, both unchanged and already failing at the base SHA.
+
+**Generated types:** the 15 new function signatures in `src/integrations/supabase/types.ts` were produced by `supabase gen types typescript` (CLI 2.122.0) against the replayed local schema and spliced in the file's existing layout; a full regeneration would also reformat unrelated entries, so it was not applied.
+
+**Next dependency-ready action:** P18 — wire the existing JARVIS composer to `startJarvisTask`/`getJarvisTask`/`stopJarvisTask` with device pairing and file-access consent, then P04/P09/P19 on an owner-authorised disposable Windows machine with Office (requires separate approval). Online planning (P13) needs an authorised provider decision.

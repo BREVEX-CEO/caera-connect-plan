@@ -1789,6 +1789,95 @@ export type Database = {
       }
       ocade_enforce_second_factor: { Args: never; Returns: undefined }
       ocade_session_meets_second_factor: { Args: never; Returns: boolean }
+      jarvis_allowed: {
+        Args: { p_capability: string; p_device: string; p_user: string }
+        Returns: boolean
+      }
+      jarvis_approve_device: {
+        Args: { p_code: string; p_user: string }
+        Returns: string
+      }
+      jarvis_claim_action: {
+        Args: { p_device: string }
+        Returns: Json
+      }
+      jarvis_device_code: {
+        Args: { p_public_key: string }
+        Returns: string
+      }
+      jarvis_device_key: {
+        Args: { p_device: string }
+        Returns: string
+      }
+      jarvis_device_seen: {
+        Args: { p_device: string; p_timestamp_ms: number }
+        Returns: boolean
+      }
+      jarvis_enroll_device: {
+        Args: {
+          p_name: string
+          p_platform: string
+          p_public_key: string
+          p_software_version: string
+          p_source: string
+        }
+        Returns: {
+          code: string
+          device_id: string
+          expires_at: string
+        }[]
+      }
+      jarvis_open_task: {
+        Args: {
+          p_conversation: string
+          p_device: string
+          p_outcome: Json
+          p_plan: Json
+          p_title: string
+          p_user: string
+        }
+        Returns: {
+          controller: string
+          reused: boolean
+          status: string
+          task_id: string
+        }[]
+      }
+      jarvis_paused: {
+        Args: never
+        Returns: boolean
+      }
+      jarvis_queue_actions: {
+        Args: { p_actions: Json; p_controller: string; p_task: string }
+        Returns: number
+      }
+      jarvis_revoke_device: {
+        Args: { p_device: string; p_user: string }
+        Returns: boolean
+      }
+      jarvis_settle_task: {
+        Args: { p_controller: string; p_summary: string; p_task: string; p_verification: Json }
+        Returns: string
+      }
+      jarvis_stop_task: {
+        Args: { p_task: string; p_user: string }
+        Returns: {
+          cancelled: number
+          in_flight: number
+          status: string
+        }[]
+      }
+      jarvis_task_state: {
+        Args: { p_task: string }
+        Returns: Json
+      }
+      jarvis_submit_receipt: {
+        Args: { p_activity: string; p_device: string; p_receipt: Json }
+        Returns: {
+          outcome: string
+          task_id: string
+        }[]
+      }
       jarvis_purge_expired_activity: {
         Args: { p_user_id: string }
         Returns: number

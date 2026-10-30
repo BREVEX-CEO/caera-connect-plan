@@ -1,0 +1,12 @@
+# Pinned runtime for the companion; bundled by the installer, never pip-installed by a customer.
+mcp==2.3.0
+jsonschema==4.26.0
+cryptography==50.0.1
+openpyxl==3.1.5
+python-docx==1.2.0
+pypdf==6.17.0
+pypdfium2==5.13.0
+anyio==4.15.1
+pillow==12.3.0
+# Excel/Word COM on Windows; pin the version the first real Windows qualification run uses.
+pywin32; sys_platform == "win32"

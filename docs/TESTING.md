@@ -109,7 +109,7 @@ Check console/network failures and actual accessibility tree. Test dark/light, 3
 
 ## 7. Computer-control, completion and fault injection
 
-Extend existing `src/jarvis/__tests__/agent.test.ts`, `device-exchange.test.ts`, `device-protocol.test.ts`, `execution-controls.test.ts`, `live-control.test.ts`, `carry-on.test.ts`, task SQL tests and `jarvis-runtime/tests`. The exact new protocol fields and execution sequence are defined by ARCHITECTURE/PLAN.
+The retired suites named in earlier revisions (`src/jarvis/__tests__/*`, `jarvis-runtime/tests`) no longer exist. Current JARVIS suites (30 October 2026): `npm run test:jarvis` (contract/planner and end-to-end Node tests in `tests/jarvis/`, then the companion's `unittest` suite in `device-agent/windows/tests/`) and `npm run test:jarvis-db` (replays every migration into a disposable local PostgreSQL and runs `tests/jarvis/db/*.test.sql`). The end-to-end test needs `PG*` variables for a local PostgreSQL 16+, Python with `device-agent/windows/requirements.txt`, and LibreOffice; it skips, and is not a pass, when they are missing. These are Linux cloud evidence: they do not qualify the Windows companion, Excel/Word COM, the web UI or hosted Supabase. Extend them; the exact protocol is `src/lib/jarvis/contracts.ts`.
 
 | Failure injected                                                            | Required observation                                                                                                                                    |
 | --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |

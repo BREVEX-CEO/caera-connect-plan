@@ -1,0 +1,341 @@
+/**
+ * END TO END, WITHOUT SUBSTITUTES FOR THE PARTS UNDER TEST (plan.md P19 first slice, §28.2).
+ *
+ * The real server authority module runs behind a local HTTP server; every RPC
+ * it makes runs the real migrations' functions in a fresh disposable PostgreSQL
+ * database as `service_role`; the real Python companion enrolls, signs its
+ * requests, claims actions and drives the real MCP workers, which write real
+ * files with a real office engine; the independent verifier re-reads them; the
+ * database settles the task. The test itself never writes a deliverable.
+ *
+ * Evidence class: Linux cloud container, LibreOffice. It does NOT qualify the
+ * Windows companion, Excel/Word COM, the OCADE web UI or a hosted Supabase.
+ * Needs PG* variables for a local PostgreSQL 16+, python3 with the companion's
+ * requirements, and LibreOffice. Skips (does not pass) when they are missing.
+ */
+import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
+import { spawnSync, spawn } from "node:child_process";
+import { mkdtempSync, readFileSync, existsSync, readdirSync } from "node:fs";
+import { createServer, type Server } from "node:http";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { after, before, test } from "node:test";
+import {
+  advance,
+  approveDevice,
+  handleDeviceRequest,
+  startTask,
+  stopTask,
+  taskView,
+  type Admin,
+} from "../../src/lib/jarvis/authority.server.ts";
+
+const root = new URL("../..", import.meta.url).pathname;
+const agentDir = join(root, "device-agent/windows");
+const db = `ocade_jarvis_e2e_${process.pid}`;
+const ready =
+  spawnSync("psql", ["-Atqc", "select 1", "-d", "postgres"]).status === 0 &&
+  spawnSync("python3", ["-c", "import mcp, openpyxl, docx, pypdfium2"]).status === 0 &&
+  (spawnSync("which", ["soffice"]).status === 0 ||
+    spawnSync("which", ["libreoffice"]).status === 0);
+
+function sql(text: string, role = "service_role"): string {
+  const run = spawnSync("psql", ["-X", "-Atq", "-v", "ON_ERROR_STOP=1", "-d", db], {
+    input: `SET ROLE ${role};\n${text}`,
+    encoding: "utf8",
+  });
+  if (run.status !== 0) throw new Error(run.stderr.trim());
+  return run.stdout.trim();
+}
+
+const literal = (value: unknown) =>
+  value === null
+    ? "NULL"
+    : `'${(typeof value === "string" ? value : JSON.stringify(value)).replace(/'/g, "''")}'`;
+
+/** The service-role client, narrowed to RPC and backed by the real database functions. */
+const SET_RETURNING = new Set([
+  "jarvis_enroll_device",
+  "jarvis_open_task",
+  "jarvis_stop_task",
+  "jarvis_submit_receipt",
+]);
+const admin = {
+  rpc: async (fn: string, args: Record<string, unknown>) => {
+    const call = `public.${fn}(${Object.entries(args)
+      .map(([k, v]) => `${k} => ${literal(v)}`)
+      .join(", ")})`;
+    try {
+      const text = SET_RETURNING.has(fn)
+        ? sql(`SELECT coalesce(jsonb_agg(to_jsonb(r)), '[]') FROM ${call} AS r;`)
+        : sql(`SELECT to_jsonb(${call});`);
+      return { data: text === "" ? null : JSON.parse(text), error: null };
+    } catch (error) {
+      return { data: null, error: { message: (error as Error).message } };
+    }
+  },
+} as unknown as Admin;
+
+let server: Server;
+let url = "";
+const userA = "aaaaaaaa-0000-0000-0000-00000000000a";
+const userB = "bbbbbbbb-0000-0000-0000-00000000000b";
+const conversation = "aaaaaaaa-1111-0000-0000-00000000000a";
+const conversation2 = "aaaaaaaa-1111-0000-0000-00000000000b";
+const home = mkdtempSync(join(tmpdir(), "ocade-agent-"));
+const workspace = mkdtempSync(join(tmpdir(), "ocade-ws-"));
+let lastSigned: { headers: Record<string, string>; body: string } | null = null;
+
+function agent(...args: string[]) {
+  return new Promise<{ code: number; out: string }>((resolve) => {
+    const child = spawn("python3", ["-m", "ocade_agent", ...args, "--server", url], {
+      cwd: agentDir,
+      env: { ...process.env, OCADE_AGENT_HOME: home, PYTHONPATH: agentDir },
+    });
+    let out = "";
+    child.stdout.on("data", (d) => (out += d));
+    child.stderr.on("data", (d) => (out += d));
+    child.on("close", (code) => resolve({ code: code ?? -1, out }));
+  });
+}
+
+before(async () => {
+  if (!ready) return;
+  spawnSync("psql", ["-qc", `CREATE DATABASE ${db}`, "-d", "postgres"]);
+  const setup = [join(root, "tests/jarvis/db/supabase-stub.sql")].concat(
+    readdirSync(join(root, "supabase/migrations"))
+      .filter((f) => f.endsWith(".sql"))
+      .sort()
+      .map((f) => join(root, "supabase/migrations", f)),
+  );
+  for (const file of setup) {
+    const run = spawnSync("psql", ["-X", "-q", "-v", "ON_ERROR_STOP=1", "-d", db, "-f", file], {
+      encoding: "utf8",
+    });
+    if (run.status !== 0) throw new Error(`${file}: ${run.stderr}`);
+  }
+  sql(
+    `INSERT INTO auth.users (id, email) VALUES ('${userA}', 'a@example.test'), ('${userB}', 'b@example.test');
+     INSERT INTO public.ocade_conversations (id, user_id, title, surface) VALUES
+       ('${conversation}', '${userA}', 'J', 'jarvis'), ('${conversation2}', '${userA}', 'J2', 'jarvis');`,
+    "postgres",
+  );
+  spawnSync(
+    "python3",
+    [
+      "-c",
+      `from tests.fixtures import ledger_workbook; from pathlib import Path; ledger_workbook(Path(${JSON.stringify(join(workspace, "Q3 ledger.xlsx"))}))`,
+    ],
+    { cwd: agentDir },
+  );
+
+  server = createServer(async (req, res) => {
+    const chunks: Buffer[] = [];
+    for await (const chunk of req) chunks.push(chunk as Buffer);
+    const body = Buffer.concat(chunks).toString();
+    const headers = Object.fromEntries(Object.entries(req.headers).map(([k, v]) => [k, String(v)]));
+    if (JSON.parse(body || "{}").op === "claim") lastSigned = { headers, body };
+    const request = new Request(`${url}${req.url}`, {
+      method: req.method,
+      headers,
+      body: req.method === "POST" ? body : undefined,
+    });
+    const reply = await handleDeviceRequest(admin, request, "127.0.0.1").catch((error: Error) => ({
+      status: 500,
+      body: { error: error.message },
+    }));
+    res
+      .writeHead(reply.status, { "content-type": "application/json" })
+      .end(JSON.stringify(reply.body));
+  });
+  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const address = server.address();
+  url = `http://127.0.0.1:${typeof address === "object" && address ? address.port : 0}`;
+});
+
+after(() => {
+  server?.close();
+  if (ready)
+    spawnSync("psql", ["-qc", `DROP DATABASE IF EXISTS ${db} WITH (FORCE)`, "-d", "postgres"]);
+});
+
+const sha = (path: string) => createHash("sha256").update(readFileSync(path)).digest("hex");
+
+test(
+  "Journey 1: workbook to verified Word and PDF report through the real pipeline",
+  { skip: !ready },
+  async () => {
+    const enrolled = await agent("enroll", "--name", "E2E PC");
+    const code = /Pairing code: ([0-9A-F]{16})/.exec(enrolled.out)?.[1];
+    assert.ok(code, enrolled.out);
+
+    // A pending device can do nothing until its owner approves the code.
+    assert.equal((await agent("run", "--workspace", workspace, "--until-idle")).code !== 0, true);
+
+    const deviceId = await approveDevice(admin, userA, code);
+    await assert.rejects(
+      startTask(admin, userA, {
+        conversationId: conversation,
+        deviceId,
+        objective: "Reconcile Q3 ledger.xlsx into a report",
+      }),
+      /file access/,
+    );
+    sql(
+      `INSERT INTO public.jarvis_permissions (user_id, device_id, capability, allowed) VALUES
+       ('${userA}', NULL, 'master', true), ('${userA}', '${deviceId}', 'files', true);`,
+      "postgres",
+    );
+
+    // Account B can neither start work on A's computer nor read or stop A's task.
+    await assert.rejects(
+      startTask(admin, userB, {
+        conversationId: conversation,
+        deviceId,
+        objective: "Reconcile Q3 ledger.xlsx",
+      }),
+      /not a JARVIS conversation/,
+    );
+    await assert.rejects(
+      startTask(admin, userA, {
+        conversationId: conversation,
+        deviceId,
+        objective: "Book a flight",
+      }),
+      /reconcile an Excel workbook/,
+    );
+
+    const original = sha(join(workspace, "Q3 ledger.xlsx"));
+    const { taskId } = await startTask(admin, userA, {
+      conversationId: conversation,
+      deviceId,
+      objective: "Reconcile Q3 ledger.xlsx and give me a Word and PDF report",
+    });
+    await assert.rejects(taskView(admin, userB, taskId), /does not exist/);
+    assert.equal(
+      await stopTask(admin, userB, taskId).catch((e: Error) => e.message),
+      "That task does not exist.",
+    );
+
+    const run = await agent("run", "--workspace", workspace, "--until-idle");
+    assert.equal(run.code, 0, run.out);
+
+    const view = await taskView(admin, userA, taskId);
+    assert.equal(view.status, "completed", JSON.stringify(view, null, 2));
+    assert.ok(
+      view.checks.every((c) => c.state === "passed"),
+      JSON.stringify(view.checks),
+    );
+    assert.deepEqual(
+      view.steps.map((s) => s.status),
+      ["done", "done", "done", "done", "done"],
+    );
+
+    // Independent of JARVIS: the files exist where it said, and the original is untouched.
+    const folder = join(workspace, "OCADE output", taskId.slice(0, 8));
+    for (const name of [
+      "Q3 ledger - reconciliation.xlsx",
+      "Q3 ledger - reconciliation report.docx",
+      "Q3 ledger - reconciliation report.pdf",
+    ]) {
+      assert.ok(existsSync(join(folder, name)), name);
+    }
+    assert.equal(sha(join(workspace, "Q3 ledger.xlsx")), original);
+    assert.match(view.result ?? "", /Reconciled 5 rows with 3 exceptions/);
+
+    // A captured request cannot be replayed; an altered one fails its signature.
+    assert.ok(lastSigned);
+    const replay = await fetch(`${url}/api/jarvis/device`, {
+      method: "POST",
+      headers: lastSigned.headers,
+      body: lastSigned.body,
+    });
+    assert.equal(replay.status, 409);
+    const forged = await fetch(`${url}/api/jarvis/device`, {
+      method: "POST",
+      headers: { ...lastSigned.headers, "x-ocade-timestamp": String(Date.now() + 1000) },
+      body: lastSigned.body,
+    });
+    assert.equal(forged.status, 401);
+  },
+);
+
+test("STOP before dispatch: nothing runs and nothing is written", { skip: !ready }, async () => {
+  const deviceId = sql(`SELECT id FROM public.jarvis_devices WHERE user_id = '${userA}'`);
+  const { taskId } = await startTask(admin, userA, {
+    conversationId: conversation2,
+    deviceId,
+    objective: "Reconcile Q3 ledger.xlsx again",
+  });
+  const stopped = await stopTask(admin, userA, taskId);
+  assert.deepEqual(stopped, { status: "stopped", cancelled: 1, inFlight: 0 });
+  await advance(admin, taskId); // a late planner turn changes nothing
+  const run = await agent("run", "--workspace", workspace, "--until-idle");
+  assert.equal(run.code, 0, run.out);
+  const view = await taskView(admin, userA, taskId);
+  assert.equal(view.status, "stopped");
+  assert.deepEqual(
+    view.steps.map((s) => s.status),
+    ["cancelled"],
+  );
+  assert.equal(existsSync(join(workspace, "OCADE output", taskId.slice(0, 8))), false);
+});
+
+test(
+  "STOP while a step runs: in-flight work is cancelled and its effect accounted for",
+  { skip: !ready },
+  async () => {
+    const deviceId = sql(`SELECT id FROM public.jarvis_devices WHERE user_id = '${userA}'`);
+    const { taskId } = await startTask(admin, userA, {
+      conversationId: conversation2,
+      deviceId,
+      objective: "Reconcile Q3 ledger.xlsx a third time",
+    });
+    const running = agent("run", "--workspace", workspace, "--until-idle");
+    const claimedReport = () =>
+      sql(`SELECT count(*) FROM public.jarvis_activity WHERE task_id = '${taskId}'
+          AND status = 'claimed' AND action ->> 'operation' = 'office.write_report'`) === "1";
+    const deadline = Date.now() + 60_000;
+    while (!claimedReport()) {
+      assert.ok(Date.now() < deadline, "the report step never started");
+      await new Promise((r) => setTimeout(r, 50));
+    }
+    const stopped = await stopTask(admin, userA, taskId);
+    assert.deepEqual(stopped, { status: "stopped", cancelled: 0, inFlight: 1 });
+    const run = await running;
+    assert.equal(run.code, 0, run.out);
+
+    const view = await taskView(admin, userA, taskId);
+    assert.equal(view.status, "stopped");
+    assert.deepEqual(
+      view.steps.map((s) => s.status),
+      ["done", "done", "done", "cancelled"],
+    );
+    const receipt = JSON.parse(
+      sql(
+        `SELECT result FROM public.jarvis_activity WHERE task_id = '${taskId}' AND status = 'cancelled'`,
+      ),
+    );
+    // Either the device stopped it (unknown, maybe changed) or it had already finished (observed).
+    assert.ok(
+      (receipt.status === "unknown" &&
+        receipt.maybeChanged === true &&
+        receipt.errorCode === "stopped") ||
+        receipt.status === "observed",
+      JSON.stringify(receipt),
+    );
+    assert.equal(
+      view.checks.some((c) => c.state === "passed"),
+      false,
+    );
+  },
+);
+
+test("a revoked computer is refused at the door", { skip: !ready }, async () => {
+  const deviceId = sql(`SELECT id FROM public.jarvis_devices WHERE user_id = '${userA}'`);
+  sql(`SELECT public.jarvis_revoke_device('${userA}', '${deviceId}')`);
+  const run = await agent("run", "--workspace", workspace, "--until-idle");
+  assert.notEqual(run.code, 0);
+  assert.match(run.out, /not paired/);
+});

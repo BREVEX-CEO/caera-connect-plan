@@ -1,0 +1,307 @@
+{
+  "version": 1,
+  "risks": [
+    "read",
+    "reversible_write"
+  ],
+  "signing": {
+    "prefix": "OCADE-JARVIS-1",
+    "skewSeconds": 300
+  },
+  "operations": {
+    "fs.list": {
+      "role": "fs_sandbox",
+      "capability": "files",
+      "risk": "read",
+      "arguments": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "path": {
+            "default": ".",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 260
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "office.inspect_workbook": {
+      "role": "sys_core",
+      "capability": "files",
+      "risk": "read",
+      "arguments": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 260
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "office.reconcile_workbook": {
+      "role": "sys_core",
+      "capability": "files",
+      "risk": "reversible_write",
+      "arguments": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "source": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 260
+          },
+          "left": {
+            "type": "object",
+            "properties": {
+              "sheet": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 31
+              },
+              "key": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100
+              },
+              "amount": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100
+              }
+            },
+            "required": [
+              "sheet",
+              "key",
+              "amount"
+            ],
+            "additionalProperties": false
+          },
+          "right": {
+            "type": "object",
+            "properties": {
+              "sheet": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 31
+              },
+              "key": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100
+              },
+              "amount": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100
+              }
+            },
+            "required": [
+              "sheet",
+              "key",
+              "amount"
+            ],
+            "additionalProperties": false
+          },
+          "output": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 260
+          }
+        },
+        "required": [
+          "source",
+          "left",
+          "right",
+          "output"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "office.write_report": {
+      "role": "sys_core",
+      "capability": "files",
+      "risk": "reversible_write",
+      "arguments": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "workbook": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 260
+          },
+          "docx": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 260
+          },
+          "pdf": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 260
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          }
+        },
+        "required": [
+          "workbook",
+          "docx",
+          "pdf",
+          "title"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "verify.reconciliation_report": {
+      "role": "verifier",
+      "capability": "files",
+      "risk": "read",
+      "arguments": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "source": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 260
+          },
+          "sourceSha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "left": {
+            "type": "object",
+            "properties": {
+              "sheet": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 31
+              },
+              "key": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100
+              },
+              "amount": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100
+              }
+            },
+            "required": [
+              "sheet",
+              "key",
+              "amount"
+            ],
+            "additionalProperties": false
+          },
+          "right": {
+            "type": "object",
+            "properties": {
+              "sheet": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 31
+              },
+              "key": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100
+              },
+              "amount": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100
+              }
+            },
+            "required": [
+              "sheet",
+              "key",
+              "amount"
+            ],
+            "additionalProperties": false
+          },
+          "workbook": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 260
+          },
+          "docx": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 260
+          },
+          "pdf": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 260
+          }
+        },
+        "required": [
+          "source",
+          "sourceSha256",
+          "left",
+          "right",
+          "workbook",
+          "docx",
+          "pdf"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "receipt": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "status": {
+        "type": "string",
+        "enum": [
+          "observed",
+          "not_applied",
+          "unknown"
+        ]
+      },
+      "maybeChanged": {
+        "type": "boolean"
+      },
+      "observedAtUtc": {
+        "type": "string",
+        "format": "date-time",
+        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+      },
+      "evidence": {
+        "default": {},
+        "type": "object",
+        "propertyNames": {
+          "type": "string",
+          "maxLength": 80
+        },
+        "additionalProperties": {}
+      },
+      "errorCode": {
+        "type": "string",
+        "pattern": "^[a-z0-9_]{1,60}$"
+      }
+    },
+    "required": [
+      "status",
+      "maybeChanged",
+      "observedAtUtc"
+    ],
+    "additionalProperties": false
+  }
+}
