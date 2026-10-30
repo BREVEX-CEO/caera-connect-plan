@@ -8,5 +8,8 @@ pypdf==6.17.0
 pypdfium2==5.13.0
 anyio==4.15.1
 pillow==12.3.0
-# Excel/Word COM on Windows; pin the version the first real Windows qualification run uses.
-pywin32; sys_platform == "win32"
+playwright==1.64.1
+# Windows-only native control: Office COM, UI Automation, last-resort foreground input.
+pywin32==312; sys_platform == "win32"
+pywinauto==0.6.9; sys_platform == "win32"
+pyautogui==0.9.54; sys_platform == "win32"

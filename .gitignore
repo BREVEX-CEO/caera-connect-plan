@@ -33,3 +33,9 @@ supabase/.temp/
 
 # Python bytecode from the JARVIS companion and its tests.
 __pycache__/
+
+# Companion build output.
+device-agent/windows/.build-venv/
+device-agent/windows/build/
+device-agent/windows/dist/
+device-agent/windows/packaging/Output/

@@ -1,16 +1,15 @@
 /**
  * THE FLOATING JARVIS BUBBLE, ON PHONES, EVERYWHERE BUT JARVIS ITSELF.
  *
- * A movable, edge-snapping mini JARVIS with a way into full JARVIS. JARVIS's
- * task engine is retired while a new one is built, so the bubble says it is
- * unavailable and sends nothing.
+ * A movable, edge-snapping mini JARVIS with a way into full JARVIS. Words typed
+ * here open JARVIS with them in its box; they are never sent from the bubble.
  */
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { ArrowUp, ChevronDown, Maximize2, Mic } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { JARVIS_UNAVAILABLE, writePlacement, type Placement } from "./bubble-state";
+import { writePlacement, type Placement } from "./bubble-state";
 
 const SIZE = 52;
 const EDGE = 8;
@@ -26,7 +25,8 @@ export function Bubble({ placement }: { placement: Placement }) {
   );
   const panel = useRef<HTMLDivElement>(null);
   const button = useRef<HTMLButtonElement>(null);
-  const status = "Unavailable";
+  const status = "Ready";
+  const [words, setWords] = useState("");
 
   useEffect(() => {
     const resize = () => setViewport({ w: innerWidth, h: innerHeight });
@@ -79,9 +79,9 @@ export function Bubble({ placement }: { placement: Placement }) {
     setDrag(null);
   };
 
-  const openJarvis = () => {
+  const openJarvis = (ask?: string) => {
     setOpen(false);
-    void navigate({ to: "/ocade-jarvis" });
+    void navigate({ to: "/ocade-jarvis", search: ask?.trim() ? { ask: ask.trim() } : {} });
   };
 
   const panelBelow = y < viewport.h / 2;
@@ -140,13 +140,18 @@ export function Bubble({ placement }: { placement: Placement }) {
 
           <form
             className="mt-3 flex items-center gap-1.5 rounded-full border border-border/70 pl-3 transition-colors focus-within:border-ring"
-            onSubmit={(event) => event.preventDefault()}
+            onSubmit={(event) => {
+              event.preventDefault();
+              openJarvis(words);
+            }}
           >
             <label className="min-w-0 flex-1">
               <span className="sr-only">Ask JARVIS</span>
               <input
-                placeholder="JARVIS is unavailable right now"
-                disabled
+                placeholder="What should JARVIS do?"
+                value={words}
+                maxLength={1000}
+                onChange={(event) => setWords(event.target.value)}
                 className="h-10 w-full bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
               />
             </label>
@@ -160,8 +165,8 @@ export function Bubble({ placement }: { placement: Placement }) {
             </button>
             <button
               type="submit"
-              disabled
-              aria-label="Send"
+              disabled={!words.trim()}
+              aria-label="Open in JARVIS"
               className="mr-0.5 flex h-9 w-9 items-center justify-center rounded-full bg-primary text-primary-foreground transition-opacity disabled:opacity-40"
             >
               <ArrowUp className="h-4 w-4" aria-hidden />
@@ -169,7 +174,7 @@ export function Bubble({ placement }: { placement: Placement }) {
           </form>
 
           <p className="mt-2 px-1 text-xs text-muted-foreground" role="status">
-            {JARVIS_UNAVAILABLE}
+            JARVIS works on a computer you paired. Your words wait in JARVIS until you send them.
           </p>
 
           <button

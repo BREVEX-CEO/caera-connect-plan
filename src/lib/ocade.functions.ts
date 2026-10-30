@@ -110,6 +110,8 @@ export const createConversation = createServerFn({ method: "POST" })
         id: uuid.optional(),
         title: z.string().max(200).optional(),
         modelId: z.string().max(200).optional(),
+        // Fixed at creation (a trigger refuses any later change).
+        surface: z.enum(["chat", "jarvis"]).optional(),
       })
       .parse(i),
   )
@@ -119,6 +121,7 @@ export const createConversation = createServerFn({ method: "POST" })
       .upsert(
         {
           ...(data.id ? { id: data.id } : {}),
+          ...(data.surface ? { surface: data.surface } : {}),
           user_id: context.userId,
           title: data.title ?? "New chat",
           model_id: data.modelId ?? null,

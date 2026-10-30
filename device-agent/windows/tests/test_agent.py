@@ -17,6 +17,7 @@ TESTS = str(Path(__file__).resolve().parent.parent)
 class FakeDevice:
     def __init__(self):
         self.sent = []
+        self.home = Path(tempfile.mkdtemp())
 
     def request(self, payload):
         self.sent.append(payload)

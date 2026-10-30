@@ -27,8 +27,10 @@ def _office_com(program: str):
     if sys.platform != "win32":
         return None
     try:
+        import pythoncom  # type: ignore[import-not-found]
         import win32com.client  # type: ignore[import-not-found]
 
+        pythoncom.CoInitialize()  # tools run on worker threads; COM is per thread
         return win32com.client.DispatchEx(program)
     except Exception:
         return None

@@ -3,6 +3,18 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Trash2, X } from "lucide-react";
 import { deleteConversation, listConversations } from "@/lib/ocade.functions";
+import {
+  confirmJarvisStep,
+  getJarvisTask,
+  listJarvisAccess,
+  listJarvisDevices,
+  pairJarvisDevice,
+  removeJarvisDevice,
+  resumeJarvisTask,
+  setJarvisAccess,
+  stopJarvisTask,
+  takeOverJarvisTask,
+} from "@/lib/jarvis/functions";
 import { toast } from "sonner";
 import { useSession } from "@/lib/session";
 
@@ -128,12 +140,280 @@ function Conversations({
   );
 }
 
-/** Settings > Devices: device control is retired with the old JARVIS engine. */
+const ACCESS: { capability: string; label: string }[] = [
+  { capability: "files", label: "Files in its JARVIS folder" },
+  { capability: "apps", label: "Open and use allowed apps" },
+  { capability: "browser", label: "Use allowed websites" },
+  { capability: "computer_control", label: "Click on screen when nothing else works" },
+];
+
+/** Settings > Devices: pair a computer, choose exactly what JARVIS may use on it, remove it. */
 export function JarvisAccess() {
+  const queryClient = useQueryClient();
+  const devices = useQuery({ queryKey: ["jarvis", "devices"], queryFn: () => listJarvisDevices() });
+  const [code, setCode] = useState("");
+  const refresh = () => void queryClient.invalidateQueries({ queryKey: ["jarvis"] });
   return (
-    <p className="text-sm text-muted-foreground">
-      Connecting computers and phones to OCADE JARVIS is unavailable while JARVIS is being rebuilt.
-      Data JARVIS already holds stays in your account under Privacy & Security.
-    </p>
+    <div className="space-y-4 text-sm">
+      <p className="text-muted-foreground">
+        Install the OCADE JARVIS companion on a Windows computer, choose its JARVIS folder there,
+        then type the pairing code it shows. JARVIS only uses what you turn on below.
+      </p>
+      <form
+        className="flex gap-2"
+        onSubmit={(event) => {
+          event.preventDefault();
+          void pairJarvisDevice({ data: { code } })
+            .then(() => {
+              setCode("");
+              toast.success("Computer paired.");
+              refresh();
+            })
+            .catch((error: Error) => toast.error(error.message));
+        }}
+      >
+        <label className="sr-only" htmlFor="jarvis-pair-code">
+          Pairing code
+        </label>
+        <input
+          id="jarvis-pair-code"
+          value={code}
+          onChange={(event) => setCode(event.target.value.toUpperCase())}
+          placeholder="Pairing code"
+          maxLength={16}
+          pattern="[0-9A-F]{16}"
+          autoComplete="off"
+          className="h-9 flex-1 rounded-md border border-border bg-transparent px-2 font-mono outline-none focus-visible:ring-1 focus-visible:ring-ring"
+        />
+        <button
+          type="submit"
+          disabled={code.length !== 16}
+          className="rounded-md bg-foreground px-3 text-background disabled:opacity-40"
+        >
+          Pair
+        </button>
+      </form>
+      {devices.isError ? (
+        <p className="text-muted-foreground">Your computers could not be loaded.</p>
+      ) : null}
+      {devices.data?.length === 0 ? (
+        <p className="text-muted-foreground">No computer is paired yet.</p>
+      ) : null}
+      {devices.data?.map((device) => (
+        <DeviceAccess key={device.id} device={device} onChanged={refresh} />
+      ))}
+    </div>
+  );
+}
+
+function DeviceAccess({
+  device,
+  onChanged,
+}: {
+  device: Awaited<ReturnType<typeof listJarvisDevices>>[number];
+  onChanged: () => void;
+}) {
+  const granted = useQuery({
+    queryKey: ["jarvis", "access", device.id],
+    queryFn: () => listJarvisAccess({ data: { deviceId: device.id } }),
+  });
+  const [site, setSite] = useState("");
+  const has = (capability: string) => granted.data?.includes(capability) ?? false;
+  const set = (capability: string, allowed: boolean) =>
+    void setJarvisAccess({ data: { deviceId: device.id, capability, allowed } })
+      .then(onChanged)
+      .catch((error: Error) => toast.error(error.message));
+  const apps = (Array.isArray(device.installed_apps) ? device.installed_apps : []) as {
+    name: string;
+    exe: string;
+  }[];
+  const sites = (granted.data ?? []).filter((c) => c.startsWith("site:"));
+  return (
+    <section className="space-y-2 rounded-lg border border-border/60 p-3" aria-label={device.name}>
+      <div className="flex items-center justify-between gap-2">
+        <div className="min-w-0">
+          <h3 className="truncate font-medium">{device.name}</h3>
+          <p className="text-xs text-muted-foreground">
+            {device.last_seen_at ? `Last seen ${when(device.last_seen_at)}` : "Not seen yet"}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => {
+            if (!window.confirm(`Remove ${device.name}? Any task on it stops.`)) return;
+            void removeJarvisDevice({ data: { deviceId: device.id } })
+              .then(onChanged)
+              .catch((error: Error) => toast.error(error.message));
+          }}
+          className="rounded-md px-2 py-1 text-xs text-muted-foreground hover:bg-accent hover:text-destructive"
+        >
+          Remove
+        </button>
+      </div>
+      {ACCESS.map(({ capability, label }) => (
+        <label key={capability} className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={has(capability)}
+            onChange={(e) => set(capability, e.target.checked)}
+          />
+          {label}
+        </label>
+      ))}
+      {has("apps") && apps.length ? (
+        <details>
+          <summary className="cursor-pointer text-muted-foreground">Allowed apps</summary>
+          <div className="mt-1 max-h-48 space-y-1 overflow-y-auto">
+            {apps.map((app) => (
+              <label key={app.exe} className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={has(`app:${app.exe}`)}
+                  onChange={(e) => set(`app:${app.exe}`, e.target.checked)}
+                />
+                <span className="truncate">{app.name}</span>
+              </label>
+            ))}
+          </div>
+        </details>
+      ) : null}
+      {has("browser") ? (
+        <div className="space-y-1">
+          <p className="text-muted-foreground">Allowed websites</p>
+          {sites.map((entry) => (
+            <div key={entry} className="flex items-center justify-between">
+              <span>{entry.slice(5)}</span>
+              <button
+                type="button"
+                className="text-xs text-muted-foreground"
+                onClick={() => set(entry, false)}
+              >
+                Remove
+              </button>
+            </div>
+          ))}
+          <form
+            className="flex gap-2"
+            onSubmit={(event) => {
+              event.preventDefault();
+              set(`site:${site.trim().toLowerCase()}`, true);
+              setSite("");
+            }}
+          >
+            <input
+              value={site}
+              onChange={(event) => setSite(event.target.value)}
+              placeholder="example.com"
+              aria-label="Website to allow"
+              className="h-8 flex-1 rounded-md border border-border bg-transparent px-2 outline-none"
+            />
+            <button
+              type="submit"
+              disabled={!site.trim()}
+              className="rounded-md border border-border px-2"
+            >
+              Allow
+            </button>
+          </form>
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
+const STATUS_WORDS: Record<string, string> = {
+  running: "Working",
+  waiting: "Waiting",
+  taken_over: "You have control",
+  stopped: "Stopped",
+  blocked: "Needs you",
+  failed: "Failed",
+  completed: "Done and checked",
+};
+
+/** One task: what JARVIS is doing, what it proved, and the person's controls. */
+export function TaskPanel({
+  task,
+  onChanged,
+}: {
+  task: Awaited<ReturnType<typeof getJarvisTask>>;
+  onChanged: () => void;
+}) {
+  const open = ["running", "waiting", "taken_over"].includes(task.status);
+  const act = (work: Promise<unknown>) =>
+    void work.then(onChanged).catch((error: Error) => toast.error(error.message));
+  return (
+    <section
+      aria-label="JARVIS task"
+      aria-live="polite"
+      className="mx-auto mb-2 w-full max-w-2xl rounded-2xl border border-border/60 p-3 text-sm"
+    >
+      <div className="flex items-center gap-2">
+        <span className="font-medium">{STATUS_WORDS[task.status] ?? task.status}</span>
+        <span className="min-w-0 flex-1 truncate text-muted-foreground">{task.title}</span>
+        {task.status === "running" ? (
+          <button
+            type="button"
+            onClick={() => act(takeOverJarvisTask({ data: { taskId: task.id } }))}
+            className="rounded-full border border-border px-3 py-1 hover:bg-accent"
+          >
+            Take over
+          </button>
+        ) : null}
+        {task.status === "taken_over" || task.status === "waiting" ? (
+          <button
+            type="button"
+            onClick={() => act(resumeJarvisTask({ data: { taskId: task.id } }))}
+            className="rounded-full border border-border px-3 py-1 hover:bg-accent"
+          >
+            Resume
+          </button>
+        ) : null}
+        {open ? (
+          <button
+            type="button"
+            onClick={() => act(stopJarvisTask({ data: { taskId: task.id } }))}
+            className="rounded-full bg-destructive px-3 py-1 font-medium text-destructive-foreground"
+          >
+            STOP
+          </button>
+        ) : null}
+      </div>
+      {task.blocker ? <p className="mt-1 text-muted-foreground">{task.blocker}</p> : null}
+      <ol className="mt-2 space-y-1">
+        {task.steps.map((step) => (
+          <li key={step.id} className="flex items-center gap-2">
+            <span className="w-20 shrink-0 text-xs text-muted-foreground">
+              {step.status.replace("_", " ")}
+            </span>
+            <span className="min-w-0 flex-1 truncate">{step.summary}</span>
+            {step.needsConfirmation ? (
+              <button
+                type="button"
+                onClick={() => act(confirmJarvisStep({ data: { activityId: step.id } }))}
+                className="rounded-full bg-foreground px-3 py-0.5 text-xs text-background"
+              >
+                Allow this step
+              </button>
+            ) : null}
+          </li>
+        ))}
+      </ol>
+      {task.checks.length ? (
+        <ul className="mt-2 space-y-0.5 text-xs">
+          {task.checks.map((check) => (
+            <li key={check.id}>
+              {check.state === "passed" ? "✓" : check.state === "failed" ? "✗" : "·"}{" "}
+              {check.description}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      {task.artifacts.length ? (
+        <p className="mt-2 text-xs text-muted-foreground">
+          Saved on your computer, in its JARVIS folder: {task.artifacts.join(", ")}
+        </p>
+      ) : null}
+    </section>
   );
 }

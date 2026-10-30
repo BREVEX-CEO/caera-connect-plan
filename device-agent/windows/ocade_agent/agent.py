@@ -1,31 +1,36 @@
 """The companion's loop: ask for work, run it through the gateway, report what happened.
 
-    python -m ocade_agent enroll --server https://ocade.in --name "My PC"
-    python -m ocade_agent run --server https://ocade.in --workspace "C:\\Users\\me\\Documents\\JARVIS"
+    ocade_agent enroll --server https://ocade.in --workspace "C:\\Users\\me\\Documents\\JARVIS"
+    ocade_agent run          (server and workspace remembered from enroll)
+    ocade_agent stop         (local STOP: no network, no model)
 
 Outbound only. While an action runs, the loop keeps asking the server about its
-task; the moment the task is no longer running (STOP, revoke, owner pause) the
-in-flight call is cancelled and its worker process ended. Ctrl+C is the local
-STOP and needs no network or model.
+task; the moment the task is no longer running (STOP, Take Over, revoke, owner
+pause) or the local STOP flag appears, the in-flight call is cancelled and its
+worker process ended.
 """
 
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import platform
 import random
+import runpy
 import sys
 from pathlib import Path
 
 import anyio
 
+from . import discovery
 from .device import Device
-from .gateway import Gateway, receipt
+from .gateway import WORKERS, Gateway, receipt
 from .journal import Journal
 
 VERSION = "0.1.0"
 WATCH_SECONDS = 2.0
+TICK_SECONDS = 0.25
 
 
 def default_home() -> Path:
@@ -33,9 +38,17 @@ def default_home() -> Path:
     return Path(os.environ.get("OCADE_AGENT_HOME") or Path(base) / "OCADE" / "agent")
 
 
+class LocalStop(Exception):
+    pass
+
+
 class Agent:
-    def __init__(self, device: Device, journal: Journal, gateway: Gateway):
+    def __init__(self, device: Device, journal: Journal, gateway: Gateway, stop_flag: Path | None = None):
         self.device, self.journal, self.gateway = device, journal, gateway
+        self.stop_flag = stop_flag or device.home / "STOP"
+
+    def stopped_here(self) -> bool:
+        return self.stop_flag.exists()
 
     async def claim(self) -> dict:
         status, body = await anyio.to_thread.run_sync(self.device.request, {"op": "claim"})
@@ -55,17 +68,23 @@ class Agent:
                 group.cancel_scope.cancel()
 
             async def watch() -> None:
+                waited = 0.0
                 while True:
-                    await anyio.sleep(WATCH_SECONDS)
+                    await anyio.sleep(TICK_SECONDS)
+                    waited += TICK_SECONDS
+                    if self.stopped_here():  # local STOP: no network needed
+                        break
+                    if waited < WATCH_SECONDS:
+                        continue
+                    waited = 0.0
                     try:
                         state = await self.claim()
                     except ConnectionError:
                         continue  # offline: keep the already-authorized step, decide nothing new
-                    action = state.get("action") or {}
-                    if action.get("id") != activity:
-                        self.gateway.stop()
-                        group.cancel_scope.cancel()
-                        return
+                    if (state.get("action") or {}).get("id") != activity:
+                        break
+                self.gateway.stop()
+                group.cancel_scope.cancel()
 
             group.start_soon(work)
             group.start_soon(watch)
@@ -95,8 +114,13 @@ class Agent:
             await anyio.sleep(2 + random.random() * 3)
 
     async def run(self, until_idle: bool = False) -> None:
+        apps = await anyio.to_thread.run_sync(discovery.installed_apps)
+        if apps:  # what the person can choose from in Allowed Apps
+            await anyio.to_thread.run_sync(self.device.request, {"op": "inventory", "apps": apps})
         idle = 1.0
         while True:
+            if self.stopped_here():
+                raise LocalStop()
             try:
                 state = await self.claim()
             except ConnectionError as error:
@@ -115,22 +139,42 @@ class Agent:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="ocade_agent")
-    parser.add_argument("command", choices=["enroll", "run"])
-    parser.add_argument("--server", required=True)
+    parser.add_argument("command", choices=["enroll", "run", "stop", "worker"])
+    parser.add_argument("module", nargs="?", help=argparse.SUPPRESS)
+    parser.add_argument("--server")
     parser.add_argument("--name", default=platform.node() or "My computer")
     parser.add_argument("--workspace")
     parser.add_argument("--until-idle", action="store_true")
     args = parser.parse_args(argv)
     home = default_home()
-    device = Device(home, args.server)
+    if args.command == "worker":  # the packaged executable hosting one capability worker
+        if args.module not in set(WORKERS.values()):
+            return 2
+        runpy.run_module(args.module, run_name="__main__")
+        return 0
+    if args.command == "stop":
+        home.mkdir(parents=True, exist_ok=True)
+        (home / "STOP").touch()
+        print("STOP: OCADE JARVIS stops its current step now and starts nothing new.")
+        return 0
+
+    saved = json.loads((home / "device.json").read_text()) if (home / "device.json").exists() else {}
+    server = args.server or saved.get("server")
+    workspace = args.workspace or saved.get("workspace")
+    if not server:
+        print("--server is required the first time", file=sys.stderr)
+        return 2
+    if not workspace or not Path(workspace).is_dir():
+        print("--workspace must be an existing folder you choose for JARVIS", file=sys.stderr)
+        return 2
+    device = Device(home, server)
+    device.config.update(server=server, workspace=str(Path(workspace).resolve()))
     if args.command == "enroll":
         enrolled = device.enroll(args.name, f"{platform.system()} {platform.release()}"[:60], VERSION)
         print(f"Pairing code: {enrolled['code']}  (type it in OCADE JARVIS within 10 minutes)")
         return 0
-    if not args.workspace or not Path(args.workspace).is_dir():
-        print("--workspace must be an existing folder you choose for JARVIS", file=sys.stderr)
-        return 2
-    gateway = Gateway(str(Path(args.workspace).resolve()))
+    (home / "STOP").unlink(missing_ok=True)  # starting again is the person's decision
+    gateway = Gateway(device.config["workspace"], home=str(home))
 
     async def go() -> str | None:
         async with gateway:
@@ -138,11 +182,15 @@ def main(argv: list[str] | None = None) -> int:
                 await Agent(device, Journal(home / "journal.sqlite"), gateway).run(args.until_idle)
             except ConnectionError as error:
                 return str(error)
+            except LocalStop:
+                return "stop"
         return None
 
     try:
         refused = anyio.run(go)
-        if refused:
+        if refused == "stop":
+            print("Stopped on this computer.", file=sys.stderr)
+        elif refused:
             print(f"This computer is not paired with OCADE, or was removed ({refused}).", file=sys.stderr)
             return 3
     except KeyboardInterrupt:

@@ -2,12 +2,15 @@ import { QualityControl } from "@/lib/intelligence/QualityControl";
 /**
  * The OCADE JARVIS workspace: a compact rail, the conversation and the composer.
  *
- * JARVIS's task engine is retired while a new one is built, so nothing here
- * sends, plans or runs work. Past JARVIS conversations stay readable and
- * deletable; the composer says plainly that JARVIS is unavailable.
+ * Send opens a task on the chosen paired computer through the server task
+ * authority; the task panel follows it, with STOP, Take Over, Resume and step
+ * confirmation. JARVIS's own answer is written into the conversation by the
+ * server when the task settles, so history is the same whoever is watching.
  */
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import {
   ArrowUp,
   Menu,
@@ -28,8 +31,17 @@ import { useSettingsPanel } from "@/components/settings/settings-panel";
 import { loadChatMessages } from "@/lib/ocade-chat-store";
 import { cn, typedBeforeHydration } from "@/lib/utils";
 import { useJarvisPreferences, readPreferences, writePreferences } from "./preferences";
-import { SectionPanel, type Section } from "./JarvisPanels";
-import { JARVIS_UNAVAILABLE, takeHandOff } from "./bubble-state";
+import { SectionPanel, TaskPanel, type Section } from "./JarvisPanels";
+import { takeHandOff } from "./bubble-state";
+import { appendOcadeMessage, createConversation } from "@/lib/ocade.functions";
+import {
+  getJarvisTask,
+  latestJarvisTask,
+  listJarvisDevices,
+  startJarvisTask,
+} from "@/lib/jarvis/functions";
+
+const OPEN_STATUSES = ["running", "waiting", "taken_over"];
 
 interface Turn {
   id: string;
@@ -117,13 +129,78 @@ export function JarvisWorkspace({
     return () => window.removeEventListener("keydown", onKey);
   }, [drawerOpen]);
 
+  const queryClient = useQueryClient();
+  const devices = useQuery({
+    queryKey: ["jarvis", "devices"],
+    queryFn: () => listJarvisDevices(),
+    enabled: signedIn,
+  });
+  const [deviceId, setDeviceId] = useState<string | null>(null);
+  const device = devices.data?.find((d) => d.id === deviceId) ?? devices.data?.[0] ?? null;
+  const latest = useQuery({
+    queryKey: ["jarvis", "latest", conversationId],
+    queryFn: () => latestJarvisTask({ data: { conversationId: conversationId! } }),
+    enabled: signedIn && Boolean(conversationId),
+  });
+  const taskId = latest.data?.taskId ?? null;
+  // Bounded polling while a task is open; the server, not this tab, holds the task.
+  const task = useQuery({
+    queryKey: ["jarvis", "task", taskId],
+    queryFn: () => getJarvisTask({ data: { taskId: taskId! } }),
+    enabled: Boolean(taskId),
+    refetchInterval: (query) =>
+      query.state.data && OPEN_STATUSES.includes(query.state.data.status) ? 2_000 : false,
+  });
+  const taskOpen = Boolean(task.data && OPEN_STATUSES.includes(task.data.status));
+  // When a task settles, its answer is in the conversation: read it again.
+  const settled = task.data && !taskOpen ? task.data.status : null;
+  useEffect(() => {
+    if (settled) setReloads((n) => n + 1);
+  }, [settled]);
+  const [sending, setSending] = useState(false);
+
+  const send = async () => {
+    const objective = draft.trim();
+    if (!objective || !device || sending) return;
+    setSending(true);
+    try {
+      const conversation =
+        conversationId ??
+        (await createConversation({ data: { surface: "jarvis", title: objective.slice(0, 80) } }))
+          .id;
+      await appendOcadeMessage({
+        data: { conversationId: conversation, role: "user", content: objective },
+      });
+      await startJarvisTask({
+        data: { conversationId: conversation, deviceId: device.id, objective },
+      });
+      setDraft("");
+      if (conversation !== conversationId) {
+        void navigate({ to: "/ocade-jarvis", search: { c: conversation } });
+      } else {
+        setReloads((n) => n + 1);
+      }
+      void queryClient.invalidateQueries({ queryKey: ["jarvis"] });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "JARVIS could not start that.");
+    } finally {
+      setSending(false);
+    }
+  };
+
   const bottom = useRef<HTMLDivElement>(null);
   const followScroll = useFollowBottom(bottom, `${turns.length}`, `${conversationId}`);
   const sendBlockedReason = !signedIn
     ? null
-    : loading
+    : loading || devices.isPending
       ? "Loading your account…"
-      : JARVIS_UNAVAILABLE;
+      : !device
+        ? "Pair a computer in Settings › Devices to give JARVIS somewhere to work."
+        : taskOpen
+          ? "JARVIS is working on a task in this conversation."
+          : sending
+            ? "Starting…"
+            : null;
 
   const rail = (mobile: boolean, expanded = mobile || prefs.railExpanded) => (
     <nav
@@ -292,7 +369,10 @@ export function JarvisWorkspace({
               {transcript === "ready" && turns.length === 0 ? (
                 <div className="mt-[22vh] text-center">
                   <h2 className="text-2xl font-semibold tracking-tight">What should JARVIS do?</h2>
-                  <p className="mt-2 text-sm text-muted-foreground">{JARVIS_UNAVAILABLE}</p>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    Describe the outcome. JARVIS works on your paired computer and checks the
+                    result.
+                  </p>
                 </div>
               ) : null}
               {/* A question is a compact bubble; an answer is prose to read, as in Chat. */}
@@ -316,14 +396,37 @@ export function JarvisWorkspace({
         </div>
 
         <div className="px-3 pb-3">
+          {task.data ? (
+            <TaskPanel
+              task={task.data}
+              onChanged={() => void queryClient.invalidateQueries({ queryKey: ["jarvis"] })}
+            />
+          ) : null}
           <div className="mx-auto max-w-2xl">
             <div className="flex flex-wrap items-start justify-between gap-x-3">
               <QualityControl value="standard" onChange={() => undefined} disabled />
+              {(devices.data?.length ?? 0) > 1 ? (
+                <label className="flex items-center gap-1 text-xs text-muted-foreground">
+                  Computer
+                  <select
+                    value={device?.id ?? ""}
+                    onChange={(event) => setDeviceId(event.target.value)}
+                    className="rounded-md border border-border bg-transparent px-1 py-0.5"
+                  >
+                    {devices.data!.map((d) => (
+                      <option key={d.id} value={d.id}>
+                        {d.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ) : null}
             </div>
             <form
               onSubmit={(event) => {
                 event.preventDefault();
                 if (!signedIn) void navigate({ to: "/auth", search: { next: "/ocade-jarvis" } });
+                else void send();
               }}
               className="glass-strong relative flex items-end gap-2 rounded-[28px] p-2 pl-3 shadow-sm transition-shadow focus-within:shadow-md"
             >
@@ -335,9 +438,7 @@ export function JarvisWorkspace({
                 value={draft}
                 rows={1}
                 maxLength={8000}
-                placeholder={
-                  signedIn ? "JARVIS is unavailable right now" : "Sign in to talk to JARVIS"
-                }
+                placeholder={signedIn ? "What should JARVIS do?" : "Sign in to talk to JARVIS"}
                 onChange={(event) => setDraft(event.target.value)}
                 className="max-h-40 min-h-10 flex-1 resize-none bg-transparent px-2 py-2 text-[15px] outline-none placeholder:text-muted-foreground"
               />
@@ -345,7 +446,7 @@ export function JarvisWorkspace({
                 type="button"
                 aria-label="Start voice"
                 disabled
-                title={JARVIS_UNAVAILABLE}
+                title="Voice is not available in JARVIS yet"
                 className="grid h-10 w-10 place-items-center rounded-full text-muted-foreground disabled:opacity-40"
               >
                 <Mic className="h-4 w-4" aria-hidden />

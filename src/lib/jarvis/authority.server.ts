@@ -22,7 +22,14 @@ import {
   deviceRequest,
   type OutcomeCheck,
 } from "./contracts.ts";
-import { JOURNEY_1_CHECKS, decide, supportedOutcome, type Step } from "./supervisor.ts";
+import {
+  JOURNEY_1_CHECKS,
+  decide,
+  supportedOutcome,
+  type Decision,
+  type Step,
+} from "./supervisor.ts";
+import { PlannerUnavailable, compileGoal, planStep } from "./planner.server.ts";
 
 export type Admin = Pick<SupabaseClient<Database>, "rpc">;
 
@@ -39,7 +46,8 @@ const REFUSALS: Record<string, string> = {
   jarvis_paused: "JARVIS is paused by OCADE right now. Nothing was started.",
   conversation_not_found: "That conversation is not a JARVIS conversation of yours.",
   device_unavailable: "That computer is not paired with your account, or was removed.",
-  permission_required: "Turn on file access for that computer first.",
+  permission_required:
+    "Turn on file access (and any app or website it needs) for that computer first.",
   busy: "That computer or conversation is already running a task. Stop it or wait.",
   task_not_found: "That task does not exist.",
   unknown_code: "That pairing code is wrong or has expired.",
@@ -80,6 +88,8 @@ interface TaskState {
   blocker: string | null;
   result: string | null;
   checkpoint: Record<string, unknown> | null;
+  conversationId: string;
+  grants: string[];
   steps: { id: string; summary: string; intent: unknown; status: string; receipt: unknown }[];
 }
 
@@ -99,13 +109,30 @@ export async function advance(admin: Admin, taskId: string, now = new Date()): P
     status: step.status,
     receipt: step.receipt ? (actionReceipt.safeParse(step.receipt).data ?? null) : null,
   }));
-  const decision = decide({
-    taskId,
-    objective: task.title,
-    checks: task.outcome ?? [],
-    steps,
-    now,
-  });
+  const checks = task.outcome ?? [];
+  let decision: Decision;
+  if (checks.every((check) => !check.kind)) {
+    decision = decide({ taskId, objective: task.title, checks, steps, now });
+  } else {
+    try {
+      decision = await planStep({
+        userId: task.userId,
+        objective: task.title,
+        checks,
+        steps,
+        grants: task.grants,
+        now,
+      });
+    } catch (error) {
+      if (!(error instanceof PlannerUnavailable)) throw error;
+      await call(admin, "jarvis_task_wait", {
+        p_task: taskId,
+        p_controller: task.controller,
+        p_reason: "JARVIS's online planner is unavailable. Your task is saved; resume it later.",
+      });
+      return;
+    }
+  }
   try {
     if (decision.kind === "queue") {
       await call(admin, "jarvis_queue_actions", {
@@ -143,11 +170,23 @@ export async function startTask(
   input: { conversationId: string; deviceId: string; objective: string },
 ) {
   const objective = input.objective.replace(/\s+/g, " ").trim().slice(0, 200);
+  let checks = JOURNEY_1_CHECKS;
   if (!supportedOutcome(objective)) {
-    throw new JarvisRefusal(
-      "unsupported",
-      "JARVIS can reconcile an Excel workbook into a Word and PDF report today. Other work is not available yet.",
-    );
+    const grants = await call<string[]>(admin, "jarvis_grants", {
+      p_user: userId,
+      p_device: input.deviceId,
+    });
+    try {
+      checks = await compileGoal(userId, objective, grants);
+    } catch (error) {
+      if (!(error instanceof PlannerUnavailable)) throw error;
+      throw new JarvisRefusal(
+        "planner_unavailable",
+        error.message === "online_not_consented"
+          ? "Turn on Online Intelligence in Settings to let JARVIS plan this. Nothing was started."
+          : "JARVIS's online planner is unavailable right now. Nothing was started.",
+      );
+    }
   }
   const [opened] = await call<{ task_id: string; status: string; reused: boolean }[]>(
     admin,
@@ -157,8 +196,8 @@ export async function startTask(
       p_conversation: input.conversationId,
       p_device: input.deviceId,
       p_title: objective,
-      p_outcome: JOURNEY_1_CHECKS as unknown as Json,
-      p_plan: JOURNEY_1_CHECKS.map((c) => c.description) as unknown as Json,
+      p_outcome: checks as unknown as Json,
+      p_plan: checks.map((c) => c.description) as unknown as Json,
     },
   );
   if (!opened.reused) await advance(admin, opened.task_id);
@@ -173,6 +212,19 @@ export async function stopTask(admin: Admin, userId: string, taskId: string) {
   );
   // "Stopped" is the fence; a step already running on the computer may still finish.
   return { status: stopped.status, cancelled: stopped.cancelled, inFlight: stopped.in_flight };
+}
+
+export async function takeOver(admin: Admin, userId: string, taskId: string) {
+  return call<string>(admin, "jarvis_take_over", { p_user: userId, p_task: taskId });
+}
+
+export async function resumeTask(admin: Admin, userId: string, taskId: string) {
+  await call<string>(admin, "jarvis_resume_task", { p_user: userId, p_task: taskId });
+  await advance(admin, taskId);
+}
+
+export function confirmAction(admin: Admin, userId: string, activityId: string) {
+  return call<boolean>(admin, "jarvis_confirm_action", { p_user: userId, p_activity: activityId });
 }
 
 /** The owner's view: status, checks and each step's summary — no controller, no raw evidence. */
@@ -199,7 +251,20 @@ export async function taskView(admin: Admin, userId: string, taskId: string) {
           ? "failed"
           : "unchecked",
     })),
-    steps: task.steps.map((step) => ({ summary: step.summary, status: step.status })),
+    steps: task.steps.map((step) => ({
+      id: step.id,
+      summary: step.summary,
+      status: step.status,
+      needsConfirmation: step.status === "needs_confirmation",
+    })),
+    // Files JARVIS wrote and saw land, named as they are in the computer's JARVIS folder.
+    artifacts: task.steps.flatMap((step) => {
+      const parsed = actionIntent.safeParse(step.intent);
+      if (step.status !== "done" || !parsed.success || parsed.data.risk === "read") return [];
+      return ["output", "docx", "pdf", "path"]
+        .map((name) => parsed.data.arguments[name])
+        .filter((value): value is string => typeof value === "string");
+    }),
   };
 }
 
@@ -346,6 +411,13 @@ export async function handleDeviceRequest(
       return refuse(409, "replayed");
     }
 
+    if (parsed.op === "inventory") {
+      await call(admin, "jarvis_device_inventory", {
+        p_device: deviceId,
+        p_apps: parsed.apps as unknown as Json,
+      });
+      return { status: 200, body: { inventory: "recorded" } };
+    }
     if (parsed.op === "receipt") {
       const [recorded] = await call<{ outcome: string; task_id: string }[]>(
         admin,

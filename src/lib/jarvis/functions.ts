@@ -1,6 +1,6 @@
 /**
- * JARVIS for the signed-in person: Send, STOP, read a task, pair or remove a
- * computer, turn its file access on or off.
+ * JARVIS for the signed-in person: Send, STOP, Take Over, Resume, confirm a
+ * step, read a task, pair or remove a computer, and choose what it may use.
  *
  * THE ACCOUNT IS ALWAYS `context.userId`, NEVER AN INPUT. Every write goes
  * through the server-only task authority with the service role, after
@@ -89,25 +89,90 @@ export const removeJarvisDevice = createServerFn({ method: "POST" })
     return { removed: await guarded(() => revokeDevice(admin, context.userId, data.deviceId)) };
   });
 
-/** File access for one paired computer: the master switch plus `files`, as the person's own rows. */
-export const setJarvisFileAccess = createServerFn({ method: "POST" })
+export const takeOverJarvisTask = createServerFn({ method: "POST" })
   .middleware([requireSession])
-  .validator((i) => z.object({ deviceId: uuid, allowed: z.boolean() }).parse(i))
+  .validator((i) => z.object({ taskId: uuid }).parse(i))
+  .handler(async ({ data, context }) => {
+    const { admin, takeOver } = await authority();
+    return { status: await guarded(() => takeOver(admin, context.userId, data.taskId)) };
+  });
+
+export const resumeJarvisTask = createServerFn({ method: "POST" })
+  .middleware([requireSession])
+  .validator((i) => z.object({ taskId: uuid }).parse(i))
+  .handler(async ({ data, context }) => {
+    const { admin, resumeTask } = await authority();
+    await guarded(() => resumeTask(admin, context.userId, data.taskId));
+    return { resumed: true };
+  });
+
+export const confirmJarvisStep = createServerFn({ method: "POST" })
+  .middleware([requireSession])
+  .validator((i) => z.object({ activityId: uuid }).parse(i))
+  .handler(async ({ data, context }) => {
+    const { admin, confirmAction } = await authority();
+    return {
+      confirmed: await guarded(() => confirmAction(admin, context.userId, data.activityId)),
+    };
+  });
+
+/** The newest task in one JARVIS conversation, if any (read as the person, under RLS). */
+export const latestJarvisTask = createServerFn({ method: "GET" })
+  .middleware([requireSession])
+  .validator((i) => z.object({ conversationId: uuid }).parse(i))
+  .handler(async ({ data, context }) => {
+    const { data: row } = await context.supabase
+      .from("jarvis_tasks")
+      .select("id")
+      .eq("conversation_id", data.conversationId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    return { taskId: row?.id ?? null };
+  });
+
+const capability = z.union([
+  z.enum(["files", "apps", "browser", "computer_control"]),
+  z.string().regex(/^site:[a-z0-9]([a-z0-9.-]{0,251}[a-z0-9])?$/),
+  z.string().regex(/^app:[a-z0-9 ._()+-]{1,76}\.exe$/),
+]);
+
+/**
+ * One of a paired computer's permissions, as the person's own row (RLS). Turning
+ * anything on also turns on the account's JARVIS master switch.
+ */
+export const setJarvisAccess = createServerFn({ method: "POST" })
+  .middleware([requireSession])
+  .validator((i) => z.object({ deviceId: uuid, capability, allowed: z.boolean() }).parse(i))
   .handler(async ({ data, context }) => {
     const rows = [
-      { user_id: context.userId, device_id: null, capability: "master", allowed: true },
       {
         user_id: context.userId,
         device_id: data.deviceId,
-        capability: "files",
+        capability: data.capability,
         allowed: data.allowed,
       },
+      ...(data.allowed
+        ? [{ user_id: context.userId, device_id: null, capability: "master", allowed: true }]
+        : []),
     ];
     const { error } = await context.supabase
       .from("jarvis_permissions")
-      .upsert(data.allowed ? rows : rows.slice(1), { onConflict: "user_id,device_id,capability" });
+      .upsert(rows, { onConflict: "user_id,device_id,capability" });
     if (error) throw new Error("JARVIS could not change that permission just now.");
     return { allowed: data.allowed };
+  });
+
+export const listJarvisAccess = createServerFn({ method: "GET" })
+  .middleware([requireSession])
+  .validator((i) => z.object({ deviceId: uuid }).parse(i))
+  .handler(async ({ data, context }) => {
+    const { data: rows, error } = await context.supabase
+      .from("jarvis_permissions")
+      .select("capability, allowed")
+      .eq("device_id", data.deviceId);
+    if (error) throw new Error("JARVIS could not read that computer's permissions just now.");
+    return (rows ?? []).filter((row) => row.allowed).map((row) => row.capability);
   });
 
 export const listJarvisDevices = createServerFn({ method: "GET" })
@@ -115,7 +180,7 @@ export const listJarvisDevices = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { data, error } = await context.supabase
       .from("jarvis_devices")
-      .select("id, name, platform, last_seen_at, software_version")
+      .select("id, name, platform, last_seen_at, software_version, installed_apps")
       .is("revoked_at", null)
       .eq("kind", "agent")
       .order("created_at", { ascending: false });

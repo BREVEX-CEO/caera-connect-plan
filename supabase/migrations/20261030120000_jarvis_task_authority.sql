@@ -58,6 +58,35 @@ AS $$
   FROM unnest(ARRAY['master', p_capability]) AS wanted;
 $$;
 
+-- An action's own capability, plus the exact app or website it targets.
+CREATE OR REPLACE FUNCTION public.jarvis_action_allowed(p_user uuid, p_device uuid, p_action jsonb)
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY INVOKER
+SET search_path TO ''
+AS $$
+  SELECT public.jarvis_allowed(p_user, p_device, p_action ->> 'capability')
+     AND (p_action -> 'target' ->> 'app' IS NULL
+          OR public.jarvis_allowed(p_user, p_device, 'app:' || (p_action -> 'target' ->> 'app')))
+     AND (p_action -> 'target' ->> 'site' IS NULL
+          OR public.jarvis_allowed(p_user, p_device, 'site:' || (p_action -> 'target' ->> 'site')));
+$$;
+
+-- Everything a person has turned on for one device (and account-wide), for planning and display.
+CREATE OR REPLACE FUNCTION public.jarvis_grants(p_user uuid, p_device uuid)
+RETURNS jsonb
+LANGUAGE sql
+STABLE
+SECURITY INVOKER
+SET search_path TO ''
+AS $$
+  SELECT coalesce(jsonb_agg(DISTINCT p.capability), '[]'::jsonb)
+    FROM public.jarvis_permissions AS p
+   WHERE p.user_id = p_user AND (p.device_id = p_device OR p.device_id IS NULL)
+     AND public.jarvis_allowed(p_user, p_device, p.capability);
+$$;
+
 -- 3. Device enrollment, approval and revocation -------------------------------------------
 
 -- The code a device shows and its owner types: the first 16 hex digits of its key's hash.
@@ -155,6 +184,19 @@ AS $$
    WHERE d.id = p_device AND d.user_id IS NOT NULL AND d.revoked_at IS NULL;
 $$;
 
+-- JARVIS's answer lands in the task's own conversation once, whoever is watching.
+CREATE OR REPLACE FUNCTION public.jarvis_tell(p_task uuid, p_text text)
+RETURNS void
+LANGUAGE sql
+SECURITY INVOKER
+SET search_path TO ''
+AS $$
+  INSERT INTO public.ocade_messages (conversation_id, user_id, role, content, client_key)
+  SELECT t.conversation_id, t.user_id, 'assistant', p_text, 'jarvis:' || t.id || ':' || t.status
+    FROM public.jarvis_tasks AS t WHERE t.id = p_task
+  ON CONFLICT (user_id, client_key) DO NOTHING;
+$$;
+
 -- 4. Task lifecycle -----------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION public.jarvis_open_task(
@@ -232,17 +274,18 @@ BEGIN
     RAISE EXCEPTION 'invalid_actions' USING ERRCODE = '22023';
   END IF;
   FOR v_item IN SELECT value FROM jsonb_array_elements(p_actions) LOOP
-    -- Version 1 runs only reads and reversible writes; anything else fails closed.
-    IF v_item -> 'action' ->> 'risk' NOT IN ('read', 'reversible_write') THEN
+    -- Reads and reversible writes run; an external effect waits for the person; nothing else.
+    IF v_item -> 'action' ->> 'risk' NOT IN ('read', 'reversible_write', 'external_effect') THEN
       RAISE EXCEPTION 'risk_not_supported' USING ERRCODE = '42501';
     END IF;
-    IF NOT public.jarvis_allowed(v_task.user_id, v_task.device_id, v_item -> 'action' ->> 'capability') THEN
+    IF NOT public.jarvis_action_allowed(v_task.user_id, v_task.device_id, v_item -> 'action') THEN
       RAISE EXCEPTION 'permission_required' USING ERRCODE = '42501';
     END IF;
     -- clock_timestamp: actions queued together keep their order (dispatch sorts by it).
     INSERT INTO public.jarvis_activity (user_id, task_id, device_id, summary, action, status, controller, created_at)
     VALUES (v_task.user_id, p_task, v_task.device_id, v_item ->> 'summary', v_item -> 'action',
-            'queued', p_controller, clock_timestamp())
+            CASE WHEN v_item -> 'action' ->> 'risk' = 'external_effect' THEN 'needs_confirmation' ELSE 'queued' END,
+            p_controller, clock_timestamp())
     ON CONFLICT (task_id, (action ->> 'key')) WHERE action IS NOT NULL DO NOTHING;
     IF FOUND THEN
       v_queued := v_queued + 1;
@@ -294,7 +337,7 @@ BEGIN
      FOR UPDATE SKIP LOCKED;
     IF FOUND THEN
       -- Permission is rechecked at the moment of dispatch, not only when queued.
-      IF NOT public.jarvis_allowed(v_device.user_id, p_device, v_action.action ->> 'capability') THEN
+      IF NOT public.jarvis_action_allowed(v_device.user_id, p_device, v_action.action) THEN
         UPDATE public.jarvis_activity AS a
            SET status = 'blocked', completed_at = statement_timestamp(),
                result = jsonb_build_object('status', 'not_applied', 'errorCode', 'permission_revoked')
@@ -406,6 +449,9 @@ BEGIN
      SET status = 'cancelled', completed_at = statement_timestamp()
    WHERE a.task_id = p_task AND a.status IN ('queued', 'claimed', 'needs_confirmation');
   GET DIAGNOSTICS v_cancelled = ROW_COUNT;
+  PERFORM public.jarvis_tell(p_task, CASE WHEN v_in_flight > 0
+    THEN 'Stopped. A step that was already running on your computer may have finished; nothing new will start.'
+    ELSE 'Stopped. Nothing more will run.' END);
   RETURN QUERY SELECT 'stopped'::text, v_cancelled - v_in_flight, v_in_flight;
 END;
 $$;
@@ -451,6 +497,7 @@ BEGIN
            controller = NULL, finished_at = statement_timestamp(), updated_at = statement_timestamp(),
            checkpoint = jsonb_build_object('phase', 'completed', 'verification', p_verification)
      WHERE t.id = p_task;
+    PERFORM public.jarvis_tell(p_task, left(p_summary, 8000));
     RETURN 'completed';
   END IF;
   UPDATE public.jarvis_tasks AS t
@@ -458,6 +505,7 @@ BEGIN
          controller = NULL, finished_at = statement_timestamp(), updated_at = statement_timestamp(),
          checkpoint = jsonb_build_object('phase', 'partial', 'verification', p_verification)
    WHERE t.id = p_task;
+  PERFORM public.jarvis_tell(p_task, coalesce(p_summary, 'The result did not pass its checks.'));
   RETURN 'blocked';
 END;
 $$;
@@ -473,13 +521,103 @@ AS $$
   SELECT jsonb_build_object(
     'id', t.id, 'userId', t.user_id, 'status', t.status, 'controller', t.controller,
     'title', t.title, 'outcome', t.outcome, 'blocker', t.blocker, 'result', t.result,
-    'checkpoint', t.checkpoint,
+    'checkpoint', t.checkpoint, 'conversationId', t.conversation_id,
+    'apps', (SELECT d.installed_apps FROM public.jarvis_devices AS d WHERE d.id = t.device_id),
+    'grants', public.jarvis_grants(t.user_id, t.device_id),
     'steps', coalesce((
       SELECT jsonb_agg(jsonb_build_object('id', a.id, 'summary', a.summary, 'intent', a.action,
                                           'status', a.status, 'receipt', a.result)
                        ORDER BY a.created_at, a.id)
         FROM public.jarvis_activity AS a WHERE a.task_id = t.id AND a.action IS NOT NULL), '[]'::jsonb))
   FROM public.jarvis_tasks AS t WHERE t.id = p_task;
+$$;
+
+-- The planner cannot answer (outage, quota, no consent): the task waits, keeping its checkpoint.
+CREATE OR REPLACE FUNCTION public.jarvis_task_wait(p_task uuid, p_controller uuid, p_reason text)
+RETURNS void
+LANGUAGE sql
+SECURITY INVOKER
+SET search_path TO ''
+AS $$
+  UPDATE public.jarvis_tasks AS t
+     SET status = 'waiting', blocker = left(p_reason, 300), updated_at = statement_timestamp()
+   WHERE t.id = p_task AND t.status = 'running' AND t.controller = p_controller;
+$$;
+
+-- The person approves one action that has an effect outside the computer.
+CREATE OR REPLACE FUNCTION public.jarvis_confirm_action(p_user uuid, p_activity uuid)
+RETURNS boolean
+LANGUAGE sql
+SECURITY INVOKER
+SET search_path TO ''
+AS $$
+  WITH confirmed AS (
+    UPDATE public.jarvis_activity AS a SET status = 'queued', confirmed = true
+     WHERE a.id = p_activity AND a.user_id = p_user AND a.status = 'needs_confirmation'
+       AND EXISTS (SELECT 1 FROM public.jarvis_tasks AS t
+                    WHERE t.id = a.task_id AND t.status = 'running' AND t.controller = a.controller)
+    RETURNING 1
+  )
+  SELECT EXISTS (SELECT 1 FROM confirmed);
+$$;
+
+-- Take Over: the person has the computer. Nothing queued runs; a running step is
+-- cancelled like STOP; the task stays open to resume.
+CREATE OR REPLACE FUNCTION public.jarvis_take_over(p_user uuid, p_task uuid)
+RETURNS text
+LANGUAGE plpgsql
+SECURITY INVOKER
+SET search_path TO ''
+AS $$
+BEGIN
+  UPDATE public.jarvis_tasks AS t
+     SET status = 'taken_over', controller = NULL, updated_at = statement_timestamp()
+   WHERE t.id = p_task AND t.user_id = p_user AND t.status IN ('running', 'waiting');
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'task_not_found' USING ERRCODE = 'P0002';
+  END IF;
+  UPDATE public.jarvis_activity AS a
+     SET status = 'cancelled', completed_at = statement_timestamp()
+   WHERE a.task_id = p_task AND a.status IN ('queued', 'claimed', 'needs_confirmation');
+  RETURN 'taken_over';
+END;
+$$;
+
+-- Resume after Take Over or after the person checked an uncertain step: a new
+-- controller, so every decision made before is stale.
+CREATE OR REPLACE FUNCTION public.jarvis_resume_task(p_user uuid, p_task uuid)
+RETURNS uuid
+LANGUAGE plpgsql
+SECURITY INVOKER
+SET search_path TO ''
+AS $$
+DECLARE
+  v_controller uuid := gen_random_uuid();
+BEGIN
+  IF public.jarvis_paused() THEN
+    RAISE EXCEPTION 'jarvis_paused' USING ERRCODE = '42501';
+  END IF;
+  UPDATE public.jarvis_tasks AS t
+     SET status = 'running', controller = v_controller, blocker = NULL, updated_at = statement_timestamp()
+   WHERE t.id = p_task AND t.user_id = p_user AND t.status IN ('taken_over', 'waiting')
+     AND EXISTS (SELECT 1 FROM public.jarvis_devices AS d
+                  WHERE d.id = t.device_id AND d.user_id = p_user AND d.revoked_at IS NULL);
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'task_not_found' USING ERRCODE = 'P0002';
+  END IF;
+  RETURN v_controller;
+END;
+$$;
+
+-- The apps a device found installed, for the person's Allowed Apps choice and the planner.
+CREATE OR REPLACE FUNCTION public.jarvis_device_inventory(p_device uuid, p_apps jsonb)
+RETURNS void
+LANGUAGE sql
+SECURITY INVOKER
+SET search_path TO ''
+AS $$
+  UPDATE public.jarvis_devices AS d SET installed_apps = p_apps
+   WHERE d.id = p_device AND d.user_id IS NOT NULL AND d.revoked_at IS NULL;
 $$;
 
 -- Revoking a device stops its open task first, so nothing more is dispatched to it.
@@ -510,6 +648,14 @@ BEGIN
   FOREACH f IN ARRAY ARRAY[
     'public.jarvis_paused()',
     'public.jarvis_allowed(uuid, uuid, text)',
+    'public.jarvis_action_allowed(uuid, uuid, jsonb)',
+    'public.jarvis_tell(uuid, text)',
+    'public.jarvis_grants(uuid, uuid)',
+    'public.jarvis_task_wait(uuid, uuid, text)',
+    'public.jarvis_confirm_action(uuid, uuid)',
+    'public.jarvis_take_over(uuid, uuid)',
+    'public.jarvis_resume_task(uuid, uuid)',
+    'public.jarvis_device_inventory(uuid, jsonb)',
     'public.jarvis_device_code(text)',
     'public.jarvis_enroll_device(text, text, text, text, text)',
     'public.jarvis_approve_device(uuid, text)',

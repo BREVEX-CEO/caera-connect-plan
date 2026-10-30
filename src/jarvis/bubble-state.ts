@@ -5,9 +5,6 @@
  */
 import { useSyncExternalStore } from "react";
 
-/** The one truthful answer to every JARVIS action until its new engine ships. */
-export const JARVIS_UNAVAILABLE = "OCADE JARVIS is unavailable while it is being rebuilt.";
-
 /* --- words handed to the JARVIS page in memory (never a link) ------------- */
 
 /** Words for JARVIS's box, from Chat; never sent by themselves. */

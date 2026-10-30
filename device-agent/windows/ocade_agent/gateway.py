@@ -32,6 +32,8 @@ WORKERS = {
     "fs_sandbox": "ocade_agent.office_worker",
     "sys_core": "ocade_agent.office_worker",
     "verifier": "ocade_agent.verify_worker",
+    "ui_bridge": "ocade_agent.windows_worker",
+    "web_automation": "ocade_agent.web_worker",
 }
 MAX_CALL_SECONDS = 300
 
@@ -58,8 +60,11 @@ class Gateway:
     entered and exited in one task even though calls come from many.
     """
 
-    def __init__(self, workspace: str, worker_modules: dict[str, str] | None = None, extra_path: str = ""):
+    def __init__(
+        self, workspace: str, worker_modules: dict[str, str] | None = None, extra_path: str = "", home: str = ""
+    ):
         self.workspace = workspace
+        self.home = home
         self.modules = worker_modules or WORKERS
         self.extra_path = extra_path
         self.epoch = 0
@@ -89,8 +94,18 @@ class Gateway:
     async def _hold(self, module: str, worker: dict) -> None:
         package_root = str(Path(__file__).resolve().parent.parent)
         python_path = os.pathsep.join(p for p in (package_root, self.extra_path) if p)
-        environment = get_default_environment() | {"PYTHONPATH": python_path, "OCADE_WORKSPACE": self.workspace}
-        parameters = StdioServerParameters(command=sys.executable, args=["-s", "-m", module], env=environment, cwd=package_root)
+        environment = get_default_environment() | {
+            "PYTHONPATH": python_path,
+            "OCADE_WORKSPACE": self.workspace,
+            "OCADE_AGENT_HOME": self.home,
+        }
+        # A packaged companion is one executable that runs its own workers.
+        # (the console build: a windowed executable has no stdout for the MCP protocol).
+        if getattr(sys, "frozen", False):
+            command = [str(Path(sys.executable).with_name("ocade-agent.exe")), "worker", module]
+        else:
+            command = [sys.executable, "-s", "-m", module]
+        parameters = StdioServerParameters(command=command[0], args=command[1:], env=environment, cwd=package_root)
         try:
             with worker["scope"]:
                 async with stdio_client(parameters, errlog=sys.stderr) as (read, write):

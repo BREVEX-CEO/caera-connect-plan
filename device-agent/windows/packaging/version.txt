@@ -1,0 +1,10 @@
+VSVersionInfo(
+  ffi=FixedFileInfo(filevers=(0, 1, 0, 0), prodvers=(0, 1, 0, 0)),
+  kids=[StringFileInfo([StringTable("040904B0", [
+    StringStruct("CompanyName", "CARCC"),
+    StringStruct("FileDescription", "OCADE JARVIS companion"),
+    StringStruct("ProductName", "OCADE JARVIS"),
+    StringStruct("FileVersion", "0.1.0"),
+    StringStruct("ProductVersion", "0.1.0"),
+  ])]), VarFileInfo([VarStruct("Translation", [1033, 1200])])],
+)

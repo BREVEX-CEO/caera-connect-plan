@@ -1789,6 +1789,38 @@ export type Database = {
       }
       ocade_enforce_second_factor: { Args: never; Returns: undefined }
       ocade_session_meets_second_factor: { Args: never; Returns: boolean }
+      jarvis_action_allowed: {
+        Args: { p_action: Json; p_device: string; p_user: string }
+        Returns: boolean
+      }
+      jarvis_grants: {
+        Args: { p_device: string; p_user: string }
+        Returns: Json
+      }
+      jarvis_task_wait: {
+        Args: { p_controller: string; p_reason: string; p_task: string }
+        Returns: undefined
+      }
+      jarvis_tell: {
+        Args: { p_task: string; p_text: string }
+        Returns: undefined
+      }
+      jarvis_confirm_action: {
+        Args: { p_activity: string; p_user: string }
+        Returns: boolean
+      }
+      jarvis_take_over: {
+        Args: { p_task: string; p_user: string }
+        Returns: string
+      }
+      jarvis_resume_task: {
+        Args: { p_task: string; p_user: string }
+        Returns: string
+      }
+      jarvis_device_inventory: {
+        Args: { p_apps: Json; p_device: string }
+        Returns: undefined
+      }
       jarvis_allowed: {
         Args: { p_capability: string; p_device: string; p_user: string }
         Returns: boolean

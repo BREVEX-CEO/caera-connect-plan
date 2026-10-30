@@ -1042,3 +1042,32 @@ These are later requirements/refinements, **not literal headings of the original
 **Generated types:** the 15 new function signatures in `src/integrations/supabase/types.ts` were produced by `supabase gen types typescript` (CLI 2.122.0) against the replayed local schema and spliced in the file's existing layout; a full regeneration would also reformat unrelated entries, so it was not applied.
 
 **Next dependency-ready action:** P18 — wire the existing JARVIS composer to `startJarvisTask`/`getJarvisTask`/`stopJarvisTask` with device pairing and file-access consent, then P04/P09/P19 on an owner-authorised disposable Windows machine with Office (requires separate approval). Online planning (P13) needs an authorised provider decision.
+
+## Code-first checkpoint — 30 October 2026 (CODE COMPLETE — UNTESTED for the feasible scope)
+
+Base `e3e390e`. Status words: **CODED** (real source present and wired; not validated), **PARTIAL**, **NOT CODED**; everything below is **UNTESTED** unless the first-milestone table above says otherwise. Only syntax/type/lint checks and a worker tool-pinning smoke check ran in this pass.
+
+| Package | Code status | What exists / exact remaining blocker |
+| --- | --- | --- |
+| P00–P03 | CODED | As in the first milestone; migration extended with `jarvis_action_allowed` (capability + exact `app:`/`site:` grant), `jarvis_grants`, `jarvis_tell` (answers written into the conversation once), `jarvis_confirm_action`, `jarvis_take_over`, `jarvis_resume_task`, `jarvis_task_wait`, `jarvis_device_inventory`; `external_effect` actions wait in `needs_confirmation`. |
+| P04 companion + packaging | CODED | `agent.py` (`enroll`/`run`/`stop`/`worker`, remembered server/workspace, local STOP flag checked every 250 ms, inventory upload), DPAPI key sealing, `packaging/ocade-agent.spec`, `ocade-agent.iss` (per-user, HKCU Run, Start Menu Pair/Stop/Start), `build.ps1`. BLOCKED FOR VALIDATION: no Windows machine; signing needs the owner's certificate. No self-updater by design: updates ship as signed installers. |
+| P05/P06 registry + gateway | CODED | Registry now 21 operations across `fs_sandbox`, `sys_core`, `ui_bridge`, `web_automation` and the separate `verifier`; all four workers pass exact tool pinning against `protocol.json`. Packaged builds launch workers through the console executable. |
+| P07 discovery | CODED | `discovery.py`: Start Menu shortcuts + App Paths, EnumWindows leases `{exe, pid, hwnd, started}`. Windows-only, UNTESTED. |
+| P08 sandbox | CODED | Unchanged; also used by `fs.read_text`, `office.write_document`, `office.write_workbook`, `web.download`, `apps.launch`. |
+| P09 native Office | CODED | Excel/Word COM or LibreOffice; new `office.write_document` (DOCX + PDF) and `office.write_workbook` (formulas recalculated by a real engine). COM path UNTESTED. |
+| P10 UIA + fallback | CODED | `windows_worker.py`: pywinauto UIA inspect/invoke/set_value with lease revalidation (handle, pid, exe, start time, visible, not minimized), foreground-only `send_keys`, PyAutoGUI `click_point` with fail-safe, window-relative coordinates and user-activity abort. UNTESTED (needs Windows desktop). |
+| P11 browser | CODED | `web_worker.py`: Playwright persistent OCADE profile (Edge channel, else Chromium), visible window for human sign-in/MFA, page ids bound to the allowed site, password fields refused, clicks are `external_effect`, downloads saved atomically. UNTESTED. |
+| P12 deep bridges | PARTIAL | Office COM only. Video/photo/CAD/CRM bridges NOT CODED: no qualified installed product or vetted catalog entry exists to bind to (plan §6.2 forbids assumed integrations). |
+| P13 supervisor/planner | CODED | Journey 1 stays deterministic; every other outcome uses `planner.server.ts` → new `supabase/functions/jarvis-planner` (server-to-server `JARVIS_PLANNER_KEY`, existing provider keys and consent). Goal compiled to typed checks before the task opens; one validated function call per turn; 30-step cap; outage → `waiting`. BLOCKED FOR VALIDATION: provider key/consent and the planner secret must be configured by the owner. |
+| P14 scheduler | CODED | One open task per device and one claimed action per task (SQL), exact window/page leases, Take Over/Resume. Parallel safe reads NOT CODED (not required by any current workflow). |
+| P15 journal/recovery | CODED | Unchanged; Resume after an uncertain step is the person's explicit decision. |
+| P16 verifier | CODED | Journey 1 verifier plus `verify.checks` (file exists/contains, workbook cell, anonymous web text, window exists), each read independently of the actor. |
+| P17 STOP/revoke | CODED | Server STOP/Take Over/revoke, device watch, local `stop` command. |
+| P18 product UI | CODED | Composer sends real tasks (creates the JARVIS conversation, records the request, starts the task); task panel with live status, steps, confirmations, checks, saved-file names, STOP, Take Over and Resume; Settings › Devices pairs/removes computers and sets files/apps/browser/screen permissions, allowed apps and websites; phone bubble hands words to JARVIS. |
+| P19 first slice | CODED | Real path from UI to companion exists. Deliverables stay on the computer (named in the task panel); cloud upload NOT CODED pending an owner decision on transferring customer files. |
+| P20 breadth | PARTIAL | Generic planner + typed verifier cover documents, workbooks, browser collection and allowed apps. Scenario-specific video/photo/CAD/chess quality verifiers NOT CODED (need the named apps and domain oracles). |
+| P21–P22 | NOT STARTED | Testing, chaos, benchmark and release handoff are the next stage by owner direction. |
+
+**Owner configuration needed before validation:** `JARVIS_PLANNER_KEY` in the web server and Edge Function secrets; deploy `jarvis-planner`; apply migration `20261030120000`; a disposable Windows machine with Office; a code-signing certificate for distributable builds.
+
+**Resume point:** the dedicated testing phase — rerun `npm run test:jarvis`/`test:jarvis-db`, extend them for the new SQL functions, planner validation and workers, then Windows qualification.

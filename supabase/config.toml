@@ -2,3 +2,7 @@ project_id = "sazhgaisyhkdbrooycdv"
 
 [functions.ocade-intelligence]
 verify_jwt = true
+
+[functions.jarvis-planner]
+# Called server-to-server with JARVIS_PLANNER_KEY; there is no user JWT to verify.
+verify_jwt = false

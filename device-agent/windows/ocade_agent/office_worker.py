@@ -200,5 +200,90 @@ def office_write_report(workbook: str, docx: str, pdf: str, title: str) -> dict:
     return {"sha256": {"docx": docx_digest, "pdf": pdf_digest}, "exceptions": len(exceptions), "engine": used["engine"]}
 
 
+@app.tool()
+@_evidence
+def fs_read_text(path: str) -> dict:
+    """The text of a workspace file (txt, csv, md, docx, xlsx, pdf), bounded."""
+    source = resolve(WORKSPACE, path)
+    if not source.is_file():
+        raise Refused("not_a_file")
+    suffix = source.suffix.lower()
+    if suffix in (".txt", ".csv", ".md", ".json"):
+        text = source.read_text(encoding="utf-8", errors="replace")
+    elif suffix == ".docx":
+        document = Document(str(source))
+        text = "\n".join(p.text for p in document.paragraphs) + "\n" + "\n".join(
+            "\t".join(cell.text for cell in row.cells) for table in document.tables for row in table.rows
+        )
+    elif suffix == ".xlsx":
+        book = _open_values(source)
+        text = "\n".join(
+            f"[{sheet.title}]\n" + "\n".join("\t".join("" if v is None else str(v) for v in row)
+                                             for row in sheet.iter_rows(values_only=True))
+            for sheet in book.worksheets
+        )
+        book.close()
+    elif suffix == ".pdf":
+        from pypdf import PdfReader
+
+        text = "\n".join(page.extract_text() or "" for page in PdfReader(source).pages)
+    else:
+        raise Refused("unsupported_file_type")
+    return {"sha256": sha256(source), "text": text[:8_000], "truncated": len(text) > 8_000}
+
+
+@app.tool()
+@_evidence
+def office_write_document(docx: str, title: str, sections: list[dict], pdf: str | None = None) -> dict:
+    """A new editable Word document from headings, paragraphs and tables; optionally its PDF."""
+    docx_path = output_path(WORKSPACE, docx)
+    pdf_path = output_path(WORKSPACE, pdf) if pdf else None
+
+    def write(temporary: Path) -> None:
+        document = Document()
+        document.add_heading(title, level=0)
+        for section in sections:
+            document.add_heading(section["heading"], level=1)
+            for paragraph in section.get("paragraphs", []):
+                document.add_paragraph(paragraph)
+            rows = section.get("table") or []
+            if rows:
+                table = document.add_table(rows=0, cols=max(len(r) for r in rows))
+                table.style = "Table Grid"
+                for row in rows:
+                    for cell, text in zip(table.add_row().cells, row):
+                        cell.text = text
+        document.save(temporary)
+
+    result = {"sha256": {"docx": write_atomically(docx_path, write)}}
+    if pdf_path:
+        used = {}
+        result["sha256"]["pdf"] = write_atomically(
+            pdf_path, lambda temporary: used.update(engine=engine.export_pdf(docx_path, temporary))
+        )
+        result["engine"] = used["engine"]
+    return result
+
+
+@app.tool()
+@_evidence
+def office_write_workbook(path: str, sheets: list[dict]) -> dict:
+    """A new workbook; cells starting with '=' are formulas, recalculated by a real engine."""
+    target = output_path(WORKSPACE, path)
+    used = {}
+
+    def write(temporary: Path) -> None:
+        book = openpyxl.Workbook()
+        book.remove(book.active)
+        for spec in sheets:
+            sheet = book.create_sheet(spec["name"])
+            for row in spec["rows"]:
+                sheet.append(row)
+        book.save(temporary)
+        used["engine"] = engine.recalculate(temporary)
+
+    return {"sha256": write_atomically(target, write), "engine": used["engine"]}
+
+
 if __name__ == "__main__":
     app.run("stdio")

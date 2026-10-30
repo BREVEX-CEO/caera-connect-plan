@@ -12,6 +12,7 @@ from __future__ import annotations
 import hashlib
 import io
 import os
+import sys
 import zipfile
 from pathlib import Path
 
@@ -134,6 +135,104 @@ def verify_reconciliation_report(
 
     return {"predicates": predicates, "sha256": hashes, "rows": rows, "exceptions": exceptions,
             "verifierVersion": VERSION}
+
+
+def _text(path: Path) -> str | None:
+    """Independent text read of a saved file; None when the type cannot be read."""
+    suffix = path.suffix.lower()
+    try:
+        if suffix in (".txt", ".csv", ".md", ".json", ".html"):
+            return path.read_text(encoding="utf-8", errors="replace")
+        if suffix == ".docx":
+            document = Document(io.BytesIO(path.read_bytes()))
+            cells = [c.text for t in document.tables for r in t.rows for c in r.cells]
+            return "\n".join([p.text for p in document.paragraphs] + cells)
+        if suffix == ".xlsx":
+            book = openpyxl.load_workbook(path, data_only=True)
+            return "\n".join(str(v) for ws in book.worksheets for r in ws.iter_rows(values_only=True) for v in r if v is not None)
+        if suffix == ".pdf":
+            return "\n".join(page.extract_text() or "" for page in PdfReader(path).pages)
+    except Exception:
+        return None
+    return None
+
+
+def _check(kind: str, params: dict) -> bool | None:
+    """One typed predicate, read from the real file, page or window. None means unobservable."""
+    if kind in ("file_exists", "file_contains", "workbook_cell_equals"):
+        try:
+            path = resolve(WORKSPACE, params["path"])
+        except (Refused, KeyError):
+            return False
+        if not path.is_file():
+            return False
+        if kind == "file_exists":
+            return path.stat().st_size > 0
+        if kind == "file_contains":
+            text = _text(path)
+            return None if text is None else params.get("text", "\0") in text
+        try:
+            value = openpyxl.load_workbook(path, data_only=True)[params["sheet"]][params["cell"]].value
+        except Exception:
+            return False
+        expected = params.get("value")
+        if isinstance(expected, (int, float)) and isinstance(value, (int, float)):
+            return abs(value - expected) < TOLERANCE
+        return value is not None and str(value) == str(expected)
+    if kind == "web_text_contains":
+        # Read anonymously: a page that needs a sign-in cannot be observed this way.
+        import html
+        import re
+        import urllib.request
+
+        try:
+            with urllib.request.urlopen(params["url"], timeout=20) as response:
+                body = response.read(2_000_000).decode("utf-8", errors="replace")
+        except Exception:
+            return None
+        visible = html.unescape(re.sub(r"<[^>]+>", " ", body))
+        return params.get("text", "\0") in visible
+    if kind == "window_exists":
+        if sys.platform != "win32":
+            return None
+        return _window_exists(params.get("exe", ""), params.get("text"))
+    return None
+
+
+def _window_exists(exe: str, title_part: str | None) -> bool:
+    """Independent EnumWindows read, not the actor's discovery code."""
+    import ctypes
+    from ctypes import wintypes
+
+    user32, kernel32 = ctypes.windll.user32, ctypes.windll.kernel32
+    found = []
+
+    @ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HWND, wintypes.LPARAM)
+    def visit(hwnd, _):
+        if not user32.IsWindowVisible(hwnd):
+            return True
+        title = ctypes.create_unicode_buffer(512)
+        user32.GetWindowTextW(hwnd, title, 512)
+        pid = wintypes.DWORD()
+        user32.GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
+        handle = kernel32.OpenProcess(0x1000, False, pid.value)
+        image, size = ctypes.create_unicode_buffer(1024), wintypes.DWORD(1024)
+        ok = handle and kernel32.QueryFullProcessImageNameW(handle, 0, image, ctypes.byref(size))
+        if handle:
+            kernel32.CloseHandle(handle)
+        if ok and Path(image.value).name.lower() == exe and (not title_part or title_part in title.value):
+            found.append(hwnd)
+        return True
+
+    user32.EnumWindows(visit, 0)
+    return bool(found)
+
+
+@app.tool()
+def verify_checks(checks: list[dict]) -> dict:
+    """Evaluate a task's fixed typed checks against the real state, independently of the actor."""
+    predicates = {c["id"]: _check(c.get("kind", ""), c.get("params") or {}) for c in checks}
+    return {"predicates": predicates, "verifierVersion": "checks-verifier/1"}
 
 
 if __name__ == "__main__":

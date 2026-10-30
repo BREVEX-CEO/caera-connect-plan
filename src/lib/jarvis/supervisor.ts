@@ -10,8 +10,8 @@
  * Deterministic first: Journey 1 (workbook → reconciliation → editable Word and
  * PDF report) needs no model to choose its steps. Anything it cannot resolve
  * from the workspace itself — no workbook, several, no two comparable sheets —
- * becomes a question for the person, never a guess. Online planning for other
- * outcomes is not wired yet and is refused rather than improvised.
+ * becomes a question for the person, never a guess. Every other outcome is
+ * planned online by `planner.server.ts` and settled by the same rules below.
  */
 import {
   intent,
@@ -84,7 +84,10 @@ interface Column {
   amount: string;
 }
 
-function evidenceOf(steps: Step[], operation: string) {
+/** A step that has not finished: nothing else is decided while one exists. */
+export const open = (s: Step) => ["queued", "claimed", "needs_confirmation"].includes(s.status);
+
+export function evidenceOf(steps: Step[], operation: string) {
   const step = steps.find((s) => s.intent.operation === operation && s.status === "done");
   return step?.receipt?.evidence as Record<string, unknown> | undefined;
 }
@@ -101,7 +104,7 @@ export function decide(input: {
   const { taskId, objective, steps, now } = input;
   const deadline = new Date(now.getTime() + 10 * 60_000);
 
-  if (steps.some((s) => s.status === "queued" || s.status === "claimed")) return { kind: "wait" };
+  if (steps.some(open)) return { kind: "wait" };
   const refused = steps.find((s) => s.status === "failed" || s.status === "blocked");
   if (refused) {
     const code = refused.receipt?.errorCode ?? "not_applied";
@@ -233,15 +236,29 @@ export function settle(
     hashes.docx === reportHashes.docx &&
     hashes.pdf === reportHashes.pdf &&
     hashes.source === ev.inspected.sha256;
+  const result = settleChecks(checks, {
+    ...ev.verified,
+    predicates: { ...predicates, artifacts_bound: bound },
+  });
+  result.evidence.sha256 = hashes;
+  return result;
+}
+
+/** Settlement for typed checks: the verifier's predicate per check, true, false or unobserved. */
+export function settleChecks(
+  checks: OutcomeCheck[],
+  verified: Record<string, unknown>,
+): VerificationResult {
+  const predicates = (verified.predicates ?? {}) as Record<string, unknown>;
   const result: VerificationResult = {
     passed: [],
     failed: [],
     unverified: [],
-    evidence: { predicates, sha256: hashes },
-    verifierVersion: String(ev.verified.verifierVersion ?? "unknown").slice(0, 40),
+    evidence: { predicates },
+    verifierVersion: String(verified.verifierVersion ?? "unknown").slice(0, 40),
   };
   for (const check of checks) {
-    const value = check.id === "artifacts_bound" ? bound : predicates[check.id];
+    const value = predicates[check.id];
     if (value === true) result.passed.push(check.id);
     else if (value === false) result.failed.push(check.id);
     else result.unverified.push(check.id);

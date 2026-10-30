@@ -2,7 +2,8 @@
   "version": 1,
   "risks": [
     "read",
-    "reversible_write"
+    "reversible_write",
+    "external_effect"
   ],
   "signing": {
     "prefix": "OCADE-JARVIS-1",
@@ -24,6 +25,26 @@
             "maxLength": 260
           }
         },
+        "additionalProperties": false
+      }
+    },
+    "fs.read_text": {
+      "role": "fs_sandbox",
+      "capability": "files",
+      "risk": "read",
+      "arguments": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 260
+          }
+        },
+        "required": [
+          "path"
+        ],
         "additionalProperties": false
       }
     },
@@ -165,6 +186,653 @@
         "additionalProperties": false
       }
     },
+    "office.write_document": {
+      "role": "sys_core",
+      "capability": "files",
+      "risk": "reversible_write",
+      "arguments": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "docx": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 260
+          },
+          "pdf": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 260
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "sections": {
+            "minItems": 1,
+            "maxItems": 30,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "heading": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200
+                },
+                "paragraphs": {
+                  "default": [],
+                  "maxItems": 50,
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "maxLength": 4000
+                  }
+                },
+                "table": {
+                  "maxItems": 200,
+                  "type": "array",
+                  "items": {
+                    "maxItems": 12,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "maxLength": 500
+                    }
+                  }
+                }
+              },
+              "required": [
+                "heading"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "docx",
+          "title",
+          "sections"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "office.write_workbook": {
+      "role": "sys_core",
+      "capability": "files",
+      "risk": "reversible_write",
+      "arguments": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 260
+          },
+          "sheets": {
+            "minItems": 1,
+            "maxItems": 10,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 31
+                },
+                "rows": {
+                  "maxItems": 5000,
+                  "type": "array",
+                  "items": {
+                    "maxItems": 50,
+                    "type": "array",
+                    "items": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "maxLength": 1000
+                        },
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  }
+                }
+              },
+              "required": [
+                "name",
+                "rows"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "path",
+          "sheets"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "apps.list": {
+      "role": "ui_bridge",
+      "capability": "apps",
+      "risk": "read",
+      "arguments": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      }
+    },
+    "apps.launch": {
+      "role": "ui_bridge",
+      "capability": "apps",
+      "risk": "reversible_write",
+      "arguments": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "exe": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9 ._()+-]{1,80}\\.exe$"
+          },
+          "open": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 260
+          }
+        },
+        "required": [
+          "exe"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "ui.inspect": {
+      "role": "ui_bridge",
+      "capability": "apps",
+      "risk": "read",
+      "arguments": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "window": {
+            "type": "object",
+            "properties": {
+              "exe": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9 ._()+-]{1,80}\\.exe$"
+              },
+              "pid": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              },
+              "hwnd": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              },
+              "started": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              }
+            },
+            "required": [
+              "exe",
+              "pid",
+              "hwnd",
+              "started"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "window"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "ui.invoke": {
+      "role": "ui_bridge",
+      "capability": "apps",
+      "risk": "reversible_write",
+      "arguments": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "window": {
+            "type": "object",
+            "properties": {
+              "exe": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9 ._()+-]{1,80}\\.exe$"
+              },
+              "pid": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              },
+              "hwnd": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              },
+              "started": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              }
+            },
+            "required": [
+              "exe",
+              "pid",
+              "hwnd",
+              "started"
+            ],
+            "additionalProperties": false
+          },
+          "element": {
+            "type": "object",
+            "properties": {
+              "automationId": {
+                "type": "string",
+                "maxLength": 200
+              },
+              "name": {
+                "type": "string",
+                "maxLength": 200
+              },
+              "controlType": {
+                "type": "string",
+                "maxLength": 40
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "window",
+          "element"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "ui.set_value": {
+      "role": "ui_bridge",
+      "capability": "apps",
+      "risk": "reversible_write",
+      "arguments": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "window": {
+            "type": "object",
+            "properties": {
+              "exe": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9 ._()+-]{1,80}\\.exe$"
+              },
+              "pid": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              },
+              "hwnd": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              },
+              "started": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              }
+            },
+            "required": [
+              "exe",
+              "pid",
+              "hwnd",
+              "started"
+            ],
+            "additionalProperties": false
+          },
+          "element": {
+            "type": "object",
+            "properties": {
+              "automationId": {
+                "type": "string",
+                "maxLength": 200
+              },
+              "name": {
+                "type": "string",
+                "maxLength": 200
+              },
+              "controlType": {
+                "type": "string",
+                "maxLength": 40
+              }
+            },
+            "additionalProperties": false
+          },
+          "value": {
+            "type": "string",
+            "maxLength": 4000
+          }
+        },
+        "required": [
+          "window",
+          "element",
+          "value"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "ui.send_keys": {
+      "role": "ui_bridge",
+      "capability": "apps",
+      "risk": "reversible_write",
+      "arguments": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "window": {
+            "type": "object",
+            "properties": {
+              "exe": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9 ._()+-]{1,80}\\.exe$"
+              },
+              "pid": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              },
+              "hwnd": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              },
+              "started": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              }
+            },
+            "required": [
+              "exe",
+              "pid",
+              "hwnd",
+              "started"
+            ],
+            "additionalProperties": false
+          },
+          "keys": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          }
+        },
+        "required": [
+          "window",
+          "keys"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "ui.click_point": {
+      "role": "ui_bridge",
+      "capability": "computer_control",
+      "risk": "reversible_write",
+      "arguments": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "window": {
+            "type": "object",
+            "properties": {
+              "exe": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9 ._()+-]{1,80}\\.exe$"
+              },
+              "pid": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              },
+              "hwnd": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              },
+              "started": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              }
+            },
+            "required": [
+              "exe",
+              "pid",
+              "hwnd",
+              "started"
+            ],
+            "additionalProperties": false
+          },
+          "x": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "y": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "expectTitle": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          }
+        },
+        "required": [
+          "window",
+          "x",
+          "y",
+          "expectTitle"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "web.open": {
+      "role": "web_automation",
+      "capability": "browser",
+      "risk": "read",
+      "arguments": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "maxLength": 2000,
+            "format": "uri"
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "web.read": {
+      "role": "web_automation",
+      "capability": "browser",
+      "risk": "read",
+      "arguments": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[a-z0-9-]{1,40}$"
+              },
+              "site": {
+                "type": "string",
+                "maxLength": 253,
+                "pattern": "^[a-z0-9]([a-z0-9.-]{0,251}[a-z0-9])?$"
+              }
+            },
+            "required": [
+              "id",
+              "site"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "page"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "web.fill": {
+      "role": "web_automation",
+      "capability": "browser",
+      "risk": "reversible_write",
+      "arguments": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[a-z0-9-]{1,40}$"
+              },
+              "site": {
+                "type": "string",
+                "maxLength": 253,
+                "pattern": "^[a-z0-9]([a-z0-9.-]{0,251}[a-z0-9])?$"
+              }
+            },
+            "required": [
+              "id",
+              "site"
+            ],
+            "additionalProperties": false
+          },
+          "selector": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          },
+          "value": {
+            "type": "string",
+            "maxLength": 2000
+          }
+        },
+        "required": [
+          "page",
+          "selector",
+          "value"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "web.click": {
+      "role": "web_automation",
+      "capability": "browser",
+      "risk": "external_effect",
+      "arguments": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[a-z0-9-]{1,40}$"
+              },
+              "site": {
+                "type": "string",
+                "maxLength": 253,
+                "pattern": "^[a-z0-9]([a-z0-9.-]{0,251}[a-z0-9])?$"
+              }
+            },
+            "required": [
+              "id",
+              "site"
+            ],
+            "additionalProperties": false
+          },
+          "selector": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "page",
+          "selector"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "web.download": {
+      "role": "web_automation",
+      "capability": "browser",
+      "risk": "reversible_write",
+      "arguments": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[a-z0-9-]{1,40}$"
+              },
+              "site": {
+                "type": "string",
+                "maxLength": 253,
+                "pattern": "^[a-z0-9]([a-z0-9.-]{0,251}[a-z0-9])?$"
+              }
+            },
+            "required": [
+              "id",
+              "site"
+            ],
+            "additionalProperties": false
+          },
+          "selector": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          },
+          "output": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 260
+          }
+        },
+        "required": [
+          "page",
+          "selector",
+          "output"
+        ],
+        "additionalProperties": false
+      }
+    },
     "verify.reconciliation_report": {
       "role": "verifier",
       "capability": "files",
@@ -258,6 +926,98 @@
           "workbook",
           "docx",
           "pdf"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "verify.checks": {
+      "role": "verifier",
+      "capability": "files",
+      "risk": "read",
+      "arguments": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "checks": {
+            "minItems": 1,
+            "maxItems": 10,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "pattern": "^[a-z0-9_]{1,60}$"
+                },
+                "description": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200
+                },
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "file_exists",
+                    "file_contains",
+                    "workbook_cell_equals",
+                    "web_text_contains",
+                    "window_exists"
+                  ]
+                },
+                "params": {
+                  "type": "object",
+                  "properties": {
+                    "path": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 260
+                    },
+                    "text": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 500
+                    },
+                    "sheet": {
+                      "type": "string",
+                      "maxLength": 31
+                    },
+                    "cell": {
+                      "type": "string",
+                      "pattern": "^[A-Z]{1,3}[0-9]{1,7}$"
+                    },
+                    "value": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "maxLength": 500
+                        },
+                        {
+                          "type": "number"
+                        }
+                      ]
+                    },
+                    "url": {
+                      "type": "string",
+                      "maxLength": 2000,
+                      "format": "uri"
+                    },
+                    "exe": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z0-9 ._()+-]{1,80}\\.exe$"
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "id",
+                "description"
+              ]
+            }
+          }
+        },
+        "required": [
+          "checks"
         ],
         "additionalProperties": false
       }
