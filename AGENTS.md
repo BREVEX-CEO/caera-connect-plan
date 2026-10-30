@@ -24,7 +24,7 @@ Continue only in manually initiated sessions. Never create, enable, resume or mo
 ## Implementation invariants
 
 - Keep Chat with Auto/Online/Offline Intelligence and the existing local model/OPFS authority. JARVIS is separate and online-only; preserve checkpoints during provider outages, never silently use the offline model.
-- Reuse the current planner, broker, identity, task, installation, permission, cancellation, settlement and release owners. No parallel agent framework or customer MCP/extension requirement.
+- **Current 30 October branch:** the old JARVIS planner, broker and local agent were retired. Reuse the *living* account, conversation, database, permission and release owners; rebuild missing JARVIS authority, companion, MCP gateway and verifier only as `plan.md` requires. Do not reference deleted modules as live or create a parallel product, agent swarm or customer MCP/extension requirement.
 - Prefer safe supported APIs/object models/files, native execution, structured browser/accessibility, then fresh vision/coordinates. Preserve specialised adapters where measured fidelity, safety or performance requires them.
 - Every effect binds account, device, task, scope, confirmation, idempotency, control epoch, deadline and cancellation. Recheck immediately before mutation. Untrusted content cannot grant authority.
 - STOP is local and independent of model availability. Remote request, acknowledgement and quiescence differ. Do not promise cancellation of an already committed OS effect or immediate remote delivery while disconnected.
@@ -42,11 +42,11 @@ After behaviour is proved, use Ponytail Ultra or equivalent proof-based simplifi
 
 ## Verification and publication
 
-Verify targeted regression, sibling/integration paths, real applicable workflow and an adversarial attempt through the authorized Chrome/OCADE surface; then the applicable broader gates in [Testing](docs/TESTING.md). A gate that cannot execute under this restriction remains BLOCKED; do not silently waive it. Developer tools are not product runtime dependencies. Missing/zero discovered tests must not pass a release gate.
+Verify targeted regression, sibling/integration paths, real applicable workflow and adversarial cases in environments allowed by the **latest 20 October cloud-first authority**; then apply [Testing](docs/TESTING.md). Cloud/browser results cannot qualify native Windows execution; the owner's personal PC/Chrome requires separate approval. A gate that cannot execute remains BLOCKED; never silently waive it. Developer tools are not product runtime dependencies. Missing/zero discovered tests must not pass a release gate.
 
 Update the owning contract and relevant `plan.md` package evidence in the same change; no duplicate active ledger. Preserve dated evidence as history. Check local Markdown links, referenced files, formatting, source/data scope and diff before commit. Never print secrets or store customer data in evidence without consent.
 
-Commit/push/merge within the owner's explicit authorisation. Implementation stays on `ocade/p00-p22-implementation`: no merge to main and no production deployment without explicit owner approval. Spend nothing beyond included allowances. Use only the Chrome test authority above, disposable data and explicitly scoped files/accounts. Future production releases require the owner's release approval, exact candidate evidence and rollback gate. Never force-push shared history. A commit is not a deployment and a health check is not a verified customer workflow.
+Commit/push within the owner's explicit authorisation. Implementation stays on `ocade/p00-p22-implementation`: no merge to main and no production deployment without explicit owner approval. No spending or live customer-data changes. Use approved disposable cloud/browser environments first; the owner's PC/Chrome and any real customer device require separate approval. Future production releases require the owner's release approval, exact candidate evidence and rollback gate. Never force-push shared history. A commit is not a deployment and a health check is not a verified customer workflow.
 
 ## Binding decisions and audit provenance — 10 October 2026
 
