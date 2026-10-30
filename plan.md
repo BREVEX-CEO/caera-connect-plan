@@ -209,9 +209,9 @@ The four roles can be four isolated SDK-backed workers or a smaller number of pr
 
 ### 6.2 Trusted optional specialist catalog — lazy and evidence-gated
 
-**Candidate capability families, not automatically installed prerequisites:** native DaVinci Resolve scripting bridge; supported CapCut/Shotcut/media utilities; Adobe/Blender/CAD native scripts; Excel/Word/PowerPoint COM; ONLYOFFICE; Microsoft 365/Graph; Google Workspace; HubSpot/Salesforce/CRM; Playwright/Puppeteer; Windows Computer Use/pywinauto; Filesystem MCP; Open Interpreter-like restricted execution; vetted web-context tools; video caption/edit utilities (FireCut, Reactor, Snap Captions/Magic Subtitle); authorised post-production trackers (Airtable/Monday/WayStation); optional macOS accessibility (Peekaboo/pyobjc) in a later separately qualified platform phase.
+**Candidate capability families, not automatically installed prerequisites:** version-verified native video-editor scripting bridges and supported media utilities; Adobe/Blender/CAD native scripts; Excel/Word/PowerPoint COM; ONLYOFFICE; Microsoft 365/Graph; Google Workspace; HubSpot/Salesforce/CRM; Playwright/Puppeteer; Windows Computer Use/pywinauto; Filesystem MCP; Open Interpreter-like restricted execution; vetted web-context tools; video caption/edit utilities (FireCut, Reactor, Snap Captions/Magic Subtitle); authorised post-production trackers (Airtable/Monday/WayStation); optional macOS accessibility (Peekaboo/pyobjc) in a later separately qualified platform phase.
 
-For every candidate verify publisher, official documentation, product/version/license, protocol compatibility, platform support, access scope, maintenance, signature/hash, source/release provenance, terms and real capability tests. **Do not assert an official DaVinci Studio MCP, a specific menu path or a third-party version exists merely because the research text says so.** Do not blindly use a registry listing, arbitrary npm/pip package or unreviewed script.
+For every candidate verify publisher, official documentation, product/version/license, protocol compatibility, platform support, access scope, maintenance, signature/hash, source/release provenance, terms and real capability tests. **Do not assume an editor-specific MCP server, undocumented menu path or third-party integration exists merely because an example claims it does.** Do not blindly use a registry listing, arbitrary npm/pip package or unreviewed script.
 
 **Discovery pipeline:** local installed capability scan → signed bundled manifest → approved pinned external manifest → authenticated `tools/list` and schema validation → policy binding → small relevant schema subset → execution → independent proof. Search external MCP registries only as *untrusted suggestions*; never self-install or auto-run arbitrary code. Trusted preapproved components may be provisioned silently within an established signed-update policy and restricted environment; otherwise ask the owner for trust authorization, not the customer to type setup commands.
 
@@ -295,7 +295,7 @@ Quality criteria come from the user's actual requested outcome. “Cinematic,”
 ## 13. Seven production scenarios — required capability coverage
 
 ### 13.1 Cinematic video editing
-Discover installed editor and legitimate scripting bridge; import licensed media; create intentional pacing/cuts, audio transitions, captions, color and export as supported. Prefer native timeline APIs; do not guess a DaVinci version or plugin. Verify project openability, render technical properties and sampled visual/audio quality. If only an opaque custom timeline exists, use controlled visual fallback or report limited depth. Test scratch disk failure, missing media, render crash and safe resume.
+Discover installed editor and legitimate scripting bridge; import licensed media; create intentional pacing/cuts, audio transitions, captions, color and export as supported. Prefer native timeline APIs; do not assume any specific editor, version or plugin. Verify project openability, render technical properties and sampled visual/audio quality. If only an opaque custom timeline exists, use controlled visual fallback or report limited depth. Test scratch disk failure, missing media, render crash and safe resume.
 
 ### 13.2 Cinematic photo editing
 Use supported app API/project format or validated controls for exposure, crop, color, masks/layers and export. Preserve RAW/source; verify file format, color profile, visual result and non-destructive editability. Complex semantic masking without suitable API/vision may be BLOCKED, not silently approximated.
@@ -695,15 +695,35 @@ Claude may report **implementation complete** only when all of the following are
 
 ---
 
+## 30. Nine-part external Python prototype — reference only, not a second runtime
+
+**Reference:** `Pasted text(20261030-195821).txt` (owner-provided example). This document contains **eight numbered Python subsystem sketches and a ninth verification strategy**, not nine complete runnable phases. Treat its code as **conceptual input to the existing P00–P22 implementation**, not as a production-ready codebase, authoritative MCP specification, alternative architecture, or new `universal_agent/` package. The OCADE product is a **general-purpose, Windows-first outcome assistant**; no video editor or named application is the default target or prerequisite.
+
+| Source part | Proposed sketch | Safe reuse within existing OCADE ownership | Required correction / acceptance |
+| --- | --- | --- | --- |
+| **1 — IPC multiplexer** | `core/ipc.py`: async stdio framing, named pipes | Existing `device-agent/windows/` MCP gateway/worker transport (P05–P06) | Keep the **official MCP Python SDK** and its negotiated transport/framing; do not replace it with an incompatible length-prefixed protocol, invent zero latency, or build unnecessary Windows named-pipe multiplexers. Worker stdout is protocol-only; logs use stderr. Bound frames, lifetimes, cancellation and process-tree cleanup. |
+| **2 — Semantic router** | `core/router.py`: namespaces and intent-based tool selection | Existing typed tool registry, policy engine and pinned MCP manifests (P05) | Enforce exact tool names, schemas, capabilities and per-task authorization. Prefix validation is not access control by itself; substring intent matching is not a planner or security boundary. Avoid global fallback to powerful system tools. |
+| **3 — OS driver contract** | `platforms/base.py`: scan, dispatch, read state, detect intervention | A small Windows `ui_bridge` adapter contract (P07, P10) | Model **accessibility elements**, not raw application code trees or arbitrary memory addresses. Do not build a macOS driver until separately scoped and qualified. |
+| **4 — Windows UIA driver** | `platforms/windows.py`: pywinauto/UIA/Win32, process attach, element actions | P07 discovery, P10 Windows control, P25.2 targeting contract | Verify authorized PID, process identity, HWND, session, fresh selector, current focus and permissions. UIA IDs may be missing/duplicate/unstable; not all controls support `invoke` or `get_value`. Minimized windows and secure desktops are not universally controllable. Never infer user takeover solely from cursor delta. |
+| **5 — Closed-loop telemetry** | `telemetry/verifier.py`: read-back and stabilization checks | P12/P16 independent verifier and per-action observation | Compare typed values (boolean versus string matters); use bounded deadlines, nonblocking async waits, domain-specific postconditions and **separate read-back of final artifacts**. A button's enabled state is not proof of the user's outcome. |
+| **6 — Self-healing** | `telemetry/self_healing.py`: fallback action selection | P15/P17 bounded recovery and journal | Do not auto-elevate privileges, patch arbitrary source/AST, mutate shared payloads, bypass access controls, or replay unknown-effect mutations. Reobserve, reauthorize, choose an allowlisted fallback, cap attempts and reconcile receipts. The pasted section contains a duplicated, incomplete fragment. |
+| **7 — Receding-horizon control** | `core/control.py`: observe → choose → act → verify | Existing online supervisor + device pilot (P13–P17) | Replace hardcoded `Btn_Submit`, fabricated tool names and generic success checks with real typed actions, fresh evidence, bounded steps, policy checks, durable checkpoints, STOP fences and independently verified completion. No unbounded polling on empty trees. |
+| **8 — Bootstrap** | `main.py`: initialize router, driver, transport and loop | Existing signed, outbound-only Windows companion lifecycle (P04, P06, P26) | Keep one process owner and one task authority. Do not create a parallel `universal_agent` runtime, unsupported cross-platform promises or raw stdin entry point that bypasses pairing, signatures and task leases. |
+| **9 — Verification matrix** | Phases A–D: IPC, structural UI, interruption/recovery, production qualification | P28 tests, P29 completeness gate | Convert examples into measurable tests for framing, schema rejection, window resize, user takeover, STOP during startup/mid-call, false success, retries, network loss and real Windows apps. Reject absolute 0-error/0-latency claims, assumed stable UIA IDs and offline-only requirements that contradict OCADE's approved online planning boundary. |
+
+**Implementation rule:** Reuse only demonstrated patterns after reviewing current `device-agent/windows/`, `src/lib/jarvis/`, existing task migrations and tests. First build P18 UI integration, then Windows-native UIA/Win32, authorized browser/Office bridges and other dependency-ready gaps; add deterministic regression tests for every imported idea. No copied sketch can override server authority, official MCP framing, independent verification, STOP, explicit consent or the owner's branch/device restrictions. Record unsupported claims and environment-specific validation as blockers rather than declaring them complete.
+
+---
+
 # Annex A — Source heading-by-heading traceability
 
-This annex tracks **all 143 substantive source-heading occurrences in original order**, including duplicates. A heading's presence indicates that its idea was evaluated; it does **not** mean that the source's claims were accepted. “Omitted estimate” means the owner's instruction excludes numerical implementation-sizing material. References in the final column point to sections of this plan. Source line numbers are from `Pasted text(20261030-143347).txt`.
+This annex tracks **all 143 substantive source-heading occurrences in original order**, including duplicates. Vendor-specific video-editor example titles are **paraphrased**, not reproduced verbatim, to keep the implementation plan application-neutral; their original line numbers and IDs remain for source traceability. A heading's presence indicates that its idea was evaluated; it does **not** mean that the source's claims were accepted. “Omitted estimate” means the owner's instruction excludes numerical implementation-sizing material. References in the final column point to sections of this plan. Source line numbers are from `Pasted text(20261030-143347).txt`.
 
 | ID | Source line | Source heading or disposition | Plan section / treatment |
 | --- | ---: | --- | --- |
-| A001 | 5 | 1. The Absolute Best: Native DaVinci Resolve Studio MCP Server | 6, 13 |
+| A001 | 5 | Example-only native video-editor MCP server (source heading normalized; not a product requirement) | 6, 13 |
 | A002 | 13 | 2. For OS-Level Control without Mouse Stealing: PC-Control MCP | 6, 8 |
-| A003 | 19 | 3. The Best Specialized Automation Plugins for DaVinci Resolve | 6, 13 |
+| A003 | 19 | Example-only specialized video-editor automation plugins (source heading normalized) | 6, 13 |
 | A004 | 30 | 1. The Core Backbone: Universal & OS Control | 4, 6 |
 | A005 | 36 | 2. Video Editing & Creative Production | 6, 13 |
 | A006 | 41 | 3. Office & Business Productivity | 6, 9, 12 |
@@ -856,7 +876,7 @@ Every item below has a disposition in the actual architecture; “candidate” n
 | B03 | Playwright Browser MCP | `web_automation`, trusted DOM and account sessions. |
 | B04 | Windows Computer Use MCP / pywinauto | `ui_bridge`, exact target and fresh UIA state; see 21.1 and 25.2. |
 | B05 | Peekaboo / macOS accessibility | Future separate macOS qualification, not Windows prerequisite. |
-| B06 | DaVinci Resolve MCP / scripting bridges | Optional version-verified native editor bridge. |
+| B06 | Video-editor MCP / scripting bridges (example-only) | Optional version-verified native editor bridge. |
 | B07 | FireCut AI | Optional licensed creative workflow integration. |
 | B08 | Reactor | Optional vetted Fusion/VFX extension. |
 | B09 | Snap Captions / Magic Subtitle | Optional verified caption pipeline. |
@@ -956,9 +976,9 @@ These are later requirements/refinements, **not literal headings of the original
 
 ## Final Claude handoff instruction
 
-**Before writing code, read Sections 21–29 for concrete protocol, database, Windows and verification contracts.** Do not equate source traceability with implemented behavior.
+**Before writing code, read Sections 21–30 for concrete protocol, database, Windows, verification and reference-only prototype contracts.** Do not equate source traceability with implemented behavior.
 
-**Start at P00 on the inspected implementation branch.** Establish what actually exists now, implement only the next dependency-ready verified slice, and keep the product's account/security/offline boundaries intact. The source research and every index item have an explicit treatment above. The implementation wins only when real authorized workflows are safely completed and independently proven—not when a diagram, tool count, script or status message says they are.
+**Resume from the latest implementation checkpoint on `ocade/p00-p22-implementation`.** Inspect current HEAD and tests; do not restart already verified P00–P17 work. Implement all remaining dependency-ready slices, continue past each milestone while work remains, and keep the product's account/security/offline boundaries intact. The source research and every index item have an explicit treatment above. The implementation wins only when real authorized workflows are safely completed and independently proven—not when a diagram, tool count, script or status message says they are.
 
 ---
 
