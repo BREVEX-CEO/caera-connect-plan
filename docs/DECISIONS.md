@@ -1,5 +1,8 @@
 # OCADE decisions and historical provenance
 
+> **30 October 2026 active JARVIS handoff:** [`../plan.md`](../plan.md) is the new-engine P00–P22 implementation contract and dependency/evidence queue. References below to deleted `BLOCKED_TESTS.md`, `TOFIX.md`, old `PLAN.md` and retired runtime files are historical records, not instructions to recreate them. Owner scope, no-`main`/no-deployment and proof requirements remain in force.
+
+
 ## Safe cleanup executed — 29 October 2026
 
 The owner's requested sequence was followed: working checkpoint `a53f5ba4a80dc3b126894bd8c2f1d34cd4c2e12b`, then three parallel KISS/YAGNI/low-coupling DRY-WET reviews, then one proof-based fetch-adapter consolidation. Existing configuration owner is reused; SDK/client lifecycle boundaries remain. All other reviewed live helpers/dependencies are retained. No speculative abstraction, new product module/package or runtime performance claim.
@@ -10,13 +13,13 @@ Evidence, count method and per-file hashes. −50production physical lines,119te
 
 The owner kept unavailable execution tests BLOCKED, then requested committing the latest working changes before multiple-agent safe debloating under KISS, YAGNI and low-coupling DRY/WET, followed by a cleanup commit and total file/LOC counts. This changes priority, not deployment/spending/PC permissions. Retain the full plan.md mission and all original requirements; no public launch is authorized.
 
-Only scoped, evidence-backed changes belong in the working checkpoint. Prepared safety proposals with unresolved integration stay outside it. Controlled remote JavaScript and separate-agent source reviews remain different from full Vitest/typecheck/build, actual browser/native workflows and consenting-user pilots. Current evidence, source dispositions, [canonical continuation](../BLOCKED_TESTS.md#working-checkpoint-and-safe-cleanup--29-october-2026).
+Only scoped, evidence-backed changes belong in the working checkpoint. Prepared safety proposals with unresolved integration stay outside it. Controlled remote JavaScript and separate-agent source reviews remain different from full Vitest/typecheck/build, actual browser/native workflows and consenting-user pilots. Current evidence, source dispositions, the retired `BLOCKED_TESTS.md` historical checkpoint.
 
 ## Current owner authority and evidence boundary — 28 October 2026
 
 The owner's current manually initiated mission authorizes implementation and cloud-only development/testing on `ocade/p00-p22-implementation`, with branch commits and preservation of concurrent work. It supersedes older Codex STOP/Chrome-only instructions retained below as history. Personal-PC testing, production/staging/infrastructure changes, production secrets, payments, spending, main merge, deployment and scheduled continuation remain prohibited without the required explicit approval.
 
-Remote adapted JavaScript checks and separate-agent source reviews are separate from CPython/PostgreSQL/full-build/native/browser execution, external security review and five consenting pilots. Missing cloud runners or approvals remain BLOCKED. Current evidence and [canonical continuation](../BLOCKED_TESTS.md#cloud-safety-continuation--28-october-2026) supersede historical coding-complete or release-ready aggregates. No public launch is authorized.
+Remote adapted JavaScript checks and separate-agent source reviews are separate from CPython/PostgreSQL/full-build/native/browser execution, external security review and five consenting pilots. Missing cloud runners or approvals remain BLOCKED. Current evidence and the retired `BLOCKED_TESTS.md` historical checkpoint supersede historical coding-complete or release-ready aggregates. No public launch is authorized.
 
 ## Final owner STOP and research handoff — 20 October 2026 (supersedes session scope below)
 
@@ -24,7 +27,7 @@ Stop all OCADE tests, fixes and implementation immediately. Finish an architectu
 
 The previous own-browser-only rule is lifted for research and **future isolated cloud benchmarking**. It is not permission for this Codex session to implement prototypes or run any more tests. Future Claude work must use disposable environments/accounts, lawful Windows Office/macOS licensing, actual mobile permission and distribution limits, scoped authorization, independent verification and a declared no-spend budget unless separately approved. No owner PC/Chrome testing resumes under this handoff. Keep the generated Word document in staging; the owner declined a Desktop copy. Preserve files, permissions, concurrent work and production. No main merge, deployment or costs. Manual sessions only: never create, enable, resume or modify scheduled tasks/cron/recurring automations/timed continuation without explicit owner permission. Historical scope statements below are superseded where inconsistent.
 
-Current decisions govern the [open implementation and verification queue](../BLOCKED_TESTS.md). This register is not a second work queue. Research baseline: `f521e23529542d709a9627181341b0e904a8b0c3`; redesign dated 9 October 2026. The current owner authorises implementation, staging configuration and scoped tests on the implementation branch; production deployment and spending require separate approval.
+Current decisions govern the [active JARVIS implementation plan](../plan.md). This register is not a second work queue. Research baseline: `f521e23529542d709a9627181341b0e904a8b0c3`; redesign dated 9 October 2026. The current owner authorises implementation, staging configuration and scoped tests on the implementation branch; production deployment and spending require separate approval.
 
 ## Owner clarification — 20 October 2026 (current)
 
@@ -38,7 +41,7 @@ Use the existing Chrome/OCADE interface and authenticated scoped PC companion fo
 
 ### Deleted plan and current continuation
 
-`PLAN.md` was removed at `4ba70185ce1e19f41370639a085d1001898dfccc`. Its last complete version is [archived at the preceding commit](https://github.com/BREVEX-CEO/caera-connect-plan/blob/babd3318abfe0015e3fc264ac67f9f1c11b51b86/PLAN.md). Preserve that specification and its dated evidence; do not restore it as a competing queue or infer that deletion completed its work. [Open work](../BLOCKED_TESTS.md) now owns unresolved implementation, checks and the continuation checkpoint. This decision register and the existing product, architecture, design, security and testing contracts retain their respective authority. Phase numbers in old source comments, applied migrations and audit hashes are historical references to the archive.
+`PLAN.md` was removed at `4ba70185ce1e19f41370639a085d1001898dfccc`. Its last complete version is [archived at the preceding commit](https://github.com/BREVEX-CEO/caera-connect-plan/blob/babd3318abfe0015e3fc264ac67f9f1c11b51b86/PLAN.md). Preserve that specification and its dated evidence; do not restore it as a competing queue or infer that deletion completed its work. [active JARVIS implementation plan](../plan.md) now owns unresolved implementation, checks and the continuation checkpoint. This decision register and the existing product, architecture, design, security and testing contracts retain their respective authority. Phase numbers in old source comments, applied migrations and audit hashes are historical references to the archive.
 
 The latest owner requires **at least 95% independently verified real-task success in every major workflow family**, all mandatory release gates passed and zero unresolved critical security or reliability defects. Website/PWA and Windows come first; Android and supported Apple platforms follow with their own qualification. The first public pilot is free and needs five consenting testers; payments remain deferred and must not block unrelated pilot engineering or be enabled without approval. No current source or fixture result establishes that outcome.
 
@@ -50,7 +53,7 @@ This supersedes the previous 19 October Gemma-default/Google-proxy candidate at 
 
 ## Owner decisions — 13 October 2026 (model rule superseded above; other rules retained)
 
-Current status and continuation live in [open work](../BLOCKED_TESTS.md); this is the decision register.
+Current status and continuation live in [active JARVIS implementation plan](../plan.md); this is the decision register.
 
 - **Model.** One online model for Chat and JARVIS on all three key slots and the staging key: `gemini-3.5-flash-lite` (second decision that day, replacing `gemini-3.8-flash`). No weaker or other fallback, no paid tier, no model switch on 429/503. Key slots are redundancy, never a way round a per-project quota; no extra projects to multiply quota.
 - **Spending.** ₹0 beyond included allowances (GitHub Actions minutes, free Gemini tier, Cloudflare/Supabase free use). Anything billable needs the owner first.
