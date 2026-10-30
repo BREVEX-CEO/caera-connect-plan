@@ -80,14 +80,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:card", content: "summary_large_image" },
     ],
     links: [
-      /*
-       * Emitted only when the URL actually resolved. Vite rewrites `?url` to a
-       * hashed asset path in dev and in the build, but under vitest there is no
-       * asset pipeline and the import resolves to "". A
-       * `<link rel="stylesheet" href="">` resolves to the CURRENT PAGE, so the
-       * browser re-requests the document and parses HTML as CSS.
-       */
-      ...(appCss ? [{ rel: "stylesheet", href: appCss }] : []),
+      { rel: "stylesheet", href: appCss },
       /*
        * The two faces on screen before anything else. A font is requested by
        * the STYLESHEET, so without this the browser cannot know it needs one
@@ -231,7 +224,7 @@ function RootComponent() {
  * Work that must happen once per browser and nowhere on screen.
  *
  * Offline Intelligence preparation starts on the first supported visit whether
- * or not anybody is signed in — `docs/PRD.md` and `docs/TRD.md` both say so —
+ * or not anybody is signed in — `docs/PRD.md` and `docs/ARCHITECTURE.md` both say so —
  * and nothing it needs is imported statically, so the transfer can never share
  * a task with hydration.
  */

@@ -5,26 +5,11 @@
 *.html text eol=lf
 *.js text eol=lf
 *.json text eol=lf
-*.jsonl text eol=lf
-*.jsx text eol=lf
 *.md text eol=lf
 *.mjs text eol=lf
-*.mts text eol=lf
-*.py text eol=lf
-*.rs text eol=lf
-*.sh text eol=lf
 *.sql text eol=lf
 *.ts text eol=lf
 *.tsx text eol=lf
 *.toml text eol=lf
-*.xml text eol=lf
-*.yaml text eol=lf
 *.yml text eol=lf
 *.webmanifest text eol=lf
-*.sha256 text eol=lf
-
-# Native Windows launcher syntax is accepted by cmd.exe with CRLF everywhere.
-*.bat text eol=crlf
-*.cmd text eol=crlf
-
-*.zip binary

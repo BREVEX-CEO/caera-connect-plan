@@ -30,11 +30,8 @@
  *     merely possible.
  *
  * IT IS NOT WEAKER THAN THE PLATFORM'S. This computes the same function over
- * the same bytes and is checked against `crypto.subtle.digest` in
- * `streaming-digest.test.ts` over empty input, sub-block input, exact block
- * multiples, block boundaries ±1, and multi-megabyte random input fed in
- * deliberately awkward splits. If those disagree, this file is wrong and the
- * suite says so. Nothing here relaxes the check to gain speed.
+ * the same bytes as `crypto.subtle.digest`; if the two ever disagree, this file
+ * is wrong. Nothing here relaxes the check to gain speed.
  */
 
 /** SHA-256 round constants: cube roots of the first 64 primes. */

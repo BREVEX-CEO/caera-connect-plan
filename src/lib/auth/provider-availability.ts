@@ -8,7 +8,7 @@
  *
  * each defaulting to `false` in production. That is a second authority over
  * what authentication the product has, sitting beside the only real one, and
- * `docs/RULES.md` #16 says Supabase Auth is the identity authority. The two
+ * `AGENTS.md` says Supabase Auth is the identity authority. The two
  * could disagree in both directions and did: the live project has Google
  * configured and working, and a production build with the variable unset
  * offered no Google button at all. The opposite drift is worse — a flag set

@@ -337,7 +337,7 @@ function ResetJarvis() {
   return (
     <Row
       label="Reset JARVIS settings"
-      description="Voice, wake phrase, spoken answers and layout go back to their defaults on this device."
+      description="Voice and layout go back to their defaults on this device."
     >
       <Action label="Reset" onClick={() => writePreferences(JARVIS_DEFAULTS)} />
     </Row>

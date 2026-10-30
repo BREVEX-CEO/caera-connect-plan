@@ -21,16 +21,16 @@
  */
 
 /*
- * FOUR, BECAUSE THE PRODUCT HAS FOUR THINGS TO SAY.
+ * THREE, BECAUSE THE PRODUCT HAS THREE THINGS TO SAY.
  *
  * It listed ten while there were Approvals, Tasks, Automations, Support cases,
  * Organizations and a public status page. Six of those cannot emit a
  * notification any more, and a category nothing can send is a row in a settings
- * screen that does nothing when a person changes it. What remains is what the
- * product actually sends today (security) and the three it sends about the
- * account itself.
+ * screen that does nothing when a person changes it. JARVIS task results went
+ * with the retired JARVIS engine. What remains is what the product actually
+ * sends today (security) and the two it sends about the account itself.
  */
-export type NotificationCategoryId = "security" | "account" | "task_outcomes" | "product_updates";
+export type NotificationCategoryId = "security" | "account" | "product_updates";
 
 export interface NotificationCategory {
   id: NotificationCategoryId;
@@ -76,13 +76,6 @@ export const NOTIFICATION_CATEGORIES: readonly NotificationCategory[] = [
     description: "Email changes and anything else that affects getting back in.",
     optional: false,
     frequencies: URGENT_ONLY,
-  },
-  {
-    id: "task_outcomes",
-    title: "JARVIS task results",
-    description: "When a JARVIS task you started finishes or stops, wherever you are.",
-    optional: true,
-    frequencies: ["immediate", "grouped"],
   },
   {
     id: "product_updates",

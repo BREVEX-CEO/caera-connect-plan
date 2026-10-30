@@ -79,13 +79,9 @@ const button =
 const ALL_PERMISSIONS: { id: StaffPermission; name: string }[] = [
   { id: "customers.read", name: "See customers" },
   { id: "usage.read", name: "See usage" },
-  { id: "devices.read", name: "See devices" },
-  { id: "devices.manage", name: "Remove devices" },
-  { id: "tasks.read", name: "See JARVIS tasks" },
   { id: "security.read", name: "See account security" },
   { id: "sessions.manage", name: "End customer sessions" },
   { id: "grants.manage", name: "Give or take back plans" },
-  { id: "execution.manage", name: "Pause or resume JARVIS" },
   { id: "health.read", name: "See system health" },
   { id: "audit.read", name: "See the audit record" },
   { id: "staff.manage", name: "Manage staff" },
@@ -807,15 +803,7 @@ export function SystemModule({ me }: { me: MyStaff }) {
         <Section title="System health">
           {health.data ? (
             <dl className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-5">
-              {(
-                [
-                  ["Computers online", health.data.devicesOnline],
-                  ["Tasks working", health.data.tasksRunning],
-                  ["Tasks waiting", health.data.tasksWaiting],
-                  ["Computers waiting to connect", health.data.pendingEnrollments],
-                  ["Staff", health.data.staff],
-                ] as const
-              ).map(([name, value]) => (
+              {([["Staff", health.data.staff]] as const).map(([name, value]) => (
                 <div key={name}>
                   <dt className="text-[13px] text-muted-foreground">{name}</dt>
                   <dd className="text-lg font-semibold text-foreground">{value}</dd>

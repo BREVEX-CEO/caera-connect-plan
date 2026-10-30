@@ -11,7 +11,7 @@ export const Route = createFileRoute("/help")({
       { title: "Help — OCADE" },
       {
         name: "description",
-        content: "Answers about OCADE Chat, JARVIS, devices, billing and privacy.",
+        content: "Answers about OCADE Chat, JARVIS, billing and privacy.",
       },
     ],
   }),
@@ -24,14 +24,13 @@ export const Route = createFileRoute("/help")({
  *
  * The product has four destinations. What a person needs from Help is short,
  * fits on one page, and is answered here rather than retrieved. The accordion
- * is the one place in OCADE that has one — `docs/UI_REFERENCE_CHECKLIST.md`
+ * is the one place in OCADE that has one — `docs/JARVIS_DESIGN_SYSTEM.md`
  * allows it on Help and nowhere else.
  */
 const CATEGORIES = [
   "Getting started",
   "Chat",
   "JARVIS",
-  "Devices",
   "Mobile",
   "Billing",
   "Privacy & security",
@@ -52,9 +51,8 @@ const QUESTIONS: {
     words: "chat jarvis library",
     answer: (
       <p>
-        OCADE by CARCC is an AI product with two places to work: Chat, for conversation, and JARVIS,
-        which answers questions and does things on your computer or in your browser when you ask it
-        to. Library holds the files and images you upload and the ones OCADE produces.
+        OCADE by CARCC is an AI product for conversation in Chat. JARVIS, its task assistant, is
+        being rebuilt. Library holds the files and images you upload and the ones OCADE produces.
       </p>
     ),
   },
@@ -117,8 +115,7 @@ const QUESTIONS: {
       <p>
         OCADE prepares itself to answer on your device the first time you use Chat on supported
         hardware. It installs once and is reused afterwards — a refresh, a new sign-in or an OCADE
-        update does not prepare it again. You can remove it at any time from Settings. JARVIS works
-        online only and never starts this download.
+        update does not prepare it again. You can remove it at any time from Settings.
       </p>
     ),
   },
@@ -136,119 +133,31 @@ const QUESTIONS: {
   },
   {
     category: "JARVIS",
-    question: "What can JARVIS do?",
-    words: "task browser computer files apps",
+    question: "Where is JARVIS?",
+    words: "jarvis task computer device unavailable rebuilt",
     answer: (
       <p>
-        Ask it anything and it answers. Ask it to do something — open a site, fill in a form, write
-        a file, open an app — and it works on a computer or browser you connected, one step at a
-        time, looking at the result after each step. You see what it is doing, and you can take over
-        or stop at any moment.
-      </p>
-    ),
-  },
-  {
-    category: "JARVIS",
-    question: "How do Stop and Take Over work?",
-    words: "stop take over pause resume continue",
-    answer: (
-      <p>
-        <strong className="text-foreground">Stop</strong> requests cancellation. Once OCADE records
-        the stop, it sends no further steps. A disconnected computer may not receive it immediately.
-        JARVIS says “Stopped” once the running step is confirmed stopped; changes already made may
-        remain. If the computer is offline, use STOP JARVIS in its tray and check the result before
-        retrying. <strong className="text-foreground">Take Over</strong> pauses JARVIS and hands the
-        screen to you; press Resume when you are done and it continues from a fresh look at the
-        page. Using your own mouse or keyboard also pauses it, unless you turned on Co-work for that
-        computer.
-      </p>
-    ),
-  },
-  {
-    category: "JARVIS",
-    question: "When does JARVIS ask me first?",
-    words: "confirm permission purchase payment delete",
-    answer: (
-      <p>
-        Before anything hard to undo or sensitive: deleting permanently, changing the system,
-        opening an app set to Ask, submitting a payment, legal, medical or security form, or posting
-        publicly. JARVIS never completes a purchase, never reads saved passwords, and hands CAPTCHA,
-        one-time codes and passkeys to you.
-      </p>
-    ),
-  },
-  {
-    category: "JARVIS",
-    question: "Does JARVIS use my Chat allowance?",
-    words: "usage allowance limit uses",
-    answer: (
-      <p>
-        No. JARVIS has its own allowance on the same plan. Each step that produced an answer or an
-        action counts once; a step that failed or produced nothing is not charged.
-      </p>
-    ),
-  },
-  {
-    category: "Devices",
-    question: "How do I connect my computer?",
-    words: "device agent install connect pair windows mac",
-    answer: (
-      <p>
-        Start the OCADE Device Agent on the computer. It opens OCADE so you can confirm the computer
-        with one click — no codes or passwords. Check that the fingerprint OCADE shows matches the
-        one the computer shows. Each computer gets its own key, and Remove in Devices ends its
-        access at once.
-      </p>
-    ),
-  },
-  {
-    category: "Devices",
-    question: "Why is “Run commands” unavailable?",
-    words: "terminal command unavailable windows mac",
-    answer: (
-      <p>
-        JARVIS runs commands only where your computer can keep them inside the one folder you chose.
-        Until that is proven on Windows and macOS, JARVIS uses file and app actions there instead,
-        and the switch says it is not available rather than pretending.
-      </p>
-    ),
-  },
-  {
-    category: "Devices",
-    question: "Can JARVIS work in my own browser?",
-    words: "chrome own browser tabs sign-ins extension add-on",
-    answer: (
-      <p>
-        Yes, with no add-on. On a computer with the OCADE Device Agent, turn on “Use my own browser”
-        for it under JARVIS › Devices. The first time, JARVIS opens your browser’s own permission
-        page: turn the permission on and choose Allow when your browser asks, then press Continue.
-        JARVIS then works with your own sign-ins, only in tabs it opens itself, and leaves your
-        other tabs alone. Without it, JARVIS uses a separate browser of its own on that computer.
+        OCADE JARVIS is being rebuilt and cannot take requests right now. Your past JARVIS
+        conversations stay readable on the JARVIS page, and you can delete them there.
       </p>
     ),
   },
   {
     category: "Mobile",
     question: "Can I use OCADE on my phone?",
-    words: "android iphone ipad home screen pwa bubble floating shortcut siri",
+    words: "iphone ipad home screen pwa bubble floating shortcut siri",
     answer: (
       <>
-        <p>
-          Yes, in the browser. Add OCADE to your home screen to open it like an app. From your phone
-          you can start, watch and stop work on a computer you connected, under Devices. The website
-          does not control a phone's own apps; on Android, the OCADE app connects the phone to
-          JARVIS as a device of its own, with the bubble over other apps.
-        </p>
+        <p>Yes, in the browser. Add OCADE to your home screen to open it like an app.</p>
         <p className="mt-2">
-          On a phone, a small JARVIS bubble floats over OCADE's pages. Drag it to either edge, tap
-          it for the current task, Stop, or a quick question. It stays inside OCADE, not over other
-          apps. Hide it from the bubble; Settings › Appearance brings it back.
+          On a phone, a small JARVIS bubble floats over OCADE's pages. Drag it to either edge or tap
+          it to open JARVIS. It stays inside OCADE, not over other apps. Hide it from the bubble;
+          Settings › Appearance brings it back.
         </p>
         <p className="mt-2">
           To open JARVIS from a shortcut, for example with Open URL in the iPhone Shortcuts app
-          (which Siri can run by its name), use ocade.in/ocade-jarvis. Add ?voice=1 to start
-          listening, or ?ask= followed by your words to have them ready in the box; JARVIS waits for
-          you to press Send.
+          (which Siri can run by its name), use ocade.in/ocade-jarvis. Add ?ask= followed by your
+          words to have them ready in the box.
         </p>
       </>
     ),
@@ -260,9 +169,9 @@ const QUESTIONS: {
     answer: (
       <p>
         Yes. Open Settings › Notifications and turn on “On this device” in each browser you want
-        alerts in; your browser asks once. Security alerts always arrive; JARVIS results and
-        reminders arrive when that kind is on. On iPhone and iPad, Apple shows them only for OCADE
-        opened from the Home Screen. Signing out stops them in that browser.
+        alerts in; your browser asks once. Security alerts always arrive; other kinds arrive when
+        that kind is on. On iPhone and iPad, Apple shows them only for OCADE opened from the Home
+        Screen. Signing out stops them in that browser.
       </p>
     ),
   },
@@ -273,8 +182,8 @@ const QUESTIONS: {
     answer: (
       <p>
         A free account has 28 successful requests in each 6 hour 28 minute window, shared across
-        every device you sign in on. JARVIS has its own allowance on the same plan. One request you
-        make counts once, however much work it takes OCADE to answer it.
+        every device you sign in on. One request you make counts once, however much work it takes
+        OCADE to answer it.
       </p>
     ),
   },
@@ -318,18 +227,6 @@ const QUESTIONS: {
   },
   {
     category: "Privacy & security",
-    question: "What does JARVIS send to OCADE?",
-    words: "jarvis privacy screenshots page content",
-    answer: (
-      <p>
-        While a task you started runs, what JARVIS needs for it: the page or window it works in, its
-        address and title, screenshots for the live view, and each step's result. Detailed activity
-        is kept for 90 days. The <Link to="/privacy">Privacy Policy</Link> explains it in full.
-      </p>
-    ),
-  },
-  {
-    category: "Privacy & security",
     question: "How do I delete my account?",
     words: "delete account close",
     answer: (
@@ -338,31 +235,6 @@ const QUESTIONS: {
         to type the confirmation. Data Controls is next door and deletes your conversations or your
         files without closing the account. Deletion removes your account content; see the{" "}
         <Link to="/privacy">Privacy Policy</Link> for what is kept and for how long.
-      </p>
-    ),
-  },
-  {
-    category: "Troubleshooting",
-    question: "JARVIS says no computer is online",
-    words: "no device offline not online",
-    answer: (
-      <p>
-        Start the OCADE Device Agent on your computer and keep it signed in, then ask again. If
-        several computers are online, choose one in Devices. A computer shows Ready when it can work
-        and Needs permission when every kind of work is turned off for it.
-      </p>
-    ),
-  },
-  {
-    category: "Troubleshooting",
-    question: "“Stop not confirmed”",
-    words: "stop confirm computer offline",
-    answer: (
-      <p>
-        OCADE recorded the stop, but could not confirm that the running step ended on your computer.
-        It may be asleep or disconnected. No further steps are sent; use STOP JARVIS in the OCADE
-        tray on that computer. A change already made may remain, so check the app or file before
-        retrying. Reconnecting alone does not prove that the earlier step stopped or was undone.
       </p>
     ),
   },

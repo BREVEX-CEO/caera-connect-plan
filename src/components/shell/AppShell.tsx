@@ -3,8 +3,7 @@
  *
  * The product has four destinations and one navigation hierarchy, so there is
  * one shell rather than a workspace shell, a marketing shell, a settings shell
- * and a rail. `docs/design-references/grok/` supplies the proportions: a narrow
- * fixed sidebar, short rows, a section label above recent work, the account at
+ * and a rail. A narrow fixed sidebar, short rows, a section label above recent work, the account at
  * the bottom, and a workspace that takes everything else.
  *
  * MOBILE IS THE SAME SHELL WITH THE SIDEBAR OFF-CANVAS, not a second product.

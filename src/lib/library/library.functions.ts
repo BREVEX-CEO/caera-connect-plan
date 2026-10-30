@@ -44,7 +44,7 @@ const COLUMNS =
 /**
  * A hundred megabytes, matching the bucket's own ceiling.
  *
- * `PLAN.md` and `docs/TRD.md` both name that figure for one intentionally
+ * `PLAN.md` and `docs/ARCHITECTURE.md` both name that figure for one intentionally
  * supported attachment. Refusing it here as well means a person is told before
  * spending the upload rather than after it.
  */

@@ -108,8 +108,6 @@ export async function beginBilledRequest(options?: {
   idempotencyKey?: string;
   generationId?: string;
   surface?: GenerationSurface;
-  /** The JARVIS task this planning turn belongs to (it is then part of that task's one use). */
-  taskId?: string;
 }): Promise<BilledRequest | null> {
   const idempotencyKey = options?.idempotencyKey ?? crypto.randomUUID();
   const generationId = options?.generationId ?? idempotencyKey;
@@ -120,7 +118,7 @@ export async function beginBilledRequest(options?: {
   }
 
   const acquisition = acquireGenerationPermit({
-    data: { idempotencyKey, generationId, surface, taskId: options?.taskId },
+    data: { idempotencyKey, generationId, surface },
   });
   let serverPermitId = idempotencyKey;
 
@@ -149,18 +147,6 @@ export async function beginBilledRequest(options?: {
       if (result.reason === "duplicate_completed") {
         toast.error("That request has already completed.", {
           description: "OCADE did not run or charge it again.",
-        });
-        return null;
-      }
-      if (result.reason === "task_budget_exhausted") {
-        toast.error("This task has used all 150 of its planning steps.", {
-          description: "Nothing was charged for it. Start a new task to carry on.",
-        });
-        return null;
-      }
-      if (result.reason === "task_not_open") {
-        toast.error("That task is no longer open.", {
-          description: "Nothing was sent and nothing was charged.",
         });
         return null;
       }

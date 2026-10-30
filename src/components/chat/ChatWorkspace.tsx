@@ -9,7 +9,7 @@ import { useIntelligenceQuality } from "@/lib/intelligence/use-intelligence-qual
  * integrity strip, an incognito banner, an engine badge, a second chat search
  * and a wall of suggestion chips.
  *
- * What survives is what `docs/UI UX Brief.md` asks for: `Ask OCADE`, an
+ * What survives is what `docs/PRD.md` asks for: `Ask OCADE`, an
  * attachment control, a microphone, a send button, and a compact selector that
  * shows only Auto, OCADE and Offline. Everything it knows comes from
  * `useChat`; this file renders and does not decide.
@@ -77,7 +77,7 @@ function useOnline(): boolean {
 
 /**
  * A message written before signing in is held here, in this tab, and sent once
- * afterwards. `docs/APP_FLOW.md` is explicit that it must be neither discarded
+ * afterwards. `docs/PRD.md` is explicit that it must be neither discarded
  * nor duplicated.
  */
 const PENDING_KEY = "ocade:pending-message:v1";

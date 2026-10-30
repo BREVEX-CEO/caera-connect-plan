@@ -140,7 +140,7 @@ function useDeviceRegistrationProblem() {
  *
  * Shown only when there is something to manage. An account with one device does
  * not need a device manager, and a settings screen that lists one row to say so
- * is the developer-dashboard clutter `docs/DESIGN.md` forbids.
+ * is the developer-dashboard clutter `docs/JARVIS_DESIGN_SYSTEM.md` forbids.
  */
 function DevicesRows() {
   const client = useQueryClient();

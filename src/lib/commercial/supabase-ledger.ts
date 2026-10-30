@@ -145,18 +145,6 @@ export function supabaseCommercialLedger(admin: SupabaseClient<Database>): Comme
       return fromHundredths(Number(row.charged_hundredths));
     },
 
-    async bindPermitToTask({ userId, idempotencyKey, taskId }) {
-      const { data, error } = await admin.rpc("ocade_bind_permit_to_task", {
-        p_user_id: userId,
-        p_idempotency_key: idempotencyKey,
-        p_task_id: taskId,
-      });
-      if (error) throw new Error(`The usage ledger could not bind a permit: ${error.message}`);
-      return data === "bound" || data === "task_budget_exhausted" || data === "task_not_open"
-        ? data
-        : "refused";
-    },
-
     async releasePermit({ userId, idempotencyKey, reason }) {
       const { data, error } = await admin.rpc("ocade_release_generation_permit", {
         p_user_id: userId,

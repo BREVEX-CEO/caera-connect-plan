@@ -41,7 +41,7 @@ const SUPABASE_SERVICE_ROLE_KEY =
 /*
  * EXACTLY THREE KEY SLOTS, AND ONLY THE ONES THAT ARE SET.
  *
- * `docs/TRD.md` names all three and makes the second and third OPTIONAL, so the
+ * `docs/ARCHITECTURE.md` names all three and makes the second and third OPTIONAL, so the
  * list is built from what the deployment actually holds: a project with one key
  * must not have failover invented for it, and a project with three must not
  * have the third ignored. The keys stay in this module and never travel — the
@@ -208,15 +208,13 @@ export const boundary: Omit<OnlineHandlerDependencies, "verifyJwt"> = {
           reason: "The generation permit is invalid or was already used.",
         };
   },
-  finalizePermit({ userId, permit, startsTask }) {
+  finalizePermit({ userId, permit }) {
     // One use, charged here the moment the answer is complete. The browser's
     // own finalize then finds it settled; its "release" can no longer refund it.
-    // A JARVIS reply that starts a task is part of that task, whose one use is
-    // charged only when it completes (20261013090000).
     return settle("ocade_finalize_generation_permit", {
       p_user_id: userId,
       p_idempotency_key: permit.idempotencyKey,
-      p_cost_hundredths: startsTask && permit.surface === "jarvis" ? 0 : 100,
+      p_cost_hundredths: 100,
     });
   },
   releasePermit({ userId, permit }) {

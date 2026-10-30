@@ -19,8 +19,6 @@ import { useSession } from "@/lib/session";
 import {
   grantAccountAccess,
   listAccountAccess,
-  listAccountDevices,
-  removeAccountDevice,
   revokeAccountAccess,
   type AdminAccountRow,
   type StaffPermission,
@@ -68,7 +66,7 @@ const MODULES: { id: Module; name: string; needs: StaffPermission[] }[] = [
   { id: "customers", name: "Customers", needs: ["customers.read"] },
   { id: "cases", name: "Cases", needs: ["cases.read", "cases.manage"] },
   { id: "staff", name: "Staff", needs: ["staff.manage"] },
-  { id: "system", name: "System", needs: ["health.read", "execution.manage"] },
+  { id: "system", name: "System", needs: ["health.read"] },
   { id: "audit", name: "Audit", needs: ["audit.read"] },
 ];
 
@@ -455,22 +453,6 @@ function CustomerDetail({
               onChanged={() => void detail.refetch()}
             />
           ) : null}
-          {detail.data.tasks ? (
-            detail.data.tasks.length ? (
-              <ul className="space-y-1">
-                {detail.data.tasks.map((task, index) => (
-                  <li key={index} className="flex justify-between gap-2">
-                    <span className="truncate text-foreground">{task.title}</span>
-                    <span className="shrink-0 text-muted-foreground">
-                      {task.status} · {new Date(task.updatedAt).toLocaleDateString()}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-muted-foreground">No JARVIS tasks.</p>
-            )
-          ) : null}
         </>
       ) : (
         <Pending
@@ -479,9 +461,6 @@ function CustomerDetail({
           problem="The account could not be read."
         />
       )}
-      {may("devices.read") ? (
-        <AccountDevices userId={row.id} canRemove={may("devices.manage")} />
-      ) : null}
       {!row.isSelf && (may("usage.manage") || may("accounts.manage") || may("accounts.delete")) ? (
         <AccountOperations
           row={row}
@@ -814,89 +793,9 @@ function AccountOperations({
 }
 
 /**
- * ONE ACCOUNT'S JARVIS DEVICES. Removing one ends its key and its open work;
- * the database requires a second factor and a reason and keeps the record.
- */
-function AccountDevices({ userId, canRemove: allowed }: { userId: string; canRemove: boolean }) {
-  const queryClient = useQueryClient();
-  const [reason, setReason] = useState("");
-  const devices = useQuery({
-    queryKey: ["admin", "devices", userId],
-    queryFn: () => listAccountDevices({ data: { userId } }),
-  });
-  const { withProof, dialog } = useConfirmIdentity();
-  const remove = useMutation({
-    mutationFn: (deviceId: string) =>
-      withProof(() => removeAccountDevice({ data: { deviceId, reason } })),
-    onSuccess: async ({ removed }) => {
-      toast[removed ? "success" : "error"](
-        removed ? "Device removed." : "That device was already removed.",
-      );
-      setReason("");
-      await queryClient.invalidateQueries({ queryKey: ["admin", "devices", userId] });
-    },
-    onError: (error: unknown) => toast.error(messageOf(error)),
-  });
-  if (!devices.data) {
-    return (
-      <div className="mt-3">
-        <Pending query={devices} loading="Loading devices…" problem="Devices could not be read." />
-      </div>
-    );
-  }
-  if (devices.data.length === 0) {
-    return <p className="mt-3 text-[13px] text-muted-foreground">No JARVIS devices.</p>;
-  }
-  const canRemove = allowed && reason.trim().length >= 10 && !remove.isPending;
-  return (
-    <div className="mt-3 rounded-md border border-border p-3 text-[13px]">
-      {dialog}
-      <ul className="space-y-2">
-        {devices.data.map((device) => (
-          <li key={device.id} className="flex items-center justify-between gap-3">
-            <span className="min-w-0">
-              <span className="block truncate text-foreground">{device.name}</span>
-              <span className="block truncate text-muted-foreground">
-                {device.platform ?? (device.kind === "android" ? "Phone" : "Computer")} ·{" "}
-                {device.lastSeenAt
-                  ? `seen ${new Date(device.lastSeenAt).toLocaleString()}`
-                  : "never connected"}
-              </span>
-            </span>
-            {device.removedAt ? (
-              <span className="shrink-0 text-muted-foreground">Removed</span>
-            ) : !allowed ? null : (
-              <button
-                type="button"
-                disabled={!canRemove}
-                onClick={() => remove.mutate(device.id)}
-                className="h-7 shrink-0 rounded-md border border-border px-2 text-destructive transition-colors hover:bg-accent disabled:opacity-50"
-              >
-                Remove
-              </button>
-            )}
-          </li>
-        ))}
-      </ul>
-      {allowed && devices.data.some((device) => !device.removedAt) ? (
-        <label className="mt-3 block">
-          <span className="sr-only">Reason for removing a device</span>
-          <input
-            value={reason}
-            onChange={(event) => setReason(event.target.value)}
-            placeholder="Why a device is being removed (at least ten characters)"
-            className="h-8 w-full rounded-md border border-border bg-transparent px-3 text-sm outline-none focus-visible:border-ring"
-          />
-        </label>
-      ) : null}
-    </div>
-  );
-}
-
-/**
  * A GRANT AND A PAYMENT ARE NEVER THE SAME BADGE.
  *
- * `docs/RULES.md` #34 keeps manual access separate from payment evidence, and
+ * `docs/SUPPORT_LEGAL_SECURITY.md` keeps manual access separate from payment evidence, and
  * an operator deciding whether to revoke something needs to know which of the
  * two they are looking at before they press anything.
  */

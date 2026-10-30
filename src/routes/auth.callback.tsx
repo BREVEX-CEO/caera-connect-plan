@@ -65,7 +65,7 @@ function CallbackPage() {
       /*
        * Straight to where they were going. This used to read
        * `profiles.onboarding_completed` first and divert to the setup wizard;
-       * `docs/APP_FLOW.md` now sends a verified session to the intended deep
+       * `docs/PRD.md` now sends a verified session to the intended deep
        * link, or to Chat when there is none.
        */
       navigate({ to: target, replace: true });

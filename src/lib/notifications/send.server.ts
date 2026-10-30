@@ -177,8 +177,6 @@ async function pushToBrowsers(input: NotificationToSend, id: string): Promise<De
     url: input.deepLink ?? "/",
     tag: id,
   };
-  // A local proof's stand-in push service lives beside its stand-in database.
-  const allowLoopback = /^http:\/\/127\.0\.0\.1[:/]/.test(process.env.SUPABASE_URL ?? "");
   const outcomes = await Promise.all(
     browsers.map(async (subscription) => {
       let outcome: PushOutcome = "refused";
@@ -191,7 +189,6 @@ async function pushToBrowsers(input: NotificationToSend, id: string): Promise<De
           privateKey,
           subject: COMPANY_FACTS.siteOrigin,
           urgent: !isMutable(input.category),
-          allowLoopback,
         }).catch((): PushOutcome => "refused");
       }
       const row = supabaseAdmin.from("ocade_push_subscriptions");

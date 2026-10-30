@@ -1,5 +1,15 @@
 # OCADE retirement manifest
 
+## Second debloat pass — 30 October 2026
+
+From `5568893`, on `ocade/p00-p22-implementation`:
+
+- **Retired-JARVIS leftovers removed:** start-task permit binding (`bindPermitToTask`, `taskId`, `startsTask`, free task-turn finalize), the "JARVIS task results" notification category, admin JARVIS device list/removal, customer JARVIS task list, device/task health counters and their staff permission choices (`devices.read`, `devices.manage`, `tasks.read`, `execution.manage`), unused JARVIS preferences (wake, spoken answers, device target), and Help answers for the device agent, own-browser control and device troubleshooting.
+- **Experiments and test seams removed:** the opt-in candidate system-prompt A/B (`ocade.prompt` localStorage flag and `system-prompt.ts`), the loopback push-service exemption and its fetch override, the Tailwind test-file exclusions, the vitest-only stylesheet guard, the node-preset Nitro branch for the deleted audit harness, and comments that cited deleted tests.
+- **Tooling removed:** direct `esbuild` dev dependency (same 0.28.1 still resolves transitively), `.nvmrc` (duplicate of `.node-version`), `scripts/measure-loc.mjs`, `scripts/deploy.d.mts`, CI failure-evidence upload, Python/Android/Windows-only `.gitattributes` and `.gitignore` rules.
+- **Documentation removed:** 13 compatibility pointer stubs and `docs/MEMORY.md` (code comments now cite the canonical document), `docs/design-references` (competitor screenshots and research), `docs/integrations/deepseek-harness.md`, the 9 October competition/redesign research report; broken links to deleted evidence were turned into plain text. AGENTS.md records the DeepSeek intake as retired.
+- **Kept on purpose:** migrations, rollback scripts, generated Supabase types, the `jarvis` usage surface, JARVIS data classes in export/erasure, legal text, the JARVIS GUI and its Settings rows, and `OCADE_SYSTEM_PROMPT_REDESIGNED.md` as the owner's candidate specification.
+
 ## Old JARVIS engine, tests and audit material retired — 30 October 2026
 
 Owner-ordered cleanup on `ocade/p00-p22-implementation` from `6dff1f04dfbbb9ed2581dbf41ba92d6ca54862ba`, ahead of a new JARVIS architecture (not implemented here). Everything below remains recoverable from that commit.
@@ -14,7 +24,7 @@ Owner-ordered cleanup on `ocade/p00-p22-implementation` from `6dff1f04dfbbb9ed25
 
 After working checkpoint `a53f5ba4a80dc3b126894bd8c2f1d34cd4c2e12b`, three parallel agents reviewed KISS/YAGNI/DRY-WET cleanup. Removed the third copy of the same live Supabase fetch adapter by reusing the existing lightweight configuration module. No new product module/package; preserve lazy SDK, exact caller JWT/header handling and existing security/lifecycle boundaries. Fresh network-free parity84cases/808assertionsPASS. Full build/Vitest/browser UNRUN/BLOCKED.
 
-Production physical delta−50lines/−1,390characters; regression test+119physical lines. [Proof/review](docs/audit-checkpoints/20261029-browser-continuation/supabase-fetch-debloat.json), [all source counts](docs/audit-checkpoints/20261029-browser-continuation/source-loc.json). Eight reviewed live UI/helper modules and37direct dependencies were retained: removal was not proven safe. No safety/accessibility/recovery/test feature was removed for a line target. No runtime performance claim is made.
+Production physical delta−50lines/−1,390characters; regression test+119physical lines. Proof/review, all source counts. Eight reviewed live UI/helper modules and37direct dependencies were retained: removal was not proven safe. No safety/accessibility/recovery/test feature was removed for a line target. No runtime performance claim is made.
 
 This is a proof-gated retirement list, not another implementation plan or deployment runbook. [Open work](BLOCKED_TESTS.md) orders unresolved implementation and verification; [Testing](docs/TESTING.md) owns release operations. Baseline: f521e23529542d709a9627181341b0e904a8b0c3. No product code was removed during the documentation mission.
 
@@ -63,29 +73,7 @@ Previous completed cleanup records (browser donor reduction, stale installer art
 
 ## Proof-gated source-specific retirement inventory — 10 October detailed plan
 
-No code deletion is authorised by this documentation update. Every candidate requires preserved caller/integration parity, a verified replacement, actual performance evidence and reversible cleanup.
-
-No product removal is authorised in this documentation stage.
-
-| Source and mechanism                                                                                       | Disposition                                               | Required parity/removal gate                                                                       |
-| ---------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| ~~`scripts/wake/__pycache__/make_data.cpython-312.pyc` — 11,020-byte generated cache~~ RETIRED 12 Oct 2026 | Removed: no caller, not packaged; `__pycache__/` ignored  | Source `make_data.py`/`train.py` and shipped wake models unchanged; rollback = Git blob `a67431da` |
-| `JarvisBubble` and `JarvisWorkspace` query cadence/options                                                 | Merge options into existing account-owned state authority | Preserve workspace housekeeping and bubble `maintain:false`; measure navigation request counts     |
-| Bubble `ask` and workspace `send` duplicated turn lifecycle                                                | Merge lifecycle through existing run owner                | Account switch/late-finally/admission/settlement/handoff tests; retain different presentations     |
-| ~~`useJarvisVoice` state-only async callbacks~~ RETIRED 11 Oct 2026                                        | Replace with generation-owned lifecycle                   | Late microphone/recogniser/TTS completion cannot revive old work                                   |
-| ~~Voice analyser `sample` continuous/unowned RAF~~ RETIRED 11 Oct 2026                                     | Replace with one cancellable meter                        | No frames after End/hidden state; no extra capture                                                 |
-| ~~`stopEverywhere` fixed one-second ACK sleep loop~~ RETIRED 11 Oct 2026                                   | Merge waits with existing `actionChanged`                 | Lost events, pre-registration completion, offline device and missing ACK stay truthful             |
-| ~~`Orb.tick` idle auto-rotation/RAF~~ RETIRED 11 Oct 2026                                                  | Remove idle loop; retain requested graph                  | Zero hidden/idle frames; keyboard/list/zoom/pan/account parity                                     |
-| `graph.ts` 60-per-category display cap                                                                     | Replace with 60-total visible cap                         | No semantic record deletion; complete list remains reachable                                       |
-| ~~`DeviceCommand.cowork` GUI takeover exemption~~ RETIRED 11 Oct 2026                                      | Remove exemption; retain wire decoding                    | Physical input wins during paste/typing/API handoff; safe independent work still works             |
-| `BrowserPanel` frame polling                                                                               | Keep until equivalent frame-change transport exists       | It serves viewing, not planner observation; hidden panel makes no requests                         |
-| Planner ownership heartbeat                                                                                | Keep legacy purpose until lease migration passes          | It is not presentation polling; never confuse 60 seconds with v2 admission lease                   |
-| Public function validators plus shared task authority                                                      | Keep                                                      | They are validation/auth boundaries and delegated enforcement, not redundant engines               |
-| v1 protocol/signature bytes                                                                                | Keep compatibility                                        | Retire only after authenticated migration/support cutoff and cross-language proof                  |
-| Donor ZIPs/snapshot — REMOVED 11 Oct 2026 (manifest below)                                                 | Owner Section 0.4; never reimport                         | Original hashes and built-package/SBOM checks                                                      |
-| `clsx`, `tailwind-merge`, `lightningcss`, `nitro`, PGlite, fake-indexeddb, playwright-core                 | Keep established callers                                  | No unused dependency is established by the targeted trace                                          |
-
-Do not claim savings until measuring request count, timers/listeners, retained objects, idle CPU and packaged bytes before/after.
+Superseded on 30 October 2026: every row named code removed with the old JARVIS engine, voice/device runtime or test tooling (see the records above). The full table remains at `5568893`.
 
 ## Donor removal manifest — 11 October 2026
 

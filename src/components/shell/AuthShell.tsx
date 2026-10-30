@@ -7,7 +7,7 @@ import { BrandMark } from "./BrandMark";
  *
  * The previous version was a full-viewport composition with two radial washes,
  * a column anchored to one edge and clamp-based fluid spacing throughout. This
- * is the first screen a person sees, and `docs/UI UX Brief.md` asks for
+ * is the first screen a person sees, and `docs/PRD.md` asks for
  * generous empty space rather than composition — so the page is the same
  * near-black as the product, with one small card and the legal links under it.
  */

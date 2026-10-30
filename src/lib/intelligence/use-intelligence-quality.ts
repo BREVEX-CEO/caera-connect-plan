@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { IntelligenceQuality } from "./quality";
 
-/** Selection is tab/account-local. JARVIS supplies a conversation scope and its saved task choice. */
+/** Selection is tab/account-local and resets to Standard when its scope changes. */
 export function useIntelligenceQuality(scope: string) {
   const [selected, setSelected] = useState<{ scope: string; quality: IntelligenceQuality }>({
     scope,

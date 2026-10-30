@@ -184,14 +184,13 @@ const PUSH_SERVICES = [
   /^[a-z0-9-]+\.notify\.windows\.com$/, // Edge on Windows
 ];
 
-export function isPushService(endpoint: string, allowLoopback = false): boolean {
+export function isPushService(endpoint: string): boolean {
   let url: URL;
   try {
     url = new URL(endpoint);
   } catch {
     return false;
   }
-  if (allowLoopback && url.protocol === "http:" && url.hostname === "127.0.0.1") return true;
   return url.protocol === "https:" && PUSH_SERVICES.some((host) => host.test(url.hostname));
 }
 
@@ -203,14 +202,11 @@ export async function sendPush(input: {
   privateKey: string;
   subject: string;
   urgent: boolean;
-  /** Local proofs only: a stand-in push service on this machine. */
-  allowLoopback?: boolean;
-  fetcher?: typeof fetch;
 }): Promise<PushOutcome> {
-  if (!isPushService(input.subscription.endpoint, input.allowLoopback)) return "gone";
+  if (!isPushService(input.subscription.endpoint)) return "gone";
   const endpoint = new URL(input.subscription.endpoint);
   const body = await encryptForBrowser(utf8(JSON.stringify(input.message)), input.subscription);
-  const response = await (input.fetcher ?? fetch)(endpoint.toString(), {
+  const response = await fetch(endpoint.toString(), {
     method: "POST",
     headers: {
       authorization: await vapidAuthorization({

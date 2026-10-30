@@ -246,9 +246,7 @@ export default defineOcadeConfig({
                       // change that split it out of `client.ts`: the source graph then
                       // had no path from the entry to the client, and the bundle still
                       // fetched all 200 KiB, because the boundary was in the wrong
-                      // place rather than missing. `no-eager-supabase.test.ts` now
-                      // asserts the built graph rather than the source graph, so the
-                      // next version of this mistake fails a test instead of a budget.
+                      // place rather than missing.
                       // THE CHEAP HALF OF THE SUPABASE INTEGRATION, CLAIMED FIRST.
                       //
                       // `configuration.ts` answers "is Supabase configured?" from two

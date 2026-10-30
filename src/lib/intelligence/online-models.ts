@@ -12,7 +12,7 @@ export type OnlineModelId = (typeof ONLINE_MODEL_CATALOG)[number];
  * Exactly three, and the order is the policy: primary first, always. They are
  * an operational redundancy — a key that is revoked, misconfigured or serving
  * errors — and NOT a way around a quota that belongs to the project rather than
- * to the key. `docs/TRD.md` states both halves; `edge-handler.ts` enforces them.
+ * to the key. `docs/ARCHITECTURE.md` states both halves; `edge-handler.ts` enforces them.
  */
 export const PROVIDER_KEY_SLOTS = ["primary", "secondary", "tertiary"] as const;
 export type ProviderKeySlot = (typeof PROVIDER_KEY_SLOTS)[number];

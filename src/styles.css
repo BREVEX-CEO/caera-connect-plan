@@ -1,22 +1,6 @@
 @import "tailwindcss" source(none);
 @import "./shared/ui/tokens/monochrome.css";
 @source "../src";
-/*
- * TESTS ARE NOT SHIPPED, SO THEIR CLASS NAMES MUST NOT BE EITHER.
- *
- * `@source "../src"` scans everything under src, and that includes four
- * hundred-odd test files whose assertions quote class names as plain strings.
- * Tailwind cannot tell an assertion from a template, so every one of those
- * generated a real utility that was downloaded by every visitor to satisfy a
- * string no browser ever sees.
- *
- * `PLAN.md` §26 caps CSS at 145 KiB and the sheet had drifted past it. Excluding
- * the directories that never reach a user is the honest way back under, rather
- * than deleting styles the product actually uses.
- */
-@source not "../src/**/__tests__/**";
-@source not "../src/**/*.test.ts";
-@source not "../src/**/*.test.tsx";
 
 @custom-variant dark (&:is(.dark *));
 

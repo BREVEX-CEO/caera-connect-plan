@@ -58,13 +58,9 @@ const ACCOUNT_LIMIT = 50;
 export type StaffPermission =
   | "customers.read"
   | "usage.read"
-  | "devices.read"
-  | "devices.manage"
-  | "tasks.read"
   | "security.read"
   | "sessions.manage"
   | "grants.manage"
-  | "execution.manage"
   | "health.read"
   | "audit.read"
   | "staff.manage"
@@ -297,65 +293,7 @@ function adminFailure(message: string): string {
     "A grant runs for between 1 and 366 days.",
     "Only support admins may change a service control.",
     "Only support admins may read service controls.",
-    "Changing a service control needs a recent second factor.",
-    "Only support admins may remove a device.",
-    "Removing a device needs a recent second factor.",
     "Say why, in at least ten characters.",
   ];
   return known.find((sentence) => message.includes(sentence)) ?? "That change was not applied.";
 }
-
-export interface AdminDeviceRow {
-  id: string;
-  name: string;
-  platform: string | null;
-  kind: string;
-  lastSeenAt: string | null;
-  removedAt: string | null;
-}
-
-/** One account's JARVIS computers and browsers, newest first. Never their keys. */
-export const listAccountDevices = createServerFn({ method: "GET" })
-  .middleware([requireSession])
-  .validator((input) => z.object({ userId: z.string().uuid() }).parse(input))
-  .handler(async ({ data, context }): Promise<AdminDeviceRow[]> => {
-    await assertStaff(context.supabase, "devices.read");
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: rows, error } = await supabaseAdmin
-      .from("jarvis_devices")
-      .select("id, name, platform, kind, last_seen_at, revoked_at")
-      .eq("user_id", data.userId)
-      .order("created_at", { ascending: false })
-      .limit(50);
-    if (error) throw new Error(error.message);
-    return (rows ?? []).map((row) => ({
-      id: row.id,
-      name: row.name,
-      platform: row.platform,
-      kind: row.kind,
-      lastSeenAt: row.last_seen_at,
-      removedAt: row.revoked_at,
-    }));
-  });
-
-/**
- * Remove a customer's device: its key is gone and its open work stops. The
- * database requires the admin role, a recent second factor and a reason, and
- * keeps the record.
- */
-export const removeAccountDevice = createServerFn({ method: "POST" })
-  .middleware([requireAssurance(HIGH_RISK)])
-  .validator((input) =>
-    z
-      .object({ deviceId: z.string().uuid(), reason: z.string().trim().min(10).max(500) })
-      .parse(input),
-  )
-  .handler(async ({ data, context }): Promise<{ removed: boolean }> => {
-    await assertStaff(context.supabase, "devices.manage");
-    const { data: removed, error } = await context.supabase.rpc("ocade_admin_remove_device", {
-      device: data.deviceId,
-      remove_reason: data.reason,
-    });
-    if (error) throw new Error(adminFailure(error.message));
-    return { removed: removed === true };
-  });

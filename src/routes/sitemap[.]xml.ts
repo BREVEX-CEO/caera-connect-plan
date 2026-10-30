@@ -9,9 +9,7 @@ import { COMPANY_FACTS } from "@/config/company-facts";
  * out two it does. Every one of those was a 404 handed to a crawler as a
  * canonical URL, and the two real ones were invisible.
  *
- * `sitemap-lists-only-real-pages.test.ts` reads the generated route tree and
- * fails if this list and the application ever disagree again, in either
- * direction. A list nobody checks is how the first twelve got here.
+ * Keep this list equal to the public routes in the generated route tree.
  *
  * THE ORIGIN IS FIXED, NOT TAKEN FROM THE REQUEST. Served from `www`, a
  * request-derived origin produced a sitemap of `www` URLs — a second origin

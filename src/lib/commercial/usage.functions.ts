@@ -37,12 +37,7 @@ export interface PermitGranted {
 
 export interface PermitRefused {
   ok: false;
-  reason:
-    | "allowance_exhausted"
-    | "duplicate_completed"
-    | "idempotency_conflict"
-    | "task_budget_exhausted"
-    | "task_not_open";
+  reason: "allowance_exhausted" | "duplicate_completed" | "idempotency_conflict";
   exhausted?: "session" | "week";
   /** How long until the allowance returns, so the message can be exact. */
   resetsInMs?: number;
@@ -51,17 +46,10 @@ export interface PermitRefused {
 
 export type PermitResult = PermitGranted | PermitRefused;
 
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
 export const acquireGenerationPermit = createServerFn({ method: "POST" })
   .middleware([requireSession])
   .validator(
-    (data: {
-      idempotencyKey: string;
-      generationId?: string;
-      surface?: GenerationSurface;
-      taskId?: string;
-    }) => {
+    (data: { idempotencyKey: string; generationId?: string; surface?: GenerationSurface }) => {
       const key = data?.idempotencyKey?.trim();
       if (!key) throw new Error("A request key is required.");
       if (key.length > 200) throw new Error("That request key is not valid.");
@@ -70,10 +58,7 @@ export const acquireGenerationPermit = createServerFn({ method: "POST" })
       const surface = data.surface ?? "chat";
       if (!GENERATION_SURFACES.includes(surface))
         throw new Error("That generation surface is not valid.");
-      const taskId = data.taskId?.trim() || undefined;
-      if (taskId && (surface !== "jarvis" || !UUID.test(taskId)))
-        throw new Error("That task is not valid.");
-      return { idempotencyKey: key, generationId, surface, taskId };
+      return { idempotencyKey: key, generationId, surface };
     },
   )
   .handler(async ({ data, context }): Promise<PermitResult> => {
@@ -90,7 +75,6 @@ export const acquireGenerationPermit = createServerFn({ method: "POST" })
       idempotencyKey: data.idempotencyKey,
       generationId: data.generationId,
       surface: data.surface,
-      taskId: data.taskId,
     });
 
     if (!result.ok && result.reason === "allowance_exhausted") {

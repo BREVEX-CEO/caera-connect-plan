@@ -64,8 +64,6 @@ function appCsp(): string {
      *
      * The video is gone rather than the directive widened. A decorative layer must
      * not make a public page's health depend on somebody else's server.
-     * `csp-agrees-with-prelaunch.test.ts` asserts the policy and the component
-     * agree about media hosts in BOTH directions, so neither can drift again.
      */
     "media-src 'self' blob: data:",
     /*

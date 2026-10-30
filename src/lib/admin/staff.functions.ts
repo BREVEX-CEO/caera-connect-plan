@@ -331,7 +331,6 @@ export interface CustomerDetail {
   /** With usage: never stopped by a window (an owner, or an owner's grant), and the last use of each. */
   unlimited: Unlimited | null;
   lastUsed: { chat: string | null; jarvis: string | null } | null;
-  tasks: { title: string; status: string; updatedAt: string }[] | null;
   security: {
     secondFactor: boolean;
     sessions: number;
@@ -343,7 +342,7 @@ export interface CustomerDetail {
 /**
  * One customer, in the parts the caller may see. A part the caller has no
  * permission for is null, not an error: a Support member opening an account
- * sees its tasks, not its sessions.
+ * sees its usage, not its sessions.
  */
 export const readCustomer = createServerFn({ method: "GET" })
   .middleware([requireSession])
@@ -352,11 +351,7 @@ export const readCustomer = createServerFn({ method: "GET" })
     await assertStaff(context.supabase, "customers.read");
     const may = async (permission: StaffPermission) =>
       (await context.supabase.rpc("ocade_staff_can", { p_permission: permission })).data === true;
-    const [usage, tasks, security] = await Promise.all([
-      may("usage.read"),
-      may("tasks.read"),
-      may("security.read"),
-    ]);
+    const [usage, security] = await Promise.all([may("usage.read"), may("security.read")]);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     // A failed read is not an empty history: the whole detail fails and says so.
     const must = <R extends { data: unknown; error: unknown }>(result: R, what: string) => {
@@ -367,7 +362,6 @@ export const readCustomer = createServerFn({ method: "GET" })
       usage: null,
       unlimited: null,
       lastUsed: null,
-      tasks: null,
       security: null,
     };
     if (usage) {
@@ -404,23 +398,6 @@ export const readCustomer = createServerFn({ method: "GET" })
       ]);
       detail.unlimited = unlimited;
       detail.lastUsed = { chat, jarvis };
-    }
-    if (tasks) {
-      // Titles and states only: what JARVIS was asked, never what it saw.
-      const rows = must(
-        await supabaseAdmin
-          .from("jarvis_tasks")
-          .select("title, status, updated_at")
-          .eq("user_id", data.userId)
-          .order("updated_at", { ascending: false })
-          .limit(20),
-        "tasks",
-      );
-      detail.tasks = (rows ?? []).map((row) => ({
-        title: row.title,
-        status: row.status,
-        updatedAt: row.updated_at,
-      }));
     }
     if (security) {
       const [userRead, factorRead, sessionRead] = await Promise.all([
@@ -759,10 +736,6 @@ export const readCaseConversation = createServerFn({ method: "GET" })
 /* ------------------------------------------------------- health / audit -- */
 
 export interface SystemHealth {
-  devicesOnline: number;
-  tasksRunning: number;
-  tasksWaiting: number;
-  pendingEnrollments: number;
   staff: number;
 }
 
@@ -772,45 +745,11 @@ export const readSystemHealth = createServerFn({ method: "GET" })
   .handler(async ({ context }): Promise<SystemHealth> => {
     await assertStaff(context.supabase, "health.read");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const count = async (query: PromiseLike<{ count: number | null; error: unknown }>) => {
-      const { count: n, error } = await query;
-      if (error) throw new Error("System health could not be read.");
-      return n ?? 0;
-    };
-    const recently = new Date(Date.now() - 3 * 60_000).toISOString();
-    const [devicesOnline, tasksRunning, tasksWaiting, pendingEnrollments, staff] =
-      await Promise.all([
-        count(
-          supabaseAdmin
-            .from("jarvis_devices")
-            .select("id", { count: "exact", head: true })
-            .is("revoked_at", null)
-            .not("user_id", "is", null)
-            .gt("last_seen_at", recently),
-        ),
-        count(
-          supabaseAdmin
-            .from("jarvis_tasks")
-            .select("id", { count: "exact", head: true })
-            .eq("status", "running"),
-        ),
-        count(
-          supabaseAdmin
-            .from("jarvis_tasks")
-            .select("id", { count: "exact", head: true })
-            .in("status", ["waiting", "taken_over"]),
-        ),
-        count(
-          supabaseAdmin
-            .from("jarvis_devices")
-            .select("id", { count: "exact", head: true })
-            .is("user_id", null)
-            // An expired request is not waiting for anything (F-171).
-            .gt("enrollment_expires_at", new Date().toISOString()),
-        ),
-        count(supabaseAdmin.from("ocade_staff").select("user_id", { count: "exact", head: true })),
-      ]);
-    return { devicesOnline, tasksRunning, tasksWaiting, pendingEnrollments, staff };
+    const { count, error } = await supabaseAdmin
+      .from("ocade_staff")
+      .select("user_id", { count: "exact", head: true });
+    if (error) throw new Error("System health could not be read.");
+    return { staff: count ?? 0 };
   });
 
 export interface AuditEntry {

@@ -31,9 +31,8 @@ import {
  * THE SURFACES THIS BOUNDARY WILL ACCEPT A REQUEST FROM.
  *
  * Restated here rather than imported because Deno runs this file from
- * `supabase/functions` and cannot follow the `@/` alias the product uses.
- * `online-boundary.test.ts` fails if this list and `GENERATION_SURFACES` ever
- * disagree, so the duplication cannot drift into a second opinion.
+ * `supabase/functions` and cannot follow the `@/` alias the product uses. Keep
+ * it equal to `GENERATION_SURFACES`.
  */
 const ALLOWED_SURFACES: readonly string[] = ["chat", "jarvis"];
 
@@ -169,12 +168,7 @@ export interface OnlineHandlerDependencies {
    * not the browser: a client that "releases" after reading an answer would
    * otherwise use OCADE for free.
    */
-  finalizePermit?(input: {
-    userId: string;
-    permit: IntelligencePermit;
-    /** The reply starts a JARVIS task: the turn is part of that task's one use. */
-    startsTask: boolean;
-  }): Promise<void>;
+  finalizePermit?(input: { userId: string; permit: IntelligencePermit }): Promise<void>;
   /** Give the permit back when the claimed transport ended without any output. */
   releasePermit?(input: { userId: string; permit: IntelligencePermit }): Promise<void>;
 }
@@ -950,7 +944,7 @@ async function runOnlineIntelligence(
     /*
      * PRIMARY FIRST, AND ONLY FOR THE RIGHT REASONS.
      *
-     * `docs/TRD.md` allows failover for "key-local authentication/health or
+     * `docs/ARCHITECTURE.md` allows failover for "key-local authentication/health or
      * pre-output provider/transport failure" and forbids it for quota:
      * "Project/provider-wide quota must not trigger key rotation to evade
      * quota." Those are different failures that look similar from here, so
@@ -1116,14 +1110,11 @@ async function runOnlineIntelligence(
         (reason) => {
           if (!controller.signal.aborted) controller.abort(reason);
         },
-        (toolCalls) => {
+        () => {
           ended("succeeded");
           return (
-            deps.finalizePermit?.({
-              userId: identity.userId,
-              permit: body.permit,
-              startsTask: toolCalls.some((call) => call.name === "start_task"),
-            }) ?? Promise.resolve()
+            deps.finalizePermit?.({ userId: identity.userId, permit: body.permit }) ??
+            Promise.resolve()
           );
         },
         () => {

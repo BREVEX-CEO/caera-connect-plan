@@ -380,10 +380,9 @@ export class BrowserWasmAdapter implements BrainAdapter {
        * ZERO, EXPLICITLY, AND IT IS NOT REDUNDANT.
        *
        * wllama defaults `n_gpu_layers` to 99999 — every layer on the graphics
-       * card. It happens to be inert today: `scripts/e2e/browser-engine-modes.mjs`
-       * asks this exact binary for 99 layers on a machine whose browser grants
-       * a working WebGPU device, and llama.cpp reports one registered backend
-       * and assigns every layer to the processor. The unified build this
+       * card. It happens to be inert today: asked for 99 layers on a machine whose
+       * browser grants a working WebGPU device, this exact binary reports one
+       * registered backend and assigns every layer to the processor. The unified build this
        * deployment bundles is processor-only, whatever it is asked for.
        *
        * Leaving the default in place would make that an accident rather than a
