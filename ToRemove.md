@@ -1,5 +1,15 @@
 # OCADE retirement manifest
 
+## Old JARVIS engine, tests and audit material retired — 30 October 2026
+
+Owner-ordered cleanup on `ocade/p00-p22-implementation` from `6dff1f04dfbbb9ed2581dbf41ba92d6ca54862ba`, ahead of a new JARVIS architecture (not implemented here). Everything below remains recoverable from that commit.
+
+- **Removed JARVIS engine:** `src/jarvis` planner/agent/engine/protocol/task authority/device/background/schedules/permissions/live control, `/api/jarvis/*`, `/agent/$file`, `src/lib/agent`, the DeepSeek Harness intake (`src/deepseek`, `external/` submodule, link/type scripts), `jarvis-runtime/` (Python device agent), `android/`, `scripts/wake/`, the per-minute JARVIS schedule clock, the server-to-server `ocade-intelligence-service` function and its service-key door, the admin JARVIS device-work pause, and unused JARVIS prompt modules.
+- **Kept and disconnected:** the JARVIS page layout, rail, Conversations panel (past JARVIS conversations stay readable, searchable and deletable through the shared conversation authority), composer, phone bubble and Settings rows. Sending, voice, device connection and JARVIS memory controls are disabled and say "OCADE JARVIS is unavailable while it is being rebuilt." JARVIS data remains in the account and in export/erasure under Privacy & Security.
+- **Removed tests and QA:** every `__tests__`/`*.test.*` file, `scripts/e2e`, `supabase/verification`, Vitest configs, PGlite/fake-indexeddb/Vitest dev dependencies, static QA checkers and the cloud Android/browser/Python test workflows. `verify:full` now runs routes stability, typecheck, lint, format, build stability, bundle secret scan and Supabase types coverage.
+- **Removed evidence:** `experiments/`, `docs/audit-checkpoints`, `docs/audits`, `docs/checklists`, historical ledgers/matrices and root audit/test-result reports.
+- **Not changed:** applied migrations, rollback scripts, database schema and data, deployed functions, production deployment, `main`. The database still holds JARVIS tables; the deployed `ocade-intelligence-service` function is not undeployed by this commit.
+
 ## Proven fetch duplication removed — 29 October 2026
 
 After working checkpoint `a53f5ba4a80dc3b126894bd8c2f1d34cd4c2e12b`, three parallel agents reviewed KISS/YAGNI/DRY-WET cleanup. Removed the third copy of the same live Supabase fetch adapter by reusing the existing lightweight configuration module. No new product module/package; preserve lazy SDK, exact caller JWT/header handling and existing security/lifecycle boundaries. Fresh network-free parity84cases/808assertionsPASS. Full build/Vitest/browser UNRUN/BLOCKED.

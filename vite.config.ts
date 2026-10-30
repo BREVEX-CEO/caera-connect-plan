@@ -6,7 +6,6 @@ import { nitro } from "nitro/vite";
 import { execSync } from "node:child_process";
 import { resolve } from "node:path";
 import { defineConfig, type UserConfig } from "vite";
-import { deepseekUpstream } from "./src/deepseek/resolve";
 
 /**
  * Repository-owned Vite authority.
@@ -53,7 +52,6 @@ function defineOcadeConfig(options: {
         ...config.resolve,
       },
       plugins: [
-        deepseekUpstream(),
         tailwindcss(),
         tanstackStart({
           importProtection: {

@@ -3,12 +3,7 @@ import { useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { useConfirmIdentity } from "@/components/security/ConfirmIdentity";
 import { Pending } from "@/components/settings/rows";
-import {
-  readJarvisExecution,
-  setJarvisExecution,
-  type ControlKey,
-  type StaffPermission,
-} from "@/lib/admin/access.functions";
+import { type StaffPermission } from "@/lib/admin/access.functions";
 import {
   closeCase,
   endAllStaffSessions,
@@ -799,12 +794,6 @@ function CaseReader({
 
 /* --------------------------------------------------------------- system -- */
 
-const CONTROL_NAMES: Record<ControlKey, string> = {
-  jarvis_execution: "All device work",
-  jarvis_agent: "Device Agent",
-  jarvis_android: "Phones",
-};
-
 export function SystemModule({ me }: { me: MyStaff }) {
   const health = useQuery({
     queryKey: ["admin", "health"],
@@ -842,99 +831,7 @@ export function SystemModule({ me }: { me: MyStaff }) {
           )}
         </Section>
       ) : null}
-      <EmergencyStop canChange={me.permissions.includes("execution.manage")} />
     </>
-  );
-}
-
-/**
- * THE EMERGENCY STOP FOR JARVIS DEVICE WORK. One switch per family, a reason on
- * the record, and a recent second factor, all enforced by the database.
- */
-function EmergencyStop({ canChange }: { canChange: boolean }) {
-  const queryClient = useQueryClient();
-  const [reason, setReason] = useState("");
-  const state = useQuery({
-    queryKey: ["admin", "jarvis-execution"],
-    queryFn: () => readJarvisExecution(),
-  });
-  const { withProof, dialog } = useConfirmIdentity();
-  const change = useMutation({
-    mutationFn: (input: { key: ControlKey; paused: boolean }) =>
-      withProof(() => setJarvisExecution({ data: { ...input, reason } })),
-    onSuccess: async ({ paused }, { key }) => {
-      toast.success(`${CONTROL_NAMES[key]}: ${paused ? "paused" : "running"}.`);
-      setReason("");
-      await queryClient.invalidateQueries({ queryKey: ["admin", "jarvis-execution"] });
-    },
-    onError: (error: unknown) => toast.error(messageOf(error)),
-  });
-  if (!state.data) {
-    // The emergency stop never silently disappears: loading and failure are said, with a retry.
-    return (
-      <Section title="JARVIS device work">
-        <Pending
-          query={state}
-          loading="Reading whether JARVIS device work is running…"
-          problem="The emergency stop could not be read. Try again before relying on it."
-        />
-      </Section>
-    );
-  }
-  const go = ready(reason) && !change.isPending;
-  return (
-    <Section title="JARVIS device work">
-      {dialog}
-      <ul className="mt-2 divide-y divide-border/50">
-        {state.data.map((control) => (
-          <li key={control.key} className="flex items-center justify-between gap-3 py-2">
-            <span className="min-w-0">
-              <span className="block text-foreground">{CONTROL_NAMES[control.key]}</span>
-              {control.reason ? (
-                <span className="block truncate text-[13px] text-muted-foreground">
-                  Last change: {control.reason}
-                </span>
-              ) : null}
-            </span>
-            <span className="flex shrink-0 items-center gap-2">
-              <span
-                className={
-                  control.paused
-                    ? "rounded-full bg-destructive/15 px-2 py-0.5 text-xs text-destructive"
-                    : "rounded-full bg-success/15 px-2 py-0.5 text-xs text-success"
-                }
-              >
-                {control.paused ? "Paused" : "Running"}
-              </span>
-              {canChange ? (
-                <button
-                  type="button"
-                  disabled={!go}
-                  onClick={() => change.mutate({ key: control.key, paused: !control.paused })}
-                  aria-label={`${control.paused ? "Resume" : "Pause"} ${CONTROL_NAMES[control.key]}`}
-                  className={
-                    control.paused
-                      ? "h-7 rounded-md border border-border px-2 disabled:opacity-50"
-                      : "h-7 rounded-md border border-destructive/50 px-2 text-destructive disabled:opacity-50"
-                  }
-                >
-                  {change.isPending && change.variables?.key === control.key
-                    ? "Changing…"
-                    : control.paused
-                      ? "Resume"
-                      : "Pause"}
-                </button>
-              ) : null}
-            </span>
-          </li>
-        ))}
-      </ul>
-      {canChange ? (
-        <div className="mt-2">
-          <Reason value={reason} onChange={setReason} label="Why" />
-        </div>
-      ) : null}
-    </Section>
   );
 }
 

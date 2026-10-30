@@ -1,1 +1,0 @@
-{"task": "b3b-thumb", "files": ["clip1.mp4", "clip2.mp4", "clip3.mp4", "earth.jpg", "earth_rotated.jpg", "earth_thumb.png"], "originalUntouched": true, "checks": {"thumb": true, "rotated": true}, "pass": true}

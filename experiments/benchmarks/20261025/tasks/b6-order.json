@@ -1,4 +1,0 @@
-{
-  "id": "b6-order",
-  "text": "On the order site at {SITE}: read Order 7731 on the first page, then open its order form. Enter the customer's name, choose the Express plan, enter the order total (the sum of quantity times unit price for all items, with two decimals), attach a file named order-7731.txt that lists the items, and send the order once. Then download the receipt into my work folder."
-}

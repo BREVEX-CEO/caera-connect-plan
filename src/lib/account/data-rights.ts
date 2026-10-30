@@ -292,11 +292,3 @@ export function streamAccountExport(
     },
   });
 }
-
-/** Everything the account holds, read completely, as one object (the same text, parsed). */
-export async function buildAccountExport(
-  admin: DynamicTableClient,
-  userId: string,
-): Promise<AccountDataExport> {
-  return JSON.parse(await new Response(streamAccountExport(admin, userId)).text());
-}

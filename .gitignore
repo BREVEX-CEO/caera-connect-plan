@@ -32,18 +32,6 @@ supabase/.temp/
 # MCP browser snapshots
 .playwright-mcp/
 
-# Android build output (python android/build.py)
-android/build/
-wrangler.e2e.json
-
 # Python bytecode is generated, never source.
 __pycache__/
 *.pyc
-
-# Optional DeepSeek Harness source intake: extracted archives are local only.
-# The incoming ZIP path is intentionally NOT ignored: browser upload is optional.
-external/deepseek-harness/unpacked/
-external/deepseek-harness/.extract-*/
-
-# Declarations emitted from the pinned DeepSeek submodule (npm run deepseek:types)
-src/deepseek/.types/

@@ -1,3 +1,0 @@
-[submodule "external/deepseek-harness/upstream"]
-	path = external/deepseek-harness/upstream
-	url = https://github.com/deepseek-ai/deepseek-harness.git

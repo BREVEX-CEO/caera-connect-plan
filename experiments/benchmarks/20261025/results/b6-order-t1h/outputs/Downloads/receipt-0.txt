@@ -1,4 +1,0 @@
-Receipt 0
-customer=Ada Lovelace
-plan=Express
-total=1562.00

@@ -5,9 +5,6 @@ export const DEFAULT_ONLINE_MODEL = "gemini-3.5-flash-lite";
 export const HIGH_ONLINE_MODEL = "@cf/google/gemma-4-26b-a4b-it";
 export const ONLINE_MODEL_CATALOG = [DEFAULT_ONLINE_MODEL, HIGH_ONLINE_MODEL] as const;
 export type OnlineModelId = (typeof ONLINE_MODEL_CATALOG)[number];
-export function isAllowedOnlineModel(value: string): value is OnlineModelId {
-  return ONLINE_MODEL_CATALOG.some((model) => model === value);
-}
 
 /**
  * THE THREE KEY SLOTS, IN FAILOVER ORDER.

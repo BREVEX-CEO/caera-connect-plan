@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<mlt LC_NUMERIC="C" version="7.0.0" root="." title="launches.mlt">
-  <profile description="hd_720_30p" width="1280" height="720" progressive="1" sample_aspect_num="1" sample_aspect_den="1" display_aspect_num="16" display_aspect_den="9" frame_rate_num="30" frame_rate_den="1" colorspace="709"/>
-  <playlist id="playlist0">
-    <entry producer="clip1.mp4"/>
-    <entry producer="clip2.mp4"/>
-    <entry producer="clip3.mp4"/>
-  </playlist>
-</mlt>

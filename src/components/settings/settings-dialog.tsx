@@ -10,7 +10,7 @@ import {
   User,
   X,
 } from "lucide-react";
-import { JarvisAccess, JarvisMemory } from "@/jarvis/JarvisPanels";
+import { JarvisAccess } from "@/jarvis/JarvisPanels";
 import { cn } from "@/lib/utils";
 import { useModalFocus } from "@/lib/use-modal-focus";
 import { useAppearance } from "@/lib/appearance";
@@ -135,12 +135,7 @@ export default function SettingsDialog({
                 <>
                   <AppearanceSettings />
                   <JarvisVoiceSetting />
-                  {user ? (
-                    <>
-                      <JarvisMemory />
-                      <NotificationsSection />
-                    </>
-                  ) : null}
+                  {user ? <NotificationsSection /> : null}
                   <ResetJarvis />
                 </>
               ) : null}

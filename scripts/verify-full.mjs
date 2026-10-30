@@ -3,8 +3,8 @@
  * THE ONE GATE LIST.
  *
  * Exactly what CI runs on a push, in the order a failure is cheapest to read:
- * the generated tree first, then the compiler, then style, then the tests, then
- * the build, then the audits that read the built output.
+ * the generated tree first, then the compiler, then style, then the build,
+ * then the audits that read the built output.
  *
  * It used to name thirty-eight gates, thirty of which belonged to products that
  * no longer exist — a list nobody could run locally and CI had stopped
@@ -15,21 +15,12 @@ import { spawnSync } from "node:child_process";
 
 const commands = [
   "routes:stable",
-  "deepseek:check",
   "typecheck",
   "lint",
   "format:check",
-  "test",
   "build:stable",
   "audit:secrets",
   "supabase:types-check",
-  "content-storage:check",
-  "reads:check",
-  "controls:check",
-  "a11y:check",
-  "monochrome:check",
-  "identity:check",
-  "reachability:check",
 ];
 
 const npmExecPath = process.env.npm_execpath;

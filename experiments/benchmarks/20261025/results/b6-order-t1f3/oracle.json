@@ -1,1 +1,0 @@
-{"task": "b6-order", "files": [".task.json", "Downloads/receipt-0.txt", "clip1.mp4", "clip2.mp4", "clip3.mp4", "earth.jpg", "order-7731.txt"], "submissions": 1, "customer": "Ada Lovelace", "plan": "Express", "total": "1562.00", "file": "order-7731.txt:Rocket fuel: 3 x 120.00\nHeat shield: 2 x 450.00\nGuidance chip: 4 x 75.50", "receipt": true, "pass": true}

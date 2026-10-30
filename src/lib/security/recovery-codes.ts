@@ -31,8 +31,6 @@ const GROUP = 5;
 const GROUPS = 4;
 /** Ten sheets is the number people can actually keep. */
 export const RECOVERY_CODE_COUNT = 10;
-/** 20 characters × 5 bits. Stated so a future edit cannot silently lower it. */
-export const RECOVERY_CODE_BITS = GROUP * GROUPS * Math.log2(ALPHABET.length);
 
 /**
  * Draw random symbols WITHOUT modulo bias.

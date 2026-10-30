@@ -1,3 +1,0 @@
-Rocket fuel: 3 x 120.00
-Heat shield: 2 x 450.00
-Guidance chip: 4 x 75.50

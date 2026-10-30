@@ -228,7 +228,7 @@ function Turn({
               person still presses Send there, where work is online only. */}
           <Link
             to="/ocade-jarvis"
-            onClick={() => handOff({ text: message.content.slice(0, 8000), draftOnly: true })}
+            onClick={() => handOff({ text: message.content.slice(0, 8000) })}
             className="inline-flex h-7 items-center gap-1.5 rounded-md px-2 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
           >
             <Orbit className="h-3.5 w-3.5" aria-hidden />

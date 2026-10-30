@@ -207,33 +207,6 @@ export const ACCOUNT_DATA_CLASSES: readonly AccountDataClass[] = [
 ];
 
 /**
- * Account-linked tables the export deliberately leaves out, each with the reason.
- * The data-rights map test fails on any account-linked table that is in neither
- * list, so a new table cannot be silently missing from somebody's export.
- */
-export const NOT_EXPORTED: Readonly<Partial<Record<AccountTable, string>>> = {
-  ocade_mfa_recovery_codes: "Security credential (one-way hashes); useless outside OCADE.",
-  ocade_mfa_recovery_attempts: "Short-lived rate limiting for recovery codes.",
-  ocade_device_usage_keys: "A device's signing key for offline usage; a credential.",
-  ocade_device_usage_leases: "Short-lived signed offline allowance; a credential.",
-  ocade_generation_permits: "Short-lived permit for one answer in progress.",
-  user_roles: "Legacy authorization flag; decides nothing about the account's data.",
-  ocade_staff: "Operator record, present only for OCADE staff.",
-  ocade_staff_invites: "Operator record, present only for OCADE staff.",
-  ocade_admin_actions: "Operator audit trail, kept for OCADE's own accountability.",
-  ocade_support_cases: "Operator audit trail of support access.",
-  ocade_support_shares:
-    "Which conversation support may read, until when; shown and withdrawn in the conversation's own menu.",
-  ocade_service_controls: "Service-wide switch, not account data.",
-  ocade_service_control_events: "Operator audit trail of service-wide switches.",
-  compliance_audit_log: "Operator compliance record.",
-};
-
-export function findAccountDataClass(id: string): AccountDataClass | null {
-  return ACCOUNT_DATA_CLASSES.find((entry) => entry.id === id) ?? null;
-}
-
-/**
  * Every table an export must read, parents and cascaded children alike.
  *
  * Children are listed so the export is COMPLETE: a message lives in

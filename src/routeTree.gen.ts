@@ -22,14 +22,10 @@ import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedLibraryRouteImport } from './routes/_authenticated/library'
-import { Route as AgentFileRouteImport } from './routes/agent.$file'
 import { Route as AuthIndexRouteImport } from './routes/auth.index'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as AuthChallengeRouteImport } from './routes/auth.challenge'
 import { Route as AuthVerifyRouteImport } from './routes/auth.verify'
-import { Route as ApiJarvisContinueRouteImport } from './routes/api/jarvis/continue'
-import { Route as ApiJarvisDeviceRouteImport } from './routes/api/jarvis/device'
-import { Route as ApiJarvisEnrollRouteImport } from './routes/api/jarvis/enroll'
 import { Route as ApiOfflineBytesReleaseRouteImport } from './routes/api/offline/bytes.$release'
 
 const IndexRoute = IndexRouteImport.update({
@@ -96,11 +92,6 @@ const AuthenticatedLibraryRoute = AuthenticatedLibraryRouteImport.update({
   path: '/library',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AgentFileRoute = AgentFileRouteImport.update({
-  id: '/agent/$file',
-  path: '/agent/$file',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const AuthIndexRoute = AuthIndexRouteImport.update({
   id: '/auth/',
   path: '/auth/',
@@ -119,21 +110,6 @@ const AuthChallengeRoute = AuthChallengeRouteImport.update({
 const AuthVerifyRoute = AuthVerifyRouteImport.update({
   id: '/auth/verify',
   path: '/auth/verify',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiJarvisContinueRoute = ApiJarvisContinueRouteImport.update({
-  id: '/api/jarvis/continue',
-  path: '/api/jarvis/continue',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiJarvisDeviceRoute = ApiJarvisDeviceRouteImport.update({
-  id: '/api/jarvis/device',
-  path: '/api/jarvis/device',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiJarvisEnrollRoute = ApiJarvisEnrollRouteImport.update({
-  id: '/api/jarvis/enroll',
-  path: '/api/jarvis/enroll',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiOfflineBytesReleaseRoute = ApiOfflineBytesReleaseRouteImport.update({
@@ -155,14 +131,10 @@ export interface FileRoutesByFullPath {
   '/terms': typeof TermsRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/library': typeof AuthenticatedLibraryRoute
-  '/agent/$file': typeof AgentFileRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/challenge': typeof AuthChallengeRoute
   '/auth/verify': typeof AuthVerifyRoute
   '/auth/': typeof AuthIndexRoute
-  '/api/jarvis/continue': typeof ApiJarvisContinueRoute
-  '/api/jarvis/device': typeof ApiJarvisDeviceRoute
-  '/api/jarvis/enroll': typeof ApiJarvisEnrollRoute
   '/api/offline/bytes/$release': typeof ApiOfflineBytesReleaseRoute
 }
 export interface FileRoutesByTo {
@@ -178,14 +150,10 @@ export interface FileRoutesByTo {
   '/terms': typeof TermsRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/library': typeof AuthenticatedLibraryRoute
-  '/agent/$file': typeof AgentFileRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/challenge': typeof AuthChallengeRoute
   '/auth/verify': typeof AuthVerifyRoute
   '/auth': typeof AuthIndexRoute
-  '/api/jarvis/continue': typeof ApiJarvisContinueRoute
-  '/api/jarvis/device': typeof ApiJarvisDeviceRoute
-  '/api/jarvis/enroll': typeof ApiJarvisEnrollRoute
   '/api/offline/bytes/$release': typeof ApiOfflineBytesReleaseRoute
 }
 export interface FileRoutesById {
@@ -203,14 +171,10 @@ export interface FileRoutesById {
   '/terms': typeof TermsRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/library': typeof AuthenticatedLibraryRoute
-  '/agent/$file': typeof AgentFileRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/challenge': typeof AuthChallengeRoute
   '/auth/verify': typeof AuthVerifyRoute
   '/auth/': typeof AuthIndexRoute
-  '/api/jarvis/continue': typeof ApiJarvisContinueRoute
-  '/api/jarvis/device': typeof ApiJarvisDeviceRoute
-  '/api/jarvis/enroll': typeof ApiJarvisEnrollRoute
   '/api/offline/bytes/$release': typeof ApiOfflineBytesReleaseRoute
 }
 export interface FileRouteTypes {
@@ -228,14 +192,10 @@ export interface FileRouteTypes {
     | '/terms'
     | '/admin'
     | '/library'
-    | '/agent/$file'
     | '/auth/callback'
     | '/auth/challenge'
     | '/auth/verify'
     | '/auth/'
-    | '/api/jarvis/continue'
-    | '/api/jarvis/device'
-    | '/api/jarvis/enroll'
     | '/api/offline/bytes/$release'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -251,14 +211,10 @@ export interface FileRouteTypes {
     | '/terms'
     | '/admin'
     | '/library'
-    | '/agent/$file'
     | '/auth/callback'
     | '/auth/challenge'
     | '/auth/verify'
     | '/auth'
-    | '/api/jarvis/continue'
-    | '/api/jarvis/device'
-    | '/api/jarvis/enroll'
     | '/api/offline/bytes/$release'
   id:
     | '__root__'
@@ -275,14 +231,10 @@ export interface FileRouteTypes {
     | '/terms'
     | '/_authenticated/admin'
     | '/_authenticated/library'
-    | '/agent/$file'
     | '/auth/callback'
     | '/auth/challenge'
     | '/auth/verify'
     | '/auth/'
-    | '/api/jarvis/continue'
-    | '/api/jarvis/device'
-    | '/api/jarvis/enroll'
     | '/api/offline/bytes/$release'
   fileRoutesById: FileRoutesById
 }
@@ -298,14 +250,10 @@ export interface RootRouteChildren {
   RobotsDottxtRoute: typeof RobotsDottxtRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TermsRoute: typeof TermsRoute
-  AgentFileRoute: typeof AgentFileRoute
   AuthCallbackRoute: typeof AuthCallbackRoute
   AuthChallengeRoute: typeof AuthChallengeRoute
   AuthVerifyRoute: typeof AuthVerifyRoute
   AuthIndexRoute: typeof AuthIndexRoute
-  ApiJarvisContinueRoute: typeof ApiJarvisContinueRoute
-  ApiJarvisDeviceRoute: typeof ApiJarvisDeviceRoute
-  ApiJarvisEnrollRoute: typeof ApiJarvisEnrollRoute
   ApiOfflineBytesReleaseRoute: typeof ApiOfflineBytesReleaseRoute
 }
 
@@ -402,13 +350,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedLibraryRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/agent/$file': {
-      id: '/agent/$file'
-      path: '/agent/$file'
-      fullPath: '/agent/$file'
-      preLoaderRoute: typeof AgentFileRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/auth/': {
       id: '/auth/'
       path: '/auth'
@@ -435,27 +376,6 @@ declare module '@tanstack/react-router' {
       path: '/auth/verify'
       fullPath: '/auth/verify'
       preLoaderRoute: typeof AuthVerifyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/jarvis/continue': {
-      id: '/api/jarvis/continue'
-      path: '/api/jarvis/continue'
-      fullPath: '/api/jarvis/continue'
-      preLoaderRoute: typeof ApiJarvisContinueRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/jarvis/device': {
-      id: '/api/jarvis/device'
-      path: '/api/jarvis/device'
-      fullPath: '/api/jarvis/device'
-      preLoaderRoute: typeof ApiJarvisDeviceRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/jarvis/enroll': {
-      id: '/api/jarvis/enroll'
-      path: '/api/jarvis/enroll'
-      fullPath: '/api/jarvis/enroll'
-      preLoaderRoute: typeof ApiJarvisEnrollRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/offline/bytes/$release': {
@@ -493,14 +413,10 @@ const rootRouteChildren: RootRouteChildren = {
   RobotsDottxtRoute: RobotsDottxtRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TermsRoute: TermsRoute,
-  AgentFileRoute: AgentFileRoute,
   AuthCallbackRoute: AuthCallbackRoute,
   AuthChallengeRoute: AuthChallengeRoute,
   AuthVerifyRoute: AuthVerifyRoute,
   AuthIndexRoute: AuthIndexRoute,
-  ApiJarvisContinueRoute: ApiJarvisContinueRoute,
-  ApiJarvisDeviceRoute: ApiJarvisDeviceRoute,
-  ApiJarvisEnrollRoute: ApiJarvisEnrollRoute,
   ApiOfflineBytesReleaseRoute: ApiOfflineBytesReleaseRoute,
 }
 export const routeTree = rootRouteImport

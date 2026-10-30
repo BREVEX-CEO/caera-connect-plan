@@ -1,4 +1,0 @@
-{
-  "id": "b1-excel",
-  "text": "In my work folder, create an Excel workbook named Q4_Budget.xlsx with a sheet called Budget. Columns: Month, Revenue, Costs, Profit, Margin %. Rows: October (revenue 48000, costs 31500), November (52500, 33800), December (61200, 39950). Profit must be a formula (Revenue minus Costs) and Margin % a formula (Profit divided by Revenue) shown as a percentage. Add a Total row with SUM formulas for Revenue, Costs and Profit. Add a bar chart of Profit by month. Check the numbers are right before you finish."
-}

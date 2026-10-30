@@ -35,7 +35,7 @@ export function JarvisBubble() {
   // Keyed by account: another account never sees this one's mini chat.
   return (
     <Suspense fallback={null}>
-      <Bubble key={user!.id} userId={user!.id} placement={placement} />
+      <Bubble key={user!.id} placement={placement} />
     </Suspense>
   );
 }

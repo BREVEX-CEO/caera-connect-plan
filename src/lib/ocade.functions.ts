@@ -37,12 +37,15 @@ const CONVERSATION_COLUMNS = "id, title, pinned, archived, model_id, updated_at,
 
 export const listConversations = createServerFn({ method: "GET" })
   .middleware([requireSession])
-  .handler(async ({ context }) => {
+  .validator((i) =>
+    z.object({ surface: z.enum(["chat", "jarvis"]).default("chat") }).parse(i ?? {}),
+  )
+  .handler(async ({ data: input, context }) => {
     const { data, error } = await context.supabase
       .from("ocade_conversations")
       .select(CONVERSATION_COLUMNS)
-      // JARVIS conversations live in the same authority and never in Chat's list.
-      .eq("surface", "chat")
+      // Chat and JARVIS conversations share this authority; each lists only its own.
+      .eq("surface", input.surface)
       .order("pinned", { ascending: false })
       .order("updated_at", { ascending: false })
       .limit(LIST_CAP);

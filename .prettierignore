@@ -7,32 +7,12 @@ routeTree.gen.ts
 # so a regeneration stays a reviewable diff.
 src/integrations/supabase/types.ts
 
-# Declarations emitted from the pinned DeepSeek Harness submodule (npm run deepseek:types).
-src/deepseek/.types/
-
 # Authority documents, held exactly as authored.
 CLAUDE.md
 plan.md
 
 # Written by scripts in their own layout.
 release/**/*.json
-docs/audit-checkpoints/architecture-benchmark/**/*.json
-
-# The Python runtime: never reformatted by Prettier.
-jarvis-runtime/
-
-# Audit evidence, preserved verbatim.
-docs/audits/
-FULL_ERROR_AUDIT_LEDGER.md
-PONYTAIL_DEBLOAT_LEDGER.md
-OCADE_CODEBASE_PLAN_AUDIT_2026-10-11.md
-OCADE_UNIVERSAL_CONTROL_COMPETITOR_AUDIT_2026-10-11.md
 
 .playwright-mcp/
 OCADE_SYSTEM_PROMPT_REDESIGNED.md
-
-# Pinned upstream source (DeepSeek Harness), kept byte-for-byte.
-external/deepseek-harness/upstream/
-
-# Raw benchmark evidence, kept exactly as the runs wrote it.
-experiments/benchmarks/*/results/

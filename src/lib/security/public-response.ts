@@ -175,11 +175,6 @@ export function withPublicSecurityHeaders(response: Response, pathname?: string)
   });
 }
 
-/** The exact headers this module applies, for tests and probes to assert on. */
-export function securityHeadersForTest(): Readonly<Record<string, string>> {
-  return defaultSecurityHeaders();
-}
-
 /**
  * Hostnames that are a developer's own machine, where plain HTTP is the point.
  *

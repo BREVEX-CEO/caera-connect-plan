@@ -305,54 +305,6 @@ function adminFailure(message: string): string {
   return known.find((sentence) => message.includes(sentence)) ?? "That change was not applied.";
 }
 
-const CONTROL_KEYS = ["jarvis_execution", "jarvis_agent", "jarvis_android"] as const;
-export type ControlKey = (typeof CONTROL_KEYS)[number];
-
-/** JARVIS device work, all of it and per device family: running or paused, and why. */
-export const readJarvisExecution = createServerFn({ method: "GET" })
-  .middleware([requireSession])
-  .handler(async ({ context }) => {
-    // Whoever can pause JARVIS or watches health; the database function re-checks.
-    const [pauses, watches] = await Promise.all([
-      context.supabase.rpc("ocade_staff_can", { p_permission: "execution.manage" }),
-      context.supabase.rpc("ocade_staff_can", { p_permission: "health.read" }),
-    ]);
-    if (pauses.data !== true && watches.data !== true) throw new Error("Not found");
-    const { data, error } = await context.supabase.rpc("ocade_read_service_controls");
-    if (error) throw new Error(adminFailure(error.message));
-    return CONTROL_KEYS.map((key) => {
-      const row = (data ?? []).find((control) => control.key === key);
-      return { key, paused: Boolean(row?.paused), reason: row?.reason ?? null };
-    });
-  });
-
-/**
- * Pause or resume JARVIS device work: all of it, or one device family. The
- * database requires the admin role, a recent second factor and a reason, and
- * keeps the record.
- */
-export const setJarvisExecution = createServerFn({ method: "POST" })
-  .middleware([requireAssurance(HIGH_RISK)])
-  .validator((input) =>
-    z
-      .object({
-        key: z.enum(CONTROL_KEYS).default("jarvis_execution"),
-        paused: z.boolean(),
-        reason: z.string().trim().min(10).max(500),
-      })
-      .parse(input),
-  )
-  .handler(async ({ data, context }): Promise<{ paused: boolean }> => {
-    await assertStaff(context.supabase, "execution.manage");
-    const { data: row, error } = await context.supabase.rpc("ocade_set_service_control", {
-      control_key: data.key,
-      pause: data.paused,
-      change_reason: data.reason,
-    });
-    if (error) throw new Error(adminFailure(error.message));
-    return { paused: Boolean(row?.paused) };
-  });
-
 export interface AdminDeviceRow {
   id: string;
   name: string;

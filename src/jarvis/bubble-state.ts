@@ -1,26 +1,26 @@
 /**
  * The phone bubble's device-local state: where it sits, whether it is shown,
- * and the question it is handing to the JARVIS page. Kept apart from the
+ * and the words handed to the JARVIS page. Kept apart from the
  * component so Settings and the JARVIS page can use it without the bubble.
  */
 import { useSyncExternalStore } from "react";
 
-/* --- the quick ask, handed to the JARVIS page in memory (never a link) ----- */
+/** The one truthful answer to every JARVIS action until its new engine ships. */
+export const JARVIS_UNAVAILABLE = "OCADE JARVIS is unavailable while it is being rebuilt.";
 
-/** A question for the JARVIS page; `savedId` when the bubble already saved it. */
+/* --- words handed to the JARVIS page in memory (never a link) ------------- */
+
+/** Words for JARVIS's box, from Chat; never sent by themselves. */
 export interface HandedQuestion {
   text: string;
-  savedId?: string;
-  /** Put in JARVIS's box unsent (from Chat): the person still presses Send. */
-  draftOnly?: boolean;
 }
 let pending: HandedQuestion | null = null;
 
-/** Hand a question to the JARVIS page, which asks it once it is open. */
+/** Hand words to the JARVIS page, which puts them in its box once it is open. */
 export function handOff(question: HandedQuestion): void {
   pending = question;
 }
-/** The question handed over by the bubble, taken once by the JARVIS page. */
+/** The words handed over, taken once by the JARVIS page. */
 export function takeHandOff(): HandedQuestion | null {
   const question = pending;
   pending = null;
