@@ -414,7 +414,7 @@ A capability is supported only for explicitly qualified platform/app versions, p
 
 # Annex A — Source heading-by-heading traceability
 
-This annex tracks **all 143 substantive source-heading occurrences in original order**, including duplicates. A heading's presence indicates that its idea was evaluated; it does **not** mean that the source's claims were accepted. “Omitted estimate” means the owner's instruction excludes numerical implementation-sizing material. References (````) are to sections of this plan. Source line numbers are from `Pasted text(20261030-143347).txt`.
+This annex tracks **all 143 substantive source-heading occurrences in original order**, including duplicates. A heading's presence indicates that its idea was evaluated; it does **not** mean that the source's claims were accepted. “Omitted estimate” means the owner's instruction excludes numerical implementation-sizing material. References in the final column point to sections of this plan. Source line numbers are from `Pasted text(20261030-143347).txt`.
 
 | ID | Source line | Source heading or disposition | Plan section / treatment |
 | --- | ---: | --- | --- |
