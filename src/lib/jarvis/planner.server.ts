@@ -1,5 +1,5 @@
 /**
- * ONLINE PLANNING FOR EVERY OUTCOME JOURNEY 1 DOES NOT COVER (plan.md §4.1, §23.3, P13).
+ * ONLINE PLANNING FOR EVERY CUSTOMER OUTCOME (plan.md §4.1, §23.3, P13).
  *
  * The model proposes; it never authorizes. Each call is one bounded turn
  * through the deployed `ocade-intelligence-service` Edge Function — Online
