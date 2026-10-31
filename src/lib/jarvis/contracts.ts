@@ -469,7 +469,7 @@ export type ActionReceipt = z.infer<typeof actionReceipt>;
  * A fixed goal check, set when the task opens (`jarvis_tasks.outcome`). A check
  * with a `kind` is a typed predicate the separate verifier evaluates by reading
  * the real file, window or page; one without is settled by its own workflow's
- * verifier (Journey 1).
+ * verifier (legacy evidence only; all newly opened tasks require typed checks).
  */
 export const outcomeCheck = z.object({
   id: z.string().regex(/^[a-z0-9_]{1,60}$/),
