@@ -1,6 +1,6 @@
 """The companion's loop: ask for work, run it through the gateway, report what happened.
 
-    ocade_agent enroll --server https://ocade.in --workspace "C:\\Users\\me\\Documents\\JARVIS"
+    ocade_agent enroll --server https://ocade.in --workspace "%USERPROFILE%\\Documents\\JARVIS"
     ocade_agent run          (server and workspace remembered from enroll)
     ocade_agent stop         (local STOP: no network, no model)
 
@@ -118,7 +118,8 @@ class Agent:
         apps = await anyio.to_thread.run_sync(discovery.installed_apps)
         await anyio.to_thread.run_sync(
             self.device.request,
-            {"op": "inventory", "apps": apps, "mcp": catalog.describe(self.gateway.external)},
+            {"op": "inventory", "apps": apps, "mcp": catalog.describe(self.gateway.external),
+             "engines": await anyio.to_thread.run_sync(discovery.engines)},
         )
         idle = 1.0
         while True:

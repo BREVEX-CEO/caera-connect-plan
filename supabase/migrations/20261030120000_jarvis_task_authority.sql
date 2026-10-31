@@ -24,6 +24,16 @@ CREATE UNIQUE INDEX IF NOT EXISTS jarvis_activity_one_action_per_key
   ON public.jarvis_activity (task_id, (action ->> 'key'))
   WHERE action IS NOT NULL;
 
+-- Task timing (plan.md M3). Durable UTC facts only: time paused on the person, and
+-- the number and duration of planning model calls. Step durations come from the
+-- device's own monotonic measurement in each receipt.
+ALTER TABLE public.jarvis_tasks
+  ADD COLUMN IF NOT EXISTS paused_at timestamptz,
+  ADD COLUMN IF NOT EXISTS user_wait_ms bigint NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS model_calls integer NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS model_ms bigint NOT NULL DEFAULT 0;
+ALTER TABLE public.jarvis_activity ADD COLUMN IF NOT EXISTS confirmed_at timestamptz;
+
 -- Approved external MCP servers are granted per server: `mcp` (the kind) and `mcp:<id>`.
 ALTER TABLE public.jarvis_permissions DROP CONSTRAINT IF EXISTS jarvis_permissions_capability_check;
 ALTER TABLE public.jarvis_permissions ADD CONSTRAINT jarvis_permissions_capability_check CHECK (
@@ -409,7 +419,7 @@ BEGIN
       -- An effect that may have happened is reconciled before anything else is tried.
       UPDATE public.jarvis_tasks AS t
          SET status = 'waiting', blocker = 'OCADE is checking whether a step took effect.',
-             updated_at = statement_timestamp()
+             paused_at = coalesce(t.paused_at, statement_timestamp()), updated_at = statement_timestamp()
        WHERE t.id = v_row.task_id AND t.status = 'running';
     ELSE
       UPDATE public.jarvis_tasks AS t SET updated_at = statement_timestamp() WHERE t.id = v_row.task_id;
@@ -453,6 +463,9 @@ BEGIN
   END IF;
   UPDATE public.jarvis_tasks AS t
      SET status = 'stopped', controller = NULL, finished_at = statement_timestamp(),
+         user_wait_ms = t.user_wait_ms
+           + coalesce((extract(epoch FROM statement_timestamp() - t.paused_at) * 1000)::bigint, 0),
+         paused_at = NULL,
          updated_at = statement_timestamp(),
          checkpoint = coalesce(t.checkpoint, '{}'::jsonb) || jsonb_build_object('phase', 'stopped')
    WHERE t.id = p_task;
@@ -538,10 +551,18 @@ AS $$
     'deviceName', (SELECT d.name FROM public.jarvis_devices AS d WHERE d.id = t.device_id),
     'apps', (SELECT d.installed_apps FROM public.jarvis_devices AS d WHERE d.id = t.device_id),
     'mcp', (SELECT coalesce(d.capabilities -> 'mcp', '[]'::jsonb) FROM public.jarvis_devices AS d WHERE d.id = t.device_id),
+    'engines', (SELECT d.capabilities -> 'engines' FROM public.jarvis_devices AS d WHERE d.id = t.device_id),
     'grants', public.jarvis_grants(t.user_id, t.device_id),
+    'timing', jsonb_build_object(
+      'acceptedAt', t.created_at, 'finishedAt', t.finished_at, 'now', statement_timestamp(),
+      'pausedMs', t.user_wait_ms
+        + coalesce((extract(epoch FROM coalesce(t.finished_at, statement_timestamp()) - t.paused_at) * 1000)::bigint, 0),
+      'modelCalls', t.model_calls, 'modelMs', t.model_ms),
     'steps', coalesce((
       SELECT jsonb_agg(jsonb_build_object('id', a.id, 'summary', a.summary, 'intent', a.action,
-                                          'status', a.status, 'receipt', a.result)
+                                          'status', a.status, 'receipt', a.result,
+                                          'createdAt', a.created_at, 'completedAt', a.completed_at,
+                                          'confirmedAt', a.confirmed_at)
                        ORDER BY a.created_at, a.id)
         FROM public.jarvis_activity AS a WHERE a.task_id = t.id AND a.action IS NOT NULL), '[]'::jsonb))
   FROM public.jarvis_tasks AS t WHERE t.id = p_task;
@@ -555,7 +576,7 @@ SECURITY INVOKER
 SET search_path TO ''
 AS $$
   UPDATE public.jarvis_tasks AS t
-     SET status = 'waiting', blocker = left(p_reason, 300), updated_at = statement_timestamp()
+     SET status = 'waiting', blocker = left(p_reason, 300), paused_at = coalesce(t.paused_at, statement_timestamp()), updated_at = statement_timestamp()
    WHERE t.id = p_task AND t.status = 'running' AND t.controller = p_controller;
 $$;
 
@@ -567,7 +588,7 @@ SECURITY INVOKER
 SET search_path TO ''
 AS $$
   WITH confirmed AS (
-    UPDATE public.jarvis_activity AS a SET status = 'queued', confirmed = true
+    UPDATE public.jarvis_activity AS a SET status = 'queued', confirmed = true, confirmed_at = statement_timestamp()
      WHERE a.id = p_activity AND a.user_id = p_user AND a.status = 'needs_confirmation'
        AND EXISTS (SELECT 1 FROM public.jarvis_tasks AS t
                     WHERE t.id = a.task_id AND t.status = 'running' AND t.controller = a.controller)
@@ -586,7 +607,7 @@ SET search_path TO ''
 AS $$
 BEGIN
   UPDATE public.jarvis_tasks AS t
-     SET status = 'taken_over', controller = NULL, updated_at = statement_timestamp()
+     SET status = 'taken_over', controller = NULL, paused_at = coalesce(t.paused_at, statement_timestamp()), updated_at = statement_timestamp()
    WHERE t.id = p_task AND t.user_id = p_user AND t.status IN ('running', 'waiting');
   IF NOT FOUND THEN
     RAISE EXCEPTION 'task_not_found' USING ERRCODE = 'P0002';
@@ -613,7 +634,10 @@ BEGIN
     RAISE EXCEPTION 'jarvis_paused' USING ERRCODE = '42501';
   END IF;
   UPDATE public.jarvis_tasks AS t
-     SET status = 'running', controller = v_controller, blocker = NULL, updated_at = statement_timestamp()
+     SET status = 'running', controller = v_controller, blocker = NULL,
+         user_wait_ms = t.user_wait_ms
+           + coalesce((extract(epoch FROM statement_timestamp() - t.paused_at) * 1000)::bigint, 0),
+         paused_at = NULL, updated_at = statement_timestamp()
    WHERE t.id = p_task AND t.user_id = p_user AND t.status IN ('taken_over', 'waiting')
      AND EXISTS (SELECT 1 FROM public.jarvis_devices AS d
                   WHERE d.id = t.device_id AND d.user_id = p_user AND d.revoked_at IS NULL);
@@ -625,15 +649,28 @@ END;
 $$;
 
 -- The apps a device found installed, for the person's Allowed Apps choice and the planner.
-CREATE OR REPLACE FUNCTION public.jarvis_device_inventory(p_device uuid, p_apps jsonb, p_mcp jsonb)
+CREATE OR REPLACE FUNCTION public.jarvis_device_inventory(p_device uuid, p_apps jsonb, p_mcp jsonb, p_engines jsonb)
 RETURNS void
 LANGUAGE sql
 SECURITY INVOKER
 SET search_path TO ''
 AS $$
   UPDATE public.jarvis_devices AS d
-     SET installed_apps = p_apps, capabilities = d.capabilities || jsonb_build_object('mcp', p_mcp)
+     SET installed_apps = p_apps,
+         capabilities = d.capabilities || jsonb_build_object('mcp', p_mcp, 'engines', p_engines)
    WHERE d.id = p_device AND d.user_id IS NOT NULL AND d.revoked_at IS NULL;
+$$;
+
+-- One planning model call finished (or failed): counted against the task, never inferred.
+CREATE OR REPLACE FUNCTION public.jarvis_note_model(p_task uuid, p_ms integer)
+RETURNS void
+LANGUAGE sql
+SECURITY INVOKER
+SET search_path TO ''
+AS $$
+  UPDATE public.jarvis_tasks AS t
+     SET model_calls = t.model_calls + 1, model_ms = t.model_ms + greatest(p_ms, 0)
+   WHERE t.id = p_task;
 $$;
 
 -- Revoking a device stops its open task first, so nothing more is dispatched to it.
@@ -671,7 +708,7 @@ BEGIN
     'public.jarvis_confirm_action(uuid, uuid)',
     'public.jarvis_take_over(uuid, uuid)',
     'public.jarvis_resume_task(uuid, uuid)',
-    'public.jarvis_device_inventory(uuid, jsonb, jsonb)',
+    'public.jarvis_device_inventory(uuid, jsonb, jsonb, jsonb)',
     'public.jarvis_device_code(text)',
     'public.jarvis_enroll_device(text, text, text, text, text)',
     'public.jarvis_approve_device(uuid, text)',
@@ -684,7 +721,8 @@ BEGIN
     'public.jarvis_submit_receipt(uuid, uuid, jsonb)',
     'public.jarvis_stop_task(uuid, uuid)',
     'public.jarvis_settle_task(uuid, uuid, jsonb, text)',
-    'public.jarvis_revoke_device(uuid, uuid)'
+    'public.jarvis_revoke_device(uuid, uuid)',
+    'public.jarvis_note_model(uuid, integer)'
   ] LOOP
     EXECUTE format('REVOKE ALL ON FUNCTION %s FROM PUBLIC, anon, authenticated', f);
     EXECUTE format('GRANT EXECUTE ON FUNCTION %s TO service_role', f);

@@ -92,7 +92,58 @@ interface TaskState {
   deviceName: string | null;
   grants: string[];
   mcp: McpServer[];
-  steps: { id: string; summary: string; intent: unknown; status: string; receipt: unknown }[];
+  engines: string[] | null;
+  timing: {
+    acceptedAt: string;
+    finishedAt: string | null;
+    now: string;
+    pausedMs: number;
+    modelCalls: number;
+    modelMs: number;
+  };
+  steps: {
+    id: string;
+    summary: string;
+    intent: unknown;
+    status: string;
+    receipt: unknown;
+    createdAt: string;
+    completedAt: string | null;
+    confirmedAt: string | null;
+  }[];
+}
+
+const ms = (from: string, to: string | null) => (to ? Date.parse(to) - Date.parse(from) : null);
+
+/**
+ * Elapsed time from durable server timestamps (plan.md M3). Step durations are the
+ * device's own monotonic measurement; null when it did not report one. Steps run one
+ * at a time, so their sum is active execution, never a sum of concurrent work.
+ */
+export function taskTiming(task: Pick<TaskState, "status" | "timing" | "steps">) {
+  const { timing } = task;
+  const steps = task.steps.map((step) => {
+    const measured = (step.receipt as { evidence?: { durationMs?: unknown } } | null)?.evidence
+      ?.durationMs;
+    return {
+      durationMs: typeof measured === "number" ? measured : null,
+      confirmWaitMs: ms(step.createdAt, step.confirmedAt),
+    };
+  });
+  const measured = steps.flatMap((step) => (step.durationMs === null ? [] : [step.durationMs]));
+  const done = task.status === "completed";
+  return {
+    acceptedAt: timing.acceptedAt,
+    finishedAt: timing.finishedAt,
+    verifiedAt: done ? timing.finishedAt : null,
+    deliveredAt: done ? timing.finishedAt : null,
+    totalElapsedMs: ms(timing.acceptedAt, timing.finishedAt ?? timing.now),
+    userWaitMs: timing.pausedMs + steps.reduce((sum, step) => sum + (step.confirmWaitMs ?? 0), 0),
+    activeExecutionMs: measured.length ? Math.round(measured.reduce((a, b) => a + b, 0)) : null,
+    modelCalls: timing.modelCalls,
+    modelMs: timing.modelMs,
+    stepDurationsMs: steps.map((step) => step.durationMs),
+  };
 }
 
 function readTask(admin: Admin, taskId: string) {
@@ -113,6 +164,7 @@ export async function advance(admin: Admin, taskId: string, now = new Date()): P
   }));
   const checks = task.outcome ?? [];
   let decision: Decision;
+  let modelMs: number | null = null;
   try {
     // No special-case customer journey: every request uses the same AI planner.
     decision = await planStep({
@@ -122,11 +174,14 @@ export async function advance(admin: Admin, taskId: string, now = new Date()): P
       steps,
       grants: task.grants,
       mcp: task.mcp ?? [],
+      engines: task.engines,
       turnKey: `jarvis-plan:${taskId}:${task.controller}:${steps.length}`,
       now,
+      onModelCall: (ms) => (modelMs = ms),
     });
   } catch (error) {
     if (!(error instanceof PlannerUnavailable)) throw error;
+    if (modelMs !== null) await noteModel(admin, taskId, modelMs);
     await call(admin, "jarvis_task_wait", {
       p_task: taskId,
       p_controller: task.controller,
@@ -134,6 +189,7 @@ export async function advance(admin: Admin, taskId: string, now = new Date()): P
     });
     return;
   }
+  if (modelMs !== null) await noteModel(admin, taskId, modelMs);
   try {
     if (decision.kind === "queue") {
       await call(admin, "jarvis_queue_actions", {
@@ -163,6 +219,9 @@ export async function advance(admin: Admin, taskId: string, now = new Date()): P
   }
 }
 
+const noteModel = (admin: Admin, taskId: string, elapsed: number) =>
+  call(admin, "jarvis_note_model", { p_task: taskId, p_ms: Math.round(elapsed) });
+
 /* --------------------------- Customer actions --------------------------- */
 
 export async function startTask(
@@ -182,8 +241,9 @@ export async function startTask(
     throw new JarvisRefusal("permission_required", REFUSALS.permission_required);
   }
   let checks: OutcomeCheck[];
+  let goalMs: number | null = null;
   try {
-    checks = await compileGoal(userId, objective, grants);
+    checks = await compileGoal(userId, objective, grants, (ms) => (goalMs = ms));
   } catch (error) {
     if (!(error instanceof PlannerUnavailable)) throw error;
     throw new JarvisRefusal(
@@ -203,7 +263,10 @@ export async function startTask(
       p_plan: checks.map((c) => c.description) as unknown as Json,
     },
   );
-  if (!opened.reused) await advance(admin, opened.task_id);
+  if (!opened.reused) {
+    if (goalMs !== null) await noteModel(admin, opened.task_id, goalMs);
+    await advance(admin, opened.task_id);
+  }
   return { taskId: opened.task_id, reused: opened.reused };
 }
 
@@ -240,6 +303,7 @@ export async function taskView(admin: Admin, userId: string, taskId: string) {
     failed?: string[];
     unverified?: string[];
   } | null;
+  const timing = taskTiming(task);
   return {
     id: task.id,
     status: task.status,
@@ -254,13 +318,15 @@ export async function taskView(admin: Admin, userId: string, taskId: string) {
           ? "failed"
           : "unchecked",
     })),
-    steps: task.steps.map((step) => ({
+    steps: task.steps.map((step, index) => ({
       id: step.id,
+      durationMs: timing.stepDurationsMs[index],
       summary: step.summary,
       status: step.status,
       needsConfirmation: step.status === "needs_confirmation",
     })),
     device: task.deviceName,
+    timing,
     // Files JARVIS wrote and saw land, named as they are in the computer's JARVIS folder.
     artifacts: task.steps.flatMap((step) => {
       const parsed = actionIntent.safeParse(step.intent);
@@ -420,6 +486,7 @@ export async function handleDeviceRequest(
         p_device: deviceId,
         p_apps: parsed.apps as unknown as Json,
         p_mcp: parsed.mcp as unknown as Json,
+        p_engines: parsed.engines as unknown as Json,
       });
       return { status: 200, body: { inventory: "recorded" } };
     }

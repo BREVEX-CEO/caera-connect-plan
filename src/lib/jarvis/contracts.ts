@@ -20,6 +20,9 @@ export const PROTOCOL_VERSION = 1;
  */
 const RISKS = ["read", "reversible_write", "external_effect"] as const;
 
+/** Shared programs an operation needs on the computer; the device reports which it has. */
+export const ENGINES = ["ffmpeg", "browser", "office"] as const;
+
 /** Paths are relative to a workspace folder the person chose on the device itself. */
 const workspacePath = z
   .string()
@@ -89,6 +92,312 @@ const mcpCall = z.strictObject({
 });
 const mcpTarget = (a: { server: string }): Target => ({ mcp: a.server });
 
+const num = (min: number, max: number) => z.number().min(min).max(max);
+const vec3 = z.array(num(-1000, 1000)).length(3);
+const rgb = z.array(num(0, 1)).length(3);
+const seconds = num(0, 86_400);
+const id = z.string().regex(/^[a-z0-9_]{1,40}$/);
+
+/**
+ * A 3D scene as data (plan.md M1): parts built from signed-distance shapes
+ * combined in order, with materials, lights, an environment and a camera. It is
+ * the editable project; `scene.render` turns it into pixels. Units are metres,
+ * +Y is up, rotations are XYZ degrees.
+ */
+const shape = z.strictObject({
+  shape: z
+    .enum(["sphere", "box", "ellipsoid", "cylinder", "torus", "capsule", "halfspace"])
+    .describe(
+      "size: sphere [r]; box [half x,y,z]; ellipsoid [radii x,y,z]; cylinder [r, half height] along Y; " +
+        "torus [ring r, tube r] around Y; capsule [half length, r] along Y; halfspace [] keeps local y<0",
+    ),
+  size: z.array(num(0, 100)).max(3).default([]),
+  round: num(0, 10).optional().describe("Rounds edges by this radius"),
+  shell: num(0, 10).optional().describe("Hollow surface of this thickness"),
+  material: id.optional().describe("On a subtraction: the material of the cut surface"),
+  op: z
+    .enum(["union", "smooth_union", "subtract", "smooth_subtract", "intersect"])
+    .optional()
+    .describe("How this shape combines with the shapes before it in the part"),
+  k: num(0.0001, 10).optional().describe("Blend radius for smooth operations"),
+  position: vec3.optional(),
+  rotation: vec3.optional(),
+  mirror: z
+    .array(z.enum(["x", "y", "z"]))
+    .max(3)
+    .optional()
+    .describe("Mirror across these axes"),
+  repeat: z
+    .strictObject({ axis: z.enum(["x", "y", "z"]), count: z.int().min(2).max(64) })
+    .optional()
+    .describe("Repeat around this local axis, after placing; then apply offset"),
+  offset: vec3.optional(),
+});
+const scene = z
+  .strictObject({
+    camera: z.strictObject({
+      position: vec3,
+      target: vec3,
+      fov: num(5, 120).describe("Vertical field of view, degrees"),
+      aperture: num(0, 1).optional().describe("Lens radius for depth of field; 0 is sharp"),
+      focusDistance: num(0, 1000).optional(),
+    }),
+    environment: z.strictObject({
+      sky: z
+        .array(z.array(num(0, 20)).length(3))
+        .length(2)
+        .describe("[zenith colour, horizon colour]"),
+      ground: rgb.optional(),
+      floor: z
+        .strictObject({ color: rgb, roughness: num(0, 1), reflectance: num(0, 1) })
+        .optional()
+        .describe("An infinite floor at y = 0"),
+      softboxes: z
+        .array(
+          z.strictObject({
+            direction: vec3,
+            width: num(1, 180),
+            height: num(1, 180),
+            intensity: num(0, 100),
+            color: rgb.optional(),
+          }),
+        )
+        .max(8)
+        .optional()
+        .describe(
+          "Rectangular studio light panels seen in reflections, by direction and angular size",
+        ),
+    }),
+    lights: z
+      .array(
+        z.strictObject({
+          kind: z.enum(["sun", "point"]),
+          direction: vec3.optional(),
+          position: vec3.optional(),
+          color: rgb,
+          intensity: num(0, 1000),
+          softness: num(0.001, 1).optional().describe("Shadow softness"),
+        }),
+      )
+      .max(8),
+    materials: z
+      .array(
+        z.strictObject({
+          id,
+          color: rgb,
+          metallic: num(0, 1).optional(),
+          roughness: num(0, 1).optional(),
+          clearcoat: num(0, 1).optional(),
+          emission: rgb.optional(),
+          emissionStrength: num(0, 100).optional(),
+          pattern: z.enum(["none", "carbon", "grille", "brushed"]).optional(),
+          patternScale: num(0.05, 20).optional(),
+        }),
+      )
+      .min(1)
+      .max(16),
+    parts: z
+      .array(
+        z.strictObject({
+          id,
+          shapes: z.array(shape).min(1).max(48),
+          position: vec3.optional(),
+          rotation: vec3.optional(),
+          mirror: z
+            .array(z.enum(["x", "y", "z"]))
+            .max(3)
+            .optional(),
+          instances: z
+            .array(vec3)
+            .max(8)
+            .optional()
+            .describe("Copies of the whole part at these offsets"),
+        }),
+      )
+      .min(1)
+      .max(24),
+    render: z.strictObject({
+      width: z.int().min(16).max(7680),
+      height: z.int().min(16).max(4320),
+      samples: z
+        .int()
+        .min(1)
+        .max(64)
+        .optional()
+        .describe("Samples per pixel; more is smoother and slower"),
+      exposure: num(0.05, 10).optional(),
+    }),
+  })
+  .refine(
+    (s) => s.parts.reduce((total, part) => total + part.shapes.length, 0) <= 256,
+    "at most 256 shapes",
+  )
+  .refine((s) => {
+    const ids = new Set(s.materials.map((m) => m.id));
+    return s.parts.every((part) => part.shapes.every((x) => !x.material || ids.has(x.material)));
+  }, "every material must be defined")
+  .refine(
+    (s) => s.lights.every((l) => (l.kind === "sun" ? l.direction : l.position)),
+    "a sun needs a direction, a point light a position",
+  );
+
+const TRANSITIONS = [
+  "cut",
+  "fade",
+  "fadeblack",
+  "fadewhite",
+  "dissolve",
+  "wipeleft",
+  "wiperight",
+  "slideleft",
+  "slideright",
+  "smoothleft",
+  "smoothright",
+  "smoothup",
+  "smoothdown",
+  "circleopen",
+  "circleclose",
+  "zoomin",
+  "radial",
+  "hlwind",
+  "hrwind",
+  "squeezeh",
+  "squeezev",
+  "distance",
+  "pixelize",
+  "hblur",
+  "fadegrays",
+] as const;
+
+/** An edit decision list (plan.md M2): the planner chooses every shot, cut, grade, title and sound. */
+const timeline = z.strictObject({
+  output: workspacePath.describe("The finished .mp4"),
+  duration: num(1, 3600).describe("Exact length in seconds; shorter edits hold the last frame"),
+  width: z.int().min(320).max(7680).optional(),
+  height: z.int().min(240).max(4320).optional(),
+  fps: z.int().min(12).max(60).optional(),
+  clips: z
+    .array(
+      z.strictObject({
+        source: workspacePath,
+        in: seconds,
+        out: seconds,
+        speed: num(0.25, 4).optional().describe("Playback speed; 0.5 is slow motion"),
+        grade: z
+          .strictObject({
+            exposure: num(-3, 3),
+            temperature: z.int().min(1000).max(40000),
+            contrast: num(0.5, 2),
+            saturation: num(0, 3),
+            gamma: num(0.3, 3),
+            brightness: num(-0.5, 0.5),
+            sharpen: num(0, 2),
+            vignette: num(0, 1),
+          })
+          .partial()
+          .optional(),
+        motion: z
+          .strictObject({
+            zoomFrom: num(1, 2),
+            zoomTo: num(1, 2),
+            panX: num(-1, 1),
+            panY: num(-1, 1),
+          })
+          .partial()
+          .optional()
+          .describe("A virtual camera move over the shot"),
+        transition: z
+          .strictObject({ type: z.enum(TRANSITIONS), duration: num(0, 3) })
+          .optional()
+          .describe("How this shot enters from the previous one"),
+        audio: z.boolean().optional().describe("Keep this shot's own sound"),
+        audioGain: num(-60, 20).optional(),
+      }),
+    )
+    .min(1)
+    .max(120),
+  titles: z
+    .array(
+      z.strictObject({
+        text: z.string().min(1).max(120),
+        start: seconds,
+        end: seconds,
+        size: z.int().min(12).max(300).optional(),
+        position: z.enum(["top", "center", "lower_third", "bottom"]).optional(),
+        font: z
+          .string()
+          .regex(/^[A-Za-z0-9 ._-]{1,60}$/)
+          .optional()
+          .describe("An installed font family name"),
+        color: z
+          .string()
+          .regex(/^(white|black|#[0-9a-fA-F]{6})$/)
+          .optional(),
+        fadeIn: num(0, 5).optional(),
+        fadeOut: num(0, 5).optional(),
+        box: num(0, 1).optional().describe("Opacity of a dark box behind the text"),
+      }),
+    )
+    .max(30)
+    .optional(),
+  overlays: z
+    .array(
+      z.strictObject({
+        image: workspacePath,
+        start: seconds,
+        end: seconds,
+        width: z.int().min(16).max(7680).optional(),
+        x: num(0, 1).optional(),
+        y: num(0, 1).optional(),
+        fadeIn: num(0, 5).optional(),
+        fadeOut: num(0, 5).optional(),
+        zoomTo: num(1, 2).optional(),
+      }),
+    )
+    .max(10)
+    .optional()
+    .describe("Still images (for example a rendered 3D scene) composited over the picture"),
+  audio: z
+    .array(
+      z
+        .strictObject({
+          source: workspacePath.optional(),
+          in: seconds.optional(),
+          synth: z
+            .strictObject({
+              kind: z.enum(["noise", "sine", "sweep"]),
+              color: z.enum(["white", "pink", "brown"]).optional(),
+              frequency: num(20, 20000).optional(),
+              toFrequency: num(20, 20000).optional(),
+              decay: num(0, 50).optional(),
+            })
+            .optional()
+            .describe(
+              "A generated sound: whoosh (filtered noise), impact (decaying sine), riser (sweep)",
+            ),
+          start: seconds,
+          duration: num(0.05, 3600),
+          gain: num(-60, 20).optional(),
+          highpass: num(20, 20000).optional(),
+          lowpass: num(20, 20000).optional(),
+          fadeIn: num(0, 30).optional(),
+          fadeOut: num(0, 30).optional(),
+          role: z
+            .enum(["music", "fx"])
+            .optional()
+            .describe("Music is ducked under everything else"),
+        })
+        .refine((layer) => !layer.source !== !layer.synth, "a layer has a source file or a synth"),
+    )
+    .max(40)
+    .optional(),
+  clipAudioGain: num(-60, 20).optional(),
+  letterbox: num(1, 3).optional().describe("Aspect ratio of black bars, e.g. 2.39"),
+  loudness: num(-30, -8).optional().describe("Integrated loudness target, LUFS"),
+  fadeIn: num(0, 10).optional(),
+  fadeOut: num(0, 10).optional(),
+});
+
 /**
  * The typed capability registry: four local roles (plus the separate verifier),
  * each operation with its permission, risk, argument schema and — for apps and
@@ -108,13 +417,14 @@ export const OPERATIONS = {
     arguments: z.strictObject({ path: workspacePath }),
   },
   "media.inspect": {
-    role: "sys_core",
+    role: "media_engine",
     capability: "files",
     risk: "read",
     arguments: z.strictObject({ path: workspacePath }),
   },
   "media.trim": {
-    role: "sys_core",
+    engine: "ffmpeg",
+    role: "media_engine",
     capability: "files",
     risk: "reversible_write",
     arguments: z.strictObject({
@@ -124,6 +434,41 @@ export const OPERATIONS = {
       output: workspacePath,
     }),
   },
+  "media.analyze": {
+    engine: "ffmpeg",
+    role: "media_engine",
+    capability: "files",
+    risk: "read",
+    seconds: 1800,
+    arguments: z.strictObject({
+      path: workspacePath,
+      threshold: num(0.05, 0.9)
+        .optional()
+        .describe("Scene-change sensitivity for splitting shots; lower finds more cuts"),
+    }),
+  },
+  "media.render_timeline": {
+    engine: "ffmpeg",
+    role: "media_engine",
+    capability: "files",
+    risk: "reversible_write",
+    seconds: 3600,
+    arguments: timeline,
+  },
+  "scene.render": {
+    engine: "browser",
+    role: "media_engine",
+    capability: "files",
+    risk: "reversible_write",
+    seconds: 3600,
+    arguments: z.strictObject({
+      scene,
+      output: workspacePath.describe("The rendered still, .png"),
+      project: workspacePath.describe(
+        "Where to save the editable scene file, e.g. .ocade-scene.json",
+      ),
+    }),
+  },
   "office.inspect_workbook": {
     role: "sys_core",
     capability: "files",
@@ -131,6 +476,7 @@ export const OPERATIONS = {
     arguments: z.strictObject({ path: workspacePath }),
   },
   "office.reconcile_workbook": {
+    engine: "office",
     role: "sys_core",
     capability: "files",
     risk: "reversible_write",
@@ -142,6 +488,7 @@ export const OPERATIONS = {
     }),
   },
   "office.write_report": {
+    engine: "office",
     role: "sys_core",
     capability: "files",
     risk: "reversible_write",
@@ -251,6 +598,7 @@ export const OPERATIONS = {
     target: (a: { window: { exe: string } }): Target => ({ app: a.window.exe }),
   },
   "web.open": {
+    engine: "browser",
     role: "web_automation",
     capability: "browser",
     risk: "read",
@@ -258,6 +606,7 @@ export const OPERATIONS = {
     target: (a: { url: string }): Target => ({ site: new URL(a.url).hostname }),
   },
   "web.read": {
+    engine: "browser",
     role: "web_automation",
     capability: "browser",
     risk: "read",
@@ -265,6 +614,7 @@ export const OPERATIONS = {
     target: (a: { page: { site: string } }): Target => ({ site: a.page.site }),
   },
   "web.fill": {
+    engine: "browser",
     role: "web_automation",
     capability: "browser",
     risk: "reversible_write",
@@ -277,6 +627,7 @@ export const OPERATIONS = {
     target: (a: { page: { site: string } }): Target => ({ site: a.page.site }),
   },
   "web.select": {
+    engine: "browser",
     role: "web_automation",
     capability: "browser",
     risk: "reversible_write",
@@ -289,6 +640,7 @@ export const OPERATIONS = {
     target: (a: { page: { site: string } }): Target => ({ site: a.page.site }),
   },
   "web.click": {
+    engine: "browser",
     role: "web_automation",
     capability: "browser",
     risk: "external_effect",
@@ -296,6 +648,7 @@ export const OPERATIONS = {
     target: (a: { page: { site: string } }): Target => ({ site: a.page.site }),
   },
   "web.upload": {
+    engine: "browser",
     role: "web_automation",
     capability: "browser",
     risk: "external_effect",
@@ -303,6 +656,7 @@ export const OPERATIONS = {
     target: (a: { page: { site: string } }): Target => ({ site: a.page.site }),
   },
   "web.screenshot": {
+    engine: "browser",
     role: "web_automation",
     capability: "browser",
     risk: "reversible_write",
@@ -310,6 +664,7 @@ export const OPERATIONS = {
     target: (a: { page: { site: string } }): Target => ({ site: a.page.site }),
   },
   "web.close": {
+    engine: "browser",
     role: "web_automation",
     capability: "browser",
     risk: "read",
@@ -317,6 +672,7 @@ export const OPERATIONS = {
     target: (a: { page: { site: string } }): Target => ({ site: a.page.site }),
   },
   "web.download": {
+    engine: "browser",
     role: "web_automation",
     capability: "browser",
     risk: "reversible_write",
@@ -482,8 +838,18 @@ export const outcomeCheck = z.object({
       "web_text_contains",
       "window_exists",
       "media_duration",
+      "media_quality",
+      "image_size",
+      "scene_render",
     ])
-    .optional(),
+    .optional()
+    .describe(
+      "params — file_exists {path}; file_contains {path,text}; workbook_cell_equals {path,sheet,cell,value}; " +
+        "web_text_contains {url,text}; window_exists {exe,text?}; media_duration {path,value}; " +
+        "media_quality {path,value,width,height}: playable H.264/AAC stereo of exactly value seconds, at least " +
+        "width x height, broadcast loudness, no long black or silent gap; image_size {path,width,height}; " +
+        "scene_render {path}: a .png rendered from a valid saved 3D scene project",
+    ),
   params: z
     .strictObject({
       path: workspacePath.optional(),
@@ -496,6 +862,8 @@ export const outcomeCheck = z.object({
       value: z.union([z.string().max(500), z.number()]).optional(),
       url: httpsUrl.optional(),
       exe: exe.optional(),
+      width: z.int().min(1).max(16384).optional(),
+      height: z.int().min(1).max(16384).optional(),
     })
     .optional(),
 });
@@ -547,6 +915,7 @@ export const deviceRequest = z.discriminatedUnion("op", [
         )
         .max(50)
         .default([]),
+      engines: z.array(z.enum(ENGINES)).max(8).default([]),
     })
     .strict(),
   z.object({ op: z.literal("receipt"), activityId: z.uuid(), receipt: actionReceipt }).strict(),
@@ -565,6 +934,7 @@ export function protocolSchema() {
           role: spec.role,
           capability: spec.capability,
           risk: spec.risk,
+          ...("seconds" in spec ? { seconds: spec.seconds } : {}),
           arguments: z.toJSONSchema(spec.arguments, { io: "input" }),
         },
       ]),

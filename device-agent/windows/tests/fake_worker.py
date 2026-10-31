@@ -26,6 +26,8 @@ def office_inspect_workbook(path: str) -> dict:
         os._exit(3)
     if MODE == "hang":
         time.sleep(60)
+    if MODE == "slow":
+        time.sleep(33)  # longer than the session's 30 s start-up timeout, inside the operation's bound
     return {"sha256": "0" * 64, "sheets": []}
 
 
@@ -58,18 +60,6 @@ def fs_list(path: str = ".") -> dict:
 def fs_read_text(path: str) -> dict:
     """Read."""
     return {"text": ""}
-
-
-@app.tool()
-def media_inspect(path: str) -> dict:
-    """Inspect media."""
-    return {}
-
-
-@app.tool()
-def media_trim(source: str, start: float, end: float, output: str) -> dict:
-    """Trim."""
-    return {}
 
 
 @app.tool()

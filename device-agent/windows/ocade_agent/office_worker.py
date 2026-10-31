@@ -12,10 +12,7 @@ real engine, then write an editable Word report and its PDF.
 from __future__ import annotations
 
 import functools
-import json
 import os
-import shutil
-import subprocess
 from pathlib import Path
 
 import openpyxl
@@ -286,86 +283,6 @@ def office_write_workbook(path: str, sheets: list[dict]) -> dict:
         used["engine"] = engine.recalculate(temporary)
 
     return {"sha256": write_atomically(target, write), "engine": used["engine"]}
-
-
-@app.tool()
-@_evidence
-def media_inspect(path: str) -> dict:
-    """Technical facts of an image (Pillow) or audio/video file (ffprobe): never its pixels."""
-    source = resolve(WORKSPACE, path)
-    if not source.is_file():
-        raise Refused("not_a_file")
-    try:
-        from PIL import Image
-
-        with Image.open(source) as image:
-            orientation = image.getexif().get(274, 1)
-            width, height = image.size
-            if orientation in (5, 6, 7, 8):
-                width, height = height, width
-            return {
-                "sha256": sha256(source),
-                "kind": "image",
-                "format": image.format,
-                "width": width,
-                "height": height,
-                "mode": image.mode,
-                "orientation": "landscape" if width > height else "portrait" if height > width else "square",
-            }
-    except (OSError, ValueError):
-        pass  # not an image: try it as media
-    probe = shutil.which("ffprobe")
-    if not probe:
-        raise Refused("no_media_probe")
-    run = subprocess.run(
-        [probe, "-v", "error", "-show_format", "-show_streams", "-of", "json", str(source)],
-        capture_output=True, timeout=60, text=True,
-    )
-    if run.returncode != 0:
-        raise Refused("unreadable_media")
-    facts = json.loads(run.stdout)
-    streams = [
-        {
-            "type": s.get("codec_type"),
-            "codec": s.get("codec_name"),
-            "width": s.get("width"),
-            "height": s.get("height"),
-            "fps": s.get("avg_frame_rate"),
-            "channels": s.get("channels"),
-        }
-        for s in facts.get("streams", [])[:8]
-    ]
-    return {
-        "sha256": sha256(source),
-        "kind": "media",
-        "container": facts.get("format", {}).get("format_name"),
-        "duration": float(facts.get("format", {}).get("duration", 0) or 0),
-        "streams": streams,
-    }
-
-
-@app.tool()
-@_evidence
-def media_trim(source: str, start: float, end: float, output: str) -> dict:
-    """Cut [start, end) seconds of a media file into a new file with ffmpeg; the source is only read."""
-    origin = resolve(WORKSPACE, source)
-    target = output_path(WORKSPACE, output)
-    executable = shutil.which("ffmpeg")
-    if not executable:
-        raise Refused("no_media_engine")
-    if end <= start or not origin.is_file():
-        raise Refused("invalid_range")
-
-    def cut(temporary: Path) -> None:
-        run = subprocess.run(
-            [executable, "-v", "error", "-y", "-ss", str(start), "-to", str(end), "-i", str(origin),
-             "-c:v", "libx264", "-c:a", "aac", "-movflags", "+faststart", "-f", "mp4", str(temporary)],
-            capture_output=True, timeout=600,
-        )
-        if run.returncode != 0:
-            raise Refused("media_engine_failed")
-
-    return {"sha256": write_atomically(target, cut), "engine": "ffmpeg"}
 
 
 if __name__ == "__main__":

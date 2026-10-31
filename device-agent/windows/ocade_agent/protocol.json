@@ -49,7 +49,7 @@
       }
     },
     "media.inspect": {
-      "role": "sys_core",
+      "role": "media_engine",
       "capability": "files",
       "risk": "read",
       "arguments": {
@@ -69,7 +69,7 @@
       }
     },
     "media.trim": {
-      "role": "sys_core",
+      "role": "media_engine",
       "capability": "files",
       "risk": "reversible_write",
       "arguments": {
@@ -100,6 +100,1090 @@
           "start",
           "end",
           "output"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "media.analyze": {
+      "role": "media_engine",
+      "capability": "files",
+      "risk": "read",
+      "seconds": 1800,
+      "arguments": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 260
+          },
+          "threshold": {
+            "description": "Scene-change sensitivity for splitting shots; lower finds more cuts",
+            "type": "number",
+            "minimum": 0.05,
+            "maximum": 0.9
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "media.render_timeline": {
+      "role": "media_engine",
+      "capability": "files",
+      "risk": "reversible_write",
+      "seconds": 3600,
+      "arguments": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "output": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 260,
+            "description": "The finished .mp4"
+          },
+          "duration": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 3600,
+            "description": "Exact length in seconds; shorter edits hold the last frame"
+          },
+          "width": {
+            "type": "integer",
+            "minimum": 320,
+            "maximum": 7680
+          },
+          "height": {
+            "type": "integer",
+            "minimum": 240,
+            "maximum": 4320
+          },
+          "fps": {
+            "type": "integer",
+            "minimum": 12,
+            "maximum": 60
+          },
+          "clips": {
+            "minItems": 1,
+            "maxItems": 120,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "source": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 260
+                },
+                "in": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 86400
+                },
+                "out": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 86400
+                },
+                "speed": {
+                  "description": "Playback speed; 0.5 is slow motion",
+                  "type": "number",
+                  "minimum": 0.25,
+                  "maximum": 4
+                },
+                "grade": {
+                  "type": "object",
+                  "properties": {
+                    "exposure": {
+                      "type": "number",
+                      "minimum": -3,
+                      "maximum": 3
+                    },
+                    "temperature": {
+                      "type": "integer",
+                      "minimum": 1000,
+                      "maximum": 40000
+                    },
+                    "contrast": {
+                      "type": "number",
+                      "minimum": 0.5,
+                      "maximum": 2
+                    },
+                    "saturation": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 3
+                    },
+                    "gamma": {
+                      "type": "number",
+                      "minimum": 0.3,
+                      "maximum": 3
+                    },
+                    "brightness": {
+                      "type": "number",
+                      "minimum": -0.5,
+                      "maximum": 0.5
+                    },
+                    "sharpen": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 2
+                    },
+                    "vignette": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 1
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                "motion": {
+                  "description": "A virtual camera move over the shot",
+                  "type": "object",
+                  "properties": {
+                    "zoomFrom": {
+                      "type": "number",
+                      "minimum": 1,
+                      "maximum": 2
+                    },
+                    "zoomTo": {
+                      "type": "number",
+                      "minimum": 1,
+                      "maximum": 2
+                    },
+                    "panX": {
+                      "type": "number",
+                      "minimum": -1,
+                      "maximum": 1
+                    },
+                    "panY": {
+                      "type": "number",
+                      "minimum": -1,
+                      "maximum": 1
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                "transition": {
+                  "description": "How this shot enters from the previous one",
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "enum": [
+                        "cut",
+                        "fade",
+                        "fadeblack",
+                        "fadewhite",
+                        "dissolve",
+                        "wipeleft",
+                        "wiperight",
+                        "slideleft",
+                        "slideright",
+                        "smoothleft",
+                        "smoothright",
+                        "smoothup",
+                        "smoothdown",
+                        "circleopen",
+                        "circleclose",
+                        "zoomin",
+                        "radial",
+                        "hlwind",
+                        "hrwind",
+                        "squeezeh",
+                        "squeezev",
+                        "distance",
+                        "pixelize",
+                        "hblur",
+                        "fadegrays"
+                      ]
+                    },
+                    "duration": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 3
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "duration"
+                  ],
+                  "additionalProperties": false
+                },
+                "audio": {
+                  "description": "Keep this shot's own sound",
+                  "type": "boolean"
+                },
+                "audioGain": {
+                  "type": "number",
+                  "minimum": -60,
+                  "maximum": 20
+                }
+              },
+              "required": [
+                "source",
+                "in",
+                "out"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "titles": {
+            "maxItems": 30,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "text": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 120
+                },
+                "start": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 86400
+                },
+                "end": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 86400
+                },
+                "size": {
+                  "type": "integer",
+                  "minimum": 12,
+                  "maximum": 300
+                },
+                "position": {
+                  "type": "string",
+                  "enum": [
+                    "top",
+                    "center",
+                    "lower_third",
+                    "bottom"
+                  ]
+                },
+                "font": {
+                  "description": "An installed font family name",
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9 ._-]{1,60}$"
+                },
+                "color": {
+                  "type": "string",
+                  "pattern": "^(white|black|#[0-9a-fA-F]{6})$"
+                },
+                "fadeIn": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 5
+                },
+                "fadeOut": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 5
+                },
+                "box": {
+                  "description": "Opacity of a dark box behind the text",
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                }
+              },
+              "required": [
+                "text",
+                "start",
+                "end"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "overlays": {
+            "description": "Still images (for example a rendered 3D scene) composited over the picture",
+            "maxItems": 10,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "image": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 260
+                },
+                "start": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 86400
+                },
+                "end": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 86400
+                },
+                "width": {
+                  "type": "integer",
+                  "minimum": 16,
+                  "maximum": 7680
+                },
+                "x": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "y": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "fadeIn": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 5
+                },
+                "fadeOut": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 5
+                },
+                "zoomTo": {
+                  "type": "number",
+                  "minimum": 1,
+                  "maximum": 2
+                }
+              },
+              "required": [
+                "image",
+                "start",
+                "end"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "audio": {
+            "maxItems": 40,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "source": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 260
+                },
+                "in": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 86400
+                },
+                "synth": {
+                  "description": "A generated sound: whoosh (filtered noise), impact (decaying sine), riser (sweep)",
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "noise",
+                        "sine",
+                        "sweep"
+                      ]
+                    },
+                    "color": {
+                      "type": "string",
+                      "enum": [
+                        "white",
+                        "pink",
+                        "brown"
+                      ]
+                    },
+                    "frequency": {
+                      "type": "number",
+                      "minimum": 20,
+                      "maximum": 20000
+                    },
+                    "toFrequency": {
+                      "type": "number",
+                      "minimum": 20,
+                      "maximum": 20000
+                    },
+                    "decay": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 50
+                    }
+                  },
+                  "required": [
+                    "kind"
+                  ],
+                  "additionalProperties": false
+                },
+                "start": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 86400
+                },
+                "duration": {
+                  "type": "number",
+                  "minimum": 0.05,
+                  "maximum": 3600
+                },
+                "gain": {
+                  "type": "number",
+                  "minimum": -60,
+                  "maximum": 20
+                },
+                "highpass": {
+                  "type": "number",
+                  "minimum": 20,
+                  "maximum": 20000
+                },
+                "lowpass": {
+                  "type": "number",
+                  "minimum": 20,
+                  "maximum": 20000
+                },
+                "fadeIn": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 30
+                },
+                "fadeOut": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 30
+                },
+                "role": {
+                  "description": "Music is ducked under everything else",
+                  "type": "string",
+                  "enum": [
+                    "music",
+                    "fx"
+                  ]
+                }
+              },
+              "required": [
+                "start",
+                "duration"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "clipAudioGain": {
+            "type": "number",
+            "minimum": -60,
+            "maximum": 20
+          },
+          "letterbox": {
+            "description": "Aspect ratio of black bars, e.g. 2.39",
+            "type": "number",
+            "minimum": 1,
+            "maximum": 3
+          },
+          "loudness": {
+            "description": "Integrated loudness target, LUFS",
+            "type": "number",
+            "minimum": -30,
+            "maximum": -8
+          },
+          "fadeIn": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 10
+          },
+          "fadeOut": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 10
+          }
+        },
+        "required": [
+          "output",
+          "duration",
+          "clips"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "scene.render": {
+      "role": "media_engine",
+      "capability": "files",
+      "risk": "reversible_write",
+      "seconds": 3600,
+      "arguments": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "scene": {
+            "type": "object",
+            "properties": {
+              "camera": {
+                "type": "object",
+                "properties": {
+                  "position": {
+                    "minItems": 3,
+                    "maxItems": 3,
+                    "type": "array",
+                    "items": {
+                      "type": "number",
+                      "minimum": -1000,
+                      "maximum": 1000
+                    }
+                  },
+                  "target": {
+                    "minItems": 3,
+                    "maxItems": 3,
+                    "type": "array",
+                    "items": {
+                      "type": "number",
+                      "minimum": -1000,
+                      "maximum": 1000
+                    }
+                  },
+                  "fov": {
+                    "type": "number",
+                    "minimum": 5,
+                    "maximum": 120,
+                    "description": "Vertical field of view, degrees"
+                  },
+                  "aperture": {
+                    "description": "Lens radius for depth of field; 0 is sharp",
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1
+                  },
+                  "focusDistance": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1000
+                  }
+                },
+                "required": [
+                  "position",
+                  "target",
+                  "fov"
+                ],
+                "additionalProperties": false
+              },
+              "environment": {
+                "type": "object",
+                "properties": {
+                  "sky": {
+                    "minItems": 2,
+                    "maxItems": 2,
+                    "type": "array",
+                    "items": {
+                      "minItems": 3,
+                      "maxItems": 3,
+                      "type": "array",
+                      "items": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 20
+                      }
+                    },
+                    "description": "[zenith colour, horizon colour]"
+                  },
+                  "ground": {
+                    "minItems": 3,
+                    "maxItems": 3,
+                    "type": "array",
+                    "items": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 1
+                    }
+                  },
+                  "floor": {
+                    "description": "An infinite floor at y = 0",
+                    "type": "object",
+                    "properties": {
+                      "color": {
+                        "minItems": 3,
+                        "maxItems": 3,
+                        "type": "array",
+                        "items": {
+                          "type": "number",
+                          "minimum": 0,
+                          "maximum": 1
+                        }
+                      },
+                      "roughness": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 1
+                      },
+                      "reflectance": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 1
+                      }
+                    },
+                    "required": [
+                      "color",
+                      "roughness",
+                      "reflectance"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "softboxes": {
+                    "description": "Rectangular studio light panels seen in reflections, by direction and angular size",
+                    "maxItems": 8,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "direction": {
+                          "minItems": 3,
+                          "maxItems": 3,
+                          "type": "array",
+                          "items": {
+                            "type": "number",
+                            "minimum": -1000,
+                            "maximum": 1000
+                          }
+                        },
+                        "width": {
+                          "type": "number",
+                          "minimum": 1,
+                          "maximum": 180
+                        },
+                        "height": {
+                          "type": "number",
+                          "minimum": 1,
+                          "maximum": 180
+                        },
+                        "intensity": {
+                          "type": "number",
+                          "minimum": 0,
+                          "maximum": 100
+                        },
+                        "color": {
+                          "minItems": 3,
+                          "maxItems": 3,
+                          "type": "array",
+                          "items": {
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 1
+                          }
+                        }
+                      },
+                      "required": [
+                        "direction",
+                        "width",
+                        "height",
+                        "intensity"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                },
+                "required": [
+                  "sky"
+                ],
+                "additionalProperties": false
+              },
+              "lights": {
+                "maxItems": 8,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "sun",
+                        "point"
+                      ]
+                    },
+                    "direction": {
+                      "minItems": 3,
+                      "maxItems": 3,
+                      "type": "array",
+                      "items": {
+                        "type": "number",
+                        "minimum": -1000,
+                        "maximum": 1000
+                      }
+                    },
+                    "position": {
+                      "minItems": 3,
+                      "maxItems": 3,
+                      "type": "array",
+                      "items": {
+                        "type": "number",
+                        "minimum": -1000,
+                        "maximum": 1000
+                      }
+                    },
+                    "color": {
+                      "minItems": 3,
+                      "maxItems": 3,
+                      "type": "array",
+                      "items": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 1
+                      }
+                    },
+                    "intensity": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 1000
+                    },
+                    "softness": {
+                      "description": "Shadow softness",
+                      "type": "number",
+                      "minimum": 0.001,
+                      "maximum": 1
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "color",
+                    "intensity"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "materials": {
+                "minItems": 1,
+                "maxItems": 16,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "pattern": "^[a-z0-9_]{1,40}$"
+                    },
+                    "color": {
+                      "minItems": 3,
+                      "maxItems": 3,
+                      "type": "array",
+                      "items": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 1
+                      }
+                    },
+                    "metallic": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 1
+                    },
+                    "roughness": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 1
+                    },
+                    "clearcoat": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 1
+                    },
+                    "emission": {
+                      "minItems": 3,
+                      "maxItems": 3,
+                      "type": "array",
+                      "items": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 1
+                      }
+                    },
+                    "emissionStrength": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 100
+                    },
+                    "pattern": {
+                      "type": "string",
+                      "enum": [
+                        "none",
+                        "carbon",
+                        "grille",
+                        "brushed"
+                      ]
+                    },
+                    "patternScale": {
+                      "type": "number",
+                      "minimum": 0.05,
+                      "maximum": 20
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "color"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "parts": {
+                "minItems": 1,
+                "maxItems": 24,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "pattern": "^[a-z0-9_]{1,40}$"
+                    },
+                    "shapes": {
+                      "minItems": 1,
+                      "maxItems": 48,
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "shape": {
+                            "type": "string",
+                            "enum": [
+                              "sphere",
+                              "box",
+                              "ellipsoid",
+                              "cylinder",
+                              "torus",
+                              "capsule",
+                              "halfspace"
+                            ],
+                            "description": "size: sphere [r]; box [half x,y,z]; ellipsoid [radii x,y,z]; cylinder [r, half height] along Y; torus [ring r, tube r] around Y; capsule [half length, r] along Y; halfspace [] keeps local y<0"
+                          },
+                          "size": {
+                            "default": [],
+                            "maxItems": 3,
+                            "type": "array",
+                            "items": {
+                              "type": "number",
+                              "minimum": 0,
+                              "maximum": 100
+                            }
+                          },
+                          "round": {
+                            "description": "Rounds edges by this radius",
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 10
+                          },
+                          "shell": {
+                            "description": "Hollow surface of this thickness",
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 10
+                          },
+                          "material": {
+                            "description": "On a subtraction: the material of the cut surface",
+                            "type": "string",
+                            "pattern": "^[a-z0-9_]{1,40}$"
+                          },
+                          "op": {
+                            "description": "How this shape combines with the shapes before it in the part",
+                            "type": "string",
+                            "enum": [
+                              "union",
+                              "smooth_union",
+                              "subtract",
+                              "smooth_subtract",
+                              "intersect"
+                            ]
+                          },
+                          "k": {
+                            "description": "Blend radius for smooth operations",
+                            "type": "number",
+                            "minimum": 0.0001,
+                            "maximum": 10
+                          },
+                          "position": {
+                            "minItems": 3,
+                            "maxItems": 3,
+                            "type": "array",
+                            "items": {
+                              "type": "number",
+                              "minimum": -1000,
+                              "maximum": 1000
+                            }
+                          },
+                          "rotation": {
+                            "minItems": 3,
+                            "maxItems": 3,
+                            "type": "array",
+                            "items": {
+                              "type": "number",
+                              "minimum": -1000,
+                              "maximum": 1000
+                            }
+                          },
+                          "mirror": {
+                            "description": "Mirror across these axes",
+                            "maxItems": 3,
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "enum": [
+                                "x",
+                                "y",
+                                "z"
+                              ]
+                            }
+                          },
+                          "repeat": {
+                            "description": "Repeat around this local axis, after placing; then apply offset",
+                            "type": "object",
+                            "properties": {
+                              "axis": {
+                                "type": "string",
+                                "enum": [
+                                  "x",
+                                  "y",
+                                  "z"
+                                ]
+                              },
+                              "count": {
+                                "type": "integer",
+                                "minimum": 2,
+                                "maximum": 64
+                              }
+                            },
+                            "required": [
+                              "axis",
+                              "count"
+                            ],
+                            "additionalProperties": false
+                          },
+                          "offset": {
+                            "minItems": 3,
+                            "maxItems": 3,
+                            "type": "array",
+                            "items": {
+                              "type": "number",
+                              "minimum": -1000,
+                              "maximum": 1000
+                            }
+                          }
+                        },
+                        "required": [
+                          "shape"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "position": {
+                      "minItems": 3,
+                      "maxItems": 3,
+                      "type": "array",
+                      "items": {
+                        "type": "number",
+                        "minimum": -1000,
+                        "maximum": 1000
+                      }
+                    },
+                    "rotation": {
+                      "minItems": 3,
+                      "maxItems": 3,
+                      "type": "array",
+                      "items": {
+                        "type": "number",
+                        "minimum": -1000,
+                        "maximum": 1000
+                      }
+                    },
+                    "mirror": {
+                      "maxItems": 3,
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "x",
+                          "y",
+                          "z"
+                        ]
+                      }
+                    },
+                    "instances": {
+                      "description": "Copies of the whole part at these offsets",
+                      "maxItems": 8,
+                      "type": "array",
+                      "items": {
+                        "minItems": 3,
+                        "maxItems": 3,
+                        "type": "array",
+                        "items": {
+                          "type": "number",
+                          "minimum": -1000,
+                          "maximum": 1000
+                        }
+                      }
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "shapes"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "render": {
+                "type": "object",
+                "properties": {
+                  "width": {
+                    "type": "integer",
+                    "minimum": 16,
+                    "maximum": 7680
+                  },
+                  "height": {
+                    "type": "integer",
+                    "minimum": 16,
+                    "maximum": 4320
+                  },
+                  "samples": {
+                    "description": "Samples per pixel; more is smoother and slower",
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 64
+                  },
+                  "exposure": {
+                    "type": "number",
+                    "minimum": 0.05,
+                    "maximum": 10
+                  }
+                },
+                "required": [
+                  "width",
+                  "height"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "camera",
+              "environment",
+              "lights",
+              "materials",
+              "parts",
+              "render"
+            ],
+            "additionalProperties": false
+          },
+          "output": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 260,
+            "description": "The rendered still, .png"
+          },
+          "project": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 260,
+            "description": "Where to save the editable scene file, e.g. .ocade-scene.json"
+          }
+        },
+        "required": [
+          "scene",
+          "output",
+          "project"
         ],
         "additionalProperties": false
       }
@@ -1288,6 +2372,7 @@
                   "maxLength": 200
                 },
                 "kind": {
+                  "description": "params — file_exists {path}; file_contains {path,text}; workbook_cell_equals {path,sheet,cell,value}; web_text_contains {url,text}; window_exists {exe,text?}; media_duration {path,value}; media_quality {path,value,width,height}: playable H.264/AAC stereo of exactly value seconds, at least width x height, broadcast loudness, no long black or silent gap; image_size {path,width,height}; scene_render {path}: a .png rendered from a valid saved 3D scene project",
                   "type": "string",
                   "enum": [
                     "file_exists",
@@ -1295,7 +2380,10 @@
                     "workbook_cell_equals",
                     "web_text_contains",
                     "window_exists",
-                    "media_duration"
+                    "media_duration",
+                    "media_quality",
+                    "image_size",
+                    "scene_render"
                   ]
                 },
                 "params": {
@@ -1338,6 +2426,16 @@
                     "exe": {
                       "type": "string",
                       "pattern": "^[A-Za-z0-9 ._()+-]{1,80}\\.exe$"
+                    },
+                    "width": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 16384
+                    },
+                    "height": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 16384
                     }
                   },
                   "additionalProperties": false

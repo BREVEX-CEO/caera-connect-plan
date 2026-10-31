@@ -1,5 +1,5 @@
 /** The rail's Conversations, and JARVIS's place in Settings. */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Trash2, X } from "lucide-react";
 import { deleteConversation, listConversations } from "@/lib/ocade.functions";
@@ -351,6 +351,38 @@ const STATUS_WORDS: Record<string, string> = {
   completed: "Done and checked",
 };
 
+function duration(ms: number | null) {
+  if (ms === null) return "";
+  if (ms < 10_000) return `${(ms / 1000).toFixed(1)} s`;
+  const seconds = Math.round(ms / 1000);
+  return seconds < 60 ? `${seconds} s` : `${Math.floor(seconds / 60)} min ${seconds % 60} s`;
+}
+
+type Timing = Awaited<ReturnType<typeof getJarvisTask>>["timing"];
+
+/** Elapsed time from the server's start; ticks locally only while the task is open. */
+function Elapsed({ timing, live }: { timing: Timing; live: boolean }) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (!live) return;
+    const tick = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(tick);
+  }, [live]);
+  const total = live ? Math.max(0, now - Date.parse(timing.acceptedAt)) : timing.totalElapsedMs;
+  const parts = [duration(total)];
+  if (!live && timing.activeExecutionMs !== null)
+    parts.push(`active ${duration(timing.activeExecutionMs)}`);
+  if (timing.userWaitMs > 0) parts.push(`waiting on you ${duration(timing.userWaitMs)}`);
+  return (
+    <span
+      className="shrink-0 text-xs tabular-nums text-muted-foreground"
+      title="Time since you asked"
+    >
+      {parts.join(" · ")}
+    </span>
+  );
+}
+
 /** One task: what JARVIS is doing, what it proved, and the person's controls. */
 export function TaskPanel({
   task,
@@ -371,6 +403,7 @@ export function TaskPanel({
       <div className="flex items-center gap-2">
         <span className="font-medium">{STATUS_WORDS[task.status] ?? task.status}</span>
         <span className="min-w-0 flex-1 truncate text-muted-foreground">{task.title}</span>
+        <Elapsed timing={task.timing} live={open} />
         {task.status === "running" ? (
           <button
             type="button"
@@ -407,6 +440,9 @@ export function TaskPanel({
               {step.status.replace("_", " ")}
             </span>
             <span className="min-w-0 flex-1 truncate">{step.summary}</span>
+            <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
+              {duration(step.durationMs)}
+            </span>
             {step.needsConfirmation ? (
               <button
                 type="button"

@@ -17,6 +17,28 @@ import sys
 from pathlib import Path
 
 
+def engines() -> list[str]:
+    """Which shared engines this computer can run now: operations that need a missing one are
+    never offered to the planner, so a task cannot fail halfway for a missing program."""
+    import shutil
+
+    from . import engine
+
+    found = []
+    if shutil.which("ffmpeg") and shutil.which("ffprobe"):
+        found.append("ffmpeg")
+    browsers = Path(os.environ.get("PLAYWRIGHT_BROWSERS_PATH")
+                    or (Path(os.environ.get("LOCALAPPDATA", "")) if sys.platform == "win32" else Path.home() / ".cache")
+                    / "ms-playwright")
+    edge = Path(os.environ.get("PROGRAMFILES(X86)", r"C:\Program Files (x86)")) / "Microsoft/Edge/Application/msedge.exe"
+    if (os.environ.get("OCADE_BROWSER_EXECUTABLE") or any(browsers.glob("chromium*"))
+            or (sys.platform == "win32" and edge.exists())):
+        found.append("browser")
+    if engine.office_available():
+        found.append("office")
+    return found
+
+
 def installed_apps(limit: int = 300) -> list[dict]:
     """[{name, exe}] for apps a person can launch, de-duplicated by executable."""
     if sys.platform != "win32":

@@ -1,9 +1,12 @@
-"""IMG-001 / VID-001 and native video trimming, through the real gateway and workers.
+"""IMG-001 / VID-001, native trimming, timeline editing and 3D scene rendering,
+through the real gateway and workers, each checked by the separate verifier.
 
 Image *understanding* (describing content, reading text) needs a vision model and
 is not covered here: only technical facts are. Web video editors are not covered.
 """
 
+import json
+import os
 import shutil
 import subprocess
 import tempfile
@@ -14,7 +17,8 @@ import anyio
 from PIL import Image
 
 from ocade_agent.gateway import Gateway
-from tests.test_web import intent
+from tests import web_fixture
+from tests.test_web import BROWSER, intent
 
 HAS_FFMPEG = bool(shutil.which("ffmpeg") and shutil.which("ffprobe"))
 
@@ -67,6 +71,91 @@ class Media(unittest.TestCase):
         self.assertEqual(trim["status"], "observed", trim)
         self.assertEqual(verify["evidence"]["predicates"], {"trimmed_length": True, "wrong_length": False})
         self.assertEqual((self.root / "clip.mp4").read_bytes(), original)
+
+    @unittest.skipUnless(HAS_FFMPEG, "needs ffmpeg and ffprobe")
+    def test_timeline_edit_is_exact_and_independently_measured(self):
+        for name, pattern, tone in (("a.mp4", "testsrc2", "sine=frequency=110:duration=8"),
+                                    ("b.mp4", "smptebars", "anoisesrc=d=8:c=brown:a=0.4")):
+            subprocess.run(["ffmpeg", "-v", "error", "-f", "lavfi", "-i", f"{pattern}=duration=8:size=640x360:rate=25",
+                            "-f", "lavfi", "-i", tone, "-shortest", "-c:v", "libx264", "-c:a", "aac",
+                            str(self.root / name)], check=True)
+        originals = {n: (self.root / n).read_bytes() for n in ("a.mp4", "b.mp4")}
+        edit = {
+            "output": "OCADE output/edit.mp4", "duration": 10, "width": 640, "height": 360, "fps": 24,
+            "clips": [
+                {"source": "a.mp4", "in": 0.5, "out": 6, "grade": {"contrast": 1.1, "saturation": 1.2, "vignette": 0.4},
+                 "motion": {"zoomFrom": 1.0, "zoomTo": 1.1, "panX": 0.3}},
+                {"source": "b.mp4", "in": 1, "out": 4, "speed": 0.5, "transition": {"type": "smoothleft", "duration": 0.6}},
+            ],
+            "titles": [{"text": "Test: 100% \\ it's 'quoted'", "start": 1, "end": 4, "size": 28, "position": "lower_third"}],
+            "audio": [
+                {"synth": {"kind": "noise", "color": "pink"}, "start": 4.6, "duration": 1.2, "highpass": 400,
+                 "fadeIn": 0.6, "fadeOut": 0.5, "gain": -6},
+                {"synth": {"kind": "sine", "frequency": 55, "decay": 6}, "start": 5.4, "duration": 1.5},
+                {"synth": {"kind": "sine", "frequency": 220}, "start": 0, "duration": 10, "role": "music", "gain": -12},
+            ],
+            "letterbox": 2.39, "fadeIn": 0.5, "fadeOut": 1.0,
+        }
+        analyze, render, bad_range, bad_place, verify = self.run_all([
+            ("media.analyze", {"path": "a.mp4"}),
+            ("media.render_timeline", edit),
+            ("media.render_timeline", {**edit, "output": "OCADE output/x.mp4", "clips": [{"source": "a.mp4", "in": 0, "out": 30}]}),
+            ("media.render_timeline", {**edit, "output": "elsewhere.mp4"}),
+            ("verify.checks", {"checks": [
+                {"id": "deliverable", "description": "10 s, 640x360", "kind": "media_quality",
+                 "params": {"path": "OCADE output/edit.mp4", "value": 10, "width": 640, "height": 360}},
+                {"id": "wrong_length", "description": "12 s", "kind": "media_quality",
+                 "params": {"path": "OCADE output/edit.mp4", "value": 12, "width": 640, "height": 360}},
+                {"id": "too_small", "description": "1080p", "kind": "media_quality",
+                 "params": {"path": "OCADE output/edit.mp4", "value": 10, "width": 1920, "height": 1080}},
+            ]}),
+        ])
+        shots = analyze["evidence"]["shots"]
+        self.assertTrue(analyze["evidence"]["hasAudio"] and shots and shots[0]["soundDb"] is not None, analyze)
+        self.assertEqual(render["status"], "observed", render)
+        self.assertEqual(render["evidence"]["frames"], 240)
+        self.assertEqual((bad_range["status"], bad_range["errorCode"]), ("not_applied", "clip_out_of_range"))
+        self.assertEqual((bad_place["status"], bad_place["errorCode"]), ("not_applied", "write_outside_output"))
+        self.assertEqual(verify["evidence"]["predicates"], {"deliverable": True, "wrong_length": False, "too_small": False})
+        self.assertEqual({n: (self.root / n).read_bytes() for n in originals}, originals)
+
+    @unittest.skipUnless(BROWSER, "needs a Chromium executable")
+    def test_scene_render_is_bound_to_its_saved_project(self):
+        os.environ["OCADE_BROWSER_EXECUTABLE"] = web_fixture.browser_wrapper(BROWSER, "none")
+        scene = {
+            "camera": {"position": [3, 1.5, 4], "target": [0, 0.4, 0], "fov": 40},
+            "environment": {"sky": [[0.1, 0.1, 0.12], [0.4, 0.4, 0.45]],
+                            "floor": {"color": [0.1, 0.1, 0.1], "roughness": 0.4, "reflectance": 0.1}},
+            "lights": [{"kind": "sun", "direction": [0.3, 1, 0.2], "color": [1, 1, 1], "intensity": 3}],
+            "materials": [{"id": "paint", "color": [0.7, 0.05, 0.05], "clearcoat": 1, "roughness": 0.3}],
+            "parts": [{"id": "body", "shapes": [
+                {"shape": "box", "size": [1, 0.3, 0.5], "round": 0.1, "material": "paint", "position": [0, 0.4, 0]},
+                {"shape": "sphere", "size": [0.3], "op": "subtract", "position": [1, 0.6, 0]}]}],
+            "render": {"width": 96, "height": 54, "samples": 1},
+        }
+        render, broken, verify = self.run_all([
+            ("scene.render", {"scene": scene, "output": "OCADE output/still.png", "project": "OCADE output/scene.json"}),
+            ("scene.render", {"scene": {**scene, "render": {"samples": 1}}, "output": "OCADE output/y.png",
+                              "project": "OCADE output/y.json"}),
+            ("verify.checks", {"checks": [
+                {"id": "bound", "description": "from its scene", "kind": "scene_render", "params": {"path": "OCADE output/still.png"}},
+                {"id": "size", "description": "96x54", "kind": "image_size",
+                 "params": {"path": "OCADE output/still.png", "width": 96, "height": 54}},
+            ]}),
+        ])
+        self.assertEqual(render["status"], "observed", render)
+        self.assertEqual((render["evidence"]["shapes"], render["evidence"]["materials"]), (2, 1))
+        self.assertEqual((broken["status"], broken["errorCode"]), ("not_applied", "invalid_intent"))
+        self.assertEqual(verify["evidence"]["predicates"], {"bound": True, "size": True})
+        with Image.open(self.root / "OCADE output/still.png") as still:
+            self.assertGreater(len(still.convert("L").getcolors(256)), 20)  # shaded, not a flat fill
+        # The project is the editable scene; edited after rendering, the still no longer proves it.
+        project = self.root / "OCADE output/scene.json"
+        self.assertEqual(json.loads(project.read_text())["parts"][0]["id"], "body")
+        project.write_text(project.read_text().replace("0.7", "0.2"))
+        [again] = self.run_all([("verify.checks", {"checks": [
+            {"id": "bound", "description": "from its scene", "kind": "scene_render", "params": {"path": "OCADE output/still.png"}}]})])
+        self.assertEqual(again["evidence"]["predicates"], {"bound": False})
 
 
 if __name__ == "__main__":

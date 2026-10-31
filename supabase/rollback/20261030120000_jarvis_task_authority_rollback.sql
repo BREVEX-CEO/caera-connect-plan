@@ -2,9 +2,10 @@
 -- earlier direct INSERT/UPDATE grant on jarvis_tasks. Existing tasks and activity stay.
 BEGIN;
 
+DROP FUNCTION IF EXISTS public.jarvis_note_model(uuid, integer);
 DROP FUNCTION IF EXISTS public.jarvis_revoke_device(uuid, uuid);
 DROP FUNCTION IF EXISTS public.jarvis_task_state(uuid);
-DROP FUNCTION IF EXISTS public.jarvis_device_inventory(uuid, jsonb, jsonb);
+DROP FUNCTION IF EXISTS public.jarvis_device_inventory(uuid, jsonb, jsonb, jsonb);
 DROP FUNCTION IF EXISTS public.jarvis_task_wait(uuid, uuid, text);
 DROP FUNCTION IF EXISTS public.jarvis_resume_task(uuid, uuid);
 DROP FUNCTION IF EXISTS public.jarvis_take_over(uuid, uuid);
@@ -26,8 +27,11 @@ DROP FUNCTION IF EXISTS public.jarvis_action_allowed(uuid, uuid, jsonb);
 DROP FUNCTION IF EXISTS public.jarvis_allowed(uuid, uuid, text);
 DROP FUNCTION IF EXISTS public.jarvis_paused();
 DROP INDEX IF EXISTS public.jarvis_activity_one_action_per_key;
+ALTER TABLE public.jarvis_tasks DROP COLUMN IF EXISTS paused_at, DROP COLUMN IF EXISTS user_wait_ms,
+  DROP COLUMN IF EXISTS model_calls, DROP COLUMN IF EXISTS model_ms;
+ALTER TABLE public.jarvis_activity DROP COLUMN IF EXISTS confirmed_at;
 GRANT INSERT, UPDATE ON public.jarvis_tasks TO authenticated;
-UPDATE public.jarvis_devices SET capabilities = capabilities - 'mcp';
+UPDATE public.jarvis_devices SET capabilities = capabilities - 'mcp' - 'engines';
 DELETE FROM public.jarvis_permissions WHERE capability = 'mcp' OR capability LIKE 'mcp:%';
 ALTER TABLE public.jarvis_permissions DROP CONSTRAINT IF EXISTS jarvis_permissions_capability_check;
 ALTER TABLE public.jarvis_permissions ADD CONSTRAINT jarvis_permissions_capability_check CHECK (

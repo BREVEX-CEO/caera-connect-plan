@@ -188,6 +188,11 @@ class Refusals(unittest.TestCase):
         self.assertLess((datetime.now() - started).total_seconds(), 20)
         self.assertEqual((result["status"], result["errorCode"]), ("not_applied", "timeout"))
 
+    def test_a_long_call_within_its_bound_is_not_reported_lost(self):
+        result = self.one(intent("office.inspect_workbook", {"path": "book.xlsx"}), self.fake("slow"))
+        self.assertEqual(result["status"], "observed", result)
+        self.assertGreater(result["evidence"]["durationMs"], 33_000)
+
     def test_stdout_noise_does_not_become_a_result(self):
         result = self.one(intent("fs.list", {}), self.fake("stdout_noise"))
         self.assertIn(result["status"], ("observed", "not_applied"))

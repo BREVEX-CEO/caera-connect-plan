@@ -107,6 +107,28 @@ test("external tools reach the planner only when granted, and only a few", async
   assert.equal(routed[0].tool.name, "tool7");
 });
 
+test("operations needing an engine the computer lacks are never offered", async () => {
+  const { offeredOperations } = await import("../../src/lib/jarvis/planner.server.ts");
+  const offered = offeredOperations(["files", "browser"], ["ffmpeg"]);
+  assert.ok(offered.includes("media.render_timeline") && offered.includes("fs.list"));
+  assert.ok(!offered.includes("scene.render") && !offered.includes("web.open"));
+  assert.ok(
+    !offered.includes("office.write_report") && !offered.some((o) => o.startsWith("verify.")),
+  );
+  assert.ok(offeredOperations(["files", "browser"], null).includes("scene.render"));
+  assert.ok(!offeredOperations(["files"], null).includes("web.open"));
+});
+
+test("every operation schema stays inside the provider's schema subset", async () => {
+  const { providerSchema } = await import("../../src/lib/jarvis/planner.server.ts");
+  const { OPERATIONS } = await import("../../src/lib/jarvis/contracts.ts");
+  const { z } = await import("zod");
+  for (const [name, spec] of Object.entries(OPERATIONS)) {
+    const text = JSON.stringify(providerSchema(z.toJSONSchema(spec.arguments, { io: "input" })));
+    assert.ok(!/"\$ref"|"\$defs"|"prefixItems"|"additionalProperties"/.test(text), name);
+  }
+});
+
 test("browser targets are public https sites by name", () => {
   for (const url of [
     "https://127.0.0.1/",

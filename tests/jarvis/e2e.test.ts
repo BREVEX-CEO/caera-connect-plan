@@ -172,7 +172,8 @@ before(async () => {
     const chunks: Buffer[] = [];
     for await (const part of req) chunks.push(part as Buffer);
     const body = JSON.parse(Buffer.concat(chunks).toString());
-    const prompt: string = body.messages.find((part: { role: string }) => part.role === "user")?.content ?? "";
+    const prompt: string =
+      body.messages.find((part: { role: string }) => part.role === "user")?.content ?? "";
     const offered = new Set((body.tools as { name: string }[]).map((t) => t.name));
     const outputs = fixtureOutputs(prompt);
     let call: { name: string; args: Record<string, unknown> };
@@ -181,9 +182,24 @@ before(async () => {
         name: "set_goal",
         args: {
           checks: [
-            { id: "reconciled", description: "Result workbook exists", kind: "file_exists", params: { path: outputs.workbook } },
-            { id: "report_docx", description: "Editable report exists", kind: "file_exists", params: { path: outputs.docx } },
-            { id: "report_pdf", description: "Rendered report exists", kind: "file_exists", params: { path: outputs.pdf } },
+            {
+              id: "reconciled",
+              description: "Result workbook exists",
+              kind: "file_exists",
+              params: { path: outputs.workbook },
+            },
+            {
+              id: "report_docx",
+              description: "Editable report exists",
+              kind: "file_exists",
+              params: { path: outputs.docx },
+            },
+            {
+              id: "report_pdf",
+              description: "Rendered report exists",
+              kind: "file_exists",
+              params: { path: outputs.pdf },
+            },
           ],
         },
       };
@@ -202,14 +218,22 @@ before(async () => {
         },
       };
     } else if (!prompt.includes('"operation":"office.write_report"')) {
-      call = { name: "office_write_report", args: {
-        workbook: outputs.workbook, docx: outputs.docx, pdf: outputs.pdf, title: "Financial reconciliation",
-      } };
+      call = {
+        name: "office_write_report",
+        args: {
+          workbook: outputs.workbook,
+          docx: outputs.docx,
+          pdf: outputs.pdf,
+          title: "Financial reconciliation",
+        },
+      };
     } else {
       call = { name: "finish", args: {} };
     }
     res.writeHead(200, { "content-type": "text/event-stream" });
-    res.end(`data: ${JSON.stringify({ type: "tool_call", call: { name: call.name, arguments: call.args } })}\r\n\r\n`);
+    res.end(
+      `data: ${JSON.stringify({ type: "tool_call", call: { name: call.name, arguments: call.args } })}\r\n\r\n`,
+    );
   });
   await new Promise<void>((resolve) => scriptedService.listen(0, "127.0.0.1", resolve));
   const location = scriptedService.address();
@@ -217,7 +241,13 @@ before(async () => {
     `http://127.0.0.1:${typeof location === "object" && location ? location.port : 0}`;
   plannerAccess.serviceKey = () => "scripted-test-only";
   plannerAccess.acquirePermit = async (_userId, key) => ({
-    permit: { id: "test-only", generationId: key, idempotencyKey: key, surface: "jarvis", source: "server" },
+    permit: {
+      id: "test-only",
+      generationId: key,
+      idempotencyKey: key,
+      surface: "jarvis",
+      source: "server",
+    },
     release: async () => {},
   });
 });
@@ -265,11 +295,11 @@ test(
         deviceId,
         objective: "Reconcile Q3 ledger.xlsx",
       }),
-      /not a JARVIS conversation/,
+      // B holds no grant on A's computer, so it is refused before any model turn.
+      /file access/,
     );
     // Any unfamiliar objective uses the planner; the server still controls
     // permissions. This fixture deliberately tests only its finance task.
-
 
     const original = sha(join(workspace, "Q3 ledger.xlsx"));
     const { taskId } = await startTask(admin, userA, {
@@ -620,6 +650,20 @@ test(
       );
       assert.equal(permits.succeeded, 4, JSON.stringify(permits)); // goal + 3 steps
       assert.ok(!permits.reserved, JSON.stringify(permits));
+
+      // Elapsed time (M3): server timestamps, device-measured steps, the outage as time waiting on the person.
+      const timing = view.timing;
+      assert.equal(timing.modelCalls, 5, JSON.stringify(timing)); // 4 charged turns + the refused outage turn
+      assert.ok(timing.modelMs > 0, JSON.stringify(timing));
+      assert.ok(timing.userWaitMs > 0, JSON.stringify(timing));
+      assert.ok(
+        view.steps.every((s) => typeof s.durationMs === "number"),
+        JSON.stringify(view.steps),
+      );
+      assert.ok(timing.activeExecutionMs !== null && timing.activeExecutionMs > 0);
+      assert.ok(timing.totalElapsedMs! >= timing.activeExecutionMs + timing.userWaitMs - 50);
+      assert.equal(timing.verifiedAt, timing.finishedAt);
+      assert.ok(Date.parse(timing.finishedAt!) > Date.parse(timing.acceptedAt));
     } finally {
       Object.assign(plannerAccess, saved);
       service.close();

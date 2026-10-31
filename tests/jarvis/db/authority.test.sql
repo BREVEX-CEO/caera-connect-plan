@@ -357,7 +357,7 @@ BEGIN
   PERFORM public.jarvis_stop_task(b, t.task_id);
   PERFORM pg_temp.check((SELECT count(*) FROM public.ocade_messages WHERE conversation_id = 'bbbbbbbb-1111-0000-0000-000000000001') = 1, 'STOP answer written once');
 
-  PERFORM public.jarvis_device_inventory(dev_b, '[{"name": "Notepad", "exe": "notepad.exe"}]', '[{"id": "echo"}]');
+  PERFORM public.jarvis_device_inventory(dev_b, '[{"name": "Notepad", "exe": "notepad.exe"}]', '[{"id": "echo"}]', '["ffmpeg"]');
   PERFORM pg_temp.check((SELECT installed_apps -> 0 ->> 'exe' = 'notepad.exe' AND capabilities -> 'mcp' -> 0 ->> 'id' = 'echo'
                            FROM public.jarvis_devices WHERE id = dev_b), 'inventory recorded');
 END $$;

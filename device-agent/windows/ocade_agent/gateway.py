@@ -36,6 +36,7 @@ WORKERS = {
     "verifier": "ocade_agent.verify_worker",
     "ui_bridge": "ocade_agent.windows_worker",
     "web_automation": "ocade_agent.web_worker",
+    "media_engine": "ocade_agent.media_worker",
 }
 MAX_CALL_SECONDS = 300
 # Network and browser settings the device owner chose; never account credentials or tokens.
@@ -220,7 +221,7 @@ class Gateway:
             # Per-action timing is factual evidence, not a full task timer.
             facts = dict(evidence or {})
             facts["durationMs"] = round(max(0.0, (time.monotonic() - started) * 1000), 2)
-            return timed(status, maybe_changed, facts, error)
+            return receipt(status, maybe_changed, facts, error)
 
         if epoch != self.epoch:
             return timed("not_applied", False, error="stopped")
@@ -257,10 +258,13 @@ class Gateway:
             return timed("not_applied", False, error="worker_unavailable")
         if epoch != self.epoch:  # STOP during worker start-up
             return timed("not_applied", False, error="stopped")
-        limit = self.external[key[4:]].get("timeoutSeconds", 60) if key.startswith("mcp:") else MAX_CALL_SECONDS
+        limit = (self.external[key[4:]].get("timeoutSeconds", 60) if key.startswith("mcp:")
+                 else spec.get("seconds", MAX_CALL_SECONDS))
         try:
-            with anyio.fail_after(min(remaining, limit)):
-                result = await session.call_tool(tool, arguments)
+            bound = min(remaining, limit)
+            with anyio.fail_after(bound):
+                # The session's own 30 s request timeout is for start-up; a call gets its operation's bound.
+                result = await session.call_tool(tool, arguments, read_timeout_seconds=bound + 5)
         except anyio.get_cancelled_exc_class():
             await self._discard(key)
             raise

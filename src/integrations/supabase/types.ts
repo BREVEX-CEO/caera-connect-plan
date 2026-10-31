@@ -205,6 +205,7 @@ export type Database = {
           action: Json | null
           completed_at: string | null
           confirmed: boolean
+          confirmed_at: string | null
           controller: string | null
           created_at: string
           device_id: string | null
@@ -219,6 +220,7 @@ export type Database = {
           action?: Json | null
           completed_at?: string | null
           confirmed?: boolean
+          confirmed_at?: string | null
           controller?: string | null
           created_at?: string
           device_id?: string | null
@@ -233,6 +235,7 @@ export type Database = {
           action?: Json | null
           completed_at?: string | null
           confirmed?: boolean
+          confirmed_at?: string | null
           controller?: string | null
           created_at?: string
           device_id?: string | null
@@ -438,10 +441,10 @@ export type Database = {
       }
       jarvis_tasks: {
         Row: {
-          checkpoint: Json | null
-          controller: string | null
           blocker: string | null
           browser_mode: string
+          checkpoint: Json | null
+          controller: string | null
           conversation_id: string
           created_at: string
           current_step: number
@@ -450,7 +453,10 @@ export type Database = {
           id: string
           live_frame: string | null
           live_frame_at: string | null
+          model_calls: number
+          model_ms: number
           outcome: Json | null
+          paused_at: string | null
           plan: Json
           result: string | null
           schedule_occurrence: string | null
@@ -458,13 +464,14 @@ export type Database = {
           title: string
           updated_at: string
           user_id: string
+          user_wait_ms: number
           verified_actions: number | null
         }
         Insert: {
-          checkpoint?: Json | null
-          controller?: string | null
           blocker?: string | null
           browser_mode?: string
+          checkpoint?: Json | null
+          controller?: string | null
           conversation_id: string
           created_at?: string
           current_step?: number
@@ -473,7 +480,10 @@ export type Database = {
           id?: string
           live_frame?: string | null
           live_frame_at?: string | null
+          model_calls?: number
+          model_ms?: number
           outcome?: Json | null
+          paused_at?: string | null
           plan?: Json
           result?: string | null
           schedule_occurrence?: string | null
@@ -481,13 +491,14 @@ export type Database = {
           title: string
           updated_at?: string
           user_id: string
+          user_wait_ms?: number
           verified_actions?: number | null
         }
         Update: {
-          checkpoint?: Json | null
-          controller?: string | null
           blocker?: string | null
           browser_mode?: string
+          checkpoint?: Json | null
+          controller?: string | null
           conversation_id?: string
           created_at?: string
           current_step?: number
@@ -496,7 +507,10 @@ export type Database = {
           id?: string
           live_frame?: string | null
           live_frame_at?: string | null
+          model_calls?: number
+          model_ms?: number
           outcome?: Json | null
+          paused_at?: string | null
           plan?: Json
           result?: string | null
           schedule_occurrence?: string | null
@@ -504,6 +518,7 @@ export type Database = {
           title?: string
           updated_at?: string
           user_id?: string
+          user_wait_ms?: number
           verified_actions?: number | null
         }
         Relationships: [
@@ -1818,7 +1833,7 @@ export type Database = {
         Returns: string
       }
       jarvis_device_inventory: {
-        Args: { p_apps: Json; p_device: string; p_mcp: Json }
+        Args: { p_apps: Json; p_device: string; p_engines: Json; p_mcp: Json }
         Returns: undefined
       }
       jarvis_allowed: {
@@ -1858,6 +1873,10 @@ export type Database = {
           device_id: string
           expires_at: string
         }[]
+      }
+      jarvis_note_model: {
+        Args: { p_ms: number; p_task: string }
+        Returns: undefined
       }
       jarvis_open_task: {
         Args: {

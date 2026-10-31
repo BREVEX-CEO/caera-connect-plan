@@ -30,6 +30,7 @@ const C = {
   verify: "device-agent/windows/ocade_agent/verify_worker.py",
   windows: "device-agent/windows/ocade_agent/windows_worker.py + discovery.py",
   web: "device-agent/windows/ocade_agent/web_worker.py",
+  media: "device-agent/windows/ocade_agent/media_worker.py + scene_gl.py",
   agent: "device-agent/windows/ocade_agent/agent.py + device.py + journal.py",
   packaging: "device-agent/windows/packaging/",
 };
@@ -43,7 +44,7 @@ const T = {
   catalog: "device-agent/windows/tests/test_catalog.py",
   fleet: "device-agent/windows/tests/mcp_fleet.py (measurement)",
   web: "device-agent/windows/tests/test_web.py",
-  media: "device-agent/windows/tests/test_media.py",
+  media: "device-agent/windows/tests/test_media.py + tests/qualify_media.py (M1/M2 runs)",
   ui: "evidence UI render (signed-out)",
 };
 
@@ -102,11 +103,11 @@ const SECTIONS = {
   11: [["migration", "agent", "gateway"], ["db", "agent", "e2e"], "PASS", "L2", ""],
   12: [["verify", "supervisor"], ["gateway", "e2e", "media"], "PASS", "L3", ""],
   13: [
-    ["supervisor", "planner", "office", "web"],
+    ["supervisor", "planner", "office", "web", "media"],
     ["e2e", "web", "media"],
     "PARTIAL",
     "L3",
-    "chess/CAD not implemented; video/photo web editors not approved; Windows apps blocked",
+    "chess/CAD not implemented; 3D scene + video timeline engines pass locally, but no live Gemini-planned media run (planner BLOCKED); Windows apps blocked",
   ],
   14: [["ui"], ["ui"], "PARTIAL", "L3", "signed-in UI needs hosted Supabase auth"],
   15: [

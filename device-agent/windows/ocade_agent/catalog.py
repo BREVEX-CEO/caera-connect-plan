@@ -77,7 +77,7 @@ def _file_sha256(path: Path) -> str | None:
 
 
 def bundled() -> list[dict]:
-    """The four bundled roles, always trusted and installed with the companion."""
+    """The bundled roles, always trusted and installed with the companion."""
     roles: dict[str, list] = {}
     for name, spec in PROTOCOL["operations"].items():
         roles.setdefault(spec["role"], []).append({"name": name, "risk": spec["risk"]})

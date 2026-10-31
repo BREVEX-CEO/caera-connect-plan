@@ -36,6 +36,22 @@ def _office_com(program: str):
         return None
 
 
+def office_available() -> bool:
+    """A spreadsheet/document engine exists: Excel and Word by COM registration, or LibreOffice."""
+    if _soffice():
+        return True
+    if sys.platform != "win32":
+        return False
+    import winreg  # type: ignore[import-not-found]
+
+    try:
+        for program in ("Excel.Application", "Word.Application"):
+            winreg.CloseKey(winreg.OpenKey(winreg.HKEY_CLASSES_ROOT, program))
+        return True
+    except OSError:
+        return False
+
+
 def _soffice() -> str | None:
     found = shutil.which("soffice") or shutil.which("libreoffice")
     if found or sys.platform != "win32":

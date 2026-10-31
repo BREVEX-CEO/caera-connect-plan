@@ -11,7 +11,9 @@ from __future__ import annotations
 
 import hashlib
 import io
+import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -195,10 +197,28 @@ def _check(kind: str, params: dict) -> bool | None:
             return abs(float(run.stdout.strip()) - float(params["value"])) <= 0.25
         except ValueError:
             return False
+    if kind in ("image_size", "scene_render", "media_quality"):
+        try:
+            path = resolve(WORKSPACE, params["path"])
+        except (Refused, KeyError):
+            return False
+        if not path.is_file():
+            return False
+        if kind == "media_quality":
+            return _media_quality(path, params)
+        from PIL import Image
+
+        try:
+            with Image.open(path) as image:
+                size, text = image.size, dict(getattr(image, "text", {}) or {})
+        except Exception:
+            return False
+        if kind == "image_size":
+            return size == (params.get("width"), params.get("height"))
+        return _scene_bound(size, text)
     if kind == "web_text_contains":
         # Read anonymously: a page that needs a sign-in cannot be observed this way.
         import html
-        import re
         import urllib.request
 
         try:
@@ -213,6 +233,62 @@ def _check(kind: str, params: dict) -> bool | None:
             return None
         return _window_exists(params.get("exe", ""), params.get("text"))
     return None
+
+
+def _scene_bound(size: tuple[int, int], text: dict) -> bool:
+    """The still names the scene project it was rendered from; that project must exist unchanged,
+    be a complete scene (camera, light, material, geometry) and match the still's size."""
+    try:
+        project = resolve(WORKSPACE, text["ocade:project"])
+        if not project.is_file() or _digest(project) != text.get("ocade:project-sha256"):
+            return False
+        scene = json.loads(project.read_text(encoding="utf-8"))
+        lit = scene["lights"] or scene["environment"].get("softboxes")
+        shapes = sum(len(part["shapes"]) for part in scene["parts"])
+        return bool(scene["camera"] and lit and scene["materials"] and shapes) and size == (
+            scene["render"]["width"], scene["render"]["height"])
+    except (KeyError, TypeError, ValueError, Refused):
+        return False
+
+
+def _media_quality(path: Path, params: dict) -> bool | None:
+    """A deliverable video, measured: exact length, size, H.264 + stereo AAC, loudness and
+    true peak in broadcast range, no black or silent stretch inside the programme."""
+    probe, ffmpeg = shutil.which("ffprobe"), shutil.which("ffmpeg")
+    if not probe or not ffmpeg:
+        return None
+    run = subprocess.run([probe, "-v", "error", "-show_format", "-show_streams", "-of", "json", str(path)],
+                         capture_output=True, text=True, timeout=60)
+    try:
+        facts = json.loads(run.stdout)
+        duration = float(facts["format"]["duration"])
+    except (ValueError, KeyError):
+        return False
+    video = next((s for s in facts.get("streams", []) if s.get("codec_type") == "video"), None)
+    sound = next((s for s in facts.get("streams", []) if s.get("codec_type") == "audio"), None)
+    if not video or not sound or video.get("codec_name") != "h264" or sound.get("codec_name") != "aac":
+        return False
+    if sound.get("channels") != 2 or abs(duration - float(params.get("value", -1))) > 0.05:
+        return False
+    if video.get("width", 0) < params.get("width", 0) or video.get("height", 0) < params.get("height", 0):
+        return False
+    log = subprocess.run(
+        [ffmpeg, "-hide_banner", "-nostats", "-i", str(path), "-filter_complex",
+         "[0:v]blackdetect=d=1:pix_th=0.06[v];[0:a]ebur128=peak=true,silencedetect=n=-50dB:d=1.5[a]",
+         "-map", "[v]", "-map", "[a]", "-f", "null", "-"],
+        capture_output=True, text=True, timeout=1800,
+    ).stderr
+    integrated = re.findall(r"I:\s+(-?[0-9.]+) LUFS", log)
+    peak = re.findall(r"Peak:\s+(-?[0-9.]+) dBFS", log)
+    black = [(float(a), float(b)) for a, b in re.findall(r"black_start:([0-9.]+) black_end:([0-9.]+)", log)]
+    silent = [float(a) for a in re.findall(r"silence_start: (-?[0-9.]+)", log)]
+    inside = lambda t: 1.0 < t < duration - 2.0  # noqa: E731 — the opening and the closing fade are allowed
+    return (
+        bool(integrated) and -20.0 <= float(integrated[-1]) <= -9.0
+        and bool(peak) and float(peak[-1]) <= -0.5
+        and not any(inside(start) or inside(end) for start, end in black)
+        and not any(inside(start) for start in silent)
+    )
 
 
 def _window_exists(exe: str, title_part: str | None) -> bool:

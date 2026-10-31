@@ -1,0 +1,462 @@
+"""The `media_engine` worker: audio, video and 3D scenes as typed operations (plan.md M1, M2).
+
+Every operation takes data the planner chose — source in/out points, grades,
+transitions, titles, sound layers, or a scene of shapes, materials and lights —
+and executes it with an engine found on this computer: FFmpeg for audio and
+video, the bundled browser engine for 3D. None of them contains a shot list,
+template, font file, object model or output name of its own. A missing engine is
+a refusal the planner sees before anything is written, never a half-finished file.
+"""
+
+from __future__ import annotations
+
+import functools
+import json
+import math
+import os
+import re
+import shutil
+import subprocess
+from pathlib import Path
+
+from mcp.server.mcpserver import MCPServer
+
+from . import scene_gl
+from .sandbox import Refused, output_path, resolve, sha256, write_atomically
+
+app = MCPServer("ocade-media")
+WORKSPACE = os.environ.get("OCADE_WORKSPACE", "")
+TRANSITIONS = {
+    "fade", "fadeblack", "fadewhite", "dissolve", "wipeleft", "wiperight", "slideleft", "slideright",
+    "smoothleft", "smoothright", "smoothup", "smoothdown", "circleopen", "circleclose", "zoomin",
+    "radial", "hlwind", "hrwind", "squeezeh", "squeezev", "distance", "pixelize", "hblur", "fadegrays",
+}
+
+
+def _evidence(fn):
+    """Refusals become `{"refused": code}` so the gateway can report not_applied."""
+
+    @functools.wraps(fn)
+    def wrapped(**kwargs):
+        try:
+            return fn(**kwargs)
+        except Refused as refusal:
+            return {"refused": refusal.code}
+
+    return wrapped
+
+
+def _engine(name: str) -> str:
+    found = shutil.which(name)
+    if not found:
+        raise Refused("no_media_engine")
+    return found
+
+
+def _probe(source: Path) -> dict:
+    run = subprocess.run(
+        [_engine("ffprobe"), "-v", "error", "-show_format", "-show_streams", "-of", "json", str(source)],
+        capture_output=True, timeout=60, text=True,
+    )
+    if run.returncode != 0:
+        raise Refused("unreadable_media")
+    return json.loads(run.stdout)
+
+
+@app.tool()
+@_evidence
+def media_inspect(path: str) -> dict:
+    """Technical facts of an image (Pillow) or audio/video file (ffprobe): never its pixels."""
+    source = resolve(WORKSPACE, path)
+    if not source.is_file():
+        raise Refused("not_a_file")
+    try:
+        from PIL import Image
+
+        with Image.open(source) as image:
+            orientation = image.getexif().get(274, 1)
+            width, height = image.size
+            if orientation in (5, 6, 7, 8):
+                width, height = height, width
+            return {
+                "sha256": sha256(source),
+                "kind": "image",
+                "format": image.format,
+                "width": width,
+                "height": height,
+                "mode": image.mode,
+                "orientation": "landscape" if width > height else "portrait" if height > width else "square",
+            }
+    except (OSError, ValueError):
+        pass  # not an image: try it as media
+    facts = _probe(source)
+    streams = [
+        {
+            "type": s.get("codec_type"),
+            "codec": s.get("codec_name"),
+            "width": s.get("width"),
+            "height": s.get("height"),
+            "fps": s.get("avg_frame_rate"),
+            "channels": s.get("channels"),
+        }
+        for s in facts.get("streams", [])[:8]
+    ]
+    return {
+        "sha256": sha256(source),
+        "kind": "media",
+        "container": facts.get("format", {}).get("format_name"),
+        "duration": float(facts.get("format", {}).get("duration", 0) or 0),
+        "streams": streams,
+    }
+
+
+@app.tool()
+@_evidence
+def media_trim(source: str, start: float, end: float, output: str) -> dict:
+    """Cut [start, end) seconds of a media file into a new file with ffmpeg; the source is only read."""
+    origin = resolve(WORKSPACE, source)
+    target = output_path(WORKSPACE, output)
+    executable = _engine("ffmpeg")
+    if end <= start or not origin.is_file():
+        raise Refused("invalid_range")
+
+    def cut(temporary: Path) -> None:
+        run = subprocess.run(
+            [executable, "-v", "error", "-y", "-ss", str(start), "-to", str(end), "-i", str(origin),
+             "-c:v", "libx264", "-c:a", "aac", "-movflags", "+faststart", "-f", "mp4", str(temporary)],
+            capture_output=True, timeout=600,
+        )
+        if run.returncode != 0:
+            raise Refused("media_engine_failed")
+
+    return {"sha256": write_atomically(target, cut), "engine": "ffmpeg"}
+
+
+@app.tool()
+@_evidence
+def media_analyze(path: str, threshold: float = 0.3) -> dict:
+    """Split a video into shots and describe each with numbers the planner can choose from:
+    brightness, colourfulness, motion and sound level. The pixels never leave the computer."""
+    source = resolve(WORKSPACE, path)
+    if not source.is_file():
+        raise Refused("not_a_file")
+    facts = _probe(source)
+    duration = float(facts.get("format", {}).get("duration", 0) or 0)
+    has_audio = any(s.get("codec_type") == "audio" for s in facts.get("streams", []))
+    if not any(s.get("codec_type") == "video" for s in facts.get("streams", [])):
+        raise Refused("no_video_stream")
+    run = subprocess.run(
+        [_engine("ffmpeg"), "-v", "error", "-i", str(source), "-an", "-vf",
+         "fps=4,scale=256:-2,select='gte(scene,0)',signalstats,metadata=print:file=-", "-f", "null", "-"],
+        capture_output=True, text=True, timeout=900,
+    )
+    if run.returncode != 0:
+        raise Refused("media_engine_failed")
+    frames, current = [], {}
+    for line in run.stdout.splitlines():
+        if line.startswith("frame:"):
+            if current:
+                frames.append(current)
+            current = {"t": float(re.search(r"pts_time:([0-9.]+)", line).group(1))}
+        elif "=" in line:
+            key, _, value = line.partition("=")
+            if key in ("lavfi.scene_score", "lavfi.signalstats.YAVG", "lavfi.signalstats.SATAVG"):
+                current[key.rsplit(".", 1)[1]] = float(value)
+    if current:
+        frames.append(current)
+    loudness = {}
+    if has_audio:
+        audio = subprocess.run(
+            [_engine("ffmpeg"), "-v", "error", "-i", str(source), "-vn", "-af",
+             "asetnsamples=n=12000,astats=metadata=1:reset=1,ametadata=print:key=lavfi.astats.Overall.RMS_level:file=-",
+             "-f", "null", "-"],
+            capture_output=True, text=True, timeout=900,
+        )
+        time = None
+        for line in audio.stdout.splitlines():
+            if line.startswith("frame:"):
+                time = float(re.search(r"pts_time:([0-9.]+)", line).group(1))
+            elif line.startswith("lavfi.astats.Overall.RMS_level=") and time is not None:
+                value = line.split("=", 1)[1]
+                loudness[time] = float(value) if value not in ("-inf", "nan") else -120.0
+    shots, start = [], 0.0
+    for index, frame in enumerate(frames):
+        cut = index > 0 and frame.get("scene_score", 0) >= threshold
+        last = index == len(frames) - 1
+        if cut or last:
+            end = duration if last else frame["t"]
+            inside = [f for f in frames if start <= f["t"] < end] or [frame]
+            levels = [v for t, v in loudness.items() if start <= t < end]
+            shots.append({
+                "start": round(start, 2),
+                "end": round(end, 2),
+                "brightness": round(sum(f.get("YAVG", 0) for f in inside) / len(inside) / 255, 3),
+                "colour": round(sum(f.get("SATAVG", 0) for f in inside) / len(inside) / 128, 3),
+                "motion": round(sum(f.get("scene_score", 0) for f in inside[1:]) / max(len(inside) - 1, 1), 4),
+                "soundDb": round(sum(levels) / len(levels), 1) if levels else None,
+                "peakSoundAt": round(max(((t, v) for t, v in loudness.items() if start <= t < end),
+                                         key=lambda item: item[1])[0], 2) if levels else None,
+            })
+            start = frame["t"]
+    return {"sha256": sha256(source), "duration": round(duration, 3), "hasAudio": has_audio,
+            "shots": shots[:80], "shotCount": len(shots)}
+
+
+def _escape(text: str) -> str:
+    """drawtext treats ':' and '\\' as syntax even inside quotes; quotes become typographic."""
+    return text.replace("\\", "\\\\").replace(":", "\\:").replace("'", "’").replace("%", "\\%")
+
+
+def _fade(start: float, end: float, fade_in: float, fade_out: float) -> str:
+    """An alpha expression: 0 before start, ramp in, hold, ramp out, 0 after end."""
+    return (f"if(lt(t,{start}),0,if(lt(t,{start + fade_in}),(t-{start})/{max(fade_in, 1e-3)},"
+            f"if(lt(t,{end - fade_out}),1,if(lt(t,{end}),({end}-t)/{max(fade_out, 1e-3)},0))))")
+
+
+def _atempo(speed: float) -> str:
+    steps = []
+    while speed > 2.0:
+        steps.append("atempo=2.0")
+        speed /= 2.0
+    while speed < 0.5:
+        steps.append("atempo=0.5")
+        speed /= 0.5
+    return ",".join(steps + [f"atempo={speed:.6f}"])
+
+
+@app.tool()
+@_evidence
+def media_render_timeline(
+    output: str, duration: float, clips: list[dict], width: int = 1920, height: int = 1080, fps: int = 24,
+    titles: list[dict] | None = None, overlays: list[dict] | None = None, audio: list[dict] | None = None,
+    clipAudioGain: float = 0.0, letterbox: float | None = None, loudness: float = -14.0,  # noqa: N803
+    fadeIn: float = 0.0, fadeOut: float = 0.0,  # noqa: N803
+) -> dict:
+    """Render the planner's edit decision list to an exact-length H.264/AAC video."""
+    ffmpeg = _engine("ffmpeg")
+    target = output_path(WORKSPACE, output)
+    inputs, graph, lengths, audio_parts = [], [], [], []
+    for index, clip in enumerate(clips):
+        source = resolve(WORKSPACE, clip["source"])
+        if not source.is_file():
+            raise Refused("not_a_file")
+        facts = _probe(source)
+        available = float(facts.get("format", {}).get("duration", 0) or 0)
+        start, end, speed = clip["in"], clip["out"], clip.get("speed", 1.0)
+        if end <= start or end > available + 0.05:
+            raise Refused("clip_out_of_range")
+        length = (end - start) / speed
+        lengths.append(length)
+        inputs += ["-ss", f"{start}", "-t", f"{end - start}", "-i", str(source)]
+        grade = clip.get("grade") or {}
+        motion = clip.get("motion") or {}
+        zoom_from, zoom_to = motion.get("zoomFrom", 1.0), motion.get("zoomTo", 1.0)
+        pan_x, pan_y = motion.get("panX", 0.0), motion.get("panY", 0.0)
+        chain = [
+            f"setpts=(PTS-STARTPTS)/{speed}",
+            f"fps={fps}",
+            f"scale={width}:{height}:force_original_aspect_ratio=increase",
+            f"crop={width}:{height}",
+        ]
+        if zoom_from != 1.0 or zoom_to != 1.0 or pan_x or pan_y:
+            # A slow camera move: scale up over time, crop a window that drifts with the pan.
+            zoom = f"({zoom_from}+({zoom_to}-{zoom_from})*t/{length})"
+            chain += [f"scale=w='ceil({width}*{zoom}/2)*2':h='ceil({height}*{zoom}/2)*2':eval=frame",
+                      f"crop={width}:{height}:x='(iw-{width})*(0.5+{pan_x / 2}*t/{length})':"
+                      f"y='(ih-{height})*(0.5+{pan_y / 2}*t/{length})'"]
+        if grade.get("exposure"):
+            chain.append(f"exposure=exposure={grade['exposure']}")
+        if grade.get("temperature"):
+            chain.append(f"colortemperature=temperature={grade['temperature']}")
+        chain.append(f"eq=contrast={grade.get('contrast', 1.0)}:saturation={grade.get('saturation', 1.0)}"
+                     f":gamma={grade.get('gamma', 1.0)}:brightness={grade.get('brightness', 0.0)}")
+        if grade.get("sharpen"):
+            chain.append(f"unsharp=5:5:{grade['sharpen']}:5:5:0")
+        if grade.get("vignette"):
+            chain.append(f"vignette=angle={0.2 + 0.6 * grade['vignette']}")
+        chain += [f"trim=duration={length:.4f}", "setpts=PTS-STARTPTS", "setsar=1", "format=yuv420p"]
+        graph.append(f"[{index}:v]{','.join(chain)}[c{index}]")
+        if clip.get("audio", True) and any(s.get("codec_type") == "audio" for s in facts.get("streams", [])):
+            audio_parts.append((index, length, clip.get("audioGain", 0.0) + clipAudioGain, speed))
+
+    # Join shots: hard cuts by concatenation, transitions by xfade, each at its exact offset.
+    label, timeline, starts = "[c0]", lengths[0], [0.0]
+    for index in range(1, len(clips)):
+        transition = clips[index].get("transition") or {}
+        kind, overlap = transition.get("type", "cut"), transition.get("duration", 0.0)
+        if kind == "cut" or overlap <= 0:
+            graph.append(f"{label}[c{index}]concat=n=2:v=1:a=0[j{index}]")
+            starts.append(timeline)
+            timeline += lengths[index]
+        else:
+            if kind not in TRANSITIONS or overlap >= min(lengths[index], lengths[index - 1]):
+                raise Refused("invalid_transition")
+            offset = timeline - overlap
+            graph.append(f"{label}[c{index}]xfade=transition={kind}:duration={overlap}:offset={offset:.4f}[j{index}]")
+            starts.append(offset)
+            timeline = offset + lengths[index]
+        label = f"[j{index}]"
+    finish = [f"tpad=stop_mode=clone:stop_duration={max(duration - timeline, 0) + 1}", f"trim=duration={duration}"]
+    if letterbox:
+        bar = max(0, round((height - width / letterbox) / 2))
+        finish += [f"drawbox=x=0:y=0:w=iw:h={bar}:color=black:t=fill", f"drawbox=x=0:y=ih-{bar}:w=iw:h={bar}:color=black:t=fill"]
+    for title in titles or []:
+        size = title.get("size", 64)
+        y = {"top": f"h*0.12", "center": "(h-text_h)/2", "lower_third": "h*0.74", "bottom": "h*0.86-text_h"}[
+            title.get("position", "center")]
+        font = f":font='{_escape(title['font'])}'" if title.get("font") else ""
+        colour = title.get("color", "white")
+        finish.append(
+            f"drawtext=text='{_escape(title['text'])}'{font}:fontsize={size}:fontcolor={colour}:"
+            f"alpha='{_fade(title['start'], title['end'], title.get('fadeIn', 0.6), title.get('fadeOut', 0.6))}':"
+            f"x=(w-text_w)/2:y={y}:shadowcolor=black@0.55:shadowx=0:shadowy=3"
+            + (f":box=1:boxcolor=black@{title['box']}:boxborderw={size // 2}" if title.get("box") else "")
+        )
+    if fadeIn:
+        finish.append(f"fade=t=in:st=0:d={fadeIn}")
+    if fadeOut:
+        finish.append(f"fade=t=out:st={duration - fadeOut}:d={fadeOut}")
+    graph.append(f"{label}{','.join(finish)}[base]")
+    label = "[base]"
+
+    count = len(clips)
+    for number, overlay in enumerate(overlays or []):
+        image = resolve(WORKSPACE, overlay["image"])
+        if not image.is_file():
+            raise Refused("not_a_file")
+        inputs += ["-loop", "1", "-framerate", str(fps), "-t", str(duration), "-i", str(image)]
+        start, end = overlay["start"], overlay["end"]
+        scale = overlay.get("width", width)
+        zoom_to = overlay.get("zoomTo", 1.0)
+        size = f"'ceil({scale}*(1+({zoom_to}-1)*clip((t-{start})/{end - start},0,1))/2)*2'"
+        graph.append(
+            f"[{count}:v]format=rgba,scale=w={size}:h=-2:eval=frame,"
+            f"colorchannelmixer=aa=1,geq=r='r(X,Y)':g='g(X,Y)':b='b(X,Y)':"
+            f"a='alpha(X,Y)*{_fade(start, end, overlay.get('fadeIn', 0.5), overlay.get('fadeOut', 0.5))}'[o{number}]"
+        )
+        x = overlay.get("x", 0.5)
+        y = overlay.get("y", 0.5)
+        graph.append(f"{label}[o{number}]overlay=x='(W-w)*{x}':y='(H-h)*{y}':eval=frame:format=auto[v{number}]")
+        label = f"[v{number}]"
+        count += 1
+    graph.append(f"{label}format=yuv420p[vout]")
+
+    # Sound: clip sound and the planner's layers, music ducked under everything else.
+    beds, effects = [], []
+    for index, length, gain, speed in audio_parts:
+        delay = int(starts[index] * 1000)
+        graph.append(f"[{index}:a]aresample=48000,aformat=channel_layouts=stereo,{_atempo(speed)},"
+                     f"atrim=duration={length:.4f},afade=t=in:d=0.08,afade=t=out:st={max(length - 0.12, 0)}:d=0.12,"
+                     f"volume={gain}dB,adelay={delay}|{delay}[ca{index}]")
+        effects.append(f"[ca{index}]")
+    for number, layer in enumerate(audio or []):
+        length = layer["duration"]
+        if layer.get("source"):
+            source = resolve(WORKSPACE, layer["source"])
+            if not source.is_file():
+                raise Refused("not_a_file")
+            inputs += ["-ss", str(layer.get("in", 0.0)), "-t", str(length), "-i", str(source)]
+            head = f"[{count}:a]aresample=48000,aformat=channel_layouts=stereo"
+            count += 1
+        else:
+            synth = layer["synth"]
+            kind = synth["kind"]
+            frequency, to = synth.get("frequency", 220.0), synth.get("toFrequency", synth.get("frequency", 220.0))
+            if kind == "noise":
+                source = f"anoisesrc=d={length}:c={synth.get('color', 'pink')}:a=0.5:r=48000"
+            elif kind == "sine":
+                source = f"sine=f={frequency}:d={length}:r=48000"
+            else:  # sweep: the phase of a linear chirp from frequency to toFrequency
+                source = f"aevalsrc='0.5*sin(2*PI*({frequency}*t+({to}-{frequency})/(2*{length})*t*t))':d={length}:s=48000"
+            inputs += ["-f", "lavfi", "-i", source]
+            head = f"[{count}:a]aformat=channel_layouts=stereo"
+            count += 1
+            if synth.get("decay"):
+                head += f",volume='exp(-{synth['decay']}*t)':eval=frame"
+        filters = [head]
+        if layer.get("highpass"):
+            filters.append(f"highpass=f={layer['highpass']}")
+        if layer.get("lowpass"):
+            filters.append(f"lowpass=f={layer['lowpass']}")
+        filters.append(f"atrim=duration={length}")
+        if layer.get("fadeIn"):
+            filters.append(f"afade=t=in:d={layer['fadeIn']}")
+        if layer.get("fadeOut"):
+            filters.append(f"afade=t=out:st={max(length - layer['fadeOut'], 0)}:d={layer['fadeOut']}")
+        delay = int(layer["start"] * 1000)
+        filters += [f"volume={layer.get('gain', 0.0)}dB", f"adelay={delay}|{delay}"]
+        graph.append(",".join(filters) + f"[l{number}]")
+        (beds if layer.get("role") == "music" else effects).append(f"[l{number}]")
+    mixed = None
+    if effects:
+        graph.append(f"{''.join(effects)}amix=inputs={len(effects)}:normalize=0:duration=longest[fx]")
+        mixed = "[fx]"
+    if beds:
+        graph.append(f"{''.join(beds)}amix=inputs={len(beds)}:normalize=0:duration=longest[bed]")
+        if mixed:
+            graph.append("[fx]asplit=2[fxa][fxkey]")
+            graph.append("[bed][fxkey]sidechaincompress=threshold=0.04:ratio=5:attack=15:release=350[ducked]")
+            graph.append("[fxa][ducked]amix=inputs=2:normalize=0:duration=longest[mix]")
+            mixed = "[mix]"
+        else:
+            mixed = "[bed]"
+    if mixed:
+        graph.append(f"{mixed}apad,atrim=duration={duration},loudnorm=I={loudness}:TP=-1.5:LRA=11,"
+                     f"aresample=48000,afade=t=out:st={max(duration - max(fadeOut, 0.5), 0)}:d={max(fadeOut, 0.5)}[aout]")
+
+    def encode(temporary: Path) -> None:
+        command = [ffmpeg, "-v", "error", "-y", *inputs, "-filter_complex", ";".join(graph), "-map", "[vout]"]
+        if mixed:
+            command += ["-map", "[aout]", "-c:a", "aac", "-b:a", "192k", "-ar", "48000", "-ac", "2"]
+        command += ["-r", str(fps), "-frames:v", str(round(duration * fps)), "-t", str(duration),
+                    "-c:v", "libx264", "-preset", "medium", "-crf", "18", "-pix_fmt", "yuv420p",
+                    "-movflags", "+faststart", "-f", "mp4", str(temporary)]
+        run = subprocess.run(command, capture_output=True, text=True, timeout=3600)
+        if run.returncode != 0:
+            raise Refused("media_engine_failed")
+
+    digest = write_atomically(target, encode)
+    return {"sha256": digest, "engine": "ffmpeg", "duration": duration, "frames": round(duration * fps),
+            "clips": len(clips), "layers": len(audio or []), "titles": len(titles or [])}
+
+
+@app.tool()
+async def scene_render(scene: dict, output: str, project: str) -> dict:
+    """Render a typed 3D scene to a PNG and save the scene itself as the editable project."""
+    try:
+        return await _scene_render(scene, output, project)
+    except Refused as refusal:
+        return {"refused": refusal.code}
+
+
+async def _scene_render(scene: dict, output: str, project: str) -> dict:
+    image_target = output_path(WORKSPACE, output)
+    project_target = output_path(WORKSPACE, project)
+    if image_target.suffix.lower() != ".png":
+        raise Refused("png_output_only")
+    width, height = scene["render"]["width"], scene["render"]["height"]
+    try:
+        scene_gl.compile_shader(scene)  # refuse a bad scene before starting a browser
+    except (KeyError, ValueError):
+        raise Refused("invalid_scene")
+    try:
+        renderer, image = await scene_gl.render(scene, width, height)
+    except Exception:
+        raise Refused("no_3d_engine")
+    text = json.dumps(scene, indent=2, sort_keys=True)
+    project_sha = write_atomically(project_target, lambda temporary: temporary.write_text(text, encoding="utf-8"))
+    from PIL.PngImagePlugin import PngInfo
+
+    info = PngInfo()
+    info.add_text("ocade:engine", scene_gl.ENGINE)
+    info.add_text("ocade:project", project)
+    info.add_text("ocade:project-sha256", project_sha)
+    image_sha = write_atomically(image_target, lambda temporary: image.save(temporary, "PNG", pnginfo=info))
+    shapes = sum(len(part["shapes"]) for part in scene["parts"])
+    return {"sha256": {"image": image_sha, "project": project_sha}, "engine": scene_gl.ENGINE,
+            "renderer": str(renderer)[:120], "width": width, "height": height, "parts": len(scene["parts"]),
+            "shapes": shapes, "materials": len(scene["materials"]), "samples": scene["render"].get("samples", 4)}
+
+
+if __name__ == "__main__":
+    app.run("stdio")
