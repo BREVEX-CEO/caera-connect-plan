@@ -30,6 +30,17 @@ const workspacePath = z
   .max(260)
   .refine((path) => !/\p{Cc}/u.test(path), "control characters");
 
+/**
+ * Where a new deliverable goes: always a NEW file under the workspace's `OCADE output/`
+ * folder (the device's sandbox enforces the same rule and never overwrites a file).
+ */
+const outputPath = (what = "The new file") =>
+  workspacePath
+    .regex(/^OCADE output\//, "outputs go under OCADE output/")
+    .describe(
+      `${what}: a new path that starts with 'OCADE output/', e.g. 'OCADE output/result.ext'`,
+    );
+
 /** An executable's file name, as `apps.list` reports it and an `app:` permission names it. */
 const exe = z
   .string()
@@ -265,7 +276,7 @@ const TRANSITIONS = [
 
 /** An edit decision list (plan.md M2): the planner chooses every shot, cut, grade, title and sound. */
 const timeline = z.strictObject({
-  output: workspacePath.describe("The finished .mp4"),
+  output: outputPath("The finished .mp4"),
   duration: num(1, 3600).describe("Exact length in seconds; shorter edits hold the last frame"),
   width: z.int().min(320).max(7680).optional(),
   height: z.int().min(240).max(4320).optional(),
@@ -431,7 +442,7 @@ export const OPERATIONS = {
       source: workspacePath,
       start: z.number().min(0),
       end: z.number().positive(),
-      output: workspacePath,
+      output: outputPath(),
     }),
   },
   "media.preview": {
@@ -485,10 +496,8 @@ export const OPERATIONS = {
     seconds: 3600,
     arguments: z.strictObject({
       scene,
-      output: workspacePath.describe("The rendered still, .png"),
-      project: workspacePath.describe(
-        "Where to save the editable scene file, e.g. .ocade-scene.json",
-      ),
+      output: outputPath("The rendered still, .png"),
+      project: outputPath("Where to save the editable scene file, e.g. .ocade-scene.json"),
     }),
   },
   "office.inspect_workbook": {
@@ -505,8 +514,8 @@ export const OPERATIONS = {
     capability: "files",
     risk: "reversible_write",
     arguments: z.strictObject({
-      docx: workspacePath,
-      pdf: workspacePath.optional(),
+      docx: outputPath("The Word document, .docx"),
+      pdf: outputPath("Its PDF copy, .pdf").optional(),
       title: z.string().min(1).max(200),
       sections: z
         .array(
@@ -531,7 +540,7 @@ export const OPERATIONS = {
     capability: "files",
     risk: "reversible_write",
     arguments: z.strictObject({
-      path: workspacePath,
+      path: outputPath("The workbook, .xlsx"),
       sheets: z
         .array(
           z.strictObject({
@@ -683,7 +692,7 @@ export const OPERATIONS = {
     role: "web_automation",
     capability: "browser",
     risk: "reversible_write",
-    arguments: z.strictObject({ page, output: workspacePath }),
+    arguments: z.strictObject({ page, output: outputPath(".png") }),
     target: (a: { page: { site: string } }): Target => ({ site: a.page.site }),
   },
   "web.close": {
@@ -701,7 +710,7 @@ export const OPERATIONS = {
     role: "web_automation",
     capability: "browser",
     risk: "reversible_write",
-    arguments: z.strictObject({ page, selector, output: workspacePath }),
+    arguments: z.strictObject({ page, selector, output: outputPath() }),
     target: (a: { page: { site: string } }): Target => ({ site: a.page.site }),
   },
   "mcp.read": {

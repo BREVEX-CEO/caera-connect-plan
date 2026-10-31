@@ -164,7 +164,8 @@ export async function advance(admin: Admin, taskId: string, now = new Date()): P
   }));
   const checks = task.outcome ?? [];
   let decision: Decision;
-  let modelMs: number | null = null;
+  // Every model call of this turn is counted (a refused proposal may cost a second one).
+  const modelCalls: number[] = [];
   try {
     // No special-case customer journey: every request uses the same AI planner.
     decision = await planStep({
@@ -177,11 +178,11 @@ export async function advance(admin: Admin, taskId: string, now = new Date()): P
       engines: task.engines,
       turnKey: `jarvis-plan:${taskId}:${task.controller}:${steps.length}`,
       now,
-      onModelCall: (ms) => (modelMs = ms),
+      onModelCall: (ms) => void modelCalls.push(ms),
     });
   } catch (error) {
     if (!(error instanceof PlannerUnavailable)) throw error;
-    if (modelMs !== null) await noteModel(admin, taskId, modelMs);
+    for (const ms of modelCalls) await noteModel(admin, taskId, ms);
     await call(admin, "jarvis_task_wait", {
       p_task: taskId,
       p_controller: task.controller,
@@ -189,7 +190,7 @@ export async function advance(admin: Admin, taskId: string, now = new Date()): P
     });
     return;
   }
-  if (modelMs !== null) await noteModel(admin, taskId, modelMs);
+  for (const ms of modelCalls) await noteModel(admin, taskId, ms);
   try {
     if (decision.kind === "queue") {
       await call(admin, "jarvis_queue_actions", {

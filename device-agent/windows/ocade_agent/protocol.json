@@ -92,7 +92,9 @@
           "output": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 260
+            "maxLength": 260,
+            "pattern": "^OCADE output\\/",
+            "description": "The new file: a new path that starts with 'OCADE output/', e.g. 'OCADE output/result.ext'"
           }
         },
         "required": [
@@ -175,7 +177,8 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 260,
-            "description": "The finished .mp4"
+            "pattern": "^OCADE output\\/",
+            "description": "The finished .mp4: a new path that starts with 'OCADE output/', e.g. 'OCADE output/result.ext'"
           },
           "duration": {
             "type": "number",
@@ -1202,13 +1205,15 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 260,
-            "description": "The rendered still, .png"
+            "pattern": "^OCADE output\\/",
+            "description": "The rendered still, .png: a new path that starts with 'OCADE output/', e.g. 'OCADE output/result.ext'"
           },
           "project": {
             "type": "string",
             "minLength": 1,
             "maxLength": 260,
-            "description": "Where to save the editable scene file, e.g. .ocade-scene.json"
+            "pattern": "^OCADE output\\/",
+            "description": "Where to save the editable scene file, e.g. .ocade-scene.json: a new path that starts with 'OCADE output/', e.g. 'OCADE output/result.ext'"
           }
         },
         "required": [
@@ -1250,12 +1255,16 @@
           "docx": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 260
+            "maxLength": 260,
+            "pattern": "^OCADE output\\/",
+            "description": "The Word document, .docx: a new path that starts with 'OCADE output/', e.g. 'OCADE output/result.ext'"
           },
           "pdf": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 260
+            "maxLength": 260,
+            "pattern": "^OCADE output\\/",
+            "description": "Its PDF copy, .pdf: a new path that starts with 'OCADE output/', e.g. 'OCADE output/result.ext'"
           },
           "title": {
             "type": "string",
@@ -1322,7 +1331,9 @@
           "path": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 260
+            "maxLength": 260,
+            "pattern": "^OCADE output\\/",
+            "description": "The workbook, .xlsx: a new path that starts with 'OCADE output/', e.g. 'OCADE output/result.ext'"
           },
           "sheets": {
             "minItems": 1,
@@ -1977,7 +1988,9 @@
           "output": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 260
+            "maxLength": 260,
+            "pattern": "^OCADE output\\/",
+            "description": ".png: a new path that starts with 'OCADE output/', e.g. 'OCADE output/result.ext'"
           }
         },
         "required": [
@@ -2056,7 +2069,9 @@
           "output": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 260
+            "maxLength": 260,
+            "pattern": "^OCADE output\\/",
+            "description": "The new file: a new path that starts with 'OCADE output/', e.g. 'OCADE output/result.ext'"
           }
         },
         "required": [

@@ -17,7 +17,7 @@
  * by the operator running this test. Never point this at production.
  */
 import { spawn } from "node:child_process";
-import { mkdtempSync, readdirSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
@@ -122,8 +122,19 @@ const enrolled = await agent(
 const code = /Pairing code: ([0-9A-F]{16})/.exec(enrolled.out)?.[1];
 if (!code) throw new Error(`enrolment failed: ${enrolled.out.slice(-400)}`);
 const deviceId = await authority.approveDevice(admin, user.id, code);
+// The account-wide switch stays as the person left it after the first run.
+const master = must(
+  await admin
+    .from("jarvis_permissions")
+    .select("id")
+    .eq("user_id", user.id)
+    .is("device_id", null)
+    .eq("capability", "master"),
+);
 const grants = [
-  { user_id: user.id, device_id: null, capability: "master", allowed: true },
+  ...(master.length
+    ? []
+    : [{ user_id: user.id, device_id: null, capability: "master", allowed: true }]),
   ...["files", ...values.grant].map((capability) => ({
     user_id: user.id,
     device_id: deviceId,
@@ -177,7 +188,9 @@ writeFileSync(
           preview: s.receipt.preview ? `${s.receipt.preview.length} base64 chars` : undefined,
         },
       })),
-      outputs: outputs(join(resolve(values.workspace), "OCADE output")),
+      outputs: existsSync(join(resolve(values.workspace), "OCADE output"))
+        ? outputs(join(resolve(values.workspace), "OCADE output"))
+        : [],
     },
     null,
     2,

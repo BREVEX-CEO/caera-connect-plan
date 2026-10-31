@@ -188,11 +188,18 @@ test("a failed independent check returns to the model for bounded repair", async
   let reply: { name: string; arguments: Record<string, unknown> }[] = [
     { name: "finish", arguments: {} },
   ];
-  const service = createServer((_req, res) => {
+  const replies: (typeof reply)[] = [];
+  let lastPrompt = "";
+  const service = createServer(async (req, res) => {
     calls += 1;
+    let body = "";
+    for await (const chunk of req) body += chunk;
+    lastPrompt = JSON.parse(body).messages.at(-1).content;
     res.writeHead(200, { "content-type": "text/event-stream" });
     res.end(
-      reply.map((call) => `data: ${JSON.stringify({ type: "tool_call", call })}\r\n\r\n`).join(""),
+      (replies.shift() ?? reply)
+        .map((call) => `data: ${JSON.stringify({ type: "tool_call", call })}\r\n\r\n`)
+        .join(""),
     );
   });
   await new Promise<void>((ok) => service.listen(0, "127.0.0.1", ok));
@@ -273,6 +280,22 @@ test("a failed independent check returns to the model for bounded repair", async
       { name: "fs_list", arguments: {} },
     ];
     const batch = await planStep({ ...base, grants: ["files", "browser"], steps: [] });
+    // A refused proposal goes back once with the validator's reason; the corrected one is queued.
+    const sections = [{ heading: "H" }];
+    replies.push(
+      [{ name: "office_write_document", arguments: { docx: "report.docx", title: "A", sections } }],
+      [
+        {
+          name: "office_write_document",
+          arguments: { docx: "OCADE output/report.docx", title: "A", sections },
+        },
+      ],
+    );
+    const before = calls;
+    const corrected = await planStep({ ...base, steps: [] });
+    assert.equal(corrected.kind, "queue");
+    assert.equal(calls - before, 2);
+    assert.match(lastPrompt, /refused your last proposal.*OCADE output/s);
     assert.equal(batch.kind, "queue");
     if (batch.kind === "queue") {
       assert.equal(batch.intent.operation, "fs.read_text");
