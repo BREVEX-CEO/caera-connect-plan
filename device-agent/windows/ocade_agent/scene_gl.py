@@ -312,7 +312,8 @@ async def render(scene: dict, width: int, height: int):
     source = compile_shader(scene)
     async with async_playwright() as playwright:
         executable = os.environ.get("OCADE_BROWSER_EXECUTABLE")
-        options = {"headless": True}
+        # Headless rendering needs no display; a stale DISPLAY would make Chromium drop WebGL.
+        options = {"headless": True, "env": {k: v for k, v in os.environ.items() if k != "DISPLAY"}}
         if executable:
             browser = await playwright.chromium.launch(executable_path=executable, **options)
         else:

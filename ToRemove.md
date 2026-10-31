@@ -1,5 +1,11 @@
 # OCADE retirement manifest
 
+## Fixed finance journey and scripted media/web runners retired — 31 October 2026
+
+- **Removed:** `office.reconcile_workbook`, `office.write_report` and `verify.reconciliation_report` (one hard-wired task: fixed `Reconciliation`/`Summary` sheets, fixed report layout, fixed verifier), `device-agent/windows/tests/qualify_photo_web.py` (fixed Photopea click script) and `device-agent/windows/tests/qualify_media.py` (ran developer-authored media plans), and the `tread` 3D material pattern (could not follow a wheel's own axis).
+- **Replacement (parity proven by `tests/jarvis/e2e.test.ts` and `device-agent/windows/tests/test_gateway.py` before removal):** the generic primitives the planner already had — `fs.read_text` (workbook values), `office.write_workbook` (formulas recalculated by a real engine), `office.write_document` (+PDF), `verify.checks` (`workbook_cell_equals`, `file_contains`; a PDF must now also render with no blank page).
+- **Not changed:** historical evidence folders (they record what ran; nothing imports them).
+
 ## JARVIS planner endpoint retired — 31 October 2026
 
 - **Removed:** the never-deployed `supabase/functions/jarvis-planner` Edge Function, its `JARVIS_PLANNER_KEY` shared secret (`.env.example`, `supabase/config.toml`) and the planner's fetch to it.

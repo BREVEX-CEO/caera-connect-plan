@@ -163,6 +163,9 @@ class Media(unittest.TestCase):
     @unittest.skipUnless(BROWSER, "needs a Chromium executable")
     def test_scene_render_is_bound_to_its_saved_project(self):
         os.environ["OCADE_BROWSER_EXECUTABLE"] = web_fixture.browser_wrapper(BROWSER, "none")
+        # A display that is not there must not matter to a headless render.
+        self.addCleanup(os.environ.__setitem__, "DISPLAY", os.environ.get("DISPLAY", ""))
+        os.environ["DISPLAY"] = ":77"
         scene = {
             "camera": {"position": [3, 1.5, 4], "target": [0, 0.4, 0], "fov": 40},
             "environment": {"sky": [[0.1, 0.1, 0.12], [0.4, 0.4, 0.45]],
