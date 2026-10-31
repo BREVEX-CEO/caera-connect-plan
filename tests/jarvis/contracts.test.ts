@@ -181,6 +181,79 @@ test("capability shortlist: descriptor vectors, bounded, continuity, paraphrase-
   assert.equal(rankBySimilarity("convert currency live", tools, (t) => t.text)[0].item.id, "b");
 });
 
+test("a failed independent check returns to the model for bounded repair", async () => {
+  const { createServer } = await import("node:http");
+  const { planStep, plannerAccess } = await import("../../src/lib/jarvis/planner.server.ts");
+  let calls = 0;
+  const service = createServer((_req, res) => {
+    calls += 1;
+    res.writeHead(200, { "content-type": "text/event-stream" });
+    const event = { type: "tool_call", call: { name: "finish", arguments: {} } };
+    res.end(`data: ${JSON.stringify(event)}\r\n\r\n`);
+  });
+  await new Promise<void>((ok) => service.listen(0, "127.0.0.1", ok));
+  const saved = { ...plannerAccess };
+  const { port } = service.address() as { port: number };
+  plannerAccess.serviceUrl = () => `http://127.0.0.1:${port}`;
+  plannerAccess.serviceKey = () => "test";
+  plannerAccess.acquirePermit = async (_user, key) => ({
+    permit: {
+      id: "p",
+      generationId: key,
+      idempotencyKey: key,
+      surface: "jarvis",
+      source: "server",
+    },
+    release: async () => {},
+  });
+  try {
+    const checks = [
+      {
+        id: "out",
+        description: "Report exists",
+        kind: "file_exists" as const,
+        params: { path: "OCADE output/r.docx" },
+      },
+    ];
+    let n = 0;
+    const verify = (passed: boolean): Step => ({
+      intent: intent("verify.checks", `v${(n += 1)}`, { checks }, deadline),
+      status: "done",
+      receipt: {
+        status: "observed",
+        maybeChanged: false,
+        observedAtUtc: now.toISOString(),
+        evidence: { predicates: { out: passed } },
+      },
+    });
+    const base = {
+      userId: "u",
+      objective: "Write a report",
+      checks,
+      grants: ["files"],
+      turnKey: "t",
+      now,
+    };
+    // The failure goes back to the model, which sees it in its history and can repair.
+    assert.equal((await planStep({ ...base, steps: [verify(false)] })).kind, "queue");
+    assert.equal(calls, 1);
+    // Bounded: the third failed verification settles the task.
+    assert.equal(
+      (await planStep({ ...base, steps: [verify(false), verify(false), verify(false)] })).kind,
+      "settle",
+    );
+    // A pass settles without asking the model again.
+    assert.equal(
+      (await planStep({ ...base, steps: [verify(false), verify(true)] })).kind,
+      "settle",
+    );
+    assert.equal(calls, 1);
+  } finally {
+    Object.assign(plannerAccess, saved);
+    service.close();
+  }
+});
+
 test("browser targets are public https sites by name", () => {
   for (const url of [
     "https://127.0.0.1/",
