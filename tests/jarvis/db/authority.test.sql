@@ -360,5 +360,11 @@ BEGIN
   PERFORM public.jarvis_device_inventory(dev_b, '[{"name": "Notepad", "exe": "notepad.exe"}]', '[{"id": "echo"}]', '["ffmpeg"]');
   PERFORM pg_temp.check((SELECT installed_apps -> 0 ->> 'exe' = 'notepad.exe' AND capabilities -> 'mcp' -> 0 ->> 'id' = 'echo'
                            FROM public.jarvis_devices WHERE id = dev_b), 'inventory recorded');
+
+  -- Rows from earlier engines kept a keystroke in action.key; repeats must stay storable.
+  INSERT INTO public.jarvis_activity (user_id, task_id, device_id, summary, action, status)
+  VALUES (b, t.task_id, dev_b, 'legacy', '{"key": "Escape"}', 'done'),
+         (b, t.task_id, dev_b, 'legacy', '{"key": "Escape"}', 'done');
+  PERFORM pg_temp.check(true, 'legacy keystroke rows do not collide with the idempotency index');
 END $$;
 RESET ROLE;

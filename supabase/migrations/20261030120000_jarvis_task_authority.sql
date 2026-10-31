@@ -20,9 +20,11 @@ BEGIN;
 REVOKE INSERT, UPDATE ON public.jarvis_tasks FROM authenticated;
 
 -- One action per idempotency key per task: two planners racing cannot queue it twice.
+-- Only protocol actions (they carry `operation`): earlier engines stored a keystroke in
+-- `action.key`, and those historical rows legitimately repeat.
 CREATE UNIQUE INDEX IF NOT EXISTS jarvis_activity_one_action_per_key
   ON public.jarvis_activity (task_id, (action ->> 'key'))
-  WHERE action IS NOT NULL;
+  WHERE action ? 'operation';
 
 -- Task timing (plan.md M3). Durable UTC facts only: time paused on the person, and
 -- the number and duration of planning model calls. Step durations come from the
@@ -309,7 +311,7 @@ BEGIN
     VALUES (v_task.user_id, p_task, v_task.device_id, v_item ->> 'summary', v_item -> 'action',
             CASE WHEN v_item -> 'action' ->> 'risk' = 'external_effect' THEN 'needs_confirmation' ELSE 'queued' END,
             p_controller, clock_timestamp())
-    ON CONFLICT (task_id, (action ->> 'key')) WHERE action IS NOT NULL DO NOTHING;
+    ON CONFLICT (task_id, (action ->> 'key')) WHERE action ? 'operation' DO NOTHING;
     IF FOUND THEN
       v_queued := v_queued + 1;
     END IF;
