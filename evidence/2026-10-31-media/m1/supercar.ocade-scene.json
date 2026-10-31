@@ -1,0 +1,996 @@
+{
+  "camera": {
+    "aperture": 0.012,
+    "fov": 26,
+    "position": [
+      5.0,
+      0.72,
+      3.9
+    ],
+    "target": [
+      0.15,
+      0.48,
+      0.05
+    ]
+  },
+  "environment": {
+    "floor": {
+      "color": [
+        0.025,
+        0.025,
+        0.03
+      ],
+      "reflectance": 0.3,
+      "roughness": 0.16
+    },
+    "ground": [
+      0.045,
+      0.045,
+      0.05
+    ],
+    "sky": [
+      [
+        0.015,
+        0.015,
+        0.02
+      ],
+      [
+        0.05,
+        0.05,
+        0.06
+      ]
+    ],
+    "softboxes": [
+      {
+        "direction": [
+          0.1,
+          1,
+          0
+        ],
+        "height": 14,
+        "intensity": 3,
+        "width": 60
+      },
+      {
+        "direction": [
+          0.35,
+          0.55,
+          1
+        ],
+        "height": 5,
+        "intensity": 3,
+        "width": 30
+      },
+      {
+        "direction": [
+          1,
+          0.5,
+          -0.35
+        ],
+        "height": 6,
+        "intensity": 3,
+        "width": 26
+      },
+      {
+        "color": [
+          1,
+          0.92,
+          0.9
+        ],
+        "direction": [
+          -1,
+          0.35,
+          0.25
+        ],
+        "height": 22,
+        "intensity": 2.5,
+        "width": 14
+      }
+    ]
+  },
+  "lights": [
+    {
+      "color": [
+        1,
+        0.97,
+        0.94
+      ],
+      "direction": [
+        0.45,
+        1,
+        0.55
+      ],
+      "intensity": 1.5,
+      "kind": "sun",
+      "softness": 0.12
+    },
+    {
+      "color": [
+        1,
+        0.85,
+        0.8
+      ],
+      "intensity": 14,
+      "kind": "point",
+      "position": [
+        -4,
+        2.2,
+        -2.5
+      ],
+      "softness": 0.2
+    }
+  ],
+  "materials": [
+    {
+      "clearcoat": 1,
+      "color": [
+        0.6,
+        0.012,
+        0.018
+      ],
+      "id": "paint",
+      "metallic": 0.45,
+      "roughness": 0.45
+    },
+    {
+      "clearcoat": 1,
+      "color": [
+        0.05,
+        0.05,
+        0.056
+      ],
+      "id": "carbon",
+      "pattern": "carbon",
+      "patternScale": 1.4,
+      "roughness": 0.32
+    },
+    {
+      "clearcoat": 1,
+      "color": [
+        0.006,
+        0.006,
+        0.008
+      ],
+      "id": "glass",
+      "roughness": 0.04
+    },
+    {
+      "color": [
+        0.012,
+        0.012,
+        0.012
+      ],
+      "id": "trim",
+      "roughness": 0.55
+    },
+    {
+      "color": [
+        0.04,
+        0.04,
+        0.04
+      ],
+      "id": "grille",
+      "pattern": "grille",
+      "patternScale": 1.2,
+      "roughness": 0.45
+    },
+    {
+      "color": [
+        0.025,
+        0.025,
+        0.027
+      ],
+      "id": "rubber",
+      "roughness": 0.82
+    },
+    {
+      "color": [
+        0.035,
+        0.035,
+        0.04
+      ],
+      "id": "rim",
+      "metallic": 0.9,
+      "roughness": 0.22
+    },
+    {
+      "color": [
+        0.5,
+        0.5,
+        0.52
+      ],
+      "id": "disc",
+      "metallic": 1,
+      "pattern": "brushed",
+      "roughness": 0.32
+    },
+    {
+      "clearcoat": 0.7,
+      "color": [
+        0.85,
+        0.02,
+        0.02
+      ],
+      "id": "caliper",
+      "roughness": 0.3
+    },
+    {
+      "color": [
+        0.9,
+        0.9,
+        0.95
+      ],
+      "emission": [
+        1,
+        0.97,
+        0.92
+      ],
+      "emissionStrength": 7,
+      "id": "headlight"
+    },
+    {
+      "color": [
+        0.5,
+        0,
+        0
+      ],
+      "emission": [
+        1,
+        0.04,
+        0.02
+      ],
+      "emissionStrength": 9,
+      "id": "taillight"
+    },
+    {
+      "color": [
+        0.8,
+        0.8,
+        0.82
+      ],
+      "id": "chrome",
+      "metallic": 1,
+      "roughness": 0.12
+    }
+  ],
+  "parts": [
+    {
+      "id": "body",
+      "mirror": [
+        "z"
+      ],
+      "shapes": [
+        {
+          "material": "paint",
+          "position": [
+            0,
+            0.58,
+            0
+          ],
+          "shape": "ellipsoid",
+          "size": [
+            2.32,
+            0.5,
+            0.96
+          ]
+        },
+        {
+          "op": "intersect",
+          "position": [
+            0,
+            0.6,
+            0
+          ],
+          "round": 0.06,
+          "shape": "box",
+          "size": [
+            2.4,
+            0.42,
+            0.93
+          ]
+        },
+        {
+          "k": 0.2,
+          "material": "paint",
+          "op": "smooth_union",
+          "position": [
+            -1.27,
+            0.64,
+            0.66
+          ],
+          "shape": "ellipsoid",
+          "size": [
+            0.9,
+            0.3,
+            0.34
+          ]
+        },
+        {
+          "k": 0.18,
+          "material": "paint",
+          "op": "smooth_union",
+          "position": [
+            1.3299999999999998,
+            0.58,
+            0.66
+          ],
+          "shape": "ellipsoid",
+          "size": [
+            0.78,
+            0.22,
+            0.3
+          ]
+        },
+        {
+          "op": "intersect",
+          "position": [
+            2.28,
+            0.5,
+            0
+          ],
+          "rotation": [
+            0,
+            0,
+            -14
+          ],
+          "shape": "halfspace",
+          "size": []
+        },
+        {
+          "op": "intersect",
+          "position": [
+            -2.3,
+            0.84,
+            0
+          ],
+          "rotation": [
+            0,
+            0,
+            7
+          ],
+          "shape": "halfspace",
+          "size": []
+        },
+        {
+          "op": "intersect",
+          "position": [
+            0,
+            0,
+            0.97
+          ],
+          "rotation": [
+            90,
+            0,
+            0
+          ],
+          "shape": "halfspace",
+          "size": []
+        },
+        {
+          "k": 0.07,
+          "material": "glass",
+          "op": "smooth_union",
+          "position": [
+            -0.25,
+            0.84,
+            0
+          ],
+          "shape": "ellipsoid",
+          "size": [
+            1.25,
+            0.4,
+            0.66
+          ]
+        },
+        {
+          "k": 0.04,
+          "material": "carbon",
+          "op": "smooth_union",
+          "position": [
+            -0.4,
+            1.2,
+            0
+          ],
+          "shape": "ellipsoid",
+          "size": [
+            0.7,
+            0.08,
+            0.46
+          ]
+        },
+        {
+          "material": "trim",
+          "op": "subtract",
+          "position": [
+            1.38,
+            0.36,
+            0.98
+          ],
+          "rotation": [
+            90,
+            0,
+            0
+          ],
+          "shape": "cylinder",
+          "size": [
+            0.43,
+            0.4
+          ]
+        },
+        {
+          "material": "trim",
+          "op": "subtract",
+          "position": [
+            -1.32,
+            0.36,
+            0.98
+          ],
+          "rotation": [
+            90,
+            0,
+            0
+          ],
+          "shape": "cylinder",
+          "size": [
+            0.44,
+            0.4
+          ]
+        },
+        {
+          "k": 0.04,
+          "material": "grille",
+          "op": "smooth_subtract",
+          "position": [
+            -0.62,
+            0.55,
+            0.97
+          ],
+          "rotation": [
+            0,
+            0,
+            6
+          ],
+          "shape": "ellipsoid",
+          "size": [
+            0.5,
+            0.14,
+            0.26
+          ]
+        },
+        {
+          "material": "trim",
+          "op": "subtract",
+          "position": [
+            0.72,
+            0.62,
+            0.95
+          ],
+          "rotation": [
+            0,
+            0,
+            8
+          ],
+          "shape": "box",
+          "size": [
+            0.004,
+            0.3,
+            0.3
+          ]
+        },
+        {
+          "material": "trim",
+          "op": "subtract",
+          "position": [
+            -0.98,
+            0.64,
+            0.95
+          ],
+          "rotation": [
+            0,
+            0,
+            -12
+          ],
+          "shape": "box",
+          "size": [
+            0.004,
+            0.25,
+            0.3
+          ]
+        },
+        {
+          "k": 0.03,
+          "material": "grille",
+          "op": "smooth_subtract",
+          "position": [
+            2.24,
+            0.33,
+            0.52
+          ],
+          "shape": "ellipsoid",
+          "size": [
+            0.3,
+            0.09,
+            0.4
+          ]
+        },
+        {
+          "k": 0.03,
+          "material": "grille",
+          "op": "smooth_subtract",
+          "position": [
+            2.27,
+            0.31,
+            0
+          ],
+          "shape": "ellipsoid",
+          "size": [
+            0.25,
+            0.07,
+            0.3
+          ]
+        },
+        {
+          "material": "headlight",
+          "op": "subtract",
+          "position": [
+            1.98,
+            0.58,
+            0.6
+          ],
+          "rotation": [
+            0,
+            -16,
+            -14
+          ],
+          "shape": "ellipsoid",
+          "size": [
+            0.24,
+            0.035,
+            0.1
+          ]
+        },
+        {
+          "material": "taillight",
+          "op": "subtract",
+          "position": [
+            -2.31,
+            0.8,
+            0
+          ],
+          "round": 0.005,
+          "shape": "box",
+          "size": [
+            0.04,
+            0.016,
+            0.72
+          ]
+        },
+        {
+          "material": "taillight",
+          "op": "subtract",
+          "position": [
+            -2.29,
+            0.78,
+            0.76
+          ],
+          "round": 0.005,
+          "shape": "box",
+          "size": [
+            0.04,
+            0.03,
+            0.08
+          ]
+        },
+        {
+          "material": "grille",
+          "op": "subtract",
+          "position": [
+            1.42,
+            0.85,
+            0.3
+          ],
+          "rotation": [
+            0,
+            0,
+            -14
+          ],
+          "round": 0.02,
+          "shape": "box",
+          "size": [
+            0.2,
+            0.03,
+            0.11
+          ]
+        }
+      ]
+    },
+    {
+      "id": "aero",
+      "mirror": [
+        "z"
+      ],
+      "shapes": [
+        {
+          "material": "carbon",
+          "position": [
+            2.02,
+            0.15,
+            0
+          ],
+          "round": 0.008,
+          "shape": "box",
+          "size": [
+            0.16,
+            0.01,
+            0.56
+          ]
+        },
+        {
+          "material": "carbon",
+          "position": [
+            0.0,
+            0.2,
+            0.9
+          ],
+          "round": 0.012,
+          "shape": "box",
+          "size": [
+            0.95,
+            0.03,
+            0.035
+          ]
+        },
+        {
+          "material": "carbon",
+          "position": [
+            -2.12,
+            0.24,
+            0
+          ],
+          "rotation": [
+            0,
+            0,
+            -12
+          ],
+          "round": 0.02,
+          "shape": "box",
+          "size": [
+            0.3,
+            0.12,
+            0.9
+          ]
+        },
+        {
+          "material": "carbon",
+          "op": "union",
+          "position": [
+            -2.12,
+            0.24,
+            0.3
+          ],
+          "rotation": [
+            0,
+            0,
+            -12
+          ],
+          "shape": "box",
+          "size": [
+            0.28,
+            0.1,
+            0.006
+          ]
+        },
+        {
+          "material": "carbon",
+          "position": [
+            -2.12,
+            0.24,
+            0.6
+          ],
+          "rotation": [
+            0,
+            0,
+            -12
+          ],
+          "shape": "box",
+          "size": [
+            0.28,
+            0.1,
+            0.006
+          ]
+        },
+        {
+          "material": "carbon",
+          "position": [
+            -2.08,
+            1.16,
+            0
+          ],
+          "rotation": [
+            0,
+            0,
+            5
+          ],
+          "round": 0.01,
+          "shape": "box",
+          "size": [
+            0.24,
+            0.018,
+            1.0
+          ]
+        },
+        {
+          "material": "carbon",
+          "position": [
+            -2.02,
+            1.0,
+            0.45
+          ],
+          "rotation": [
+            0,
+            0,
+            -10
+          ],
+          "shape": "box",
+          "size": [
+            0.08,
+            0.16,
+            0.012
+          ]
+        },
+        {
+          "material": "carbon",
+          "position": [
+            -2.1,
+            1.18,
+            1.0
+          ],
+          "round": 0.005,
+          "shape": "box",
+          "size": [
+            0.16,
+            0.08,
+            0.012
+          ]
+        },
+        {
+          "material": "carbon",
+          "position": [
+            0.55,
+            0.98,
+            0.98
+          ],
+          "shape": "ellipsoid",
+          "size": [
+            0.12,
+            0.05,
+            0.06
+          ]
+        },
+        {
+          "material": "trim",
+          "position": [
+            0.55,
+            0.93,
+            0.9
+          ],
+          "shape": "box",
+          "size": [
+            0.04,
+            0.05,
+            0.08
+          ]
+        },
+        {
+          "material": "chrome",
+          "position": [
+            -2.3,
+            0.3,
+            0.14
+          ],
+          "rotation": [
+            0,
+            0,
+            90
+          ],
+          "shape": "cylinder",
+          "shell": 0.008,
+          "size": [
+            0.055,
+            0.08
+          ]
+        },
+        {
+          "material": "chrome",
+          "position": [
+            -2.3,
+            0.3,
+            0.3
+          ],
+          "rotation": [
+            0,
+            0,
+            90
+          ],
+          "shape": "cylinder",
+          "shell": 0.008,
+          "size": [
+            0.055,
+            0.08
+          ]
+        }
+      ]
+    },
+    {
+      "id": "wheels",
+      "mirror": [
+        "x",
+        "z"
+      ],
+      "shapes": [
+        {
+          "material": "rubber",
+          "position": [
+            1.35,
+            0.36,
+            0.86
+          ],
+          "rotation": [
+            90,
+            0,
+            0
+          ],
+          "round": 0.05,
+          "shape": "cylinder",
+          "size": [
+            0.36,
+            0.13
+          ]
+        },
+        {
+          "material": "trim",
+          "op": "subtract",
+          "position": [
+            1.35,
+            0.36,
+            0.98
+          ],
+          "rotation": [
+            90,
+            0,
+            0
+          ],
+          "shape": "cylinder",
+          "size": [
+            0.285,
+            0.2
+          ]
+        },
+        {
+          "material": "rim",
+          "op": "union",
+          "position": [
+            1.35,
+            0.36,
+            0.84
+          ],
+          "rotation": [
+            90,
+            0,
+            0
+          ],
+          "shape": "cylinder",
+          "size": [
+            0.27,
+            0.1
+          ]
+        },
+        {
+          "material": "trim",
+          "op": "subtract",
+          "position": [
+            1.35,
+            0.36,
+            0.98
+          ],
+          "rotation": [
+            90,
+            0,
+            0
+          ],
+          "shape": "cylinder",
+          "size": [
+            0.23,
+            0.2
+          ]
+        },
+        {
+          "material": "rim",
+          "offset": [
+            0.135,
+            0,
+            0
+          ],
+          "position": [
+            1.35,
+            0.36,
+            0.93
+          ],
+          "repeat": {
+            "axis": "z",
+            "count": 10
+          },
+          "round": 0.006,
+          "shape": "box",
+          "size": [
+            0.115,
+            0.018,
+            0.02
+          ]
+        },
+        {
+          "material": "disc",
+          "position": [
+            1.35,
+            0.36,
+            0.86
+          ],
+          "rotation": [
+            90,
+            0,
+            0
+          ],
+          "shape": "cylinder",
+          "size": [
+            0.24,
+            0.012
+          ]
+        },
+        {
+          "material": "caliper",
+          "position": [
+            1.18,
+            0.42,
+            0.9
+          ],
+          "rotation": [
+            0,
+            0,
+            35
+          ],
+          "round": 0.02,
+          "shape": "box",
+          "size": [
+            0.06,
+            0.1,
+            0.03
+          ]
+        },
+        {
+          "material": "chrome",
+          "position": [
+            1.35,
+            0.36,
+            0.95
+          ],
+          "rotation": [
+            90,
+            0,
+            0
+          ],
+          "shape": "cylinder",
+          "size": [
+            0.045,
+            0.03
+          ]
+        }
+      ]
+    }
+  ],
+  "render": {
+    "exposure": 1.35,
+    "height": 2160,
+    "samples": 8,
+    "width": 3840
+  }
+}
