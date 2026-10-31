@@ -32,19 +32,13 @@ def office_inspect_workbook(path: str) -> dict:
 
 
 @app.tool()
-def office_reconcile_workbook(source: str, left: dict, right: dict, output: str) -> dict:
-    """Reconcile."""
+def office_write_workbook(path: str, sheets: list[dict]) -> dict:
+    """Write."""
     if MODE == "crash":
         os._exit(3)  # dies after it may have written
     if MODE == "hang":
         time.sleep(60)
-    return {"sha256": "0" * 64, "rows": 0}
-
-
-@app.tool()
-def office_write_report(workbook: str, docx: str, pdf: str, title: str) -> dict:
-    """Report."""
-    return {}
+    return {"sha256": "0" * 64}
 
 
 @app.tool()
@@ -65,12 +59,6 @@ def fs_read_text(path: str) -> dict:
 @app.tool()
 def office_write_document(docx: str, title: str, sections: list[dict], pdf: str | None = None) -> dict:
     """Document."""
-    return {}
-
-
-@app.tool()
-def office_write_workbook(path: str, sheets: list[dict]) -> dict:
-    """Workbook."""
     return {}
 
 

@@ -30,12 +30,6 @@ const workspacePath = z
   .max(260)
   .refine((path) => !/\p{Cc}/u.test(path), "control characters");
 
-const column = z.strictObject({
-  sheet: z.string().min(1).max(31),
-  key: z.string().min(1).max(100),
-  amount: z.string().min(1).max(100),
-});
-
 /** An executable's file name, as `apps.list` reports it and an `app:` permission names it. */
 const exe = z
   .string()
@@ -475,30 +469,6 @@ export const OPERATIONS = {
     risk: "read",
     arguments: z.strictObject({ path: workspacePath }),
   },
-  "office.reconcile_workbook": {
-    engine: "office",
-    role: "sys_core",
-    capability: "files",
-    risk: "reversible_write",
-    arguments: z.strictObject({
-      source: workspacePath,
-      left: column,
-      right: column,
-      output: workspacePath,
-    }),
-  },
-  "office.write_report": {
-    engine: "office",
-    role: "sys_core",
-    capability: "files",
-    risk: "reversible_write",
-    arguments: z.strictObject({
-      workbook: workspacePath,
-      docx: workspacePath,
-      pdf: workspacePath,
-      title: z.string().min(1).max(200),
-    }),
-  },
   "office.write_document": {
     role: "sys_core",
     capability: "files",
@@ -523,6 +493,7 @@ export const OPERATIONS = {
     }),
   },
   "office.write_workbook": {
+    engine: "office",
     role: "sys_core",
     capability: "files",
     risk: "reversible_write",
@@ -699,20 +670,6 @@ export const OPERATIONS = {
     risk: "external_effect",
     arguments: mcpCall,
     target: mcpTarget,
-  },
-  "verify.reconciliation_report": {
-    role: "verifier",
-    capability: "files",
-    risk: "read",
-    arguments: z.strictObject({
-      source: workspacePath,
-      sourceSha256: z.string().regex(/^[0-9a-f]{64}$/),
-      left: column,
-      right: column,
-      workbook: workspacePath,
-      docx: workspacePath,
-      pdf: workspacePath,
-    }),
   },
   "verify.checks": {
     role: "verifier",

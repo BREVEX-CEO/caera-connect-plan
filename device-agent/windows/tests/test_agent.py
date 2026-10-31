@@ -71,12 +71,11 @@ class StopInFlightTest(unittest.TestCase):
     def stop_in_flight(self, warm):
         workspace = Path(tempfile.mkdtemp())
         (workspace / ".fake_mode").write_text("hang")
-        spec = PROTOCOL["operations"]["office.reconcile_workbook"]
-        side = {"sheet": "a", "key": "b", "amount": "c"}
+        spec = PROTOCOL["operations"]["office.write_workbook"]
         intent = {
-            "v": 1, "key": "reconcile", "operation": "office.reconcile_workbook",
+            "v": 1, "key": "write", "operation": "office.write_workbook",
             "capability": spec["capability"], "risk": spec["risk"],
-            "arguments": {"source": "x.xlsx", "left": side, "right": side, "output": "OCADE output/x.xlsx"},
+            "arguments": {"path": "OCADE output/x.xlsx", "sheets": [{"name": "S", "rows": [[1]]}]},
             "deadlineUtc": (datetime.now(timezone.utc) + timedelta(minutes=5)).isoformat().replace("+00:00", "Z"),
         }
         device = StoppedServer()

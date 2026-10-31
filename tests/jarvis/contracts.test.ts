@@ -113,7 +113,7 @@ test("operations needing an engine the computer lacks are never offered", async 
   assert.ok(offered.includes("media.render_timeline") && offered.includes("fs.list"));
   assert.ok(!offered.includes("scene.render") && !offered.includes("web.open"));
   assert.ok(
-    !offered.includes("office.write_report") && !offered.some((o) => o.startsWith("verify.")),
+    !offered.includes("office.write_workbook") && !offered.some((o) => o.startsWith("verify.")),
   );
   assert.ok(offeredOperations(["files", "browser"], null).includes("scene.render"));
   assert.ok(!offeredOperations(["files"], null).includes("web.open"));

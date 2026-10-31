@@ -12,7 +12,6 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import anyio
-import openpyxl
 
 from ocade_agent.gateway import PROTOCOL, Gateway
 from tests.fixtures import ledger_workbook
@@ -58,11 +57,12 @@ class PackagingContract(unittest.TestCase):
 
 
 class Journey(unittest.TestCase):
-    """Workbook -> reconciliation -> Word + PDF -> independent verification."""
+    """Generic primitives on real files: read a workbook, write a computed one and a report,
+    then the separate verifier re-reads what was saved. The steps are a test's, not a product route."""
 
     def setUp(self):
         self.root = Path(tempfile.mkdtemp())
-        self.case = ledger_workbook(self.root / "Q3 ledger.xlsx")
+        ledger_workbook(self.root / "Q3 ledger.xlsx")
         self.out = "OCADE output/t1"
 
     def run_all(self, gateway, steps):
@@ -71,62 +71,43 @@ class Journey(unittest.TestCase):
                 return [await gateway.run(step, gateway.epoch) for step in steps]
         return anyio.run(go)
 
-    def actor_steps(self):
-        return [
-            intent("office.inspect_workbook", {"path": "Q3 ledger.xlsx"}),
-            intent("office.reconcile_workbook", {"source": "Q3 ledger.xlsx", "left": self.case["left"],
-                                                  "right": self.case["right"], "output": f"{self.out}/r.xlsx"}),
-            intent("office.write_report", {"workbook": f"{self.out}/r.xlsx", "docx": f"{self.out}/r.docx",
-                                           "pdf": f"{self.out}/r.pdf", "title": "Q3 reconciliation"}),
-        ]
-
-    def verify_step(self, source_sha):
-        return intent("verify.reconciliation_report", {
-            "source": "Q3 ledger.xlsx", "sourceSha256": source_sha, "left": self.case["left"],
-            "right": self.case["right"], "workbook": f"{self.out}/r.xlsx", "docx": f"{self.out}/r.docx",
-            "pdf": f"{self.out}/r.pdf"})
+    def checks(self):
+        return intent("verify.checks", {"checks": [
+            {"id": "net", "description": "net difference", "kind": "workbook_cell_equals",
+             "params": {"path": f"{self.out}/r.xlsx", "sheet": "R", "cell": "B4", "value": 31.5}},
+            {"id": "wrong", "description": "a value that is not there", "kind": "workbook_cell_equals",
+             "params": {"path": f"{self.out}/r.xlsx", "sheet": "R", "cell": "B4", "value": 41.5}},
+            {"id": "pdf", "description": "report pdf", "kind": "file_contains",
+             "params": {"path": f"{self.out}/r.pdf", "text": "Net difference"}},
+        ]})
 
     @unittest.skipUnless(HAS_ENGINE, "needs a real office engine")
-    def test_real_journey_passes_independent_verification(self):
+    def test_generic_office_primitives_pass_independent_verification(self):
         original = (self.root / "Q3 ledger.xlsx").read_bytes()
-        inspect, reconcile, report = self.run_all(Gateway(str(self.root)), self.actor_steps())
-        for result in (inspect, reconcile, report):
+        read, book, report = self.run_all(Gateway(str(self.root)), [
+            intent("fs.read_text", {"path": "Q3 ledger.xlsx"}),
+            intent("office.write_workbook", {"path": f"{self.out}/r.xlsx", "sheets": [{"name": "R", "rows": [
+                ["Ledger", 435.75], ["Bank", 467.25], ["", None], ["Net difference", "=B2-B1"]]}]}),
+            intent("office.write_document", {"docx": f"{self.out}/r.docx", "pdf": f"{self.out}/r.pdf", "title": "Q3",
+                                             "sections": [{"heading": "Summary", "paragraphs": ["Net difference 31.50"]}]}),
+        ])
+        for result in (read, book, report):
             self.assertEqual(result["status"], "observed", result)
-        self.assertEqual(reconcile["evidence"]["rows"], 5)
-        self.assertEqual(report["evidence"]["exceptions"], 3)
-        self.assertIn(reconcile["evidence"]["engine"], ("libreoffice", "excel"))
-
-        [verified] = self.run_all(Gateway(str(self.root)), [self.verify_step(inspect["evidence"]["sha256"])])
-        self.assertEqual(verified["status"], "observed", verified)
-        self.assertEqual(verified["evidence"]["predicates"], {
-            "original_unchanged": True, "rows_accounted": True, "totals_reconcile": True,
-            "formulas_recalculated": True, "report_docx_sections": True, "report_pdf_renders": True})
-        self.assertEqual(verified["evidence"]["sha256"]["workbook"], reconcile["evidence"]["sha256"])
+        self.assertIn("INV-5", read["evidence"]["text"])
+        self.assertIn(book["evidence"]["engine"], ("libreoffice", "excel"))
+        [verified] = self.run_all(Gateway(str(self.root)), [self.checks()])
+        # The formula was recalculated by a real engine: 467.25 - 435.75 = 31.5.
+        self.assertEqual(verified["evidence"]["predicates"], {"net": True, "wrong": False, "pdf": True})
         self.assertEqual((self.root / "Q3 ledger.xlsx").read_bytes(), original)
 
-        # Running the same write again cannot overwrite the deliverable.
-        [again] = self.run_all(Gateway(str(self.root)), [self.actor_steps()[1]])
+        # The same write again cannot overwrite the deliverable.
+        [again] = self.run_all(Gateway(str(self.root)), [intent("office.write_workbook", {
+            "path": f"{self.out}/r.xlsx", "sheets": [{"name": "R", "rows": [[1]]}]})])
         self.assertEqual((again["status"], again["errorCode"]), ("not_applied", "output_exists"))
 
-        # Tampering after the fact is caught by the verifier, not trusted from the actor.
-        book = openpyxl.load_workbook(self.root / self.out / "r.xlsx")
-        sheet = book["Reconciliation"]
-        sheet.cell(sheet.max_row, 4).value = 0  # a pasted number replaces the total formula
-        book.save(self.root / self.out / "r.xlsx")
-        with open(self.root / "Q3 ledger.xlsx", "ab") as stream:
-            stream.write(b"\0")
-        [tampered] = self.run_all(Gateway(str(self.root)), [self.verify_step(inspect["evidence"]["sha256"])])
-        predicates = tampered["evidence"]["predicates"]
-        self.assertFalse(predicates["original_unchanged"])
-        self.assertFalse(predicates["totals_reconcile"])
-        self.assertFalse(predicates["formulas_recalculated"])
-
-    def test_missing_outputs_are_unverified_not_passed(self):
-        [verified] = self.run_all(Gateway(str(self.root)), [self.verify_step("0" * 64)])
-        predicates = verified["evidence"]["predicates"]
-        self.assertFalse(predicates["original_unchanged"])
-        for name in ("rows_accounted", "totals_reconcile", "report_docx_sections", "report_pdf_renders"):
-            self.assertIsNone(predicates[name], name)
+    def test_missing_outputs_are_not_passed(self):
+        [verified] = self.run_all(Gateway(str(self.root)), [self.checks()])
+        self.assertEqual(verified["evidence"]["predicates"], {"net": False, "wrong": False, "pdf": False})
 
 
 class Refusals(unittest.TestCase):
@@ -174,8 +155,7 @@ class Refusals(unittest.TestCase):
         self.assertEqual(result["errorCode"], "worker_rejected")
 
     def test_worker_dying_mid_write_is_unknown_and_maybe_changed(self):
-        step = intent("office.reconcile_workbook", {"source": "book.xlsx", "left": {"sheet": "a", "key": "b", "amount": "c"},
-                                                    "right": {"sheet": "a", "key": "b", "amount": "c"}, "output": "OCADE output/x.xlsx"})
+        step = intent("office.write_workbook", {"path": "OCADE output/x.xlsx", "sheets": [{"name": "S", "rows": [[1]]}]})
         result = self.one(step, self.fake("crash"))
         self.assertEqual((result["status"], result["maybeChanged"]), ("unknown", True))
         read = self.one(intent("office.inspect_workbook", {"path": "book.xlsx"}), self.fake("crash"))

@@ -205,26 +205,33 @@ before(async () => {
       };
     } else if (!prompt.includes('"operation":"fs.list"')) {
       call = { name: "fs_list", args: { path: "." } };
-    } else if (!prompt.includes('"operation":"office.inspect_workbook"')) {
-      call = { name: "office_inspect_workbook", args: { path: "Q3 ledger.xlsx" } };
-    } else if (!prompt.includes('"operation":"office.reconcile_workbook"')) {
+    } else if (!prompt.includes('"operation":"fs.read_text"')) {
+      call = { name: "fs_read_text", args: { path: "Q3 ledger.xlsx" } };
+    } else if (!prompt.includes('"operation":"office.write_workbook"')) {
       call = {
-        name: "office_reconcile_workbook",
+        name: "office_write_workbook",
         args: {
-          source: "Q3 ledger.xlsx",
-          left: { sheet: "Ledger", key: "Invoice ID", amount: "Amount" },
-          right: { sheet: "Bank", key: "Reference", amount: "Amount" },
-          output: outputs.workbook,
+          path: outputs.workbook,
+          sheets: [
+            {
+              name: "Reconciliation",
+              rows: [
+                ["Ledger total", 435.75],
+                ["Bank total", 467.25],
+                ["Net difference", "=B2-B1"],
+              ],
+            },
+          ],
         },
       };
-    } else if (!prompt.includes('"operation":"office.write_report"')) {
+    } else if (!prompt.includes('"operation":"office.write_document"')) {
       call = {
-        name: "office_write_report",
+        name: "office_write_document",
         args: {
-          workbook: outputs.workbook,
           docx: outputs.docx,
           pdf: outputs.pdf,
           title: "Financial reconciliation",
+          sections: [{ heading: "Summary", paragraphs: ["Net difference 31.50"] }],
         },
       };
     } else {
@@ -386,7 +393,7 @@ test(
     const running = agent("run", "--workspace", workspace, "--until-idle");
     const claimedReport = () =>
       sql(`SELECT count(*) FROM public.jarvis_activity WHERE task_id = '${taskId}'
-          AND status = 'claimed' AND action ->> 'operation' = 'office.write_report'`) === "1";
+          AND status = 'claimed' AND action ->> 'operation' = 'office.write_document'`) === "1";
     const deadline = Date.now() + 60_000;
     while (!claimedReport()) {
       assert.ok(Date.now() < deadline, "the report step never started");

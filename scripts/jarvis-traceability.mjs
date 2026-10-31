@@ -44,7 +44,7 @@ const T = {
   catalog: "device-agent/windows/tests/test_catalog.py",
   fleet: "device-agent/windows/tests/mcp_fleet.py (measurement)",
   web: "device-agent/windows/tests/test_web.py",
-  media: "device-agent/windows/tests/test_media.py + tests/qualify_media.py (M1/M2 runs)",
+  media: "device-agent/windows/tests/test_media.py",
   ui: "evidence UI render (signed-out)",
 };
 
