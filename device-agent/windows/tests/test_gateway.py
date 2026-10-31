@@ -32,6 +32,31 @@ def intent(operation, arguments, minutes=10, **overrides):
     return value
 
 
+class PackagingContract(unittest.TestCase):
+    def test_frozen_worker_dispatch_uses_module_not_role(self):
+        """Frozen Windows launch must pass a valid agent worker MODULE, not registry role."""
+        import sys
+        from unittest.mock import patch
+
+        gateway = Gateway("sandbox")
+        with patch.object(sys, "frozen", True, create=True), patch.object(sys, "executable", "C:/OCADE/ocade-agent-bg.exe"):
+            for role in ("fs_sandbox", "sys_core", "verifier", "ui_bridge", "web_automation"):
+                params = gateway._parameters(role)
+                self.assertEqual(params.args, ["worker", gateway.modules[role]])
+                self.assertTrue(params.command.endswith("ocade-agent.exe"))
+
+    def test_observed_gateway_action_reports_monotonic_duration(self):
+        """The duration field is per-action evidence, not fabricated end-to-end timing."""
+        root = Path(tempfile.mkdtemp())
+        async def run():
+            async with Gateway(str(root)) as gateway:
+                return await gateway.run(intent("fs.list", {"path": "."}), gateway.epoch)
+        result = anyio.run(run)
+        self.assertEqual(result["status"], "observed", result)
+        self.assertIsInstance(result["evidence"]["durationMs"], (int, float))
+        self.assertGreaterEqual(result["evidence"]["durationMs"], 0)
+
+
 class Journey(unittest.TestCase):
     """Workbook -> reconciliation -> Word + PDF -> independent verification."""
 
