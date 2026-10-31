@@ -1,5 +1,15 @@
 # OCADE JARVIS — Master Engineering and Execution Plan for Claude Opus 5.5
 
+## LATEST STAGING PLANNER MIGRATION DECISION — 31 OCTOBER 2026
+
+Owner requests that JARVIS reuse the already-deployed, authenticated staging `ocade-intelligence-service`, rather than requiring a new `jarvis-planner` deployment and new `JARVIS_PLANNER_KEY`. Preserve the current code until a safe migration is implemented and tested. Do not rename an unrelated key or place sensitive server credentials in client code. The existing service requires server authentication, user identity, consent and a valid generation permit; these boundaries must remain effective.
+
+Implement a server-only adapter with the existing normalized tool-call contract, current commercial gate and task authority. Validate response schemas, refusals, STOP, usage limits, idempotency and independent verification. After successful automated tests, remove the obsolete planner-key dependency and redundant endpoint references. Historical checkpoints remain historical.
+
+Staging inventory confirms `ocade-intelligence-service` and `ocade-intelligence`, but not `jarvis-planner`. Do not deploy without separate approval. No spend, GitHub Actions, main merge or personal-device access. Run free local/mock contract tests and read-only staging inspections first. Real AI workflow qualification remains blocked until authorized runtime credentials, consent, permits and no-charge provider access are verifiably configured.
+
+
+
 ## CURRENT OWNER OVERRIDE — 31 OCTOBER 2026: NO-COST STAGING + TWO MEDIA ACCEPTANCE TASKS
 
 **This is the latest owner instruction and supersedes earlier CODE-FIRST/TEST-LATER sequencing in this document; do not delete the historical checkpoints.** Reuse the actual branch HEAD and the implemented code, fix defects, run authorized isolated tests in the same engineering pass, and distinguish code written from real-task proof. Continue other safe work if a resource is unavailable. This section does **not** authorize main merge, new deployment, any paid resource, GitHub Actions, production mutations, or using the owner's PC/profile/files/phone. Do not create paid Supabase branches or projects.
