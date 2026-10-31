@@ -16,6 +16,7 @@ The only code that starts capability workers or calls their tools:
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import sys
@@ -36,6 +37,10 @@ WORKERS = {
     "web_automation": "ocade_agent.web_worker",
 }
 MAX_CALL_SECONDS = 300
+# Network and browser settings the device owner chose; never account credentials or tokens.
+PASS_THROUGH = (
+    "HTTPS_PROXY", "HTTP_PROXY", "NO_PROXY", "DISPLAY", "XAUTHORITY", "OCADE_BROWSER_EXECUTABLE", "OCADE_ALLOW_PRIVATE_WEB",
+)
 
 
 def now_utc() -> str:
@@ -57,16 +62,26 @@ class Gateway:
     """Use as `async with Gateway(workspace) as gateway:`; workers end when the block does.
 
     Each worker's transport and session live in their own holder task, so they are
-    entered and exited in one task even though calls come from many.
+    entered and exited in one task even though calls come from many. Bundled
+    workers are keyed by module; approved external MCP servers (see `catalog.py`)
+    by `mcp:<id>`, started lazily, at most `max_external` at once.
     """
 
     def __init__(
-        self, workspace: str, worker_modules: dict[str, str] | None = None, extra_path: str = "", home: str = ""
+        self,
+        workspace: str,
+        worker_modules: dict[str, str] | None = None,
+        extra_path: str = "",
+        home: str = "",
+        external: dict[str, dict] | None = None,
+        max_external: int = 4,
     ):
         self.workspace = workspace
         self.home = home
         self.modules = worker_modules or WORKERS
         self.extra_path = extra_path
+        self.external = external or {}
+        self.max_external = max_external
         self.epoch = 0
         self._workers: dict[str, dict] = {}
 
@@ -75,44 +90,56 @@ class Gateway:
         return self
 
     async def __aexit__(self, *exc) -> bool | None:
-        for module in list(self._workers):
-            await self._discard(module)
+        for key in list(self._workers):
+            await self._discard(key)
         return await self._group.__aexit__(*exc)
 
     def stop(self) -> None:
         """Local STOP: nothing dispatched under an older epoch may start."""
         self.epoch += 1
 
-    async def _discard(self, module: str) -> None:
+    async def _discard(self, key: str) -> None:
         """End a worker, even one still starting; the SDK's shielded shutdown kills its process tree."""
-        worker = self._workers.pop(module, None)
+        worker = self._workers.pop(key, None)
         if worker:
             worker["scope"].cancel()
             with anyio.CancelScope(shield=True):
                 await worker["closed"].wait()
 
-    async def _hold(self, module: str, worker: dict) -> None:
+    def _parameters(self, key: str) -> StdioServerParameters:
+        if key.startswith("mcp:"):
+            manifest = self.external[key[4:]]
+            # Re-checked at every start: a replaced executable is not the approved one.
+            if hashlib.sha256(Path(manifest["command"]).read_bytes()).hexdigest() != manifest["sha256"]:
+                raise WorkerRejected("pin_mismatch")
+            # No workspace, no inherited secrets: only the SDK's minimal environment.
+            return StdioServerParameters(
+                command=manifest["command"], args=manifest.get("args", []), env=get_default_environment()
+            )
         package_root = str(Path(__file__).resolve().parent.parent)
         python_path = os.pathsep.join(p for p in (package_root, self.extra_path) if p)
         environment = get_default_environment() | {
             "PYTHONPATH": python_path,
             "OCADE_WORKSPACE": self.workspace,
             "OCADE_AGENT_HOME": self.home,
-        }
-        # A packaged companion is one executable that runs its own workers.
+        } | {name: os.environ[name] for name in PASS_THROUGH if name in os.environ}
+        # A packaged companion is one executable that runs its own workers
         # (the console build: a windowed executable has no stdout for the MCP protocol).
         if getattr(sys, "frozen", False):
-            command = [str(Path(sys.executable).with_name("ocade-agent.exe")), "worker", module]
+            command = [str(Path(sys.executable).with_name("ocade-agent.exe")), "worker", key]
         else:
-            command = [sys.executable, "-s", "-m", module]
-        parameters = StdioServerParameters(command=command[0], args=command[1:], env=environment, cwd=package_root)
+            command = [sys.executable, "-s", "-m", key]
+        return StdioServerParameters(command=command[0], args=command[1:], env=environment, cwd=package_root)
+
+    async def _hold(self, key: str, worker: dict) -> None:
         try:
+            parameters = self._parameters(key)
             with worker["scope"]:
                 async with stdio_client(parameters, errlog=sys.stderr) as (read, write):
                     async with ClientSession(read, write, read_timeout_seconds=30) as session:
                         await session.initialize()
                         listed = await session.list_tools()
-                        problem = self._tool_problem(module, {tool.name: tool.input_schema for tool in listed.tools})
+                        problem = self._tool_problem(key, {tool.name: tool.input_schema for tool in listed.tools})
                         if problem:
                             worker["error"] = WorkerRejected(problem)
                             return
@@ -125,31 +152,61 @@ class Gateway:
             worker["closed"].set()
             worker["started"].set()
 
-    async def _session(self, module: str) -> ClientSession:
-        worker = self._workers.get(module)
+    async def _session(self, key: str) -> ClientSession:
+        worker = self._workers.get(key)
         if worker is None:
+            if key.startswith("mcp:"):
+                active = [k for k in self._workers if k.startswith("mcp:")]
+                if len(active) >= self.max_external:
+                    await self._discard(active[0])  # least recently started
             # Registered before it starts, so STOP or shutdown can always end it.
             worker = {"scope": anyio.CancelScope(), "started": anyio.Event(), "closed": anyio.Event()}
-            self._workers[module] = worker
-            self._group.start_soon(self._hold, module, worker)
+            self._workers[key] = worker
+            self._group.start_soon(self._hold, key, worker)
         await worker["started"].wait()
         if "session" not in worker:
-            await self._discard(module)
+            await self._discard(key)
             raise worker.get("error") or RuntimeError("worker ended during start-up")
         return worker["session"]
 
-    def _tool_problem(self, module: str, tools: dict[str, dict]) -> str | None:
+    def _tool_problem(self, key: str, tools: dict[str, dict]) -> str | None:
+        """The live tool list must be exactly what was approved: names and argument schemas."""
+        if key.startswith("mcp:"):
+            approved = {t["name"]: t["inputSchema"] for t in self.external[key[4:]]["tools"]}
+            if set(tools) != set(approved):
+                return f"{key} offers {sorted(tools)}, approved {sorted(approved)}"
+            drifted = [n for n in approved if fingerprint(tools[n]) != fingerprint(approved[n])]
+            return f"{key} schemas drifted: {drifted}" if drifted else None
         expected = {
             name.replace(".", "_"): spec
             for name, spec in PROTOCOL["operations"].items()
-            if self.modules.get(spec["role"]) == module
+            if self.modules.get(spec["role"]) == key
         }
         if set(tools) != set(expected):
-            return f"{module} offers {sorted(tools)}, expected {sorted(expected)}"
+            return f"{key} offers {sorted(tools)}, expected {sorted(expected)}"
         for name, spec in expected.items():
             if set(tools[name].get("properties", {})) != set(spec["arguments"].get("properties", {})):
-                return f"{module}.{name} arguments drifted from the protocol"
+                return f"{key}.{name} arguments drifted from the protocol"
         return None
+
+    def _target(self, intent: dict, spec: dict) -> tuple[str, str, dict] | str:
+        """(worker key, tool name, arguments) for an intent, or a refusal code."""
+        if spec["role"] != "mcp":
+            return self.modules[spec["role"]], intent["operation"].replace(".", "_"), intent["arguments"]
+        arguments = intent["arguments"]
+        manifest = self.external.get(arguments["server"])
+        if manifest is None or manifest.get("state") != "trusted":
+            return "server_not_trusted"
+        tool = next((t for t in manifest["tools"] if t["name"] == arguments["tool"]), None)
+        if tool is None:
+            return "unknown_tool"
+        if tool["risk"] != spec["risk"]:
+            return "risk_mismatch"  # a write can never ride on a read operation
+        try:
+            validator(fingerprint(tool["inputSchema"]), tool["inputSchema"]).validate(arguments["arguments"])
+        except jsonschema.ValidationError:
+            return "invalid_intent"
+        return f"mcp:{manifest['id']}", tool["name"], arguments["arguments"]
 
     async def run(self, intent: dict, epoch: int) -> dict:
         """Dispatch one validated intent and return an honest receipt."""
@@ -164,20 +221,23 @@ class Gateway:
         ):
             return receipt("not_applied", False, error="invalid_intent")
         try:
-            jsonschema.validate(intent.get("arguments"), spec["arguments"])
+            validator(intent["operation"], spec["arguments"]).validate(intent.get("arguments"))
             deadline = datetime.fromisoformat(intent["deadlineUtc"].replace("Z", "+00:00"))
         except (jsonschema.ValidationError, KeyError, ValueError):
             return receipt("not_applied", False, error="invalid_intent")
         remaining = (deadline - datetime.now(timezone.utc)).total_seconds()
         if remaining <= 0:
             return receipt("not_applied", False, error="deadline_passed")
+        target = self._target(intent, spec)
+        if isinstance(target, str):
+            return receipt("not_applied", False, error=target)
+        key, tool, arguments = target
 
         writes = spec["risk"] != "read"
-        module = self.modules[spec["role"]]
         try:
-            session = await self._session(module)
+            session = await self._session(key)
         except anyio.get_cancelled_exc_class():
-            await self._discard(module)
+            await self._discard(key)
             raise
         except WorkerRejected:
             return receipt("not_applied", False, error="worker_rejected")
@@ -185,19 +245,26 @@ class Gateway:
             return receipt("not_applied", False, error="worker_unavailable")
         if epoch != self.epoch:  # STOP during worker start-up
             return receipt("not_applied", False, error="stopped")
+        limit = self.external[key[4:]].get("timeoutSeconds", 60) if key.startswith("mcp:") else MAX_CALL_SECONDS
         try:
-            with anyio.fail_after(min(remaining, MAX_CALL_SECONDS)):
-                result = await session.call_tool(intent["operation"].replace(".", "_"), intent["arguments"])
+            with anyio.fail_after(min(remaining, limit)):
+                result = await session.call_tool(tool, arguments)
         except anyio.get_cancelled_exc_class():
-            await self._discard(module)
+            await self._discard(key)
             raise
         except TimeoutError:
-            await self._discard(module)
+            await self._discard(key)
             return receipt("unknown" if writes else "not_applied", writes, error="timeout")
         except Exception:
-            await self._discard(module)
+            await self._discard(key)
             return receipt("unknown" if writes else "not_applied", writes, error="worker_lost")
 
+        if key.startswith("mcp:"):
+            # An external server's words are untrusted data: bounded text, never an instruction or a status.
+            text = "\n".join(getattr(part, "text", "") for part in result.content)[:8_000]
+            if result.is_error:
+                return receipt("unknown" if writes else "not_applied", writes, {"content": text}, "tool_error")
+            return receipt("observed", writes, {"content": text, "server": key[4:], "tool": tool})
         if result.is_error:
             return receipt("unknown" if writes else "not_applied", writes, error="tool_error")
         try:
@@ -211,3 +278,17 @@ class Gateway:
         if len(json.dumps(evidence)) > 16_000:
             return receipt("unknown" if writes else "not_applied", writes, error="evidence_too_large")
         return receipt("observed", writes, evidence)
+
+
+_VALIDATORS: dict[str, jsonschema.Draft202012Validator] = {}
+
+
+def validator(key: str, schema: dict) -> jsonschema.Draft202012Validator:
+    """A compiled validator per operation or schema; schemas themselves are checked when loaded."""
+    if key not in _VALIDATORS:
+        _VALIDATORS[key] = jsonschema.Draft202012Validator(schema)
+    return _VALIDATORS[key]
+
+
+def fingerprint(schema: dict) -> str:
+    return hashlib.sha256(json.dumps(schema, sort_keys=True, separators=(",", ":")).encode()).hexdigest()

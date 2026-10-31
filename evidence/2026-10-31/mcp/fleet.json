@@ -1,0 +1,69 @@
+{
+  "catalog": [
+    {
+      "manifests": 10,
+      "trusted": 10,
+      "rejected": 0,
+      "loadSeconds": 0.014
+    },
+    {
+      "manifests": 100,
+      "trusted": 100,
+      "rejected": 0,
+      "loadSeconds": 0.122
+    },
+    {
+      "manifests": 1000,
+      "trusted": 1000,
+      "rejected": 0,
+      "loadSeconds": 1.324
+    },
+    {
+      "manifests": 5000,
+      "trusted": 5000,
+      "rejected": 0,
+      "loadSeconds": 6.626
+    }
+  ],
+  "active": [
+    {
+      "servers": 1,
+      "activateAndCallSeconds": 1.09,
+      "workerProcesses": 1,
+      "rssMiB": 65.4,
+      "rssMiBPerServer": 65.4
+    },
+    {
+      "servers": 2,
+      "activateAndCallSeconds": 1.0,
+      "workerProcesses": 2,
+      "rssMiB": 130.5,
+      "rssMiBPerServer": 65.3
+    },
+    {
+      "servers": 4,
+      "activateAndCallSeconds": 1.05,
+      "workerProcesses": 4,
+      "rssMiB": 261.5,
+      "rssMiBPerServer": 65.4
+    },
+    {
+      "servers": 8,
+      "activateAndCallSeconds": 2.32,
+      "workerProcesses": 8,
+      "rssMiB": 523.0,
+      "rssMiBPerServer": 65.4
+    },
+    {
+      "servers": 16,
+      "activateAndCallSeconds": 5.2,
+      "workerProcesses": 16,
+      "rssMiB": 1046.3,
+      "rssMiBPerServer": 65.4
+    }
+  ],
+  "planner": {
+    "maxExternalToolSchemasPerTurn": 12,
+    "note": "routeExternalTools caps what a turn sees"
+  }
+}

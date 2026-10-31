@@ -145,6 +145,7 @@ const ACCESS: { capability: string; label: string }[] = [
   { capability: "apps", label: "Open and use allowed apps" },
   { capability: "browser", label: "Use allowed websites" },
   { capability: "computer_control", label: "Click on screen when nothing else works" },
+  { capability: "mcp", label: "Use tool servers you approved on that computer" },
 ];
 
 /** Settings > Devices: pair a computer, choose exactly what JARVIS may use on it, remove it. */
@@ -228,6 +229,8 @@ function DeviceAccess({
     exe: string;
   }[];
   const sites = (granted.data ?? []).filter((c) => c.startsWith("site:"));
+  const servers = ((device.capabilities as { mcp?: { id: string; publisher: string }[] } | null)
+    ?.mcp ?? []) as { id: string; publisher: string }[];
   return (
     <section className="space-y-2 rounded-lg border border-border/60 p-3" aria-label={device.name}>
       <div className="flex items-center justify-between gap-2">
@@ -276,6 +279,23 @@ function DeviceAccess({
             ))}
           </div>
         </details>
+      ) : null}
+      {has("mcp") && servers.length ? (
+        <div className="space-y-1">
+          <p className="text-muted-foreground">Approved tool servers</p>
+          {servers.map((server) => (
+            <label key={server.id} className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={has(`mcp:${server.id}`)}
+                onChange={(e) => set(`mcp:${server.id}`, e.target.checked)}
+              />
+              <span className="truncate">
+                {server.id} <span className="text-muted-foreground">({server.publisher})</span>
+              </span>
+            </label>
+          ))}
+        </div>
       ) : null}
       {has("browser") ? (
         <div className="space-y-1">
@@ -410,9 +430,19 @@ export function TaskPanel({
         </ul>
       ) : null}
       {task.artifacts.length ? (
-        <p className="mt-2 text-xs text-muted-foreground">
-          Saved on your computer, in its JARVIS folder: {task.artifacts.join(", ")}
-        </p>
+        <div className="mt-2 text-xs">
+          <p className="text-muted-foreground">
+            {task.status === "completed" ? "Your files" : "Files written so far"} — on{" "}
+            {task.device ?? "your computer"}, in its OCADE JARVIS folder:
+          </p>
+          <ul className="mt-1 space-y-0.5 font-mono">
+            {task.artifacts.map((path) => (
+              <li key={path} className="break-all">
+                {path}
+              </li>
+            ))}
+          </ul>
+        </div>
       ) : null}
     </section>
   );

@@ -23,7 +23,7 @@ from pathlib import Path
 
 import anyio
 
-from . import discovery
+from . import catalog, discovery
 from .device import Device
 from .gateway import WORKERS, Gateway, receipt
 from .journal import Journal
@@ -114,9 +114,12 @@ class Agent:
             await anyio.sleep(2 + random.random() * 3)
 
     async def run(self, until_idle: bool = False) -> None:
+        # What the person can choose from: installed apps and approved external MCP servers.
         apps = await anyio.to_thread.run_sync(discovery.installed_apps)
-        if apps:  # what the person can choose from in Allowed Apps
-            await anyio.to_thread.run_sync(self.device.request, {"op": "inventory", "apps": apps})
+        await anyio.to_thread.run_sync(
+            self.device.request,
+            {"op": "inventory", "apps": apps, "mcp": catalog.describe(self.gateway.external)},
+        )
         idle = 1.0
         while True:
             if self.stopped_here():
@@ -174,7 +177,10 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Pairing code: {enrolled['code']}  (type it in OCADE JARVIS within 10 minutes)")
         return 0
     (home / "STOP").unlink(missing_ok=True)  # starting again is the person's decision
-    gateway = Gateway(device.config["workspace"], home=str(home))
+    external, rejected = catalog.load(home)
+    for entry in rejected:
+        print(f"MCP manifest {entry['file']} not used: {entry['reason']}", file=sys.stderr)
+    gateway = Gateway(device.config["workspace"], home=str(home), external=external)
 
     async def go() -> str | None:
         async with gateway:

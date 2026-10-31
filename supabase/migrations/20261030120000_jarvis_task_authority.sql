@@ -24,6 +24,17 @@ CREATE UNIQUE INDEX IF NOT EXISTS jarvis_activity_one_action_per_key
   ON public.jarvis_activity (task_id, (action ->> 'key'))
   WHERE action IS NOT NULL;
 
+-- Approved external MCP servers are granted per server: `mcp` (the kind) and `mcp:<id>`.
+ALTER TABLE public.jarvis_permissions DROP CONSTRAINT IF EXISTS jarvis_permissions_capability_check;
+ALTER TABLE public.jarvis_permissions ADD CONSTRAINT jarvis_permissions_capability_check CHECK (
+  capability IN ('master', 'memory', 'autonomous', 'browser', 'browser_real', 'files', 'screen',
+                 'microphone', 'camera', 'apps', 'messaging', 'devices', 'computer_control',
+                 'terminal', 'cowork', 'mcp')
+  OR capability ~ '^site:[a-z0-9]([a-z0-9.-]{0,251}[a-z0-9])?$'
+  OR (capability ~ '^app:[^[:cntrl:]]{1,80}$' AND capability !~ '[‎‏‪-‮⁦-⁩]')
+  OR capability ~ '^mcp:[a-z][a-z0-9_]{1,30}$'
+);
+
 -- 2. Shared checks ------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION public.jarvis_paused()
@@ -70,7 +81,9 @@ AS $$
      AND (p_action -> 'target' ->> 'app' IS NULL
           OR public.jarvis_allowed(p_user, p_device, 'app:' || (p_action -> 'target' ->> 'app')))
      AND (p_action -> 'target' ->> 'site' IS NULL
-          OR public.jarvis_allowed(p_user, p_device, 'site:' || (p_action -> 'target' ->> 'site')));
+          OR public.jarvis_allowed(p_user, p_device, 'site:' || (p_action -> 'target' ->> 'site')))
+     AND (p_action -> 'target' ->> 'mcp' IS NULL
+          OR public.jarvis_allowed(p_user, p_device, 'mcp:' || (p_action -> 'target' ->> 'mcp')));
 $$;
 
 -- Everything a person has turned on for one device (and account-wide), for planning and display.
@@ -522,7 +535,9 @@ AS $$
     'id', t.id, 'userId', t.user_id, 'status', t.status, 'controller', t.controller,
     'title', t.title, 'outcome', t.outcome, 'blocker', t.blocker, 'result', t.result,
     'checkpoint', t.checkpoint, 'conversationId', t.conversation_id,
+    'deviceName', (SELECT d.name FROM public.jarvis_devices AS d WHERE d.id = t.device_id),
     'apps', (SELECT d.installed_apps FROM public.jarvis_devices AS d WHERE d.id = t.device_id),
+    'mcp', (SELECT coalesce(d.capabilities -> 'mcp', '[]'::jsonb) FROM public.jarvis_devices AS d WHERE d.id = t.device_id),
     'grants', public.jarvis_grants(t.user_id, t.device_id),
     'steps', coalesce((
       SELECT jsonb_agg(jsonb_build_object('id', a.id, 'summary', a.summary, 'intent', a.action,
@@ -610,13 +625,14 @@ END;
 $$;
 
 -- The apps a device found installed, for the person's Allowed Apps choice and the planner.
-CREATE OR REPLACE FUNCTION public.jarvis_device_inventory(p_device uuid, p_apps jsonb)
+CREATE OR REPLACE FUNCTION public.jarvis_device_inventory(p_device uuid, p_apps jsonb, p_mcp jsonb)
 RETURNS void
 LANGUAGE sql
 SECURITY INVOKER
 SET search_path TO ''
 AS $$
-  UPDATE public.jarvis_devices AS d SET installed_apps = p_apps
+  UPDATE public.jarvis_devices AS d
+     SET installed_apps = p_apps, capabilities = d.capabilities || jsonb_build_object('mcp', p_mcp)
    WHERE d.id = p_device AND d.user_id IS NOT NULL AND d.revoked_at IS NULL;
 $$;
 
@@ -655,7 +671,7 @@ BEGIN
     'public.jarvis_confirm_action(uuid, uuid)',
     'public.jarvis_take_over(uuid, uuid)',
     'public.jarvis_resume_task(uuid, uuid)',
-    'public.jarvis_device_inventory(uuid, jsonb)',
+    'public.jarvis_device_inventory(uuid, jsonb, jsonb)',
     'public.jarvis_device_code(text)',
     'public.jarvis_enroll_device(text, text, text, text, text)',
     'public.jarvis_approve_device(uuid, text)',

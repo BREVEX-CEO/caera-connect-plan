@@ -1818,7 +1818,7 @@ export type Database = {
         Returns: string
       }
       jarvis_device_inventory: {
-        Args: { p_apps: Json; p_device: string }
+        Args: { p_apps: Json; p_device: string; p_mcp: Json }
         Returns: undefined
       }
       jarvis_allowed: {

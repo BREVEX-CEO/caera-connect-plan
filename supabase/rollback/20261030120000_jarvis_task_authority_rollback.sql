@@ -4,7 +4,7 @@ BEGIN;
 
 DROP FUNCTION IF EXISTS public.jarvis_revoke_device(uuid, uuid);
 DROP FUNCTION IF EXISTS public.jarvis_task_state(uuid);
-DROP FUNCTION IF EXISTS public.jarvis_device_inventory(uuid, jsonb);
+DROP FUNCTION IF EXISTS public.jarvis_device_inventory(uuid, jsonb, jsonb);
 DROP FUNCTION IF EXISTS public.jarvis_task_wait(uuid, uuid, text);
 DROP FUNCTION IF EXISTS public.jarvis_resume_task(uuid, uuid);
 DROP FUNCTION IF EXISTS public.jarvis_take_over(uuid, uuid);
@@ -27,5 +27,15 @@ DROP FUNCTION IF EXISTS public.jarvis_allowed(uuid, uuid, text);
 DROP FUNCTION IF EXISTS public.jarvis_paused();
 DROP INDEX IF EXISTS public.jarvis_activity_one_action_per_key;
 GRANT INSERT, UPDATE ON public.jarvis_tasks TO authenticated;
+UPDATE public.jarvis_devices SET capabilities = capabilities - 'mcp';
+DELETE FROM public.jarvis_permissions WHERE capability = 'mcp' OR capability LIKE 'mcp:%';
+ALTER TABLE public.jarvis_permissions DROP CONSTRAINT IF EXISTS jarvis_permissions_capability_check;
+ALTER TABLE public.jarvis_permissions ADD CONSTRAINT jarvis_permissions_capability_check CHECK (
+  capability IN ('master', 'memory', 'autonomous', 'browser', 'browser_real', 'files', 'screen',
+                 'microphone', 'camera', 'apps', 'messaging', 'devices', 'computer_control',
+                 'terminal', 'cowork')
+  OR capability ~ '^site:[a-z0-9]([a-z0-9.-]{0,251}[a-z0-9])?$'
+  OR (capability ~ '^app:[^[:cntrl:]]{1,80}$' AND capability !~ '[‎‏‪-‮⁦-⁩]')
+);
 
 COMMIT;

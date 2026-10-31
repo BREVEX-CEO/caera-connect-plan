@@ -12,6 +12,8 @@ from __future__ import annotations
 import hashlib
 import io
 import os
+import shutil
+import subprocess
 import sys
 import zipfile
 from pathlib import Path
@@ -179,6 +181,20 @@ def _check(kind: str, params: dict) -> bool | None:
         if isinstance(expected, (int, float)) and isinstance(value, (int, float)):
             return abs(value - expected) < TOLERANCE
         return value is not None and str(value) == str(expected)
+    if kind == "media_duration":
+        try:
+            path = resolve(WORKSPACE, params["path"])
+        except (Refused, KeyError):
+            return False
+        probe = shutil.which("ffprobe")
+        if not probe:
+            return None
+        run = subprocess.run([probe, "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", str(path)],
+                             capture_output=True, text=True, timeout=60)
+        try:
+            return abs(float(run.stdout.strip()) - float(params["value"])) <= 0.25
+        except ValueError:
+            return False
     if kind == "web_text_contains":
         # Read anonymously: a page that needs a sign-in cannot be observed this way.
         import html

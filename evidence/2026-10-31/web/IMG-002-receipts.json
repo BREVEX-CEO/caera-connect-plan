@@ -1,0 +1,169 @@
+[
+  {
+    "status": "observed",
+    "maybeChanged": true,
+    "observedAtUtc": "2026-10-31T05:33:14.540Z",
+    "evidence": {
+      "attached": [
+        "photo.png"
+      ],
+      "matches": true
+    }
+  },
+  {
+    "status": "observed",
+    "maybeChanged": true,
+    "observedAtUtc": "2026-10-31T05:33:15.133Z",
+    "evidence": {
+      "page": {
+        "id": "cdda8c35e29a",
+        "site": "127.0.0.1"
+      },
+      "url": "https://127.0.0.1:38733/editor",
+      "title": "/editor",
+      "text": "Photo editor\n Crop 16:9Brightness  Text Apply textExport PNG ",
+      "controls": [
+        {
+          "tag": "input",
+          "type": "file",
+          "name": "",
+          "label": "C:\\fakepath\\photo.png",
+          "selector": "#photo"
+        },
+        {
+          "tag": "button",
+          "type": "submit",
+          "name": "",
+          "label": "Crop 16:9",
+          "selector": "#crop"
+        },
+        {
+          "tag": "input",
+          "type": "range",
+          "name": "",
+          "label": "Brightness",
+          "selector": "#brightness"
+        },
+        {
+          "tag": "input",
+          "type": "text",
+          "name": "",
+          "label": "Text",
+          "selector": "#label"
+        },
+        {
+          "tag": "button",
+          "type": "submit",
+          "name": "",
+          "label": "Apply text",
+          "selector": "#apply"
+        },
+        {
+          "tag": "button",
+          "type": "submit",
+          "name": "",
+          "label": "Export PNG",
+          "selector": "#export"
+        }
+      ],
+      "needsSignIn": false,
+      "popups": []
+    }
+  },
+  {
+    "status": "observed",
+    "maybeChanged": true,
+    "observedAtUtc": "2026-10-31T05:33:15.182Z",
+    "evidence": {
+      "matches": true
+    }
+  },
+  {
+    "status": "observed",
+    "maybeChanged": true,
+    "observedAtUtc": "2026-10-31T05:33:15.215Z",
+    "evidence": {
+      "matches": true
+    }
+  },
+  {
+    "status": "observed",
+    "maybeChanged": true,
+    "observedAtUtc": "2026-10-31T05:33:15.788Z",
+    "evidence": {
+      "page": {
+        "id": "cdda8c35e29a",
+        "site": "127.0.0.1"
+      },
+      "url": "https://127.0.0.1:38733/editor",
+      "title": "/editor",
+      "text": "Photo editor\n Crop 16:9Brightness  Text Apply textExport PNG ",
+      "controls": [
+        {
+          "tag": "input",
+          "type": "file",
+          "name": "",
+          "label": "C:\\fakepath\\photo.png",
+          "selector": "#photo"
+        },
+        {
+          "tag": "button",
+          "type": "submit",
+          "name": "",
+          "label": "Crop 16:9",
+          "selector": "#crop"
+        },
+        {
+          "tag": "input",
+          "type": "range",
+          "name": "",
+          "label": "Brightness",
+          "selector": "#brightness"
+        },
+        {
+          "tag": "input",
+          "type": "text",
+          "name": "",
+          "label": "Text",
+          "selector": "#label"
+        },
+        {
+          "tag": "button",
+          "type": "submit",
+          "name": "",
+          "label": "Apply text",
+          "selector": "#apply"
+        },
+        {
+          "tag": "button",
+          "type": "submit",
+          "name": "",
+          "label": "Export PNG",
+          "selector": "#export"
+        }
+      ],
+      "needsSignIn": false,
+      "popups": []
+    }
+  },
+  {
+    "status": "observed",
+    "maybeChanged": true,
+    "observedAtUtc": "2026-10-31T05:33:15.888Z",
+    "evidence": {
+      "sha256": "5c1c6790293605a2dea079cf65a8a7d9cb14bf5ad291485313b3f15ad117049f",
+      "bytes": 21470
+    }
+  },
+  {
+    "status": "observed",
+    "maybeChanged": true,
+    "observedAtUtc": "2026-10-31T05:33:15.989Z",
+    "evidence": {
+      "sha256": "3c71e37caac6466508c9887a1129fc09b60280a51bd16cec71ea90ad6e414e82",
+      "bytes": 15818,
+      "suggested": "edited.png",
+      "magic": "89504e470d0a1a0a"
+    }
+  }
+]

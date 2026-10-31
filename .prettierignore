@@ -12,5 +12,6 @@ plan.md
 # Written by scripts in their own layout.
 release/**/*.json
 device-agent/windows/ocade_agent/protocol.json
+evidence/
 
 OCADE_SYSTEM_PROMPT_REDESIGNED.md

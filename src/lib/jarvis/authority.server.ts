@@ -29,7 +29,7 @@ import {
   type Decision,
   type Step,
 } from "./supervisor.ts";
-import { PlannerUnavailable, compileGoal, planStep } from "./planner.server.ts";
+import { PlannerUnavailable, compileGoal, planStep, type McpServer } from "./planner.server.ts";
 
 export type Admin = Pick<SupabaseClient<Database>, "rpc">;
 
@@ -89,11 +89,13 @@ interface TaskState {
   result: string | null;
   checkpoint: Record<string, unknown> | null;
   conversationId: string;
+  deviceName: string | null;
   grants: string[];
+  mcp: McpServer[];
   steps: { id: string; summary: string; intent: unknown; status: string; receipt: unknown }[];
 }
 
-export function readTask(admin: Admin, taskId: string) {
+function readTask(admin: Admin, taskId: string) {
   return call<TaskState | null>(admin, "jarvis_task_state", { p_task: taskId });
 }
 
@@ -121,6 +123,7 @@ export async function advance(admin: Admin, taskId: string, now = new Date()): P
         checks,
         steps,
         grants: task.grants,
+        mcp: task.mcp ?? [],
         now,
       });
     } catch (error) {
@@ -257,6 +260,7 @@ export async function taskView(admin: Admin, userId: string, taskId: string) {
       status: step.status,
       needsConfirmation: step.status === "needs_confirmation",
     })),
+    device: task.deviceName,
     // Files JARVIS wrote and saw land, named as they are in the computer's JARVIS folder.
     artifacts: task.steps.flatMap((step) => {
       const parsed = actionIntent.safeParse(step.intent);
@@ -278,7 +282,7 @@ export function revokeDevice(admin: Admin, userId: string, deviceId: string) {
 
 /* ---------------------------- Signed devices ---------------------------- */
 
-export const SIGNING = { prefix: "OCADE-JARVIS-1", skewMs: 300_000, maxBody: 64_000 } as const;
+const SIGNING = { prefix: "OCADE-JARVIS-1", skewMs: 300_000, maxBody: 64_000 } as const;
 export const HEADERS = {
   device: "x-ocade-device",
   timestamp: "x-ocade-timestamp",
@@ -314,7 +318,7 @@ export async function canonical(parts: {
 }
 
 /** P-256 ECDSA over SHA-256; the key is base64url SPKI, the signature base64url r‖s. */
-export async function verifySignature(publicKey: string, signature: string, text: string) {
+async function verifySignature(publicKey: string, signature: string, text: string) {
   try {
     const key = await crypto.subtle.importKey(
       "spki",
@@ -415,6 +419,7 @@ export async function handleDeviceRequest(
       await call(admin, "jarvis_device_inventory", {
         p_device: deviceId,
         p_apps: parsed.apps as unknown as Json,
+        p_mcp: parsed.mcp as unknown as Json,
       });
       return { status: 200, body: { inventory: "recorded" } };
     }

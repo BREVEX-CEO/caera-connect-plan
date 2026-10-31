@@ -16,7 +16,7 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { spawnSync, spawn } from "node:child_process";
-import { mkdtempSync, readFileSync, existsSync, readdirSync } from "node:fs";
+import { mkdtempSync, readFileSync, existsSync, readdirSync, writeFileSync } from "node:fs";
 import { createServer, type Server } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -25,6 +25,7 @@ import {
   advance,
   approveDevice,
   handleDeviceRequest,
+  resumeTask,
   startTask,
   stopTask,
   taskView,
@@ -166,7 +167,7 @@ test(
   "Journey 1: workbook to verified Word and PDF report through the real pipeline",
   { skip: !ready },
   async () => {
-    const enrolled = await agent("enroll", "--name", "E2E PC");
+    const enrolled = await agent("enroll", "--name", "E2E PC", "--workspace", workspace);
     const code = /Pairing code: ([0-9A-F]{16})/.exec(enrolled.out)?.[1];
     assert.ok(code, enrolled.out);
 
@@ -203,7 +204,7 @@ test(
         deviceId,
         objective: "Book a flight",
       }),
-      /reconcile an Excel workbook/,
+      /planner is unavailable right now/,
     );
 
     const original = sha(join(workspace, "Q3 ledger.xlsx"));
@@ -329,6 +330,123 @@ test(
       view.checks.some((c) => c.state === "passed"),
       false,
     );
+  },
+);
+
+/**
+ * A model-planned task (P13) with a SCRIPTED planner endpoint standing in for the
+ * jarvis-planner Edge Function: evidence class L2. It proves the authority, routing,
+ * validation, device execution and independent settlement around the model, not the
+ * model's own judgement.
+ */
+test(
+  "model-planned task: goal checks, routed tools, outage waits, independent settlement",
+  { skip: !ready },
+  async () => {
+    const deviceId = sql(`SELECT id FROM public.jarvis_devices WHERE user_id = '${userA}'`);
+    writeFileSync(join(workspace, "status.txt"), "Status: GREEN\nOwner: Finance\n");
+    const seen: { tools: string[]; prompt: string }[] = [];
+    let available = false;
+    const script = [
+      { name: "fs_read_text", args: { path: "status.txt" } },
+      (prompt: string) => ({
+        name: "office_write_document",
+        args: {
+          docx: "OCADE output/status.docx",
+          title: "Status",
+          sections: [
+            {
+              heading: "Summary",
+              paragraphs: [/GREEN/.test(prompt) ? "Status is GREEN" : "unknown"],
+            },
+          ],
+        },
+      }),
+      { name: "finish", args: {} },
+    ];
+    const planner = createServer(async (req, res) => {
+      const chunks: Buffer[] = [];
+      for await (const chunk of req) chunks.push(chunk as Buffer);
+      if (req.headers["x-ocade-planner-key"] !== "test-planner-key")
+        return res.writeHead(401).end();
+      const body = JSON.parse(Buffer.concat(chunks).toString());
+      const tools = body.tools.map((t: { name: string }) => t.name);
+      seen.push({ tools, prompt: body.prompt });
+      if (!available)
+        return res
+          .writeHead(503, { "content-type": "application/json" })
+          .end('{"error":"planner_unavailable"}');
+      const call =
+        tools[0] === "set_goal"
+          ? {
+              name: "set_goal",
+              args: {
+                checks: [
+                  {
+                    id: "report_says_green",
+                    description: "Report says GREEN",
+                    kind: "file_contains",
+                    params: { path: "OCADE output/status.docx", text: "Status is GREEN" },
+                  },
+                ],
+              },
+            }
+          : (() => {
+              const next = script.shift()!;
+              return typeof next === "function" ? next(body.prompt) : next;
+            })();
+      res.writeHead(200, { "content-type": "application/json" }).end(JSON.stringify({ call }));
+    });
+    await new Promise<void>((resolve) => planner.listen(0, "127.0.0.1", resolve));
+    const address = planner.address();
+    process.env.SUPABASE_URL = `http://127.0.0.1:${typeof address === "object" && address ? address.port : 0}`;
+    process.env.JARVIS_PLANNER_KEY = "test-planner-key";
+    try {
+      // No planner: nothing starts.
+      await assert.rejects(
+        startTask(admin, userA, {
+          conversationId: conversation2,
+          deviceId,
+          objective: "Summarise status.txt into a Word note",
+        }),
+        /planner is unavailable/,
+      );
+      available = true;
+      const { taskId } = await startTask(admin, userA, {
+        conversationId: conversation2,
+        deviceId,
+        objective: "Summarise status.txt into a Word note",
+      });
+      // Only granted capabilities are offered: files yes; browser, apps, mcp no.
+      const offered = seen.at(-1)!.tools;
+      assert.ok(offered.includes("fs_read_text") && offered.includes("office_write_document"));
+      assert.ok(!offered.some((t) => /^(web_|ui_|apps_|mcp)/.test(t)), offered.join(","));
+      assert.match(seen.at(-1)!.prompt, /untrusted data/);
+
+      // Outage mid-task: the task waits with its checkpoint, then resumes.
+      available = false;
+      const first = await agent("run", "--workspace", workspace, "--until-idle");
+      assert.equal(first.code, 0, first.out);
+      assert.equal((await taskView(admin, userA, taskId)).status, "waiting");
+      available = true;
+      await resumeTask(admin, userA, taskId);
+      const run = await agent("run", "--workspace", workspace, "--until-idle");
+      assert.equal(run.code, 0, run.out);
+      const view = await taskView(admin, userA, taskId);
+      assert.equal(view.status, "completed", JSON.stringify(view, null, 2));
+      assert.deepEqual(
+        view.checks.map((c) => c.state),
+        ["passed"],
+      );
+      assert.ok(existsSync(join(workspace, "OCADE output", "status.docx")));
+      assert.ok(
+        seen.some((s) => /Status: GREEN/.test(s.prompt)),
+        "the model saw the observed file text",
+      );
+    } finally {
+      planner.close();
+      delete process.env.JARVIS_PLANNER_KEY;
+    }
   },
 );
 

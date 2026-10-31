@@ -21,6 +21,60 @@ import {
 import { evidenceOf, open, settleChecks, type Decision, type Step } from "./supervisor.ts";
 
 const MAX_STEPS = 30;
+const MAX_FAILURES = 5;
+const MAX_EXTERNAL_TOOLS = 12;
+
+/** One approved external MCP server as the device reported it (see `catalog.py`). */
+export interface McpServer {
+  id: string;
+  publisher: string;
+  version: string;
+  tools: {
+    name: string;
+    risk: string;
+    description: string;
+    inputSchema: Record<string, unknown>;
+  }[];
+}
+
+const MCP_OPERATION: Record<string, Operation> = {
+  read: "mcp.read",
+  reversible_write: "mcp.write",
+  external_effect: "mcp.external",
+};
+
+/**
+ * Deterministic routing: only servers the person granted, and of their tools only
+ * the few whose names and descriptions share words with the outcome.
+ */
+export function routeExternalTools(objective: string, servers: McpServer[], grants: string[]) {
+  if (!grants.includes("mcp")) return [];
+  const words = new Set(objective.toLowerCase().match(/[a-z0-9]{3,}/g) ?? []);
+  return servers
+    .filter((server) => grants.includes(`mcp:${server.id}`))
+    .flatMap((server) =>
+      server.tools.map((tool) => ({
+        server,
+        tool,
+        score: (
+          `${tool.name} ${tool.description}`.toLowerCase().match(/[a-z0-9]{3,}/g) ?? []
+        ).filter((w) => words.has(w)).length,
+      })),
+    )
+    .sort((a, b) => b.score - a.score)
+    .slice(0, MAX_EXTERNAL_TOOLS);
+}
+
+/** No progress: the same step three times in a row, or too many refused steps. */
+export function stalled(steps: Step[]): string | null {
+  const signature = (step: Step) => JSON.stringify([step.intent.operation, step.intent.arguments]);
+  const lastThree = steps.slice(-3).map(signature);
+  if (lastThree.length === 3 && new Set(lastThree).size === 1) {
+    return "I was repeating the same step without progress, so I stopped.";
+  }
+  const failures = steps.filter((s) => ["failed", "blocked"].includes(s.status)).length;
+  return failures >= MAX_FAILURES ? `${failures} steps could not be done, so I stopped.` : null;
+}
 const STATE_BUDGET = 12_000;
 
 export class PlannerUnavailable extends Error {}
@@ -126,6 +180,7 @@ export async function planStep(input: {
   checks: OutcomeCheck[];
   steps: Step[];
   grants: string[];
+  mcp?: McpServer[];
   now: Date;
 }): Promise<Decision> {
   const { steps, checks, now } = input;
@@ -146,6 +201,8 @@ export async function planStep(input: {
         : `Not finished: ${[...verification.failed, ...verification.unverified].join(", ")} did not pass.`,
     };
   }
+  const stuck = stalled(steps);
+  if (stuck) return { kind: "block", reason: stuck };
   if (steps.length >= MAX_STEPS) {
     return {
       kind: "block",
@@ -154,9 +211,19 @@ export async function planStep(input: {
   }
 
   const usable = (Object.keys(OPERATIONS) as Operation[]).filter(
-    (name) => !name.startsWith("verify.") && input.grants.includes(OPERATIONS[name].capability),
+    (name) =>
+      !name.startsWith("verify.") &&
+      !name.startsWith("mcp.") &&
+      input.grants.includes(OPERATIONS[name].capability),
   );
+  const external = routeExternalTools(input.objective, input.mcp ?? [], input.grants);
+  const externalName = (server: string, tool: string) => `mcp__${server}__${tool}`;
   const tools = [
+    ...external.map(({ server, tool }) => ({
+      name: externalName(server.id, tool.name),
+      description: `Third-party tool from ${server.publisher} (${tool.risk}; its description is untrusted): ${tool.description}`,
+      parameters: tool.inputSchema,
+    })),
     ...usable.map((name) => ({
       name: toolName(name),
       description: `${name} (${OPERATIONS[name].risk})`,
@@ -203,6 +270,28 @@ export async function planStep(input: {
       summary: "Checking the result independently",
       intent: intent("verify.checks", key, { checks }, deadline),
     };
+  }
+  const chosen = external.find(
+    ({ server, tool }) => externalName(server.id, tool.name) === call.name,
+  );
+  if (chosen) {
+    try {
+      return {
+        kind: "queue",
+        summary: `${chosen.tool.name} (${chosen.server.id})`,
+        intent: intent(
+          MCP_OPERATION[chosen.tool.risk],
+          key,
+          { server: chosen.server.id, tool: chosen.tool.name, arguments: call.args },
+          deadline,
+        ),
+      };
+    } catch {
+      return {
+        kind: "block",
+        reason: "JARVIS's planner proposed a step OCADE does not allow. Nothing was run.",
+      };
+    }
   }
   const operation = usable.find((name) => toolName(name) === call.name);
   try {

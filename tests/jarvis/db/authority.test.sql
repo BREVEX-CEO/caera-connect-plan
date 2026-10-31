@@ -306,3 +306,59 @@ BEGIN
   PERFORM pg_temp.check(state ->> 'status' = 'completed' AND jsonb_array_length(state -> 'steps') = 2, 'task state snapshot');
 END $$;
 RESET ROLE;
+
+-- Exact target grants, confirmation of external effects, Take Over/Resume, waiting, answers, inventory.
+SET ROLE service_role;
+DO $$
+DECLARE
+  b uuid := 'bbbbbbbb-0000-0000-0000-000000000002';
+  dev_b uuid := (SELECT id FROM ids WHERE name = 'dev_b');
+  t record;
+  claim jsonb;
+  pending uuid;
+  web jsonb := '{"key": "w1", "capability": "browser", "risk": "external_effect", "operation": "web.click", "target": {"site": "example.com"}}';
+BEGIN
+  INSERT INTO public.jarvis_permissions (user_id, device_id, capability, allowed) VALUES
+    (b, NULL, 'master', true), (b, dev_b, 'files', true), (b, dev_b, 'browser', true);
+  PERFORM pg_temp.check(NOT public.jarvis_action_allowed(b, dev_b, web), 'site needs its own grant');
+  INSERT INTO public.jarvis_permissions (user_id, device_id, capability, allowed) VALUES (b, dev_b, 'site:example.com', true);
+  PERFORM pg_temp.check(public.jarvis_action_allowed(b, dev_b, web), 'granted site allowed');
+  PERFORM pg_temp.check(NOT public.jarvis_action_allowed(b, dev_b, web || '{"target": {"site": "evil.example"}}'), 'other site refused');
+  PERFORM pg_temp.check(NOT public.jarvis_action_allowed(b, dev_b, '{"capability": "apps", "target": {"app": "notepad.exe"}}'), 'app needs grants');
+  PERFORM pg_temp.check(NOT public.jarvis_action_allowed(b, dev_b, '{"capability": "mcp", "target": {"mcp": "echo"}}'), 'mcp server needs grants');
+  INSERT INTO public.jarvis_permissions (user_id, device_id, capability, allowed) VALUES (b, dev_b, 'mcp', true), (b, dev_b, 'mcp:echo', true);
+  PERFORM pg_temp.check(public.jarvis_action_allowed(b, dev_b, '{"capability": "mcp", "target": {"mcp": "echo"}}'), 'granted mcp server allowed');
+  PERFORM pg_temp.fails($q$INSERT INTO public.jarvis_permissions (user_id, device_id, capability, allowed) VALUES ('bbbbbbbb-0000-0000-0000-000000000002', NULL, 'mcp:Bad Name', true)$q$, 'check');
+  PERFORM pg_temp.check((SELECT public.jarvis_grants(b, dev_b) @> '["files", "browser", "site:example.com", "mcp:echo"]'), 'grants listed');
+
+  SELECT * INTO t FROM public.jarvis_open_task(b, 'bbbbbbbb-1111-0000-0000-000000000001', dev_b, 'Web task', '[{"id": "c"}]', '[]');
+  PERFORM public.jarvis_queue_actions(t.task_id, t.controller, jsonb_build_array(jsonb_build_object('summary', 'Submit', 'action', web)));
+  pending := (SELECT id FROM public.jarvis_activity WHERE task_id = t.task_id);
+  PERFORM pg_temp.check((SELECT status FROM public.jarvis_activity WHERE id = pending) = 'needs_confirmation', 'external effect waits');
+  claim := public.jarvis_claim_action(dev_b);
+  PERFORM pg_temp.check(claim -> 'action' = 'null'::jsonb, 'unconfirmed step is never dispatched');
+  PERFORM pg_temp.check(NOT public.jarvis_confirm_action('aaaaaaaa-0000-0000-0000-000000000001', pending), 'only the owner confirms');
+  PERFORM pg_temp.check(public.jarvis_confirm_action(b, pending), 'owner confirms');
+  PERFORM pg_temp.check(NOT public.jarvis_confirm_action(b, pending), 'confirmation is one-use');
+  claim := public.jarvis_claim_action(dev_b);
+  PERFORM pg_temp.check((claim -> 'action' ->> 'id')::uuid = pending, 'confirmed step dispatched');
+
+  PERFORM pg_temp.check(public.jarvis_take_over(b, t.task_id) = 'taken_over', 'take over');
+  PERFORM pg_temp.check((SELECT status FROM public.jarvis_activity WHERE id = pending) = 'cancelled', 'running step cancelled on take over');
+  PERFORM pg_temp.check(public.jarvis_claim_action(dev_b) -> 'action' = 'null'::jsonb, 'nothing dispatched while the person has control');
+  PERFORM pg_temp.fails(format('SELECT public.jarvis_queue_actions(%L, %L, %L)', t.task_id, t.controller, pg_temp.act('after')), 'stale_controller');
+  PERFORM pg_temp.fails(format('SELECT public.jarvis_resume_task(%L, %L)', 'aaaaaaaa-0000-0000-0000-000000000001', t.task_id), 'task_not_found');
+  PERFORM pg_temp.check(public.jarvis_resume_task(b, t.task_id) IS DISTINCT FROM t.controller, 'resume issues a new controller');
+  PERFORM public.jarvis_task_wait(t.task_id, t.controller, 'stale');
+  PERFORM pg_temp.check((SELECT status FROM public.jarvis_tasks WHERE id = t.task_id) = 'running', 'a stale controller cannot park the task');
+  PERFORM public.jarvis_task_wait(t.task_id, (SELECT controller FROM public.jarvis_tasks WHERE id = t.task_id), 'Planner unavailable');
+  PERFORM pg_temp.check((SELECT status = 'waiting' AND blocker = 'Planner unavailable' FROM public.jarvis_tasks WHERE id = t.task_id), 'planner outage waits');
+  PERFORM public.jarvis_stop_task(b, t.task_id);
+  PERFORM public.jarvis_stop_task(b, t.task_id);
+  PERFORM pg_temp.check((SELECT count(*) FROM public.ocade_messages WHERE conversation_id = 'bbbbbbbb-1111-0000-0000-000000000001') = 1, 'STOP answer written once');
+
+  PERFORM public.jarvis_device_inventory(dev_b, '[{"name": "Notepad", "exe": "notepad.exe"}]', '[{"id": "echo"}]');
+  PERFORM pg_temp.check((SELECT installed_apps -> 0 ->> 'exe' = 'notepad.exe' AND capabilities -> 'mcp' -> 0 ->> 'id' = 'echo'
+                           FROM public.jarvis_devices WHERE id = dev_b), 'inventory recorded');
+END $$;
+RESET ROLE;

@@ -180,3 +180,49 @@ test("settlement binds the verifier's proof to the files the actor wrote", () =>
   });
   assert.deepEqual(unobserved.unverified, ["report_pdf_renders"]);
 });
+
+test("the pilot stops on repeated steps and on too many refused steps", async () => {
+  const { stalled } = await import("../../src/lib/jarvis/planner.server.ts");
+  const list = intent("fs.list", "a", {}, deadline);
+  const done = (i: ActionIntent): Step => ({ intent: i, status: "done", receipt: null });
+  assert.equal(stalled([done(list), done(list)]), null);
+  assert.match(stalled([done(list), done(list), done(list)]) ?? "", /repeating/);
+  const failed = (n: number): Step => ({
+    intent: intent("fs.read_text", `f${n}`, { path: `${n}.txt` }, deadline),
+    status: "failed",
+    receipt: null,
+  });
+  assert.match(stalled([1, 2, 3, 4, 5].map(failed)) ?? "", /could not be done/);
+});
+
+test("external tools reach the planner only when granted, and only a few", async () => {
+  const { routeExternalTools } = await import("../../src/lib/jarvis/planner.server.ts");
+  const tools = Array.from({ length: 30 }, (_, n) => ({
+    name: `tool${n}`,
+    risk: "read",
+    description: n === 7 ? "convert currency rates" : "unrelated",
+    inputSchema: { type: "object" },
+  }));
+  const servers = [{ id: "fx", publisher: "Example", version: "1", tools }];
+  assert.deepEqual(routeExternalTools("convert currency", servers, ["mcp"]), []);
+  assert.deepEqual(routeExternalTools("convert currency", servers, ["mcp:fx"]), []);
+  const routed = routeExternalTools("convert currency to EUR", servers, ["mcp", "mcp:fx"]);
+  assert.equal(routed.length, 12);
+  assert.equal(routed[0].tool.name, "tool7");
+});
+
+test("browser targets are public https sites by name", () => {
+  for (const url of [
+    "https://127.0.0.1/",
+    "https://localhost/",
+    "https://x.localhost/",
+    "http://example.com/",
+    "https://example.com:8443/",
+  ]) {
+    assert.throws(() => intent("web.open", "o", { url }, deadline), url);
+  }
+  assert.equal(
+    intent("web.open", "o", { url: "https://example.com/a" }, deadline).target?.site,
+    "example.com",
+  );
+});

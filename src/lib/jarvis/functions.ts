@@ -132,7 +132,8 @@ export const latestJarvisTask = createServerFn({ method: "GET" })
   });
 
 const capability = z.union([
-  z.enum(["files", "apps", "browser", "computer_control"]),
+  z.enum(["files", "apps", "browser", "computer_control", "mcp"]),
+  z.string().regex(/^mcp:[a-z][a-z0-9_]{1,30}$/),
   z.string().regex(/^site:[a-z0-9]([a-z0-9.-]{0,251}[a-z0-9])?$/),
   z.string().regex(/^app:[a-z0-9 ._()+-]{1,76}\.exe$/),
 ]);
@@ -180,7 +181,7 @@ export const listJarvisDevices = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { data, error } = await context.supabase
       .from("jarvis_devices")
-      .select("id, name, platform, last_seen_at, software_version, installed_apps")
+      .select("id, name, platform, last_seen_at, software_version, installed_apps, capabilities")
       .is("revoked_at", null)
       .eq("kind", "agent")
       .order("created_at", { ascending: false });

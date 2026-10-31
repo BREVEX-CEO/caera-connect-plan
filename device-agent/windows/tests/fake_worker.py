@@ -54,5 +54,35 @@ def fs_list(path: str = ".") -> dict:
     return {"entries": []}
 
 
+@app.tool()
+def fs_read_text(path: str) -> dict:
+    """Read."""
+    return {"text": ""}
+
+
+@app.tool()
+def media_inspect(path: str) -> dict:
+    """Inspect media."""
+    return {}
+
+
+@app.tool()
+def media_trim(source: str, start: float, end: float, output: str) -> dict:
+    """Trim."""
+    return {}
+
+
+@app.tool()
+def office_write_document(docx: str, title: str, sections: list[dict], pdf: str | None = None) -> dict:
+    """Document."""
+    return {}
+
+
+@app.tool()
+def office_write_workbook(path: str, sheets: list[dict]) -> dict:
+    """Workbook."""
+    return {}
+
+
 if __name__ == "__main__":
     app.run("stdio")

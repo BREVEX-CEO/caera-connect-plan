@@ -48,6 +48,62 @@
         "additionalProperties": false
       }
     },
+    "media.inspect": {
+      "role": "sys_core",
+      "capability": "files",
+      "risk": "read",
+      "arguments": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 260
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "media.trim": {
+      "role": "sys_core",
+      "capability": "files",
+      "risk": "reversible_write",
+      "arguments": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "source": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 260
+          },
+          "start": {
+            "type": "number",
+            "minimum": 0
+          },
+          "end": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "output": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 260
+          }
+        },
+        "required": [
+          "source",
+          "start",
+          "end",
+          "output"
+        ],
+        "additionalProperties": false
+      }
+    },
     "office.inspect_workbook": {
       "role": "sys_core",
       "capability": "files",
@@ -737,6 +793,11 @@
           "value": {
             "type": "string",
             "maxLength": 2000
+          },
+          "frame": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
           }
         },
         "required": [
@@ -778,11 +839,136 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 500
+          },
+          "frame": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
           }
         },
         "required": [
           "page",
           "selector"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "web.upload": {
+      "role": "web_automation",
+      "capability": "browser",
+      "risk": "external_effect",
+      "arguments": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[a-z0-9-]{1,40}$"
+              },
+              "site": {
+                "type": "string",
+                "maxLength": 253,
+                "pattern": "^[a-z0-9]([a-z0-9.-]{0,251}[a-z0-9])?$"
+              }
+            },
+            "required": [
+              "id",
+              "site"
+            ],
+            "additionalProperties": false
+          },
+          "selector": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          },
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 260
+          }
+        },
+        "required": [
+          "page",
+          "selector",
+          "path"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "web.screenshot": {
+      "role": "web_automation",
+      "capability": "browser",
+      "risk": "reversible_write",
+      "arguments": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[a-z0-9-]{1,40}$"
+              },
+              "site": {
+                "type": "string",
+                "maxLength": 253,
+                "pattern": "^[a-z0-9]([a-z0-9.-]{0,251}[a-z0-9])?$"
+              }
+            },
+            "required": [
+              "id",
+              "site"
+            ],
+            "additionalProperties": false
+          },
+          "output": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 260
+          }
+        },
+        "required": [
+          "page",
+          "output"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "web.close": {
+      "role": "web_automation",
+      "capability": "browser",
+      "risk": "read",
+      "arguments": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[a-z0-9-]{1,40}$"
+              },
+              "site": {
+                "type": "string",
+                "maxLength": 253,
+                "pattern": "^[a-z0-9]([a-z0-9.-]{0,251}[a-z0-9])?$"
+              }
+            },
+            "required": [
+              "id",
+              "site"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "page"
         ],
         "additionalProperties": false
       }
@@ -829,6 +1015,102 @@
           "page",
           "selector",
           "output"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "mcp.read": {
+      "role": "mcp",
+      "capability": "mcp",
+      "risk": "read",
+      "arguments": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "server": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]{1,30}$"
+          },
+          "tool": {
+            "type": "string",
+            "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$"
+          },
+          "arguments": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {}
+          }
+        },
+        "required": [
+          "server",
+          "tool",
+          "arguments"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "mcp.write": {
+      "role": "mcp",
+      "capability": "mcp",
+      "risk": "reversible_write",
+      "arguments": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "server": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]{1,30}$"
+          },
+          "tool": {
+            "type": "string",
+            "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$"
+          },
+          "arguments": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {}
+          }
+        },
+        "required": [
+          "server",
+          "tool",
+          "arguments"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "mcp.external": {
+      "role": "mcp",
+      "capability": "mcp",
+      "risk": "external_effect",
+      "arguments": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "server": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]{1,30}$"
+          },
+          "tool": {
+            "type": "string",
+            "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$"
+          },
+          "arguments": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {}
+          }
+        },
+        "required": [
+          "server",
+          "tool",
+          "arguments"
         ],
         "additionalProperties": false
       }
@@ -961,7 +1243,8 @@
                     "file_contains",
                     "workbook_cell_equals",
                     "web_text_contains",
-                    "window_exists"
+                    "window_exists",
+                    "media_duration"
                   ]
                 },
                 "params": {

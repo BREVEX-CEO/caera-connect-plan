@@ -1,0 +1,53 @@
+== DB
+PASS tests/jarvis/db/authority.test.sql
+== Node
+ok 1 - an intent must match the registry's capability, risk and arguments
+ok 2 - a receipt cannot claim success outside the three observed states
+ok 3 - a device request is one of three strict shapes
+ok 4 - only the supported outcome is accepted
+ok 5 - the pilot walks Journey 1 one bounded step at a time
+ok 6 - a workbook named in the request is chosen only if it exists in the folder
+ok 7 - ambiguity is a question, never a guess
+ok 8 - settlement binds the verifier's proof to the files the actor wrote
+ok 9 - the pilot stops on repeated steps and on too many refused steps
+ok 10 - external tools reach the planner only when granted, and only a few
+ok 11 - browser targets are public https sites by name
+ok 12 - Journey 1: workbook to verified Word and PDF report through the real pipeline
+ok 13 - STOP before dispatch: nothing runs and nothing is written
+ok 14 - STOP while a step runs: in-flight work is cancelled and its effect accounted for
+ok 15 - model-planned task: goal checks, routed tools, outage waits, independent settlement
+ok 16 - a revoked computer is refused at the door
+# tests 16
+# pass 16
+# fail 0
+# skipped 0
+== Python
+test_finished_action_resends_its_receipt (tests.test_agent.JournalTest.test_finished_action_resends_its_receipt) ... ok
+test_interrupted_write_is_unknown_not_repeated (tests.test_agent.JournalTest.test_interrupted_write_is_unknown_not_repeated) ... ok
+test_stop_cancels_a_running_write_and_reports_it_unknown (tests.test_agent.StopInFlightTest.test_stop_cancels_a_running_write_and_reports_it_unknown) ... /usr/lib/python3.13/asyncio/base_events.py:824: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f3494734040>
+test_active_external_workers_are_bounded (tests.test_catalog.Catalog.test_active_external_workers_are_bounded) ... /usr/lib/python3.13/asyncio/events.py:36: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f3494734310>
+test_dispatch_isolation_and_refusals (tests.test_catalog.Catalog.test_dispatch_isolation_and_refusals) ... ok
+test_drifted_tool_list_and_replaced_executable_are_rejected (tests.test_catalog.Catalog.test_drifted_tool_list_and_replaced_executable_are_rejected) ... ok
+test_states_and_rejections (tests.test_catalog.Catalog.test_states_and_rejections) ... ok
+test_missing_outputs_are_unverified_not_passed (tests.test_gateway.Journey.test_missing_outputs_are_unverified_not_passed) ... ok
+test_real_journey_passes_independent_verification (tests.test_gateway.Journey.test_real_journey_passes_independent_verification) ... ok
+test_hung_worker_times_out_at_the_deadline (tests.test_gateway.Refusals.test_hung_worker_times_out_at_the_deadline) ... ok
+test_invalid_intents_never_reach_a_worker (tests.test_gateway.Refusals.test_invalid_intents_never_reach_a_worker) ... ok
+test_outside_paths_are_refused_by_the_worker (tests.test_gateway.Refusals.test_outside_paths_are_refused_by_the_worker) ... ok
+test_stdout_noise_does_not_become_a_result (tests.test_gateway.Refusals.test_stdout_noise_does_not_become_a_result) ... /usr/lib/python3.13/asyncio/tasks.py:712: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f34949f7f10>
+test_stop_epoch_fences_dispatch (tests.test_gateway.Refusals.test_stop_epoch_fences_dispatch) ... ok
+test_worker_dying_mid_write_is_unknown_and_maybe_changed (tests.test_gateway.Refusals.test_worker_dying_mid_write_is_unknown_and_maybe_changed) ... ok
+test_worker_offering_an_unlisted_tool_is_rejected (tests.test_gateway.Refusals.test_worker_offering_an_unlisted_tool_is_rejected) ... ok
+test_image_facts (tests.test_media.Media.test_image_facts) ... ok
+test_video_inspect_trim_and_verify (tests.test_media.Media.test_video_inspect_trim_and_verify) ... ok
+test_escapes_are_refused (tests.test_sandbox.SandboxTest.test_escapes_are_refused) ... ok
+test_inside_paths_resolve (tests.test_sandbox.SandboxTest.test_inside_paths_resolve) ... ok
+test_interrupted_write_leaves_nothing (tests.test_sandbox.SandboxTest.test_interrupted_write_leaves_nothing) ... ok
+test_symlink_or_junction_escape_is_refused (tests.test_sandbox.SandboxTest.test_symlink_or_junction_escape_is_refused) ... ok
+test_writes_only_new_files_under_output (tests.test_sandbox.SandboxTest.test_writes_only_new_files_under_output) ... ok
+test_example_com (tests.test_web.PublicSite.test_example_com) ... skipped 'needs a display and OCADE_PUBLIC_WEB=1'
+test_private_network_refused_without_owner_flag (tests.test_web.WebLadder.test_private_network_refused_without_owner_flag) ... ok
+test_web_ladder (tests.test_web.WebLadder.test_web_ladder) ... /usr/lib/python3.13/collections/__init__.py:427: ResourceWarning: unclosed <ssl.SSLSocket fd=3, family=2, type=1, proto=0, laddr=('127.0.0.1', 45145)>
+IMG-002 on the local editor fixture: upload, crop 16:9, brighten, label, export. ... ok
+Ran 27 tests in 63.449s
+OK (skipped=1)

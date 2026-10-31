@@ -1,0 +1,5496 @@
+[
+  {
+    "id": "A001",
+    "heading": "Example-only native video-editor MCP server (source heading normalized; not a product requirement)",
+    "treatment": "6, 13",
+    "disposition": "NOT APPLICABLE",
+    "status": "NOT APPLICABLE",
+    "reason": "example only, not a product requirement",
+    "sections": [
+      6,
+      13
+    ],
+    "packages": [],
+    "code": [],
+    "tests": []
+  },
+  {
+    "id": "A002",
+    "heading": "2. For OS-Level Control without Mouse Stealing: PC-Control MCP",
+    "treatment": "6, 8",
+    "disposition": "MANDATORY",
+    "status": "BLOCKED",
+    "level": "L0",
+    "sections": [
+      6,
+      8
+    ],
+    "packages": [],
+    "code": [
+      "device-agent/windows/ocade_agent/gateway.py",
+      "device-agent/windows/ocade_agent/catalog.py",
+      "src/lib/jarvis/contracts.ts",
+      "device-agent/windows/ocade_agent/windows_worker.py + discovery.py"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_gateway.py",
+      "device-agent/windows/tests/test_catalog.py",
+      "device-agent/windows/tests/mcp_fleet.py (measurement)"
+    ],
+    "blocker": "real third-party MCP server run denied by sandbox policy; needs owner approval; needs an interactive Windows desktop"
+  },
+  {
+    "id": "A003",
+    "heading": "Example-only specialized video-editor automation plugins (source heading normalized)",
+    "treatment": "6, 13",
+    "disposition": "NOT APPLICABLE",
+    "status": "NOT APPLICABLE",
+    "reason": "example only, not a product requirement",
+    "sections": [
+      6,
+      13
+    ],
+    "packages": [],
+    "code": [],
+    "tests": []
+  },
+  {
+    "id": "A004",
+    "heading": "1. The Core Backbone: Universal & OS Control",
+    "treatment": "4, 6",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      4,
+      6
+    ],
+    "packages": [],
+    "code": [
+      "src/lib/jarvis/authority.server.ts",
+      "src/lib/jarvis/supervisor.ts",
+      "src/lib/jarvis/planner.server.ts + supabase/functions/jarvis-planner",
+      "device-agent/windows/ocade_agent/gateway.py",
+      "device-agent/windows/ocade_agent/verify_worker.py",
+      "device-agent/windows/ocade_agent/catalog.py",
+      "src/lib/jarvis/contracts.ts"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts",
+      "device-agent/windows/tests/test_gateway.py",
+      "device-agent/windows/tests/test_catalog.py",
+      "device-agent/windows/tests/mcp_fleet.py (measurement)"
+    ],
+    "blocker": "real model judgement untested (no provider credentials); Windows actuators untested; real third-party MCP server run denied by sandbox policy; needs owner approval"
+  },
+  {
+    "id": "A005",
+    "heading": "2. Video Editing & Creative Production",
+    "treatment": "6, 13",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      6,
+      13
+    ],
+    "packages": [],
+    "code": [
+      "device-agent/windows/ocade_agent/gateway.py",
+      "device-agent/windows/ocade_agent/catalog.py",
+      "src/lib/jarvis/contracts.ts",
+      "src/lib/jarvis/supervisor.ts",
+      "src/lib/jarvis/planner.server.ts + supabase/functions/jarvis-planner",
+      "device-agent/windows/ocade_agent/office_worker.py + engine.py",
+      "device-agent/windows/ocade_agent/web_worker.py"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_gateway.py",
+      "device-agent/windows/tests/test_catalog.py",
+      "device-agent/windows/tests/mcp_fleet.py (measurement)",
+      "tests/jarvis/e2e.test.ts",
+      "device-agent/windows/tests/test_web.py",
+      "device-agent/windows/tests/test_media.py"
+    ],
+    "blocker": "real third-party MCP server run denied by sandbox policy; needs owner approval; chess/CAD not implemented; video/photo web editors not approved; Windows apps blocked"
+  },
+  {
+    "id": "A006",
+    "heading": "3. Office & Business Productivity",
+    "treatment": "6, 9, 12",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      6,
+      9,
+      12
+    ],
+    "packages": [],
+    "code": [
+      "device-agent/windows/ocade_agent/gateway.py",
+      "device-agent/windows/ocade_agent/catalog.py",
+      "src/lib/jarvis/contracts.ts",
+      "device-agent/windows/ocade_agent/office_worker.py + engine.py",
+      "device-agent/windows/ocade_agent/windows_worker.py + discovery.py",
+      "device-agent/windows/ocade_agent/verify_worker.py",
+      "src/lib/jarvis/supervisor.ts"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_gateway.py",
+      "device-agent/windows/tests/test_catalog.py",
+      "device-agent/windows/tests/mcp_fleet.py (measurement)",
+      "device-agent/windows/tests/test_media.py",
+      "tests/jarvis/e2e.test.ts"
+    ],
+    "blocker": "real third-party MCP server run denied by sandbox policy; needs owner approval; LibreOffice/ffmpeg pass on Linux; Excel/Word COM needs Windows + Office"
+  },
+  {
+    "id": "A007",
+    "heading": "4. Sales & CRM Automation",
+    "treatment": "6, 10",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      6,
+      10
+    ],
+    "packages": [],
+    "code": [
+      "device-agent/windows/ocade_agent/gateway.py",
+      "device-agent/windows/ocade_agent/catalog.py",
+      "src/lib/jarvis/contracts.ts",
+      "device-agent/windows/ocade_agent/web_worker.py"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_gateway.py",
+      "device-agent/windows/tests/test_catalog.py",
+      "device-agent/windows/tests/mcp_fleet.py (measurement)",
+      "device-agent/windows/tests/test_web.py"
+    ],
+    "blocker": "real third-party MCP server run denied by sandbox policy; needs owner approval; fixture site + example.com read pass; third-party accounts/editors not approved"
+  },
+  {
+    "id": "A008",
+    "heading": "Direct Comparison: Speed vs. Universality",
+    "treatment": "16",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      16
+    ],
+    "packages": [],
+    "code": [
+      "device-agent/windows/ocade_agent/catalog.py"
+    ],
+    "tests": [
+      "device-agent/windows/tests/mcp_fleet.py (measurement)"
+    ],
+    "blocker": "task-level latency/benchmark against real model not run"
+  },
+  {
+    "id": "A009",
+    "heading": "1. Enforce a \"Single-Dispatcher\" Architecture",
+    "treatment": "4, 6, 11",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      4,
+      6,
+      11
+    ],
+    "packages": [],
+    "code": [
+      "src/lib/jarvis/authority.server.ts",
+      "src/lib/jarvis/supervisor.ts",
+      "src/lib/jarvis/planner.server.ts + supabase/functions/jarvis-planner",
+      "device-agent/windows/ocade_agent/gateway.py",
+      "device-agent/windows/ocade_agent/verify_worker.py",
+      "device-agent/windows/ocade_agent/catalog.py",
+      "src/lib/jarvis/contracts.ts",
+      "supabase/migrations/20261030120000_jarvis_task_authority.sql",
+      "device-agent/windows/ocade_agent/agent.py + device.py + journal.py"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts",
+      "device-agent/windows/tests/test_gateway.py",
+      "device-agent/windows/tests/test_catalog.py",
+      "device-agent/windows/tests/mcp_fleet.py (measurement)",
+      "tests/jarvis/db/authority.test.sql",
+      "device-agent/windows/tests/test_agent.py"
+    ],
+    "blocker": "real model judgement untested (no provider credentials); Windows actuators untested; real third-party MCP server run denied by sandbox policy; needs owner approval"
+  },
+  {
+    "id": "A010",
+    "heading": "2. Implement strict \"Context Isolation\" via Multi-Agent Swarms",
+    "treatment": "4, 6",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      4,
+      6
+    ],
+    "packages": [],
+    "code": [
+      "src/lib/jarvis/authority.server.ts",
+      "src/lib/jarvis/supervisor.ts",
+      "src/lib/jarvis/planner.server.ts + supabase/functions/jarvis-planner",
+      "device-agent/windows/ocade_agent/gateway.py",
+      "device-agent/windows/ocade_agent/verify_worker.py",
+      "device-agent/windows/ocade_agent/catalog.py",
+      "src/lib/jarvis/contracts.ts"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts",
+      "device-agent/windows/tests/test_gateway.py",
+      "device-agent/windows/tests/test_catalog.py",
+      "device-agent/windows/tests/mcp_fleet.py (measurement)"
+    ],
+    "blocker": "real model judgement untested (no provider credentials); Windows actuators untested; real third-party MCP server run denied by sandbox policy; needs owner approval"
+  },
+  {
+    "id": "A011",
+    "heading": "3. Namespace and Prefix Your Tool Definitions",
+    "treatment": "6",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      6
+    ],
+    "packages": [],
+    "code": [
+      "device-agent/windows/ocade_agent/gateway.py",
+      "device-agent/windows/ocade_agent/catalog.py",
+      "src/lib/jarvis/contracts.ts"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_gateway.py",
+      "device-agent/windows/tests/test_catalog.py",
+      "device-agent/windows/tests/mcp_fleet.py (measurement)"
+    ],
+    "blocker": "real third-party MCP server run denied by sandbox policy; needs owner approval"
+  },
+  {
+    "id": "A012",
+    "heading": "4. Use State-Locking and Semaphores for Local Files",
+    "treatment": "11",
+    "disposition": "MANDATORY",
+    "status": "PASS",
+    "level": "L2",
+    "sections": [
+      11
+    ],
+    "packages": [],
+    "code": [
+      "supabase/migrations/20261030120000_jarvis_task_authority.sql",
+      "device-agent/windows/ocade_agent/agent.py + device.py + journal.py",
+      "device-agent/windows/ocade_agent/gateway.py"
+    ],
+    "tests": [
+      "tests/jarvis/db/authority.test.sql",
+      "device-agent/windows/tests/test_agent.py",
+      "tests/jarvis/e2e.test.ts"
+    ],
+    "blocker": ""
+  },
+  {
+    "id": "A013",
+    "heading": "5. Sandboxing and Graceful Degrade",
+    "treatment": "7, 11, 15",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      7,
+      11,
+      15
+    ],
+    "packages": [],
+    "code": [
+      "device-agent/windows/ocade_agent/agent.py + device.py + journal.py",
+      "device-agent/windows/packaging/",
+      "src/lib/jarvis/authority.server.ts",
+      "supabase/migrations/20261030120000_jarvis_task_authority.sql",
+      "device-agent/windows/ocade_agent/gateway.py",
+      "src/lib/jarvis/contracts.ts",
+      "device-agent/windows/ocade_agent/web_worker.py",
+      "device-agent/windows/ocade_agent/sandbox.py",
+      "device-agent/windows/ocade_agent/catalog.py"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts",
+      "tests/jarvis/db/authority.test.sql",
+      "device-agent/windows/tests/test_agent.py",
+      "device-agent/windows/tests/test_web.py",
+      "device-agent/windows/tests/test_sandbox.py",
+      "device-agent/windows/tests/test_catalog.py"
+    ],
+    "blocker": "installer/startup/DPAPI need a disposable Windows machine; Windows-specific attacks (junctions, UAC, wrong HWND) blocked"
+  },
+  {
+    "id": "A014",
+    "heading": "The Golden Rule Architecture for Zero Conflicts",
+    "treatment": "4, 6",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      4,
+      6
+    ],
+    "packages": [],
+    "code": [
+      "src/lib/jarvis/authority.server.ts",
+      "src/lib/jarvis/supervisor.ts",
+      "src/lib/jarvis/planner.server.ts + supabase/functions/jarvis-planner",
+      "device-agent/windows/ocade_agent/gateway.py",
+      "device-agent/windows/ocade_agent/verify_worker.py",
+      "device-agent/windows/ocade_agent/catalog.py",
+      "src/lib/jarvis/contracts.ts"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts",
+      "device-agent/windows/tests/test_gateway.py",
+      "device-agent/windows/tests/test_catalog.py",
+      "device-agent/windows/tests/mcp_fleet.py (measurement)"
+    ],
+    "blocker": "real model judgement untested (no provider credentials); Windows actuators untested; real third-party MCP server run denied by sandbox policy; needs owner approval"
+  },
+  {
+    "id": "A015",
+    "heading": "1. The Core Infrastructure (The Big Three Universal MCPs)",
+    "treatment": "4, 6",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      4,
+      6
+    ],
+    "packages": [],
+    "code": [
+      "src/lib/jarvis/authority.server.ts",
+      "src/lib/jarvis/supervisor.ts",
+      "src/lib/jarvis/planner.server.ts + supabase/functions/jarvis-planner",
+      "device-agent/windows/ocade_agent/gateway.py",
+      "device-agent/windows/ocade_agent/verify_worker.py",
+      "device-agent/windows/ocade_agent/catalog.py",
+      "src/lib/jarvis/contracts.ts"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts",
+      "device-agent/windows/tests/test_gateway.py",
+      "device-agent/windows/tests/test_catalog.py",
+      "device-agent/windows/tests/mcp_fleet.py (measurement)"
+    ],
+    "blocker": "real model judgement untested (no provider credentials); Windows actuators untested; real third-party MCP server run denied by sandbox policy; needs owner approval"
+  },
+  {
+    "id": "A016",
+    "heading": "2. How to Achieve Professional-Grade Execution (Zero Hallucination)",
+    "treatment": "4, 12",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      4,
+      12
+    ],
+    "packages": [],
+    "code": [
+      "src/lib/jarvis/authority.server.ts",
+      "src/lib/jarvis/supervisor.ts",
+      "src/lib/jarvis/planner.server.ts + supabase/functions/jarvis-planner",
+      "device-agent/windows/ocade_agent/gateway.py",
+      "device-agent/windows/ocade_agent/verify_worker.py"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts",
+      "device-agent/windows/tests/test_gateway.py",
+      "device-agent/windows/tests/test_media.py"
+    ],
+    "blocker": "real model judgement untested (no provider credentials); Windows actuators untested"
+  },
+  {
+    "id": "A017",
+    "heading": "Phase A: Environment Discovery (Look Before You Leap)",
+    "treatment": "8",
+    "disposition": "MANDATORY",
+    "status": "BLOCKED",
+    "level": "L0",
+    "sections": [
+      8
+    ],
+    "packages": [],
+    "code": [
+      "device-agent/windows/ocade_agent/windows_worker.py + discovery.py"
+    ],
+    "tests": [],
+    "blocker": "needs an interactive Windows desktop"
+  },
+  {
+    "id": "A018",
+    "heading": "Phase B: Native Script Translation",
+    "treatment": "9",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L3",
+    "sections": [
+      9
+    ],
+    "packages": [],
+    "code": [
+      "device-agent/windows/ocade_agent/office_worker.py + engine.py",
+      "device-agent/windows/ocade_agent/windows_worker.py + discovery.py"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_gateway.py",
+      "device-agent/windows/tests/test_media.py",
+      "tests/jarvis/e2e.test.ts"
+    ],
+    "blocker": "LibreOffice/ffmpeg pass on Linux; Excel/Word COM needs Windows + Office"
+  },
+  {
+    "id": "A019",
+    "heading": "Phase C: Validation & Self-Healing",
+    "treatment": "5, 12",
+    "disposition": "MANDATORY",
+    "status": "PASS",
+    "level": "L2",
+    "sections": [
+      5,
+      12
+    ],
+    "packages": [],
+    "code": [
+      "supabase/migrations/20261030120000_jarvis_task_authority.sql",
+      "src/lib/jarvis/authority.server.ts",
+      "device-agent/windows/ocade_agent/agent.py + device.py + journal.py",
+      "device-agent/windows/ocade_agent/verify_worker.py",
+      "src/lib/jarvis/supervisor.ts"
+    ],
+    "tests": [
+      "tests/jarvis/db/authority.test.sql",
+      "tests/jarvis/e2e.test.ts",
+      "device-agent/windows/tests/test_agent.py",
+      "device-agent/windows/tests/test_gateway.py",
+      "device-agent/windows/tests/test_media.py"
+    ],
+    "blocker": ""
+  },
+  {
+    "id": "A020",
+    "heading": "3. The Ultimate Structural Rule: Separation of State",
+    "treatment": "11",
+    "disposition": "MANDATORY",
+    "status": "PASS",
+    "level": "L2",
+    "sections": [
+      11
+    ],
+    "packages": [],
+    "code": [
+      "supabase/migrations/20261030120000_jarvis_task_authority.sql",
+      "device-agent/windows/ocade_agent/agent.py + device.py + journal.py",
+      "device-agent/windows/ocade_agent/gateway.py"
+    ],
+    "tests": [
+      "tests/jarvis/db/authority.test.sql",
+      "device-agent/windows/tests/test_agent.py",
+      "tests/jarvis/e2e.test.ts"
+    ],
+    "blocker": ""
+  },
+  {
+    "id": "A021",
+    "heading": "Step 1: Universal Control with \"Maximum Depth\" (No Hardcoding)",
+    "treatment": "8, 9",
+    "disposition": "MANDATORY",
+    "status": "BLOCKED",
+    "level": "L0",
+    "sections": [
+      8,
+      9
+    ],
+    "packages": [],
+    "code": [
+      "device-agent/windows/ocade_agent/windows_worker.py + discovery.py",
+      "device-agent/windows/ocade_agent/office_worker.py + engine.py"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_gateway.py",
+      "device-agent/windows/tests/test_media.py",
+      "tests/jarvis/e2e.test.ts"
+    ],
+    "blocker": "needs an interactive Windows desktop; LibreOffice/ffmpeg pass on Linux; Excel/Word COM needs Windows + Office"
+  },
+  {
+    "id": "A022",
+    "heading": "Step 2: Elevating Output from \"Basic\" to \"Professional\" (Cinematic Editing)",
+    "treatment": "12, 13",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L3",
+    "sections": [
+      12,
+      13
+    ],
+    "packages": [],
+    "code": [
+      "device-agent/windows/ocade_agent/verify_worker.py",
+      "src/lib/jarvis/supervisor.ts",
+      "src/lib/jarvis/planner.server.ts + supabase/functions/jarvis-planner",
+      "device-agent/windows/ocade_agent/office_worker.py + engine.py",
+      "device-agent/windows/ocade_agent/web_worker.py"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_gateway.py",
+      "tests/jarvis/e2e.test.ts",
+      "device-agent/windows/tests/test_media.py",
+      "device-agent/windows/tests/test_web.py"
+    ],
+    "blocker": "chess/CAD not implemented; video/photo web editors not approved; Windows apps blocked"
+  },
+  {
+    "id": "A023",
+    "heading": "Step 3: The \"MCP Toolbox Router\" (Eliminating Conflicts)",
+    "treatment": "6",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      6
+    ],
+    "packages": [],
+    "code": [
+      "device-agent/windows/ocade_agent/gateway.py",
+      "device-agent/windows/ocade_agent/catalog.py",
+      "src/lib/jarvis/contracts.ts"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_gateway.py",
+      "device-agent/windows/tests/test_catalog.py",
+      "device-agent/windows/tests/mcp_fleet.py (measurement)"
+    ],
+    "blocker": "real third-party MCP server run denied by sandbox policy; needs owner approval"
+  },
+  {
+    "id": "A024",
+    "heading": "Step 4: Achieving \"Super Fast\" Local Speed",
+    "treatment": "16",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      16
+    ],
+    "packages": [],
+    "code": [
+      "device-agent/windows/ocade_agent/catalog.py"
+    ],
+    "tests": [
+      "device-agent/windows/tests/mcp_fleet.py (measurement)"
+    ],
+    "blocker": "task-level latency/benchmark against real model not run"
+  },
+  {
+    "id": "A025",
+    "heading": "1. What \"Even Resized\" Means (The Reliability Engine)",
+    "treatment": "8, 9",
+    "disposition": "MANDATORY",
+    "status": "BLOCKED",
+    "level": "L0",
+    "sections": [
+      8,
+      9
+    ],
+    "packages": [],
+    "code": [
+      "device-agent/windows/ocade_agent/windows_worker.py + discovery.py",
+      "device-agent/windows/ocade_agent/office_worker.py + engine.py"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_gateway.py",
+      "device-agent/windows/tests/test_media.py",
+      "tests/jarvis/e2e.test.ts"
+    ],
+    "blocker": "needs an interactive Windows desktop; LibreOffice/ffmpeg pass on Linux; Excel/Word COM needs Windows + Office"
+  },
+  {
+    "id": "A026",
+    "heading": "2. The Blueprint for Ultra-Fast, Universal PC Control",
+    "treatment": "4, 9",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      4,
+      9
+    ],
+    "packages": [],
+    "code": [
+      "src/lib/jarvis/authority.server.ts",
+      "src/lib/jarvis/supervisor.ts",
+      "src/lib/jarvis/planner.server.ts + supabase/functions/jarvis-planner",
+      "device-agent/windows/ocade_agent/gateway.py",
+      "device-agent/windows/ocade_agent/verify_worker.py",
+      "device-agent/windows/ocade_agent/office_worker.py + engine.py",
+      "device-agent/windows/ocade_agent/windows_worker.py + discovery.py"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts",
+      "device-agent/windows/tests/test_gateway.py",
+      "device-agent/windows/tests/test_media.py"
+    ],
+    "blocker": "real model judgement untested (no provider credentials); Windows actuators untested; LibreOffice/ffmpeg pass on Linux; Excel/Word COM needs Windows + Office"
+  },
+  {
+    "id": "A027",
+    "heading": "Tier 1: The OS Execution Layer (Speed Strategy: Code-First)",
+    "treatment": "9",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L3",
+    "sections": [
+      9
+    ],
+    "packages": [],
+    "code": [
+      "device-agent/windows/ocade_agent/office_worker.py + engine.py",
+      "device-agent/windows/ocade_agent/windows_worker.py + discovery.py"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_gateway.py",
+      "device-agent/windows/tests/test_media.py",
+      "tests/jarvis/e2e.test.ts"
+    ],
+    "blocker": "LibreOffice/ffmpeg pass on Linux; Excel/Word COM needs Windows + Office"
+  },
+  {
+    "id": "A028",
+    "heading": "Tier 2: The System Accessibility Layer (Speed Strategy: Tree Interaction)",
+    "treatment": "9",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L3",
+    "sections": [
+      9
+    ],
+    "packages": [],
+    "code": [
+      "device-agent/windows/ocade_agent/office_worker.py + engine.py",
+      "device-agent/windows/ocade_agent/windows_worker.py + discovery.py"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_gateway.py",
+      "device-agent/windows/tests/test_media.py",
+      "tests/jarvis/e2e.test.ts"
+    ],
+    "blocker": "LibreOffice/ffmpeg pass on Linux; Excel/Word COM needs Windows + Office"
+  },
+  {
+    "id": "A029",
+    "heading": "Tier 3: The Network/API Layer (Speed Strategy: Headless Execution)",
+    "treatment": "9, 10",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L3",
+    "sections": [
+      9,
+      10
+    ],
+    "packages": [],
+    "code": [
+      "device-agent/windows/ocade_agent/office_worker.py + engine.py",
+      "device-agent/windows/ocade_agent/windows_worker.py + discovery.py",
+      "device-agent/windows/ocade_agent/web_worker.py",
+      "src/lib/jarvis/contracts.ts"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_gateway.py",
+      "device-agent/windows/tests/test_media.py",
+      "tests/jarvis/e2e.test.ts",
+      "device-agent/windows/tests/test_web.py"
+    ],
+    "blocker": "LibreOffice/ffmpeg pass on Linux; Excel/Word COM needs Windows + Office; fixture site + example.com read pass; third-party accounts/editors not approved"
+  },
+  {
+    "id": "A030",
+    "heading": "3. Elevating Output from \"Basic\" to \"Professional\"",
+    "treatment": "12",
+    "disposition": "MANDATORY",
+    "status": "PASS",
+    "level": "L3",
+    "sections": [
+      12
+    ],
+    "packages": [],
+    "code": [
+      "device-agent/windows/ocade_agent/verify_worker.py",
+      "src/lib/jarvis/supervisor.ts"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_gateway.py",
+      "tests/jarvis/e2e.test.ts",
+      "device-agent/windows/tests/test_media.py"
+    ],
+    "blocker": ""
+  },
+  {
+    "id": "A031",
+    "heading": "Step A: Systemic Introspection (Environment Mapping)",
+    "treatment": "8",
+    "disposition": "MANDATORY",
+    "status": "BLOCKED",
+    "level": "L0",
+    "sections": [
+      8
+    ],
+    "packages": [],
+    "code": [
+      "device-agent/windows/ocade_agent/windows_worker.py + discovery.py"
+    ],
+    "tests": [],
+    "blocker": "needs an interactive Windows desktop"
+  },
+  {
+    "id": "A032",
+    "heading": "Step B: Vectorized Domain Blueprints",
+    "treatment": "4, 12",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      4,
+      12
+    ],
+    "packages": [],
+    "code": [
+      "src/lib/jarvis/authority.server.ts",
+      "src/lib/jarvis/supervisor.ts",
+      "src/lib/jarvis/planner.server.ts + supabase/functions/jarvis-planner",
+      "device-agent/windows/ocade_agent/gateway.py",
+      "device-agent/windows/ocade_agent/verify_worker.py"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts",
+      "device-agent/windows/tests/test_gateway.py",
+      "device-agent/windows/tests/test_media.py"
+    ],
+    "blocker": "real model judgement untested (no provider credentials); Windows actuators untested"
+  },
+  {
+    "id": "A033",
+    "heading": "Step C: The Self-Correction Loop (Zero Errors)",
+    "treatment": "5",
+    "disposition": "MANDATORY",
+    "status": "PASS",
+    "level": "L2",
+    "sections": [
+      5
+    ],
+    "packages": [],
+    "code": [
+      "supabase/migrations/20261030120000_jarvis_task_authority.sql",
+      "src/lib/jarvis/authority.server.ts",
+      "device-agent/windows/ocade_agent/agent.py + device.py + journal.py"
+    ],
+    "tests": [
+      "tests/jarvis/db/authority.test.sql",
+      "tests/jarvis/e2e.test.ts",
+      "device-agent/windows/tests/test_agent.py"
+    ],
+    "blocker": ""
+  },
+  {
+    "id": "A034",
+    "heading": "4. Implementation: The Local \"Toolbox\" Routing Layer",
+    "treatment": "6",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      6
+    ],
+    "packages": [],
+    "code": [
+      "device-agent/windows/ocade_agent/gateway.py",
+      "device-agent/windows/ocade_agent/catalog.py",
+      "src/lib/jarvis/contracts.ts"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_gateway.py",
+      "device-agent/windows/tests/test_catalog.py",
+      "device-agent/windows/tests/mcp_fleet.py (measurement)"
+    ],
+    "blocker": "real third-party MCP server run denied by sandbox policy; needs owner approval"
+  },
+  {
+    "id": "A035",
+    "heading": "The Landscape of Universal PC & Application Control MCPs",
+    "treatment": "6",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      6
+    ],
+    "packages": [],
+    "code": [
+      "device-agent/windows/ocade_agent/gateway.py",
+      "device-agent/windows/ocade_agent/catalog.py",
+      "src/lib/jarvis/contracts.ts"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_gateway.py",
+      "device-agent/windows/tests/test_catalog.py",
+      "device-agent/windows/tests/mcp_fleet.py (measurement)"
+    ],
+    "blocker": "real third-party MCP server run denied by sandbox policy; needs owner approval"
+  },
+  {
+    "id": "A036",
+    "heading": "Part 1: The Master Universal Control Catalog",
+    "treatment": "6",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      6
+    ],
+    "packages": [],
+    "code": [
+      "device-agent/windows/ocade_agent/gateway.py",
+      "device-agent/windows/ocade_agent/catalog.py",
+      "src/lib/jarvis/contracts.ts"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_gateway.py",
+      "device-agent/windows/tests/test_catalog.py",
+      "device-agent/windows/tests/mcp_fleet.py (measurement)"
+    ],
+    "blocker": "real third-party MCP server run denied by sandbox policy; needs owner approval"
+  },
+  {
+    "id": "A037",
+    "heading": "1. The Core Universal Operating System Engines",
+    "treatment": "6",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      6
+    ],
+    "packages": [],
+    "code": [
+      "device-agent/windows/ocade_agent/gateway.py",
+      "device-agent/windows/ocade_agent/catalog.py",
+      "src/lib/jarvis/contracts.ts"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_gateway.py",
+      "device-agent/windows/tests/test_catalog.py",
+      "device-agent/windows/tests/mcp_fleet.py (measurement)"
+    ],
+    "blocker": "real third-party MCP server run denied by sandbox policy; needs owner approval"
+  },
+  {
+    "id": "A038",
+    "heading": "2. Local Productivity & Enterprise Layers",
+    "treatment": "6",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      6
+    ],
+    "packages": [],
+    "code": [
+      "device-agent/windows/ocade_agent/gateway.py",
+      "device-agent/windows/ocade_agent/catalog.py",
+      "src/lib/jarvis/contracts.ts"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_gateway.py",
+      "device-agent/windows/tests/test_catalog.py",
+      "device-agent/windows/tests/mcp_fleet.py (measurement)"
+    ],
+    "blocker": "real third-party MCP server run denied by sandbox policy; needs owner approval"
+  },
+  {
+    "id": "A039",
+    "heading": "3. Headless Web/SaaS Layers",
+    "treatment": "6, 10",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      6,
+      10
+    ],
+    "packages": [],
+    "code": [
+      "device-agent/windows/ocade_agent/gateway.py",
+      "device-agent/windows/ocade_agent/catalog.py",
+      "src/lib/jarvis/contracts.ts",
+      "device-agent/windows/ocade_agent/web_worker.py"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_gateway.py",
+      "device-agent/windows/tests/test_catalog.py",
+      "device-agent/windows/tests/mcp_fleet.py (measurement)",
+      "device-agent/windows/tests/test_web.py"
+    ],
+    "blocker": "real third-party MCP server run denied by sandbox policy; needs owner approval; fixture site + example.com read pass; third-party accounts/editors not approved"
+  },
+  {
+    "id": "A040",
+    "heading": "4. Specialized Professional App Native Bridges",
+    "treatment": "6, 13",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      6,
+      13
+    ],
+    "packages": [],
+    "code": [
+      "device-agent/windows/ocade_agent/gateway.py",
+      "device-agent/windows/ocade_agent/catalog.py",
+      "src/lib/jarvis/contracts.ts",
+      "src/lib/jarvis/supervisor.ts",
+      "src/lib/jarvis/planner.server.ts + supabase/functions/jarvis-planner",
+      "device-agent/windows/ocade_agent/office_worker.py + engine.py",
+      "device-agent/windows/ocade_agent/web_worker.py"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_gateway.py",
+      "device-agent/windows/tests/test_catalog.py",
+      "device-agent/windows/tests/mcp_fleet.py (measurement)",
+      "tests/jarvis/e2e.test.ts",
+      "device-agent/windows/tests/test_web.py",
+      "device-agent/windows/tests/test_media.py"
+    ],
+    "blocker": "real third-party MCP server run denied by sandbox policy; needs owner approval; chess/CAD not implemented; video/photo web editors not approved; Windows apps blocked"
+  },
+  {
+    "id": "A041",
+    "heading": "Part 2: The \"Toolbox Router Method\" (Task-Based Execution)",
+    "treatment": "6",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      6
+    ],
+    "packages": [],
+    "code": [
+      "device-agent/windows/ocade_agent/gateway.py",
+      "device-agent/windows/ocade_agent/catalog.py",
+      "src/lib/jarvis/contracts.ts"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_gateway.py",
+      "device-agent/windows/tests/test_catalog.py",
+      "device-agent/windows/tests/mcp_fleet.py (measurement)"
+    ],
+    "blocker": "real third-party MCP server run denied by sandbox policy; needs owner approval"
+  },
+  {
+    "id": "A042",
+    "heading": "Step 1: Enforce Strict Namespace Isolation",
+    "treatment": "6",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      6
+    ],
+    "packages": [],
+    "code": [
+      "device-agent/windows/ocade_agent/gateway.py",
+      "device-agent/windows/ocade_agent/catalog.py",
+      "src/lib/jarvis/contracts.ts"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_gateway.py",
+      "device-agent/windows/tests/test_catalog.py",
+      "device-agent/windows/tests/mcp_fleet.py (measurement)"
+    ],
+    "blocker": "real third-party MCP server run denied by sandbox policy; needs owner approval"
+  },
+  {
+    "id": "A043",
+    "heading": "Step 2: The Semantic Token Gatekeeper",
+    "treatment": "6",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      6
+    ],
+    "packages": [],
+    "code": [
+      "device-agent/windows/ocade_agent/gateway.py",
+      "device-agent/windows/ocade_agent/catalog.py",
+      "src/lib/jarvis/contracts.ts"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_gateway.py",
+      "device-agent/windows/tests/test_catalog.py",
+      "device-agent/windows/tests/mcp_fleet.py (measurement)"
+    ],
+    "blocker": "real third-party MCP server run denied by sandbox policy; needs owner approval"
+  },
+  {
+    "id": "A044",
+    "heading": "Step 3: Closed-Loop Telemetry Verification",
+    "treatment": "12",
+    "disposition": "MANDATORY",
+    "status": "PASS",
+    "level": "L3",
+    "sections": [
+      12
+    ],
+    "packages": [],
+    "code": [
+      "device-agent/windows/ocade_agent/verify_worker.py",
+      "src/lib/jarvis/supervisor.ts"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_gateway.py",
+      "tests/jarvis/e2e.test.ts",
+      "device-agent/windows/tests/test_media.py"
+    ],
+    "blocker": ""
+  },
+  {
+    "id": "A045",
+    "heading": "1. In Simple Terms: What is Required & Why It’s the Best",
+    "treatment": "4",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      4
+    ],
+    "packages": [],
+    "code": [
+      "src/lib/jarvis/authority.server.ts",
+      "src/lib/jarvis/supervisor.ts",
+      "src/lib/jarvis/planner.server.ts + supabase/functions/jarvis-planner",
+      "device-agent/windows/ocade_agent/gateway.py",
+      "device-agent/windows/ocade_agent/verify_worker.py"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts",
+      "device-agent/windows/tests/test_gateway.py"
+    ],
+    "blocker": "real model judgement untested (no provider credentials); Windows actuators untested"
+  },
+  {
+    "id": "A046",
+    "heading": "Why this is the absolute best system:",
+    "treatment": "1, 4",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L0",
+    "sections": [
+      1,
+      4
+    ],
+    "packages": [],
+    "code": [
+      "src/lib/jarvis/authority.server.ts",
+      "src/lib/jarvis/supervisor.ts",
+      "src/lib/jarvis/planner.server.ts + supabase/functions/jarvis-planner",
+      "device-agent/windows/ocade_agent/gateway.py",
+      "device-agent/windows/ocade_agent/verify_worker.py"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts",
+      "device-agent/windows/tests/test_gateway.py"
+    ],
+    "blocker": "real model judgement untested (no provider credentials); Windows actuators untested"
+  },
+  {
+    "id": "A047",
+    "heading": "2. The Core Backbone vs. The Parts",
+    "treatment": "4, 6",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      4,
+      6
+    ],
+    "packages": [],
+    "code": [
+      "src/lib/jarvis/authority.server.ts",
+      "src/lib/jarvis/supervisor.ts",
+      "src/lib/jarvis/planner.server.ts + supabase/functions/jarvis-planner",
+      "device-agent/windows/ocade_agent/gateway.py",
+      "device-agent/windows/ocade_agent/verify_worker.py",
+      "device-agent/windows/ocade_agent/catalog.py",
+      "src/lib/jarvis/contracts.ts"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts",
+      "device-agent/windows/tests/test_gateway.py",
+      "device-agent/windows/tests/test_catalog.py",
+      "device-agent/windows/tests/mcp_fleet.py (measurement)"
+    ],
+    "blocker": "real model judgement untested (no provider credentials); Windows actuators untested; real third-party MCP server run denied by sandbox policy; needs owner approval"
+  },
+  {
+    "id": "A048",
+    "heading": "3. MCP vs. API/UI Automation: Who Wins?",
+    "treatment": "6",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      6
+    ],
+    "packages": [],
+    "code": [
+      "device-agent/windows/ocade_agent/gateway.py",
+      "device-agent/windows/ocade_agent/catalog.py",
+      "src/lib/jarvis/contracts.ts"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_gateway.py",
+      "device-agent/windows/tests/test_catalog.py",
+      "device-agent/windows/tests/mcp_fleet.py (measurement)"
+    ],
+    "blocker": "real third-party MCP server run denied by sandbox policy; needs owner approval"
+  },
+  {
+    "id": "A049",
+    "heading": "Omitted estimate at owner's direction",
+    "treatment": "Excluded",
+    "disposition": "NOT APPLICABLE",
+    "status": "NOT APPLICABLE",
+    "reason": "numerical sizing excluded by owner direction",
+    "sections": [],
+    "packages": [],
+    "code": [],
+    "tests": []
+  },
+  {
+    "id": "A050",
+    "heading": "5. How to Best the Entire World with This",
+    "treatment": "0, 16",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      0,
+      16
+    ],
+    "packages": [],
+    "code": [
+      "src/lib/jarvis/authority.server.ts",
+      "src/lib/jarvis/supervisor.ts",
+      "device-agent/windows/ocade_agent/catalog.py"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts",
+      "device-agent/windows/tests/mcp_fleet.py (measurement)"
+    ],
+    "blocker": "95% per-family gate not measured; Windows/UI journeys blocked; task-level latency/benchmark against real model not run"
+  },
+  {
+    "id": "A051",
+    "heading": "1. In Simple Terms: What is Required & Why It’s the Best",
+    "treatment": "4",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      4
+    ],
+    "packages": [],
+    "code": [
+      "src/lib/jarvis/authority.server.ts",
+      "src/lib/jarvis/supervisor.ts",
+      "src/lib/jarvis/planner.server.ts + supabase/functions/jarvis-planner",
+      "device-agent/windows/ocade_agent/gateway.py",
+      "device-agent/windows/ocade_agent/verify_worker.py"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts",
+      "device-agent/windows/tests/test_gateway.py"
+    ],
+    "blocker": "real model judgement untested (no provider credentials); Windows actuators untested"
+  },
+  {
+    "id": "A052",
+    "heading": "Why this is the absolute best system:",
+    "treatment": "1, 4",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L0",
+    "sections": [
+      1,
+      4
+    ],
+    "packages": [],
+    "code": [
+      "src/lib/jarvis/authority.server.ts",
+      "src/lib/jarvis/supervisor.ts",
+      "src/lib/jarvis/planner.server.ts + supabase/functions/jarvis-planner",
+      "device-agent/windows/ocade_agent/gateway.py",
+      "device-agent/windows/ocade_agent/verify_worker.py"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts",
+      "device-agent/windows/tests/test_gateway.py"
+    ],
+    "blocker": "real model judgement untested (no provider credentials); Windows actuators untested"
+  },
+  {
+    "id": "A053",
+    "heading": "2. The Core Backbone vs. The Parts",
+    "treatment": "4, 6",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      4,
+      6
+    ],
+    "packages": [],
+    "code": [
+      "src/lib/jarvis/authority.server.ts",
+      "src/lib/jarvis/supervisor.ts",
+      "src/lib/jarvis/planner.server.ts + supabase/functions/jarvis-planner",
+      "device-agent/windows/ocade_agent/gateway.py",
+      "device-agent/windows/ocade_agent/verify_worker.py",
+      "device-agent/windows/ocade_agent/catalog.py",
+      "src/lib/jarvis/contracts.ts"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts",
+      "device-agent/windows/tests/test_gateway.py",
+      "device-agent/windows/tests/test_catalog.py",
+      "device-agent/windows/tests/mcp_fleet.py (measurement)"
+    ],
+    "blocker": "real model judgement untested (no provider credentials); Windows actuators untested; real third-party MCP server run denied by sandbox policy; needs owner approval"
+  },
+  {
+    "id": "A054",
+    "heading": "3. MCP vs. API/UI Automation: Who Wins?",
+    "treatment": "6",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      6
+    ],
+    "packages": [],
+    "code": [
+      "device-agent/windows/ocade_agent/gateway.py",
+      "device-agent/windows/ocade_agent/catalog.py",
+      "src/lib/jarvis/contracts.ts"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_gateway.py",
+      "device-agent/windows/tests/test_catalog.py",
+      "device-agent/windows/tests/mcp_fleet.py (measurement)"
+    ],
+    "blocker": "real third-party MCP server run denied by sandbox policy; needs owner approval"
+  },
+  {
+    "id": "A055",
+    "heading": "Omitted estimate at owner's direction",
+    "treatment": "Excluded",
+    "disposition": "NOT APPLICABLE",
+    "status": "NOT APPLICABLE",
+    "reason": "numerical sizing excluded by owner direction",
+    "sections": [],
+    "packages": [],
+    "code": [],
+    "tests": []
+  },
+  {
+    "id": "A056",
+    "heading": "5. How to Best the Entire World with This",
+    "treatment": "0, 16",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      0,
+      16
+    ],
+    "packages": [],
+    "code": [
+      "src/lib/jarvis/authority.server.ts",
+      "src/lib/jarvis/supervisor.ts",
+      "device-agent/windows/ocade_agent/catalog.py"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts",
+      "device-agent/windows/tests/mcp_fleet.py (measurement)"
+    ],
+    "blocker": "95% per-family gate not measured; Windows/UI journeys blocked; task-level latency/benchmark against real model not run"
+  },
+  {
+    "id": "A057",
+    "heading": "1. Real-Time Thinking: The Continuous Actor-Critic State Loop",
+    "treatment": "4, 5",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      4,
+      5
+    ],
+    "packages": [],
+    "code": [
+      "src/lib/jarvis/authority.server.ts",
+      "src/lib/jarvis/supervisor.ts",
+      "src/lib/jarvis/planner.server.ts + supabase/functions/jarvis-planner",
+      "device-agent/windows/ocade_agent/gateway.py",
+      "device-agent/windows/ocade_agent/verify_worker.py",
+      "supabase/migrations/20261030120000_jarvis_task_authority.sql",
+      "device-agent/windows/ocade_agent/agent.py + device.py + journal.py"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts",
+      "device-agent/windows/tests/test_gateway.py",
+      "tests/jarvis/db/authority.test.sql",
+      "device-agent/windows/tests/test_agent.py"
+    ],
+    "blocker": "real model judgement untested (no provider credentials); Windows actuators untested"
+  },
+  {
+    "id": "A058",
+    "heading": "2. Eliminating Errors: Structural Window Locking & Telemetry Verification",
+    "treatment": "8, 12",
+    "disposition": "MANDATORY",
+    "status": "BLOCKED",
+    "level": "L0",
+    "sections": [
+      8,
+      12
+    ],
+    "packages": [],
+    "code": [
+      "device-agent/windows/ocade_agent/windows_worker.py + discovery.py",
+      "device-agent/windows/ocade_agent/verify_worker.py",
+      "src/lib/jarvis/supervisor.ts"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_gateway.py",
+      "tests/jarvis/e2e.test.ts",
+      "device-agent/windows/tests/test_media.py"
+    ],
+    "blocker": "needs an interactive Windows desktop"
+  },
+  {
+    "id": "A059",
+    "heading": "3. The \"Never-Stop\" Infinite Optimization Loop",
+    "treatment": "5; infinite loop rejected",
+    "disposition": "NOT APPLICABLE",
+    "status": "NOT APPLICABLE",
+    "reason": "historical claim rejected as unsafe/unmeasurable (see treatment)",
+    "sections": [
+      5
+    ],
+    "packages": [],
+    "code": [],
+    "tests": []
+  },
+  {
+    "id": "A060",
+    "heading": "4. Zero-Latency Execution Pipeline (stdio)",
+    "treatment": "6; zero latency rejected",
+    "disposition": "NOT APPLICABLE",
+    "status": "NOT APPLICABLE",
+    "reason": "historical claim rejected as unsafe/unmeasurable (see treatment)",
+    "sections": [
+      6
+    ],
+    "packages": [],
+    "code": [],
+    "tests": []
+  },
+  {
+    "id": "A061",
+    "heading": "Phase 1: Structuring the Real-Time Reactive Control Loop",
+    "treatment": "4, 5",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      4,
+      5
+    ],
+    "packages": [],
+    "code": [
+      "src/lib/jarvis/authority.server.ts",
+      "src/lib/jarvis/supervisor.ts",
+      "src/lib/jarvis/planner.server.ts + supabase/functions/jarvis-planner",
+      "device-agent/windows/ocade_agent/gateway.py",
+      "device-agent/windows/ocade_agent/verify_worker.py",
+      "supabase/migrations/20261030120000_jarvis_task_authority.sql",
+      "device-agent/windows/ocade_agent/agent.py + device.py + journal.py"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts",
+      "device-agent/windows/tests/test_gateway.py",
+      "tests/jarvis/db/authority.test.sql",
+      "device-agent/windows/tests/test_agent.py"
+    ],
+    "blocker": "real model judgement untested (no provider credentials); Windows actuators untested"
+  },
+  {
+    "id": "A062",
+    "heading": "Phase 2: The Core Tech Stack & Tools (The Execution Engine)",
+    "treatment": "6, 9",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      6,
+      9
+    ],
+    "packages": [],
+    "code": [
+      "device-agent/windows/ocade_agent/gateway.py",
+      "device-agent/windows/ocade_agent/catalog.py",
+      "src/lib/jarvis/contracts.ts",
+      "device-agent/windows/ocade_agent/office_worker.py + engine.py",
+      "device-agent/windows/ocade_agent/windows_worker.py + discovery.py"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_gateway.py",
+      "device-agent/windows/tests/test_catalog.py",
+      "device-agent/windows/tests/mcp_fleet.py (measurement)",
+      "device-agent/windows/tests/test_media.py",
+      "tests/jarvis/e2e.test.ts"
+    ],
+    "blocker": "real third-party MCP server run denied by sandbox policy; needs owner approval; LibreOffice/ffmpeg pass on Linux; Excel/Word COM needs Windows + Office"
+  },
+  {
+    "id": "A063",
+    "heading": "1. Windows Enterprise Automation: pywinauto + UIA (UI Automation Core)",
+    "treatment": "8, 9",
+    "disposition": "MANDATORY",
+    "status": "BLOCKED",
+    "level": "L0",
+    "sections": [
+      8,
+      9
+    ],
+    "packages": [],
+    "code": [
+      "device-agent/windows/ocade_agent/windows_worker.py + discovery.py",
+      "device-agent/windows/ocade_agent/office_worker.py + engine.py"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_gateway.py",
+      "device-agent/windows/tests/test_media.py",
+      "tests/jarvis/e2e.test.ts"
+    ],
+    "blocker": "needs an interactive Windows desktop; LibreOffice/ffmpeg pass on Linux; Excel/Word COM needs Windows + Office"
+  },
+  {
+    "id": "A064",
+    "heading": "2. macOS Native Interface Control: pyobjc + ApplicationServices (Accessibility Core)",
+    "treatment": "7; later platform",
+    "disposition": "NOT APPLICABLE",
+    "status": "NOT APPLICABLE",
+    "reason": "future platform outside Windows-first scope",
+    "sections": [
+      7
+    ],
+    "packages": [],
+    "code": [],
+    "tests": []
+  },
+  {
+    "id": "A065",
+    "heading": "3. Deep File System & Sandbox Scripting: Native Python subprocess + shutil + os",
+    "treatment": "9, 11",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      9,
+      11
+    ],
+    "packages": [],
+    "code": [
+      "device-agent/windows/ocade_agent/office_worker.py + engine.py",
+      "device-agent/windows/ocade_agent/windows_worker.py + discovery.py",
+      "supabase/migrations/20261030120000_jarvis_task_authority.sql",
+      "device-agent/windows/ocade_agent/agent.py + device.py + journal.py",
+      "device-agent/windows/ocade_agent/gateway.py"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_gateway.py",
+      "device-agent/windows/tests/test_media.py",
+      "tests/jarvis/e2e.test.ts",
+      "tests/jarvis/db/authority.test.sql",
+      "device-agent/windows/tests/test_agent.py"
+    ],
+    "blocker": "LibreOffice/ffmpeg pass on Linux; Excel/Word COM needs Windows + Office"
+  },
+  {
+    "id": "A066",
+    "heading": "4. The High-Velocity Communication Pipe: Asynchronous sys.stdin / sys.stdout (stdio)",
+    "treatment": "6",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      6
+    ],
+    "packages": [],
+    "code": [
+      "device-agent/windows/ocade_agent/gateway.py",
+      "device-agent/windows/ocade_agent/catalog.py",
+      "src/lib/jarvis/contracts.ts"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_gateway.py",
+      "device-agent/windows/tests/test_catalog.py",
+      "device-agent/windows/tests/mcp_fleet.py (measurement)"
+    ],
+    "blocker": "real third-party MCP server run denied by sandbox policy; needs owner approval"
+  },
+  {
+    "id": "A067",
+    "heading": "Phase 3: The Unified Real-Time Scripting Blueprint",
+    "treatment": "4, 6; example not production",
+    "disposition": "NOT APPLICABLE",
+    "status": "NOT APPLICABLE",
+    "reason": "example only, not a product requirement",
+    "sections": [
+      4,
+      6
+    ],
+    "packages": [],
+    "code": [],
+    "tests": []
+  },
+  {
+    "id": "A068",
+    "heading": "Phase 4: Why This Architecture Dominates Globally",
+    "treatment": "16; benchmark, not assumed",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      16
+    ],
+    "packages": [],
+    "code": [
+      "device-agent/windows/ocade_agent/catalog.py"
+    ],
+    "tests": [
+      "device-agent/windows/tests/mcp_fleet.py (measurement)"
+    ],
+    "blocker": "task-level latency/benchmark against real model not run"
+  },
+  {
+    "id": "A069",
+    "heading": "1. Why Receding Horizon Optimization Beats All Planning Models",
+    "treatment": "4",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      4
+    ],
+    "packages": [],
+    "code": [
+      "src/lib/jarvis/authority.server.ts",
+      "src/lib/jarvis/supervisor.ts",
+      "src/lib/jarvis/planner.server.ts + supabase/functions/jarvis-planner",
+      "device-agent/windows/ocade_agent/gateway.py",
+      "device-agent/windows/ocade_agent/verify_worker.py"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts",
+      "device-agent/windows/tests/test_gateway.py"
+    ],
+    "blocker": "real model judgement untested (no provider credentials); Windows actuators untested"
+  },
+  {
+    "id": "A070",
+    "heading": "2. Handling Live User Interference (Mid-Task Edits)",
+    "treatment": "5, 8",
+    "disposition": "MANDATORY",
+    "status": "BLOCKED",
+    "level": "L0",
+    "sections": [
+      5,
+      8
+    ],
+    "packages": [],
+    "code": [
+      "supabase/migrations/20261030120000_jarvis_task_authority.sql",
+      "src/lib/jarvis/authority.server.ts",
+      "device-agent/windows/ocade_agent/agent.py + device.py + journal.py",
+      "device-agent/windows/ocade_agent/windows_worker.py + discovery.py"
+    ],
+    "tests": [
+      "tests/jarvis/db/authority.test.sql",
+      "tests/jarvis/e2e.test.ts",
+      "device-agent/windows/tests/test_agent.py"
+    ],
+    "blocker": "needs an interactive Windows desktop"
+  },
+  {
+    "id": "A071",
+    "heading": "Stage 1: Structural Window Tree Locking",
+    "treatment": "8",
+    "disposition": "MANDATORY",
+    "status": "BLOCKED",
+    "level": "L0",
+    "sections": [
+      8
+    ],
+    "packages": [],
+    "code": [
+      "device-agent/windows/ocade_agent/windows_worker.py + discovery.py"
+    ],
+    "tests": [],
+    "blocker": "needs an interactive Windows desktop"
+  },
+  {
+    "id": "A072",
+    "heading": "Stage 2: Synchronous Telemetry State Catch",
+    "treatment": "8, 12",
+    "disposition": "MANDATORY",
+    "status": "BLOCKED",
+    "level": "L0",
+    "sections": [
+      8,
+      12
+    ],
+    "packages": [],
+    "code": [
+      "device-agent/windows/ocade_agent/windows_worker.py + discovery.py",
+      "device-agent/windows/ocade_agent/verify_worker.py",
+      "src/lib/jarvis/supervisor.ts"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_gateway.py",
+      "tests/jarvis/e2e.test.ts",
+      "device-agent/windows/tests/test_media.py"
+    ],
+    "blocker": "needs an interactive Windows desktop"
+  },
+  {
+    "id": "A073",
+    "heading": "Stage 3: Dynamic State Pivot",
+    "treatment": "4, 5",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      4,
+      5
+    ],
+    "packages": [],
+    "code": [
+      "src/lib/jarvis/authority.server.ts",
+      "src/lib/jarvis/supervisor.ts",
+      "src/lib/jarvis/planner.server.ts + supabase/functions/jarvis-planner",
+      "device-agent/windows/ocade_agent/gateway.py",
+      "device-agent/windows/ocade_agent/verify_worker.py",
+      "supabase/migrations/20261030120000_jarvis_task_authority.sql",
+      "device-agent/windows/ocade_agent/agent.py + device.py + journal.py"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts",
+      "device-agent/windows/tests/test_gateway.py",
+      "tests/jarvis/db/authority.test.sql",
+      "device-agent/windows/tests/test_agent.py"
+    ],
+    "blocker": "real model judgement untested (no provider credentials); Windows actuators untested"
+  },
+  {
+    "id": "A074",
+    "heading": "Omitted estimate at owner's direction",
+    "treatment": "Excluded",
+    "disposition": "NOT APPLICABLE",
+    "status": "NOT APPLICABLE",
+    "reason": "numerical sizing excluded by owner direction",
+    "sections": [],
+    "packages": [],
+    "code": [],
+    "tests": []
+  },
+  {
+    "id": "A075",
+    "heading": "A. Universal Computer Control",
+    "treatment": "8, 9",
+    "disposition": "MANDATORY",
+    "status": "BLOCKED",
+    "level": "L0",
+    "sections": [
+      8,
+      9
+    ],
+    "packages": [],
+    "code": [
+      "device-agent/windows/ocade_agent/windows_worker.py + discovery.py",
+      "device-agent/windows/ocade_agent/office_worker.py + engine.py"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_gateway.py",
+      "device-agent/windows/tests/test_media.py",
+      "tests/jarvis/e2e.test.ts"
+    ],
+    "blocker": "needs an interactive Windows desktop; LibreOffice/ffmpeg pass on Linux; Excel/Word COM needs Windows + Office"
+  },
+  {
+    "id": "A076",
+    "heading": "1. Limitations of pywinauto and Windows UI Automation (UIA)",
+    "treatment": "8, 9",
+    "disposition": "MANDATORY",
+    "status": "BLOCKED",
+    "level": "L0",
+    "sections": [
+      8,
+      9
+    ],
+    "packages": [],
+    "code": [
+      "device-agent/windows/ocade_agent/windows_worker.py + discovery.py",
+      "device-agent/windows/ocade_agent/office_worker.py + engine.py"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_gateway.py",
+      "device-agent/windows/tests/test_media.py",
+      "tests/jarvis/e2e.test.ts"
+    ],
+    "blocker": "needs an interactive Windows desktop; LibreOffice/ffmpeg pass on Linux; Excel/Word COM needs Windows + Office"
+  },
+  {
+    "id": "A077",
+    "heading": "2. States of Window Visibility (Minimized vs. Background)",
+    "treatment": "8, 20",
+    "disposition": "MANDATORY",
+    "status": "BLOCKED",
+    "level": "L0",
+    "sections": [
+      8,
+      20
+    ],
+    "packages": [],
+    "code": [
+      "device-agent/windows/ocade_agent/windows_worker.py + discovery.py",
+      "src/lib/jarvis/authority.server.ts"
+    ],
+    "tests": [],
+    "blocker": "needs an interactive Windows desktop"
+  },
+  {
+    "id": "A078",
+    "heading": "3. Dynamic Application & Interface Discovery",
+    "treatment": "8",
+    "disposition": "MANDATORY",
+    "status": "BLOCKED",
+    "level": "L0",
+    "sections": [
+      8
+    ],
+    "packages": [],
+    "code": [
+      "device-agent/windows/ocade_agent/windows_worker.py + discovery.py"
+    ],
+    "tests": [],
+    "blocker": "needs an interactive Windows desktop"
+  },
+  {
+    "id": "A079",
+    "heading": "4. Reaching Maximum Professional Depth",
+    "treatment": "9, 13",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L3",
+    "sections": [
+      9,
+      13
+    ],
+    "packages": [],
+    "code": [
+      "device-agent/windows/ocade_agent/office_worker.py + engine.py",
+      "device-agent/windows/ocade_agent/windows_worker.py + discovery.py",
+      "src/lib/jarvis/supervisor.ts",
+      "src/lib/jarvis/planner.server.ts + supabase/functions/jarvis-planner",
+      "device-agent/windows/ocade_agent/web_worker.py"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_gateway.py",
+      "device-agent/windows/tests/test_media.py",
+      "tests/jarvis/e2e.test.ts",
+      "device-agent/windows/tests/test_web.py"
+    ],
+    "blocker": "LibreOffice/ffmpeg pass on Linux; Excel/Word COM needs Windows + Office; chess/CAD not implemented; video/photo web editors not approved; Windows apps blocked"
+  },
+  {
+    "id": "A080",
+    "heading": "5. Fallback for Zero-Access Black-Box Software",
+    "treatment": "9",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L3",
+    "sections": [
+      9
+    ],
+    "packages": [],
+    "code": [
+      "device-agent/windows/ocade_agent/office_worker.py + engine.py",
+      "device-agent/windows/ocade_agent/windows_worker.py + discovery.py"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_gateway.py",
+      "device-agent/windows/tests/test_media.py",
+      "tests/jarvis/e2e.test.ts"
+    ],
+    "blocker": "LibreOffice/ffmpeg pass on Linux; Excel/Word COM needs Windows + Office"
+  },
+  {
+    "id": "A081",
+    "heading": "B. Speed and Performance",
+    "treatment": "16",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      16
+    ],
+    "packages": [],
+    "code": [
+      "device-agent/windows/ocade_agent/catalog.py"
+    ],
+    "tests": [
+      "device-agent/windows/tests/mcp_fleet.py (measurement)"
+    ],
+    "blocker": "task-level latency/benchmark against real model not run"
+  },
+  {
+    "id": "A082",
+    "heading": "6. Real-World Execution Latencies and Benchmarks",
+    "treatment": "16",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      16
+    ],
+    "packages": [],
+    "code": [
+      "device-agent/windows/ocade_agent/catalog.py"
+    ],
+    "tests": [
+      "device-agent/windows/tests/mcp_fleet.py (measurement)"
+    ],
+    "blocker": "task-level latency/benchmark against real model not run"
+  },
+  {
+    "id": "A083",
+    "heading": "7. Stdio Performance vs. IPC Alternatives",
+    "treatment": "6, 16",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      6,
+      16
+    ],
+    "packages": [],
+    "code": [
+      "device-agent/windows/ocade_agent/gateway.py",
+      "device-agent/windows/ocade_agent/catalog.py",
+      "src/lib/jarvis/contracts.ts"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_gateway.py",
+      "device-agent/windows/tests/test_catalog.py",
+      "device-agent/windows/tests/mcp_fleet.py (measurement)"
+    ],
+    "blocker": "real third-party MCP server run denied by sandbox policy; needs owner approval; task-level latency/benchmark against real model not run"
+  },
+  {
+    "id": "A084",
+    "heading": "8. Local Model Speed vs. Cloud Model Accuracy",
+    "treatment": "2, 16",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      2,
+      16
+    ],
+    "packages": [],
+    "code": [
+      "src/lib/jarvis/authority.server.ts",
+      "supabase/migrations/20261030120000_jarvis_task_authority.sql",
+      "device-agent/windows/ocade_agent/catalog.py"
+    ],
+    "tests": [
+      "tests/jarvis/db/authority.test.sql",
+      "device-agent/windows/tests/mcp_fleet.py (measurement)"
+    ],
+    "blocker": "task-level latency/benchmark against real model not run"
+  },
+  {
+    "id": "A085",
+    "heading": "9. Deterministic Multi-Action Batching (Avoiding Model Call Bloat)",
+    "treatment": "9, 16",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      9,
+      16
+    ],
+    "packages": [],
+    "code": [
+      "device-agent/windows/ocade_agent/office_worker.py + engine.py",
+      "device-agent/windows/ocade_agent/windows_worker.py + discovery.py",
+      "device-agent/windows/ocade_agent/catalog.py"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_gateway.py",
+      "device-agent/windows/tests/test_media.py",
+      "tests/jarvis/e2e.test.ts",
+      "device-agent/windows/tests/mcp_fleet.py (measurement)"
+    ],
+    "blocker": "LibreOffice/ffmpeg pass on Linux; Excel/Word COM needs Windows + Office; task-level latency/benchmark against real model not run"
+  },
+  {
+    "id": "A086",
+    "heading": "10. Background Execution Resource Management",
+    "treatment": "11, 16",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      11,
+      16
+    ],
+    "packages": [],
+    "code": [
+      "supabase/migrations/20261030120000_jarvis_task_authority.sql",
+      "device-agent/windows/ocade_agent/agent.py + device.py + journal.py",
+      "device-agent/windows/ocade_agent/gateway.py",
+      "device-agent/windows/ocade_agent/catalog.py"
+    ],
+    "tests": [
+      "tests/jarvis/db/authority.test.sql",
+      "device-agent/windows/tests/test_agent.py",
+      "tests/jarvis/e2e.test.ts",
+      "device-agent/windows/tests/mcp_fleet.py (measurement)"
+    ],
+    "blocker": "task-level latency/benchmark against real model not run"
+  },
+  {
+    "id": "A087",
+    "heading": "C. MCP Architecture and Conflicts",
+    "treatment": "6",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      6
+    ],
+    "packages": [],
+    "code": [
+      "device-agent/windows/ocade_agent/gateway.py",
+      "device-agent/windows/ocade_agent/catalog.py",
+      "src/lib/jarvis/contracts.ts"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_gateway.py",
+      "device-agent/windows/tests/test_catalog.py",
+      "device-agent/windows/tests/mcp_fleet.py (measurement)"
+    ],
+    "blocker": "real third-party MCP server run denied by sandbox policy; needs owner approval"
+  },
+  {
+    "id": "A088",
+    "heading": "11. Minimal Practical MCP Server Blueprint",
+    "treatment": "6",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      6
+    ],
+    "packages": [],
+    "code": [
+      "device-agent/windows/ocade_agent/gateway.py",
+      "device-agent/windows/ocade_agent/catalog.py",
+      "src/lib/jarvis/contracts.ts"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_gateway.py",
+      "device-agent/windows/tests/test_catalog.py",
+      "device-agent/windows/tests/mcp_fleet.py (measurement)"
+    ],
+    "blocker": "real third-party MCP server run denied by sandbox policy; needs owner approval"
+  },
+  {
+    "id": "A089",
+    "heading": "12. MCP Gateway vs. Autonomous Agents",
+    "treatment": "4, 6",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      4,
+      6
+    ],
+    "packages": [],
+    "code": [
+      "src/lib/jarvis/authority.server.ts",
+      "src/lib/jarvis/supervisor.ts",
+      "src/lib/jarvis/planner.server.ts + supabase/functions/jarvis-planner",
+      "device-agent/windows/ocade_agent/gateway.py",
+      "device-agent/windows/ocade_agent/verify_worker.py",
+      "device-agent/windows/ocade_agent/catalog.py",
+      "src/lib/jarvis/contracts.ts"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts",
+      "device-agent/windows/tests/test_gateway.py",
+      "device-agent/windows/tests/test_catalog.py",
+      "device-agent/windows/tests/mcp_fleet.py (measurement)"
+    ],
+    "blocker": "real model judgement untested (no provider credentials); Windows actuators untested; real third-party MCP server run denied by sandbox policy; needs owner approval"
+  },
+  {
+    "id": "A090",
+    "heading": "13. Concurrency Protection and Crash Recovery",
+    "treatment": "5, 11",
+    "disposition": "MANDATORY",
+    "status": "PASS",
+    "level": "L2",
+    "sections": [
+      5,
+      11
+    ],
+    "packages": [],
+    "code": [
+      "supabase/migrations/20261030120000_jarvis_task_authority.sql",
+      "src/lib/jarvis/authority.server.ts",
+      "device-agent/windows/ocade_agent/agent.py + device.py + journal.py",
+      "device-agent/windows/ocade_agent/gateway.py"
+    ],
+    "tests": [
+      "tests/jarvis/db/authority.test.sql",
+      "tests/jarvis/e2e.test.ts",
+      "device-agent/windows/tests/test_agent.py"
+    ],
+    "blocker": ""
+  },
+  {
+    "id": "A091",
+    "heading": "14. Managing Large Tool Catalogs",
+    "treatment": "6",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      6
+    ],
+    "packages": [],
+    "code": [
+      "device-agent/windows/ocade_agent/gateway.py",
+      "device-agent/windows/ocade_agent/catalog.py",
+      "src/lib/jarvis/contracts.ts"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_gateway.py",
+      "device-agent/windows/tests/test_catalog.py",
+      "device-agent/windows/tests/mcp_fleet.py (measurement)"
+    ],
+    "blocker": "real third-party MCP server run denied by sandbox policy; needs owner approval"
+  },
+  {
+    "id": "A092",
+    "heading": "15. Handling Server Instability and Anomalies",
+    "treatment": "6, 11",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      6,
+      11
+    ],
+    "packages": [],
+    "code": [
+      "device-agent/windows/ocade_agent/gateway.py",
+      "device-agent/windows/ocade_agent/catalog.py",
+      "src/lib/jarvis/contracts.ts",
+      "supabase/migrations/20261030120000_jarvis_task_authority.sql",
+      "device-agent/windows/ocade_agent/agent.py + device.py + journal.py"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_gateway.py",
+      "device-agent/windows/tests/test_catalog.py",
+      "device-agent/windows/tests/mcp_fleet.py (measurement)",
+      "tests/jarvis/db/authority.test.sql",
+      "device-agent/windows/tests/test_agent.py",
+      "tests/jarvis/e2e.test.ts"
+    ],
+    "blocker": "real third-party MCP server run denied by sandbox policy; needs owner approval"
+  },
+  {
+    "id": "A093",
+    "heading": "D. OD-AVGHHC and Autonomous Execution",
+    "treatment": "4",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      4
+    ],
+    "packages": [],
+    "code": [
+      "src/lib/jarvis/authority.server.ts",
+      "src/lib/jarvis/supervisor.ts",
+      "src/lib/jarvis/planner.server.ts + supabase/functions/jarvis-planner",
+      "device-agent/windows/ocade_agent/gateway.py",
+      "device-agent/windows/ocade_agent/verify_worker.py"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts",
+      "device-agent/windows/tests/test_gateway.py"
+    ],
+    "blocker": "real model judgement untested (no provider credentials); Windows actuators untested"
+  },
+  {
+    "id": "A094",
+    "heading": "16. Integrating Receding Horizon Control inside OD-AVGHHC",
+    "treatment": "4",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      4
+    ],
+    "packages": [],
+    "code": [
+      "src/lib/jarvis/authority.server.ts",
+      "src/lib/jarvis/supervisor.ts",
+      "src/lib/jarvis/planner.server.ts + supabase/functions/jarvis-planner",
+      "device-agent/windows/ocade_agent/gateway.py",
+      "device-agent/windows/ocade_agent/verify_worker.py"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts",
+      "device-agent/windows/tests/test_gateway.py"
+    ],
+    "blocker": "real model judgement untested (no provider credentials); Windows actuators untested"
+  },
+  {
+    "id": "A095",
+    "heading": "17. Macroscopic Planning for Unknown Task Horizons",
+    "treatment": "4, 5",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      4,
+      5
+    ],
+    "packages": [],
+    "code": [
+      "src/lib/jarvis/authority.server.ts",
+      "src/lib/jarvis/supervisor.ts",
+      "src/lib/jarvis/planner.server.ts + supabase/functions/jarvis-planner",
+      "device-agent/windows/ocade_agent/gateway.py",
+      "device-agent/windows/ocade_agent/verify_worker.py",
+      "supabase/migrations/20261030120000_jarvis_task_authority.sql",
+      "device-agent/windows/ocade_agent/agent.py + device.py + journal.py"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts",
+      "device-agent/windows/tests/test_gateway.py",
+      "tests/jarvis/db/authority.test.sql",
+      "device-agent/windows/tests/test_agent.py"
+    ],
+    "blocker": "real model judgement untested (no provider credentials); Windows actuators untested"
+  },
+  {
+    "id": "A096",
+    "heading": "18. Disambiguating Failed Actions from Lost Confirmations",
+    "treatment": "5, 11",
+    "disposition": "MANDATORY",
+    "status": "PASS",
+    "level": "L2",
+    "sections": [
+      5,
+      11
+    ],
+    "packages": [],
+    "code": [
+      "supabase/migrations/20261030120000_jarvis_task_authority.sql",
+      "src/lib/jarvis/authority.server.ts",
+      "device-agent/windows/ocade_agent/agent.py + device.py + journal.py",
+      "device-agent/windows/ocade_agent/gateway.py"
+    ],
+    "tests": [
+      "tests/jarvis/db/authority.test.sql",
+      "tests/jarvis/e2e.test.ts",
+      "device-agent/windows/tests/test_agent.py"
+    ],
+    "blocker": ""
+  },
+  {
+    "id": "A097",
+    "heading": "19. Professional Deliverable Verification",
+    "treatment": "12",
+    "disposition": "MANDATORY",
+    "status": "PASS",
+    "level": "L3",
+    "sections": [
+      12
+    ],
+    "packages": [],
+    "code": [
+      "device-agent/windows/ocade_agent/verify_worker.py",
+      "src/lib/jarvis/supervisor.ts"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_gateway.py",
+      "tests/jarvis/e2e.test.ts",
+      "device-agent/windows/tests/test_media.py"
+    ],
+    "blocker": ""
+  },
+  {
+    "id": "A098",
+    "heading": "20. Safeguarding the Self-Healing Engine (Preventing Catastrophes)",
+    "treatment": "5, 15",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      5,
+      15
+    ],
+    "packages": [],
+    "code": [
+      "supabase/migrations/20261030120000_jarvis_task_authority.sql",
+      "src/lib/jarvis/authority.server.ts",
+      "device-agent/windows/ocade_agent/agent.py + device.py + journal.py",
+      "src/lib/jarvis/contracts.ts",
+      "device-agent/windows/ocade_agent/web_worker.py",
+      "device-agent/windows/ocade_agent/sandbox.py",
+      "device-agent/windows/ocade_agent/catalog.py"
+    ],
+    "tests": [
+      "tests/jarvis/db/authority.test.sql",
+      "tests/jarvis/e2e.test.ts",
+      "device-agent/windows/tests/test_agent.py",
+      "device-agent/windows/tests/test_web.py",
+      "device-agent/windows/tests/test_sandbox.py",
+      "device-agent/windows/tests/test_catalog.py"
+    ],
+    "blocker": "Windows-specific attacks (junctions, UAC, wrong HWND) blocked"
+  },
+  {
+    "id": "A099",
+    "heading": "E. Complete Backend Rebuild",
+    "treatment": "2, 4",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      2,
+      4
+    ],
+    "packages": [],
+    "code": [
+      "src/lib/jarvis/authority.server.ts",
+      "supabase/migrations/20261030120000_jarvis_task_authority.sql",
+      "src/lib/jarvis/supervisor.ts",
+      "src/lib/jarvis/planner.server.ts + supabase/functions/jarvis-planner",
+      "device-agent/windows/ocade_agent/gateway.py",
+      "device-agent/windows/ocade_agent/verify_worker.py"
+    ],
+    "tests": [
+      "tests/jarvis/db/authority.test.sql",
+      "tests/jarvis/e2e.test.ts",
+      "device-agent/windows/tests/test_gateway.py"
+    ],
+    "blocker": "real model judgement untested (no provider credentials); Windows actuators untested"
+  },
+  {
+    "id": "A100",
+    "heading": "E. Complete Backend Rebuild",
+    "treatment": "2, 4; duplicate retained",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      2,
+      4
+    ],
+    "packages": [],
+    "code": [
+      "src/lib/jarvis/authority.server.ts",
+      "supabase/migrations/20261030120000_jarvis_task_authority.sql",
+      "src/lib/jarvis/supervisor.ts",
+      "src/lib/jarvis/planner.server.ts + supabase/functions/jarvis-planner",
+      "device-agent/windows/ocade_agent/gateway.py",
+      "device-agent/windows/ocade_agent/verify_worker.py"
+    ],
+    "tests": [
+      "tests/jarvis/db/authority.test.sql",
+      "tests/jarvis/e2e.test.ts",
+      "device-agent/windows/tests/test_gateway.py"
+    ],
+    "blocker": "real model judgement untested (no provider credentials); Windows actuators untested"
+  },
+  {
+    "id": "A101",
+    "heading": "21. Minimum Production Architecture Topology",
+    "treatment": "4",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      4
+    ],
+    "packages": [],
+    "code": [
+      "src/lib/jarvis/authority.server.ts",
+      "src/lib/jarvis/supervisor.ts",
+      "src/lib/jarvis/planner.server.ts + supabase/functions/jarvis-planner",
+      "device-agent/windows/ocade_agent/gateway.py",
+      "device-agent/windows/ocade_agent/verify_worker.py"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts",
+      "device-agent/windows/tests/test_gateway.py"
+    ],
+    "blocker": "real model judgement untested (no provider credentials); Windows actuators untested"
+  },
+  {
+    "id": "A102",
+    "heading": "Omitted estimate at owner's direction",
+    "treatment": "Excluded",
+    "disposition": "NOT APPLICABLE",
+    "status": "NOT APPLICABLE",
+    "reason": "numerical sizing excluded by owner direction",
+    "sections": [],
+    "packages": [],
+    "code": [],
+    "tests": []
+  },
+  {
+    "id": "A103",
+    "heading": "23. Build vs. Buy Strategy",
+    "treatment": "3, 6",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L0",
+    "sections": [
+      3,
+      6
+    ],
+    "packages": [],
+    "code": [
+      "src/lib/jarvis/contracts.ts",
+      "device-agent/windows/ocade_agent/gateway.py",
+      "device-agent/windows/ocade_agent/catalog.py"
+    ],
+    "tests": [
+      "tests/jarvis/contracts.test.ts",
+      "device-agent/windows/tests/test_gateway.py",
+      "device-agent/windows/tests/test_catalog.py",
+      "device-agent/windows/tests/mcp_fleet.py (measurement)"
+    ],
+    "blocker": "real third-party MCP server run denied by sandbox policy; needs owner approval"
+  },
+  {
+    "id": "A104",
+    "heading": "24. Interfacing and Connecting with the Existing Front-End",
+    "treatment": "2, 14",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      2,
+      14
+    ],
+    "packages": [],
+    "code": [
+      "src/lib/jarvis/authority.server.ts",
+      "supabase/migrations/20261030120000_jarvis_task_authority.sql",
+      "src/jarvis/JarvisWorkspace.tsx + JarvisPanels.tsx"
+    ],
+    "tests": [
+      "tests/jarvis/db/authority.test.sql",
+      "evidence UI render (signed-out)"
+    ],
+    "blocker": "signed-in UI needs hosted Supabase auth"
+  },
+  {
+    "id": "A105",
+    "heading": "25. Architecture Simplification & Objective Success Metrics",
+    "treatment": "3, 16",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L0",
+    "sections": [
+      3,
+      16
+    ],
+    "packages": [],
+    "code": [
+      "src/lib/jarvis/contracts.ts",
+      "device-agent/windows/ocade_agent/catalog.py"
+    ],
+    "tests": [
+      "tests/jarvis/contracts.test.ts",
+      "device-agent/windows/tests/mcp_fleet.py (measurement)"
+    ],
+    "blocker": "task-level latency/benchmark against real model not run"
+  },
+  {
+    "id": "A106",
+    "heading": "F. Security and Operational Reliability",
+    "treatment": "7, 15",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      7,
+      15
+    ],
+    "packages": [],
+    "code": [
+      "device-agent/windows/ocade_agent/agent.py + device.py + journal.py",
+      "device-agent/windows/packaging/",
+      "src/lib/jarvis/authority.server.ts",
+      "src/lib/jarvis/contracts.ts",
+      "device-agent/windows/ocade_agent/web_worker.py",
+      "device-agent/windows/ocade_agent/sandbox.py",
+      "device-agent/windows/ocade_agent/catalog.py",
+      "supabase/migrations/20261030120000_jarvis_task_authority.sql"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts",
+      "tests/jarvis/db/authority.test.sql",
+      "device-agent/windows/tests/test_web.py",
+      "device-agent/windows/tests/test_sandbox.py",
+      "device-agent/windows/tests/test_catalog.py"
+    ],
+    "blocker": "installer/startup/DPAPI need a disposable Windows machine; Windows-specific attacks (junctions, UAC, wrong HWND) blocked"
+  },
+  {
+    "id": "A107",
+    "heading": "26. Runtime Sandboxing and Asset Protection",
+    "treatment": "7, 11, 15",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      7,
+      11,
+      15
+    ],
+    "packages": [],
+    "code": [
+      "device-agent/windows/ocade_agent/agent.py + device.py + journal.py",
+      "device-agent/windows/packaging/",
+      "src/lib/jarvis/authority.server.ts",
+      "supabase/migrations/20261030120000_jarvis_task_authority.sql",
+      "device-agent/windows/ocade_agent/gateway.py",
+      "src/lib/jarvis/contracts.ts",
+      "device-agent/windows/ocade_agent/web_worker.py",
+      "device-agent/windows/ocade_agent/sandbox.py",
+      "device-agent/windows/ocade_agent/catalog.py"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts",
+      "tests/jarvis/db/authority.test.sql",
+      "device-agent/windows/tests/test_agent.py",
+      "device-agent/windows/tests/test_web.py",
+      "device-agent/windows/tests/test_sandbox.py",
+      "device-agent/windows/tests/test_catalog.py"
+    ],
+    "blocker": "installer/startup/DPAPI need a disposable Windows machine; Windows-specific attacks (junctions, UAC, wrong HWND) blocked"
+  },
+  {
+    "id": "A108",
+    "heading": "27. Execution State Control (Stop / Pause / Resume)",
+    "treatment": "5, 11",
+    "disposition": "MANDATORY",
+    "status": "PASS",
+    "level": "L2",
+    "sections": [
+      5,
+      11
+    ],
+    "packages": [],
+    "code": [
+      "supabase/migrations/20261030120000_jarvis_task_authority.sql",
+      "src/lib/jarvis/authority.server.ts",
+      "device-agent/windows/ocade_agent/agent.py + device.py + journal.py",
+      "device-agent/windows/ocade_agent/gateway.py"
+    ],
+    "tests": [
+      "tests/jarvis/db/authority.test.sql",
+      "tests/jarvis/e2e.test.ts",
+      "device-agent/windows/tests/test_agent.py"
+    ],
+    "blocker": ""
+  },
+  {
+    "id": "A109",
+    "heading": "28. Absolute Window and Target Context Resolution",
+    "treatment": "8",
+    "disposition": "MANDATORY",
+    "status": "BLOCKED",
+    "level": "L0",
+    "sections": [
+      8
+    ],
+    "packages": [],
+    "code": [
+      "device-agent/windows/ocade_agent/windows_worker.py + discovery.py"
+    ],
+    "tests": [],
+    "blocker": "needs an interactive Windows desktop"
+  },
+  {
+    "id": "A110",
+    "heading": "G. Verification and Final Recommendation",
+    "treatment": "17",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      17
+    ],
+    "packages": [],
+    "code": [
+      "src/lib/jarvis/authority.server.ts"
+    ],
+    "tests": [
+      "tests/jarvis/db/authority.test.sql",
+      "tests/jarvis/e2e.test.ts"
+    ],
+    "blocker": "release gates need Windows + real model evidence"
+  },
+  {
+    "id": "A111",
+    "heading": "29. Commercial Launch Test Suite Design",
+    "treatment": "17, 18",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      17,
+      18
+    ],
+    "packages": [],
+    "code": [
+      "src/lib/jarvis/authority.server.ts"
+    ],
+    "tests": [
+      "tests/jarvis/db/authority.test.sql",
+      "tests/jarvis/e2e.test.ts"
+    ],
+    "blocker": "release gates need Windows + real model evidence; see per-package report"
+  },
+  {
+    "id": "A112",
+    "heading": "30. Definitive Architecture Trade-Off Evaluation",
+    "treatment": "16",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      16
+    ],
+    "packages": [],
+    "code": [
+      "device-agent/windows/ocade_agent/catalog.py"
+    ],
+    "tests": [
+      "device-agent/windows/tests/mcp_fleet.py (measurement)"
+    ],
+    "blocker": "task-level latency/benchmark against real model not run"
+  },
+  {
+    "id": "A113",
+    "heading": "Final Architectural Recommendation: Choose Architecture C",
+    "treatment": "0, 4",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      0,
+      4
+    ],
+    "packages": [],
+    "code": [
+      "src/lib/jarvis/authority.server.ts",
+      "src/lib/jarvis/supervisor.ts",
+      "src/lib/jarvis/planner.server.ts + supabase/functions/jarvis-planner",
+      "device-agent/windows/ocade_agent/gateway.py",
+      "device-agent/windows/ocade_agent/verify_worker.py"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts",
+      "device-agent/windows/tests/test_gateway.py"
+    ],
+    "blocker": "95% per-family gate not measured; Windows/UI journeys blocked; real model judgement untested (no provider credentials); Windows actuators untested"
+  },
+  {
+    "id": "A114",
+    "heading": "Retractions from Earlier Hypotheses:",
+    "treatment": "1, 8, 16",
+    "disposition": "MANDATORY",
+    "status": "BLOCKED",
+    "level": "L0",
+    "sections": [
+      1,
+      8,
+      16
+    ],
+    "packages": [],
+    "code": [
+      "src/lib/jarvis/authority.server.ts",
+      "device-agent/windows/ocade_agent/windows_worker.py + discovery.py",
+      "device-agent/windows/ocade_agent/catalog.py"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts",
+      "device-agent/windows/tests/mcp_fleet.py (measurement)"
+    ],
+    "blocker": "needs an interactive Windows desktop; task-level latency/benchmark against real model not run"
+  },
+  {
+    "id": "A115",
+    "heading": "1. Eliminating Fixed Planning: The Receding-Horizon Vector Selector",
+    "treatment": "4",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      4
+    ],
+    "packages": [],
+    "code": [
+      "src/lib/jarvis/authority.server.ts",
+      "src/lib/jarvis/supervisor.ts",
+      "src/lib/jarvis/planner.server.ts + supabase/functions/jarvis-planner",
+      "device-agent/windows/ocade_agent/gateway.py",
+      "device-agent/windows/ocade_agent/verify_worker.py"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts",
+      "device-agent/windows/tests/test_gateway.py"
+    ],
+    "blocker": "real model judgement untested (no provider credentials); Windows actuators untested"
+  },
+  {
+    "id": "A116",
+    "heading": "How the Adaptive Engine Works Without a Plan",
+    "treatment": "4",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      4
+    ],
+    "packages": [],
+    "code": [
+      "src/lib/jarvis/authority.server.ts",
+      "src/lib/jarvis/supervisor.ts",
+      "src/lib/jarvis/planner.server.ts + supabase/functions/jarvis-planner",
+      "device-agent/windows/ocade_agent/gateway.py",
+      "device-agent/windows/ocade_agent/verify_worker.py"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts",
+      "device-agent/windows/tests/test_gateway.py"
+    ],
+    "blocker": "real model judgement untested (no provider credentials); Windows actuators untested"
+  },
+  {
+    "id": "A117",
+    "heading": "Mitigating Architectural Safety Failures",
+    "treatment": "5, 15",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      5,
+      15
+    ],
+    "packages": [],
+    "code": [
+      "supabase/migrations/20261030120000_jarvis_task_authority.sql",
+      "src/lib/jarvis/authority.server.ts",
+      "device-agent/windows/ocade_agent/agent.py + device.py + journal.py",
+      "src/lib/jarvis/contracts.ts",
+      "device-agent/windows/ocade_agent/web_worker.py",
+      "device-agent/windows/ocade_agent/sandbox.py",
+      "device-agent/windows/ocade_agent/catalog.py"
+    ],
+    "tests": [
+      "tests/jarvis/db/authority.test.sql",
+      "tests/jarvis/e2e.test.ts",
+      "device-agent/windows/tests/test_agent.py",
+      "device-agent/windows/tests/test_web.py",
+      "device-agent/windows/tests/test_sandbox.py",
+      "device-agent/windows/tests/test_catalog.py"
+    ],
+    "blocker": "Windows-specific attacks (junctions, UAC, wrong HWND) blocked"
+  },
+  {
+    "id": "A118",
+    "heading": "2. Deep Resolution of the Seven Production Scenarios",
+    "treatment": "13",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L3",
+    "sections": [
+      13
+    ],
+    "packages": [],
+    "code": [
+      "src/lib/jarvis/supervisor.ts",
+      "src/lib/jarvis/planner.server.ts + supabase/functions/jarvis-planner",
+      "device-agent/windows/ocade_agent/office_worker.py + engine.py",
+      "device-agent/windows/ocade_agent/web_worker.py"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts",
+      "device-agent/windows/tests/test_web.py",
+      "device-agent/windows/tests/test_media.py"
+    ],
+    "blocker": "chess/CAD not implemented; video/photo web editors not approved; Windows apps blocked"
+  },
+  {
+    "id": "A119",
+    "heading": "1. Cinematic Video Editing",
+    "treatment": "13.1",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L3",
+    "sections": [
+      13
+    ],
+    "packages": [],
+    "code": [
+      "src/lib/jarvis/supervisor.ts",
+      "src/lib/jarvis/planner.server.ts + supabase/functions/jarvis-planner",
+      "device-agent/windows/ocade_agent/office_worker.py + engine.py",
+      "device-agent/windows/ocade_agent/web_worker.py"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts",
+      "device-agent/windows/tests/test_web.py",
+      "device-agent/windows/tests/test_media.py"
+    ],
+    "blocker": "chess/CAD not implemented; video/photo web editors not approved; Windows apps blocked"
+  },
+  {
+    "id": "A120",
+    "heading": "2. Cinematic Photo Editing",
+    "treatment": "13.2",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L3",
+    "sections": [
+      13
+    ],
+    "packages": [],
+    "code": [
+      "src/lib/jarvis/supervisor.ts",
+      "src/lib/jarvis/planner.server.ts + supabase/functions/jarvis-planner",
+      "device-agent/windows/ocade_agent/office_worker.py + engine.py",
+      "device-agent/windows/ocade_agent/web_worker.py"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts",
+      "device-agent/windows/tests/test_web.py",
+      "device-agent/windows/tests/test_media.py"
+    ],
+    "blocker": "chess/CAD not implemented; video/photo web editors not approved; Windows apps blocked"
+  },
+  {
+    "id": "A121",
+    "heading": "3. Local Autonomous Chess Application",
+    "treatment": "13.3",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L3",
+    "sections": [
+      13
+    ],
+    "packages": [],
+    "code": [
+      "src/lib/jarvis/supervisor.ts",
+      "src/lib/jarvis/planner.server.ts + supabase/functions/jarvis-planner",
+      "device-agent/windows/ocade_agent/office_worker.py + engine.py",
+      "device-agent/windows/ocade_agent/web_worker.py"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts",
+      "device-agent/windows/tests/test_web.py",
+      "device-agent/windows/tests/test_media.py"
+    ],
+    "blocker": "chess/CAD not implemented; video/photo web editors not approved; Windows apps blocked"
+  },
+  {
+    "id": "A122",
+    "heading": "4. Complex Financial Data & Accounting Reconciliations",
+    "treatment": "13.4",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L3",
+    "sections": [
+      13
+    ],
+    "packages": [],
+    "code": [
+      "src/lib/jarvis/supervisor.ts",
+      "src/lib/jarvis/planner.server.ts + supabase/functions/jarvis-planner",
+      "device-agent/windows/ocade_agent/office_worker.py + engine.py",
+      "device-agent/windows/ocade_agent/web_worker.py"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts",
+      "device-agent/windows/tests/test_web.py",
+      "device-agent/windows/tests/test_media.py"
+    ],
+    "blocker": "chess/CAD not implemented; video/photo web editors not approved; Windows apps blocked"
+  },
+  {
+    "id": "A123",
+    "heading": "5. Engineering CAD / 3D Design",
+    "treatment": "13.5",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L3",
+    "sections": [
+      13
+    ],
+    "packages": [],
+    "code": [
+      "src/lib/jarvis/supervisor.ts",
+      "src/lib/jarvis/planner.server.ts + supabase/functions/jarvis-planner",
+      "device-agent/windows/ocade_agent/office_worker.py + engine.py",
+      "device-agent/windows/ocade_agent/web_worker.py"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts",
+      "device-agent/windows/tests/test_web.py",
+      "device-agent/windows/tests/test_media.py"
+    ],
+    "blocker": "chess/CAD not implemented; video/photo web editors not approved; Windows apps blocked"
+  },
+  {
+    "id": "A124",
+    "heading": "6. Cross-Application Automated Workflows",
+    "treatment": "13.6",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L3",
+    "sections": [
+      13
+    ],
+    "packages": [],
+    "code": [
+      "src/lib/jarvis/supervisor.ts",
+      "src/lib/jarvis/planner.server.ts + supabase/functions/jarvis-planner",
+      "device-agent/windows/ocade_agent/office_worker.py + engine.py",
+      "device-agent/windows/ocade_agent/web_worker.py"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts",
+      "device-agent/windows/tests/test_web.py",
+      "device-agent/windows/tests/test_media.py"
+    ],
+    "blocker": "chess/CAD not implemented; video/photo web editors not approved; Windows apps blocked"
+  },
+  {
+    "id": "A125",
+    "heading": "7. Resilient Handling of System Interruptions",
+    "treatment": "13.7",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L3",
+    "sections": [
+      13
+    ],
+    "packages": [],
+    "code": [
+      "src/lib/jarvis/supervisor.ts",
+      "src/lib/jarvis/planner.server.ts + supabase/functions/jarvis-planner",
+      "device-agent/windows/ocade_agent/office_worker.py + engine.py",
+      "device-agent/windows/ocade_agent/web_worker.py"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts",
+      "device-agent/windows/tests/test_web.py",
+      "device-agent/windows/tests/test_media.py"
+    ],
+    "blocker": "chess/CAD not implemented; video/photo web editors not approved; Windows apps blocked"
+  },
+  {
+    "id": "A126",
+    "heading": "3. The Unified Production Architecture Blueprint",
+    "treatment": "4",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      4
+    ],
+    "packages": [],
+    "code": [
+      "src/lib/jarvis/authority.server.ts",
+      "src/lib/jarvis/supervisor.ts",
+      "src/lib/jarvis/planner.server.ts + supabase/functions/jarvis-planner",
+      "device-agent/windows/ocade_agent/gateway.py",
+      "device-agent/windows/ocade_agent/verify_worker.py"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts",
+      "device-agent/windows/tests/test_gateway.py"
+    ],
+    "blocker": "real model judgement untested (no provider credentials); Windows actuators untested"
+  },
+  {
+    "id": "A127",
+    "heading": "The Five Primary Architectural Components",
+    "treatment": "4",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      4
+    ],
+    "packages": [],
+    "code": [
+      "src/lib/jarvis/authority.server.ts",
+      "src/lib/jarvis/supervisor.ts",
+      "src/lib/jarvis/planner.server.ts + supabase/functions/jarvis-planner",
+      "device-agent/windows/ocade_agent/gateway.py",
+      "device-agent/windows/ocade_agent/verify_worker.py"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts",
+      "device-agent/windows/tests/test_gateway.py"
+    ],
+    "blocker": "real model judgement untested (no provider credentials); Windows actuators untested"
+  },
+  {
+    "id": "A128",
+    "heading": "Maximizing Maintenance Efficiency & Eliminating Code Clutter",
+    "treatment": "3",
+    "disposition": "MANDATORY",
+    "status": "PASS",
+    "level": "L0",
+    "sections": [
+      3
+    ],
+    "packages": [],
+    "code": [
+      "src/lib/jarvis/contracts.ts"
+    ],
+    "tests": [
+      "tests/jarvis/contracts.test.ts"
+    ],
+    "blocker": ""
+  },
+  {
+    "id": "A129",
+    "heading": "Verification Strategy & Software Test Suite",
+    "treatment": "17",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      17
+    ],
+    "packages": [],
+    "code": [
+      "src/lib/jarvis/authority.server.ts"
+    ],
+    "tests": [
+      "tests/jarvis/db/authority.test.sql",
+      "tests/jarvis/e2e.test.ts"
+    ],
+    "blocker": "release gates need Windows + real model evidence"
+  },
+  {
+    "id": "A130",
+    "heading": "1. Defitive Performance Verdict: Architecture C vs. The Field",
+    "treatment": "16; no superiority assumption",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      16
+    ],
+    "packages": [],
+    "code": [
+      "device-agent/windows/ocade_agent/catalog.py"
+    ],
+    "tests": [
+      "device-agent/windows/tests/mcp_fleet.py (measurement)"
+    ],
+    "blocker": "task-level latency/benchmark against real model not run"
+  },
+  {
+    "id": "A131",
+    "heading": "Circumstances Where Architecture C Will Lose:",
+    "treatment": "9, 16, 20",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L0",
+    "sections": [
+      9,
+      16,
+      20
+    ],
+    "packages": [],
+    "code": [
+      "device-agent/windows/ocade_agent/office_worker.py + engine.py",
+      "device-agent/windows/ocade_agent/windows_worker.py + discovery.py",
+      "device-agent/windows/ocade_agent/catalog.py",
+      "src/lib/jarvis/authority.server.ts"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_gateway.py",
+      "device-agent/windows/tests/test_media.py",
+      "tests/jarvis/e2e.test.ts",
+      "device-agent/windows/tests/mcp_fleet.py (measurement)"
+    ],
+    "blocker": "LibreOffice/ffmpeg pass on Linux; Excel/Word COM needs Windows + Office; task-level latency/benchmark against real model not run"
+  },
+  {
+    "id": "A132",
+    "heading": "2. Universal MCP Toolbox & Lifecycle Management",
+    "treatment": "6",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      6
+    ],
+    "packages": [],
+    "code": [
+      "device-agent/windows/ocade_agent/gateway.py",
+      "device-agent/windows/ocade_agent/catalog.py",
+      "src/lib/jarvis/contracts.ts"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_gateway.py",
+      "device-agent/windows/tests/test_catalog.py",
+      "device-agent/windows/tests/mcp_fleet.py (measurement)"
+    ],
+    "blocker": "real third-party MCP server run denied by sandbox policy; needs owner approval"
+  },
+  {
+    "id": "A133",
+    "heading": "Discovery, Installation, and Lifecycle:",
+    "treatment": "6, 7",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      6,
+      7
+    ],
+    "packages": [],
+    "code": [
+      "device-agent/windows/ocade_agent/gateway.py",
+      "device-agent/windows/ocade_agent/catalog.py",
+      "src/lib/jarvis/contracts.ts",
+      "device-agent/windows/ocade_agent/agent.py + device.py + journal.py",
+      "device-agent/windows/packaging/",
+      "src/lib/jarvis/authority.server.ts"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_gateway.py",
+      "device-agent/windows/tests/test_catalog.py",
+      "device-agent/windows/tests/mcp_fleet.py (measurement)",
+      "tests/jarvis/e2e.test.ts"
+    ],
+    "blocker": "real third-party MCP server run denied by sandbox policy; needs owner approval; installer/startup/DPAPI need a disposable Windows machine"
+  },
+  {
+    "id": "A134",
+    "heading": "The Smallest Practical Universal MCP Toolbox:",
+    "treatment": "6",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      6
+    ],
+    "packages": [],
+    "code": [
+      "device-agent/windows/ocade_agent/gateway.py",
+      "device-agent/windows/ocade_agent/catalog.py",
+      "src/lib/jarvis/contracts.ts"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_gateway.py",
+      "device-agent/windows/tests/test_catalog.py",
+      "device-agent/windows/tests/mcp_fleet.py (measurement)"
+    ],
+    "blocker": "real third-party MCP server run denied by sandbox policy; needs owner approval"
+  },
+  {
+    "id": "A135",
+    "heading": "3. The Universal Application Fallback Hierarchy",
+    "treatment": "9",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L3",
+    "sections": [
+      9
+    ],
+    "packages": [],
+    "code": [
+      "device-agent/windows/ocade_agent/office_worker.py + engine.py",
+      "device-agent/windows/ocade_agent/windows_worker.py + discovery.py"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_gateway.py",
+      "device-agent/windows/tests/test_media.py",
+      "tests/jarvis/e2e.test.ts"
+    ],
+    "blocker": "LibreOffice/ffmpeg pass on Linux; Excel/Word COM needs Windows + Office"
+  },
+  {
+    "id": "A136",
+    "heading": "4. Eliminating Fixed Planning Steps",
+    "treatment": "4",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      4
+    ],
+    "packages": [],
+    "code": [
+      "src/lib/jarvis/authority.server.ts",
+      "src/lib/jarvis/supervisor.ts",
+      "src/lib/jarvis/planner.server.ts + supabase/functions/jarvis-planner",
+      "device-agent/windows/ocade_agent/gateway.py",
+      "device-agent/windows/ocade_agent/verify_worker.py"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts",
+      "device-agent/windows/tests/test_gateway.py"
+    ],
+    "blocker": "real model judgement untested (no provider credentials); Windows actuators untested"
+  },
+  {
+    "id": "A137",
+    "heading": "5. Resilient Fault Handling & Verification",
+    "treatment": "5, 12",
+    "disposition": "MANDATORY",
+    "status": "PASS",
+    "level": "L2",
+    "sections": [
+      5,
+      12
+    ],
+    "packages": [],
+    "code": [
+      "supabase/migrations/20261030120000_jarvis_task_authority.sql",
+      "src/lib/jarvis/authority.server.ts",
+      "device-agent/windows/ocade_agent/agent.py + device.py + journal.py",
+      "device-agent/windows/ocade_agent/verify_worker.py",
+      "src/lib/jarvis/supervisor.ts"
+    ],
+    "tests": [
+      "tests/jarvis/db/authority.test.sql",
+      "tests/jarvis/e2e.test.ts",
+      "device-agent/windows/tests/test_agent.py",
+      "device-agent/windows/tests/test_gateway.py",
+      "device-agent/windows/tests/test_media.py"
+    ],
+    "blocker": ""
+  },
+  {
+    "id": "A138",
+    "heading": "Omitted estimate at owner's direction",
+    "treatment": "Excluded",
+    "disposition": "NOT APPLICABLE",
+    "status": "NOT APPLICABLE",
+    "reason": "numerical sizing excluded by owner direction",
+    "sections": [],
+    "packages": [],
+    "code": [],
+    "tests": []
+  },
+  {
+    "id": "A139",
+    "heading": "Omitted estimate at owner's direction",
+    "treatment": "Excluded",
+    "disposition": "NOT APPLICABLE",
+    "status": "NOT APPLICABLE",
+    "reason": "numerical sizing excluded by owner direction",
+    "sections": [],
+    "packages": [],
+    "code": [],
+    "tests": []
+  },
+  {
+    "id": "A140",
+    "heading": "Omitted estimate at owner's direction",
+    "treatment": "Excluded",
+    "disposition": "NOT APPLICABLE",
+    "status": "NOT APPLICABLE",
+    "reason": "numerical sizing excluded by owner direction",
+    "sections": [],
+    "packages": [],
+    "code": [],
+    "tests": []
+  },
+  {
+    "id": "A141",
+    "heading": "Online model selection and fallback constraints (source section 7, wording adapted to owner's exclusions)",
+    "treatment": "2, 16, 23.3",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      2,
+      16,
+      23
+    ],
+    "packages": [],
+    "code": [
+      "src/lib/jarvis/authority.server.ts",
+      "supabase/migrations/20261030120000_jarvis_task_authority.sql",
+      "device-agent/windows/ocade_agent/catalog.py",
+      "device-agent/windows/ocade_agent/agent.py + device.py + journal.py",
+      "device-agent/windows/ocade_agent/gateway.py"
+    ],
+    "tests": [
+      "tests/jarvis/db/authority.test.sql",
+      "device-agent/windows/tests/mcp_fleet.py (measurement)",
+      "tests/jarvis/e2e.test.ts",
+      "device-agent/windows/tests/test_gateway.py"
+    ],
+    "blocker": "task-level latency/benchmark against real model not run"
+  },
+  {
+    "id": "A142",
+    "heading": "8. Structural Code Reduction Strategy",
+    "treatment": "3, 19",
+    "disposition": "MANDATORY",
+    "status": "PASS",
+    "level": "L0",
+    "sections": [
+      3,
+      19
+    ],
+    "packages": [],
+    "code": [
+      "src/lib/jarvis/contracts.ts",
+      "src/lib/jarvis/authority.server.ts"
+    ],
+    "tests": [
+      "tests/jarvis/contracts.test.ts"
+    ],
+    "blocker": ""
+  },
+  {
+    "id": "A143",
+    "heading": "9. The Winning Architecture Blueprint",
+    "treatment": "0, 4; source ends here",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      0,
+      4
+    ],
+    "packages": [],
+    "code": [
+      "src/lib/jarvis/authority.server.ts",
+      "src/lib/jarvis/supervisor.ts",
+      "src/lib/jarvis/planner.server.ts + supabase/functions/jarvis-planner",
+      "device-agent/windows/ocade_agent/gateway.py",
+      "device-agent/windows/ocade_agent/verify_worker.py"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts",
+      "device-agent/windows/tests/test_gateway.py"
+    ],
+    "blocker": "95% per-family gate not measured; Windows/UI journeys blocked; real model judgement untested (no provider credentials); Windows actuators untested"
+  },
+  {
+    "id": "B01",
+    "heading": "Open Interpreter / local execution MCP",
+    "treatment": "`sys_core` concept; restrict commands and permissions; no generic unrestricted executor.",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      18
+    ],
+    "packages": [],
+    "code": [
+      "src/lib/jarvis/authority.server.ts"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts"
+    ],
+    "blocker": "see per-package report"
+  },
+  {
+    "id": "B02",
+    "heading": "Filesystem MCP",
+    "treatment": "`fs_sandbox`, canonical paths, ACLs, hashes, original safety.",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      18
+    ],
+    "packages": [],
+    "code": [
+      "src/lib/jarvis/authority.server.ts"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts"
+    ],
+    "blocker": "see per-package report"
+  },
+  {
+    "id": "B03",
+    "heading": "Playwright Browser MCP",
+    "treatment": "`web_automation`, trusted DOM and account sessions.",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      18
+    ],
+    "packages": [],
+    "code": [
+      "src/lib/jarvis/authority.server.ts"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts"
+    ],
+    "blocker": "see per-package report"
+  },
+  {
+    "id": "B04",
+    "heading": "Windows Computer Use MCP / pywinauto",
+    "treatment": "`ui_bridge`, exact target and fresh UIA state; see 21.1 and 25.2.",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L0",
+    "sections": [
+      21,
+      25
+    ],
+    "packages": [],
+    "code": [
+      "device-agent/windows/ocade_agent/windows_worker.py + discovery.py",
+      "src/lib/jarvis/contracts.ts",
+      "device-agent/windows/ocade_agent/web_worker.py",
+      "device-agent/windows/ocade_agent/sandbox.py"
+    ],
+    "tests": [
+      "tests/jarvis/contracts.test.ts",
+      "device-agent/windows/tests/test_web.py",
+      "device-agent/windows/tests/test_sandbox.py"
+    ],
+    "blocker": "pywinauto/PyAutoGUI need Windows; Windows control stack blocked"
+  },
+  {
+    "id": "B05",
+    "heading": "Peekaboo / macOS accessibility",
+    "treatment": "Future separate macOS qualification, not Windows prerequisite.",
+    "disposition": "NOT APPLICABLE",
+    "status": "NOT APPLICABLE",
+    "reason": "future platform outside Windows-first scope",
+    "sections": [],
+    "packages": [],
+    "code": [],
+    "tests": []
+  },
+  {
+    "id": "B06",
+    "heading": "Video-editor MCP / scripting bridges (example-only)",
+    "treatment": "Optional version-verified native editor bridge.",
+    "disposition": "NOT APPLICABLE",
+    "status": "NOT APPLICABLE",
+    "reason": "example only, not a product requirement",
+    "sections": [],
+    "packages": [],
+    "code": [],
+    "tests": []
+  },
+  {
+    "id": "B07",
+    "heading": "FireCut AI",
+    "treatment": "Optional licensed creative workflow integration.",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      18
+    ],
+    "packages": [],
+    "code": [
+      "src/lib/jarvis/authority.server.ts"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts"
+    ],
+    "blocker": "see per-package report"
+  },
+  {
+    "id": "B08",
+    "heading": "Reactor",
+    "treatment": "Optional vetted Fusion/VFX extension.",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      18
+    ],
+    "packages": [],
+    "code": [
+      "src/lib/jarvis/authority.server.ts"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts"
+    ],
+    "blocker": "see per-package report"
+  },
+  {
+    "id": "B09",
+    "heading": "Snap Captions / Magic Subtitle",
+    "treatment": "Optional verified caption pipeline.",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      18
+    ],
+    "packages": [],
+    "code": [
+      "src/lib/jarvis/authority.server.ts"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts"
+    ],
+    "blocker": "see per-package report"
+  },
+  {
+    "id": "B10",
+    "heading": "M365 / Microsoft 365 integrations",
+    "treatment": "Authorized Graph/Office capability when available.",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      18
+    ],
+    "packages": [],
+    "code": [
+      "src/lib/jarvis/authority.server.ts"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts"
+    ],
+    "blocker": "see per-package report"
+  },
+  {
+    "id": "B11",
+    "heading": "Google Workspace integrations",
+    "treatment": "Scoped official API or authorized DOM, separate OAuth.",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      18
+    ],
+    "packages": [],
+    "code": [
+      "src/lib/jarvis/authority.server.ts"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts"
+    ],
+    "blocker": "see per-package report"
+  },
+  {
+    "id": "B12",
+    "heading": "HubSpot / Salesforce connectors",
+    "treatment": "Scoped CRM integration with read-back and send protection.",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      18
+    ],
+    "packages": [],
+    "code": [
+      "src/lib/jarvis/authority.server.ts"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts"
+    ],
+    "blocker": "see per-package report"
+  },
+  {
+    "id": "B13",
+    "heading": "TinyFish / web context",
+    "treatment": "Optional trusted information source, not OS-control requirement.",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      18
+    ],
+    "packages": [],
+    "code": [
+      "src/lib/jarvis/authority.server.ts"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts"
+    ],
+    "blocker": "see per-package report"
+  },
+  {
+    "id": "B14",
+    "heading": "sys_core",
+    "treatment": "Bundled discovery, safe native commands and process observation.",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      18
+    ],
+    "packages": [],
+    "code": [
+      "src/lib/jarvis/authority.server.ts"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts"
+    ],
+    "blocker": "see per-package report"
+  },
+  {
+    "id": "B15",
+    "heading": "ui_bridge",
+    "treatment": "Bundled accessibility and controlled last-resort GUI operations.",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      18
+    ],
+    "packages": [],
+    "code": [
+      "src/lib/jarvis/authority.server.ts"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts"
+    ],
+    "blocker": "see per-package report"
+  },
+  {
+    "id": "B16",
+    "heading": "fs_sandbox",
+    "treatment": "Bundled bounded file operations and evidence.",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      18
+    ],
+    "packages": [],
+    "code": [
+      "src/lib/jarvis/authority.server.ts"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts"
+    ],
+    "blocker": "see per-package report"
+  },
+  {
+    "id": "B17",
+    "heading": "web_automation",
+    "treatment": "Bundled Playwright DOM and authorized web operations.",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      18
+    ],
+    "packages": [],
+    "code": [
+      "src/lib/jarvis/authority.server.ts"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts"
+    ],
+    "blocker": "see per-package report"
+  },
+  {
+    "id": "B18",
+    "heading": "Capability registry / typed schemas",
+    "treatment": "One authoritative registry, selective schema injection and validation.",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      18
+    ],
+    "packages": [],
+    "code": [
+      "src/lib/jarvis/authority.server.ts"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts"
+    ],
+    "blocker": "see per-package report"
+  },
+  {
+    "id": "B19",
+    "heading": "Async stdio subprocess multiplexer",
+    "treatment": "SDK-backed lifecycle, strict stdout/stderr discipline, crash/unknown-effect reconciliation; see 23.4.",
+    "disposition": "MANDATORY",
+    "status": "PASS",
+    "level": "L2",
+    "sections": [
+      23
+    ],
+    "packages": [],
+    "code": [
+      "src/lib/jarvis/authority.server.ts",
+      "device-agent/windows/ocade_agent/agent.py + device.py + journal.py",
+      "device-agent/windows/ocade_agent/gateway.py"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts",
+      "device-agent/windows/tests/test_gateway.py"
+    ],
+    "blocker": ""
+  },
+  {
+    "id": "B20",
+    "heading": "Task UUID, resource lock and idempotency key",
+    "treatment": "Durable identity, mutation leases, reconciliation.",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      18
+    ],
+    "packages": [],
+    "code": [
+      "src/lib/jarvis/authority.server.ts"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts"
+    ],
+    "blocker": "see per-package report"
+  },
+  {
+    "id": "B21",
+    "heading": "Target state ψ, observed state Sₜ and delta Δ",
+    "treatment": "Typed objective/postcondition metaphor, not universal numeric optimizer.",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      18
+    ],
+    "packages": [],
+    "code": [
+      "src/lib/jarvis/authority.server.ts"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts"
+    ],
+    "blocker": "see per-package report"
+  },
+  {
+    "id": "B22",
+    "heading": "Macro batching",
+    "treatment": "Safe deterministic blocks with explicit boundaries.",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      18
+    ],
+    "packages": [],
+    "code": [
+      "src/lib/jarvis/authority.server.ts"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts"
+    ],
+    "blocker": "see per-package report"
+  },
+  {
+    "id": "B23",
+    "heading": "Domain-specific verification",
+    "treatment": "Independent content, calculation, render, geometry and destination checks.",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      18
+    ],
+    "packages": [],
+    "code": [
+      "src/lib/jarvis/authority.server.ts"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts"
+    ],
+    "blocker": "see per-package report"
+  },
+  {
+    "id": "B24",
+    "heading": "Windows AppContainer / Job Objects / ACLs",
+    "treatment": "Real tested isolation; none individually grants complete containment.",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      18
+    ],
+    "packages": [],
+    "code": [
+      "src/lib/jarvis/authority.server.ts"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts"
+    ],
+    "blocker": "see per-package report"
+  },
+  {
+    "id": "B25",
+    "heading": "Chrome profile / OAuth / MFA",
+    "treatment": "Authorized session integration; no secret extraction or challenge bypass.",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      18
+    ],
+    "packages": [],
+    "code": [
+      "src/lib/jarvis/authority.server.ts"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts"
+    ],
+    "blocker": "see per-package report"
+  },
+  {
+    "id": "B26",
+    "heading": "Visual anchor matching / OpenCV",
+    "treatment": "Last-resort scoped fallback; optional PyAutoGUI foreground input is an added implementation choice, not an original source name; see 25.3.",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L3",
+    "sections": [
+      25
+    ],
+    "packages": [],
+    "code": [
+      "device-agent/windows/ocade_agent/windows_worker.py + discovery.py",
+      "device-agent/windows/ocade_agent/web_worker.py",
+      "device-agent/windows/ocade_agent/sandbox.py"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_web.py",
+      "device-agent/windows/tests/test_sandbox.py"
+    ],
+    "blocker": "Windows control stack blocked"
+  },
+  {
+    "id": "B27",
+    "heading": "Actor–critic / supervisor–pilot roles",
+    "treatment": "Goal governor and immediate receding-horizon pilot, bounded.",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      18
+    ],
+    "packages": [],
+    "code": [
+      "src/lib/jarvis/authority.server.ts"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts"
+    ],
+    "blocker": "see per-package report"
+  },
+  {
+    "id": "B28",
+    "heading": "Five architectural components",
+    "treatment": "Governor, registry, process manager, actuators, verifier.",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      18
+    ],
+    "packages": [],
+    "code": [
+      "src/lib/jarvis/authority.server.ts"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts"
+    ],
+    "blocker": "see per-package report"
+  },
+  {
+    "id": "B29",
+    "heading": "Seven production scenarios",
+    "treatment": "Full Section 13 plus P20 qualification.",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L0",
+    "sections": [
+      13,
+      20
+    ],
+    "packages": [
+      "P20"
+    ],
+    "code": [
+      "src/lib/jarvis/supervisor.ts",
+      "src/lib/jarvis/planner.server.ts + supabase/functions/jarvis-planner",
+      "device-agent/windows/ocade_agent/office_worker.py + engine.py",
+      "device-agent/windows/ocade_agent/web_worker.py",
+      "src/lib/jarvis/authority.server.ts"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts",
+      "device-agent/windows/tests/test_web.py",
+      "device-agent/windows/tests/test_media.py"
+    ],
+    "blocker": "chess/CAD not implemented; video/photo web editors not approved; Windows apps blocked"
+  },
+  {
+    "id": "B30",
+    "heading": "Source-only numerical estimation",
+    "treatment": "Intentionally excluded at owner's direction.",
+    "disposition": "NOT APPLICABLE",
+    "status": "NOT APPLICABLE",
+    "reason": "numerical sizing excluded by owner direction",
+    "sections": [],
+    "packages": [],
+    "code": [],
+    "tests": []
+  },
+  {
+    "id": "C01",
+    "heading": "Zero-effort customer workflow",
+    "treatment": "`14`; P18–P19, user-intervention metric.",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L0",
+    "sections": [
+      14,
+      18,
+      19
+    ],
+    "packages": [
+      "P18",
+      "P19"
+    ],
+    "code": [
+      "src/jarvis/JarvisWorkspace.tsx + JarvisPanels.tsx",
+      "src/lib/jarvis/authority.server.ts"
+    ],
+    "tests": [
+      "evidence UI render (signed-out)",
+      "tests/jarvis/e2e.test.ts"
+    ],
+    "blocker": "signed-in UI needs hosted Supabase auth; see per-package report"
+  },
+  {
+    "id": "C02",
+    "heading": "Centered minimal prompt",
+    "treatment": "`14`; P18 visual/a11y tests.",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      14,
+      18,
+      11
+    ],
+    "packages": [
+      "P18"
+    ],
+    "code": [
+      "src/jarvis/JarvisWorkspace.tsx + JarvisPanels.tsx",
+      "src/lib/jarvis/authority.server.ts",
+      "supabase/migrations/20261030120000_jarvis_task_authority.sql",
+      "device-agent/windows/ocade_agent/agent.py + device.py + journal.py",
+      "device-agent/windows/ocade_agent/gateway.py"
+    ],
+    "tests": [
+      "evidence UI render (signed-out)",
+      "tests/jarvis/e2e.test.ts",
+      "tests/jarvis/db/authority.test.sql",
+      "device-agent/windows/tests/test_agent.py"
+    ],
+    "blocker": "signed-in UI needs hosted Supabase auth; see per-package report"
+  },
+  {
+    "id": "C03",
+    "heading": "Collapsed task input on Send",
+    "treatment": "`14`; P18 lifecycle UI.",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      14,
+      18
+    ],
+    "packages": [
+      "P18"
+    ],
+    "code": [
+      "src/jarvis/JarvisWorkspace.tsx + JarvisPanels.tsx",
+      "src/lib/jarvis/authority.server.ts"
+    ],
+    "tests": [
+      "evidence UI render (signed-out)",
+      "tests/jarvis/e2e.test.ts"
+    ],
+    "blocker": "signed-in UI needs hosted Supabase auth; see per-package report"
+  },
+  {
+    "id": "C04",
+    "heading": "One subtle ambient status line",
+    "treatment": "`14`; real event-bound status.",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L3",
+    "sections": [
+      14
+    ],
+    "packages": [],
+    "code": [
+      "src/jarvis/JarvisWorkspace.tsx + JarvisPanels.tsx"
+    ],
+    "tests": [
+      "evidence UI render (signed-out)"
+    ],
+    "blocker": "signed-in UI needs hosted Supabase auth"
+  },
+  {
+    "id": "C05",
+    "heading": "No script filenames in customer UI",
+    "treatment": "`14`; diagnostics-only technical detail.",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L3",
+    "sections": [
+      14
+    ],
+    "packages": [],
+    "code": [
+      "src/jarvis/JarvisWorkspace.tsx + JarvisPanels.tsx"
+    ],
+    "tests": [
+      "evidence UI render (signed-out)"
+    ],
+    "blocker": "signed-in UI needs hosted Supabase auth"
+  },
+  {
+    "id": "C06",
+    "heading": "Small expandable activity link",
+    "treatment": "`14`; redacted receipts.",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L3",
+    "sections": [
+      14
+    ],
+    "packages": [],
+    "code": [
+      "src/jarvis/JarvisWorkspace.tsx + JarvisPanels.tsx"
+    ],
+    "tests": [
+      "evidence UI render (signed-out)"
+    ],
+    "blocker": "signed-in UI needs hosted Supabase auth"
+  },
+  {
+    "id": "C07",
+    "heading": "Small collapsible history sidebar",
+    "treatment": "`14`; preserve conversation access.",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L3",
+    "sections": [
+      14
+    ],
+    "packages": [],
+    "code": [
+      "src/jarvis/JarvisWorkspace.tsx + JarvisPanels.tsx"
+    ],
+    "tests": [
+      "evidence UI render (signed-out)"
+    ],
+    "blocker": "signed-in UI needs hosted Supabase auth"
+  },
+  {
+    "id": "C08",
+    "heading": "Final answer and file links",
+    "treatment": "`12, 14`; verified artifact manifest.",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L3",
+    "sections": [
+      12,
+      14
+    ],
+    "packages": [],
+    "code": [
+      "device-agent/windows/ocade_agent/verify_worker.py",
+      "src/lib/jarvis/supervisor.ts",
+      "src/jarvis/JarvisWorkspace.tsx + JarvisPanels.tsx"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_gateway.py",
+      "tests/jarvis/e2e.test.ts",
+      "device-agent/windows/tests/test_media.py",
+      "evidence UI render (signed-out)"
+    ],
+    "blocker": "signed-in UI needs hosted Supabase auth"
+  },
+  {
+    "id": "C09",
+    "heading": "Minimal monochrome styling",
+    "treatment": "`14`; preserve design/accessibility.",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L3",
+    "sections": [
+      14
+    ],
+    "packages": [],
+    "code": [
+      "src/jarvis/JarvisWorkspace.tsx + JarvisPanels.tsx"
+    ],
+    "tests": [
+      "evidence UI render (signed-out)"
+    ],
+    "blocker": "signed-in UI needs hosted Supabase auth"
+  },
+  {
+    "id": "C10",
+    "heading": "Non-prominent STOP access",
+    "treatment": "`5, 14`; P17/P18.",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      5,
+      14,
+      17,
+      18
+    ],
+    "packages": [
+      "P17",
+      "P18"
+    ],
+    "code": [
+      "supabase/migrations/20261030120000_jarvis_task_authority.sql",
+      "src/lib/jarvis/authority.server.ts",
+      "device-agent/windows/ocade_agent/agent.py + device.py + journal.py",
+      "src/jarvis/JarvisWorkspace.tsx + JarvisPanels.tsx"
+    ],
+    "tests": [
+      "tests/jarvis/db/authority.test.sql",
+      "tests/jarvis/e2e.test.ts",
+      "device-agent/windows/tests/test_agent.py",
+      "evidence UI render (signed-out)"
+    ],
+    "blocker": "signed-in UI needs hosted Supabase auth; release gates need Windows + real model evidence; see per-package report"
+  },
+  {
+    "id": "C11",
+    "heading": "Task-adaptive deliverables",
+    "treatment": "`12, 14`; editable originals when relevant.",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L3",
+    "sections": [
+      12,
+      14
+    ],
+    "packages": [],
+    "code": [
+      "device-agent/windows/ocade_agent/verify_worker.py",
+      "src/lib/jarvis/supervisor.ts",
+      "src/jarvis/JarvisWorkspace.tsx + JarvisPanels.tsx"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_gateway.py",
+      "tests/jarvis/e2e.test.ts",
+      "device-agent/windows/tests/test_media.py",
+      "evidence UI render (signed-out)"
+    ],
+    "blocker": "signed-in UI needs hosted Supabase auth"
+  },
+  {
+    "id": "C12",
+    "heading": "Autonomous reversible defaults",
+    "treatment": "`5, 14`; no irreversible guess.",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      5,
+      14
+    ],
+    "packages": [],
+    "code": [
+      "supabase/migrations/20261030120000_jarvis_task_authority.sql",
+      "src/lib/jarvis/authority.server.ts",
+      "device-agent/windows/ocade_agent/agent.py + device.py + journal.py",
+      "src/jarvis/JarvisWorkspace.tsx + JarvisPanels.tsx"
+    ],
+    "tests": [
+      "tests/jarvis/db/authority.test.sql",
+      "tests/jarvis/e2e.test.ts",
+      "device-agent/windows/tests/test_agent.py",
+      "evidence UI render (signed-out)"
+    ],
+    "blocker": "signed-in UI needs hosted Supabase auth"
+  },
+  {
+    "id": "C13",
+    "heading": "One installer, automatic trusted pairing",
+    "treatment": "`7`; P03/P04.",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L0",
+    "sections": [
+      7,
+      3,
+      4
+    ],
+    "packages": [
+      "P03",
+      "P04"
+    ],
+    "code": [
+      "device-agent/windows/ocade_agent/agent.py + device.py + journal.py",
+      "device-agent/windows/packaging/",
+      "src/lib/jarvis/authority.server.ts",
+      "src/lib/jarvis/contracts.ts",
+      "src/lib/jarvis/supervisor.ts",
+      "src/lib/jarvis/planner.server.ts + supabase/functions/jarvis-planner",
+      "device-agent/windows/ocade_agent/gateway.py",
+      "device-agent/windows/ocade_agent/verify_worker.py"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts",
+      "tests/jarvis/contracts.test.ts",
+      "device-agent/windows/tests/test_gateway.py"
+    ],
+    "blocker": "installer/startup/DPAPI need a disposable Windows machine; real model judgement untested (no provider credentials); Windows actuators untested"
+  },
+  {
+    "id": "C14",
+    "heading": "Signed Device Agent",
+    "treatment": "`7`; signature/revocation tests.",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L3",
+    "sections": [
+      7
+    ],
+    "packages": [],
+    "code": [
+      "device-agent/windows/ocade_agent/agent.py + device.py + journal.py",
+      "device-agent/windows/packaging/",
+      "src/lib/jarvis/authority.server.ts"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts"
+    ],
+    "blocker": "installer/startup/DPAPI need a disposable Windows machine"
+  },
+  {
+    "id": "C15",
+    "heading": "Same-account device discovery",
+    "treatment": "`7`; trust distinct from discovery.",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L3",
+    "sections": [
+      7
+    ],
+    "packages": [],
+    "code": [
+      "device-agent/windows/ocade_agent/agent.py + device.py + journal.py",
+      "device-agent/windows/packaging/",
+      "src/lib/jarvis/authority.server.ts"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts"
+    ],
+    "blocker": "installer/startup/DPAPI need a disposable Windows machine"
+  },
+  {
+    "id": "C16",
+    "heading": "Persistent authorised capability scopes",
+    "treatment": "`7, 15`; expiry/revocation.",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      7,
+      15
+    ],
+    "packages": [],
+    "code": [
+      "device-agent/windows/ocade_agent/agent.py + device.py + journal.py",
+      "device-agent/windows/packaging/",
+      "src/lib/jarvis/authority.server.ts",
+      "src/lib/jarvis/contracts.ts",
+      "device-agent/windows/ocade_agent/web_worker.py",
+      "device-agent/windows/ocade_agent/sandbox.py",
+      "device-agent/windows/ocade_agent/catalog.py",
+      "supabase/migrations/20261030120000_jarvis_task_authority.sql"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts",
+      "tests/jarvis/db/authority.test.sql",
+      "device-agent/windows/tests/test_web.py",
+      "device-agent/windows/tests/test_sandbox.py",
+      "device-agent/windows/tests/test_catalog.py"
+    ],
+    "blocker": "installer/startup/DPAPI need a disposable Windows machine; Windows-specific attacks (junctions, UAC, wrong HWND) blocked"
+  },
+  {
+    "id": "C17",
+    "heading": "Official Windows elevation",
+    "treatment": "`7, 15`; genuine UAC/human gate.",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      7,
+      15
+    ],
+    "packages": [],
+    "code": [
+      "device-agent/windows/ocade_agent/agent.py + device.py + journal.py",
+      "device-agent/windows/packaging/",
+      "src/lib/jarvis/authority.server.ts",
+      "src/lib/jarvis/contracts.ts",
+      "device-agent/windows/ocade_agent/web_worker.py",
+      "device-agent/windows/ocade_agent/sandbox.py",
+      "device-agent/windows/ocade_agent/catalog.py",
+      "supabase/migrations/20261030120000_jarvis_task_authority.sql"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts",
+      "tests/jarvis/db/authority.test.sql",
+      "device-agent/windows/tests/test_web.py",
+      "device-agent/windows/tests/test_sandbox.py",
+      "device-agent/windows/tests/test_catalog.py"
+    ],
+    "blocker": "installer/startup/DPAPI need a disposable Windows machine; Windows-specific attacks (junctions, UAC, wrong HWND) blocked"
+  },
+  {
+    "id": "C18",
+    "heading": "Protected payment/secret boundary",
+    "treatment": "`7, 15`; never auto-finalize.",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      7,
+      15
+    ],
+    "packages": [],
+    "code": [
+      "device-agent/windows/ocade_agent/agent.py + device.py + journal.py",
+      "device-agent/windows/packaging/",
+      "src/lib/jarvis/authority.server.ts",
+      "src/lib/jarvis/contracts.ts",
+      "device-agent/windows/ocade_agent/web_worker.py",
+      "device-agent/windows/ocade_agent/sandbox.py",
+      "device-agent/windows/ocade_agent/catalog.py",
+      "supabase/migrations/20261030120000_jarvis_task_authority.sql"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts",
+      "tests/jarvis/db/authority.test.sql",
+      "device-agent/windows/tests/test_web.py",
+      "device-agent/windows/tests/test_sandbox.py",
+      "device-agent/windows/tests/test_catalog.py"
+    ],
+    "blocker": "installer/startup/DPAPI need a disposable Windows machine; Windows-specific attacks (junctions, UAC, wrong HWND) blocked"
+  },
+  {
+    "id": "C19",
+    "heading": "Google-first product sign-in",
+    "treatment": "`7, 14`; separate external auth.",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L3",
+    "sections": [
+      7,
+      14
+    ],
+    "packages": [],
+    "code": [
+      "device-agent/windows/ocade_agent/agent.py + device.py + journal.py",
+      "device-agent/windows/packaging/",
+      "src/lib/jarvis/authority.server.ts",
+      "src/jarvis/JarvisWorkspace.tsx + JarvisPanels.tsx"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts",
+      "evidence UI render (signed-out)"
+    ],
+    "blocker": "installer/startup/DPAPI need a disposable Windows machine; signed-in UI needs hosted Supabase auth"
+  },
+  {
+    "id": "C20",
+    "heading": "Existing authorised browser session",
+    "treatment": "`10`; no profile cloning.",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L3",
+    "sections": [
+      10
+    ],
+    "packages": [],
+    "code": [
+      "device-agent/windows/ocade_agent/web_worker.py",
+      "src/lib/jarvis/contracts.ts"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_web.py"
+    ],
+    "blocker": "fixture site + example.com read pass; third-party accounts/editors not approved"
+  },
+  {
+    "id": "C21",
+    "heading": "Session expiry and reauthentication",
+    "treatment": "`10`; official flow.",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L3",
+    "sections": [
+      10
+    ],
+    "packages": [],
+    "code": [
+      "device-agent/windows/ocade_agent/web_worker.py",
+      "src/lib/jarvis/contracts.ts"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_web.py"
+    ],
+    "blocker": "fixture site + example.com read pass; third-party accounts/editors not approved"
+  },
+  {
+    "id": "C22",
+    "heading": "MFA/CAPTCHA handling",
+    "treatment": "`10, 15`; no bypass.",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      10,
+      15
+    ],
+    "packages": [],
+    "code": [
+      "device-agent/windows/ocade_agent/web_worker.py",
+      "src/lib/jarvis/contracts.ts",
+      "device-agent/windows/ocade_agent/sandbox.py",
+      "device-agent/windows/ocade_agent/catalog.py",
+      "supabase/migrations/20261030120000_jarvis_task_authority.sql"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_web.py",
+      "tests/jarvis/db/authority.test.sql",
+      "device-agent/windows/tests/test_sandbox.py",
+      "device-agent/windows/tests/test_catalog.py"
+    ],
+    "blocker": "fixture site + example.com read pass; third-party accounts/editors not approved; Windows-specific attacks (junctions, UAC, wrong HWND) blocked"
+  },
+  {
+    "id": "C23",
+    "heading": "Explicit-recipient outbound actions",
+    "treatment": "`10, 15`; destination verification.",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      10,
+      15
+    ],
+    "packages": [],
+    "code": [
+      "device-agent/windows/ocade_agent/web_worker.py",
+      "src/lib/jarvis/contracts.ts",
+      "device-agent/windows/ocade_agent/sandbox.py",
+      "device-agent/windows/ocade_agent/catalog.py",
+      "supabase/migrations/20261030120000_jarvis_task_authority.sql"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_web.py",
+      "tests/jarvis/db/authority.test.sql",
+      "device-agent/windows/tests/test_sandbox.py",
+      "device-agent/windows/tests/test_catalog.py"
+    ],
+    "blocker": "fixture site + example.com read pass; third-party accounts/editors not approved; Windows-specific attacks (junctions, UAC, wrong HWND) blocked"
+  },
+  {
+    "id": "C24",
+    "heading": "Safe deletion to Recycle Bin",
+    "treatment": "`11`; reversible default.",
+    "disposition": "MANDATORY",
+    "status": "PASS",
+    "level": "L2",
+    "sections": [
+      11
+    ],
+    "packages": [],
+    "code": [
+      "supabase/migrations/20261030120000_jarvis_task_authority.sql",
+      "device-agent/windows/ocade_agent/agent.py + device.py + journal.py",
+      "device-agent/windows/ocade_agent/gateway.py"
+    ],
+    "tests": [
+      "tests/jarvis/db/authority.test.sql",
+      "device-agent/windows/tests/test_agent.py",
+      "tests/jarvis/e2e.test.ts"
+    ],
+    "blocker": ""
+  },
+  {
+    "id": "C25",
+    "heading": "Secrets vault and token isolation",
+    "treatment": "`7, 15`; no raw credentials.",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      7,
+      15
+    ],
+    "packages": [],
+    "code": [
+      "device-agent/windows/ocade_agent/agent.py + device.py + journal.py",
+      "device-agent/windows/packaging/",
+      "src/lib/jarvis/authority.server.ts",
+      "src/lib/jarvis/contracts.ts",
+      "device-agent/windows/ocade_agent/web_worker.py",
+      "device-agent/windows/ocade_agent/sandbox.py",
+      "device-agent/windows/ocade_agent/catalog.py",
+      "supabase/migrations/20261030120000_jarvis_task_authority.sql"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts",
+      "tests/jarvis/db/authority.test.sql",
+      "device-agent/windows/tests/test_web.py",
+      "device-agent/windows/tests/test_sandbox.py",
+      "device-agent/windows/tests/test_catalog.py"
+    ],
+    "blocker": "installer/startup/DPAPI need a disposable Windows machine; Windows-specific attacks (junctions, UAC, wrong HWND) blocked"
+  },
+  {
+    "id": "C26",
+    "heading": "Dynamic Windows application catalog",
+    "treatment": "`8`; P07.",
+    "disposition": "MANDATORY",
+    "status": "BLOCKED",
+    "level": "L0",
+    "sections": [
+      8,
+      7
+    ],
+    "packages": [
+      "P07"
+    ],
+    "code": [
+      "device-agent/windows/ocade_agent/windows_worker.py + discovery.py",
+      "device-agent/windows/ocade_agent/agent.py + device.py + journal.py",
+      "device-agent/windows/packaging/",
+      "src/lib/jarvis/authority.server.ts"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts"
+    ],
+    "blocker": "needs an interactive Windows desktop; installer/startup/DPAPI need a disposable Windows machine"
+  },
+  {
+    "id": "C27",
+    "heading": "No hardcoded application journeys",
+    "treatment": "`8, 9`; capability-based.",
+    "disposition": "MANDATORY",
+    "status": "BLOCKED",
+    "level": "L0",
+    "sections": [
+      8,
+      9
+    ],
+    "packages": [],
+    "code": [
+      "device-agent/windows/ocade_agent/windows_worker.py + discovery.py",
+      "device-agent/windows/ocade_agent/office_worker.py + engine.py"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_gateway.py",
+      "device-agent/windows/tests/test_media.py",
+      "tests/jarvis/e2e.test.ts"
+    ],
+    "blocker": "needs an interactive Windows desktop; LibreOffice/ffmpeg pass on Linux; Excel/Word COM needs Windows + Office"
+  },
+  {
+    "id": "C28",
+    "heading": "Exact PID/HWND/document binding",
+    "treatment": "`8`; P07/P10.",
+    "disposition": "MANDATORY",
+    "status": "BLOCKED",
+    "level": "L0",
+    "sections": [
+      8,
+      7,
+      10
+    ],
+    "packages": [
+      "P07",
+      "P10"
+    ],
+    "code": [
+      "device-agent/windows/ocade_agent/windows_worker.py + discovery.py",
+      "device-agent/windows/ocade_agent/agent.py + device.py + journal.py",
+      "device-agent/windows/packaging/",
+      "src/lib/jarvis/authority.server.ts",
+      "device-agent/windows/ocade_agent/web_worker.py",
+      "src/lib/jarvis/contracts.ts"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts",
+      "device-agent/windows/tests/test_web.py"
+    ],
+    "blocker": "needs an interactive Windows desktop; installer/startup/DPAPI need a disposable Windows machine; fixture site + example.com read pass; third-party accounts/editors not approved"
+  },
+  {
+    "id": "C29",
+    "heading": "Window resize, DPI and multi-monitor resilience",
+    "treatment": "`8, 9`; real tests.",
+    "disposition": "MANDATORY",
+    "status": "BLOCKED",
+    "level": "L0",
+    "sections": [
+      8,
+      9
+    ],
+    "packages": [],
+    "code": [
+      "device-agent/windows/ocade_agent/windows_worker.py + discovery.py",
+      "device-agent/windows/ocade_agent/office_worker.py + engine.py"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_gateway.py",
+      "device-agent/windows/tests/test_media.py",
+      "tests/jarvis/e2e.test.ts"
+    ],
+    "blocker": "needs an interactive Windows desktop; LibreOffice/ffmpeg pass on Linux; Excel/Word COM needs Windows + Office"
+  },
+  {
+    "id": "C30",
+    "heading": "Minimized/hidden-window truthfulness",
+    "treatment": "`8, 20`; native path or restore.",
+    "disposition": "MANDATORY",
+    "status": "BLOCKED",
+    "level": "L0",
+    "sections": [
+      8,
+      20
+    ],
+    "packages": [],
+    "code": [
+      "device-agent/windows/ocade_agent/windows_worker.py + discovery.py",
+      "src/lib/jarvis/authority.server.ts"
+    ],
+    "tests": [],
+    "blocker": "needs an interactive Windows desktop"
+  },
+  {
+    "id": "C31",
+    "heading": "User take-over and conflict handling",
+    "treatment": "`5, 11`; P14/P17.",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      5,
+      11,
+      14,
+      17
+    ],
+    "packages": [
+      "P14",
+      "P17"
+    ],
+    "code": [
+      "supabase/migrations/20261030120000_jarvis_task_authority.sql",
+      "src/lib/jarvis/authority.server.ts",
+      "device-agent/windows/ocade_agent/agent.py + device.py + journal.py",
+      "device-agent/windows/ocade_agent/gateway.py",
+      "src/jarvis/JarvisWorkspace.tsx + JarvisPanels.tsx"
+    ],
+    "tests": [
+      "tests/jarvis/db/authority.test.sql",
+      "tests/jarvis/e2e.test.ts",
+      "device-agent/windows/tests/test_agent.py",
+      "evidence UI render (signed-out)"
+    ],
+    "blocker": "signed-in UI needs hosted Supabase auth; release gates need Windows + real model evidence"
+  },
+  {
+    "id": "C32",
+    "heading": "Native-first execution order",
+    "treatment": "`9`; P09–P12.",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L3",
+    "sections": [
+      9,
+      12
+    ],
+    "packages": [
+      "P09",
+      "P12"
+    ],
+    "code": [
+      "device-agent/windows/ocade_agent/office_worker.py + engine.py",
+      "device-agent/windows/ocade_agent/windows_worker.py + discovery.py",
+      "device-agent/windows/ocade_agent/verify_worker.py",
+      "src/lib/jarvis/supervisor.ts"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_gateway.py",
+      "device-agent/windows/tests/test_media.py",
+      "tests/jarvis/e2e.test.ts"
+    ],
+    "blocker": "LibreOffice/ffmpeg pass on Linux; Excel/Word COM needs Windows + Office"
+  },
+  {
+    "id": "C33",
+    "heading": "Browser DOM and authorised network calls",
+    "treatment": "`10`; P11.",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      10,
+      11
+    ],
+    "packages": [
+      "P11"
+    ],
+    "code": [
+      "device-agent/windows/ocade_agent/web_worker.py",
+      "src/lib/jarvis/contracts.ts",
+      "supabase/migrations/20261030120000_jarvis_task_authority.sql",
+      "device-agent/windows/ocade_agent/agent.py + device.py + journal.py",
+      "device-agent/windows/ocade_agent/gateway.py"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_web.py",
+      "tests/jarvis/db/authority.test.sql",
+      "device-agent/windows/tests/test_agent.py",
+      "tests/jarvis/e2e.test.ts"
+    ],
+    "blocker": "fixture site + example.com read pass; third-party accounts/editors not approved"
+  },
+  {
+    "id": "C34",
+    "heading": "Local bounded filesystem workspace",
+    "treatment": "`11`; P08.",
+    "disposition": "MANDATORY",
+    "status": "BLOCKED",
+    "level": "L0",
+    "sections": [
+      11,
+      8
+    ],
+    "packages": [
+      "P08"
+    ],
+    "code": [
+      "supabase/migrations/20261030120000_jarvis_task_authority.sql",
+      "device-agent/windows/ocade_agent/agent.py + device.py + journal.py",
+      "device-agent/windows/ocade_agent/gateway.py",
+      "device-agent/windows/ocade_agent/windows_worker.py + discovery.py"
+    ],
+    "tests": [
+      "tests/jarvis/db/authority.test.sql",
+      "device-agent/windows/tests/test_agent.py",
+      "tests/jarvis/e2e.test.ts"
+    ],
+    "blocker": "needs an interactive Windows desktop"
+  },
+  {
+    "id": "C35",
+    "heading": "Resource-aware scheduler",
+    "treatment": "`11`; P14.",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      11,
+      14
+    ],
+    "packages": [
+      "P14"
+    ],
+    "code": [
+      "supabase/migrations/20261030120000_jarvis_task_authority.sql",
+      "device-agent/windows/ocade_agent/agent.py + device.py + journal.py",
+      "device-agent/windows/ocade_agent/gateway.py",
+      "src/jarvis/JarvisWorkspace.tsx + JarvisPanels.tsx"
+    ],
+    "tests": [
+      "tests/jarvis/db/authority.test.sql",
+      "device-agent/windows/tests/test_agent.py",
+      "tests/jarvis/e2e.test.ts",
+      "evidence UI render (signed-out)"
+    ],
+    "blocker": "signed-in UI needs hosted Supabase auth"
+  },
+  {
+    "id": "C36",
+    "heading": "Transactional task/side-effect journal",
+    "treatment": "`5, 11`; P15.",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      5,
+      11,
+      15
+    ],
+    "packages": [
+      "P15"
+    ],
+    "code": [
+      "supabase/migrations/20261030120000_jarvis_task_authority.sql",
+      "src/lib/jarvis/authority.server.ts",
+      "device-agent/windows/ocade_agent/agent.py + device.py + journal.py",
+      "device-agent/windows/ocade_agent/gateway.py",
+      "src/lib/jarvis/contracts.ts",
+      "device-agent/windows/ocade_agent/web_worker.py",
+      "device-agent/windows/ocade_agent/sandbox.py",
+      "device-agent/windows/ocade_agent/catalog.py"
+    ],
+    "tests": [
+      "tests/jarvis/db/authority.test.sql",
+      "tests/jarvis/e2e.test.ts",
+      "device-agent/windows/tests/test_agent.py",
+      "device-agent/windows/tests/test_web.py",
+      "device-agent/windows/tests/test_sandbox.py",
+      "device-agent/windows/tests/test_catalog.py"
+    ],
+    "blocker": "Windows-specific attacks (junctions, UAC, wrong HWND) blocked"
+  },
+  {
+    "id": "C37",
+    "heading": "Durable checkpoints and recovery",
+    "treatment": "`5, 11`; P15.",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      5,
+      11,
+      15
+    ],
+    "packages": [
+      "P15"
+    ],
+    "code": [
+      "supabase/migrations/20261030120000_jarvis_task_authority.sql",
+      "src/lib/jarvis/authority.server.ts",
+      "device-agent/windows/ocade_agent/agent.py + device.py + journal.py",
+      "device-agent/windows/ocade_agent/gateway.py",
+      "src/lib/jarvis/contracts.ts",
+      "device-agent/windows/ocade_agent/web_worker.py",
+      "device-agent/windows/ocade_agent/sandbox.py",
+      "device-agent/windows/ocade_agent/catalog.py"
+    ],
+    "tests": [
+      "tests/jarvis/db/authority.test.sql",
+      "tests/jarvis/e2e.test.ts",
+      "device-agent/windows/tests/test_agent.py",
+      "device-agent/windows/tests/test_web.py",
+      "device-agent/windows/tests/test_sandbox.py",
+      "device-agent/windows/tests/test_catalog.py"
+    ],
+    "blocker": "Windows-specific attacks (junctions, UAC, wrong HWND) blocked"
+  },
+  {
+    "id": "C38",
+    "heading": "Local STOP safety fence",
+    "treatment": "`5`; P17.",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      5,
+      17
+    ],
+    "packages": [
+      "P17"
+    ],
+    "code": [
+      "supabase/migrations/20261030120000_jarvis_task_authority.sql",
+      "src/lib/jarvis/authority.server.ts",
+      "device-agent/windows/ocade_agent/agent.py + device.py + journal.py"
+    ],
+    "tests": [
+      "tests/jarvis/db/authority.test.sql",
+      "tests/jarvis/e2e.test.ts",
+      "device-agent/windows/tests/test_agent.py"
+    ],
+    "blocker": "release gates need Windows + real model evidence"
+  },
+  {
+    "id": "C39",
+    "heading": "Bounded receding-horizon planner",
+    "treatment": "`4, 5`; P13.",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      4,
+      5,
+      13
+    ],
+    "packages": [
+      "P13"
+    ],
+    "code": [
+      "src/lib/jarvis/authority.server.ts",
+      "src/lib/jarvis/supervisor.ts",
+      "src/lib/jarvis/planner.server.ts + supabase/functions/jarvis-planner",
+      "device-agent/windows/ocade_agent/gateway.py",
+      "device-agent/windows/ocade_agent/verify_worker.py",
+      "supabase/migrations/20261030120000_jarvis_task_authority.sql",
+      "device-agent/windows/ocade_agent/agent.py + device.py + journal.py",
+      "device-agent/windows/ocade_agent/office_worker.py + engine.py",
+      "device-agent/windows/ocade_agent/web_worker.py"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts",
+      "device-agent/windows/tests/test_gateway.py",
+      "tests/jarvis/db/authority.test.sql",
+      "device-agent/windows/tests/test_agent.py",
+      "device-agent/windows/tests/test_web.py",
+      "device-agent/windows/tests/test_media.py"
+    ],
+    "blocker": "real model judgement untested (no provider credentials); Windows actuators untested; chess/CAD not implemented; video/photo web editors not approved; Windows apps blocked"
+  },
+  {
+    "id": "C40",
+    "heading": "Independent professional verifier",
+    "treatment": "`12`; P16.",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      12,
+      16
+    ],
+    "packages": [
+      "P16"
+    ],
+    "code": [
+      "device-agent/windows/ocade_agent/verify_worker.py",
+      "src/lib/jarvis/supervisor.ts",
+      "device-agent/windows/ocade_agent/catalog.py"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_gateway.py",
+      "tests/jarvis/e2e.test.ts",
+      "device-agent/windows/tests/test_media.py",
+      "device-agent/windows/tests/mcp_fleet.py (measurement)"
+    ],
+    "blocker": "task-level latency/benchmark against real model not run"
+  },
+  {
+    "id": "C41",
+    "heading": "Capability-first tool choice",
+    "treatment": "`8, 9`; preserve named-app constraints.",
+    "disposition": "MANDATORY",
+    "status": "BLOCKED",
+    "level": "L0",
+    "sections": [
+      8,
+      9
+    ],
+    "packages": [],
+    "code": [
+      "device-agent/windows/ocade_agent/windows_worker.py + discovery.py",
+      "device-agent/windows/ocade_agent/office_worker.py + engine.py"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_gateway.py",
+      "device-agent/windows/tests/test_media.py",
+      "tests/jarvis/e2e.test.ts"
+    ],
+    "blocker": "needs an interactive Windows desktop; LibreOffice/ffmpeg pass on Linux; Excel/Word COM needs Windows + Office"
+  },
+  {
+    "id": "C42",
+    "heading": "Untrusted MCP provenance restrictions",
+    "treatment": "`6, 15`; P05.",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      6,
+      15,
+      5
+    ],
+    "packages": [
+      "P05"
+    ],
+    "code": [
+      "device-agent/windows/ocade_agent/gateway.py",
+      "device-agent/windows/ocade_agent/catalog.py",
+      "src/lib/jarvis/contracts.ts",
+      "device-agent/windows/ocade_agent/web_worker.py",
+      "device-agent/windows/ocade_agent/sandbox.py",
+      "supabase/migrations/20261030120000_jarvis_task_authority.sql",
+      "src/lib/jarvis/authority.server.ts",
+      "device-agent/windows/ocade_agent/agent.py + device.py + journal.py"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_gateway.py",
+      "device-agent/windows/tests/test_catalog.py",
+      "device-agent/windows/tests/mcp_fleet.py (measurement)",
+      "tests/jarvis/db/authority.test.sql",
+      "device-agent/windows/tests/test_web.py",
+      "device-agent/windows/tests/test_sandbox.py",
+      "tests/jarvis/e2e.test.ts",
+      "device-agent/windows/tests/test_agent.py"
+    ],
+    "blocker": "real third-party MCP server run denied by sandbox policy; needs owner approval; Windows-specific attacks (junctions, UAC, wrong HWND) blocked"
+  },
+  {
+    "id": "C43",
+    "heading": "MCP self-install under established policy",
+    "treatment": "`6`; approved pinned components only.",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      6
+    ],
+    "packages": [],
+    "code": [
+      "device-agent/windows/ocade_agent/gateway.py",
+      "device-agent/windows/ocade_agent/catalog.py",
+      "src/lib/jarvis/contracts.ts"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_gateway.py",
+      "device-agent/windows/tests/test_catalog.py",
+      "device-agent/windows/tests/mcp_fleet.py (measurement)"
+    ],
+    "blocker": "real third-party MCP server run denied by sandbox policy; needs owner approval"
+  },
+  {
+    "id": "C44",
+    "heading": "No forced local model fallback",
+    "treatment": "`2`; online-only JARVIS.",
+    "disposition": "MANDATORY",
+    "status": "PASS",
+    "level": "L2",
+    "sections": [
+      2
+    ],
+    "packages": [],
+    "code": [
+      "src/lib/jarvis/authority.server.ts",
+      "supabase/migrations/20261030120000_jarvis_task_authority.sql"
+    ],
+    "tests": [
+      "tests/jarvis/db/authority.test.sql"
+    ],
+    "blocker": ""
+  },
+  {
+    "id": "C45",
+    "heading": "Pairing and agent-runtime blocker",
+    "treatment": "`7, 17`; P03/P04.",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L0",
+    "sections": [
+      7,
+      17,
+      3,
+      4
+    ],
+    "packages": [
+      "P03",
+      "P04"
+    ],
+    "code": [
+      "device-agent/windows/ocade_agent/agent.py + device.py + journal.py",
+      "device-agent/windows/packaging/",
+      "src/lib/jarvis/authority.server.ts",
+      "src/lib/jarvis/contracts.ts",
+      "src/lib/jarvis/supervisor.ts",
+      "src/lib/jarvis/planner.server.ts + supabase/functions/jarvis-planner",
+      "device-agent/windows/ocade_agent/gateway.py",
+      "device-agent/windows/ocade_agent/verify_worker.py"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts",
+      "tests/jarvis/db/authority.test.sql",
+      "tests/jarvis/contracts.test.ts",
+      "device-agent/windows/tests/test_gateway.py"
+    ],
+    "blocker": "installer/startup/DPAPI need a disposable Windows machine; release gates need Windows + real model evidence; real model judgement untested (no provider credentials); Windows actuators untested"
+  },
+  {
+    "id": "C46",
+    "heading": "Incomplete app discovery",
+    "treatment": "`8`; Store/MSIX/aliases test.",
+    "disposition": "MANDATORY",
+    "status": "BLOCKED",
+    "level": "L0",
+    "sections": [
+      8
+    ],
+    "packages": [],
+    "code": [
+      "device-agent/windows/ocade_agent/windows_worker.py + discovery.py"
+    ],
+    "tests": [],
+    "blocker": "needs an interactive Windows desktop"
+  },
+  {
+    "id": "C47",
+    "heading": "Wrong OS command context",
+    "treatment": "`8, 9`; actual Windows shell.",
+    "disposition": "MANDATORY",
+    "status": "BLOCKED",
+    "level": "L0",
+    "sections": [
+      8,
+      9
+    ],
+    "packages": [],
+    "code": [
+      "device-agent/windows/ocade_agent/windows_worker.py + discovery.py",
+      "device-agent/windows/ocade_agent/office_worker.py + engine.py"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_gateway.py",
+      "device-agent/windows/tests/test_media.py",
+      "tests/jarvis/e2e.test.ts"
+    ],
+    "blocker": "needs an interactive Windows desktop; LibreOffice/ffmpeg pass on Linux; Excel/Word COM needs Windows + Office"
+  },
+  {
+    "id": "C48",
+    "heading": "Wrong-window incident",
+    "treatment": "`8`; fail-closed lease.",
+    "disposition": "MANDATORY",
+    "status": "BLOCKED",
+    "level": "L0",
+    "sections": [
+      8
+    ],
+    "packages": [],
+    "code": [
+      "device-agent/windows/ocade_agent/windows_worker.py + discovery.py"
+    ],
+    "tests": [],
+    "blocker": "needs an interactive Windows desktop"
+  },
+  {
+    "id": "C49",
+    "heading": "Blocked vs executed tests",
+    "treatment": "`17`; evidence classification.",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      17
+    ],
+    "packages": [],
+    "code": [
+      "src/lib/jarvis/authority.server.ts"
+    ],
+    "tests": [
+      "tests/jarvis/db/authority.test.sql",
+      "tests/jarvis/e2e.test.ts"
+    ],
+    "blocker": "release gates need Windows + real model evidence"
+  },
+  {
+    "id": "C50",
+    "heading": "Retired previous engine",
+    "treatment": "`2`; rebuild rather than configure.",
+    "disposition": "MANDATORY",
+    "status": "PASS",
+    "level": "L2",
+    "sections": [
+      2
+    ],
+    "packages": [],
+    "code": [
+      "src/lib/jarvis/authority.server.ts",
+      "supabase/migrations/20261030120000_jarvis_task_authority.sql"
+    ],
+    "tests": [
+      "tests/jarvis/db/authority.test.sql"
+    ],
+    "blocker": ""
+  },
+  {
+    "id": "C51",
+    "heading": "No premature PASS claims",
+    "treatment": "`0, 17`; independent proof.",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      0,
+      17
+    ],
+    "packages": [],
+    "code": [
+      "src/lib/jarvis/authority.server.ts",
+      "src/lib/jarvis/supervisor.ts"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts",
+      "tests/jarvis/db/authority.test.sql"
+    ],
+    "blocker": "95% per-family gate not measured; Windows/UI journeys blocked; release gates need Windows + real model evidence"
+  },
+  {
+    "id": "C52",
+    "heading": "Cloud-first testing",
+    "treatment": "`1, 17`; disposable permitted environments.",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L0",
+    "sections": [
+      1,
+      17
+    ],
+    "packages": [],
+    "code": [
+      "src/lib/jarvis/authority.server.ts"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts",
+      "tests/jarvis/db/authority.test.sql"
+    ],
+    "blocker": "release gates need Windows + real model evidence"
+  },
+  {
+    "id": "C53",
+    "heading": "Representative real-task benchmark",
+    "treatment": "`16, 17`; P21.",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L0",
+    "sections": [
+      16,
+      17,
+      21
+    ],
+    "packages": [
+      "P21"
+    ],
+    "code": [
+      "device-agent/windows/ocade_agent/catalog.py",
+      "src/lib/jarvis/authority.server.ts",
+      "device-agent/windows/ocade_agent/windows_worker.py + discovery.py",
+      "src/lib/jarvis/contracts.ts"
+    ],
+    "tests": [
+      "device-agent/windows/tests/mcp_fleet.py (measurement)",
+      "tests/jarvis/db/authority.test.sql",
+      "tests/jarvis/e2e.test.ts",
+      "tests/jarvis/contracts.test.ts"
+    ],
+    "blocker": "task-level latency/benchmark against real model not run; release gates need Windows + real model evidence; pywinauto/PyAutoGUI need Windows"
+  },
+  {
+    "id": "C54",
+    "heading": "90% acceptance target, 95%+ ambition",
+    "treatment": "`0, 17`; apply latest 95%-per-family gate.",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      0,
+      17
+    ],
+    "packages": [],
+    "code": [
+      "src/lib/jarvis/authority.server.ts",
+      "src/lib/jarvis/supervisor.ts"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts",
+      "tests/jarvis/db/authority.test.sql"
+    ],
+    "blocker": "95% per-family gate not measured; Windows/UI journeys blocked; release gates need Windows + real model evidence"
+  },
+  {
+    "id": "C55",
+    "heading": "Zero known critical safety defects",
+    "treatment": "`0, 17`; no release with known critical issue.",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      0,
+      17
+    ],
+    "packages": [],
+    "code": [
+      "src/lib/jarvis/authority.server.ts",
+      "src/lib/jarvis/supervisor.ts"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts",
+      "tests/jarvis/db/authority.test.sql"
+    ],
+    "blocker": "95% per-family gate not measured; Windows/UI journeys blocked; release gates need Windows + real model evidence"
+  },
+  {
+    "id": "C56",
+    "heading": "No fake deliverables",
+    "treatment": "`12, 17`; harness/actor separation.",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      12,
+      17
+    ],
+    "packages": [],
+    "code": [
+      "device-agent/windows/ocade_agent/verify_worker.py",
+      "src/lib/jarvis/supervisor.ts",
+      "src/lib/jarvis/authority.server.ts"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_gateway.py",
+      "tests/jarvis/e2e.test.ts",
+      "device-agent/windows/tests/test_media.py",
+      "tests/jarvis/db/authority.test.sql"
+    ],
+    "blocker": "release gates need Windows + real model evidence"
+  },
+  {
+    "id": "C57",
+    "heading": "Proof-driven debloating",
+    "treatment": "`3, 19`; parity before removal.",
+    "disposition": "MANDATORY",
+    "status": "PASS",
+    "level": "L0",
+    "sections": [
+      3,
+      19
+    ],
+    "packages": [],
+    "code": [
+      "src/lib/jarvis/contracts.ts",
+      "src/lib/jarvis/authority.server.ts"
+    ],
+    "tests": [
+      "tests/jarvis/contracts.test.ts"
+    ],
+    "blocker": ""
+  },
+  {
+    "id": "C58",
+    "heading": "Source code versus verified implementation",
+    "treatment": "`2, 17`; evidence class.",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      2,
+      17
+    ],
+    "packages": [],
+    "code": [
+      "src/lib/jarvis/authority.server.ts",
+      "supabase/migrations/20261030120000_jarvis_task_authority.sql"
+    ],
+    "tests": [
+      "tests/jarvis/db/authority.test.sql",
+      "tests/jarvis/e2e.test.ts"
+    ],
+    "blocker": "release gates need Windows + real model evidence"
+  },
+  {
+    "id": "C59",
+    "heading": "Owner-controlled GitHub policy",
+    "treatment": "`1, 19`; implementation branch only.",
+    "disposition": "MANDATORY",
+    "status": "PASS",
+    "level": "L0",
+    "sections": [
+      1,
+      19
+    ],
+    "packages": [],
+    "code": [
+      "src/lib/jarvis/authority.server.ts"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts"
+    ],
+    "blocker": ""
+  },
+  {
+    "id": "C60",
+    "heading": "User-facing MCP invisibility",
+    "treatment": "`14`; no customer plugin setup.",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L3",
+    "sections": [
+      14
+    ],
+    "packages": [],
+    "code": [
+      "src/jarvis/JarvisWorkspace.tsx + JarvisPanels.tsx"
+    ],
+    "tests": [
+      "evidence UI render (signed-out)"
+    ],
+    "blocker": "signed-in UI needs hosted Supabase auth"
+  },
+  {
+    "id": "C61",
+    "heading": "First vertical-slice milestone",
+    "treatment": "`18`; P19.",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L0",
+    "sections": [
+      18,
+      19
+    ],
+    "packages": [
+      "P19"
+    ],
+    "code": [
+      "src/lib/jarvis/authority.server.ts"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts"
+    ],
+    "blocker": "see per-package report"
+  },
+  {
+    "id": "C62",
+    "heading": "Gradual coverage expansion",
+    "treatment": "`13, 18`; P20.",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L0",
+    "sections": [
+      13,
+      18,
+      20
+    ],
+    "packages": [
+      "P20"
+    ],
+    "code": [
+      "src/lib/jarvis/supervisor.ts",
+      "src/lib/jarvis/planner.server.ts + supabase/functions/jarvis-planner",
+      "device-agent/windows/ocade_agent/office_worker.py + engine.py",
+      "device-agent/windows/ocade_agent/web_worker.py",
+      "src/lib/jarvis/authority.server.ts"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts",
+      "device-agent/windows/tests/test_web.py",
+      "device-agent/windows/tests/test_media.py"
+    ],
+    "blocker": "chess/CAD not implemented; video/photo web editors not approved; Windows apps blocked; see per-package report"
+  },
+  {
+    "id": "C63",
+    "heading": "User effort as a formal metric",
+    "treatment": "`16, 17`; measure interventions.",
+    "disposition": "MANDATORY",
+    "status": "PARTIAL",
+    "level": "L2",
+    "sections": [
+      16,
+      17
+    ],
+    "packages": [],
+    "code": [
+      "device-agent/windows/ocade_agent/catalog.py",
+      "src/lib/jarvis/authority.server.ts"
+    ],
+    "tests": [
+      "device-agent/windows/tests/mcp_fleet.py (measurement)",
+      "tests/jarvis/db/authority.test.sql",
+      "tests/jarvis/e2e.test.ts"
+    ],
+    "blocker": "task-level latency/benchmark against real model not run; release gates need Windows + real model evidence"
+  }
+]

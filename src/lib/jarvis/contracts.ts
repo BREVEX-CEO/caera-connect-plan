@@ -18,7 +18,7 @@ export const PROTOCOL_VERSION = 1;
  * claim them; irreversible actions (payments, deletion, sends without review) are not
  * in the registry at all.
  */
-export const RISKS = ["read", "reversible_write", "external_effect"] as const;
+const RISKS = ["read", "reversible_write", "external_effect"] as const;
 
 /** Paths are relative to a workspace folder the person chose on the device itself. */
 const workspacePath = z
@@ -63,14 +63,31 @@ const host = z
   .string()
   .regex(/^[a-z0-9]([a-z0-9.-]{0,251}[a-z0-9])?$/)
   .max(253);
+/** A public https site by name: no localhost, no address literals, no non-default port. */
 const httpsUrl = z
   .url({ protocol: /^https$/ })
   .max(2000)
-  .refine((url) => host.safeParse(new URL(url).hostname).success, "unsupported host");
+  .refine((url) => {
+    const { hostname, port } = new URL(url);
+    return (
+      host.safeParse(hostname).success &&
+      !port &&
+      !/(^|\.)localhost$/.test(hostname) &&
+      !/^[0-9.]+$/.test(hostname)
+    );
+  }, "unsupported host");
 const page = z.strictObject({ id: z.string().regex(/^[a-z0-9-]{1,40}$/), site: host });
 const selector = z.string().min(1).max(500);
 
-type Target = { app?: string; site?: string };
+type Target = { app?: string; site?: string; mcp?: string };
+
+/** A call to one tool of an owner-approved external MCP server, checked on the device against its pinned manifest. */
+const mcpCall = z.strictObject({
+  server: z.string().regex(/^[a-z][a-z0-9_]{1,30}$/),
+  tool: z.string().regex(/^[A-Za-z][A-Za-z0-9_-]{0,63}$/),
+  arguments: z.record(z.string(), z.unknown()),
+});
+const mcpTarget = (a: { server: string }): Target => ({ mcp: a.server });
 
 /**
  * The typed capability registry: four local roles (plus the separate verifier),
@@ -89,6 +106,23 @@ export const OPERATIONS = {
     capability: "files",
     risk: "read",
     arguments: z.strictObject({ path: workspacePath }),
+  },
+  "media.inspect": {
+    role: "sys_core",
+    capability: "files",
+    risk: "read",
+    arguments: z.strictObject({ path: workspacePath }),
+  },
+  "media.trim": {
+    role: "sys_core",
+    capability: "files",
+    risk: "reversible_write",
+    arguments: z.strictObject({
+      source: workspacePath,
+      start: z.number().min(0),
+      end: z.number().positive(),
+      output: workspacePath,
+    }),
   },
   "office.inspect_workbook": {
     role: "sys_core",
@@ -234,14 +268,40 @@ export const OPERATIONS = {
     role: "web_automation",
     capability: "browser",
     risk: "reversible_write",
-    arguments: z.strictObject({ page, selector, value: z.string().max(2000) }),
+    arguments: z.strictObject({
+      page,
+      selector,
+      value: z.string().max(2000),
+      frame: selector.optional(),
+    }),
     target: (a: { page: { site: string } }): Target => ({ site: a.page.site }),
   },
   "web.click": {
     role: "web_automation",
     capability: "browser",
     risk: "external_effect",
-    arguments: z.strictObject({ page, selector }),
+    arguments: z.strictObject({ page, selector, frame: selector.optional() }),
+    target: (a: { page: { site: string } }): Target => ({ site: a.page.site }),
+  },
+  "web.upload": {
+    role: "web_automation",
+    capability: "browser",
+    risk: "external_effect",
+    arguments: z.strictObject({ page, selector, path: workspacePath }),
+    target: (a: { page: { site: string } }): Target => ({ site: a.page.site }),
+  },
+  "web.screenshot": {
+    role: "web_automation",
+    capability: "browser",
+    risk: "reversible_write",
+    arguments: z.strictObject({ page, output: workspacePath }),
+    target: (a: { page: { site: string } }): Target => ({ site: a.page.site }),
+  },
+  "web.close": {
+    role: "web_automation",
+    capability: "browser",
+    risk: "read",
+    arguments: z.strictObject({ page }),
     target: (a: { page: { site: string } }): Target => ({ site: a.page.site }),
   },
   "web.download": {
@@ -250,6 +310,27 @@ export const OPERATIONS = {
     risk: "reversible_write",
     arguments: z.strictObject({ page, selector, output: workspacePath }),
     target: (a: { page: { site: string } }): Target => ({ site: a.page.site }),
+  },
+  "mcp.read": {
+    role: "mcp",
+    capability: "mcp",
+    risk: "read",
+    arguments: mcpCall,
+    target: mcpTarget,
+  },
+  "mcp.write": {
+    role: "mcp",
+    capability: "mcp",
+    risk: "reversible_write",
+    arguments: mcpCall,
+    target: mcpTarget,
+  },
+  "mcp.external": {
+    role: "mcp",
+    capability: "mcp",
+    risk: "external_effect",
+    arguments: mcpCall,
+    target: mcpTarget,
   },
   "verify.reconciliation_report": {
     role: "verifier",
@@ -290,7 +371,13 @@ export const actionIntent = z
     capability: z.string(),
     risk: z.enum(RISKS),
     arguments: z.record(z.string(), z.unknown()),
-    target: z.strictObject({ app: z.string().optional(), site: z.string().optional() }).optional(),
+    target: z
+      .strictObject({
+        app: z.string().optional(),
+        site: z.string().optional(),
+        mcp: z.string().optional(),
+      })
+      .optional(),
     deadlineUtc: z.iso.datetime(),
   })
   .strict()
@@ -382,6 +469,7 @@ export const outcomeCheck = z.object({
       "workbook_cell_equals",
       "web_text_contains",
       "window_exists",
+      "media_duration",
     ])
     .optional(),
   params: z
@@ -402,7 +490,7 @@ export const outcomeCheck = z.object({
 export type OutcomeCheck = z.infer<typeof outcomeCheck>;
 
 /** The settlement record: every fixed check lands in exactly one list. */
-export const verificationResult = z.object({
+const verificationResult = z.object({
   passed: z.array(z.string()),
   failed: z.array(z.string()),
   unverified: z.array(z.string()),
@@ -427,11 +515,30 @@ export const deviceRequest = z.discriminatedUnion("op", [
     .object({
       op: z.literal("inventory"),
       apps: z.array(z.strictObject({ name: z.string().max(120), exe })).max(300),
+      mcp: z
+        .array(
+          z.strictObject({
+            id: z.string().regex(/^[a-z][a-z0-9_]{1,30}$/),
+            publisher: z.string().max(120),
+            version: z.string().max(40),
+            tools: z
+              .array(
+                z.strictObject({
+                  name: z.string().regex(/^[A-Za-z][A-Za-z0-9_-]{0,63}$/),
+                  risk: z.enum(RISKS),
+                  description: z.string().max(200),
+                  inputSchema: z.record(z.string(), z.unknown()),
+                }),
+              )
+              .max(64),
+          }),
+        )
+        .max(50)
+        .default([]),
     })
     .strict(),
   z.object({ op: z.literal("receipt"), activityId: z.uuid(), receipt: actionReceipt }).strict(),
 ]);
-export type DeviceRequest = z.infer<typeof deviceRequest>;
 
 /** The machine-readable contract the companion validates against. */
 export function protocolSchema() {
