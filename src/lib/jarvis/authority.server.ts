@@ -22,13 +22,7 @@ import {
   deviceRequest,
   type OutcomeCheck,
 } from "./contracts.ts";
-import {
-  JOURNEY_1_CHECKS,
-  decide,
-  supportedOutcome,
-  type Decision,
-  type Step,
-} from "./supervisor.ts";
+import type { Decision, Step } from "./supervisor.ts";
 import {
   PlannerUnavailable,
   compileGoal,
@@ -119,29 +113,26 @@ export async function advance(admin: Admin, taskId: string, now = new Date()): P
   }));
   const checks = task.outcome ?? [];
   let decision: Decision;
-  if (checks.every((check) => !check.kind)) {
-    decision = decide({ taskId, objective: task.title, checks, steps, now });
-  } else {
-    try {
-      decision = await planStep({
-        userId: task.userId,
-        objective: task.title,
-        checks,
-        steps,
-        grants: task.grants,
-        mcp: task.mcp ?? [],
-        turnKey: `jarvis-plan:${taskId}:${task.controller}:${steps.length}`,
-        now,
-      });
-    } catch (error) {
-      if (!(error instanceof PlannerUnavailable)) throw error;
-      await call(admin, "jarvis_task_wait", {
-        p_task: taskId,
-        p_controller: task.controller,
-        p_reason: `${plannerMessage(error.message)} Your task is saved; resume it later.`,
-      });
-      return;
-    }
+  try {
+    // No special-case customer journey: every request uses the same AI planner.
+    decision = await planStep({
+      userId: task.userId,
+      objective: task.title,
+      checks,
+      steps,
+      grants: task.grants,
+      mcp: task.mcp ?? [],
+      turnKey: `jarvis-plan:${taskId}:${task.controller}:${steps.length}`,
+      now,
+    });
+  } catch (error) {
+    if (!(error instanceof PlannerUnavailable)) throw error;
+    await call(admin, "jarvis_task_wait", {
+      p_task: taskId,
+      p_controller: task.controller,
+      p_reason: `${plannerMessage(error.message)} Your task is saved; resume it later.`,
+    });
+    return;
   }
   try {
     if (decision.kind === "queue") {
@@ -180,21 +171,19 @@ export async function startTask(
   input: { conversationId: string; deviceId: string; objective: string },
 ) {
   const objective = input.objective.replace(/\s+/g, " ").trim().slice(0, 200);
-  let checks = JOURNEY_1_CHECKS;
-  if (!supportedOutcome(objective)) {
-    const grants = await call<string[]>(admin, "jarvis_grants", {
-      p_user: userId,
-      p_device: input.deviceId,
-    });
-    try {
-      checks = await compileGoal(userId, objective, grants);
-    } catch (error) {
-      if (!(error instanceof PlannerUnavailable)) throw error;
-      throw new JarvisRefusal(
-        "planner_unavailable",
-        `${plannerMessage(error.message)} Nothing was started.`,
-      );
-    }
+  const grants = await call<string[]>(admin, "jarvis_grants", {
+    p_user: userId,
+    p_device: input.deviceId,
+  });
+  let checks: OutcomeCheck[];
+  try {
+    checks = await compileGoal(userId, objective, grants);
+  } catch (error) {
+    if (!(error instanceof PlannerUnavailable)) throw error;
+    throw new JarvisRefusal(
+      "planner_unavailable",
+      `${plannerMessage(error.message)} Nothing was started.`,
+    );
   }
   const [opened] = await call<{ task_id: string; status: string; reused: boolean }[]>(
     admin,
