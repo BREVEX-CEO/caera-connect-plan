@@ -85,7 +85,9 @@ class Media(unittest.TestCase):
             "clips": [
                 {"source": "a.mp4", "in": 0.5, "out": 6, "grade": {"contrast": 1.1, "saturation": 1.2, "vignette": 0.4},
                  "motion": {"zoomFrom": 1.0, "zoomTo": 1.1, "panX": 0.3}},
-                {"source": "b.mp4", "in": 1, "out": 4, "speed": 0.5, "transition": {"type": "smoothleft", "duration": 0.6}},
+                {"source": "b.mp4", "in": 1, "out": 2.5, "speed": 0.5, "transition": {"type": "smoothleft", "duration": 0.6}},
+                {"source": "a.mp4", "in": 6, "out": 7},  # a hard cut, then a transition after it
+                {"source": "b.mp4", "in": 5, "out": 7, "transition": {"type": "hblur", "duration": 0.3}},
             ],
             "titles": [{"text": "Test: 100% \\ it's 'quoted'", "start": 1, "end": 4, "size": 28, "position": "lower_third"}],
             "audio": [
