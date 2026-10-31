@@ -31,7 +31,8 @@
     "jarvis:protocol-check": "node --experimental-strip-types --no-warnings scripts/jarvis-protocol.ts --check",
     "test:jarvis": "node --experimental-strip-types --no-warnings --test tests/jarvis/*.test.ts && cd device-agent/windows && python3 -m unittest discover -s tests -t .",
     "test:jarvis-db": "bash tests/jarvis/db/run.sh",
-    "jarvis:traceability": "node scripts/jarvis-traceability.mjs"
+    "jarvis:traceability": "node scripts/jarvis-traceability.mjs",
+    "jarvis:no-hardcoded": "node scripts/jarvis-no-hardcoded-journeys.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.110.7",
