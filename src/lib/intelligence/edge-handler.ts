@@ -12,7 +12,7 @@ import type {
   NormalizedToolDefinition,
   NormalizedUsage,
 } from "./contract.ts";
-import { sseData } from "./contract.ts";
+import { SERVICE_USER_HEADER, sseData } from "./contract.ts";
 import {
   DEFAULT_ONLINE_MODEL,
   HIGH_ONLINE_MODEL,
@@ -122,6 +122,13 @@ export interface OnlineHandlerDependencies {
   sleep?: (ms: number, signal: AbortSignal) => Promise<void>;
   verifyJwt(token: string): Promise<{ userId: string } | null>;
   /**
+   * OCADE's own server calling for a person (the planning loop a computer
+   * carries on with after OCADE was closed). Supplied only by the function
+   * deployed for that; the browser's function has no such door. The permit is
+   * still claimed for that person, so this cannot spend what the gate did not grant.
+   */
+  verifyService?(request: Request): Promise<{ userId: string } | null>;
+  /**
    * Whether this account has agreed that what it sends may be used by the model's
    * provider (the free tier's terms, 20261013091000). Nothing is sent without it.
    */
@@ -192,6 +199,26 @@ function cors(origin: string): Record<string, string> {
     "Access-Control-Allow-Methods": "POST, OPTIONS",
     "Access-Control-Max-Age": "600",
   };
+}
+
+/** Whether `presented` is one of OCADE's own server keys, compared by digest in constant time. */
+export async function isServiceKey(
+  presented: string | null,
+  keys: readonly string[],
+): Promise<boolean> {
+  if (!presented) return false;
+  const digest = async (value: string) =>
+    new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value)));
+  const given = await digest(presented);
+  let matched = false;
+  for (const key of keys) {
+    if (!key) continue;
+    const known = await digest(key);
+    let difference = 0;
+    for (let i = 0; i < known.length; i += 1) difference |= known[i]! ^ given[i]!;
+    matched = difference === 0 || matched;
+  }
+  return matched;
 }
 
 function bearer(request: Request): string | null {
@@ -856,11 +883,16 @@ async function runOnlineIntelligence(
   deps: OnlineHandlerDependencies,
   attempted: ProviderAttempt,
 ): Promise<Response> {
-  const origin = request.headers.get("origin") ?? "";
-  if (!origin || !deps.allowedOrigins.has(origin))
-    return json(403, { error: "origin_not_allowed" });
-  if (request.method === "OPTIONS")
-    return new Response(null, { status: 204, headers: cors(origin) });
+  // A server-to-server call has no browser behind it: no origin, no CORS, and
+  // it proves itself to `verifyService` below instead of with a session.
+  const service = Boolean(deps.verifyService) && request.headers.has(SERVICE_USER_HEADER);
+  const origin = service ? "" : (request.headers.get("origin") ?? "");
+  if (!service) {
+    if (!origin || !deps.allowedOrigins.has(origin))
+      return json(403, { error: "origin_not_allowed" });
+    if (request.method === "OPTIONS")
+      return new Response(null, { status: 204, headers: cors(origin) });
+  }
   if (request.method !== "POST") return json(405, { error: "method_not_allowed" }, origin);
   if (!(request.headers.get("content-type") ?? "").toLowerCase().startsWith("application/json")) {
     return json(415, { error: "content_type_required" }, origin);
@@ -869,8 +901,8 @@ async function runOnlineIntelligence(
   if (Number.isFinite(declaredLength) && declaredLength > MAX_BODY_BYTES) {
     return json(413, { error: "request_too_large" }, origin);
   }
-  const token = bearer(request);
-  if (!token) return json(401, { error: "authentication_required" }, origin);
+  const token = service ? null : bearer(request);
+  if (!service && !token) return json(401, { error: "authentication_required" }, origin);
 
   const text = await readBoundedRequestText(request, MAX_BODY_BYTES);
   if (text === null) {
@@ -884,8 +916,10 @@ async function runOnlineIntelligence(
   }
   const body = parseBody(parsed);
   if (!body) return json(400, { error: "invalid_request" }, origin);
-  const identity = await deps.verifyJwt(token);
+  const identity = service ? await deps.verifyService!(request) : await deps.verifyJwt(token!);
   if (!identity) return json(401, { error: "authentication_required" }, origin);
+  // The server door exists for JARVIS work on a computer, and for nothing else.
+  if (service && body.surface !== "jarvis") return json(400, { error: "invalid_request" });
 
   const high = body.quality === "high";
   const configured = high ? HIGH_ONLINE_MODEL : DEFAULT_ONLINE_MODEL;

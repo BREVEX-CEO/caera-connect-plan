@@ -2,9 +2,13 @@
  * ONLINE PLANNING FOR EVERY OUTCOME JOURNEY 1 DOES NOT COVER (plan.md §4.1, §23.3, P13).
  *
  * The model proposes; it never authorizes. Each call is one bounded turn
- * through the `jarvis-planner` Edge Function (Online Intelligence keys and
- * consent), and its answer must be one of the functions offered here: an
- * operation from the registry, `finish` or `ask`. That answer is validated by
+ * through the deployed `ocade-intelligence-service` Edge Function — Online
+ * Intelligence's server-to-server door: OCADE's server key plus the person's
+ * id, the account's own online-AI consent checked there, and one JARVIS
+ * generation permit acquired here through the existing commercial gate and
+ * claimed there (so usage limits and settlement are the ones Chat uses). The
+ * answer must be one of the functions offered here: an operation from the
+ * registry, `finish` or `ask`. That answer is validated by
  * `intent()` and then by the database's permission and controller checks like
  * any other action. Tool results and file contents reach the model as quoted,
  * untrusted data. When the planner is unavailable the task waits; no other
@@ -19,6 +23,11 @@ import {
   type OutcomeCheck,
 } from "./contracts.ts";
 import { evidenceOf, open, settleChecks, type Decision, type Step } from "./supervisor.ts";
+import {
+  sseData,
+  type IntelligenceEvent,
+  type IntelligencePermit,
+} from "../intelligence/contract.ts";
 
 const MAX_STEPS = 30;
 const MAX_FAILURES = 5;
@@ -79,6 +88,18 @@ const STATE_BUDGET = 12_000;
 
 export class PlannerUnavailable extends Error {}
 
+/** What a person can do about each reason the planner could not answer. */
+export function plannerMessage(code: string): string {
+  if (code === "online_not_consented")
+    return "Turn on Online Intelligence in Settings to let JARVIS plan this.";
+  if (code === "allowance_exhausted")
+    return "Your JARVIS allowance is used up until your usage window resets.";
+  if (code === "rate_limited" || code === "provider_unavailable") {
+    return "JARVIS's online planner is busy right now.";
+  }
+  return "JARVIS's online planner is unavailable right now.";
+}
+
 const SYSTEM = [
   "You are the planner of OCADE JARVIS, which carries out a person's outcome on their own Windows computer.",
   "Choose exactly ONE next function. Prefer, in order: workspace file and Office operations, website",
@@ -90,28 +111,139 @@ const SYSTEM = [
   "when you need the person to decide something or nothing safe can be done.",
 ].join(" ");
 
+/**
+ * The provider takes an OpenAPI-subset schema: keep what it understands and drop
+ * the rest. Arguments are still validated against the full schema afterwards.
+ */
+export function providerSchema(schema: unknown): unknown {
+  if (Array.isArray(schema)) return schema.map(providerSchema);
+  if (!schema || typeof schema !== "object") return schema;
+  const out: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(schema as Record<string, unknown>)) {
+    if (key === "$schema" || key === "additionalProperties") continue;
+    if (key === "const") out.enum = [value];
+    else if (key === "properties") {
+      out.properties = Object.fromEntries(
+        Object.entries(value as Record<string, unknown>).map(([name, sub]) => [
+          name,
+          providerSchema(sub),
+        ]),
+      );
+    } else out[key] = providerSchema(value);
+  }
+  return out;
+}
+
+/** How the planner gets its permit and reaches the service; replaced only by tests. */
+export const plannerAccess = {
+  /**
+   * One JARVIS generation permit through the same gate, ledger and allowances as
+   * Chat, with a way to give it back when the service refuses before claiming it.
+   */
+  async acquirePermit(
+    userId: string,
+    key: string,
+  ): Promise<{ permit: IntelligencePermit; release(): Promise<void> }> {
+    const [
+      { resolveTierFor },
+      { CommercialGenerationGate },
+      { supabaseCommercialLedger },
+      { supabaseAdmin },
+    ] = await Promise.all([
+      import("@/lib/commercial/entitlement-resolver"),
+      import("@/lib/commercial/generation-gate"),
+      import("@/lib/commercial/supabase-ledger"),
+      import("@/integrations/supabase/client.server"),
+    ]);
+    const entitlement = await resolveTierFor(userId);
+    const result = await new CommercialGenerationGate(
+      supabaseCommercialLedger(supabaseAdmin),
+    ).acquire({
+      userId,
+      tier: entitlement.tier,
+      anchoredAt: entitlement.anchoredAt,
+      now: Date.now(),
+      idempotencyKey: key,
+      generationId: key,
+      surface: "jarvis",
+    });
+    if (!result.ok) throw new PlannerUnavailable(result.reason);
+    return {
+      permit: {
+        id: result.permit.id,
+        generationId: key,
+        idempotencyKey: key,
+        surface: "jarvis",
+        source: "server",
+      },
+      release: () => result.permit.release("cancelled_before_output"),
+    };
+  },
+  serviceUrl: () => process.env.SUPABASE_URL,
+  serviceKey: () => process.env.SUPABASE_SERVICE_ROLE_KEY,
+};
+
 async function callPlanner(input: {
   userId: string;
+  key: string;
   system: string;
   prompt: string;
   tools: { name: string; description: string; parameters: unknown }[];
 }): Promise<{ name: string; args: Record<string, unknown> }> {
-  const url = process.env.SUPABASE_URL;
-  const key = process.env.JARVIS_PLANNER_KEY;
-  if (!url || !key) throw new PlannerUnavailable("planner_not_configured");
-  const response = await fetch(`${url}/functions/v1/jarvis-planner`, {
+  const url = plannerAccess.serviceUrl();
+  const serviceKey = plannerAccess.serviceKey();
+  if (!url || !serviceKey) throw new PlannerUnavailable("planner_not_configured");
+  const { permit, release } = await plannerAccess.acquirePermit(input.userId, input.key);
+  const response = await fetch(`${url}/functions/v1/ocade-intelligence-service`, {
     method: "POST",
-    headers: { "content-type": "application/json", "x-ocade-planner-key": key },
-    body: JSON.stringify(input),
-    signal: AbortSignal.timeout(75_000),
+    headers: {
+      "content-type": "application/json",
+      apikey: serviceKey,
+      "x-ocade-user": input.userId,
+    },
+    body: JSON.stringify({
+      permit,
+      generationId: permit.generationId,
+      idempotencyKey: permit.idempotencyKey,
+      surface: "jarvis",
+      messages: [
+        { role: "system", content: input.system },
+        { role: "user", content: input.prompt },
+      ],
+      tools: input.tools.map((tool) => ({
+        name: tool.name,
+        description: tool.description,
+        inputSchema: providerSchema(tool.parameters),
+      })),
+      attachments: [],
+      // The service re-reads the account's own consent; this flag alone grants nothing.
+      privacy: { onlineInferenceConsented: true, sealed: false },
+    }),
+    signal: AbortSignal.timeout(110_000),
   }).catch(() => null);
-  const body = (await response?.json().catch(() => null)) as {
-    call?: { name: string; args: Record<string, unknown> };
-    error?: string;
-  } | null;
-  if (!response?.ok || !body?.call)
-    throw new PlannerUnavailable(body?.error ?? "planner_unreachable");
-  return body.call;
+  if (!response?.ok || !response.body) {
+    // Refused before any output (consent, key, quota, outage): nothing is charged.
+    const body = (await response?.json().catch(() => null)) as { error?: string } | null;
+    await release().catch(() => undefined);
+    throw new PlannerUnavailable(
+      body?.error ?? (response ? `planner_http_${response.status}` : "planner_unreachable"),
+    );
+  }
+  // Read the whole stream so the service settles the permit; take the first function call.
+  let call: { name: string; args: Record<string, unknown> } | null = null;
+  try {
+    for await (const payload of sseData(response.body, "planner_stream_incomplete")) {
+      const event = JSON.parse(payload) as IntelligenceEvent;
+      if (event.type === "refusal") throw new PlannerUnavailable(event.code);
+      if (event.type === "tool_call" && !call)
+        call = { name: event.call.name, args: event.call.arguments };
+    }
+  } catch (error) {
+    if (error instanceof PlannerUnavailable) throw error;
+    throw new PlannerUnavailable("planner_stream_failed");
+  }
+  if (!call) throw new PlannerUnavailable("no_decision");
+  return call;
 }
 
 const toolName = (operation: string) => operation.replace(".", "_");
@@ -120,6 +252,7 @@ const toolName = (operation: string) => operation.replace(".", "_");
 export async function compileGoal(userId: string, objective: string, allowed: string[]) {
   const call = await callPlanner({
     userId,
+    key: `jarvis-goal:${crypto.randomUUID()}`,
     system:
       "Turn the person's request into 1-6 checks an independent verifier can evaluate by reading real files " +
       "(paths relative to the JARVIS folder), a website (https) or an open app window. Choose kinds that prove " +
@@ -181,6 +314,8 @@ export async function planStep(input: {
   steps: Step[];
   grants: string[];
   mcp?: McpServer[];
+  /** One permit per planning turn: the same turn asked twice is never planned or charged twice. */
+  turnKey: string;
   now: Date;
 }): Promise<Decision> {
   const { steps, checks, now } = input;
@@ -246,6 +381,7 @@ export async function planStep(input: {
   ];
   const call = await callPlanner({
     userId: input.userId,
+    key: input.turnKey,
     system: SYSTEM,
     prompt: [
       `Outcome: ${JSON.stringify(input.objective)}`,

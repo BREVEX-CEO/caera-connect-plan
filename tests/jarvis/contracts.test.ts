@@ -226,3 +226,29 @@ test("browser targets are public https sites by name", () => {
     "example.com",
   );
 });
+
+test("tool schemas are normalized to what the provider accepts, nothing else changes", async () => {
+  const { providerSchema } = await import("../../src/lib/jarvis/planner.server.ts");
+  const normalized = providerSchema({
+    $schema: "https://json-schema.org/draft/2020-12/schema",
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      v: { const: 1 },
+      nested: {
+        type: "object",
+        additionalProperties: false,
+        properties: { a: { type: "string", maxLength: 5 } },
+      },
+    },
+    required: ["v"],
+  });
+  assert.deepEqual(normalized, {
+    type: "object",
+    properties: {
+      v: { enum: [1] },
+      nested: { type: "object", properties: { a: { type: "string", maxLength: 5 } } },
+    },
+    required: ["v"],
+  });
+});

@@ -141,7 +141,12 @@ async def _scope(entry: dict, frame: str | None):
 
 
 async def _one(scope, selector: str):
+    """Exactly one element; web apps render late, so wait (bounded) for it to exist first."""
     target = scope.locator(selector)
+    try:
+        await target.first.wait_for(state="attached", timeout=20_000)
+    except Exception:
+        raise Refused("selector_not_found")
     if await target.count() != 1:
         raise Refused("selector_not_unique")
     return target
@@ -215,6 +220,16 @@ async def web_fill(page: dict, selector: str, value: str, frame: str | None = No
         raise Refused("password_field")  # credentials are the person's to type
     await field.fill(value, timeout=10_000)
     return {"matches": await field.input_value() == value}
+
+
+@app.tool()
+@_refusals
+async def web_select(page: dict, selector: str, option: str, frame: str | None = None) -> dict:
+    """Choose one option (by its visible label) in a dropdown, then read the choice back."""
+    field = await _one(await _scope(_bound(page), frame), selector)
+    await field.select_option(label=option, timeout=10_000)
+    chosen = await field.evaluate("e => e.options[e.selectedIndex]?.text ?? ''")
+    return {"matches": chosen == option}
 
 
 @app.tool()

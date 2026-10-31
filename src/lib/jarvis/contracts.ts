@@ -276,6 +276,18 @@ export const OPERATIONS = {
     }),
     target: (a: { page: { site: string } }): Target => ({ site: a.page.site }),
   },
+  "web.select": {
+    role: "web_automation",
+    capability: "browser",
+    risk: "reversible_write",
+    arguments: z.strictObject({
+      page,
+      selector,
+      option: z.string().min(1).max(200),
+      frame: selector.optional(),
+    }),
+    target: (a: { page: { site: string } }): Target => ({ site: a.page.site }),
+  },
   "web.click": {
     role: "web_automation",
     capability: "browser",

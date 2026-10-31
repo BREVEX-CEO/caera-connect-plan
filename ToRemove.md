@@ -1,5 +1,11 @@
 # OCADE retirement manifest
 
+## JARVIS planner endpoint retired — 31 October 2026
+
+- **Removed:** the never-deployed `supabase/functions/jarvis-planner` Edge Function, its `JARVIS_PLANNER_KEY` shared secret (`.env.example`, `supabase/config.toml`) and the planner's fetch to it.
+- **Replacement (parity proven by `tests/jarvis/e2e.test.ts` before removal):** `src/lib/jarvis/planner.server.ts` acquires a JARVIS generation permit through the existing commercial gate and calls the already-deployed `ocade-intelligence-service` with the existing server key and `x-ocade-user`; that function re-checks the account's online-AI consent, claims the permit and settles it. The repository again owns that function's source (`supabase/functions/ocade-intelligence-service`, the service door in `edge-handler.ts`/`boundary.ts`), restored from before `5568893`.
+- **Not changed:** deployed functions, staging or production data, `main`.
+
 ## Second debloat pass — 30 October 2026
 
 From `5568893`, on `ocade/p00-p22-implementation`:

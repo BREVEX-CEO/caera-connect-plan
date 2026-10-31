@@ -3,6 +3,7 @@ project_id = "sazhgaisyhkdbrooycdv"
 [functions.ocade-intelligence]
 verify_jwt = true
 
-[functions.jarvis-planner]
-# Called server-to-server with JARVIS_PLANNER_KEY; there is no user JWT to verify.
+# Called by OCADE's own server with a server key, which the platform's JWT
+# check cannot read: the function authorizes the caller itself.
+[functions.ocade-intelligence-service]
 verify_jwt = false

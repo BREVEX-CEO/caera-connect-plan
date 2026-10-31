@@ -334,22 +334,32 @@ test(
 );
 
 /**
- * A model-planned task (P13) with a SCRIPTED planner endpoint standing in for the
- * jarvis-planner Edge Function: evidence class L2. It proves the authority, routing,
- * validation, device execution and independent settlement around the model, not the
- * model's own judgement.
+ * A model-planned task (P13) through the REAL Online Intelligence service door:
+ * `handleOnlineIntelligence` from the repository (the code behind the deployed
+ * `ocade-intelligence-service`) runs here with its server-key check, consent
+ * check, permit claim and settlement against the real local ledger. Only the
+ * provider (Gemini) is scripted, so this is evidence class L2: it proves the
+ * adapter, permits, routing, validation, execution and settlement — not the
+ * model's judgement.
  */
 test(
-  "model-planned task: goal checks, routed tools, outage waits, independent settlement",
+  "model-planned task through the intelligence service: consent, permits, outage, settlement",
   { skip: !ready },
   async () => {
+    const { handleOnlineIntelligence, isServiceKey } =
+      await import("../../src/lib/intelligence/edge-handler.ts");
+    const { ALLOWANCES } = await import("../../src/lib/commercial/usage-policy.ts");
+    const { ONLINE_CONSENT_VERSION } =
+      await import("../../src/lib/intelligence/online-consent-version.ts");
+    const { plannerAccess } = await import("../../src/lib/jarvis/planner.server.ts");
     const deviceId = sql(`SELECT id FROM public.jarvis_devices WHERE user_id = '${userA}'`);
     writeFileSync(join(workspace, "status.txt"), "Status: GREEN\nOwner: Finance\n");
-    const seen: { tools: string[]; prompt: string }[] = [];
-    let available = false;
-    const script = [
-      { name: "fs_read_text", args: { path: "status.txt" } },
-      (prompt: string) => ({
+    const serviceKey = "test-service-role-key";
+    const sent: { tools: { name: string; parameters: unknown }[]; prompt: string }[] = [];
+    let providerUp = true;
+    const script: ((prompt: string) => { name: string; args: unknown })[] = [
+      () => ({ name: "fs_read_text", args: { path: "status.txt" } }),
+      (prompt) => ({
         name: "office_write_document",
         args: {
           docx: "OCADE output/status.docx",
@@ -362,73 +372,171 @@ test(
           ],
         },
       }),
-      { name: "finish", args: {} },
+      () => ({ name: "finish", args: {} }),
     ];
-    const planner = createServer(async (req, res) => {
+    const rpc = (fn: string, args: Record<string, unknown>) =>
+      sql(
+        `SELECT to_jsonb(public.${fn}(${Object.entries(args)
+          .map(([k, v]) => `${k} => ${literal(v)}`)
+          .join(", ")}))`,
+      );
+    const service = createServer(async (req, res) => {
       const chunks: Buffer[] = [];
       for await (const chunk of req) chunks.push(chunk as Buffer);
-      if (req.headers["x-ocade-planner-key"] !== "test-planner-key")
-        return res.writeHead(401).end();
-      const body = JSON.parse(Buffer.concat(chunks).toString());
-      const tools = body.tools.map((t: { name: string }) => t.name);
-      seen.push({ tools, prompt: body.prompt });
-      if (!available)
-        return res
-          .writeHead(503, { "content-type": "application/json" })
-          .end('{"error":"planner_unavailable"}');
-      const call =
-        tools[0] === "set_goal"
-          ? {
-              name: "set_goal",
-              args: {
-                checks: [
-                  {
-                    id: "report_says_green",
-                    description: "Report says GREEN",
-                    kind: "file_contains",
-                    params: { path: "OCADE output/status.docx", text: "Status is GREEN" },
+      const request = new Request(`http://service${req.url}`, {
+        method: req.method,
+        headers: Object.fromEntries(Object.entries(req.headers).map(([k, v]) => [k, String(v)])),
+        body: Buffer.concat(chunks),
+      });
+      const response = await handleOnlineIntelligence(request, {
+        allowedOrigins: new Set(),
+        providerReady: true,
+        providerSlots: ["primary"],
+        verifyJwt: () => Promise.resolve(null),
+        async verifyService(r: Request) {
+          const user = r.headers.get("x-ocade-user") ?? "";
+          return /^[0-9a-f-]{36}$/.test(user) &&
+            (await isServiceKey(r.headers.get("apikey"), [serviceKey]))
+            ? { userId: user }
+            : null;
+        },
+        consented: async (userId: string) =>
+          sql(
+            `SELECT online_ai_consent_version FROM public.profiles WHERE id = '${userId}' AND online_ai_consent_at IS NOT NULL`,
+            "postgres",
+          ) === ONLINE_CONSENT_VERSION,
+        async claimPermit({ userId, permit }) {
+          const ok = rpc("ocade_claim_generation_transport", {
+            p_user_id: userId,
+            p_permit_id: permit.id,
+            p_generation_id: permit.generationId,
+            p_idempotency_key: permit.idempotencyKey,
+            p_surface: permit.surface,
+          });
+          return ok === "true" ? { ok: true as const } : { ok: false as const, reason: "refused" };
+        },
+        async finalizePermit({ userId, permit }) {
+          sql(
+            `SELECT * FROM public.ocade_finalize_generation_permit(${literal(userId)}, ${literal(permit.idempotencyKey)}, 100)`,
+          );
+        },
+        async releasePermit({ userId, permit }) {
+          sql(
+            `SELECT public.ocade_release_generation_permit(${literal(userId)}, ${literal(permit.idempotencyKey)}, 'transport_ended_without_output')`,
+          );
+        },
+        async callProvider({ body }) {
+          if (!providerUp) return new Response(null, { status: 503 });
+          const declarations = (
+            body.tools as { function_declarations: { name: string; parameters: unknown }[] }[]
+          )[0].function_declarations;
+          const prompt = JSON.stringify(body.contents);
+          sent.push({ tools: declarations, prompt });
+          const call =
+            declarations[0].name === "set_goal"
+              ? {
+                  name: "set_goal",
+                  args: {
+                    checks: [
+                      {
+                        id: "report_says_green",
+                        description: "Report says GREEN",
+                        kind: "file_contains",
+                        params: { path: "OCADE output/status.docx", text: "Status is GREEN" },
+                      },
+                    ],
                   },
-                ],
-              },
-            }
-          : (() => {
-              const next = script.shift()!;
-              return typeof next === "function" ? next(body.prompt) : next;
-            })();
-      res.writeHead(200, { "content-type": "application/json" }).end(JSON.stringify({ call }));
+                }
+              : script.shift()!(prompt);
+          const chunk = {
+            candidates: [
+              { content: { role: "model", parts: [{ functionCall: call }] }, finishReason: "STOP" },
+            ],
+            usageMetadata: { promptTokenCount: 10, candidatesTokenCount: 5, totalTokenCount: 15 },
+          };
+          return new Response(`data: ${JSON.stringify(chunk)}\r\n\r\n`, {
+            headers: { "content-type": "text/event-stream" },
+          });
+        },
+      });
+      res.writeHead(response.status, Object.fromEntries(response.headers));
+      if (response.body) for await (const piece of response.body) res.write(piece);
+      res.end();
     });
-    await new Promise<void>((resolve) => planner.listen(0, "127.0.0.1", resolve));
-    const address = planner.address();
-    process.env.SUPABASE_URL = `http://127.0.0.1:${typeof address === "object" && address ? address.port : 0}`;
-    process.env.JARVIS_PLANNER_KEY = "test-planner-key";
-    try {
-      // No planner: nothing starts.
-      await assert.rejects(
-        startTask(admin, userA, {
-          conversationId: conversation2,
-          deviceId,
-          objective: "Summarise status.txt into a Word note",
-        }),
-        /planner is unavailable/,
+    await new Promise<void>((resolve) => service.listen(0, "127.0.0.1", resolve));
+    const address = service.address();
+    const saved = { ...plannerAccess };
+    plannerAccess.serviceUrl = () =>
+      `http://127.0.0.1:${typeof address === "object" && address ? address.port : 0}`;
+    plannerAccess.serviceKey = () => serviceKey;
+    plannerAccess.acquirePermit = async (userId: string, key: string) => {
+      const [row] = JSON.parse(
+        sql(
+          `SELECT coalesce(jsonb_agg(to_jsonb(r)), '[]') FROM public.ocade_acquire_generation_permit(${literal(userId)}, ${literal(key)}, ${literal(key)}, 'jarvis', 'free', ${ALLOWANCES.free.session * 100}, NULL, 100) AS r`,
+        ),
       );
-      available = true;
+      if (row.outcome !== "granted")
+        throw new (await import("../../src/lib/jarvis/planner.server.ts")).PlannerUnavailable(
+          row.outcome,
+        );
+      return {
+        permit: {
+          id: row.permit_id,
+          generationId: key,
+          idempotencyKey: key,
+          surface: "jarvis" as const,
+          source: "server" as const,
+        },
+        release: async () =>
+          void sql(
+            `SELECT public.ocade_release_generation_permit(${literal(userId)}, ${literal(key)}, 'cancelled_before_output')`,
+          ),
+      };
+    };
+    const objective = "Summarise status.txt into a Word note";
+    try {
+      // No consent: the service refuses, nothing starts, nothing is charged.
+      await assert.rejects(
+        startTask(admin, userA, { conversationId: conversation2, deviceId, objective }),
+        /Turn on Online Intelligence/,
+      );
+      sql(
+        `UPDATE public.profiles SET online_ai_consent_at = now(), online_ai_consent_version = '${ONLINE_CONSENT_VERSION}' WHERE id = '${userA}'`,
+        "postgres",
+      );
+      // A wrong server key is refused by the service door.
+      plannerAccess.serviceKey = () => "wrong-key";
+      await assert.rejects(
+        startTask(admin, userA, { conversationId: conversation2, deviceId, objective }),
+        /unavailable/,
+      );
+      plannerAccess.serviceKey = () => serviceKey;
+
       const { taskId } = await startTask(admin, userA, {
         conversationId: conversation2,
         deviceId,
-        objective: "Summarise status.txt into a Word note",
+        objective,
       });
-      // Only granted capabilities are offered: files yes; browser, apps, mcp no.
-      const offered = seen.at(-1)!.tools;
-      assert.ok(offered.includes("fs_read_text") && offered.includes("office_write_document"));
+      const offered = sent.at(-1)!.tools.map((t) => t.name);
+      assert.ok(
+        offered.includes("fs_read_text") && offered.includes("office_write_document"),
+        offered.join(","),
+      );
       assert.ok(!offered.some((t) => /^(web_|ui_|apps_|mcp)/.test(t)), offered.join(","));
-      assert.match(seen.at(-1)!.prompt, /untrusted data/);
+      assert.ok(
+        !JSON.stringify(sent.map((s) => s.tools)).includes("additionalProperties"),
+        "schemas normalized for the provider",
+      );
+      assert.match(sent.at(-1)!.prompt, /untrusted data/);
 
-      // Outage mid-task: the task waits with its checkpoint, then resumes.
-      available = false;
+      // Provider outage mid-task: the task waits with its checkpoint, the permit is released, then it resumes.
+      providerUp = false;
       const first = await agent("run", "--workspace", workspace, "--until-idle");
       assert.equal(first.code, 0, first.out);
-      assert.equal((await taskView(admin, userA, taskId)).status, "waiting");
-      available = true;
+      const waiting = await taskView(admin, userA, taskId);
+      assert.equal(waiting.status, "waiting");
+      assert.match(waiting.blocker ?? "", /busy|unavailable/);
+      providerUp = true;
       await resumeTask(admin, userA, taskId);
       const run = await agent("run", "--workspace", workspace, "--until-idle");
       assert.equal(run.code, 0, run.out);
@@ -440,12 +548,21 @@ test(
       );
       assert.ok(existsSync(join(workspace, "OCADE output", "status.docx")));
       assert.ok(
-        seen.some((s) => /Status: GREEN/.test(s.prompt)),
+        sent.some((s) => /Status: GREEN/.test(s.prompt)),
         "the model saw the observed file text",
       );
+      // Every planner turn spent exactly one JARVIS permit; the outage turn was released, not charged.
+      const permits = JSON.parse(
+        sql(
+          `SELECT jsonb_object_agg(status, n) FROM (SELECT status, count(*) AS n FROM public.ocade_generation_permits WHERE user_id = '${userA}' AND surface = 'jarvis' GROUP BY status) s`,
+          "postgres",
+        ),
+      );
+      assert.equal(permits.succeeded, 4, JSON.stringify(permits)); // goal + 3 steps
+      assert.ok(!permits.reserved, JSON.stringify(permits));
     } finally {
-      planner.close();
-      delete process.env.JARVIS_PLANNER_KEY;
+      Object.assign(plannerAccess, saved);
+      service.close();
     }
   },
 );

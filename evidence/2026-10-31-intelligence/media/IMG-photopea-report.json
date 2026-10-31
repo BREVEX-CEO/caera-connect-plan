@@ -1,0 +1,354 @@
+{
+  "steps": [
+    {
+      "op": "web.open",
+      "status": "observed",
+      "error": null
+    },
+    {
+      "op": "web.click",
+      "args": {
+        "selector": "button:has-text(\"Start using Photopea\") >> nth=0"
+      },
+      "status": "observed",
+      "error": null,
+      "evidence": {
+        "url": "https://www.photopea.com/",
+        "title": "Photopea | Online Photo Editor"
+      }
+    },
+    {
+      "op": "web.upload",
+      "args": {
+        "selector": "input[type=file]",
+        "path": "source.jpg"
+      },
+      "status": "observed",
+      "error": null,
+      "evidence": {
+        "attached": [],
+        "matches": false
+      }
+    },
+    {
+      "op": "web.click",
+      "args": {
+        "selector": ".topbar button:text-is(\"Image\")"
+      },
+      "status": "observed",
+      "error": null,
+      "evidence": {
+        "url": "https://www.photopea.com/",
+        "title": "Photopea | Online Photo Editor"
+      }
+    },
+    {
+      "op": "web.click",
+      "args": {
+        "selector": ".enab .label:text-is(\"Canvas Size...\")"
+      },
+      "status": "observed",
+      "error": null,
+      "evidence": {
+        "url": "https://www.photopea.com/",
+        "title": "Photopea | Online Photo Editor"
+      }
+    },
+    {
+      "op": "web.fill",
+      "args": {
+        "selector": ".window.csize input[type=text]:visible >> nth=1",
+        "value": "1080"
+      },
+      "status": "observed",
+      "error": null,
+      "evidence": {
+        "matches": true
+      }
+    },
+    {
+      "op": "web.click",
+      "args": {
+        "selector": ".window.csize button:text-is(\"OK\")"
+      },
+      "status": "observed",
+      "error": null,
+      "evidence": {
+        "url": "https://www.photopea.com/",
+        "title": "Photopea | Online Photo Editor"
+      }
+    },
+    {
+      "op": "web.click",
+      "args": {
+        "selector": ".topbar button:text-is(\"Image\")"
+      },
+      "status": "observed",
+      "error": null,
+      "evidence": {
+        "url": "https://www.photopea.com/",
+        "title": "Photopea | Online Photo Editor"
+      }
+    },
+    {
+      "op": "web.click",
+      "args": {
+        "selector": ".enab .label:text-is(\"Image Size...\")"
+      },
+      "status": "observed",
+      "error": null,
+      "evidence": {
+        "url": "https://www.photopea.com/",
+        "title": "Photopea | Online Photo Editor"
+      }
+    },
+    {
+      "op": "web.select",
+      "args": {
+        "selector": ".window.isize select >> nth=2",
+        "option": "Bicubic Sharper"
+      },
+      "status": "observed",
+      "error": null,
+      "evidence": {
+        "matches": true
+      }
+    },
+    {
+      "op": "web.fill",
+      "args": {
+        "selector": ".window.isize input[type=text]:visible >> nth=0",
+        "value": "3840"
+      },
+      "status": "observed",
+      "error": null,
+      "evidence": {
+        "matches": true
+      }
+    },
+    {
+      "op": "web.click",
+      "args": {
+        "selector": ".window.isize button:text-is(\"OK\")"
+      },
+      "status": "observed",
+      "error": null,
+      "evidence": {
+        "url": "https://www.photopea.com/",
+        "title": "Photopea | Online Photo Editor"
+      }
+    },
+    {
+      "op": "web.click",
+      "args": {
+        "selector": ".topbar button:text-is(\"Filter\")"
+      },
+      "status": "observed",
+      "error": null,
+      "evidence": {
+        "url": "https://www.photopea.com/",
+        "title": "Photopea | Online Photo Editor"
+      }
+    },
+    {
+      "op": "web.click",
+      "args": {
+        "selector": ".enab .label:text-is(\"Sharpen\")"
+      },
+      "status": "observed",
+      "error": null,
+      "evidence": {
+        "url": "https://www.photopea.com/",
+        "title": "Photopea | Online Photo Editor"
+      }
+    },
+    {
+      "op": "web.click",
+      "args": {
+        "selector": ".enab .label:text-is(\"Unsharp Mask...\")"
+      },
+      "status": "observed",
+      "error": null,
+      "evidence": {
+        "url": "https://www.photopea.com/",
+        "title": "Photopea | Online Photo Editor"
+      }
+    },
+    {
+      "op": "web.fill",
+      "args": {
+        "selector": ".window.afw_UnsM input[type=text]:visible >> nth=0",
+        "value": "80"
+      },
+      "status": "observed",
+      "error": null,
+      "evidence": {
+        "matches": true
+      }
+    },
+    {
+      "op": "web.fill",
+      "args": {
+        "selector": ".window.afw_UnsM input[type=text]:visible >> nth=1",
+        "value": "1.2"
+      },
+      "status": "observed",
+      "error": null,
+      "evidence": {
+        "matches": true
+      }
+    },
+    {
+      "op": "web.click",
+      "args": {
+        "selector": ".window.afw_UnsM button:text-is(\"OK\")"
+      },
+      "status": "observed",
+      "error": null,
+      "evidence": {
+        "url": "https://www.photopea.com/",
+        "title": "Photopea | Online Photo Editor"
+      }
+    },
+    {
+      "op": "web.click",
+      "args": {
+        "selector": ".topbar button:text-is(\"Image\")"
+      },
+      "status": "observed",
+      "error": null,
+      "evidence": {
+        "url": "https://www.photopea.com/",
+        "title": "Photopea | Online Photo Editor"
+      }
+    },
+    {
+      "op": "web.click",
+      "args": {
+        "selector": ".enab .label:text-is(\"Adjustments\")"
+      },
+      "status": "observed",
+      "error": null,
+      "evidence": {
+        "url": "https://www.photopea.com/",
+        "title": "Photopea | Online Photo Editor"
+      }
+    },
+    {
+      "op": "web.click",
+      "args": {
+        "selector": ".enab .label:text-is(\"Vibrance...\")"
+      },
+      "status": "observed",
+      "error": null,
+      "evidence": {
+        "url": "https://www.photopea.com/",
+        "title": "Photopea | Online Photo Editor"
+      }
+    },
+    {
+      "op": "web.fill",
+      "args": {
+        "selector": ".window.afw_vibA input[type=text]:visible >> nth=0",
+        "value": "40"
+      },
+      "status": "observed",
+      "error": null,
+      "evidence": {
+        "matches": true
+      }
+    },
+    {
+      "op": "web.fill",
+      "args": {
+        "selector": ".window.afw_vibA input[type=text]:visible >> nth=1",
+        "value": "10"
+      },
+      "status": "observed",
+      "error": null,
+      "evidence": {
+        "matches": true
+      }
+    },
+    {
+      "op": "web.click",
+      "args": {
+        "selector": ".window.afw_vibA button:text-is(\"OK\")"
+      },
+      "status": "observed",
+      "error": null,
+      "evidence": {
+        "url": "https://www.photopea.com/",
+        "title": "Photopea | Online Photo Editor"
+      }
+    },
+    {
+      "op": "web.click",
+      "args": {
+        "selector": ".topbar button:text-is(\"File\")"
+      },
+      "status": "observed",
+      "error": null,
+      "evidence": {
+        "url": "https://www.photopea.com/",
+        "title": "Photopea | Online Photo Editor"
+      }
+    },
+    {
+      "op": "web.click",
+      "args": {
+        "selector": ".enab .label:text-is(\"Export as\")"
+      },
+      "status": "observed",
+      "error": null,
+      "evidence": {
+        "url": "https://www.photopea.com/",
+        "title": "Photopea | Online Photo Editor"
+      }
+    },
+    {
+      "op": "web.click",
+      "args": {
+        "selector": ".enab .label:text-is(\"JPG\")"
+      },
+      "status": "observed",
+      "error": null,
+      "evidence": {
+        "url": "https://www.photopea.com/",
+        "title": "Photopea | Online Photo Editor"
+      }
+    },
+    {
+      "op": "web.download",
+      "args": {
+        "selector": ".window.saveforweb button:text-is(\"Save\")",
+        "output": "OCADE output/photo-4k.jpg"
+      },
+      "status": "observed",
+      "error": null,
+      "evidence": {
+        "sha256": "a4e567c6859df05bf87e293e83b4b075696084a1458284d9f28fa51f3739e71b",
+        "bytes": 372586,
+        "magic": "ffd8ffe000104a46"
+      }
+    }
+  ],
+  "sourceSha256": "fee6c819d1e570574894f3e5fe6cff55195eabf6b84324ab3a67a0a90041cbfc",
+  "sourceUnchanged": true,
+  "outputSha256": "a4e567c6859df05bf87e293e83b4b075696084a1458284d9f28fa51f3739e71b",
+  "verify": {
+    "format": "JPEG",
+    "size": [
+      3840,
+      2160
+    ],
+    "is3840x2160": true,
+    "edgeVarianceEdited": 134.3,
+    "edgeVariancePlainBicubic": 87.8,
+    "sharperThanPlainUpscale": true,
+    "saturationEdited": 60.9,
+    "saturationPlain": 51.9,
+    "moreSaturated": true,
+    "note": "Upscaled 2x from a 1920-wide source: pixel upscale plus sharpening, not recovered native detail."
+  }
+}

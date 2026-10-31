@@ -1,0 +1,58 @@
+{
+  "title": "The Mind of the Machine",
+  "duration": 60,
+  "size": [
+    1920,
+    1080
+  ],
+  "fps": 24,
+  "footage": {
+    "source": "NASA Ames Research Center B-roll, ARC-20190821-AAV3214-ModularSupercomputer-BRollResource-NASAWeb",
+    "license": "NASA media, generally not copyrighted (public domain); no NASA insignia shots used",
+    "shots": [
+      {
+        "start": 104.6,
+        "seconds": 6.3125,
+        "caption": "Every answer begins as electricity."
+      },
+      {
+        "start": 75.2,
+        "seconds": 6.3125,
+        "caption": "Thousands of processors, working as one."
+      },
+      {
+        "start": 186.2,
+        "seconds": 6.3125,
+        "caption": "Learning is arithmetic, repeated billions of times."
+      },
+      {
+        "start": 195.0,
+        "seconds": 6.3125,
+        "caption": ""
+      },
+      {
+        "start": 112.0,
+        "seconds": 6.3125,
+        "caption": "Heat is the price of thinking."
+      },
+      {
+        "start": 205.2,
+        "seconds": 6.3125,
+        "caption": "Models of our whole world."
+      },
+      {
+        "start": 215.0,
+        "seconds": 6.3125,
+        "caption": "From data, patterns emerge."
+      },
+      {
+        "start": 68.0,
+        "seconds": 6.3125,
+        "caption": "Built by people. Powered by computation."
+      }
+    ]
+  },
+  "graphics": "original (Pillow-rendered neural network animation)",
+  "score": "original (FFmpeg-synthesized drone, pulses, risers)",
+  "method": "native FFmpeg/Pillow render; not a web editor; not an OCADE autonomous run"
+}

@@ -20,7 +20,7 @@ const C = {
   contracts: "src/lib/jarvis/contracts.ts",
   authority: "src/lib/jarvis/authority.server.ts",
   supervisor: "src/lib/jarvis/supervisor.ts",
-  planner: "src/lib/jarvis/planner.server.ts + supabase/functions/jarvis-planner",
+  planner: "src/lib/jarvis/planner.server.ts + supabase/functions/ocade-intelligence-service",
   migration: "supabase/migrations/20261030120000_jarvis_task_authority.sql",
   ui: "src/jarvis/JarvisWorkspace.tsx + JarvisPanels.tsx",
   gateway: "device-agent/windows/ocade_agent/gateway.py",
@@ -67,7 +67,7 @@ const SECTIONS = {
     ["e2e", "gateway"],
     "PARTIAL",
     "L2",
-    "real model judgement untested (no provider credentials); Windows actuators untested",
+    "real model judgement untested (provider spend not confirmed free); Windows actuators untested",
   ],
   5: [["migration", "authority", "agent"], ["db", "e2e", "agent"], "PASS", "L2", ""],
   6: [

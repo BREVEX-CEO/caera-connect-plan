@@ -1,0 +1,49 @@
+{
+  "inspect": {
+    "sha256": "b55b56682cc638b8bff005638868384dafae8f24d310c52ca709133fcff6dcbd",
+    "kind": "media",
+    "container": "mov,mp4,m4a,3gp,3g2,mj2",
+    "duration": 60.0,
+    "streams": [
+      {
+        "type": "video",
+        "codec": "h264",
+        "width": 1920,
+        "height": 1080,
+        "fps": "24/1",
+        "channels": null
+      },
+      {
+        "type": "audio",
+        "codec": "aac",
+        "width": null,
+        "height": null,
+        "fps": "0/0",
+        "channels": 2
+      }
+    ]
+  },
+  "verifier": {
+    "predicates": {
+      "sixty_seconds": true
+    },
+    "verifierVersion": "checks-verifier/1"
+  },
+  "integratedLoudnessLUFS": -16.2,
+  "truePeakdBFS": null,
+  "blackSegmentsOver0_5s": [
+    [
+      "0",
+      "0.583333"
+    ]
+  ],
+  "hardCutsDetected": 0,
+  "pass": {
+    "duration60s": true,
+    "fullHD": true,
+    "h264": true,
+    "hasAudio": true,
+    "loudnessNearMinus16": true,
+    "noUnintendedBlack": true
+  }
+}

@@ -250,6 +250,9 @@ export function assertIntelligencePermit(request: IntelligenceRequest): void {
   }
 }
 
+/** Names the person a server-to-server request is for. Meaningless without the boundary's server-key check. */
+export const SERVICE_USER_HEADER = "x-ocade-user";
+
 /**
  * Each `data:` payload of a server-sent event stream, in order (empty and `[DONE]` skipped).
  * A stream that ends mid-event throws `incomplete`; an aborted `signal` stops the read.

@@ -29,7 +29,13 @@ import {
   type Decision,
   type Step,
 } from "./supervisor.ts";
-import { PlannerUnavailable, compileGoal, planStep, type McpServer } from "./planner.server.ts";
+import {
+  PlannerUnavailable,
+  compileGoal,
+  planStep,
+  plannerMessage,
+  type McpServer,
+} from "./planner.server.ts";
 
 export type Admin = Pick<SupabaseClient<Database>, "rpc">;
 
@@ -124,6 +130,7 @@ export async function advance(admin: Admin, taskId: string, now = new Date()): P
         steps,
         grants: task.grants,
         mcp: task.mcp ?? [],
+        turnKey: `jarvis-plan:${taskId}:${task.controller}:${steps.length}`,
         now,
       });
     } catch (error) {
@@ -131,7 +138,7 @@ export async function advance(admin: Admin, taskId: string, now = new Date()): P
       await call(admin, "jarvis_task_wait", {
         p_task: taskId,
         p_controller: task.controller,
-        p_reason: "JARVIS's online planner is unavailable. Your task is saved; resume it later.",
+        p_reason: `${plannerMessage(error.message)} Your task is saved; resume it later.`,
       });
       return;
     }
@@ -185,9 +192,7 @@ export async function startTask(
       if (!(error instanceof PlannerUnavailable)) throw error;
       throw new JarvisRefusal(
         "planner_unavailable",
-        error.message === "online_not_consented"
-          ? "Turn on Online Intelligence in Settings to let JARVIS plan this. Nothing was started."
-          : "JARVIS's online planner is unavailable right now. Nothing was started.",
+        `${plannerMessage(error.message)} Nothing was started.`,
       );
     }
   }

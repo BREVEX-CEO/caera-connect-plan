@@ -1,6 +1,10 @@
 import { highIncluded } from "./workers-ai.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.110.7";
-import { type OnlineHandlerDependencies } from "../../../src/lib/intelligence/edge-handler.ts";
+import {
+  isServiceKey,
+  type OnlineHandlerDependencies,
+} from "../../../src/lib/intelligence/edge-handler.ts";
+import { SERVICE_USER_HEADER } from "../../../src/lib/intelligence/contract.ts";
 import { ONLINE_CONSENT_VERSION } from "../../../src/lib/intelligence/online-consent-version.ts";
 import { buildHealthRecord } from "../../../src/lib/telemetry/operation-health.ts";
 import {
@@ -71,6 +75,21 @@ const allowedOrigins = new Set(
     .filter(Boolean),
 );
 
+/** Every OCADE server key this project holds: the door for OCADE's own server checks against these. */
+const SERVICE_KEYS = [
+  ...Object.values(
+    (() => {
+      try {
+        return JSON.parse(Deno.env.get("SUPABASE_SECRET_KEYS") ?? "{}") as Record<string, unknown>;
+      } catch {
+        return {};
+      }
+    })(),
+  ).filter((value): value is string => typeof value === "string"),
+  Deno.env.get("SUPABASE_SECRET_KEY") ?? "",
+  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+].filter(Boolean);
+
 /**
  * Settle a claimed permit and know that it was settled: the database must answer, a transport
  * failure or 5xx is retried twice, and a settlement that still did not land is recorded as a
@@ -135,8 +154,15 @@ export async function verifyUserJwt(token: string): Promise<{ userId: string } |
   return error || !data.user ? null : { userId: data.user.id };
 }
 
-/** Everything the function needs besides how its caller proves who they are. */
-export const boundary: Omit<OnlineHandlerDependencies, "verifyJwt"> = {
+/** OCADE's own server, naming the person it works for. Only a holder of a server key passes. */
+export async function verifyOcadeServer(request: Request): Promise<{ userId: string } | null> {
+  const userId = request.headers.get(SERVICE_USER_HEADER) ?? "";
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId)) return null;
+  return (await isServiceKey(request.headers.get("apikey"), SERVICE_KEYS)) ? { userId } : null;
+}
+
+/** Everything both functions share; each adds only how its caller proves who they are. */
+export const boundary: Omit<OnlineHandlerDependencies, "verifyJwt" | "verifyService"> = {
   allowedOrigins,
   providerReady: Boolean(
     SUPABASE_URL &&
