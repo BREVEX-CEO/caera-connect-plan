@@ -125,7 +125,12 @@ test("every operation schema stays inside the provider's schema subset", async (
   const { z } = await import("zod");
   for (const [name, spec] of Object.entries(OPERATIONS)) {
     const text = JSON.stringify(providerSchema(z.toJSONSchema(spec.arguments, { io: "input" })));
-    assert.ok(!/"\$ref"|"\$defs"|"prefixItems"|"additionalProperties"/.test(text), name);
+    assert.ok(
+      !/"\$ref"|"\$defs"|"prefixItems"|"additionalProperties"|"exclusiveM(in|ax)imum"|"propertyNames"|"const"/.test(
+        text,
+      ),
+      name,
+    );
   }
 });
 

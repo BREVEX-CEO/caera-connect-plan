@@ -122,8 +122,12 @@ export function providerSchema(schema: unknown): unknown {
   if (!schema || typeof schema !== "object") return schema;
   const out: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(schema as Record<string, unknown>)) {
-    if (key === "$schema" || key === "additionalProperties") continue;
-    if (key === "const") out.enum = [value];
+    if (key === "$schema" || key === "additionalProperties" || key === "propertyNames") continue;
+    // No exclusive bounds in the provider's schema: the inclusive one guides the model,
+    // and the server's own validation still enforces the strict bound.
+    if (key === "exclusiveMinimum") out.minimum = value;
+    else if (key === "exclusiveMaximum") out.maximum = value;
+    else if (key === "const") out.enum = [value];
     else if (key === "properties") {
       out.properties = Object.fromEntries(
         Object.entries(value as Record<string, unknown>).map(([name, sub]) => [
