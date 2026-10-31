@@ -134,6 +134,53 @@ test("every operation schema stays inside the provider's schema subset", async (
   }
 });
 
+test("capability shortlist: descriptor vectors, bounded, continuity, paraphrase-stable", async () => {
+  const { shortlistOperations, offeredOperations, rankBySimilarity } =
+    await import("../../src/lib/jarvis/planner.server.ts");
+  const all = offeredOperations(["files", "browser", "apps", "screen", "computer_control"], null);
+  assert.ok(all.length > 12);
+  const pick = (objective: string, steps: never[] = []) =>
+    shortlistOperations(all, { objective, checks: [], steps });
+  // Different wording, file names and formats reach the same capabilities (metamorphic).
+  for (const objective of [
+    "Make a Word document that states the quarterly status written in note.txt.",
+    "Turn the notes in status-report.md into an editable .docx file",
+    "Write up what draft_7.csv says as a document with headings",
+  ]) {
+    const chosen = pick(objective);
+    assert.ok(chosen.length <= 12, objective);
+    assert.ok(
+      chosen.includes("office.write_document") && chosen.includes("fs.read_text"),
+      `${objective}: ${chosen}`,
+    );
+  }
+  const render = pick("Design a red and black 3D sports car and give me a 4K image of it");
+  assert.ok(render.includes("scene.render") && render.includes("media.preview"), String(render));
+  const film = pick(
+    "Cut a 30 second cinematic advert from car footage with music and sound effects",
+  );
+  assert.ok(
+    ["media.render_timeline", "media.analyze", "media.preview"].every((o) => film.includes(o)),
+    String(film),
+  );
+  // An application nobody listed still reaches the generic desktop capabilities.
+  const app = pick("In the Zorblax Pro window, press the Export button");
+  assert.ok(app.includes("ui.invoke") && app.includes("apps.list"), String(app));
+  // Continuity: an operation already used stays offered even when it no longer ranks.
+  const used = pick("Write a document", [
+    { intent: { operation: "web.close" }, status: "done", receipt: null },
+  ] as never);
+  assert.ok(used.includes("web.close"));
+  // The descriptor, not a name table, decides: change the text and the ranking follows.
+  const tools = [
+    { id: "a", text: "convert currency amounts between exchange rates" },
+    { id: "b", text: "resize photographs" },
+  ];
+  assert.equal(rankBySimilarity("convert currency", tools, (t) => t.text)[0].item.id, "a");
+  tools[1].text = "convert currency quickly with live rates";
+  assert.equal(rankBySimilarity("convert currency live", tools, (t) => t.text)[0].item.id, "b");
+});
+
 test("browser targets are public https sites by name", () => {
   for (const url of [
     "https://127.0.0.1/",

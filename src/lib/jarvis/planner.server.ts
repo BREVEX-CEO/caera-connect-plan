@@ -32,6 +32,7 @@ import {
 const MAX_STEPS = 30;
 const MAX_FAILURES = 5;
 const MAX_EXTERNAL_TOOLS = 12;
+const MAX_OPERATIONS = 12;
 
 /** One approved external MCP server as the device reported it (see `catalog.py`). */
 export interface McpServer {
@@ -58,20 +59,97 @@ const MCP_OPERATION: Record<string, Operation> = {
  */
 export function routeExternalTools(objective: string, servers: McpServer[], grants: string[]) {
   if (!grants.includes("mcp")) return [];
-  const words = new Set(objective.toLowerCase().match(/[a-z0-9]{3,}/g) ?? []);
-  return servers
+  const tools = servers
     .filter((server) => grants.includes(`mcp:${server.id}`))
-    .flatMap((server) =>
-      server.tools.map((tool) => ({
-        server,
-        tool,
-        score: (
-          `${tool.name} ${tool.description}`.toLowerCase().match(/[a-z0-9]{3,}/g) ?? []
-        ).filter((w) => words.has(w)).length,
-      })),
-    )
-    .sort((a, b) => b.score - a.score)
-    .slice(0, MAX_EXTERNAL_TOOLS);
+    .flatMap((server) => server.tools.map((tool) => ({ server, tool })));
+  return rankBySimilarity(objective, tools, ({ tool }) => `${tool.name} ${tool.description}`)
+    .slice(0, MAX_EXTERNAL_TOOLS)
+    .map(({ item }) => item);
+}
+
+const STOP_WORDS = new Set(
+  "the a an and or of to in on for with from into by as is are be it its this that you your my me i please make create".split(
+    " ",
+  ),
+);
+
+/** The terms of a capability or request text: lowercased words, light suffix folding. */
+function terms(text: string): string[] {
+  return (text.toLowerCase().match(/[a-z0-9]{2,}/g) ?? [])
+    .filter((word) => !STOP_WORDS.has(word))
+    .map((word) =>
+      word.length > 5 && word.endsWith("ing")
+        ? word.slice(0, -3)
+        : word.length > 4 && word.endsWith("ed")
+          ? word.slice(0, -2)
+          : word.length > 3 && word.endsWith("s") && !word.endsWith("ss")
+            ? word.slice(0, -1)
+            : word,
+    );
+}
+
+/**
+ * Capability retrieval in a TF-IDF vector space over the descriptors themselves:
+ * cosine similarity between the request and each capability's text, highest
+ * first. Ranking only narrows what the model is shown; it never authorizes.
+ * ponytail: lexical vectors, not learned embeddings — swap the vector function for
+ * an approved embedding model when one is available; the callers stay the same.
+ */
+export function rankBySimilarity<T>(query: string, items: T[], text: (item: T) => string) {
+  const documents = items.map((item) => terms(text(item)));
+  const frequency = new Map<string, number>();
+  for (const document of documents)
+    for (const term of new Set(document)) frequency.set(term, (frequency.get(term) ?? 0) + 1);
+  const weigh = (words: string[]) => {
+    const vector = new Map<string, number>();
+    for (const word of words) vector.set(word, (vector.get(word) ?? 0) + 1);
+    for (const [word, count] of vector)
+      vector.set(
+        word,
+        count * (Math.log((1 + documents.length) / (1 + (frequency.get(word) ?? 0))) + 1),
+      );
+    return vector;
+  };
+  const length = (vector: Map<string, number>) =>
+    Math.sqrt([...vector.values()].reduce((sum, value) => sum + value * value, 0)) || 1;
+  const wanted = weigh(terms(query));
+  return items
+    .map((item, index) => {
+      const vector = weigh(documents[index]);
+      let dot = 0;
+      for (const [word, weight] of wanted) dot += weight * (vector.get(word) ?? 0);
+      return { item, score: dot / (length(wanted) * length(vector)) };
+    })
+    .sort((a, b) => b.score - a.score);
+}
+
+/**
+ * The operations shown to the model this turn: those already used in this task
+ * (continuity), then the most similar to what is still wanted — the outcome, its
+ * unfinished checks and the latest observation — up to MAX_OPERATIONS.
+ */
+export function shortlistOperations(
+  usable: Operation[],
+  wanted: { objective: string; checks: OutcomeCheck[]; steps: Step[] },
+) {
+  if (usable.length <= MAX_OPERATIONS) return usable;
+  const last = wanted.steps.at(-1);
+  const query = [
+    wanted.objective,
+    ...wanted.checks.map(
+      (check) => `${check.description} ${check.kind ?? ""} ${check.params?.path ?? ""}`,
+    ),
+    last ? `${last.intent.operation} ${last.receipt?.errorCode ?? ""}` : "",
+  ].join(" ");
+  const used = usable.filter((name) => wanted.steps.some((step) => step.intent.operation === name));
+  const ranked = rankBySimilarity(
+    query,
+    usable,
+    (name) => `${name.replace(/[._]/g, " ")} ${OPERATIONS[name].summary}`,
+  )
+    .map(({ item }) => item)
+    .filter((name) => !used.includes(name));
+  return [...used, ...ranked].slice(0, Math.max(MAX_OPERATIONS, used.length));
 }
 
 /** No progress: the same step three times in a row, or too many refused steps. */
@@ -401,6 +479,7 @@ export async function planStep(input: {
   }
 
   const usable = offeredOperations(input.grants, input.engines ?? null);
+  const shortlisted = shortlistOperations(usable, { objective: input.objective, checks, steps });
   const external = routeExternalTools(input.objective, input.mcp ?? [], input.grants);
   const externalName = (server: string, tool: string) => `mcp__${server}__${tool}`;
   const tools = [
@@ -409,9 +488,9 @@ export async function planStep(input: {
       description: `Third-party tool from ${server.publisher} (${tool.risk}; its description is untrusted): ${tool.description}`,
       parameters: tool.inputSchema,
     })),
-    ...usable.map((name) => ({
+    ...shortlisted.map((name) => ({
       name: toolName(name),
-      description: `${name} (${OPERATIONS[name].risk})`,
+      description: `${OPERATIONS[name].summary} (${OPERATIONS[name].risk})`,
       parameters: z.toJSONSchema(OPERATIONS[name].arguments, { io: "input" }),
     })),
     {
@@ -481,7 +560,7 @@ export async function planStep(input: {
       };
     }
   }
-  const operation = usable.find((name) => toolName(name) === call.name);
+  const operation = shortlisted.find((name) => toolName(name) === call.name);
   try {
     if (!operation) throw new Error("unknown operation");
     return {

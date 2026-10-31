@@ -399,24 +399,30 @@ const timeline = z.strictObject({
  */
 export const OPERATIONS = {
   "fs.list": {
+    summary: "List the files and folders in a folder of the person’s workspace.",
     role: "fs_sandbox",
     capability: "files",
     risk: "read",
     arguments: z.strictObject({ path: workspacePath.default(".") }),
   },
   "fs.read_text": {
+    summary:
+      "Read the text of a workspace file: plain text, CSV, Markdown, JSON, Word document, spreadsheet cell values or PDF text.",
     role: "fs_sandbox",
     capability: "files",
     risk: "read",
     arguments: z.strictObject({ path: workspacePath }),
   },
   "media.inspect": {
+    summary:
+      "Technical facts of an image, audio or video file: dimensions, duration, codecs and streams.",
     role: "media_engine",
     capability: "files",
     risk: "read",
     arguments: z.strictObject({ path: workspacePath }),
   },
   "media.trim": {
+    summary: "Cut a time range out of an audio or video file into a new file.",
     engine: "ffmpeg",
     role: "media_engine",
     capability: "files",
@@ -429,6 +435,8 @@ export const OPERATIONS = {
     }),
   },
   "media.preview": {
+    summary:
+      "Look at an image, photo, 3D render, screenshot or video: returns a picture (a frame contact sheet for video) that you see on your next turn.",
     role: "media_engine",
     // Sending what a file looks like to the online planner is the person's choice.
     capability: "screen",
@@ -443,6 +451,8 @@ export const OPERATIONS = {
     }),
   },
   "media.analyze": {
+    summary:
+      "Split a video into shots and measure brightness, colour, motion and loudness for each shot.",
     engine: "ffmpeg",
     role: "media_engine",
     capability: "files",
@@ -456,6 +466,8 @@ export const OPERATIONS = {
     }),
   },
   "media.render_timeline": {
+    summary:
+      "Edit and export video: clips with in and out points, speed, colour grade, camera moves, transitions, titles, image overlays, music and sound-effect layers, rendered to an exact-length MP4 film.",
     engine: "ffmpeg",
     role: "media_engine",
     capability: "files",
@@ -464,6 +476,8 @@ export const OPERATIONS = {
     arguments: timeline,
   },
   "scene.render": {
+    summary:
+      "Model and render a 3D scene from shapes, materials, lights, environment and camera; saves the editable 3D scene file and a rendered PNG image (any resolution, up to 4K and beyond).",
     engine: "browser",
     role: "media_engine",
     capability: "files",
@@ -478,12 +492,15 @@ export const OPERATIONS = {
     }),
   },
   "office.inspect_workbook": {
+    summary: "List a spreadsheet workbook’s sheets, column headers and row counts.",
     role: "sys_core",
     capability: "files",
     risk: "read",
     arguments: z.strictObject({ path: workspacePath }),
   },
   "office.write_document": {
+    summary:
+      "Write a new editable Word document (.docx) with headings, paragraphs and tables, optionally also exported as PDF.",
     role: "sys_core",
     capability: "files",
     risk: "reversible_write",
@@ -507,6 +524,8 @@ export const OPERATIONS = {
     }),
   },
   "office.write_workbook": {
+    summary:
+      "Write a new spreadsheet workbook (.xlsx); cells starting with = are formulas that a real spreadsheet engine recalculates.",
     engine: "office",
     role: "sys_core",
     capability: "files",
@@ -527,12 +546,14 @@ export const OPERATIONS = {
     }),
   },
   "apps.list": {
+    summary: "List the desktop applications installed and the windows open on the computer.",
     role: "ui_bridge",
     capability: "apps",
     risk: "read",
     arguments: z.strictObject({}),
   },
   "apps.launch": {
+    summary: "Start an installed desktop application the person allowed.",
     role: "ui_bridge",
     capability: "apps",
     risk: "reversible_write",
@@ -540,6 +561,8 @@ export const OPERATIONS = {
     target: (a: { exe: string }): Target => ({ app: a.exe }),
   },
   "ui.inspect": {
+    summary:
+      "Read the accessibility tree of one open application window: controls, names, values and state.",
     role: "ui_bridge",
     capability: "apps",
     risk: "read",
@@ -547,6 +570,8 @@ export const OPERATIONS = {
     target: (a: { window: { exe: string } }): Target => ({ app: a.window.exe }),
   },
   "ui.invoke": {
+    summary:
+      "Press or activate a control (button, menu item, link) in an application window by its accessibility identity.",
     role: "ui_bridge",
     capability: "apps",
     risk: "reversible_write",
@@ -554,6 +579,7 @@ export const OPERATIONS = {
     target: (a: { window: { exe: string } }): Target => ({ app: a.window.exe }),
   },
   "ui.set_value": {
+    summary: "Type or set the value of a text field or control in an application window.",
     role: "ui_bridge",
     capability: "apps",
     risk: "reversible_write",
@@ -561,6 +587,7 @@ export const OPERATIONS = {
     target: (a: { window: { exe: string } }): Target => ({ app: a.window.exe }),
   },
   "ui.send_keys": {
+    summary: "Send keyboard keys to the focused control of an application window.",
     role: "ui_bridge",
     capability: "apps",
     risk: "reversible_write",
@@ -571,6 +598,8 @@ export const OPERATIONS = {
     target: (a: { window: { exe: string } }): Target => ({ app: a.window.exe }),
   },
   "ui.click_point": {
+    summary:
+      "Click a screen position inside an application window, only when no accessible control can be reached.",
     role: "ui_bridge",
     capability: "computer_control",
     risk: "reversible_write",
@@ -583,6 +612,8 @@ export const OPERATIONS = {
     target: (a: { window: { exe: string } }): Target => ({ app: a.window.exe }),
   },
   "web.open": {
+    summary:
+      "Open a public website page (https) in the browser to read, search, use a web app or find and download material.",
     engine: "browser",
     role: "web_automation",
     capability: "browser",
@@ -591,6 +622,7 @@ export const OPERATIONS = {
     target: (a: { url: string }): Target => ({ site: new URL(a.url).hostname }),
   },
   "web.read": {
+    summary: "Read the visible text, links and form fields of an open web page.",
     engine: "browser",
     role: "web_automation",
     capability: "browser",
@@ -599,6 +631,7 @@ export const OPERATIONS = {
     target: (a: { page: { site: string } }): Target => ({ site: a.page.site }),
   },
   "web.fill": {
+    summary: "Type a value into a field of an open web page.",
     engine: "browser",
     role: "web_automation",
     capability: "browser",
@@ -612,6 +645,7 @@ export const OPERATIONS = {
     target: (a: { page: { site: string } }): Target => ({ site: a.page.site }),
   },
   "web.select": {
+    summary: "Choose an option in a drop-down of an open web page.",
     engine: "browser",
     role: "web_automation",
     capability: "browser",
@@ -625,6 +659,8 @@ export const OPERATIONS = {
     target: (a: { page: { site: string } }): Target => ({ site: a.page.site }),
   },
   "web.click": {
+    summary:
+      "Click a button or link on an open web page (an effect outside the computer needs the person’s confirmation).",
     engine: "browser",
     role: "web_automation",
     capability: "browser",
@@ -633,6 +669,7 @@ export const OPERATIONS = {
     target: (a: { page: { site: string } }): Target => ({ site: a.page.site }),
   },
   "web.upload": {
+    summary: "Upload a workspace file through a file input on an open web page.",
     engine: "browser",
     role: "web_automation",
     capability: "browser",
@@ -641,6 +678,7 @@ export const OPERATIONS = {
     target: (a: { page: { site: string } }): Target => ({ site: a.page.site }),
   },
   "web.screenshot": {
+    summary: "Save a picture of what an open web page shows.",
     engine: "browser",
     role: "web_automation",
     capability: "browser",
@@ -649,6 +687,7 @@ export const OPERATIONS = {
     target: (a: { page: { site: string } }): Target => ({ site: a.page.site }),
   },
   "web.close": {
+    summary: "Close a web page JARVIS opened.",
     engine: "browser",
     role: "web_automation",
     capability: "browser",
@@ -657,6 +696,7 @@ export const OPERATIONS = {
     target: (a: { page: { site: string } }): Target => ({ site: a.page.site }),
   },
   "web.download": {
+    summary: "Download a file from an open web page into the workspace.",
     engine: "browser",
     role: "web_automation",
     capability: "browser",
@@ -665,6 +705,7 @@ export const OPERATIONS = {
     target: (a: { page: { site: string } }): Target => ({ site: a.page.site }),
   },
   "mcp.read": {
+    summary: "Call a read-only tool of an approved external tool server.",
     role: "mcp",
     capability: "mcp",
     risk: "read",
@@ -672,6 +713,7 @@ export const OPERATIONS = {
     target: mcpTarget,
   },
   "mcp.write": {
+    summary: "Call a tool of an approved external tool server that changes local files.",
     role: "mcp",
     capability: "mcp",
     risk: "reversible_write",
@@ -679,6 +721,8 @@ export const OPERATIONS = {
     target: mcpTarget,
   },
   "mcp.external": {
+    summary:
+      "Call a tool of an approved external tool server that has an effect outside the computer.",
     role: "mcp",
     capability: "mcp",
     risk: "external_effect",
@@ -686,6 +730,8 @@ export const OPERATIONS = {
     target: mcpTarget,
   },
   "verify.checks": {
+    summary:
+      "Independently check the task’s outcome checks against the real files, pages and windows.",
     role: "verifier",
     capability: "files",
     risk: "read",
