@@ -2,15 +2,25 @@
 # Two executables from one analysis: `ocade-agent.exe` (console: pairing, STOP and
 # the stdio capability workers) and `ocade-agent-bg.exe` (no window: the per-user
 # background agent started at sign-in). Build with packaging/build.ps1 on Windows.
-# STATUS: CODED, UNTESTED.
+# STATUS: Windows build UNTESTED (no Windows host); the same spec builds and runs on Linux.
+import os
+from pathlib import Path
+
 from PyInstaller.utils.hooks import collect_submodules
+
+# Every companion module, listed from disk: collect_submodules("ocade_agent") runs in a child
+# process that cannot see this source tree and silently returned nothing (no workers shipped).
+ROOT = os.path.abspath(os.path.join(SPECPATH, ".."))
+bundled = sorted(f"ocade_agent.{path.stem}" for path in Path(ROOT, "ocade_agent").glob("*.py"))
+for worker in ("office_worker", "verify_worker", "windows_worker", "web_worker", "media_worker"):
+    assert f"ocade_agent.{worker}" in bundled, f"ocade_agent.{worker} missing from the build"
 
 block_cipher = None
 analysis = Analysis(
-    ["../ocade_agent/__main__.py"],
-    pathex=[".."],
-    datas=[("../ocade_agent/protocol.json", "ocade_agent")],
-    hiddenimports=collect_submodules("ocade_agent")
+    [os.path.join(ROOT, "ocade_agent", "__main__.py")],
+    pathex=[ROOT],
+    datas=[(os.path.join(ROOT, "ocade_agent", "protocol.json"), "ocade_agent")],
+    hiddenimports=bundled
     + collect_submodules("pywinauto")
     + ["win32timezone", "pyautogui", "playwright.async_api"],
     excludes=["tkinter"],

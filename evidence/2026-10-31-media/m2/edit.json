@@ -1,0 +1,611 @@
+{
+ "task": "Edit authorized raw car footage into a cinematic 60.000-second car advertisement with camera-aware transitions, grade, typography and synchronized sound design (M2), phase 2: edit, render, verify.",
+ "planAuthor": "Development AI agent (Claude, this engineering session) authored this edit after reading OCADE media.analyze shots and contact sheets; NOT the production Gemini planner and NOT an autonomous JARVIS task.",
+ "acceptedAt": "2026-10-31T13:03:12.287Z",
+ "inputs": [
+  "Corvairi1960.mp4",
+  "Wonderfu1960.mp4",
+  "supercar.png"
+ ],
+ "steps": [
+  {
+   "op": "media.render_timeline",
+   "phase": "edit_and_render",
+   "args": {
+    "output": "OCADE output/the-next-road.mp4",
+    "duration": 60,
+    "width": 1920,
+    "height": 1080,
+    "fps": 24,
+    "clips": [
+     {
+      "source": "Corvairi1960.mp4",
+      "in": 363.0,
+      "out": 367.5,
+      "grade": {
+       "contrast": 1.18,
+       "saturation": 1.2,
+       "gamma": 0.94,
+       "temperature": 5400,
+       "sharpen": 0.7,
+       "vignette": 0.45
+      },
+      "motion": {
+       "zoomFrom": 1.0,
+       "zoomTo": 1.12,
+       "panX": 0.0
+      },
+      "audio": false
+     },
+     {
+      "source": "Corvairi1960.mp4",
+      "in": 368.0,
+      "out": 370.8,
+      "speed": 0.6,
+      "grade": {
+       "contrast": 1.18,
+       "saturation": 1.2,
+       "gamma": 0.94,
+       "temperature": 5400,
+       "sharpen": 0.7,
+       "vignette": 0.45
+      },
+      "motion": {
+       "zoomFrom": 1.04,
+       "zoomTo": 1.1,
+       "panX": 0.0
+      },
+      "audio": false
+     },
+     {
+      "source": "Corvairi1960.mp4",
+      "in": 113.0,
+      "out": 118.0,
+      "speed": 0.7,
+      "grade": {
+       "contrast": 1.18,
+       "saturation": 1.2,
+       "gamma": 0.94,
+       "temperature": 5400,
+       "sharpen": 0.7,
+       "vignette": 0.45
+      },
+      "transition": {
+       "type": "smoothleft",
+       "duration": 0.4
+      },
+      "audio": false
+     },
+     {
+      "source": "Corvairi1960.mp4",
+      "in": 164.0,
+      "out": 169.0,
+      "grade": {
+       "contrast": 1.18,
+       "saturation": 1.2,
+       "gamma": 0.94,
+       "temperature": 5400,
+       "sharpen": 0.7,
+       "vignette": 0.45
+      },
+      "motion": {
+       "zoomFrom": 1.0,
+       "zoomTo": 1.06,
+       "panX": 0.4
+      },
+      "audio": false
+     },
+     {
+      "source": "Corvairi1960.mp4",
+      "in": 150.0,
+      "out": 153.5,
+      "grade": {
+       "contrast": 1.18,
+       "saturation": 1.2,
+       "gamma": 0.94,
+       "temperature": 5400,
+       "sharpen": 0.7,
+       "vignette": 0.45
+      },
+      "audio": false
+     },
+     {
+      "source": "Corvairi1960.mp4",
+      "in": 195.0,
+      "out": 200.0,
+      "speed": 0.8,
+      "grade": {
+       "contrast": 1.18,
+       "saturation": 1.2,
+       "gamma": 0.94,
+       "temperature": 5400,
+       "sharpen": 0.7,
+       "vignette": 0.45
+      },
+      "transition": {
+       "type": "hblur",
+       "duration": 0.3
+      },
+      "audio": false
+     },
+     {
+      "source": "Corvairi1960.mp4",
+      "in": 205.5,
+      "out": 208.5,
+      "grade": {
+       "contrast": 1.18,
+       "saturation": 1.2,
+       "gamma": 0.94,
+       "temperature": 5400,
+       "sharpen": 0.7,
+       "vignette": 0.45
+      },
+      "motion": {
+       "zoomFrom": 1.0,
+       "zoomTo": 1.1,
+       "panX": 0.0
+      },
+      "audio": false
+     },
+     {
+      "source": "Corvairi1960.mp4",
+      "in": 238.5,
+      "out": 244.3,
+      "speed": 0.85,
+      "grade": {
+       "contrast": 1.15,
+       "saturation": 1.15,
+       "gamma": 0.95,
+       "temperature": 7200,
+       "sharpen": 0.7,
+       "vignette": 0.45
+      },
+      "transition": {
+       "type": "zoomin",
+       "duration": 0.4
+      },
+      "audio": false
+     },
+     {
+      "source": "Corvairi1960.mp4",
+      "in": 250.0,
+      "out": 254.0,
+      "speed": 0.6,
+      "grade": {
+       "contrast": 1.15,
+       "saturation": 1.15,
+       "gamma": 0.95,
+       "temperature": 7200,
+       "sharpen": 0.7,
+       "vignette": 0.45
+      },
+      "audio": false
+     },
+     {
+      "source": "Corvairi1960.mp4",
+      "in": 371.5,
+      "out": 379.4,
+      "grade": {
+       "contrast": 1.18,
+       "saturation": 1.2,
+       "gamma": 0.94,
+       "temperature": 5400,
+       "sharpen": 0.7,
+       "vignette": 0.45
+      },
+      "motion": {
+       "zoomFrom": 1.0,
+       "zoomTo": 1.05,
+       "panX": 0.0
+      },
+      "transition": {
+       "type": "dissolve",
+       "duration": 0.8
+      },
+      "audio": false
+     },
+     {
+      "source": "Wonderfu1960.mp4",
+      "in": 36.0,
+      "out": 39.8,
+      "grade": {
+       "contrast": 1.1,
+       "saturation": 1.05,
+       "gamma": 0.98,
+       "sharpen": 0.6,
+       "vignette": 0.5
+      },
+      "motion": {
+       "zoomFrom": 1.0,
+       "zoomTo": 1.06,
+       "panX": 0.0
+      },
+      "transition": {
+       "type": "fadewhite",
+       "duration": 0.5
+      },
+      "audio": false
+     }
+    ],
+    "titles": [
+     {
+      "text": "SOME ROADS ARE FOUND.",
+      "start": 1.0,
+      "end": 4.2,
+      "size": 70,
+      "font": "Inter Display",
+      "position": "center"
+     },
+     {
+      "text": "OTHERS ARE MADE.",
+      "start": 21.2,
+      "end": 24.0,
+      "size": 70,
+      "font": "Inter Display",
+      "position": "center"
+     },
+     {
+      "text": "MUD. DUST. WATER. NOTHING STOPS IT.",
+      "start": 40.4,
+      "end": 45.6,
+      "size": 44,
+      "font": "Inter",
+      "position": "lower_third"
+     },
+     {
+      "text": "THE NEXT ROAD",
+      "start": 55.8,
+      "end": 59.6,
+      "size": 92,
+      "font": "Inter Display",
+      "position": "top",
+      "fadeIn": 1.0
+     },
+     {
+      "text": "Spec film. Footage - Prelinger Archives 1960 (public domain). 3D car, sound - original, synthetic.",
+      "start": 56.6,
+      "end": 59.6,
+      "size": 22,
+      "font": "Inter",
+      "position": "bottom",
+      "fadeIn": 1.0
+     }
+    ],
+    "overlays": [
+     {
+      "image": "supercar.png",
+      "start": 55.2,
+      "end": 60.0,
+      "width": 1920,
+      "x": 0.5,
+      "y": 0.5,
+      "fadeIn": 0.7,
+      "fadeOut": 0.01,
+      "zoomTo": 1.06
+     }
+    ],
+    "audio": [
+     {
+      "role": "music",
+      "synth": {
+       "kind": "sine",
+       "frequency": 41.2
+      },
+      "start": 0,
+      "duration": 60,
+      "gain": -15,
+      "fadeIn": 3,
+      "fadeOut": 2
+     },
+     {
+      "role": "music",
+      "synth": {
+       "kind": "sine",
+       "frequency": 61.7
+      },
+      "start": 6,
+      "duration": 54,
+      "gain": -20,
+      "fadeIn": 6,
+      "fadeOut": 2
+     },
+     {
+      "role": "music",
+      "synth": {
+       "kind": "noise",
+       "color": "brown"
+      },
+      "start": 0,
+      "duration": 60,
+      "lowpass": 380,
+      "gain": -24,
+      "fadeIn": 4,
+      "fadeOut": 2
+     },
+     {
+      "role": "fx",
+      "synth": {
+       "kind": "sweep",
+       "frequency": 70,
+       "toFrequency": 190
+      },
+      "start": 0.4,
+      "duration": 4.2,
+      "lowpass": 900,
+      "gain": -13,
+      "fadeIn": 1.5,
+      "fadeOut": 0.4
+     },
+     {
+      "role": "fx",
+      "synth": {
+       "kind": "noise",
+       "color": "brown"
+      },
+      "start": 8.8,
+      "duration": 15,
+      "lowpass": 260,
+      "gain": -12,
+      "fadeIn": 1,
+      "fadeOut": 1.5
+     },
+     {
+      "role": "fx",
+      "synth": {
+       "kind": "sweep",
+       "frequency": 90,
+       "toFrequency": 260
+      },
+      "start": 24.1,
+      "duration": 6.2,
+      "lowpass": 1100,
+      "gain": -13,
+      "fadeIn": 0.8,
+      "fadeOut": 0.8
+     },
+     {
+      "role": "fx",
+      "synth": {
+       "kind": "noise",
+       "color": "white"
+      },
+      "start": 33.0,
+      "duration": 6.7,
+      "highpass": 1400,
+      "lowpass": 7000,
+      "gain": -17,
+      "fadeIn": 0.6,
+      "fadeOut": 0.8
+     },
+     {
+      "role": "fx",
+      "synth": {
+       "kind": "noise",
+       "color": "pink"
+      },
+      "start": 39.8,
+      "duration": 8.9,
+      "highpass": 300,
+      "lowpass": 2600,
+      "gain": -15,
+      "fadeIn": 0.3,
+      "fadeOut": 1.2
+     },
+     {
+      "role": "fx",
+      "synth": {
+       "kind": "sweep",
+       "frequency": 180,
+       "toFrequency": 1400
+      },
+      "start": 48.6,
+      "duration": 4.4,
+      "highpass": 150,
+      "lowpass": 5000,
+      "gain": -17,
+      "fadeIn": 3.5,
+      "fadeOut": 0.15
+     },
+     {
+      "role": "fx",
+      "synth": {
+       "kind": "noise",
+       "color": "pink"
+      },
+      "start": 3.95,
+      "duration": 0.85,
+      "highpass": 500,
+      "lowpass": 6500,
+      "fadeIn": 0.5,
+      "fadeOut": 0.3,
+      "gain": -9
+     },
+     {
+      "role": "fx",
+      "synth": {
+       "kind": "noise",
+       "color": "pink"
+      },
+      "start": 8.42,
+      "duration": 0.85,
+      "highpass": 500,
+      "lowpass": 6500,
+      "fadeIn": 0.5,
+      "fadeOut": 0.3,
+      "gain": -9
+     },
+     {
+      "role": "fx",
+      "synth": {
+       "kind": "noise",
+       "color": "pink"
+      },
+      "start": 15.36,
+      "duration": 0.85,
+      "highpass": 500,
+      "lowpass": 6500,
+      "fadeIn": 0.5,
+      "fadeOut": 0.3,
+      "gain": -9
+     },
+     {
+      "role": "fx",
+      "synth": {
+       "kind": "noise",
+       "color": "pink"
+      },
+      "start": 23.71,
+      "duration": 0.85,
+      "highpass": 500,
+      "lowpass": 6500,
+      "fadeIn": 0.5,
+      "fadeOut": 0.3,
+      "gain": -9
+     },
+     {
+      "role": "fx",
+      "synth": {
+       "kind": "noise",
+       "color": "pink"
+      },
+      "start": 32.61,
+      "duration": 0.85,
+      "highpass": 500,
+      "lowpass": 6500,
+      "fadeIn": 0.5,
+      "fadeOut": 0.3,
+      "gain": -9
+     },
+     {
+      "role": "fx",
+      "synth": {
+       "kind": "noise",
+       "color": "pink"
+      },
+      "start": 45.650000000000006,
+      "duration": 0.85,
+      "highpass": 500,
+      "lowpass": 6500,
+      "fadeIn": 0.5,
+      "fadeOut": 0.3,
+      "gain": -9
+     },
+     {
+      "role": "fx",
+      "synth": {
+       "kind": "noise",
+       "color": "pink"
+      },
+      "start": 52.75,
+      "duration": 0.85,
+      "highpass": 500,
+      "lowpass": 6500,
+      "fadeIn": 0.5,
+      "fadeOut": 0.3,
+      "gain": -9
+     },
+     {
+      "role": "fx",
+      "synth": {
+       "kind": "sine",
+       "frequency": 46,
+       "decay": 6
+      },
+      "start": 4.5,
+      "duration": 1.4,
+      "gain": -3
+     },
+     {
+      "role": "fx",
+      "synth": {
+       "kind": "sine",
+       "frequency": 46,
+       "decay": 6
+      },
+      "start": 15.91,
+      "duration": 1.4,
+      "gain": -3
+     },
+     {
+      "role": "fx",
+      "synth": {
+       "kind": "sine",
+       "frequency": 46,
+       "decay": 6
+      },
+      "start": 33.16,
+      "duration": 1.4,
+      "gain": -3
+     },
+     {
+      "role": "fx",
+      "synth": {
+       "kind": "sine",
+       "frequency": 46,
+       "decay": 6
+      },
+      "start": 53.3,
+      "duration": 1.4,
+      "gain": 0
+     },
+     {
+      "role": "fx",
+      "synth": {
+       "kind": "sine",
+       "frequency": 46,
+       "decay": 6
+      },
+      "start": 55.4,
+      "duration": 1.4,
+      "gain": -2
+     },
+     {
+      "role": "fx",
+      "synth": {
+       "kind": "sine",
+       "frequency": 82.4
+      },
+      "start": 55.4,
+      "duration": 4.6,
+      "gain": -9,
+      "fadeIn": 0.4,
+      "fadeOut": 1.0
+     },
+     {
+      "role": "fx",
+      "synth": {
+       "kind": "sine",
+       "frequency": 123.5
+      },
+      "start": 55.6,
+      "duration": 4.4,
+      "gain": -15,
+      "fadeIn": 0.6,
+      "fadeOut": 1.0
+     }
+    ],
+    "letterbox": 2.39,
+    "loudness": -14,
+    "fadeIn": 0.8,
+    "fadeOut": 1.0
+   }
+  }
+ ],
+ "checks": [
+  {
+   "id": "deliverable",
+   "description": "Exactly 60 s, 1920x1080 H.264 + stereo AAC, broadcast loudness, no black or silent gaps",
+   "kind": "media_quality",
+   "params": {
+    "path": "OCADE output/the-next-road.mp4",
+    "value": 60,
+    "width": 1920,
+    "height": 1080
+   }
+  }
+ ],
+ "deliver": [
+  "OCADE output/the-next-road.mp4"
+ ],
+ "deliverTo": "/tmp/m2/final"
+}

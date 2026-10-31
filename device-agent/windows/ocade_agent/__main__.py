@@ -1,5 +1,5 @@
 import sys
 
-from .agent import main
+from ocade_agent.agent import main  # absolute: the frozen build runs this file as a script
 
 sys.exit(main())

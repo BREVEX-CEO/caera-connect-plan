@@ -10,14 +10,14 @@ The authoring scripts (`m1/author.py`, `m2/author.py`) are evidence only; nothin
 
 - Engine: `scene.render` — OCADE's typed signed-distance 3D scene, rendered on the bundled browser engine
   (WebGL2; here Chromium's software renderer, no GPU). No model, asset, texture or photo was imported:
-  the car is 4 parts and 63 shapes with 12 materials, written as data.
+  the car is 3 parts and 40 shapes with 12 materials, written as data (8 samples per pixel).
 - Deliverables: `supercar.png` (3840 × 2160) and `supercar.ocade-scene.json` (the editable project: change it
   and render again).
 - Verifier: `scene_render` (the still names its project, the project's SHA-256 matches, the scene has a camera,
   light, material and geometry, and the size matches), `image_size` 3840 × 2160, `file_exists` — all true.
 - Timing (`M1-supercar-report.json`): accepted 12:44:34Z; four preview renders at 960 × 540 (about 13 s each)
   while the scene was refined; the final run started 12:54:23Z and was verified and delivered 13:02:44Z
-  (render 498.9 s, verification 1.8 s). The earlier final attempt (`failed-attempt-1.json`) failed after 31 s:
+  (render 498.9 s, verification 1.8 s): 18 min 10 s accepted to delivered. The earlier final attempt (`failed-attempt-1.json`) failed after 31 s:
   a gateway defect reported every call longer than 30 s as `worker_lost`. Fixed and covered by a test.
 - Honest quality review: a coherent stylized concept car (clear-coat reflections, carbon weave, ten-spoke
   wheels, red calipers, carved lamps, floor reflections, soft shadows). It is **not photorealistic**: the body
@@ -35,12 +35,22 @@ The authoring scripts (`m1/author.py`, `m2/author.py`) are evidence only; nothin
   production planner could not "see" the shots. Recorded as a product gap.
 - Edit (`media.render_timeline`): 11 shots with in/out points, slow motion, push-ins, smooth-left, whip-blur,
   zoom-in, dissolve and fade-through-white transitions, warm/cool grades, 2.39 letterbox, four titles, the M1
-  3D render as a clearly labelled synthetic end card, and 25 generated sound layers (engine-like rumble and revs,
+  3D render as a clearly labelled synthetic end card, and 23 generated sound layers (engine-like rumble and revs,
   whooshes and impacts on the cuts, splash noise, a riser, a ducked drone score). The films' own soundtracks are
   narration and were muted, so **there are no recorded engine sounds**.
 - Verifier: `media_quality` — exact 60.000 s, ≥ 1920 × 1080, H.264 + stereo AAC, integrated loudness within
   −20…−9 LUFS, true peak ≤ −0.5 dBFS, no black or silent stretch inside the programme.
-- See `M2-car-ad-report.json` for timing and the result; rejected cuts are kept with their reasons.
+- Result: **verifier PASS** — 60.000 s, 1440 frames, 1920 × 1080 H.264, stereo AAC, −15.3 LUFS integrated,
+  −3.1 dBFS peak, no black or silent gap; sources unchanged. Master SHA-256
+  `46d9c6ea8d3c49664be15938b571029aedd4337f680665b4e34e79e06e9485d0` (52.7 MB, not committed);
+  `m2/the-next-road.mp4` is a 24 MB delivery re-encode (CRF 25) of that master.
+- Timing (`M2-car-ad-report.json`): accepted 13:03:12Z; analysis through OCADE 21 s; the final render
+  started 13:16:27Z, rendered in 270.0 s, verified (8.8 s) and delivered 13:21:07Z — 17 min 55 s accepted to
+  delivered, including the development agent's planning and three engine defects found and fixed on the way.
+- Rejected attempts, kept as evidence: render 1 failed (overlay fade used the wrong time variable), render 2
+  failed (a transition after a hard cut broke on a time-base mismatch), render 3 rendered but the verifier
+  rejected it (`failed-attempt-render3.json`: 3 s of near-silence under the end card) and review found the end
+  title hidden under the image. Each engine defect now has a regression test.
 - Honest quality review: real cars doing real driving (dust slides, river crossings, a night reveal), but the
   source is 480p, so the 1080p picture is visibly soft and grainy; no 3D camera tracking was attempted (the
   only 3D element is the composited render).
