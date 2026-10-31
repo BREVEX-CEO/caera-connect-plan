@@ -441,3 +441,10 @@ Record monotonic UTC-correlated task timestamps with \`submittedAt\`, \`authoriz
 6. Report only: **Phase / workstream | Implemented | PASS/FAIL/PARTIAL/BLOCKED | Exact tests/evidence | Next dependency**. No filler or repeated huge plan. No claims of 100% reliability without measurement.
 
 **Final engineering requirement:** Deliver one minimal, maintainable, dynamically discoverable, model-planned, policy-enforced, locally executed, independently verified OCADE system. The build and wiring must be real. **Architecture qualification precedes customer-task acceptance, never the reverse.**
+
+## Architecture checkpoint — 31 October 2026 (84-concept ledger)
+
+- Ledger: `evidence/2026-10-31-architecture/architecture-ledger.md` — 46 PASS, 25 PARTIAL, 3 FAIL, 8 BLOCKED, 2 UNTESTED. **G12 no-go; no customer acceptance task was run.**
+- Built this session: capability descriptors + TF-IDF vector shortlist (top 12, continuity, offered-only selection), model-chosen action batches, verifier-failure feedback for bounded repair, concurrency/multiplexing test, 84-concept validator.
+- Staging: credentials and migration verified; real UI run (sign in, pair, grant, request) recorded. **G9 BLOCKED:** the deployed service refuses this session's legacy service-role key (exact-match key list); see the evidence README for the two fixes.
+- FAIL: 36 visual-anchor fallback, 58 user-interference detection, 84 release gate. BLOCKED: Windows UI concepts (12, 28, 32, 34, 35), macOS (29), installer (68), real tasks (79).

@@ -48,7 +48,7 @@ const T = {
   media: "device-agent/windows/tests/test_media.py",
   frozen: "device-agent/windows/packaging/check_frozen.py",
   guard: "npm run jarvis:no-hardcoded",
-  staging: "staging RPC/migration check (session 31 Oct)",
+  staging: "staging checks and real UI run (evidence/2026-10-31-architecture)",
 };
 const LIVE =
   "live Gemini blocked: the deployed service door refuses this session's key (see report)";
@@ -271,7 +271,7 @@ const C = {
     ["e2e"],
     "files land in the device folder; no download/read-back from the UI tested",
   ],
-  72: ["UNTESTED", "L0", ["ui"], [], "signed-in UI not exercised"],
+  72: ["PARTIAL", "L3", ["ui"], ["staging"], "signed in, paired a computer, granted access and sent a request on staging; no task can run until live Gemini works"],
   73: ["PASS", "L2", ["packaging", "gateway"], ["frozen"], ""],
   74: ["PASS", "L2", ["gateway", "agent"], ["gateway", "agent"], ""],
   75: ["PASS", "L2", ["verify"], ["gateway", "media"], ""],
