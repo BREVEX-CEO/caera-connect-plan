@@ -24,7 +24,7 @@ send2trash==1.8.3
 # Documents and spreadsheets read and edited directly (no Office library, no model).
 openpyxl==3.1.5
 et_xmlfile==2.0.0
-pypdf==6.19.0
+pypdf==6.21.4
 # Local "OCADE" / "Hey OCADE" listening in Background/Wake Mode only: OCADE's own
 # bundled model (wake/), its features and network run in numpy.
 sounddevice==0.5.2
