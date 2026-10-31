@@ -17,6 +17,7 @@ import os
 import re
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 
 from mcp.server.mcpserver import MCPServer
@@ -329,14 +330,16 @@ def media_render_timeline(
         scale = overlay.get("width", width)
         zoom_to = overlay.get("zoomTo", 1.0)
         size = f"'ceil({scale}*(1+({zoom_to}-1)*clip((t-{start})/{end - start},0,1))/2)*2'"
+        fade_in, fade_out = overlay.get("fadeIn", 0.5), overlay.get("fadeOut", 0.5)
         graph.append(
             f"[{count}:v]format=rgba,scale=w={size}:h=-2:eval=frame,"
-            f"colorchannelmixer=aa=1,geq=r='r(X,Y)':g='g(X,Y)':b='b(X,Y)':"
-            f"a='alpha(X,Y)*{_fade(start, end, overlay.get('fadeIn', 0.5), overlay.get('fadeOut', 0.5))}'[o{number}]"
+            f"fade=t=in:st={start}:d={max(fade_in, 0.01)}:alpha=1,"
+            f"fade=t=out:st={max(end - fade_out, start)}:d={max(fade_out, 0.01)}:alpha=1[o{number}]"
         )
         x = overlay.get("x", 0.5)
         y = overlay.get("y", 0.5)
-        graph.append(f"{label}[o{number}]overlay=x='(W-w)*{x}':y='(H-h)*{y}':eval=frame:format=auto[v{number}]")
+        graph.append(f"{label}[o{number}]overlay=x='(W-w)*{x}':y='(H-h)*{y}':eval=frame:format=auto:"
+                     f"enable='between(t,{start},{end})'[v{number}]")
         label = f"[v{number}]"
         count += 1
     graph.append(f"{label}format=yuv420p[vout]")
@@ -413,6 +416,7 @@ def media_render_timeline(
                     "-movflags", "+faststart", "-f", "mp4", str(temporary)]
         run = subprocess.run(command, capture_output=True, text=True, timeout=3600)
         if run.returncode != 0:
+            print(f"ffmpeg: {run.stderr[-600:]}", file=sys.stderr)  # local diagnostics only
             raise Refused("media_engine_failed")
 
     digest = write_atomically(target, encode)

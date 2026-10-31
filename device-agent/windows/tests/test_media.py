@@ -94,8 +94,10 @@ class Media(unittest.TestCase):
                 {"synth": {"kind": "sine", "frequency": 55, "decay": 6}, "start": 5.4, "duration": 1.5},
                 {"synth": {"kind": "sine", "frequency": 220}, "start": 0, "duration": 10, "role": "music", "gain": -12},
             ],
+            "overlays": [{"image": "card.png", "start": 7.5, "end": 10, "width": 320, "fadeIn": 0.5, "zoomTo": 1.05}],
             "letterbox": 2.39, "fadeIn": 0.5, "fadeOut": 1.0,
         }
+        Image.new("RGBA", (400, 200), (220, 20, 20, 255)).save(self.root / "card.png")
         analyze, render, bad_range, bad_place, verify = self.run_all([
             ("media.analyze", {"path": "a.mp4"}),
             ("media.render_timeline", edit),
@@ -118,6 +120,14 @@ class Media(unittest.TestCase):
         self.assertEqual((bad_place["status"], bad_place["errorCode"]), ("not_applied", "write_outside_output"))
         self.assertEqual(verify["evidence"]["predicates"], {"deliverable": True, "wrong_length": False, "too_small": False})
         self.assertEqual({n: (self.root / n).read_bytes() for n in originals}, originals)
+        # The card is composited only inside its window: absent at 5 s, centred red at 9 s.
+        def pixel(at):
+            frame = subprocess.run(["ffmpeg", "-v", "error", "-ss", str(at), "-i", str(self.root / "OCADE output/edit.mp4"),
+                                    "-frames:v", "1", "-f", "rawvideo", "-pix_fmt", "rgb24", "-"], capture_output=True).stdout
+            middle = (180 * 640 + 320) * 3
+            return tuple(frame[middle:middle + 3])
+        self.assertGreater(pixel(9)[0], 150)
+        self.assertNotEqual(pixel(5), pixel(9))
 
     @unittest.skipUnless(BROWSER, "needs a Chromium executable")
     def test_scene_render_is_bound_to_its_saved_project(self):
