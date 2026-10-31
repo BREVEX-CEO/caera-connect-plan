@@ -298,29 +298,11 @@ def media_render_timeline(
             starts.append(offset)
             timeline = offset + lengths[index]
         label = f"[j{index}]"
-    finish = [f"tpad=stop_mode=clone:stop_duration={max(duration - timeline, 0) + 1}", f"trim=duration={duration}"]
-    if letterbox:
-        bar = max(0, round((height - width / letterbox) / 2))
-        finish += [f"drawbox=x=0:y=0:w=iw:h={bar}:color=black:t=fill", f"drawbox=x=0:y=ih-{bar}:w=iw:h={bar}:color=black:t=fill"]
-    for title in titles or []:
-        size = title.get("size", 64)
-        y = {"top": f"h*0.12", "center": "(h-text_h)/2", "lower_third": "h*0.74", "bottom": "h*0.86-text_h"}[
-            title.get("position", "center")]
-        font = f":font='{_escape(title['font'])}'" if title.get("font") else ""
-        colour = title.get("color", "white")
-        finish.append(
-            f"drawtext=text='{_escape(title['text'])}'{font}:fontsize={size}:fontcolor={colour}:"
-            f"alpha='{_fade(title['start'], title['end'], title.get('fadeIn', 0.6), title.get('fadeOut', 0.6))}':"
-            f"x=(w-text_w)/2:y={y}:shadowcolor=black@0.55:shadowx=0:shadowy=3"
-            + (f":box=1:boxcolor=black@{title['box']}:boxborderw={size // 2}" if title.get("box") else "")
-        )
-    if fadeIn:
-        finish.append(f"fade=t=in:st=0:d={fadeIn}")
-    if fadeOut:
-        finish.append(f"fade=t=out:st={duration - fadeOut}:d={fadeOut}")
-    graph.append(f"{label}{','.join(finish)}[base]")
+    graph.append(f"{label}tpad=stop_mode=clone:stop_duration={max(duration - timeline, 0) + 1},"
+                 f"trim=duration={duration}[base]")
     label = "[base]"
 
+    # Images sit on the picture, under the letterbox and the type.
     count = len(clips)
     for number, overlay in enumerate(overlays or []):
         image = resolve(WORKSPACE, overlay["image"])
@@ -343,7 +325,29 @@ def media_render_timeline(
                      f"enable='between(t,{start},{end})'[v{number}]")
         label = f"[v{number}]"
         count += 1
-    graph.append(f"{label}format=yuv420p[vout]")
+
+    finish = ["setsar=1"]
+    bar = max(0, round((height - width / letterbox) / 2)) if letterbox else 0
+    if bar:
+        finish += [f"drawbox=x=0:y=0:w=iw:h={bar}:color=black:t=fill", f"drawbox=x=0:y=ih-{bar}:w=iw:h={bar}:color=black:t=fill"]
+    for title in titles or []:
+        size = title.get("size", 64)
+        # Positions are inside the picture, never on a letterbox bar.
+        y = {"top": f"max(h*0.12,{bar}+h*0.05)", "center": "(h-text_h)/2", "lower_third": f"min(h*0.74,h-{bar}-h*0.06-text_h)",
+             "bottom": f"min(h*0.86,h-{bar}-h*0.04)-text_h"}[title.get("position", "center")]
+        font = f":font='{_escape(title['font'])}'" if title.get("font") else ""
+        colour = title.get("color", "white")
+        finish.append(
+            f"drawtext=text='{_escape(title['text'])}'{font}:fontsize={size}:fontcolor={colour}:"
+            f"alpha='{_fade(title['start'], title['end'], title.get('fadeIn', 0.6), title.get('fadeOut', 0.6))}':"
+            f"x=(w-text_w)/2:y='{y}':shadowcolor=black@0.55:shadowx=0:shadowy=3"
+            + (f":box=1:boxcolor=black@{title['box']}:boxborderw={size // 2}" if title.get("box") else "")
+        )
+    if fadeIn:
+        finish.append(f"fade=t=in:st=0:d={fadeIn}")
+    if fadeOut:
+        finish.append(f"fade=t=out:st={duration - fadeOut}:d={fadeOut}")
+    graph.append(f"{label}{','.join(finish)},format=yuv420p[vout]")
 
     # Sound: clip sound and the planner's layers, music ducked under everything else.
     beds, effects = [], []

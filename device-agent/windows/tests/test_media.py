@@ -89,14 +89,15 @@ class Media(unittest.TestCase):
                 {"source": "a.mp4", "in": 6, "out": 7},  # a hard cut, then a transition after it
                 {"source": "b.mp4", "in": 5, "out": 7, "transition": {"type": "hblur", "duration": 0.3}},
             ],
-            "titles": [{"text": "Test: 100% \\ it's 'quoted'", "start": 1, "end": 4, "size": 28, "position": "lower_third"}],
+            "titles": [{"text": "Test: 100% \\ it's 'quoted'", "start": 1, "end": 4, "size": 28, "position": "lower_third"},
+                       {"text": "TOP", "start": 6, "end": 9, "size": 28, "position": "top", "font": "DejaVu Sans"}],
             "audio": [
                 {"synth": {"kind": "noise", "color": "pink"}, "start": 4.6, "duration": 1.2, "highpass": 400,
                  "fadeIn": 0.6, "fadeOut": 0.5, "gain": -6},
                 {"synth": {"kind": "sine", "frequency": 55, "decay": 6}, "start": 5.4, "duration": 1.5},
                 {"synth": {"kind": "sine", "frequency": 220}, "start": 0, "duration": 10, "role": "music", "gain": -12},
             ],
-            "overlays": [{"image": "card.png", "start": 7.5, "end": 10, "width": 320, "fadeIn": 0.5, "zoomTo": 1.05}],
+            "overlays": [{"image": "card.png", "start": 7.5, "end": 10, "width": 640, "fadeIn": 0.5, "zoomTo": 1.05}],
             "letterbox": 2.39, "fadeIn": 0.5, "fadeOut": 1.0,
         }
         Image.new("RGBA", (400, 200), (220, 20, 20, 255)).save(self.root / "card.png")
@@ -123,13 +124,14 @@ class Media(unittest.TestCase):
         self.assertEqual(verify["evidence"]["predicates"], {"deliverable": True, "wrong_length": False, "too_small": False})
         self.assertEqual({n: (self.root / n).read_bytes() for n in originals}, originals)
         # The card is composited only inside its window: absent at 5 s, centred red at 9 s.
-        def pixel(at):
+        def pixel(at, row=180):
             frame = subprocess.run(["ffmpeg", "-v", "error", "-ss", str(at), "-i", str(self.root / "OCADE output/edit.mp4"),
                                     "-frames:v", "1", "-f", "rawvideo", "-pix_fmt", "rgb24", "-"], capture_output=True).stdout
-            middle = (180 * 640 + 320) * 3
-            return tuple(frame[middle:middle + 3])
+            at_pixel = (row * 640 + 320) * 3
+            return tuple(frame[at_pixel:at_pixel + 3])
         self.assertGreater(pixel(9)[0], 150)
         self.assertNotEqual(pixel(5), pixel(9))
+        self.assertLess(max(pixel(9, row=30)), 30)  # the letterbox stays on top of a full-frame image
 
     @unittest.skipUnless(BROWSER, "needs a Chromium executable")
     def test_scene_render_is_bound_to_its_saved_project(self):
