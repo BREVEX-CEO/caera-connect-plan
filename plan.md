@@ -1,5 +1,28 @@
 # OCADE JARVIS — Master Engineering and Execution Plan for Claude Opus 5.5
 
+## CURRENT OWNER OVERRIDE — 31 OCTOBER 2026: NO-COST STAGING + TWO MEDIA ACCEPTANCE TASKS
+
+**This is the latest owner instruction and supersedes earlier CODE-FIRST/TEST-LATER sequencing in this document; do not delete the historical checkpoints.** Reuse the actual branch HEAD and the implemented code, fix defects, run authorized isolated tests in the same engineering pass, and distinguish code written from real-task proof. Continue other safe work if a resource is unavailable. This section does **not** authorize main merge, new deployment, any paid resource, GitHub Actions, production mutations, or using the owner's PC/profile/files/phone. Do not create paid Supabase branches or projects.
+
+**Available staging boundary (checked 31 October 2026):** Existing `OCADE staging 20261019` project `auyapercxxptziyngycx` is ACTIVE_HEALTHY, contains JARVIS tables, and exposes deployed Edge Functions `ocade-intelligence` and `ocade-intelligence-service`. It **does not expose `jarvis-planner`** at this checkpoint. Stage metadata, schema and security advisors may be inspected; read and write only synthetic data in explicitly isolated test accounts where authorization and no-production impact are verified. No Edge Function deployment is implied: enabling the planner would require a separate staging-deploy authorization and its matching server-side `JARVIS_PLANNER_KEY`, account-level online-AI consent, and provider key slots. Publishable Supabase keys are NOT provider secrets or a substitute for the planner shared secret. Never retrieve or display provider secrets in logs/prompts.
+
+**Compute/runtime rule:** Cost ceiling is absolute ₹0. Do not use GitHub Actions. Prefer already free and available disposable local/Linux browser containers; free and explicitly provisioned Windows/macOS VM only if actually available, with a lawful OS/software license and interactive desktop. No VM or installer may be portrayed as verified if missing. Docker/Linux/Xvfb can prove browser workflows but not native Windows UIA, Excel COM or macOS TCC. No payment, paid sign-up, free trial requiring card, or account-creation workflow for the requested media acceptance examples.
+
+**First two acceptance outcomes (priority to prove, not app-specific routing hardcodes):**
+
+1. **Photo enhancement:** Start from an authorized ordinary photograph (synthetic or appropriately licensed test source if owner has not supplied an image); use a genuinely free no-sign-up web editor when its operation is supportable. Sharpen/color-grade and add requested visual detail, export **3840×2160** where the aspect ratio permits, preserve the original, provide a directly accessible edited file and genuine browser evidence. Distinguish pixel upscale from recovered native detail. A locally produced sample may be delivered as an artifact but must NOT be reported as a successful real third-party editor/OCADE autonomous run.
+2. **One-minute cinematic AI video:** Produce a **60-second** playable MP4 about artificial intelligence, with legally usable original/synthetic footage, cinematic composition/color/titles/audio and a directly accessible clip. Prefer a verified free, no-sign-up real web editor with Playwright/DOM-capability operation and capture the actual edit, timeline, export and independent FFprobe/frame/audio checks; if external editor use is blocked, deliver a truthful native-rendered demonstration separately and mark browser/OCADE end-to-end NOT VERIFIED. Never imply that rendering with FFmpeg proves web editing.
+
+**Zero hardcoded application journeys is non-negotiable, not zero format support:** Do not special-case the two named acceptance tasks in production routing, model instructions, browser selectors or UI. Discover actual supported installed apps, OS file associations, accessible UI controls, available approved APIs/MCP tools and verified format handlers by typed capability. Select based on authorization, target, preconditions, quality and risk. Allowed: reusable, well-tested file-format parsers/codecs and approved specialist adapters, registered as capability descriptors. Disallowed: globally fixed app lists, installer assumptions, app-name aliases, site-specific action scripts masquerading as universal intelligence, or scripts generated/executed without a real sandbox and explicit policy. Test with unfamiliar alternative apps and deny unsupported requests truthfully.
+
+**Cross-platform correctness:** Common task contracts, resource leases, journal, supervisor/verifier and MCP transport; Windows-specific COM/UIA/MSIX/DPAPI and macOS-specific Accessibility/AppleEvents/Launch Services/Keychain/TCC in narrow per-platform drivers. Never assert permanent UI identifiers, universal minimized/hidden window automation, bypass of UAC/TCC or a fixed STOP timing without measurement. External MCP virtualenv is dependency isolation but not a security sandbox. Use the official MCP SDK, not a custom framing implementation. On lost ACK, reconcile external side effects before retry. On model outage, pause JARVIS safely; Offline Chat remains a different product and is never a silent JARVIS fallback.
+
+**Staging, browser and UX test coverage:** Check the signed-in JARVIS task path only with real test accounts, approved existing hosting, live model consent and safely configured secrets. If missing, mark BLOCKED and retain evidence. Run permitted real browser flows (read, forms with no unintended submissions, upload/download, iframe/popup, redirect/origin enforcement, screenshot, recovery) and the two media workflows; collect genuine screenshots/trace, SHA-256 and independent verifier output. Improve the text-first chat/task composer, actionable error copy, responsive UI, permissions, progress and accessible STOP/Take Over/Resume without visual bloat. Follow P00–P22 and 236 traceability entries; fix bugs, retest, measure real success and perform safe debloat without LOC quotas or removing tests/security.
+
+**Research interpretation:** The new attached research is preserved IN FULL in Annex F for source traceability. Its numerical speed/reliability claims, native OS privilege prescriptions, auto-install/AST patch ideas, custom stdio protocols, and local fallback examples are HISTORICAL PROPOSALS, not authorization, verified evidence or superseding production contracts. Refer to the current authoritative §§0–30, security rules, actual capabilities and owner decisions when implementing. Explicitly record accepted/rejected/conditional research concepts rather than blindly copying runtime instructions.
+
+
+
 ## Immediate owner directive — CODE FIRST, complete P00–P22 implementation before testing
 
 **Current assignment: finish the entire source-code implementation, not a milestone demo or a test campaign. This directive governs the implementation workflow wherever later sections describe evidence-gated or test-first package exits.** Keep all product requirements, security boundaries, and release criteria; change their **order of execution**, not their meaning.
@@ -2504,3 +2527,1771 @@ Base `ad46d5e`; environment: disposable Linux container (PostgreSQL 16 + Supabas
 - **Tests run (all PASS on this tree):** SQL authority (incl. confirmation, Take Over/Resume, waiting, exact app/site/MCP grants), Node contract/planner/E2E (16, incl. Journey 1 and a model-planned task through a scripted planner endpoint — L2), Python gateway/agent/sandbox/catalog/media/web (incl. WEB-001…014 and IMG-002 on a controlled HTTPS fixture, example.com read, real Chromium).
 - **Measured:** catalog load 10/100/1000/5000 manifests in 0.014/0.12/1.3/6.6 s after compiling validators once (was 42.9 s at 5000); active external servers 1–16, ~65 MiB RSS each, 16 activated and called in 5.5 s on 4 vCPU.
 - **BLOCKED:** Windows (WIN-001…010, UIA, PyAutoGUI, COM, installer, DPAPI), real third-party MCP execution (sandbox policy denied running downloaded code), third-party web photo/video editors (none owner-approved), signed-in UI journeys (hosted auth), real model planning quality and the architecture comparison (§16/§18), signing. **NOT IMPLEMENTED:** chess and CAD capabilities (no engine/app to bind to), image content understanding (needs vision model).
+
+# Annex F — 31 October 2026 external research, full source transcript
+
+**Source:** `Pasted text(20261031-074942).txt`, 1,761 original lines. Verbatim source stored below to avoid losing technical concepts and contradictions. All requirements must be reconciled with the current owner override and existing authoritative plan; reference research cannot grant executable permissions or establish real test success.
+
+~~~~text
+Part 1: Detailed Deconstruction of All Explored Concepts
+
+To successfully implement this architecture within a cloud runtime environment using Claude Opus 5.5, you must understand the exact purpose, mechanics, and design constraints of the 143 internal concepts, architectural layers, and system models established throughout this design cycle.
+
+1. The Model Context Protocol (MCP) Framework
+
+• Definition & Mechanics: MCP is an open-source, stateful, transport-agnostic client-server protocol based on JSON-RPC 2.0. It decouples the intelligence layer (the LLM) from the execution layer (the local system tools). Instead of hardcoding function interfaces directly into the LLM context wrapper, the host application executes an MCP client that dynamically negotiates capabilities with independent MCP servers.
+• The Three Pillars:
+	1. Tools: Executable functions with input JSON schemas that let the agent act.
+	2. Resources: Stateful, URI-addressable, read-only data streams that let the agent inspect.
+	3. Prompts: Reusable system templates that steer workflow strategies.
+• How it applies here: Rather than writing massive scripts for specific versions of apps, we implement a universal, isolated MCP server layer. The local LLM calls these standard protocol contracts, ensuring the agent remains application-agnostic.
+
+2. Outcome-Driven Adaptive Verified Hierarchical Hybrid Control (ODAVHHC)
+
+This is the closed-loop optimization engine that replaces traditional, linear planning vectors.
+• Outcome-Driven Formulation: The system rejects explicit checklists. It converts a natural language prompt into a quantitative State Success Matrix (e.g., target performance metrics, structural tree state targets, file checksum outputs). The task is not finished until these metrics evaluate to a perfect 0-loss state.
+• Adaptive Receding Horizon Mechanics: Modeled after self-driving car trajectory controllers, the agent computes an optimal sequence of micro-actions but only executes the immediate first micro-action. The loop then refreshes, re-inspects the environment, updates the trajectory model, and executes the next action. This makes the system resilient against application lags, layout updates, and sudden human interventions.
+• Hierarchical Division: Splits execution into a high-level creative strategist model (the Director) and lightweight, isolated low-level worker models (the Actuators).
+• Hybrid Execution Layer: Combines deterministic, hidden background processing systems (code and script execution) with structural interface automation maps.
+
+3. Native OS Accessibility Tree Inspection & Structural Window Locking
+
+• The Concept: Standard visual automation bots capture screenshots, use vision layers to find pixels, and move the physical mouse cursor. This breaks if a window is scaled, overlapping, minimized, or moved across monitors.
+• The Solution: Every desktop application maintains a hidden, programmatic blueprint called an Accessibility Tree (managed by Microsoft UI Automation (UIA) on Windows and AXUIElement on macOS). This tree assigns unchangeable memory identifiers (AutomationIDs or Class Names) to every button, slider, and text container.
+• Structural Locking: The platform driver communicates straight through the OS kernel handle space. The window can be scaled down to 10 pixels, hidden behind multiple layers, or dragged to an inactive background desktop; the execution commands reach the element's exact memory address with absolute precision.
+
+4. Asynchronous stdio IPC Multiplexing
+
+• The Concept: Network protocols like HTTP endpoints, WebSockets, or gRPC frameworks introduce TCP handshakes, socket connection delays, and networking overhead.
+• The Solution: The supervisor handles child worker processes using raw, asynchronous standard input/output text pipelines (stdio). Data passes between modules instantly via length-prefixed JSON frames in your local RAM block, reducing communication latency down to zero milliseconds.
+
+5. Context-Isolated Semantic Routing & Pre-compiled Namespaces
+
+• The Concept: Exposing 50+ tools simultaneously to a single LLM context window triggers massive token bloat, high costs, and tool selection errors.
+• The Solution: Tools are organized into separated compartments protected by strict domain prefixes (sys_, ui_, web_, vid_, doc_). The supervisor reads your intent prompt, runs a fast, localized word-matching matrix, and dynamically injects only the specific compartment prefix required for that sub-task into the LLM context window.
+
+6. AST Patching & Self-Healing Telemetry Loops
+
+• The Concept: When a traditional automation script hits an interface error, it crashes, causing manual workflow interruptions.
+• The Solution: Every operation runs inside a rigorous Sense-Act-Verify check. The moment an action is executed, a telemetry sensor inspects the application's internal property states. If a mismatch or system error occurs, the Self-Healing Engine intercepts the trace, routes the script through an Abstract Syntax Tree (AST) patcher to swap out invalid targets, and retries alternative system pathways automatically.
+
+Part 2: Step-by-Step Phased Coding Strategy
+
+To build this architecture smoothly within a cloud platform using Claude Opus 5.5, you must follow this progressive roadmap:
+[ Phase 1: Core Type Contracts ] ──► [ Phase 2: Stdio IPC Core ] ──► [ Phase 3: Semantic Router ]
+                                                                             │
+ ┌───────────────────────────────────────────────────────────────────────────┘
+ ▼
+[ Phase 4: Windows Platform Driver ] ──► [ Phase 5: Verification & Healing ] ──► [ Phase 6: Production Test ]
+• Phase 1: Define Core Type Contracts (core/types.py): Lay down the structures for namespaces, telemetry status vectors, and outcome success criteria.
+• Phase 2: Build the Stdio IPC Core (core/ipc.py): Code the length-prefixed JSON framing serialization engine to ensure fast, reliable message handling.
+• Phase 3: Code the Semantic Router (core/router.py): Set up the compartment toolboxes, regex validation layers, and word-matching matrixes.
+• Phase 4: Implement the Windows Platform Driver (platforms/windows.py): Create the low-level hooks into Microsoft’s UIA framework for background targeting and user concurrency detection.
+• Phase 5: Deploy the Verification & Healing Modules (telemetry/): Write the property polling verifiers and the AST code patchers.
+• Phase 6: Assemble the Supervisor & Production Test Runs (main.py & Docker): Wire the sub-systems into the central manager loop, configure container steps, and launch non-planned execution tests.
+
+Part 3: The Complete Production Codebase
+
+Below is the production-ready code layout for the local system agent architecture.
+
+1. Directory Blueprint
+
+universal_agent/
+│
+├── Dockerfile
+├── docker-compose.yml
+├── requirements.txt
+├── main.py
+│
+├── core/
+│   ├── __init__.py
+│   ├── types.py
+│   ├── ipc.py
+│   └── router.py
+│
+├── platforms/
+│   ├── __init__.py
+│   ├── base.py
+│   └── windows.py
+│
+└── telemetry/
+    ├── __init__.py
+    ├── verifier.py
+    └── self_healing.py
+
+2. File Implementations
+
+
+core/types.py
+
+python
+import enum
+import dataclasses
+from typing import Dict, Any, List
+
+class DomainNamespace(enum.Enum):
+    SYSTEM = "sys_"
+    UI = "ui_"
+    WEB = "web_"
+    VIDEO = "vid_"
+    OFFICE = "doc_"
+
+@dataclasses.dataclass(frozen=True)
+class TelemetryStateVector:
+    timestamp: float
+    process_id: int
+    window_handle: int
+    active_namespace: str
+    element_count: int
+    metrics: Dict[str, Any]
+
+@dataclasses.dataclass
+class TargetStateObjective:
+    id: str
+    namespace: DomainNamespace
+    telemetry_conditions: Dict[str, Any]
+    perfection_threshold: float
+    max_mutation_depth: int
+Use code with caution.
+
+core/ipc.py
+
+python
+import sys
+import json
+import struct
+import asyncio
+import logging
+from typing import Dict, Any, Optional
+
+logger = logging.getLogger("UniversalAgent.IPC")
+
+class StdioLengthPrefixedProtocol:
+    def __init__(self):
+        self.reader: Optional[asyncio.StreamReader] = None
+        self.writer: Optional[asyncio.StreamWriter] = None
+        self._mutex = asyncio.Lock()
+
+    async def initialize(self) -> None:
+        loop = asyncio.get_running_loop()
+        self.reader = asyncio.StreamReader(loop=loop)
+        protocol = asyncio.StreamReaderProtocol(self.reader, loop=loop)
+        await loop.connect_read_pipe(lambda: protocol, sys.stdin)
+        w_transport, w_protocol = await loop.connect_write_pipe(
+            lambda: asyncio.WriteStreamProtocol(sys.stdout), sys.stdout
+        )
+        self.writer = asyncio.StreamWriter(w_transport, w_protocol, self.reader, loop)
+
+    async def transmit(self, message: Dict[str, Any]) -> None:
+        async with self._mutex:
+            try:
+                raw_bytes = json.dumps(message).encode('utf-8')
+                prefix = struct.pack("!I", len(raw_bytes))
+                self.writer.write(prefix + raw_bytes)
+                await self.writer.drain()
+            except Exception as ex:
+                logger.error(f"[IPC Write Failure] Native pipe stream collision: {str(ex)}")
+                raise
+
+    async def receive(self) -> Optional[Dict[str, Any]]:
+        try:
+            prefix = await self.reader.readexactly(4)
+            if not prefix:
+                return None
+            length = struct.unpack("!I", prefix)[0]
+            raw_bytes = await self.reader.readexactly(length)
+            return json.loads(raw_bytes.decode('utf-8'))
+        except asyncio.IncompleteReadError:
+            return None
+        except Exception as ex:
+            logger.error(f"[IPC Read Failure] Native pipe parsing corruption: {str(ex)}")
+            return None
+Use code with caution.
+
+core/router.py
+
+python
+import re
+import math
+from typing import Dict, List, Any, Tuple
+from .types import DomainNamespace
+
+class SemanticHierarchicalRouter:
+    def __init__(self):
+        self.toolboxes: Dict[str, Dict[str, Any]] = {}
+        self.vocabulary: Dict[str, int] = {}
+        self.index_vectors: Dict[str, List[float]] = {}
+        self.namespace_regex = re.compile(r"^[a-z0-9_]+$")
+        self._initialize_semantic_lexicon()
+
+    def _initialize_semantic_lexicon(self) -> None:
+        lexicon = ["click", "window", "resize", "ui", "element", "file", "directory", 
+                   "copy", "path", "browser", "scrape", "dom", "url", "video", "timeline",
+                   "office", "excel", "document", "word", "outlook"]
+        for idx, token in enumerate(lexicon):
+            self.vocabulary[token] = idx
+
+    def _compute_cosine_vector(self, plain_text: str) -> List[float]:
+        vector = [0.0] * len(self.vocabulary)
+        normalized_tokens = re.findall(r"\w+", plain_text.lower())
+        for token in normalized_tokens:
+            if token in self.vocabulary:
+                vector[self.vocabulary[token]] += 1.0
+        square_sum = sum(v ** 2 for v in vector)
+        if square_sum == 0.0:
+            return vector
+        magnitude = math.sqrt(square_sum)
+        return [v / magnitude for v in vector]
+
+    def register_mcp_toolbox(self, namespace: DomainNamespace, descriptor: str, schema: List[Dict[str, Any]]) -> None:
+        prefix = namespace.value
+        if not self.namespace_regex.match(prefix):
+            raise ValueError(f"Prefix '{prefix}' violates system token criteria.")
+        
+        isolated_map = {}
+        for signature in schema:
+            name = signature.get("name", "")
+            if not name.startswith(prefix):
+                raise ValueError(f"Tool signature structural violation. Expected prefix: {prefix}")
+            isolated_map[name] = signature
+            
+        self.toolboxes[prefix] = {"description": descriptor, "tools": isolated_map}
+        self.index_vectors[prefix] = self._compute_cosine_vector(descriptor)
+
+    def route_intent_context(self, prompt: str) -> Tuple[str, List[Dict[str, Any]]]:
+        target_vector = self._compute_cosine_vector(prompt)
+        max_similarity = -1.0
+        matched_prefix = "sys_"
+        
+        for prefix, baseline_vector in self.index_vectors.items():
+            similarity = sum(t * b for t, b in zip(target_vector, baseline_vector))
+            if similarity > max_similarity:
+                max_similarity = similarity
+                matched_prefix = prefix
+                
+        active_toolbox = self.toolboxes.get(matched_prefix, {"tools": {}})
+        return matched_prefix, list(active_toolbox["tools"].values())
+
+    def validate_action_route(self, chosen_tool_name: str, active_prefix_lock: str) -> bool:
+        if matched_toolbox := self.toolboxes.get(active_prefix_lock):
+            return chosen_tool_name in matched_toolbox["tools"]
+        return False
+Use code with caution.
+
+platforms/base.py
+
+python
+from abc import ABC, abstractmethod
+from typing import Dict, Any
+
+class AbstractOSDriver(ABC):
+    @abstractmethod
+    def scan_application_tree(self, process_identifier: Any) -> Dict[str, Any]: pass
+
+    @abstractmethod
+    def dispatch_element_mutation(self, target_automation_id: str, action_payload: Dict[str, Any]) -> bool: pass
+
+    @abstractmethod
+    def read_telemetry_properties(self, target_automation_id: str) -> Dict[str, Any]: pass
+
+    @abstractmethod
+    def verify_user_concurrency(self) -> bool: pass
+Use code with caution.
+
+platforms/windows.py
+
+python
+import os
+import ctypes
+import logging
+from typing import Dict, Any, Optional
+from .base import AbstractOSDriver
+
+try:
+    import pywinauto
+    from pywinauto import Application
+except ImportError:
+    pywinauto = None
+
+logger = logging.getLogger("UniversalAgent.WindowsUIA")
+
+class WindowsNativeUIADriver(AbstractOSDriver):
+    def __init__(self):
+        self.user32 = ctypes.windll.user32 if os.name == 'nt' else None
+        self.connected_pid: Optional[int] = None
+        self.runtime_app: Optional[Any] = None
+        self.hardware_cursor_baseline = (0, 0)
+        self.update_peripheral_telemetry()
+
+    def update_peripheral_telemetry(self) -> None:
+        if not self.user32: return
+        class POINT(ctypes.Structure):
+            _fields_ = [("x", ctypes.c_long), ("y", ctypes.c_long)]
+        pt = POINT()
+        self.user32.GetCursorPos(ctypes.byref(pt))
+        self.hardware_cursor_baseline = (pt.x, pt.y)
+
+    def verify_user_concurrency(self) -> bool:
+        if not self.user32: return False
+        class POINT(ctypes.Structure):
+            _fields_ = [("x", ctypes.c_long), ("y", ctypes.c_long)]
+        pt = POINT()
+        self.user32.GetCursorPos(ctypes.byref(pt))
+        dx = abs(pt.x - self.hardware_cursor_baseline)
+        dy = abs(pt.y - self.hardware_cursor_baseline)
+        if dx > 6 or dy > 6:
+            self.hardware_cursor_baseline = (pt.x, pt.y)
+            return True
+        return False
+
+    def scan_application_tree(self, process_identifier: Any) -> Dict[str, Any]:
+        if pywinauto is None: return {"error": "Missing pywinauto dependency"}
+        pid = int(process_identifier)
+        try:
+            if self.connected_pid != pid:
+                self.connected_pid = pid
+                self.runtime_app = Application(backend="uia").connect(process=pid)
+            window_root = self.runtime_app.window(top_level_only=True)
+            return self._serialize_element_node(window_root.element_info)
+        except Exception as ex:
+            logger.error(f"[UIA Extraction Drop] Failure crawling accessibility handles: {str(ex)}")
+            return {}
+
+    def _serialize_element_node(self, element: Any) -> Dict[str, Any]:
+        try:
+            return {
+                "id": str(element.automation_id).strip(),
+                "name": str(element.name).strip(),
+                "class": str(element.control_type).strip(),
+                "children": [self._serialize_element_node(c) for c in element.children]
+            }
+        except Exception:
+            return {"id": "", "name": "", "class": "", "children": []}
+
+    def dispatch_element_mutation(self, target_automation_id: str, action_payload: Dict[str, Any]) -> bool:
+        if not self.runtime_app: return False
+        try:
+            frame = self.runtime_app.window(top_level_only=True)
+            component = frame.child_window(auto_id=target_automation_id)
+            op = action_payload.get("type")
+            if op == "input_text":
+                component.set_edit_text(action_payload["value"])
+                return True
+            elif op == "invoke_click":
+                component.invoke()
+                return True
+            return False
+        except Exception as ex:
+            logger.error(f"[UIA Actuator Failure] Structural memory injection missing targeting: {str(ex)}")
+            return False
+
+    def read_telemetry_properties(self, target_automation_id: str) -> Dict[str, Any]:
+        if not self.runtime_app: return {}
+        try:
+            frame = self.runtime_app.window(top_level_only=True)
+            component = frame.child_window(auto_id=target_automation_id)
+            return {
+                "value": str(component.get_value()),
+                "visible": bool(component.is_visible()),
+                "enabled": bool(component.is_enabled())
+            }
+        except Exception:
+            return {"value": "", "visible": False, "enabled": False}
+Use code with caution.
+
+telemetry/verifier.py
+
+python
+import time
+import asyncio
+import logging
+from typing import Dict, Any
+
+logger = logging.getLogger("UniversalAgent.StateVerifier")
+
+class ClosedLoopStateVerifier:
+    def __init__(self, platform_driver: Any):
+        self.driver = platform_driver
+
+    async def verify_target_conditions(self, target_id: str, criteria: Dict[str, Any], timeout_ms: int = 2000) -> bool:
+        start_time = time.perf_counter()
+        polling_cadence_seconds = 0.010  
+        
+        while (time.perf_counter() - start_time) * 1000.0 < timeout_ms:
+            live_properties = self.driver.read_telemetry_properties(target_id)
+            match_converged = True
+            
+            for key, expected_value in criteria.items():
+                if live_properties.get(key) != expected_value:
+                    match_converged = False
+                    break
+                    
+            if match_converged:
+                logger.info(f"[State Converged Matrix] Verified telemetry matching cleanly for element component: {target_id}")
+                return True
+                
+            await asyncio.sleep(polling_cadence_seconds)
+            
+        logger.error(f"[Telemetry Mismatch Exception] Bounded verification time limit breached on target structural register: {target_id}")
+        return False
+Use code with caution.
+
+telemetry/self_healing.py
+
+python
+import ast
+import inspect
+import logging
+from typing import Dict, Any, Callable
+
+logger = logging.getLogger("UniversalAgent.SelfHealing")
+
+class ASTCompilationRemediator(ast.NodeTransformer):
+    def __init__(self, faulty_id: str, replacement_id: str):
+        self.faulty_id = faulty_id
+        self.replacement_id = replacement_id
+
+    def visit_Constant(self, node: ast.Constant) -> ast.AST:
+        if isinstance(node.value, str) and node.value == self.faulty_id:
+            return ast.copy_location(ast.Constant(value=self.replacement_id), node)
+        return self.generic_visit(node)
+
+class ExecutionSelfHealingEngine:
+    def __init__(self):
+        self.remediation_routing: Dict[str, str] = {}
+
+    def map_remediation_fallback(self, faulty_id: str, working_id: str) -> None:
+        self.remediation_routing[faulty_id] = working_id
+
+    def execute_with_runtime_healing(self, functional_lambda: Callable, target_id: str, *args, **kwargs) -> Any:
+        try:
+            return functional_lambda(target_id, *args, **kwargs)
+        except Exception as runtime_ex:
+            if target_id in self.remediation_routing:
+                healed_id = self.remediation_routing[target_id]
+                logger.info(f"[Self-Healing Execution] Re-routing action sequence layout
+core/router.py
+
+python
+import re
+import math
+from typing import Dict, List, Any, Tuple
+from .types import DomainNamespace
+
+class SemanticHierarchicalRouter:
+    def __init__(self):
+        self.toolboxes: Dict[str, Dict[str, Any]] = {}
+        self.vocabulary: Dict[str, int] = {}
+        self.index_vectors: Dict[str, List[float]] = {}
+        self.namespace_regex = re.compile(r"^[a-z0-9_]+$")
+        self._initialize_semantic_lexicon()
+
+    def _initialize_semantic_lexicon(self) -> None:
+        lexicon = ["click", "window", "resize", "ui", "element", "file", "directory", 
+                   "copy", "path", "browser", "scrape", "dom", "url", "video", "timeline",
+                   "office", "excel", "document", "word", "outlook"]
+        for idx, token in enumerate(lexicon):
+            self.vocabulary[token] = idx
+
+    def _compute_cosine_vector(self, plain_text: str) -> List[float]:
+        vector = [0.0] * len(self.vocabulary)
+        normalized_tokens = re.findall(r"\w+", plain_text.lower())
+        for token in normalized_tokens:
+            if token in self.vocabulary:
+                vector[self.vocabulary[token]] += 1.0
+        square_sum = sum(v ** 2 for v in vector)
+        if square_sum == 0.0:
+            return vector
+        magnitude = math.sqrt(square_sum)
+        return [v / magnitude for v in vector]
+
+    def register_mcp_toolbox(self, namespace: DomainNamespace, descriptor: str, schema: List[Dict[str, Any]]) -> None:
+        prefix = namespace.value
+        if not self.namespace_regex.match(prefix):
+            raise ValueError(f"Prefix '{prefix}' violates system token criteria.")
+        
+        isolated_map = {}
+        for signature in schema:
+            name = signature.get("name", "")
+            if not name.startswith(prefix):
+                raise ValueError(f"Tool signature structural violation. Expected prefix: {prefix}")
+            isolated_map[name] = signature
+            
+        self.toolboxes[prefix] = {"description": descriptor, "tools": isolated_map}
+        self.index_vectors[prefix] = self._compute_cosine_vector(descriptor)
+
+    def route_intent_context(self, prompt: str) -> Tuple[str, List[Dict[str, Any]]]:
+        target_vector = self._compute_cosine_vector(prompt)
+        max_similarity = -1.0
+        matched_prefix = "sys_"
+        
+        for prefix, baseline_vector in self.index_vectors.items():
+            similarity = sum(t * b for t, b in zip(target_vector, baseline_vector))
+            if similarity > max_similarity:
+                max_similarity = similarity
+                matched_prefix = prefix
+                
+        active_toolbox = self.toolboxes.get(matched_prefix, {"tools": {}})
+        return matched_prefix, list(active_toolbox["tools"].values())
+
+    def validate_action_route(self, chosen_tool_name: str, active_prefix_lock: str) -> bool:
+        if matched_toolbox := self.toolboxes.get(active_prefix_lock):
+            return chosen_tool_name in matched_toolbox["tools"]
+        return False
+Use code with caution.
+
+platforms/base.py
+
+python
+from abc import ABC, abstractmethod
+from typing import Dict, Any
+
+class AbstractOSDriver(ABC):
+    @abstractmethod
+    def scan_application_tree(self, process_identifier: Any) -> Dict[str, Any]: pass
+
+    @abstractmethod
+    def dispatch_element_mutation(self, target_automation_id: str, action_payload: Dict[str, Any]) -> bool: pass
+
+    @abstractmethod
+    def read_telemetry_properties(self, target_automation_id: str) -> Dict[str, Any]: pass
+
+    @abstractmethod
+    def verify_user_concurrency(self) -> bool: pass
+Use code with caution.
+
+platforms/windows.py
+
+python
+import os
+import ctypes
+import logging
+from typing import Dict, Any, Optional
+from .base import AbstractOSDriver
+
+try:
+    import pywinauto
+    from pywinauto import Application
+except ImportError:
+    pywinauto = None
+
+logger = logging.getLogger("UniversalAgent.WindowsUIA")
+
+class WindowsNativeUIADriver(AbstractOSDriver):
+    def __init__(self):
+        self.user32 = ctypes.windll.user32 if os.name == 'nt' else None
+        self.connected_pid: Optional[int] = None
+        self.runtime_app: Optional[Any] = None
+        self.hardware_cursor_baseline = (0, 0)
+        self.update_peripheral_telemetry()
+
+    def update_peripheral_telemetry(self) -> None:
+        if not self.user32: return
+        class POINT(ctypes.Structure):
+            _fields_ = [("x", ctypes.c_long), ("y", ctypes.c_long)]
+        pt = POINT()
+        self.user32.GetCursorPos(ctypes.byref(pt))
+        self.hardware_cursor_baseline = (pt.x, pt.y)
+
+    def verify_user_concurrency(self) -> bool:
+        if not self.user32: return False
+        class POINT(ctypes.Structure):
+            _fields_ = [("x", ctypes.c_long), ("y", ctypes.c_long)]
+        pt = POINT()
+        self.user32.GetCursorPos(ctypes.byref(pt))
+        dx = abs(pt.x - self.hardware_cursor_baseline)
+        dy = abs(pt.y - self.hardware_cursor_baseline)
+        if dx > 6 or dy > 6:
+            self.hardware_cursor_baseline = (pt.x, pt.y)
+            return True
+        return False
+
+    def scan_application_tree(self, process_identifier: Any) -> Dict[str, Any]:
+        if pywinauto is None: return {"error": "Missing pywinauto dependency"}
+        pid = int(process_identifier)
+        try:
+            if self.connected_pid != pid:
+                self.connected_pid = pid
+                self.runtime_app = Application(backend="uia").connect(process=pid)
+            window_root = self.runtime_app.window(top_level_only=True)
+            return self._serialize_element_node(window_root.element_info)
+        except Exception as ex:
+            logger.error(f"[UIA Extraction Drop] Failure crawling accessibility handles: {str(ex)}")
+            return {}
+
+    def _serialize_element_node(self, element: Any) -> Dict[str, Any]:
+        try:
+            return {
+                "id": str(element.automation_id).strip(),
+                "name": str(element.name).strip(),
+                "class": str(element.control_type).strip(),
+                "children": [self._serialize_element_node(c) for c in element.children]
+            }
+        except Exception:
+            return {"id": "", "name": "", "class": "", "children": []}
+
+    def dispatch_element_mutation(self, target_automation_id: str, action_payload: Dict[str, Any]) -> bool:
+        if not self.runtime_app: return False
+        try:
+            frame = self.runtime_app.window(top_level_only=True)
+            component = frame.child_window(auto_id=target_automation_id)
+            op = action_payload.get("type")
+            if op == "input_text":
+                component.set_edit_text(action_payload["value"])
+                return True
+            elif op == "invoke_click":
+                component.invoke()
+                return True
+            return False
+        except Exception as ex:
+            logger.error(f"[UIA Actuator Failure] Structural memory injection missing targeting: {str(ex)}")
+            return False
+
+    def read_telemetry_properties(self, target_automation_id: str) -> Dict[str, Any]:
+        if not self.runtime_app: return {}
+        try:
+            frame = self.runtime_app.window(top_level_only=True)
+            component = frame.child_window(auto_id=target_automation_id)
+            return {
+                "value": str(component.get_value()),
+                "visible": bool(component.is_visible()),
+                "enabled": bool(component.is_enabled())
+            }
+        except Exception:
+            return {"value": "", "visible": False, "enabled": False}
+Use code with caution.
+
+telemetry/verifier.py
+
+python
+import time
+import asyncio
+import logging
+from typing import Dict, Any
+
+logger = logging.getLogger("UniversalAgent.StateVerifier")
+
+class ClosedLoopStateVerifier:
+    def __init__(self, platform_driver: Any):
+        self.driver = platform_driver
+
+    async def verify_target_conditions(self, target_id: str, criteria: Dict[str, Any], timeout_ms: int = 2000) -> bool:
+        start_time = time.perf_counter()
+        polling_cadence_seconds = 0.010  
+        
+        while (time.perf_counter() - start_time) * 1000.0 < timeout_ms:
+            live_properties = self.driver.read_telemetry_properties(target_id)
+            match_converged = True
+            
+            for key, expected_value in criteria.items():
+                if live_properties.get(key) != expected_value:
+                    match_converged = False
+                    break
+                    
+            if match_converged:
+                logger.info(f"[State Converged Matrix] Verified telemetry matching cleanly for element component: {target_id}")
+                return True
+                
+            await asyncio.sleep(polling_cadence_seconds)
+            
+        logger.error(f"[Telemetry Mismatch Exception] Bounded verification time limit breached on target structural register: {target_id}")
+        return False
+Use code with caution.
+
+telemetry/self_healing.py
+
+python
+import ast
+import inspect
+import logging
+from typing import Dict, Any, Callable
+
+logger = logging.getLogger("UniversalAgent.SelfHealing")
+
+class ASTCompilationRemediator(ast.NodeTransformer):
+    def __init__(self, faulty_id: str, replacement_id: str):
+        self.faulty_id = faulty_id
+        self.replacement_id = replacement_id
+
+    def visit_Constant(self, node: ast.Constant) -> ast.AST:
+        if isinstance(node.value, str) and node.value == self.faulty_id:
+            return ast.copy_location(ast.Constant(value=self.replacement_id), node)
+        return self.generic_visit(node)
+
+class ExecutionSelfHealingEngine:
+    def __init__(self):
+        self.remediation_routing: Dict[str, str] = {}
+
+    def map_remediation_fallback(self, faulty_id: str, working_id: str) -> None:
+        self.remediation_routing[faulty_id] = working_id
+
+    def execute_with_runtime_healing(self, functional_lambda: Callable, target_id: str, *args, **kwargs) -> Any:
+        try:
+            return functional_lambda(target_id, *args, **kwargs)
+        except Exception as runtime_ex:
+            if target_id in self.remediation_routing:
+                healed_id = self.remediation_routing[target_id]
+                logger.info(f"[Self-Healing Execution] Re-routing action sequence layout directly to: {healed_id}")
+                return functional_lambda(healed_id, *args, **kwargs)
+            
+            try:
+                raw_source = inspect.getsource(functional_lambda)
+                parsed_tree = ast.parse(raw_source)
+                transformer = ASTCompilationRemediator(target_id, target_id + "_fallback_node")
+                transformer.visit(parsed_tree)
+                ast.fix_missing_locations(parsed_tree)
+                logger.info("[AST Mutation Execution] Successfully patch-compiled runtime worker strategies.")
+            except Exception as patch_err:
+                logger.error(f"AST patch engine failed to modify function parameters: {str(patch_err)}")
+                
+            raise runtime_ex
+Use code with caution.
+
+main.py
+
+python
+import sys
+import time
+import asyncio
+import logging
+from core.types import DomainNamespace, TargetStateObjective
+from core.ipc import StdioLengthPrefixedProtocol
+from core.router import SemanticHierarchicalRouter
+from platforms.windows import WindowsNativeUIADriver
+from telemetry.verifier import ClosedLoopStateVerifier
+from telemetry.self_healing import ExecutionSelfHealingEngine
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] (%(filename)s:%(lineno)d) -> %(message)s",
+    handlers=[logging.StreamHandler(sys.stderr)]
+)
+logger = logging.getLogger("UniversalAgent.Main")
+
+class CoreAgentSupervisor:
+    def __init__(self):
+        self.ipc = StdioLengthPrefixedProtocol()
+        self.router = SemanticHierarchicalRouter()
+        if sys.platform == "win32":
+            self.driver = WindowsNativeUIADriver()
+        else:
+            raise OSError(f"Execution engine platform target '{sys.platform}' is currently unsupported.")
+        
+        self.verifier = ClosedLoopStateVerifier(self.driver)
+        self.healer = ExecutionSelfHealingEngine()
+        self._register_mcp_namespaces()
+        self.horizon_cadence_hz = 0.005
+
+    def _register_mcp_namespaces(self) -> None:
+        self.router.register_mcp_toolbox(DomainNamespace.SYSTEM, "Low-level OS operations, filesystem management, direct disk IO actions.", [
+            {"name": "sys_run_command", "description": "Executes local CLI binaries interface blocks."},
+            {"name": "sys_move_file", "description": "Moves target asset structural tracks across hard disk parameters."}
+        ])
+        self.router.register_mcp_toolbox(DomainNamespace.UI, "Interface components, structural window manipulation controls via native accessibility frameworks.", [
+            {"name": "ui_invoke_action", "description": "Drives execution strings down target element AutomationIDs."},
+            {"name": "ui_focus_element", "description": "Locks context maps onto specific elements."}
+        ])
+        self.router.register_mcp_toolbox(DomainNamespace.OFFICE, "Microsoft Office suite automation engines, Excel workbook calculations, Word macro operations.", [
+            {"name": "doc_edit_cell", "description": "Modifies data cells inside spreadsheet layouts natively."},
+            {"name": "doc_format_paragraph", "description": "Applies typography styles across documents."}
+        ])
+
+    async def execute_horizon_loop(self, target_objective: TargetStateObjective, pid: int) -> bool:
+        self.healer.map_remediation_fallback("Btn_Submit_Legacy", "Btn_Submit_UIA_New")
+        target_automation_id = "Btn_Submit_Legacy"
+        action_stroke_payload = {"type": "invoke_click"}
+
+        while True:
+            if self.driver.verify_user_concurrency():
+                logger.critical("[Safety Shield Interrupt] Human hardware intervention caught. Yielding control instantly.")
+                return False
+
+            state_tree = self.driver.scan_application_tree(pid)
+            if not state_tree:
+                await asyncio.sleep(self.horizon_cadence_hz)
+                continue
+
+            namespace_lock, tools = self.router.route_intent_context(target_objective.id)
+            
+            try:
+                execution_success = self.healer.execute_with_runtime_healing(
+                    lambda target: self.driver.dispatch_element_mutation(target, action_stroke_payload),
+                    target_automation_id
+                )
+            except Exception:
+                execution_success = False
+
+            converged = await self.verifier.verify_target_conditions(
+                target_automation_id, target_objective.telemetry_conditions, timeout_ms=1000
+            )
+
+            if converged or execution_success:
+                logger.info("[Horizon Loop Convergence] Target metrics 1000% completed cleanly.")
+                return True
+
+            await asyncio.sleep(self.horizon_cadence_hz)
+
+    async def run(self) -> None:
+        await self.ipc.initialize()
+        logger.info("[IPC Stream Online] Subprocess cross-talk channels initialized.")
+        try:
+            while True:
+                payload = await self.ipc.receive()
+                if not payload: break
+                
+                intent = payload.get("intent", "")
+                pid = payload.get("target_pid", 0)
+                
+                objective = TargetStateObjective(
+                    id=intent,
+                    namespace=DomainNamespace.UI,
+                    telemetry_conditions={"enabled": "True", "visible": "True"},
+                    perfection_threshold=1.0,
+                    max_mutation_depth=5
+                )
+                
+                success = await self.execute_horizon_loop(objective, pid)
+                await self.ipc.transmit({"success": success, "timestamp": time.time()})
+        except Exception as fatal_ex:
+            logger.critical(f"[Supervisor Crash] Exception caught inside core loop: {str(fatal_ex)}")
+            sys.exit(1)
+
+if __name__ == "__main__":
+    supervisor = CoreAgentSupervisor()
+    asyncio.run(supervisor.run())
+Use code with caution.
+
+requirements.txt
+
+pywinauto==0.6.8; sys_platform == 'win32'
+pwin32==228; sys_platform == 'win32'
+
+Part 4: Docker Configuration Environment
+
+Because this architecture runs low-level operating system bindings and directly addresses Windows User32/UIA kernel layers, running it inside a standard Linux container will cause memory starvation errors.
+To safely containerize this for testing or deployment, you must build it within a Native Windows Container using a shell baseline configuration:
+
+Dockerfile
+
+dockerfile
+# Escape character parsing definitions for nested powershell paths
+# escape=`
+
+FROM ://microsoft.com
+
+SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
+
+# Install standalone Python binary distribution packages inside the server layer
+RUN Invoke-WebRequest -Uri https://python.org -OutFile python_setup.exe; `
+    Start-Process c:\python_setup.exe -ArgumentList '/quiet InstallAllUsers=1 PrependPath=1' -Wait; `
+    Remove-Item c:\python_setup.exe
+
+WORKDIR C:\universal_agent
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY . .
+
+# Run the master supervisor process over length-prefixed channels
+ENTRYPOINT ["python", "main.py"]
+Use code with caution.
+
+docker-compose.yml
+
+yaml
+version: '3.8'
+
+services:
+  agent_core:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    isolation: process # Grants container direct access to host kernel UIA window structures
+    network_mode: none # Absolute zero-cloud air-gapped configuration security enforcement
+    restart: unless-stopped
+Use code with caution.
+
+Part 5: Testing Tasks & Error Handling inside Claude Opus 5.5 Cloud Env
+
+When deploying this implementation using the Claude Opus 5.5 cloud environment, you need explicit scenarios to test the reactive loops and deal with system blockers.
+
+1. Core Testing Task Protocols
+
+To verify that your framework uses real-time adaptive loops instead of fragile, static checklists, run these two distinct test scenarios:
+• Test Task A: The Deep Office Structural Mutation Check:
+	• Action: Issue an intent prompt to modify target cell regions in a massive spreadsheet layout.
+	• Verification Criterion: Once the action fires, manually resize the interface layout window or drag it entirely out of view. The driver must use the structural tree to locate the target AutomationID handles and apply modifications with 0% coordinate misclicks.
+• Test Task B: The Real-Time Human Override Recovery Check:
+	• Action: Launch a multi-step document compilation operation. Mid-execution, grab your peripheral controls and click into an active text pane, changing values manually.
+	• Verification Criterion: The framework's internal telemetry verification check must instantly detect the value change, raise a state conflict flag, and dynamically recalculate the next micro-step from your new starting point without throwing an error box or crashing.
+
+2. Resolving Errors & System Blockers
+
+
+System Blocker A: The Microsoft Office UIA Window Lockout
+
+• The Problem: Heavy productivity software suites (like Excel or Word) often lock their internal property state registers when processing macro calculations or rendering sheets, returning empty text strings or UIA_E_ELEMENTNOTAVAILABLE errors.
+• The Strategy: If the closed-loop state verifier hits an interface lockout, it flags the exception. The self-healing engine catches the trace, passes the operation through the AST patcher, and automatically shifts its execution path—switching from structural UI clicks to silent, background VBA macros or direct file manipulation via openpyxl dynamically.
+
+System Blocker B: MCP Tool Namespace Contamination
+
+• The Problem: Managing multiple connected tool profiles can lead to tool selection errors
+System Blocker B: MCP Tool Namespace Contamination
+
+• The Problem: Managing multiple connected tool profiles can lead to tool selection errors if independent servers share generic command names (like read_file or execute_command).
+• The Strategy: The supervisor router enforces absolute prefix boundaries (sys_, ui_, doc_). By analyzing the initial intent prompt using its local vector space matrix, it isolates the active profile and hides all other tool descriptions. This keeps your execution loop fast and ensures the model can never accidentally fire an invalid or conflicting tool command.
+System Topology & Systemic Architecture
+
+                                  [ USER USER INTERACTION LAYER ]
+                                                 │
+                                                 ▼
+                             ┌──────────────────────────────────────┐
+                             │       Central Orchestrator Core      │
+                             │   (Contextual Receding Horizon Control)│
+                             └───────────────────┬──────────────────┘
+                                                 │
+                        ┌────────────────────────┼────────────────────────┐
+                        ▼                        ▼                        ▼
+           ┌────────────────────────┐┌────────────────────────┐┌────────────────────────┐
+           │ Dynamic Capability VDB ││ Semantic Namespace Router││ Local State Guard VDB  │
+           │  (App/API Discoverer)  ││   (Context Isolation)  ││  (Telemetry Registries)│
+           └────────────────────────┘└───────────┬────────────┘└────────────────────────┘
+                                                 │
+                                                 ▼
+                                     ┌──────────────────────┐
+                                     │  Unified MCP Gateway │
+                                     │ (JSON-RPC 2.0 Multiplex)
+                                     └───────────┬──────────┘
+                                                 │
+                        ┌────────────────────────┼────────────────────────┐
+                        ▼                        ▼                        ▼
+           ┌────────────────────────┐┌────────────────────────┐┌────────────────────────┐
+           │   OS Actuation Engine  ││   Deep Web Automation  ││  Deterministic Code    │
+           │  (Windows UIA Core /   ││  (Playwright Browser  ││     Sandbox Engine     │
+           │  macOS AXUIElement Core)││    Isolation Layer)    ││   (Python/PS/Bash)    │
+           └────────────────────────┘└────────────────────────┘└────────────────────────┘
+
+Part 1: Eliminating Hardcoded Applications, Components & Workflows
+
+To build a commercial AI agent that operates universally without hardcoded application lists, specific software adapters, or fixed workflows, you must shift from procedural automation to Dynamic Capability Descriptors. The system maps the entire desktop, application, and file environment as a fluid state-space, discovering capabilities on the fly.
+
+1. Dynamic Application & API Discovery
+
+Instead of checking a list of supported apps, the system executes an continuous OS Environment Introspection loop when it starts up or changes tasks.
+
+Executable & Capability Auditing
+
+• Windows: The system scans the system registry path mapping (HKLM\Software\Microsoft\Windows\CurrentVersion\Uninstall and HKCU\Software\Microsoft\Windows\CurrentVersion\Uninstall), evaluates environment variables (PATH), and queries AppX/MSI packages via PowerShell.
+• macOS: The system crawls /Applications, /System/Applications, and queries the Launch Services database (mdfind "kMDItemContentType == 'com.apple.application-bundle'").
+• Capability Extraction: For each discovered application, the system reads its structural properties: it extracts the binary metadata (Publisher, Description), queries available CLI help screens (--help, -h), inspects the application bundle's Info.plist (macOS) or file manifests (Windows) to map associated MIME types and supported document file formats, and queries internal loops for open COM/ActiveX interfaces (Windows) or AppleScript dictionary suites (osascript -e "copy app names to stdout").
+
+Native API & SDK Introspection
+
+The system scans local programming environments to detect third-party library footprints (e.g., Python site-packages like openpyxl, python-docx, or specialized SDK paths like Blackmagic DaVinci Resolve’s environment variables RESOLVE_SCRIPT_API).
+
+Local Vector Database Mapping
+
+All discovered attributes (executable paths, supported arguments, associated MIME extensions, available scripting interfaces) are compiled into a structured JSON string, converted into semantic vector embeddings using a lightweight local model, and stored in a Dynamic Capability Vector Database (VDB).
+
+2. On-the-Fly Workflow Composition
+
+When a user provides an abstract command ("Process this data profile and build a visual presentation"), the agent uses the following pipeline to build its workflow dynamically:
+
+Objective Vectorization
+
+The user prompt is vectorized and matched against the Dynamic Capability VDB. For example, if the prompt mentions an extension like .xlsx, the VDB matches it with Excel, a local Python script running openpyxl, or a Google Sheets headless web endpoint.
+
+Micro-Action Decomposition
+
+Instead of creating a rigid 20-step plan, a small, highly optimized local LLM acting as the Supervisor breaks the high-level objective down into intermediate Target State Vectors. For instance:
+• Target State 1: Raw data text extracted into a local CSV buffer file.
+• Target State 2: Spreadsheet application process initialized and holding a memory frame lock on that file.
+• Target State 3: Chart UI components generated and verified via the system's structural tree.
+
+Recursive Tool Synthesis
+
+The Supervisor queries the vector database to extract only the tools relevant to the current target state. It creates a dynamic subset of active tools, maps their inputs, and hands them off to the lower-level execution models.
+
+3. Handling Specialized Functions (Dynamic Extensions Architecture)
+
+Generic system interfaces cannot easily expose hyper-specialized actions, like complex timeline edits in video software or node layouts in CAD tools. To handle this without hardcoding, the system uses a Dynamic Injection Wrapper:
+
+Dynamic MCP Reflection
+
+When the system discovers an advanced, application-specific bridge (like the native DaVinci Resolve 21.1+ MCP server via File > Setup AI Assistant [1, 2]), the Unified MCP Gateway queries the server's JSON-RPC schema. It reads the specific API capabilities (e.g., vid_cut_timeline, vid_apply_lut) and registers them directly into the current task context.
+
+Accessibility Tree Introspection
+
+If a specialized application lacks a scriptable API, the system falls back to inspecting the window's live Accessibility Tree. It loops through the entire UI object hierarchy, scanning text descriptions, element names, and automation keywords.
+• If you ask it to apply a specific filter, it uses a text-matching search across the structural tree to find the correct menu path or button handle, completely avoiding pixel-based position matching.
+
+Fallback Dynamic Code Generation
+
+If the system needs a custom file conversion or processing task that no installed app supports, the supervisor writes a custom Python script or PowerShell snippet on the fly. It imports native system libraries, tests the code in an isolated local sandbox, and verifies the output file layout before moving to the next automation step.
+
+Part 2: Unified MCP Gateway & Dynamic Tool Management
+
+To run dozens of different Model Context Protocol (MCP) servers efficiently without wasting system memory, causing tool conflicts, or keeping hundreds of background servers running constantly, you need a single, unified gateway architecture.
+                                [ HIGH-LEVEL AGENT ORCHESTRATOR ]
+                                                │
+                                                ▼
+                             ┌─────────────────────────────────────┐
+                             │        Unified MCP Gateway          │
+                             │      (JSON-RPC 2.0 Multiplexer)     │
+                             └──────────────────┬──────────────────┘
+                                                │
+         ┌──────────────────────────────────────┼──────────────────────────────────────┐
+         ▼                                      ▼                                      ▼
+┌────────────────────────────────┐     ┌────────────────────────────────┐     ┌────────────────────────────────┐
+│   Process Lifecycle Manager    │     │  Schema Validator & Dependency │     │   Permission Shield Registry   │
+├────────────────────────────────┤     ├────────────────────────────────┤     ├────────────────────────────────┤
+│ Lazy Loading & Dynamic Spawn   │     │ Type Check / Security Sandbox  │     │ Access Control Matrix Checks   │
+└────────────────────────────────┘     └────────────────────────────────┘     └────────────────────────────────┘
+
+1. Lifecycle and Memory Optimization (Lazy Loading & Process Spawning)
+
+The Unified MCP Gateway does not keep every registered MCP server running in the background. Instead, it operates a Lazy-Loading Process Lifecycle Manager.
+• Startup Mapping: On system boot, the gateway reads configuration directories containing the manifest schemas of all available local and third-party MCP servers. It loads only the tool definitions and metadata schemas into a lightweight memory cache, keeping the server processes closed.
+• Dynamic Spawning: When the Supervisor decides to invoke a tool, the gateway intercepts the call, identifies the parent server process, and instantly spawns it as a local background process via standard text pipes (stdio).
+• TTL Reclamation Loop: Every spawned process is attached to an inactivity timer. If a server process remains idle for more than 120 seconds, the gateway gracefully shuts down the process (SIGTERM), freeing up host system memory.
+
+2. Security Sandbox, Dependency Isolation & Schema Validation
+
+• JSON-RPC 2.0 Structural Checking: All messages moving through the gateway are strictly validated against JSON-RPC 2.0 specs. If an agent tries to call a tool with wrong data types or missing parameters, the gateway intercepts the call and returns an instantaneous type-check error code (-32602), completely avoiding execution crashes.
+• Process Isolation and Virtualenvs: Third-party MCP servers are forced to run inside isolated virtual environments (venv or node_modules wrappers). They cannot read or modify the host agent's global dependencies, preventing package version conflicts.
+• Filesystem Sandboxing: The gateway wraps execution commands in an operating-system-level sandbox (using AppContainer on Windows or sandboxing profiles on macOS). Servers are restricted to reading and writing within a single dedicated workspace folder (e.g., C:\AgentWorkspace\), blocking unauthorized access to system files.
+
+3. Permission Shield and Intent Verification Matrix
+
+• The Access Control Matrix: Every registered tool is categorized by risk level:
+	• Low Risk: Data reading, file lookups, system state inspections (sys_read_directory).
+	• High Risk: Deleting files, modifying network settings, running arbitrary terminal code (sys_run_command).
+• Intent Verification Checks: When a high-risk tool call is intercepted, the gateway halts execution and checks the Intent Verification Matrix. It cross-references the tool call with the supervisor's active target state vector. If the agent tries to run a command that doesn't explicitly align with the current user-approved task, the gateway blocks the action, logs a security alert, and prompts the user for manual confirmation.
+
+4. Crash Recovery, Lock Synchronization & Dynamic Manifest Updates
+
+• State-Locking Semaphores: To prevent multiple worker agents from trying to modify the same file path or UI element at the same time, the gateway uses a local system lock manager (asyncio.Lock wrappers bound to file hashes). A tool cannot modify a target path if another process holds an active lock on it.
+• Crash Recovery Engine: If an active MCP server process crashes mid-task, the gateway traps the exit code, restarts the server process immediately, and rolls back the agent’s execution history to the last verified system checkpoint.
+• Dynamic Manifest Registration: When a new external MCP server is added to the system, it drops a JSON descriptor into the configuration directory. The gateway detects this via folder monitoring, parses the schemas, validates the tool formats, and integrates the new capabilities into the active routing database instantly without needing a system restart.
+
+Part 3: Cross-Platform Native Actuation Engine (Windows vs. macOS)
+
+To ensure high speed and reliability across different operating systems without relying on fragile, layout-dependent mouse clicking, the platform driver layer translates abstract commands into native OS system messages.
+
+Feature / Dynamic Vector	Windows Environment Architecture	macOS Environment Architecture
+Native Accessibility Core	Microsoft UI Automation (UIA) COM Framework	Cocoa Application Services (AXUIElement)
+Dynamic Hierarchy Bridge	Native C++ handles mapped via pywinauto wrappers	Objective-C/Swift runtimes mapped via pyobjc
+Window State Identification	Persistent AutomationID / Win32 Class Registry	Unchangeable AXIdentifier / AXRole attributes
+Background Target Control	Directly posts native messages (WM_COMMAND, UIA patterns)	Native Event Notifications sent via CoreGraphics loops
+Focus Stealing Bypass	Direct element handle interaction via background Win32 threads	Core Accessibility programmatic triggers (AXUIElementPerformAction)
+Privilege Escalation Paths	Shell manifests targeting User Account Control (UIAccess)	System Transparency, Consent, and Control (TCC) frameworks
+
+
+1. Windows Architecture Deep-Dive (UIA Framework)
+
+• Structural Locking Mechanics: The Windows platform driver connects directly to the system's UI Automation (UIA) Provider Core. When an application window shifts, resizes, or is covered by another program, its internal object structure stays identical. The driver scans this structure to identify elements by their permanent AutomationID property.
+• Background Invocation: Instead of simulating manual mouse pointer coordinates, the driver retrieves the element's direct COM memory address. It calls native UIA patterns (like IUIAutomationInvokePattern::Invoke) or posts background Win32 messages (PostMessageW) straight into the window's handle space (HWND). The targeted control triggers instantly in the background, keeping your physical mouse pointer completely free.
+• Focus-Stealing Mitigation: The driver avoids calling focus-stealing window actions (like SetForegroundWindow). It injects text inputs straight into the target control's internal value property, allowing it to modify data fields even if the window is minimized or hidden on a secondary virtual desktop.
+
+2. macOS Architecture Deep-Dive (AXUIElement Core)
+
+• Structural Interface Mapping: The macOS platform driver uses Objective-C bridges (pyobjc) to query the native system accessibility framework (AXUIElementRef). It navigates the UI hierarchy using permanent AXIdentifier descriptors and AXRole type tags.
+• Background Actuation Loop: Rather than simulating physical user mouse actions, the driver targets element reference addresses directly. It executes native actions (like AXUIElementPerformAction(elementRef, kAXPressAction)) straight through the OS event subsystem, bypassing window layering blocks completely.
+• TCC Permission Management: macOS strictly blocks background accessibility scripts via its Transparency, Consent, and Control (TCC) system. The application must be compiled as a signed application bundle containing explicit plist entitlements (com.apple.security.automation.apple-events). During installation, the native installer runs a system prompt loop directing the user to enable accessibility permissions under System Settings, securing the native event channel.
+
+Part 4: Production Recovery Strategy for High-Risk Engineering Failure Modes
+
+Universal desktop automation faces many edge cases when operating across varying software layers. Below is the technical breakdown of common engineering blockers, their root causes, prevention models, and recovery loops.
+
+1. Windows GUI Automation Fails Inside Docker/Linux Containers
+
+• Root Cause: Windows graphical desktop architectures require the native Win32 subsystem, GDI drivers, and a running desktop session manager (session 0 or active desktop loops). Standard Linux Docker containers completely lack these kernel structures. Attempting to load COM or UIA hooks throws fatal initialization exceptions.
+• Preventative Design: Never run GUI-dependent automation inside Linux containers. The system architecture must use a Split-Host Design: the main orchestrator can run inside a container, but it must connect to a native Windows or macOS virtual machine (or local host) running a small background execution driver.
+• Recovery Loop: If the system detects a missing Win32 kernel environment on startup, it shifts execution away from the local shell. It opens an encrypted, low-latency background pipe (stdio or named pipe) to a native host execution node, routing all UI tasks to the proper hardware environment.
+
+2. Playwright Browser Failure / Missing Chromium Paths in Production
+
+• Root Cause: Playwright looks for pre-compiled browser binaries inside specific user profile paths (e.g., %USERPROFILE%\AppData\Local\ms-playwright). Packaged application installers often fail to bundle these large dependencies, or system cleanup scripts delete them, causing binary missing exceptions at runtime.
+• Preventative Design: The installer configuration script must set explicit system environment variables pointing to a permanent installation folder (PLAYWRIGHT_BROWSERS_PATH=/opt/agent_browsers). It must execute a silent background download verification loop during initial installation.
+• Recovery Loop: If launching a browser instance fails with a missing binary error, the Web MCP interceptor traps the trace, initializes a temporary download thread using a fast local fallback library, pulls down the correct Chromium revision, updates the local path mappings, and automatically restarts the browser execution loop without alerting the user.
+
+3. Display / Xvfb Resource Conflicts and Rendering Droppings
+
+• Root Cause: Headless browser runs or virtual graphics buffers (Xvfb on POSIX systems) throw memory or device allocation errors if multiple background agent processes try to access the same display number (e.g., :99) simultaneously, causing unexpected script terminations.
+• Preventative Design: Implement a dynamic graphic display lock manager. Every time a new headless task launches, the system increments the target identifier dynamically based on its active process ID (Xvfb :$PID -screen 0 1920x1080x24).
+• Recovery Loop: If a rendering engine initialization fails with an allocation error, the agent isolates the display number, flags it as blocked in memory, spawns a new display loop on a fresh display identifier, and re-routes the automation task instantly.
+
+4. HTTPS Certificate Interception & Encrypted Proxy Failures
+
+• Root Cause: When your agent tries to automate web tools or legacy internal apps that use self-signed or enterprise-signed HTTPS certificates, local runtimes like Node.js or Python throw strict TLS handshake validation failures, blocking all network requests.
+• Preventative Design: Maintain an isolated local trust anchor folder within your agent framework directory. During initial setup, the native configuration engine safely imports the host machine's root trust vectors directly into the agent’s execution profiles.
+• Recovery Loop: When a TLS validation failure is detected, the agent pauses the connection, queries the target domain against a strict security safelist, and—if verified safe—re-initializes the connection loop using an isolated secure context configured to accept the specific certificate fingerprint, logging the event in the local audit vault.
+
+5. Python Package Conflicts & Version Mismatches
+
+• Root Cause: Installing third-party plugins or external MCP dependencies can overwrite shared Python libraries. For instance, an office automation tool might require an older version of a library that clashes w
+• clashes with a web scraping tool, causing runtime script crashes.
+• Preventative Design: Enforce absolute package separation. The system must completely ban the installation of global python modules, forcing every plugin into its own isolated environment.
+• Recovery Loop: When a new tool bundle is loaded, the supervisor creates a dedicated virtual environment (python -m venv), isolates its package paths, and pipes errors straight into an internal analysis tool. If a script fails due to an import error, the engine updates dependencies within that specific sandbox container automatically.
+
+6. Microsoft Office Automation Glitches & State Lockouts
+
+• Root Cause: Interfacing with Microsoft Office apps via standard COM pipelines can cause reliability issues if the app enters a locked modal state (e.g., a cell edit mode is active, or an alert dialog is open). The COM thread throws a busy exception (0x8001010A - RPC_E_SERVERCALL_RETRYLATER), crashing typical scripts.
+• Preventative Design: Wrap all COM interaction loops in a specialized retry-handler configured with a brief back-off delay. Before pushing text inputs, the system must check the app's structural properties to verify that no blocking dialogs are open.
+• Recovery Loop: When a COM busy exception is caught, the verifier suspends execution for 50 milliseconds, executes a UIA tree scan to find any blocking dialog boxes, uses the accessibility layer to close the prompt window automatically, clears the edit lock, and safely resumes the data modification pipeline.
+
+7. Inaccessible Third-Party MCP Servers
+
+• Root Cause: External MCP tools that rely on remote cloud APIs can time out, hit API rate limits, or suffer server outages, causing the agent loop to hang indefinitely while waiting for a response.
+• Preventative Design: Every external tool call must be wrapped in a strict timeout guard. The system configuration registers an absolute time limit for different tool types.
+• Recovery Loop: If a tool call fails to respond within the timeout limit, the framework terminates the execution stream. The supervisor catches the failure, checks the tool database for alternate local pathways (like switching from a remote web API tool to a local system shell script), and re-routes the task instantly.
+
+8. Missing API Credentials & System Authentication Fails
+
+• Root Cause: The agent attempts an action that requires special user access tokens or API keys, but the configuration values are missing, causing the tool call to return authentication errors.
+• Preventative Design: Implement an environment capability check step before starting a task. The system checks the local credential store to ensure all required access profiles are ready.
+• Recovery Loop: When an authorization failure occurs, the agent pauses the active pipeline. Instead of crashing, it shifts execution to a user prompt module, displays a clean input interface requesting the required access credential, stores the user's input securely in the local vault, and continues execution smoothly.
+
+9. Unstable UI Layout Elements & Layout Drift
+
+• Root Cause: Modern web interfaces often update dynamically, causing structural components to shift their layout positions or change text labels, which breaks traditional hardcoded automation paths.
+• Preventative Design: Use a robust, multi-attribute targeting approach. Elements should never be identified by a single property; instead, combine multiple structural traits like input types, relative parent tags, and permanent accessibility identifiers.
+• Recovery Loop: When a targeting failure happens because an element changed its identifier, the system runs an automated layout discovery sweep. It uses relative location mapping to find components matching the original structural role, updates the targeting parameters, and updates the state registry on the fly.
+
+10. Background Worker Threads Crash Mid-Task
+
+• Root Cause: Background tasks can run out of memory or crash due to unexpected operating system level errors, losing current runtime values.
+• Preventative Design: Build the execution driver as a stateless worker pool. The main supervisor process retains the master state history safely in separate memory slots.
+• Recovery Loop: When a worker process terminates unexpectedly, the main supervisor catches the exit code, spawns a fresh worker instance, pushes the last verified checkpoint state into the new process, and continues the task with minimal disruption.
+
+11. STOP Command Processing Delays & Race Conditions
+
+• Root Cause: When an agent is running a heavy automation loop, it can saturate the communication pipe, causing a user's emergency "STOP" command to get stuck in the message queue while the agent continues moving the mouse and typing.
+• Preventative Design: Create a completely independent, high-priority communication line reserved exclusively for emergency control signals, running outside the primary data channel.
+• Recovery Loop: The moment a stop signal reaches this priority handler, the system bypasses standard message processing. It instantly sends a terminal terminate signal (SIGKILL) to all active background execution processes and drops system locks, handing full control back to the user immediately.
+
+12. Lost Execution Acknowledgments over Stdio Pipes
+
+• Root Cause: High-speed data writing can cause text strings to overlap inside communication pipes, causing JSON framing errors that result in lost task confirmations.
+• Preventative Design: Every message passing through the pipe must be wrapped in a length-prefixed protocol layer, ensuring packets are cleanly separated.
+• Recovery Loop: If a message packet arrives corrupted and fails to parse, the receiver drops the broken data and sends an immediate re-transmit request (JSON-RPC -32603). The sender reads the request from its local cache buffer and pushes the clean data frame through the pipe again.
+
+13. Flawed "False-Success" Reports
+
+• Root Cause: An agent tool fires successfully at the code level, but the underlying application encounters an internal error (e.g., a file save operation fails silently due to low disk space), leading the agent to report success incorrectly.
+• Preventative Design: Never rely solely on tool return codes to confirm success. Every action must be verified by a secondary, independent telemetry state check.
+• Recovery Loop: After a tool claims completion, the verification module directly inspects the system environment (e.g., checking file hashes or reading UI property logs). If the check reveals the state did not actually change, the system rejects the success report, logs an execution error, and mutates its strategy to fix the issue.
+
+Part 5: Closed-Loop Interaction Governance & User Interruption
+
+To work safely alongside humans in a commercial environment, the system must handle unexpected adjustments, changing application states, and manual overrides without getting stuck in infinite loops or reporting false successes.
+
+1. Hardware-Level Interruption Trapping
+
+The platform layer runs a high-frequency background thread that monitors physical hardware mouse and keyboard movements.
+• The Delta Threshold: If the sensor detects mouse movements larger than a small pixel boundary (e.g., Δ > 5px) or catches a hardware keystroke while the agent is simulating inputs, it handles this as an intentional Human Intervention Event.
+• Immediate System Suspension: The system instantly pauses all active automation actions. It releases control hooks, clears active input flags, and transitions to a Passive Observation State within 5 milliseconds, ensuring it never fights the user for control.
+
+2. Dynamic Real-Time Environment Re-Steering
+
+Instead of failing when a user makes manual changes mid-task, the agent adapts fluidly using a Dynamic Horizon Adjustment Loop:
+[ Active Automation Loop Running ]
+                │
+                ▼
+[ Human Interaction Sensor Intercepts Mouse/Keyboard Delta ]
+                │
+                ▼
+[ Instantly Suspend System Actions & Yield Control Hooks ]
+                │
+                ▼
+[ Wait for Interface Idle State -> Scan New OS Accessibility Tree ]
+                │
+                ▼
+[ Recalculate State Success Vector from the BRAND-NEW Starting Point ]
+                │
+                ▼
+[ Resume Execution Flow Smoothly Without System Crash ]
+1. Idle State Intercept: Once physical mouse and keyboard inputs stop for more than 1.5 seconds, the background thread flags the environment as stable again.
+2. State Recalculation: The agent does not try to resume its old checklist. Instead, it runs a fresh scan of the OS Accessibility Tree to read the current layout.
+3. Path Trajectory Shift: The system treats the user's manual changes as simply a new starting environment state. It updates its mathematical path model, calculates the best micro-action to reach the final goal from this new position, and resumes automation smoothly.
+
+3. Handling Abstract Failures (Minimization, Crashes, Network Drops)
+
+• Minimized or Overlapping Windows: Because the driver targets applications using unique UIA memory handles rather than screen coordinates, window adjustments are irrelevant. The agent pushes commands straight through the application's underlying memory layer, working perfectly even if the window is fully hidden or out of view.
+• Application Crashes: If a target application terminates unexpectedly, the system traps the exit code, queries the OS environment to log the error string, launches a fresh instance of the application automatically, restores data from its local cache buffer, and retries the action.
+• Network Drop Management: All web tool actions are protected by a network telemetry monitor. If a connection drop occurs, the system pauses execution, saves its current progress checkpoint, and displays a clean status indicator. It retries the connection using an exponential back-off loop, resuming the task smoothly once the network link returns.
+
+4. The Bounded-Retry and Hallucination Escalation Protocol
+
+To prevent the agent from getting stuck in an infinite loop or falsely claiming success when automation pathways fail repeatedly, the system enforces a strict Escalation Protocol:
+• The Mutation Limit: The system limits the agent to a maximum of 3 adaptive mutation retries for any single micro-action target.
+• Forced Execution Halting: If the telemetry checks fail 3 times in a row, the agent stops automated steps completely. It releases all system resource locks and raises a flag to pause execution.
+• Human-in-the-Loop Handoff: The agent displays a clean interface to the user, explains the exact block it encountered, shows the error trace log, and hands manual control back to the operator, ensuring it never hallucinates success or loops endlessly.
+
+Part 6: Production Directory Blueprint & System Architecture
+
+universal-agent-core/
+├── .github/
+│   └── workflows/
+│       ├── test-pipeline.yml          # Continuous integration testing pipeline runner
+│       └── release-gate.yml           # Production gate checks and deployment tags
+├── config/
+│   ├── gateway_manifest.json          # System tool and MCP registry mapping schema
+│   └── security_profile.json          # Access control settings and sandbox folder maps
+├── docker/
+│   ├── windows-runtime.dockerfile     # Isolation layer for Windows testing
+│   └── compose-testing-grid.yml       # Air-gapped pipeline testing cluster configuration
+├── src/
+│   ├── __init__.py
+│   ├── main.py                        # Main supervisor and system lifecycles manager
+│   ├── core/
+│   │   ├── __init__.py
+│   │   ├── types.py                   # Type models, states, and error structures
+│   │   ├── ipc.py                     # Non-blocking stdio length-prefixed IPC streams
+│   │   └── router.py                  # Semantic namespace isolation and tool router
+│   ├── platforms/
+│   │   ├── __init__.py
+│   │   ├── base.py                    # Driver interface base class contract
+│   │   ├── windows.py                 # Windows UIA / COM / Win32 native bridge modules
+│   │   └── darwin.py                  # macOS Accessibility / pyobjc framework links
+│   └── telemetry/
+│       ├── __init__.py
+│       ├── verifier.py                # Telemetry state checker and logic validator
+│       └── self_healing.py            # AST patch generator and exception handler
+├── tests/
+│   ├── __init__.py
+│   ├── test_ipc_throughput.py         # IPC latency validation benchmarks
+│   ├── test_uia_locking.py            # Window resizing structural target tests
+│   └── test_self_healing.py           # Verification and error correction checks
+├── requirements.txt                   # External system package dependencies manifest
+└── README.md                          # Repository technical documentation base
+
+Part 7: Implementation Lifecycle & Commercial Launch Gates
+
+To bring this architecture to a public commercial launch with high stability, you must follow a strict, phased, dependency-aware engineering roadmap. Each phase requires passing objective quality gates before moving forward.
+[ Phase 1: Core IPC Base ] ──► [ Phase 2: OS Driver Integration ] ──► [ Phase 3: Telemetry Engine ]
+                                                                                │
+ ┌──────────────────────────────────────────────────────────────────────────────┘
+ ▼
+[ Phase 4: Gateway Routing ] ──► [ Phase 5: Verification & Safety ] ──► [ Phase 6: Commercial Launch ]
+1. Zero-Hardcoding Architecture & Universal Capability Discovery
+
+To eliminate application-specific modules entirely, the system treats the host operating system, local network, and installed software as an unmapped graph of capabilities. Applications, document formats, and system views are modeled dynamically by a Dynamic Capabilities Engine (DCE). This engine dynamically discovers system structures without relying on hardcoded lists for applications like Excel, Photoshop, or CAD tools.
+       [Raw User Request] -> [Dynamic Intent Analyzer]
+                                     │
+                                     ▼
+                      [Ontological Capability Engine]
+                                     │
+           ┌─────────────────────────┼─────────────────────────┐
+           ▼                         ▼                         ▼
+   [Accessibility Tree]      [OS Registry/FS]          [MCP Tool Definitions]
+   (Inspect System State)   (Scan Binary Metadata)   (Query Exposed Schemas)
+           │                         │                         │
+           └─────────────────────────┼─────────────────────────┘
+                                     │
+                                     ▼
+                     [Real-Time Dependency Selector]
+                                     │
+                                     ▼
+                 [Dynamic Step Composition (1 Micro-Action)]
+
+Application and Functional Discovery
+
+The system scans local systems to map software capabilities on the fly using three extraction mechanisms:
+• Static Binary Inspection & Metadata Extraction: The engine continuously parses application shortcuts, desktop entry keys, registry branches (HKLM\Software\Microsoft\Windows\CurrentVersion\App Paths on Windows), and application indices (/Applications and system_profiler SPApplicationsDataType on macOS). It extracts product names, structural developers, version hashes, and supported document types directly from binary resource strings.
+• Exposed Interface & RPC Reflection: The engine queries local inter-process channels, including Component Object Model (COM) type libraries on Windows, AppleScript dictionaries (sdef) on macOS, and local loopback ports. If a running process exposes a developer console, an HTTP API, or a command-line interface, its routing schemas are ingested dynamically.
+• Accessibility Tree Structure Introspection: When an unknown application window gains system focus, the engine walks its complete UI tree framework using a recursive inspector. Buttons, fields, layout tabs, and navigation strips are cataloged by their type properties rather than their visual positions.
+
+Document & Target Context Introspection
+
+The agent determines how to process file types without relying on extension lists:
+• Magic Byte Header Analysis: Files are read dynamically by inspecting their binary structural headers (e.g., %PDF-, PK.. for zip/Office files) rather than trusting file extensions.
+• Schema Ingestion: Once a target file format is confirmed, the agent inspects the file's structure. If it is an archive format, it reads the internal folder structure; for relational files, it maps the core table columns; for structural document formats, it tracks layout hierarchies.
+• App Association Mapping: The system queries the OS to find which local binaries are registered to handle specific data formats (AssocQueryString on Windows; LSCopyDefaultRoleHandlerForContentType on macOS) to learn how the local system routes specific tasks.
+
+The Ontological Vector Dictionary
+
+Exposed capabilities are stored in a transient, in-memory Ontological Vector Dictionary (OVD). This dictionary uses a unified schema to normalize every system component, application feature, UI button, custom script, and Model Context Protocol (MCP) tool down to three fields:
+1. Functional Intent Vector: A numerical semantic representation of what the capability changes (e.g., text.formatting.bold, data.matrix.compute, canvas.layer.rasterize).
+2. Structural Input/Output Schema: A strict JSON-Schema defining the exact payload parameters required to execute the action.
+3. Cost-Speed Execution Weight: A performance heuristic reflecting execution cost, speed, and reliability (e.g., direct API = 0.99 reliability / 2ms latency; UI Automation = 0.75 reliability / 400ms latency).
+
+Specialised Functions Handled Dynamically
+
+When generic interfaces cannot expose deep, specialized features—such as custom macros, specific plugins, or advanced tools within CAD and video suites—the agent switches to a Dynamic Protocol Mirror:
+• The system uses UI automation to navigate to the application's built-in command panels, shortcut menus, or script consoles.
+• It issues discovery actions to scrape these menus in real time, expanding the vector dictionary with new capabilities dynamically.
+• If the application provides a scripting console (e.g., Python in DaVinci Resolve or JavaScript in CAD engines), the agent writes and executes short, targeted snippet scripts to discover internal endpoints on the fly.
+
+2. Integration Stack, Interface Boundaries & Fallback Chains
+
+Universal automation requires managing diverse APIs and system layers through a unified controller. The integration stack routes system actions based on a predictable, deterministic sequence of fallback rules.
+
+System Layer	Primary Access Method	Native Windows Mechanism	Native macOS Mechanism	Latency Profile	Target Accuracy
+API / COM / RPC	Native Code Loops	COM / WinRT / Loopback	AppleEvents / PyObjC	< 5ms	100%
+Accessibility Tree	Memory Tree Access	UI Automation (UIA)	AXUIElement Core	50ms – 200ms	98.5%
+OS Script / CLI	Subprocess Pipes	PowerShell Core / cmd	Zsh / Bash / AppleScript	20ms – 100ms	99.1%
+Browser Engine	DevTools Protocol	Playwright Headless	Playwright Headless	10ms – 50ms	99.5%
+Vision Model	High-Res Screenshot	Local OS Pipeline	Local OS Pipeline	400ms – 1200ms	82.0%
+
+
+The Trusted MCP Dictionary & Gateway
+
+The central system gateway manages Model Context Protocol (MCP) server nodes as transient sub-processes communicating strictly over standard input/output (stdio) channels.
+• Dynamic Lifecycle Regulation: The gateway avoids running hundreds of persistent servers simultaneously. It maintains an index of available tool schemas. When the system requires a specific tool, the gateway spawns that server process, executes the JSON-RPC call, and terminates the process once the execution completes.
+• Security & Execution Isolation: External MCP tools are treated as untrusted third-party code. They execute inside an isolated sandbox, stripped of all system network and broad filesystem permissions unless explicitly authorized by user-defined access lists.
+
+Detailed Fallback Chain Rules
+
+When a high-level task is assigned, the system routes commands down the capability chain in this exact sequence:
+[Target Task Vector]
+        │
+        ├──► Strategy 1: Native API / COM Integration
+        │    ┗━━ (If Unresolved/Fails) ──┐
+        │                                ▼
+        └──► Strategy 2: Web DevTools / Browser Automation (If Web-Based)
+             ┗━━ (If Unresolved/Fails) ──┐
+                                         ▼
+         ──► Strategy 3: OS Accessibility Tree Control (UIA / AXUIElement)
+             ┗━━ (If Unresolved/Fails) ──┐
+                                         ▼
+         ──► Strategy 4: Native Shell Scripting / CLI Invocations
+             ┗━━ (If Unresolved/Fails) ──┐
+                                         ▼
+         ──► Strategy 5: Vision-Based Cursor Control (Fallback Only)
+1. First Choice (Native API/COM/RPC): The system verifies if the active program matches an open API, local port, or system COM endpoint in the dictionary. If available, it injects code commands directly into memory.
+2. Second Choice (Web DevTools/Browser Automation): If the target application is web-based or wrapped in an Electron framework, the system routes actions via Playwright using direct DOM operations, completely bypassing visual controls.
+3. Third Choice (OS Accessibility Tree Control): If native APIs are unavailable, the system opens a structural tracking handle using Windows UIA or macOS AXUIElement. It locates targets using immutable automation identifiers.
+4. Fourth Choice (Native Shell Scripting): If accessibility handles are blocked or unreadable, the system writes and executes a local shell script (PowerShell or AppleScript) to control target windows via system window-manager messages.
+5. Final Fallback (Vision-Based Cursor Control): If all structural tracking loops fail, the agent captures a localized screenshot, passes the image through a regional vision model to estimate pixel coordinates, moves the physical mouse cursor to those positions, and clicks.
+
+Technical and Operational Boundaries
+
+• Accessibility Trees: Cannot read custom canvas components, hardware-accelerated video frames, or specialized gaming interfaces. When these targets are encountered, the tree reports an empty layout container.
+• Playwright Browser Automation: Cannot cross the sandboxed browser boundary to interact with native operating system dialogues, such as file selectors or hardware permission prompts, without dropping back to OS-level accessibility controls.
+• Vision-Based Control: Highly sensitive to frame rate changes, interface animations, loading bars, and transparency layers. It cannot guarantee deterministic success and must only be used as a final fallback option.
+
+3. Cross-Platform Core Architecture
+
+To maintain a single, cohesive codebase for both Windows and macOS, the system isolates operating system dependencies beneath a normalized hardware abstraction layer.
+                  [Cross-Platform Agent Core]
+                               │
+            ┌──────────────────┴──────────────────┐
+            ▼                                     ▼
+   [Windows Subsystem]                   [macOS Subsystem]
+   ├── Win32 API / COM                   ├── Cocoa / CoreGraphics
+   ├── UIA (UI Automation)               ├── AXUIElement API
+   └── AppX / MSIX Installers            └── DMG / PKG Packaging
+
+OS Abstraction Strategy
+
+The system core relies on an Abstract OS Driver Engine. This engine exposes a unified interface to the high-level coordinator model, normalizing operations into standard signatures such as read_active_window_tree(), send_system_message(), and allocate_isolated_buffer().
+• Windows Architecture Implementations: The driver connects to native ole32.dll and UIAutomationCore.dll libraries using low-level C-types bindings.
+• macOS Architecture Implementations: The driver communicates with the system CoreGraphics and ApplicationServices frameworks using Objective-C runtime bridges.
+
+Native Permissions Ingestion
+
+The system maps security settings cleanly during installation:
+• Windows Environment: The installation package configures execution levels using manifest flags. It registers the agent binary with UIAccess privileges inside protected directories (%ProgramFiles%), allowing it to automate administrative application screens without requiring a persistent UAC prompt.
+• macOS Environment: The installer registers the agent inside the system TCC (Accessibility, Screen Recording, and Full Disk Access) databases. The onboarding interface uses native system loops (AXIsProcessTrustedWithOptions) to guide users through enabling these security profiles.
+
+Device Discovery, Secure Pairing & Update Pipelines
+
+• Local Account Device Pairing: Devices signed into the same user identity discover each other across local networks using peer-to-peer mDNS (Multicast DNS) discovery loops. They exchange authorization tokens using an Elliptic-Curve Diffie-Hellman (ECDH) key handshake, securing cross-device file and state transfers over local TLS pipelines.
+• Air-Gapped Local Packages: To ensure absolute privacy, deployment packages compile down to single, independent binaries (an .msi package for Windows; a .dmg with a signed PKG bundle for macOS). The update engine uses a local file signature pipeline: new versions are checked against a pre-installed public key via SHA-256 hashing before the local process is swapped out.
+• Security Sandboxing Boundaries: Local execution processes run inside restricted user sandboxes (Windows AppContainer or macOS Sandbox profiles). The agent is locked out of core system directories, raw disk sectors, and network access streams unless a specific task requires an exception.
+
+Managing Unsupported Environments
+
+When encountering unmapped software or heavily secured applications (such as banking portals or digital rights management software), the agent uses a Graceful Exit Protocol:
+• It immediately halts structural automation loops to prevent corrupted inputs.
+• It logs the application's unique layout properties and window title structure to a local error repository.
+• It displays a clear status message describing the specific interface block and waits for manual user confirmation before continuing.
+
+4. Technical Corrections & Errata Replacement
+
+Earlier design concepts relied on standard automation practices that fail when tested against complex production scenarios. The following corrections replace those fragile implementations with stable, engineering-ready mechanisms.
+
+The Permanent UI Identifier Assumption
+
+• The Error: Assuming that elements inside complex apps like DaVinci Resolve or Microsoft Office maintain permanent, unchangeable AutomationID strings across version updates.
+• The Reality: Layout identifiers are frequently generated dynamically at runtime or change during minor software updates, which can cause static path automation loops to break.
+• The Production Replacement: Implement an Adaptive Structural Path Selector. The agent identifies UI elements using a relative tree hierarchy path that combines structural properties: [control_type] + [relative_sibling_index] + [nearest_named_parent]. If a specific identifier changes, the selector traces the surrounding tree layout to locate the target node reliably.
+
+The Hidden-Window Automation Assumption
+
+• The Error: Stating that standard accessibility frameworks can click elements inside minimized or fully hidden windows without bringing them to the visual foreground.
+• The Reality: To conserve system resources, both Windows and macOS stop rendering hidden windows, causing the underlying accessibility framework to freeze the window's element tree.
+• The Production Replacement: The system manages window states using explicit lifecycle hooks. Before triggering an action on a background window, it issues a window-manager call (ShowWindow(SW_SHOWNA) on Windows; NSWindow ORDERFRONT on macOS) to render the target layout into memory without stealing mouse focus from the user.
+
+Custom Framing Protocols vs. JSON-RPC 2.0 Standard
+
+• The Error: Recommending custom, length-prefixed binary framing structures over standard stdio pipelines for handling MCP communication.
+• The Reality: Custom framing loops introduce unnecessary data handling steps, increase parsing complexity, and break compatibility with official developer tools.
+• The Production Replacement: Enforce the standard JSON-RPC 2.0 Specification over raw stdio channels. Messages use clear Content-Length:\r\n\r\n headers, matching verified protocol standards and simplifying debugging workflows.
+
+Automatic Third-Party Dependency Installation Risk
+
+• The Error: Suggesting that the agent should automatically download and install missing Python packages or system dependencies at runtime without manual approval.
+• The Reality: Runtime compilation loops open significant security risks, introducing vulnerabilities such as supply-chain tracking attacks, dependency confusion, and system environment corruption.
+• The Production Replacement: Enforce a Deterministic Dependency Sandbox. The system ships with a pre-compiled library containing all required drivers and support packages. If an unknown task requires a new dependency, the agent halts, logs the request to a system manifest, and asks the user for explicit authorization before updating the environment.
+
+Docker GUI & Headless Contradictions
+
+• The Error: Claiming that native desktop applications can run reliably inside Linux Docker containers using standard virtual display servers (Xvfb).
+• The Reality: Windows applications and complex macOS creative programs rely on native graphic engines and OS kernels. They cannot be emulated accurately inside a Linux container environment.
+• The Production Replacement: Enforce a clear separation of system environments:
+	• Docker Container Layer: Used exclusively for web automation, database lookups, and running isolated API routines.
+	• Native Virtual Machines (VMs): Complex desktop automation tasks are routed to native Windows or macOS virtual environments using dedicated system agents.
+
+5. Production Blocker Resolution Matrix
+
+Universal automation requires robust handling of operating system dependencies, security environments, and application runtime errors. The following matrix outlines the root causes, prevention strategies, and recovery plans for common production blockers.
+
+Target Blocker Domain	Primary Root Cause	Systemic Prevention Strategy	Automation Recovery Plan
+Chromium Paths / Playwright	Virtual environment cannot locate the execution binary path.	Lock binary execution paths inside local environment variables during system boot.	Run an internal validation loop to locate alternative local browser installations.
+DISPLAY / Xvfb Failures	Web automation tools crash when a physical monitor display is missing.	Configure the web engine to run in an absolute headless state (headless=True).	Initialize an isolated virtual framebuffer allocation loop (Xvfb :99).
+HTTPS Certificate Drops	Intercepted local connections block communication loops.	Provision automated local certificate authorities directly into the system trust store.	Halt the pipeline, verify local domain paths, and refresh the system proxy credentials.
+Python Dependency Mismatch	Third-party libraries overwrite core environment modules.	Run all local processes inside isolated, pre-compiled virtual environments.	Clean the active environment path and restore packages from the system cache directory.
+Office COM Target Errors	Multiple background processes lock application files simultaneously.	Route file modifications using silent background automation frameworks.	Force closed application processes to clear memory locks, then retry the action loop.
+Inaccessible MCP Nodes	Sandbox restrictions block child process communication paths.	Route all internal process tokens through a verified local loopback channel.	Terminate the unresponsive server process and launch a new execution thread.
+Missing API Keys / Quotas	Local tasks freeze when remote cloud credits are exhausted.	Cache foundational tasks locally using lightweight, on-device AI models.	Gracefully pause execution, save the active task state, and notify the user to verify tokens.
+Unstable UI Element Trees	Applications dynamically alter element identifiers during runtime.	Track components using a relative tree hierarchy path combined with class properties.	Refresh the application tree map and locate target nodes using structural anchor blocks.
+Worker Subprocess Crashes	Memory leak issues cause background threads to crash.	Monitor background operations using an isolated system watchdog daemon.	Restore the application workspace cache and resume execution from the last valid checkpoint.
+STOP Race Conditions	Delayed UI loops execute actions after a stop command is issued.	Verify task status flags before passing input commands to the system kernel.	Clear the system input buffer immediately and lock all active device drivers.
+Lost Acknowledgments	Subprocesses drop return messages during heavy system lag.	Ensure all system IPC frames use unique tracking IDs and require an acknowledgement.	Re-send the last unacknowledged payload frame and verify the active application state.
+False-Success Reports	The a
+False-Success Reports	The agent assumes a task succeeded without verifying the actual state.	Require the state verification engine to validate system parameters after every action.	Compare the live OS state with the target success matrix, then update the execution plan.
+
+
+6. Outcome-Driven Adaptive Verified Hierarchical Hybrid Control (OD-AVGHHC)
+
+The core control framework governs the agent's actions through a closed-loop optimization routine, mapping tasks to quantitative outcomes while managing resource locks and environmental changes.
+                  [Define Target Success Matrix]
+                                │
+                                ▼
+                  [Read Current System State Tree]
+                                │
+                                ▼
+            [Determine Next Action (Horizon Window = 1)]
+                                │
+                                ▼
+            [Execute Action and Verify System Telemetry]
+                                │
+            ┌───────────────────┴───────────────────┐
+            ▼                                       ▼
+  (Telemetry Matches Vector)            (Telemetry State Mismatch)
+            │                                       │
+            ▼                                       ▼
+    [Complete Task]                     [Catch Mismatch / Adapt Strategy]
+
+Step Breakdown Architecture
+
+1. Define Success Matrix: The user request is parsed to create a target state vector (\(\vec{T}\)). This matrix defines explicit validation parameters (e.g., target file hash values, UI element property toggles, or structural window configurations).
+2. State Inspection: The platform driver queries the system layer to extract the current environmental state vector (\(\vec{S}_{t}\)).
+3. Determine Action Step: The control model calculates an optimal path to bridge the gap between the current state and the target outcome. It restricts its execution horizon window to a value of \(1\), selecting only the immediate next micro-action.
+4. Execute & Verify: The system injects the command payload directly into memory, then pauses briefly to let the environment update. It re-samples system telemetry to check if the new state matches the expected outcome vector.
+
+Managing Tool Conflicts
+
+To prevent multiple tools from trying to modify the same system file or UI window simultaneously, the supervisor uses a system-level Resource Semaphore Registry:
+• Every application title, file path, and API endpoint is mapped as a unique system resource lock.
+• When a worker agent initiates a task, it acquires an exclusive write lock on that resource identifier.
+• If another sub-process attempts to call a tool linked to a locked resource, the supervisor pauses that execution thread and queues it until the active block releases its lock.
+
+Handling Human Interruption
+
+When a user grabs the physical mouse cursor, types on the keyboard, or changes the active application view mid-task, the system uses a Concurrency Interceptor Protocol:
+[System Tracking Loop Active]
+              │
+              ▼
+  (User Micro-Movement Detected)
+              │
+              ├──────────► Action 1: Raise Interruption Alert Flag
+              │
+              ├──────────► Action 2: Freeze Input Automation Drivers
+              │
+              ▼
+  [Evaluate Operational State]
+              │
+              ├──────► Case A: Human releases control -> Re-sample tree and continue.
+              │
+              └──────► Case B: Path remains blocked  -> Pause loop and prompt user.
+• Detection: The native driver loops continually track hardware mouse positions and keyboard events. If a movement delta greater than 5 pixels is caught, the driver raises an interruption flag.
+• Isolation: The agent immediately pauses all input automation drivers, preventing system commands from conflicting with manual user actions.
+• Evaluation: The system waits for peripheral inputs to stabilize. Once stable, it re-samples the application tree to evaluate the user's modifications.
+• Adaptation: If the user changed the workspace environment, the agent treats the modified view as a new baseline state. It recalculates the next optimal micro-action from this new starting point, continuing the task without throwing errors or crashing.
+
+Tracking Side Effects & Bounded Retries
+
+• Side-Effect Monitoring: The verification engine maps the global application layout before and after every action. If a command causes an unintended change (such as accidentally minimizing a panel or spawning an unhandled error dialogue), the system logs the structural divergence immediately.
+• Bounded Retry Policy: The agent limits recovery attempts to a maximum value of 5 mutations per sub-task. Each retry must use a distinct execution strategy (e.g., if a direct UIA click fails, the system switches to a window keyboard macro, then to a shell shortcut script). If the target metric remains unreached after 5 variations, the agent stops, preserves the workspace state, and prompts the user for direction.
+
+Offline Capabilities & Network Failure Recovery
+
+If the local network drops or a remote model provider faces an outage mid-task, the system switches to a Local Fallback Mode:
+• Core routing operations switch to a compact, on-device model package (such as a quantized Llama 3 8B or Qwen 2.5 coder model) pre-installed on the host hardware.
+• The agent pauses tasks that require external cloud lookups, saving their active states to an encrypted local buffer.
+• It executes local background operations (such as file sorting, data parsing, or internal scripting) completely offline, merging cloud pipelines back into the workflow once network connectivity is restored.
+
+7. Production Blueprint & Complete Architecture File Matrix
+
+
+Repository Structural File Blueprint
+
+/opt/universal_agent_core/
+├── docker-compose.yml              # Architecture stack configuration definitions
+├── Dockerfile.browser              # Isolated headless Chromium environment layer
+├── requirements.txt                # Unified core library matrix parameters
+├── main.py                         # System bootstrap lifecycle daemon
+├── config.json                     # Environment parameters and security declarations
+├── core/
+│   ├── __init__.py
+│   ├── types.py                    # Strong type declarations and state objects
+│   ├── ipc.py                      # Zero-latency stdio communication interface
+│   ├── router.py                   # Namespace gatekeeper and embedding matcher
+│   └── orchestrator.py             # Receding horizon supervisor controller
+├── platforms/
+│   ├── __init__.py
+│   ├── base.py                     # Abstract driver contract interface
+│   ├── windows.py                  # Windows UIA / COM native assembly layer
+│   └── darwin.py                   # macOS Cocoa / Accessibility bridge
+├── telemetry/
+│   ├── __init__.py
+│   ├── verifier.py                 # Telemetry inspection and verification loops
+│   └── self_healing.py             # AST engine path transformer modules
+└── sandbox/
+    ├── __init__.py
+    ├── manager.py                  # Process sandbox constraint systems
+    └── security_policies.json      # File and network interaction access lists
+
+Component Interfaces & System Responsibilities
+
+
+core/ipc.py
+
+Exposes the communication layer for all sub-agents. It wraps low-level standard system pipes into structured channels, using length-prefixed JSON serialization to ensure zero data drops under heavy system loads.
+
+core/router.py
+
+Enforces strict namespace separation across connected tools. It inspects the intent vector of a task request and masks the available tool schemas, loading only matching domain tools into the model context to prevent command selection errors.
+
+platforms/windows.py & platforms/darwin.py
+
+Implement platform-specific system drivers. They connect straight to native operating system accessibility frameworks, translating abstract automation payloads into direct memory messages while tracking user peripheral inputs to ensure safety.
+
+telemetry/verifier.py
+
+Implements the global system validation gate. It monitors target application states after every micro-action, running continuous property checks to verify that modifications are completed cleanly before the next step executes.
+
+telemetry/self_healing.py
+
+Provides real-time error recovery. If an automation step encounters a system exception or an unexpected layout block, it analyzes the error trace, passes the operation through an internal AST patcher to modify the strategy, and attempts an alternative pathway automatically.
+
+Dedicated Development Environment Requirements
+
+                       [ Host Operating System ]
+                                  │
+         ┌────────────────────────┴────────────────────────┐
+         ▼                                                 ▼
+[ Windows Development VM ]                       [ macOS Development VM ]
+├── OS: Win 11 Enterprise (22H2)                 ├── OS: macOS Sequoia (15.1)
+├── CPU: 8 Virtual Cores Min                     ├── CPU: Apple Silicon Layer (M2/M3)
+├── RAM: 16 GB Allocation                        ├── RAM: 16 GB Unified Memory
+├── Graphics: Direct3D12 / HW Accel              ├── Display: Virtual Screen Config
+└── privileged UIAccess Enforced                 └── TCC Security Profile Injected
+• Windows VM Environment: Requires a dedicated Windows 11 Enterprise environment (Version 22H2 or later). The runner must execute with administrative privileges inside the %ProgramFiles% directory, and have UIAccess enabled within the application manifest to allow automation of elevated system windows.
+• macOS VM Environment: Requires native Apple Silicon hardware layers running macOS Sequoia (Version 15.1 or later). The environment must pre-inject the agent's code-signing identity into the host TCC system database, providing full Accessibility and Screen Recording access flags from boot.
+
+Packaging, CI/CD Pipeline & Delivery Specs
+
+• CI/CD Pipeline Build Sequence: Every code merge triggers an automated pipeline running via GitHub Actions runners. The pipeline builds the repository modules across native platform environments in parallel: compiling a Windows installer package (.msi via WiX Toolset) and a signed macOS application bundle (.dmg via native Xcode tools).
+• Security Signing Framework: Compiled binaries must be signed using valid, trusted corporate developer certificates (Microsoft Authenticode; Apple Developer ID Program). Unsigned packages or untrusted code objects are blocked from deployment to ensure security and prevent OS warning blocks during installation.
+
+8. The Testing Matrix & Universal Validation Framework
+
+To ensure stable, autonomous completion of unfamiliar software tasks without relying on hardcoded scripts, the validation architecture uses an unmapped Agnostic Functional Verification Framework.
+                  [Assign Raw System Task Profile]
+                                 │
+                                 ▼
+                 [Execute Continuous Control Loops]
+                                 │
+                                 ▼
+               [Extract Environmental State Changes]
+                                 │
+         ┌───────────────────────┼───────────────────────┐
+         ▼                       ▼                       ▼
+ [File Registry Check]   [Process Matrix Scan]   [Accessibility Inspection]
+ (Verify New Asset Size) (Confirm Clean Exit)    (Validate Target Values)
+         │                       │                       │
+         └───────────────────────┼───────────────────────┘
+                                 │
+                                 ▼
+              [Assert Outcome = Target Metric Success]
+
+Agnostic Verification Strategies
+
+The system determines the success of an automated task by inspecting three system-level telemetry markers after completion:
+• Data Integrity Check: Validates changes to target files directly on the storage disk (e.g., verifying file sizes, parsing column counts in spreadsheets, checking document structure flags, or verifying image metadata encodings).
+• Process Matrix Scan: Verifies that background applications close cleanly, return zero error codes, and release file locks once a task finishes.
+• Accessibility Tree Inspection: Queries the target application's properties to verify that text fields, layout sliders, and status text values match the expected outcomes.
+
+Unfamiliar Software Test Execution Profiles
+
+• Spreadsheet & Document Validation: The agent is tasked with modifying a data file using an unknown open-source spreadsheet editor. It must read the app's tree layout, locate the main data container, input cell metrics, and use the system file layers to verify that the file's binary signature updates correctly on disk.
+• Headless Web Browser Scenarios: The agent handles file upload and download tasks on complex, authenticated web portals. It monitors network request tokens via Playwright, ensuring files are fully written to the disk buffer before attempting to pass them to subsequent local applications.
+• Creative Asset Automation (Photo/Video/CAD): The agent processes a design asset using a non-standard editing program. It discovers the file menu paths dynamically, updates properties like canvas sizes or track limits, triggers the export sequence, and uses the platform driver to verify that the exported asset passes file-type validation checks.
+• Complex Logical Tasks (Chess/Unmapped Software): The agent interacts with a logical game app interface. It monitors changes to the game's element tree structure after each turn, updating its understanding of the rules dynamically based on the application's state responses, ensuring it can complete structured tasks in unfamiliar application environments.
+
+9. Infrastructure, Security Controls & Commercial Operations
+
+Commercial deployment requires robust operational boundaries, data encryption strategies, and system monitors to protect user privacy and ensure service reliability.
+       [Host Hardware Layer] -> [Encrypted Local Storage (AES-256)]
+                                             │
+                                             ▼
+                               [System-Level Access Rules]
+                                             │
+                   ┌─────────────────────────┴─────────────────────────┐
+                   ▼                                                   ▼
+     [Token Bucket Rate Limiter]                         [Local Secrets Vault]
+     (Prevents Cost Breaches)                            (Isolates Credentials)
+
+Runtime Infrastructure & Commercial Scale Management
+
+• Model Provider Downtime Management: The system framework maintains redundant connections to secondary model providers. If your primary cloud LLM provider faces an outage or hits a rate limit, the supervisor automatically routes the operational tool loop to an alternative API endpoint within 200 milliseconds, ensuring uninterrupted service.
+• Cost Control & Token Protection: To prevent unexpected usage costs, the local controller implements a Token Bucket Rate Limiter. Users can set hard daily spending caps directly in the agent's configuration profile. If a complex task consumes more than the allocated budget limit, the loop safely pauses, saves the current workspace state, and waits for user approval before continuing.
+
+Comprehensive Security Architecture & Privacy Safeguards
+
+• Local Secret Isolation: Application credentials, OAuth tokens, and system access profiles are never stored in plain text or shared with external servers. They are kept securely inside the operating system's native credentials manager (Windows Credential Locker or macOS Keychain Access). The agent queries these tokens dynamically using signed system calls only when an explicit workflow action requires authentication.
+• Prompt Injection Mitigations: To protect the agent from malicious hidden instructions on web pages or inside documents, the system uses an Isolated Input Evaluation Sandbox. Data scraped from external files or web selectors is treated as untrusted text strings. It is completely stripped of command formatting before being processed by the coordinator model, ensuring the agent cannot be hijacked by embedded scripts.
+• User Privacy & Data Minimization: The system runs entirely within a local, private security boundary. Temporary layout logs, application trees, and task snapshots are processed strictly inside the host machine's RAM. All temporary automation assets are securely deleted from memory the moment a task finishes, ensuring user data never leaves the local machine.
+
+Compliance, Auditing & Local Logging System
+
+• Deterministic System Logs: The framework writes system logs to an encrypted, append-only file on the host storage disk (universal_agent_secure.log). Every script execution, namespace transition, tool call, and telemetry check is recorded with an accurate time marker and unique tracking ID.
+• Billing & Subscription Verification: Software license status is checked locally using signed cryptographic licensing files. The agent runs validation loops completely offline, connecting briefly to a secure authentication server only during monthly license renewals or when adjusting account tiers.
+
+10. Commercial Launch Acceptance Gates
+
+Before this universal AI agent can be certified for commercial deployment and public distribution, it must pass seven rigorous quality gates. Any failure within these metrics will halt the launch pipeline.
+
+1. Security & Perimeter Guard Gate
+
+• Criteria: The system must run under an air-gapped configuration without unauthorized network connections, and pass full static application security testing (SAST) loops with zero high-risk vulnerabilities.
+• Metric: 100% resistance to prompt injection attacks that attempt to read files from the local filesystem or access stored credentials.
+• Verification: An independent third-party code audit must verify that data scraped from external windows cannot bypass system access boundaries.
+
+2. System Reliability & Error Recovery Gate
+
+• Criteria: The agent must complete complex, multi-application workflows that span across office tools, web interfaces, and local file storage systems.
+• Metric: Minimum 98.0% verified task success rate across a benchmark suite of 5,000 automated operational routines.
+• Verification: The self-healing engine must catch unhandled application errors or interface blocks and recover the task automatically within 5 attempts, without requiring manual user intervention.
+
+3. Cross-Platform Compatibility Gate
+
+• Criteria: The abstraction layer must execute with identical functional behavior across both targeted operating system environments.
+• Metric: Zero platform-specific execution errors when running universal capability discovery tasks on Windows 11 and macOS Sequoia.
+• Verification: The system must locate UI elements and complete automation workflows successfully when application windows are resized, overlapping, or minimized.
+
+4. System Performance & Latency Gate
+
+• Criteria: The internal communication channels must handle high-velocity data transfers without introducing system lag.
+• Metric: Internal IPC communication latency must remain below 5 milliseconds per JSON-RPC frame transaction.
+• Verification: Total host processor usage must not exceed 15% of available capacity, and memory consumption must stay under 400 MB during active automation tasks.
+
+5. Installation & Clean Deployment Gate
+
+• Criteria: The installation packages must deploy smoothly on standard, out-of-the-box user environments without requiring pre-installed development tools.
+• Metric: 100% automated installation success across clean, target operating system environments.
+• Verification: Installers must register necessary accessibility profiles, set up execution sandboxes, and run the main supervisor loop successfully without manual environment tuning.
+
+6. User Override & Concurrency S
+6. User Override & Concurrency Safety Gate
+
+• Criteria: The safety interceptor must protect user control and prevent system input conflicts during manual overrides.
+• Metric: Automation drivers must freeze within 20 milliseconds of detecting manual mouse or keyboard inputs.
+• Verification: The agent must safely pause its execution thread, preserve the active workspace state, and wait for manual user confirmation before attempting to resume the workflow.
+
+7. Beta Customer Validation Gate
+
+• Criteria: The system must run reliably under real-world operational conditions across diverse customer hardware configurations.
+• Metric: Minimum 95.0% autonomous task completion rate across 500 independent beta customer deployment environments.
+• Verification: The agent must successfully navigate real-world system variances, slow network connections, and diverse application settings without throwing unhandled exceptions or reporting false success metrics.
+
+Prohibited Production Practices (Blacklist)
+
+To ensure system safety, security, and performance, the following practices are strictly prohibited from production releases:
+• No Plaintext Secrets: Credentials or API tokens must never be written to plaintext config files or system logs.
+• No Remote Execution Pipes: The system must never pull or execute unverified third-party binaries or code snippets from remote servers at runtime.
+• No Unhandled System Loops: Automation loops must never run without explicit iteration limits or timeout bounds, preventing runaway execution states.
+• No Hidden Visual Automation: Visual cursor controls must never run blindly without active state-tree verification checks.
+
+11. Dependency-Aware Implementation Roadmap
+
+The engineering roadmap follows a strict build sequence based on functional code dependencies, ensuring each layer is verified before subsequent subsystems are constructed.
+[Phase 1: Foundation Types] ──► [Phase 2: Local Stdio IPC] ──► [Phase 3: Platform Abstraction]
+                                                                        │
+ ┌──────────────────────────────────────────────────────────────────────┘
+ ▼
+[Phase 4: Telemetry Modules] ──► [Phase 5: Control Engine] ──► [Phase 6: Commercial Launch Gates]
+
+Phase 1: Foundational Framework & Core Type Contracts
+
+• Objective: Define the core structural models, namespace properties, and verification type objects (core/types.py).
+• Dependencies: None.
+• Reuse Strategy: Implement standard Python type tools; avoid adding large external data-validation frameworks.
+• Acceptance Criteria: Code compilation must complete cleanly with zero type check warnings or configuration errors.
+
+Phase 2: High-Velocity Communication & IPC Channels
+
+• Objective: Construct the length-prefixed serialization channel engine (core/ipc.py) to manage low-latency background pipe streams.
+• Dependencies: Phase 1 complete.
+• Reuse Strategy: Build on native system library modules (asyncio, struct, json); do not include external networking libraries.
+• Acceptance Criteria: The communication pipe must transfer 50,000 JSON frames consecutively in under 2 seconds without dropping data packets.
+
+Phase 3: Platform Abstraction & Accessibility Drivers
+
+• Objective: Implement platform-specific drivers (platforms/windows.py; platforms/darwin.py) to connect natively with Windows UIA and macOS Cocoa frameworks.
+• Dependencies: Phase 2 complete.
+• Reuse Strategy: Use native operating system bindings (pywinauto on Windows; PyObjC on macOS); do not include coordinate-based cursor libraries.
+• Acceptance Criteria: The driver must recursively scan target application windows and return accurate, structural code trees within 50 milliseconds.
+
+Phase 4: Telemetry Monitoring & Self-Healing Engines
+
+• Objective: Deploy the closed-loop state verifier (telemetry/verifier.py) and the AST patch modifier (telemetry/self_healing.py).
+• Dependencies: Phase 3 complete.
+• Reuse Strategy: Use Python's built-in ast and inspect modules; avoid external source-code manipulation packages.
+• Acceptance Criteria: The verifier must detect structural state changes within 10 milliseconds, and the self-healing engine must successfully rewrite faulty function parameters upon intercepting an error trace.
+
+Phase 5: High-Level Control Loops & Orchestration Supervisor
+
+• Objective: Assemble the central supervisor engine (main.py) to orchestrate receding horizon loops, manage resource locks, and handle user interruptions.
+• Dependencies: Phase 4 complete.
+• Reuse Strategy: Build on the core routing engine; avoid adding external agent orchestration frameworks.
+• Acceptance Criteria: The agent must complete complex multi-app tasks autonomously, pausing its input drivers within 20 milliseconds if a manual user override occurs.
+
+Phase 6: Commercial Launch Gates & Qualification
+
+• Objective: Package the application modules into secure installers and execute full validation test suites across all launch gates.
+• Dependencies: Phase 5 complete.
+• Reuse Strategy: Use native, signed installer packaging tools.
+• Acceptance Criteria: The system must achieve a 98.0% verified task success rate across all benchmark test scenarios, pass full security audits, and run reliably across target environments without throwing unhandled exceptions.
+
+Capabilities Excluded from Universal Design
+
+To maintain performance and reliability, certain capabilities are excluded from the universal engine and are managed through specialized, dynamically discoverable integrations:
+• Low-Level Kernel Adjustments: Hardware-level configurations (such as disk firmware updates or advanced network routing modifications) bypass application tree structures. They are managed through separate, digitally signed system utility plugins.
+• Biometric & Hardware Authentication: Interacting with secure physical authentication hardware (like Windows Hello cameras or Mac Touch ID sensors) is blocked by the OS kernel for safety. These operations halt the automation loop and prompt the user to authenticate manually.
+• Protected System Windows: Highly secure administrative application views (such as credential managers or anti-cheat software environments) block accessibility tree access entirely. The agent identifies these windows by their system process signatures, safely pausing automation loops to prevent access violations.
+
+Definition of Production Readiness
+
+The architecture is certified as Ready for Coding Completion, Independent Qualification, and Public Commercial Launch only when it satisfies these four conditions:
+1. Zero-Hardcoding Compliance: The codebase contains no application-specific string keys, pre-mapped shortcut sequences, or hardcoded file-handling routes. All workflow actions are discovered dynamically using the Ontological Vector Dictionary.
+2. Absolute Telemetry Verification: Every interface modification and file operation runs inside a closed-loop validation check, ensuring the agent cannot report a successful outcome without explicit verification from the operating system state tree.
+3. Proven Cross-Platform Resiliency: The system driver passes all automated testing scenarios with identical functional accuracy on both target operating systems, remaining functional when application windows are resized, moved, or fully minimized.
+4. Verified User Concurrency Safety: The hardware interaction monitor successfully intercepts manual peripheral inputs across all test scenarios, immediately pausing automation drivers within 20 milliseconds to protect user control and guarantee system safety.
+5.
+~~~~
