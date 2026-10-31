@@ -1873,7 +1873,10 @@ Stage 3: Dynamic State Pivot
 
 The agent doesn't throw a generic error box or crash. Because it does not follow a rigid sequence of steps, it treats your user intervention as simply a new environmental state. It says: "The user has updated the workspace to State X. What is the single best micro-action to reach the goal from this brand-new starting point?" It adapts on the fly, seamlessly working around your edits until the final quality matrix is 1000% completed.
 
-[Quantitative source-sizing material at original lines 788–811 excluded at the owner's instruction.]
+[Quantitative source-sizing material at original lines 788–808 excluded at the owner's instruction.]
+To write the foundational script blocks for the interruption detection loop, let me know:
+• Will your primary supervisor orchestrator be running via Python (asyncio) or Node.js (child_process)?
+• Do you want the system to temporarily freeze your mouse/keyboard input when it executes a hyper-critical micro-action, or should it always allow you to override it freely?
 A. Universal Computer Control
 
 
