@@ -19,10 +19,13 @@ export type Decision =
   | { kind: "settle"; verification: VerificationResult; summary: string }
   | { kind: "block"; reason: string };
 
-export const open = (step: Step) => ["queued", "claimed", "needs_confirmation"].includes(step.status);
+export const open = (step: Step) =>
+  ["queued", "claimed", "needs_confirmation"].includes(step.status);
 
 export function evidenceOf(steps: Step[], operation: string) {
-  const step = steps.find((candidate) => candidate.intent.operation === operation && candidate.status === "done");
+  const step = steps.find(
+    (candidate) => candidate.intent.operation === operation && candidate.status === "done",
+  );
   return step?.receipt?.evidence as Record<string, unknown> | undefined;
 }
 
