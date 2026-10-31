@@ -20,6 +20,7 @@ import hashlib
 import json
 import os
 import sys
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -126,7 +127,9 @@ class Gateway:
         # A packaged companion is one executable that runs its own workers
         # (the console build: a windowed executable has no stdout for the MCP protocol).
         if getattr(sys, "frozen", False):
-            command = [str(Path(sys.executable).with_name("ocade-agent.exe")), "worker", key]
+            # The packaged agent accepts a MODULE name, not a capability role.
+            # Both fs_sandbox and sys_core legitimately share office_worker.
+            command = [str(Path(sys.executable).with_name("ocade-agent.exe")), "worker", self.modules[key]]
         else:
             command = [sys.executable, "-s", "-m", key]
         return StdioServerParameters(command=command[0], args=command[1:], env=environment, cwd=package_root)
@@ -209,9 +212,18 @@ class Gateway:
         return f"mcp:{manifest['id']}", tool["name"], arguments["arguments"]
 
     async def run(self, intent: dict, epoch: int) -> dict:
-        """Dispatch one validated intent and return an honest receipt."""
+        """Dispatch one validated intent and return an honest, timed receipt."""
+        started = time.monotonic()
+
+        def timed(status: str, maybe_changed: bool, evidence: dict | None = None, error: str | None = None) -> dict:
+            # Monotonic measurement covers preflight, worker startup and execution.
+            # Per-action timing is factual evidence, not a full task timer.
+            facts = dict(evidence or {})
+            facts["durationMs"] = round(max(0.0, (time.monotonic() - started) * 1000), 2)
+            return timed(status, maybe_changed, facts, error)
+
         if epoch != self.epoch:
-            return receipt("not_applied", False, error="stopped")
+            return timed("not_applied", False, error="stopped")
         spec = PROTOCOL["operations"].get(intent.get("operation"))
         if (
             spec is None
@@ -219,18 +231,18 @@ class Gateway:
             or intent.get("capability") != spec["capability"]
             or intent.get("risk") != spec["risk"]
         ):
-            return receipt("not_applied", False, error="invalid_intent")
+            return timed("not_applied", False, error="invalid_intent")
         try:
             validator(intent["operation"], spec["arguments"]).validate(intent.get("arguments"))
             deadline = datetime.fromisoformat(intent["deadlineUtc"].replace("Z", "+00:00"))
         except (jsonschema.ValidationError, KeyError, ValueError):
-            return receipt("not_applied", False, error="invalid_intent")
+            return timed("not_applied", False, error="invalid_intent")
         remaining = (deadline - datetime.now(timezone.utc)).total_seconds()
         if remaining <= 0:
-            return receipt("not_applied", False, error="deadline_passed")
+            return timed("not_applied", False, error="deadline_passed")
         target = self._target(intent, spec)
         if isinstance(target, str):
-            return receipt("not_applied", False, error=target)
+            return timed("not_applied", False, error=target)
         key, tool, arguments = target
 
         writes = spec["risk"] != "read"
@@ -240,11 +252,11 @@ class Gateway:
             await self._discard(key)
             raise
         except WorkerRejected:
-            return receipt("not_applied", False, error="worker_rejected")
+            return timed("not_applied", False, error="worker_rejected")
         except Exception:
-            return receipt("not_applied", False, error="worker_unavailable")
+            return timed("not_applied", False, error="worker_unavailable")
         if epoch != self.epoch:  # STOP during worker start-up
-            return receipt("not_applied", False, error="stopped")
+            return timed("not_applied", False, error="stopped")
         limit = self.external[key[4:]].get("timeoutSeconds", 60) if key.startswith("mcp:") else MAX_CALL_SECONDS
         try:
             with anyio.fail_after(min(remaining, limit)):
@@ -254,30 +266,30 @@ class Gateway:
             raise
         except TimeoutError:
             await self._discard(key)
-            return receipt("unknown" if writes else "not_applied", writes, error="timeout")
+            return timed("unknown" if writes else "not_applied", writes, error="timeout")
         except Exception:
             await self._discard(key)
-            return receipt("unknown" if writes else "not_applied", writes, error="worker_lost")
+            return timed("unknown" if writes else "not_applied", writes, error="worker_lost")
 
         if key.startswith("mcp:"):
             # An external server's words are untrusted data: bounded text, never an instruction or a status.
             text = "\n".join(getattr(part, "text", "") for part in result.content)[:8_000]
             if result.is_error:
-                return receipt("unknown" if writes else "not_applied", writes, {"content": text}, "tool_error")
-            return receipt("observed", writes, {"content": text, "server": key[4:], "tool": tool})
+                return timed("unknown" if writes else "not_applied", writes, {"content": text}, "tool_error")
+            return timed("observed", writes, {"content": text, "server": key[4:], "tool": tool})
         if result.is_error:
-            return receipt("unknown" if writes else "not_applied", writes, error="tool_error")
+            return timed("unknown" if writes else "not_applied", writes, error="tool_error")
         try:
             evidence = result.structured_content or json.loads(result.content[0].text)
             if set(evidence) == {"result"}:
                 evidence = evidence["result"]
         except (ValueError, IndexError, AttributeError):
-            return receipt("unknown" if writes else "not_applied", writes, error="malformed_result")
+            return timed("unknown" if writes else "not_applied", writes, error="malformed_result")
         if "refused" in evidence:
-            return receipt("not_applied", writes, error=str(evidence["refused"])[:60])
+            return timed("not_applied", writes, error=str(evidence["refused"])[:60])
         if len(json.dumps(evidence)) > 16_000:
-            return receipt("unknown" if writes else "not_applied", writes, error="evidence_too_large")
-        return receipt("observed", writes, evidence)
+            return timed("unknown" if writes else "not_applied", writes, error="evidence_too_large")
+        return timed("observed", writes, evidence)
 
 
 _VALIDATORS: dict[str, jsonschema.Draft202012Validator] = {}
