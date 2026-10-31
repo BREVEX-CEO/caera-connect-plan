@@ -195,7 +195,10 @@ export async function advance(admin: Admin, taskId: string, now = new Date()): P
       await call(admin, "jarvis_queue_actions", {
         p_task: taskId,
         p_controller: task.controller,
-        p_actions: [{ summary: decision.summary, action: decision.intent }] as unknown as Json,
+        p_actions: [
+          { summary: decision.summary, action: decision.intent },
+          ...(decision.more ?? []).map((next) => ({ summary: next.summary, action: next.intent })),
+        ] as unknown as Json,
       });
     } else if (decision.kind === "settle") {
       await call(admin, "jarvis_settle_task", {

@@ -14,7 +14,13 @@ export interface Step {
 }
 
 export type Decision =
-  | { kind: "queue"; summary: string; intent: ActionIntent }
+  | {
+      kind: "queue";
+      summary: string;
+      intent: ActionIntent;
+      /** Further actions the model chose in the same turn, run in order before it is asked again. */
+      more?: { summary: string; intent: ActionIntent }[];
+    }
   | { kind: "wait" }
   | { kind: "settle"; verification: VerificationResult; summary: string }
   | { kind: "block"; reason: string };

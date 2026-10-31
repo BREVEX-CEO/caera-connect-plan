@@ -110,6 +110,36 @@ class Journey(unittest.TestCase):
         self.assertEqual(verified["evidence"]["predicates"], {"net": False, "wrong": False, "pdf": False})
 
 
+class Multiplexing(unittest.TestCase):
+    def test_concurrent_calls_to_different_workers_keep_their_own_answers(self):
+        from PIL import Image
+
+        root = Path(tempfile.mkdtemp())
+        for index in range(4):
+            Image.new("RGB", (100 + index, 50), (index * 40, 0, 0)).save(root / f"img{index}.png")
+
+        async def go():
+            results = {}
+            async with Gateway(str(root)) as gateway:
+                async with anyio.create_task_group() as group:
+                    for index in range(4):
+                        async def inspect(i=index):
+                            results[f"media{i}"] = await gateway.run(
+                                intent("media.inspect", {"path": f"img{i}.png"}), gateway.epoch)
+
+                        async def listing(i=index):
+                            results[f"list{i}"] = await gateway.run(intent("fs.list", {}), gateway.epoch)
+
+                        group.start_soon(inspect)
+                        group.start_soon(listing)
+            return results
+
+        results = anyio.run(go)
+        for index in range(4):
+            self.assertEqual(results[f"media{index}"]["evidence"]["width"], 100 + index)  # its own file, not another's
+            self.assertEqual(len(results[f"list{index}"]["evidence"]["entries"]), 4)
+
+
 class Refusals(unittest.TestCase):
     def setUp(self):
         self.root = Path(tempfile.mkdtemp())

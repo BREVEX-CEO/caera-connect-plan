@@ -185,11 +185,15 @@ test("a failed independent check returns to the model for bounded repair", async
   const { createServer } = await import("node:http");
   const { planStep, plannerAccess } = await import("../../src/lib/jarvis/planner.server.ts");
   let calls = 0;
+  let reply: { name: string; arguments: Record<string, unknown> }[] = [
+    { name: "finish", arguments: {} },
+  ];
   const service = createServer((_req, res) => {
     calls += 1;
     res.writeHead(200, { "content-type": "text/event-stream" });
-    const event = { type: "tool_call", call: { name: "finish", arguments: {} } };
-    res.end(`data: ${JSON.stringify(event)}\r\n\r\n`);
+    res.end(
+      reply.map((call) => `data: ${JSON.stringify({ type: "tool_call", call })}\r\n\r\n`).join(""),
+    );
   });
   await new Promise<void>((ok) => service.listen(0, "127.0.0.1", ok));
   const saved = { ...plannerAccess };
@@ -248,6 +252,35 @@ test("a failed independent check returns to the model for bounded repair", async
       "settle",
     );
     assert.equal(calls, 1);
+
+    // A name that was not offered this turn is refused, even if the operation exists.
+    reply = [
+      { name: "office_write_workbook", arguments: { path: "OCADE output/x.xlsx", sheets: [] } },
+    ];
+    const offeredOnly = await planStep({ ...base, engines: [], steps: [] });
+    assert.equal(offeredOnly.kind, "block");
+    // Several local calls in one turn are queued together; an external effect ends the batch.
+    reply = [
+      { name: "fs_read_text", arguments: { path: "a.txt" } },
+      {
+        name: "office_write_document",
+        arguments: { docx: "OCADE output/a.docx", title: "A", sections: [{ heading: "H" }] },
+      },
+      {
+        name: "web_click",
+        arguments: { page: { id: "p1", site: "example.com" }, selector: "#send" },
+      },
+      { name: "fs_list", arguments: {} },
+    ];
+    const batch = await planStep({ ...base, grants: ["files", "browser"], steps: [] });
+    assert.equal(batch.kind, "queue");
+    if (batch.kind === "queue") {
+      assert.equal(batch.intent.operation, "fs.read_text");
+      assert.deepEqual(
+        batch.more?.map((m) => [m.intent.operation, m.intent.key]),
+        [["office.write_document", "s1-2"]],
+      );
+    }
   } finally {
     Object.assign(plannerAccess, saved);
     service.close();

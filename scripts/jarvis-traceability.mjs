@@ -1,296 +1,358 @@
 #!/usr/bin/env node
 /**
- * The 236-entry requirement → implementation → test matrix (plan.md Annexes A–C).
+ * The 84 architecture concepts of plan.md §3, each with its code owner, the
+ * tests that exercise it, its evidence state and, when not PASS, the reason.
  *
- * Reads the A/B/C identifiers from plan.md itself (so nothing can be skipped by
- * editing a second list), gives each one a disposition and maps every active
- * entry, through the plan sections and P-packages it names, to the code that
- * owns it, the tests that exercise it and the current evidence status. Fails
- * when an identifier is missing, duplicated, unmapped or an active entry has
- * neither a test nor a stated blocker.
+ * Reads the concept rows from plan.md itself, so a concept cannot be skipped by
+ * editing a second list. Fails when a concept is missing or duplicated, a status
+ * is not one of the plan's states, a PASS has no test, or a non-PASS has no
+ * reason. Evidence level: L1 unit/contract, L2 local integration with real
+ * workers/DB, L3 live hosted staging, L4 real Gemini task. Status is the weakest
+ * honest claim; a mock or Linux run never stands in for live Gemini or Windows.
  *
- *   node scripts/jarvis-traceability.mjs [--write evidence/<date>]
+ *   node scripts/jarvis-traceability.mjs [--write evidence/<folder>]
  */
-import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-const plan = readFileSync("plan.md", "utf8");
-
-const C = {
-  contracts: "src/lib/jarvis/contracts.ts",
+const O = {
   authority: "src/lib/jarvis/authority.server.ts",
+  planner: "src/lib/jarvis/planner.server.ts",
+  contracts: "src/lib/jarvis/contracts.ts",
   supervisor: "src/lib/jarvis/supervisor.ts",
-  planner: "src/lib/jarvis/planner.server.ts + supabase/functions/ocade-intelligence-service",
   migration: "supabase/migrations/20261030120000_jarvis_task_authority.sql",
-  ui: "src/jarvis/JarvisWorkspace.tsx + JarvisPanels.tsx",
+  service: "src/lib/intelligence/edge-handler.ts (deployed ocade-intelligence-service)",
+  ui: "src/jarvis/JarvisPanels.tsx",
   gateway: "device-agent/windows/ocade_agent/gateway.py",
   catalog: "device-agent/windows/ocade_agent/catalog.py",
+  discovery: "device-agent/windows/ocade_agent/discovery.py",
   sandbox: "device-agent/windows/ocade_agent/sandbox.py",
-  office: "device-agent/windows/ocade_agent/office_worker.py + engine.py",
-  verify: "device-agent/windows/ocade_agent/verify_worker.py",
-  windows: "device-agent/windows/ocade_agent/windows_worker.py + discovery.py",
-  web: "device-agent/windows/ocade_agent/web_worker.py",
-  media: "device-agent/windows/ocade_agent/media_worker.py + scene_gl.py",
   agent: "device-agent/windows/ocade_agent/agent.py + device.py + journal.py",
+  office: "device-agent/windows/ocade_agent/office_worker.py",
+  media: "device-agent/windows/ocade_agent/media_worker.py + scene_gl.py",
+  web: "device-agent/windows/ocade_agent/web_worker.py",
+  windows: "device-agent/windows/ocade_agent/windows_worker.py",
+  verify: "device-agent/windows/ocade_agent/verify_worker.py",
   packaging: "device-agent/windows/packaging/",
+  guard: "scripts/jarvis-no-hardcoded-journeys.mjs",
 };
 const T = {
-  db: "tests/jarvis/db/authority.test.sql",
-  e2e: "tests/jarvis/e2e.test.ts",
   unit: "tests/jarvis/contracts.test.ts",
+  e2e: "tests/jarvis/e2e.test.ts",
+  db: "tests/jarvis/db/authority.test.sql",
   gateway: "device-agent/windows/tests/test_gateway.py",
   agent: "device-agent/windows/tests/test_agent.py",
   sandbox: "device-agent/windows/tests/test_sandbox.py",
   catalog: "device-agent/windows/tests/test_catalog.py",
-  fleet: "device-agent/windows/tests/mcp_fleet.py (measurement)",
   web: "device-agent/windows/tests/test_web.py",
   media: "device-agent/windows/tests/test_media.py",
-  ui: "evidence UI render (signed-out)",
+  frozen: "device-agent/windows/packaging/check_frozen.py",
+  guard: "npm run jarvis:no-hardcoded",
+  staging: "staging RPC/migration check (session 31 Oct)",
 };
+const LIVE =
+  "live Gemini blocked: the deployed service door refuses this session's key (see report)";
+const WIN = "needs an interactive Windows machine";
 
-/**
- * Each plan section (and P-package) → owners, tests, status, evidence level and blocker.
- * Status is the weakest qualified state of what the section requires.
- */
-const SECTIONS = {
-  0: [
-    ["authority", "supervisor"],
-    ["e2e"],
+// number: [status, level, owners, tests, reason]
+const C = {
+  1: [
     "PARTIAL",
-    "L3",
-    "95% per-family gate not measured; Windows/UI journeys blocked",
+    "L2",
+    ["authority", "planner", "gateway", "verify"],
+    ["e2e"],
+    `one loop wired end to end with a scripted model; ${LIVE}`,
   ],
-  1: [["authority"], ["e2e"], "PASS", "L0", ""],
-  2: [["authority", "migration"], ["db"], "PASS", "L2", ""],
-  3: [["contracts"], ["unit"], "PASS", "L0", ""],
-  4: [
-    ["authority", "supervisor", "planner", "gateway", "verify"],
+  2: [
+    "PARTIAL",
+    "L2",
+    ["authority", "agent"],
+    ["e2e"],
+    "task and activity ids link every hop; no separate traceId",
+  ],
+  3: [
+    "PASS",
+    "L2",
+    ["supervisor", "catalog", "gateway", "agent", "verify"],
     ["e2e", "gateway"],
-    "PARTIAL",
-    "L2",
-    "real model judgement untested (provider spend not confirmed free); Windows actuators untested",
+    "",
   ],
-  5: [["migration", "authority", "agent"], ["db", "e2e", "agent"], "PASS", "L2", ""],
+  4: ["PASS", "L2", ["migration", "authority"], ["db", "e2e"], ""],
+  5: ["PASS", "L2", ["planner", "contracts", "migration", "verify"], ["unit", "db", "e2e"], ""],
   6: [
-    ["gateway", "catalog", "contracts"],
-    ["gateway", "catalog", "fleet"],
+    "PARTIAL",
+    "L1",
+    ["planner"],
+    ["unit"],
+    "goal checks and per-turn tool shortlist; no explicit milestone layer",
+  ],
+  7: ["PASS", "L2", ["migration", "supervisor"], ["db", "e2e"], ""],
+  8: [
     "PARTIAL",
     "L2",
-    "real third-party MCP server run denied by sandbox policy; needs owner approval",
-  ],
-  7: [
-    ["agent", "packaging", "authority"],
+    ["planner", "contracts"],
     ["e2e"],
-    "PARTIAL",
-    "L3",
-    "installer/startup/DPAPI need a disposable Windows machine",
+    `typed checks compiled before any step; ${LIVE}`,
   ],
-  8: [["windows"], [], "BLOCKED", "L0", "needs an interactive Windows desktop"],
-  9: [
-    ["office", "windows"],
-    ["gateway", "media", "e2e"],
-    "PARTIAL",
-    "L3",
-    "LibreOffice/ffmpeg pass on Linux; Excel/Word COM needs Windows + Office",
-  ],
-  10: [
-    ["web", "contracts"],
-    ["web"],
-    "PARTIAL",
-    "L3",
-    "fixture site + example.com read pass; third-party accounts/editors not approved",
-  ],
-  11: [["migration", "agent", "gateway"], ["db", "agent", "e2e"], "PASS", "L2", ""],
-  12: [["verify", "supervisor"], ["gateway", "e2e", "media"], "PASS", "L3", ""],
-  13: [
-    ["supervisor", "planner", "office", "web", "media"],
-    ["e2e", "web", "media"],
-    "PARTIAL",
-    "L3",
-    "chess/CAD not implemented; 3D scene + video timeline engines pass locally, but no live Gemini-planned media run (planner BLOCKED); Windows apps blocked",
-  ],
-  14: [["ui"], ["ui"], "PARTIAL", "L3", "signed-in UI needs hosted Supabase auth"],
-  15: [
-    ["contracts", "web", "sandbox", "catalog", "migration"],
-    ["db", "web", "sandbox", "catalog"],
+  9: ["PASS", "L1", ["guard", "planner"], ["guard", "unit", "e2e"], ""],
+  10: ["PASS", "L1", ["planner", "discovery"], ["unit"], ""],
+  11: [
     "PARTIAL",
     "L2",
-    "Windows-specific attacks (junctions, UAC, wrong HWND) blocked",
+    ["discovery", "catalog"],
+    ["agent"],
+    `engines, MCP manifests reported; installed-app and window discovery ${WIN}`,
   ],
+  12: ["BLOCKED", "L0", ["discovery"], [], WIN],
+  13: ["PASS", "L2", ["catalog", "contracts"], ["catalog", "gateway"], ""],
+  14: ["PASS", "L1", ["planner"], ["unit"], ""],
+  15: ["PASS", "L1", ["planner"], ["unit"], ""],
   16: [
-    ["catalog"],
-    ["fleet"],
+    "PARTIAL",
+    "L1",
+    ["planner"],
+    ["unit"],
+    "TF-IDF vectors over descriptors; learned embeddings blocked (no approved embedding model)",
+  ],
+  17: ["PASS", "L1", ["planner"], ["unit"], ""],
+  18: [
     "PARTIAL",
     "L2",
-    "task-level latency/benchmark against real model not run",
+    ["planner", "migration"],
+    ["e2e"],
+    "step and time budgets, durable state; no milestone construct",
   ],
-  17: [
-    ["authority"],
+  19: ["PASS", "L1", ["planner"], ["unit", "e2e"], ""],
+  20: [
+    "PARTIAL",
+    "L2",
+    ["planner", "gateway"],
+    ["e2e"],
+    `observe and adapt proven with a scripted model; ${LIVE}`,
+  ],
+  21: [
+    "PARTIAL",
+    "L2",
+    ["migration", "authority"],
     ["db", "e2e"],
+    "resume issues a new controller; no target refresh after takeover",
+  ],
+  22: ["PASS", "L2", ["catalog", "gateway"], ["catalog", "unit"], ""],
+  23: ["PASS", "L1", ["planner"], ["unit"], ""],
+  24: ["PASS", "L1", ["discovery", "planner", "media"], ["unit", "media"], ""],
+  25: [
+    "PARTIAL",
+    "L1",
+    ["planner"],
+    ["unit"],
+    "preference order in the model instructions; no automatic mechanism fallback",
+  ],
+  26: ["PASS", "L2", ["office", "sandbox", "media"], ["sandbox", "gateway", "media"], ""],
+  27: ["PASS", "L2", ["media", "office", "sandbox"], ["media", "sandbox"], ""],
+  28: ["BLOCKED", "L0", ["windows"], [], WIN],
+  29: ["BLOCKED", "L0", [], [], "macOS is not an offered platform; no AX bridge exists"],
+  30: ["PASS", "L2", ["web"], ["web"], ""],
+  31: [
     "PARTIAL",
     "L2",
-    "release gates need Windows + real model evidence",
+    ["web"],
+    ["web"],
+    "dedicated OCADE profile only; existing signed-in sessions not used",
   ],
-  18: [["authority"], ["e2e"], "PARTIAL", "L2", "see per-package report"],
-  19: [["authority"], [], "PASS", "L0", ""],
-  20: [["authority"], [], "PASS", "L0", ""],
-  21: [["windows", "contracts"], ["unit"], "PARTIAL", "L0", "pywinauto/PyAutoGUI need Windows"],
-  22: [["agent", "gateway"], ["e2e"], "PASS", "L2", ""],
-  23: [["authority", "agent", "gateway"], ["e2e", "gateway"], "PASS", "L2", ""],
-  24: [["migration"], ["db"], "PASS", "L2", ""],
-  25: [
-    ["windows", "web", "sandbox"],
-    ["web", "sandbox"],
+  32: ["BLOCKED", "L0", ["windows"], [], WIN],
+  33: [
     "PARTIAL",
-    "L3",
-    "Windows control stack blocked",
+    "L2",
+    ["web", "windows", "contracts"],
+    ["web", "unit"],
+    `page/site binding tested; window leases ${WIN}`,
   ],
-  26: [
-    ["packaging", "agent"],
-    [],
+  34: ["BLOCKED", "L0", ["windows"], [], WIN],
+  35: ["BLOCKED", "L0", ["windows"], [], WIN],
+  36: ["FAIL", "L0", ["windows"], [], "no confidence-scored visual anchor fallback implemented"],
+  37: [
+    "PARTIAL",
+    "L1",
+    ["planner", "discovery"],
+    ["unit"],
+    "engine-gated choice; no runtime fallback between mechanisms",
+  ],
+  38: ["PASS", "L2", ["sandbox"], ["sandbox"], ""],
+  39: ["PASS", "L2", ["gateway", "catalog"], ["gateway", "catalog"], ""],
+  40: ["PASS", "L2", ["gateway"], ["gateway", "agent"], ""],
+  41: ["PASS", "L2", ["gateway", "packaging"], ["gateway", "frozen"], ""],
+  42: ["PASS", "L2", ["gateway"], ["gateway"], ""],
+  43: ["PASS", "L2", ["gateway"], ["gateway"], ""],
+  44: ["PASS", "L2", ["contracts", "gateway"], ["unit", "gateway"], ""],
+  45: [
+    "PARTIAL",
+    "L2",
+    ["catalog", "discovery"],
+    ["catalog"],
+    "pinned manifests and start-up health; no health TTL cache",
+  ],
+  46: [
+    "PARTIAL",
+    "L2",
+    ["catalog", "gateway"],
+    ["catalog", "gateway"],
+    "pinned and untrusted; a real third-party server run was blocked by sandbox policy",
+  ],
+  47: ["PASS", "L2", ["gateway"], ["gateway", "agent"], ""],
+  48: [
+    "PARTIAL",
+    "L2",
+    ["gateway", "authority"],
+    ["gateway", "e2e"],
+    "per-action and model durations recorded; no p50/p95 from real runs",
+  ],
+  49: ["PASS", "L1", ["planner", "authority", "migration"], ["unit", "db"], ""],
+  50: [
+    "PARTIAL",
+    "L2",
+    ["migration"],
+    ["db"],
+    "one open task per device; no per-file lock across devices",
+  ],
+  51: [
+    "PARTIAL",
+    "L2",
+    ["migration", "gateway"],
+    ["db"],
+    "serialized per device; no CPU/GPU-aware scheduling",
+  ],
+  52: ["PASS", "L2", ["migration", "agent"], ["db", "agent"], ""],
+  53: ["PASS", "L2", ["agent"], ["agent"], ""],
+  54: ["PASS", "L2", ["migration"], ["db", "e2e"], ""],
+  55: ["PASS", "L2", ["agent", "migration"], ["agent", "db"], ""],
+  56: ["PASS", "L2", ["agent", "migration"], ["agent", "e2e"], ""],
+  57: ["PASS", "L2", ["migration", "agent", "gateway"], ["e2e", "agent", "gateway"], ""],
+  58: ["FAIL", "L0", [], [], "live user-interference detection not implemented"],
+  59: [
+    "PARTIAL",
+    "L2",
+    ["web", "windows"],
+    ["web"],
+    `web page binding rechecked per action; windows ${WIN}`,
+  ],
+  60: ["PASS", "L1", ["planner"], ["unit"], ""],
+  61: ["PASS", "L2", ["authority", "planner"], ["e2e", "unit"], ""],
+  62: [
+    "PARTIAL",
+    "L2",
+    ["gateway", "sandbox"],
+    ["gateway", "sandbox"],
+    "sanitized env and path sandbox; no OS-level ACL or network isolation",
+  ],
+  63: ["PASS", "L2", ["migration", "authority", "service"], ["db", "e2e"], ""],
+  64: ["PASS", "L2", ["gateway", "service"], ["gateway", "e2e"], ""],
+  65: [
+    "PARTIAL",
+    "L2",
+    ["agent", "authority"],
+    ["e2e"],
+    "request signatures tested; signed binary updates blocked (no certificate)",
+  ],
+  66: ["PASS", "L2", ["migration", "authority"], ["e2e", "db"], ""],
+  67: ["PARTIAL", "L2", ["migration"], ["db"], "grants persist per device; no purpose or expiry"],
+  68: [
     "BLOCKED",
     "L0",
-    "signing certificate and Windows build host needed",
+    ["packaging"],
+    ["frozen"],
+    "Windows build, installer and signing need Windows and a certificate",
   ],
-  27: [
-    ["supervisor", "verify", "office"],
-    ["e2e"],
-    "PARTIAL",
-    "L3",
-    "Journey 1 passes on Linux/LibreOffice; Journeys 2-3 L2 only",
-  ],
-  28: [
-    ["authority"],
-    ["db", "e2e", "gateway", "web"],
+  69: ["PASS", "L2", ["sandbox", "media", "office"], ["sandbox", "media"], ""],
+  70: ["PASS", "L2", ["migration", "authority", "ui"], ["e2e"], ""],
+  71: [
     "PARTIAL",
     "L2",
-    "Windows/UIA negative tests blocked",
+    ["authority", "ui"],
+    ["e2e"],
+    "files land in the device folder; no download/read-back from the UI tested",
   ],
-  29: [["authority"], ["e2e"], "PARTIAL", "L2", "release gate not met"],
-  30: [["gateway", "planner"], ["gateway"], "PASS", "L2", ""],
+  72: ["UNTESTED", "L0", ["ui"], [], "signed-in UI not exercised"],
+  73: ["PASS", "L2", ["packaging", "gateway"], ["frozen"], ""],
+  74: ["PASS", "L2", ["gateway", "agent"], ["gateway", "agent"], ""],
+  75: ["PASS", "L2", ["verify"], ["gateway", "media"], ""],
+  76: ["PASS", "L2", ["verify"], ["gateway", "media"], ""],
+  77: ["PASS", "L1", ["planner"], ["unit"], ""],
+  78: ["UNTESTED", "L0", [], [], LIVE],
+  79: ["BLOCKED", "L0", [], [], `architecture gate not passed; ${LIVE}`],
+  80: [
+    "PARTIAL",
+    "L2",
+    ["gateway", "web", "sandbox", "migration"],
+    ["gateway", "web", "sandbox", "db"],
+    `Windows wrong-target cases ${WIN}`,
+  ],
+  81: ["PASS", "L1", ["guard"], ["guard", "e2e"], ""],
+  82: ["PASS", "L1", [], ["unit"], ""],
+  83: ["UNTESTED", "L0", [], [], LIVE],
+  84: ["FAIL", "L0", [], [], "release gate not met: concepts above are FAIL/BLOCKED/PARTIAL"],
 };
+const STATES = ["PASS", "PARTIAL", "FAIL", "BLOCKED", "UNTESTED"];
 
-const rows = [...plan.matchAll(/^\| ([ABC]\d{2,3}) \|(.*)\|\s*$/gm)].map((m) => ({
-  id: m[1],
-  cells: m[2].split("|").map((c) => c.trim()),
+const rows = [
+  ...readFileSync("plan.md", "utf8").matchAll(/^\| (\d{1,2}) \| \*\*(.+?)\*\* \|/gm),
+].map((m) => ({
+  n: Number(m[1]),
+  title: m[2],
 }));
-
-function disposition(id, text) {
-  if (/Excluded|Omitted estimate/i.test(text))
-    return ["NOT APPLICABLE", "numerical sizing excluded by owner direction"];
-  if (/rejected/i.test(text))
-    return ["NOT APPLICABLE", "historical claim rejected as unsafe/unmeasurable (see treatment)"];
-  if (/Example-only|example not production/i.test(text))
-    return ["NOT APPLICABLE", "example only, not a product requirement"];
-  if (/macOS|Peekaboo/i.test(text))
-    return ["NOT APPLICABLE", "future platform outside Windows-first scope"];
-  return ["ACTIVE", ""];
+const problems = [];
+if (rows.length !== 84) problems.push(`${rows.length} concepts in plan.md, expected 84`);
+for (let n = 1; n <= 84; n += 1) {
+  if (rows.filter((r) => r.n === n).length !== 1)
+    problems.push(`concept ${n} missing or duplicated`);
+  const entry = C[n];
+  if (!entry) problems.push(`concept ${n} has no ledger entry`);
+  else {
+    const [status, , owners, tests, reason] = entry;
+    if (!STATES.includes(status)) problems.push(`${n}: unknown status ${status}`);
+    if (status === "PASS" && !tests.length) problems.push(`${n}: PASS without a test`);
+    if (status !== "PASS" && !reason) problems.push(`${n}: ${status} without a reason`);
+    for (const key of owners) if (!O[key]) problems.push(`${n}: unknown owner ${key}`);
+    for (const key of tests) if (!T[key]) problems.push(`${n}: unknown test ${key}`);
+  }
 }
 
-const order = ["FAIL", "BLOCKED", "PARTIAL", "UNTESTED", "PASS"];
-const entries = rows.map(({ id, cells }) => {
-  const heading = cells[id.startsWith("A") ? 1 : 0];
-  const treatment = cells.at(-1);
-  const text = cells.join(" ");
-  const [kind, reason] = disposition(id, text);
-  const sections = [
-    ...new Set(
-      (treatment.match(/(?<![\d.])\d{1,2}(?![\d])/g) ?? [])
-        .map(Number)
-        .filter((n) => n in SECTIONS),
-    ),
-  ];
-  const packages = [...new Set(text.match(/P\d{2}/g) ?? [])];
-  if (kind !== "ACTIVE") {
-    return {
-      id,
-      heading,
-      treatment,
-      disposition: kind,
-      status: "NOT APPLICABLE",
-      reason,
-      sections,
-      packages,
-      code: [],
-      tests: [],
-    };
-  }
-  const mapped = sections.length ? sections : [18];
-  const status = mapped
-    .map((s) => SECTIONS[s][2])
-    .sort((a, b) => order.indexOf(a) - order.indexOf(b))[0];
+const entries = rows.map(({ n, title }) => {
+  const [status, level, owners, tests, reason] = C[n] ?? ["UNTESTED", "L0", [], [], "no entry"];
   return {
-    id,
-    heading,
-    treatment,
-    disposition: /candidate/i.test(text) ? "OPTIONAL" : "MANDATORY",
+    n,
+    title,
     status,
-    level: mapped.map((s) => SECTIONS[s][3]).sort()[0],
-    sections: mapped,
-    packages,
-    code: [...new Set(mapped.flatMap((s) => SECTIONS[s][0].map((k) => C[k])))],
-    tests: [...new Set(mapped.flatMap((s) => SECTIONS[s][1].map((k) => T[k])))],
-    blocker: [...new Set(mapped.map((s) => SECTIONS[s][4]).filter(Boolean))].join("; "),
+    level,
+    owners: owners.map((k) => O[k]),
+    tests: tests.map((k) => T[k]),
+    reason,
   };
 });
-
-const problems = [];
-const count = (prefix) =>
-  new Set(entries.filter((e) => e.id.startsWith(prefix)).map((e) => e.id)).size;
-for (const [prefix, expected] of [
-  ["A", 143],
-  ["B", 30],
-  ["C", 63],
-]) {
-  if (count(prefix) !== expected)
-    problems.push(`${prefix}: ${count(prefix)} identifiers, expected ${expected}`);
-  for (let n = 1; n <= expected; n += 1) {
-    const id = `${prefix}${String(n).padStart(prefix === "A" ? 3 : 2, "0")}`;
-    if (!entries.some((e) => e.id === id)) problems.push(`${id} missing`);
-  }
-}
-if (new Set(entries.map((e) => e.id)).size !== entries.length)
-  problems.push("duplicate identifiers");
-for (const e of entries) {
-  if (e.disposition === "NOT APPLICABLE" && !e.reason)
-    problems.push(`${e.id} excluded without reason`);
-  if (e.status !== "NOT APPLICABLE" && !e.code.length)
-    problems.push(`${e.id} has no implementation owner`);
-  if (e.status !== "NOT APPLICABLE" && !e.tests.length && !e.blocker && e.status !== "PASS")
-    problems.push(`${e.id} has neither a test nor a blocker`);
-  if (e.status === "PASS" && !e.tests.length && e.level !== "L0")
-    problems.push(`${e.id} PASS without evidence`);
-}
-
-const totals = entries.reduce((acc, e) => ({ ...acc, [e.status]: (acc[e.status] ?? 0) + 1 }), {});
-console.log(JSON.stringify({ entries: entries.length, totals }, null, 2));
+const totals = Object.fromEntries(
+  STATES.map((s) => [s, entries.filter((e) => e.status === s).length]),
+);
+console.log(
+  JSON.stringify(
+    { concepts: entries.length, totals, architectureReady: totals.PASS === 84 },
+    null,
+    2,
+  ),
+);
 const at = process.argv.indexOf("--write");
 if (at > 0) {
   const folder = process.argv[at + 1];
   mkdirSync(folder, { recursive: true });
-  writeFileSync(join(folder, "traceability.json"), `${JSON.stringify(entries, null, 2)}\n`);
+  writeFileSync(join(folder, "architecture-ledger.json"), `${JSON.stringify(entries, null, 2)}\n`);
+  const cell = (v) => String(v).replace(/\|/g, "\\|");
   const md = [
-    "| ID | Heading | Disposition | Status | Level | Plan sections | Code | Tests | Blocker / reason |",
-    "| --- | --- | --- | --- | --- | --- | --- | --- | --- |",
-    ...entries.map((e) =>
-      [
-        e.id,
-        e.heading,
-        e.disposition,
-        e.status,
-        e.level ?? "",
-        e.sections.join(", "),
-        e.code.join("<br>"),
-        e.tests.join("<br>"),
-        e.blocker || e.reason,
-      ]
-        .map((v) => String(v).replace(/\|/g, "\\|"))
-        .join(" | ")
-        .replace(/^/, "| ")
-        .concat(" |"),
+    "| # | Concept | Status | Level | Owners | Tests | Reason |",
+    "| ---: | --- | --- | --- | --- | --- | --- |",
+    ...entries.map(
+      (e) =>
+        `| ${e.n} | ${cell(e.title)} | ${e.status} | ${e.level} | ${cell(e.owners.join("<br>"))} | ${cell(e.tests.join("<br>"))} | ${cell(e.reason)} |`,
     ),
   ].join("\n");
-  writeFileSync(join(folder, "traceability.md"), `${md}\n`);
+  writeFileSync(join(folder, "architecture-ledger.md"), `${md}\n`);
 }
 if (problems.length) {
   console.error(problems.join("\n"));

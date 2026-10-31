@@ -34,6 +34,7 @@ const MAX_FAILURES = 5;
 const MAX_EXTERNAL_TOOLS = 12;
 const MAX_OPERATIONS = 12;
 const MAX_VERIFICATIONS = 3;
+const MAX_BATCH = 5;
 
 /** One approved external MCP server as the device reported it (see `catalog.py`). */
 export interface McpServer {
@@ -277,7 +278,7 @@ async function callPlanner(input: {
   tools: { name: string; description: string; parameters: unknown }[];
   attachments?: ReturnType<typeof previewAttachments>;
   onTimed?: (ms: number) => void;
-}): Promise<{ name: string; args: Record<string, unknown> }> {
+}): Promise<{ name: string; args: Record<string, unknown> }[]> {
   const url = plannerAccess.serviceUrl();
   const serviceKey = plannerAccess.serviceKey();
   if (!url || !serviceKey) throw new PlannerUnavailable("planner_not_configured");
@@ -320,21 +321,21 @@ async function callPlanner(input: {
         body?.error ?? (response ? `planner_http_${response.status}` : "planner_unreachable"),
       );
     }
-    // Read the whole stream so the service settles the permit; take the first function call.
-    let call: { name: string; args: Record<string, unknown> } | null = null;
+    // Read the whole stream so the service settles the permit; keep its function calls in order.
+    const calls: { name: string; args: Record<string, unknown> }[] = [];
     try {
       for await (const payload of sseData(response.body, "planner_stream_incomplete")) {
         const event = JSON.parse(payload) as IntelligenceEvent;
         if (event.type === "refusal") throw new PlannerUnavailable(event.code);
-        if (event.type === "tool_call" && !call)
-          call = { name: event.call.name, args: event.call.arguments };
+        if (event.type === "tool_call" && calls.length < MAX_BATCH)
+          calls.push({ name: event.call.name, args: event.call.arguments });
       }
     } catch (error) {
       if (error instanceof PlannerUnavailable) throw error;
       throw new PlannerUnavailable("planner_stream_failed");
     }
-    if (!call) throw new PlannerUnavailable("no_decision");
-    return call;
+    if (!calls.length) throw new PlannerUnavailable("no_decision");
+    return calls;
   } finally {
     input.onTimed?.(performance.now() - started);
   }
@@ -349,7 +350,7 @@ export async function compileGoal(
   allowed: string[],
   onTimed?: (ms: number) => void,
 ) {
-  const call = await callPlanner({
+  const [call] = await callPlanner({
     userId,
     onTimed,
     key: `jarvis-goal:${crypto.randomUUID()}`,
@@ -514,7 +515,7 @@ export async function planStep(input: {
       },
     },
   ];
-  const call = await callPlanner({
+  const [call, ...more] = await callPlanner({
     userId: input.userId,
     key: input.turnKey,
     onTimed: input.onModelCall,
@@ -566,17 +567,17 @@ export async function planStep(input: {
       };
     }
   }
-  const operation = shortlisted.find((name) => toolName(name) === call.name);
-  try {
-    if (!operation) throw new Error("unknown operation");
+  const queued = (name: string, args: unknown, at: string) => {
+    const operation = shortlisted.find((candidate) => toolName(candidate) === name);
+    if (!operation) throw new Error("not offered this turn");
     return {
-      kind: "queue",
+      operation,
       summary: `${operation.replace(/^\w+\./, "").replace(/_/g, " ")}`,
       // Long renders get their own bound; everything else keeps the ten-minute deadline.
       intent: intent(
         operation,
-        key,
-        call.args as never,
+        at,
+        args as never,
         new Date(
           Math.max(
             deadline.getTime(),
@@ -587,10 +588,28 @@ export async function planStep(input: {
         ),
       ),
     };
+  };
+  let first;
+  try {
+    first = queued(call.name, call.args, key);
   } catch {
     return {
       kind: "block",
       reason: "JARVIS's planner proposed a step OCADE does not allow. Nothing was run.",
     };
   }
+  // Several calls in one turn run as one batch only while each is offered and stays on
+  // this computer; the first that is not ends the batch (it can be proposed again).
+  const batch = [];
+  for (const [index, next] of more.entries()) {
+    if (first.intent.risk === "external_effect") break;
+    try {
+      const action = queued(next.name, next.args, `${key}-${index + 2}`);
+      if (action.intent.risk === "external_effect") break;
+      batch.push({ summary: action.summary, intent: action.intent });
+    } catch {
+      break;
+    }
+  }
+  return { kind: "queue", summary: first.summary, intent: first.intent, more: batch };
 }
