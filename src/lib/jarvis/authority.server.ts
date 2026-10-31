@@ -175,6 +175,12 @@ export async function startTask(
     p_user: userId,
     p_device: input.deviceId,
   });
+  // Fail closed before requesting a potentially quota-consuming model turn.
+  // The database still re-checks account, conversation, device and permissions
+  // atomically when opening the task; this is an early inexpensive guard.
+  if (!grants.includes("files")) {
+    throw new JarvisRefusal("permission_required", REFUSALS.permission_required);
+  }
   let checks: OutcomeCheck[];
   try {
     checks = await compileGoal(userId, objective, grants);
