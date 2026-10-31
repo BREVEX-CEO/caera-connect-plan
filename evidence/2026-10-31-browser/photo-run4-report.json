@@ -1,0 +1,4518 @@
+{
+  "objective": "Use a free photo editor in the web browser to brighten street.jpg, make its colours more vivid and add the caption 'City at dusk'. Save the edited photo as a new file and keep the original unchanged.",
+  "taskId": "4dfff365-7f9f-4ee7-a49d-d03fe6d43816",
+  "status": "blocked",
+  "result": null,
+  "blocker": "I was repeating the same step without progress, so I stopped.",
+  "checks": [
+    {
+      "id": "edited_photo_exists",
+      "kind": "file_exists",
+      "params": {
+        "path": "OCADE output/city_at_dusk.jpg"
+      },
+      "description": "The edited photo with the caption 'City at dusk' is saved as a new file in OCADE output.",
+      "state": "unchecked"
+    }
+  ],
+  "timing": {
+    "acceptedAt": "2026-10-31T20:29:34.857893+00:00",
+    "finishedAt": "2026-10-31T20:32:47.663791+00:00",
+    "verifiedAt": null,
+    "deliveredAt": null,
+    "totalElapsedMs": 192806,
+    "userWaitMs": 7968,
+    "activeExecutionMs": 32694,
+    "modelCalls": 23,
+    "modelMs": 87071,
+    "stepDurationsMs": [
+      1350.76,
+      1054.18,
+      3177.88,
+      1258.85,
+      847.24,
+      115.78,
+      1502.04,
+      607.37,
+      327.42,
+      99.54,
+      305.66,
+      9.13,
+      53,
+      48.38,
+      635.31,
+      1104.56,
+      36.98,
+      49.9,
+      20009.18,
+      36.47,
+      32.52,
+      31.63
+    ]
+  },
+  "confirmations": [
+    {
+      "step": "c391fec3-b476-4b37-aff5-1bd3314141e5",
+      "summary": "click",
+      "at": "2026-10-31T20:30:03.902Z"
+    },
+    {
+      "step": "43ba1b97-156a-46e1-921a-ab20c4658d61",
+      "summary": "upload",
+      "at": "2026-10-31T20:30:12.234Z"
+    },
+    {
+      "step": "279ba974-c7dd-4512-b25e-e7f6f08de038",
+      "summary": "click",
+      "at": "2026-10-31T20:30:33.366Z"
+    },
+    {
+      "step": "8c36cfa1-c88e-498f-a7c1-1436f89124fa",
+      "summary": "click",
+      "at": "2026-10-31T20:31:21.902Z"
+    },
+    {
+      "step": "e05976b5-3f5e-4afd-b19d-5cf3aca3bb74",
+      "summary": "click",
+      "at": "2026-10-31T20:32:01.483Z"
+    }
+  ],
+  "decisions": [
+    {
+      "summary": "list",
+      "intent": {
+        "v": 1,
+        "key": "s1",
+        "risk": "read",
+        "arguments": {
+          "path": "."
+        },
+        "operation": "fs.list",
+        "capability": "files",
+        "deadlineUtc": "2026-10-31T20:39:34.986Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "entries": [
+            {
+              "kind": "file",
+              "name": "street.jpg",
+              "size": 38504
+            }
+          ],
+          "durationMs": 1350.76
+        },
+        "maybeChanged": false,
+        "observedAtUtc": "2026-10-31T20:29:42.437Z"
+      }
+    },
+    {
+      "summary": "preview",
+      "intent": {
+        "v": 1,
+        "key": "s2",
+        "risk": "read",
+        "arguments": {
+          "path": "street.jpg"
+        },
+        "operation": "media.preview",
+        "capability": "screen",
+        "deadlineUtc": "2026-10-31T20:39:43.071Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "preview": "35232 base64 chars",
+        "evidence": {
+          "kind": "image",
+          "width": 1280,
+          "height": 720,
+          "durationMs": 1054.18
+        },
+        "maybeChanged": false,
+        "observedAtUtc": "2026-10-31T20:29:48.973Z"
+      }
+    },
+    {
+      "summary": "open",
+      "intent": {
+        "v": 1,
+        "key": "s3",
+        "risk": "read",
+        "target": {
+          "site": "www.photopea.com"
+        },
+        "arguments": {
+          "url": "https://www.photopea.com"
+        },
+        "operation": "web.open",
+        "capability": "browser",
+        "deadlineUtc": "2026-10-31T20:39:49.702Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "url": "https://www.photopea.com/",
+          "page": {
+            "id": "4f9ce5afc4de",
+            "site": "www.photopea.com"
+          },
+          "text": " Photopea Learn Tutorials Templates API\nFree Online Photo Editor\nUnlock your creativity with the best free photo editor.\n\nTransform your photos with professional-grade tools in a free online photo editor that works right in your browser. No downloads, no hassle.\n\nStart using Photopea\nFully Local\n\nThere are no uploads. Photopea runs on your device, using your CPU and your GPU. All files open instantly, and never leave your device.\n\nCost-Effective\n\nEnjoy all the premium features without spending a dime.\n\nConvenient Editor\n\nNo need to install heavy software on your device. Just open your browser and start editing.\n\nRuns Everywhere\n\nOur photo editor runs on any device. The better hardware you have, the better it runs.\n\nStart using Photopea\nProfessional Editor\n\nPhotopea offers a full suite of editing tools, from basic features like cropping and resizing to advanced features such as layering, masking, and blending.\n\nFull PSD support\n\nPhotopea fully supports a popular PSD format, both opening and saving files. It is the main format of Photopea.\n\nSwiss knife for graphics\n\nOpen and edit PNG, JPG, GIF, BMP, WEBP, SVG, PDF, AI, AVIF, DDS, HEIC, TIFF, MP4, TGA, CDR, PDN, EPS, INDD, Figma and 40 other formats.\n\nPerfect RAW support\n\nPhotopea opens DNG, CR2, CR3, NEF, ARW, RW2, RAF, ORF and FFF files. Set the Exposure, Color Balance, Contrast, Highlights and Shadows, etc.\n\nStart using Photopea\nState-of-the-art AI\n\nRemove background with one click, or replace any part of an image with a new content through a text description.\n\nAll Essential Features\n\nWe have Layers, Masks, Layer Styles, Smart Objects, Adjustment Layers, Channels, Paths and more!\n\nAdjustments and Filters\n\nDo you need Levels and Curves? A Gaussian Blur? Or advanced stuff such as Liquify or Puppet Warp? We have it all!\n\nVector Graphics\n\nCreate and edit vector graphics directly within the editor. Perfect for designers working on logos, icons, or illustrations.\n\nStart using Photopea\nWho Can Benefit from our Free Photo Editor?\nSocial Media Enthusiasts\n\nEnhance your photos before sharing them on platforms like Instagram, Facebook, or Twitter. Make every post stand out with unique edits.\n\nStudents and Educators\n\nCreate stunning visuals for presentations, assignments, and more. Our free online photo editor is a great tool for educational projects.\n\nSmall Business Owners\n\nDesign promotional materials, edit product photos, and create engaging content for your website or online store, all without spending on expensive software.\n\nGraphic Designers\n\nWhether you’re a freelancer or part of a design team, Photopea’s free photo editor offers all the features you need to produce professional-quality work.\n\nStart using Photopea\n\nsupport@photopea.com | Privacy Policy | Twitter | Facebook | Reddit",
+          "title": "Photopea | Online Photo Editor",
+          "controls": [
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Learn photo editing",
+              "selector": "[data-ocade=\"0\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Graphics tutorials",
+              "selector": "[data-ocade=\"1\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Free PSD templates",
+              "selector": "[data-ocade=\"2\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Insert a photo editor into your product",
+              "selector": "[data-ocade=\"3\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Start using Photopea",
+              "selector": "[data-ocade=\"4\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Start using Photopea",
+              "selector": "[data-ocade=\"5\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "40 other formats",
+              "selector": "[data-ocade=\"6\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Start using Photopea",
+              "selector": "[data-ocade=\"7\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Remove background with one click",
+              "selector": "[data-ocade=\"8\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "replace any part of an image",
+              "selector": "[data-ocade=\"9\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Start using Photopea",
+              "selector": "[data-ocade=\"10\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Start using Photopea",
+              "selector": "[data-ocade=\"11\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "support@photopea.com",
+              "selector": "[data-ocade=\"12\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Privacy Policy",
+              "selector": "[data-ocade=\"13\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Twitter",
+              "selector": "[data-ocade=\"14\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Facebook",
+              "selector": "[data-ocade=\"15\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Reddit",
+              "selector": "[data-ocade=\"16\"]"
+            }
+          ],
+          "durationMs": 3177.88,
+          "needsSignIn": false
+        },
+        "maybeChanged": false,
+        "observedAtUtc": "2026-10-31T20:29:57.099Z"
+      }
+    },
+    {
+      "summary": "click",
+      "intent": {
+        "v": 1,
+        "key": "s4",
+        "risk": "external_effect",
+        "target": {
+          "site": "www.photopea.com"
+        },
+        "arguments": {
+          "page": {
+            "id": "4f9ce5afc4de",
+            "site": "www.photopea.com"
+          },
+          "selector": "[data-ocade=\"4\"]"
+        },
+        "operation": "web.click",
+        "capability": "browser",
+        "deadlineUtc": "2026-10-31T20:39:57.714Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "url": "https://www.photopea.com/",
+          "page": {
+            "id": "4f9ce5afc4de",
+            "site": "www.photopea.com"
+          },
+          "text": "Loading\nAuto-Select\nFolder\nLayer\nTransform controlsDistances...",
+          "title": "Photopea | Online Photo Editor",
+          "popups": [],
+          "controls": [
+            {
+              "tag": "input",
+              "name": "",
+              "type": "file",
+              "label": "",
+              "selector": "[data-ocade=\"0\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "About",
+              "selector": "[data-ocade=\"1\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Report a bug",
+              "selector": "[data-ocade=\"2\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Learn",
+              "selector": "[data-ocade=\"3\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Blog",
+              "selector": "[data-ocade=\"4\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "API",
+              "selector": "[data-ocade=\"5\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "",
+              "selector": "[data-ocade=\"6\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "",
+              "selector": "[data-ocade=\"7\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "",
+              "selector": "[data-ocade=\"8\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "File",
+              "selector": "[data-ocade=\"9\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Edit",
+              "selector": "[data-ocade=\"10\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Image",
+              "selector": "[data-ocade=\"11\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Layer",
+              "selector": "[data-ocade=\"12\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Select",
+              "selector": "[data-ocade=\"13\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Filter",
+              "selector": "[data-ocade=\"14\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "View",
+              "selector": "[data-ocade=\"15\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Window",
+              "selector": "[data-ocade=\"16\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "More",
+              "selector": "[data-ocade=\"17\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Account",
+              "selector": "[data-ocade=\"18\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Find",
+              "selector": "[data-ocade=\"19\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Fullscreen",
+              "selector": "[data-ocade=\"20\"]"
+            }
+          ],
+          "durationMs": 1258.85,
+          "needsSignIn": false
+        },
+        "maybeChanged": true,
+        "observedAtUtc": "2026-10-31T20:30:06.224Z"
+      }
+    },
+    {
+      "summary": "upload",
+      "intent": {
+        "v": 1,
+        "key": "s5",
+        "risk": "external_effect",
+        "target": {
+          "site": "www.photopea.com"
+        },
+        "arguments": {
+          "page": {
+            "id": "4f9ce5afc4de",
+            "site": "www.photopea.com"
+          },
+          "path": "street.jpg",
+          "selector": "[data-ocade=\"0\"]"
+        },
+        "operation": "web.upload",
+        "capability": "browser",
+        "deadlineUtc": "2026-10-31T20:40:06.881Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "matches": false,
+          "attached": [],
+          "durationMs": 847.24
+        },
+        "maybeChanged": true,
+        "observedAtUtc": "2026-10-31T20:30:14.766Z"
+      }
+    },
+    {
+      "summary": "screenshot",
+      "intent": {
+        "v": 1,
+        "key": "s6",
+        "risk": "reversible_write",
+        "target": {
+          "site": "www.photopea.com"
+        },
+        "arguments": {
+          "page": {
+            "id": "4f9ce5afc4de",
+            "site": "www.photopea.com"
+          },
+          "output": "OCADE output/photopea_state.png"
+        },
+        "operation": "web.screenshot",
+        "capability": "browser",
+        "deadlineUtc": "2026-10-31T20:40:15.427Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "bytes": 120684,
+          "sha256": "124ad2d7c803724844e0baeecd01738e30dbac3fb8604366d3ddfaea8c42ecbf",
+          "durationMs": 115.78
+        },
+        "maybeChanged": true,
+        "observedAtUtc": "2026-10-31T20:30:20.626Z"
+      }
+    },
+    {
+      "summary": "open",
+      "intent": {
+        "v": 1,
+        "key": "s7",
+        "risk": "read",
+        "target": {
+          "site": "pixlr.com"
+        },
+        "arguments": {
+          "url": "https://pixlr.com/express/"
+        },
+        "operation": "web.open",
+        "capability": "browser",
+        "deadlineUtc": "2026-10-31T20:40:21.300Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "url": "https://pixlr.com/express/",
+          "page": {
+            "id": "348650c6b477",
+            "site": "pixlr.com"
+          },
+          "text": "PRODUCTS\nPixlr Express\nPixlr Editor\nCommunity\nFEATURES\nPhoto Collage Maker\nAI Image Generator\nAI Video Generator\nAI Audio Generator\nAI Image Editor\nAI Face Swap\nBackground Remover\nMore\nLog in\nStart creating now\nPricing\nLog in\nBy using our site, you acknowledge that you read and understand our Cookie Policy.\nCookie settings\nReject\nAccept\n×\nPixlr Express\nOpen image\nAI Image Generator\nCreate new   Create collage\nModern AI Powered Photo Editor for Quick and Professional Edits\nSubscribe now\n\nWelcome to the free modern AI powered photo editor by Pixlr. Start editing by clicking on the open photo button, drag n' drop a file or paste from the clipboard (ctrl+v).\n\nCompany\nAbout Us\nPixlr Mobile\nPixlr Desktop\nHelp\nPricing\nContact Us\nEducation\nProducts\nPixlr Agent\nPixlr Editor\nPixlr Express\nLegal\nTerms of Use\nPrivacy Policy\nCookie Policy\nLicense Agreement\nCookie settings\nPixlr Pte Ltd © 2026.",
+          "title": "AI Photo Editor free : Pixlr Express - free ai image editing online",
+          "controls": [
+            {
+              "tag": "input",
+              "name": "",
+              "type": "checkbox",
+              "label": "on",
+              "selector": "[data-ocade=\"0\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Pixlr",
+              "selector": "[data-ocade=\"1\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Pixlr Express",
+              "selector": "[data-ocade=\"2\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Pixlr Editor",
+              "selector": "[data-ocade=\"3\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Community",
+              "selector": "[data-ocade=\"4\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Photo Collage Maker",
+              "selector": "[data-ocade=\"5\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "AI Image Generator",
+              "selector": "[data-ocade=\"6\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "AI Video Generator",
+              "selector": "[data-ocade=\"7\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "AI Audio Generator",
+              "selector": "[data-ocade=\"8\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "AI Image Editor",
+              "selector": "[data-ocade=\"9\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "AI Face Swap",
+              "selector": "[data-ocade=\"10\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Background Remover",
+              "selector": "[data-ocade=\"11\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Pricing",
+              "selector": "[data-ocade=\"12\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Cookie Policy",
+              "selector": "[data-ocade=\"13\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "button",
+              "label": "Cookie settings",
+              "selector": "[data-ocade=\"14\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "button",
+              "label": "Reject",
+              "selector": "[data-ocade=\"15\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "button",
+              "label": "Accept",
+              "selector": "[data-ocade=\"16\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "button",
+              "label": "Reject",
+              "selector": "[data-ocade=\"17\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "AI Image Generator",
+              "selector": "[data-ocade=\"18\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Create collage",
+              "selector": "[data-ocade=\"19\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Subscribe now",
+              "selector": "[data-ocade=\"20\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "About Us",
+              "selector": "[data-ocade=\"21\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Pixlr Mobile",
+              "selector": "[data-ocade=\"22\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Pixlr Desktop",
+              "selector": "[data-ocade=\"23\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Pricing",
+              "selector": "[data-ocade=\"24\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Contact Us",
+              "selector": "[data-ocade=\"25\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Education",
+              "selector": "[data-ocade=\"26\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Pixlr Agent",
+              "selector": "[data-ocade=\"27\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Pixlr Editor",
+              "selector": "[data-ocade=\"28\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Pixlr Express",
+              "selector": "[data-ocade=\"29\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Terms of Use",
+              "selector": "[data-ocade=\"30\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Privacy Policy",
+              "selector": "[data-ocade=\"31\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Cookie Policy",
+              "selector": "[data-ocade=\"32\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "License Agreement",
+              "selector": "[data-ocade=\"33\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Cookie settings",
+              "selector": "[data-ocade=\"34\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "X / Twitter",
+              "selector": "[data-ocade=\"35\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Instagram",
+              "selector": "[data-ocade=\"36\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Discord",
+              "selector": "[data-ocade=\"37\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "YouTube",
+              "selector": "[data-ocade=\"38\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Facebook",
+              "selector": "[data-ocade=\"39\"]"
+            }
+          ],
+          "durationMs": 1502.04,
+          "needsSignIn": false
+        },
+        "maybeChanged": false,
+        "observedAtUtc": "2026-10-31T20:30:27.683Z"
+      }
+    },
+    {
+      "summary": "click",
+      "intent": {
+        "v": 1,
+        "key": "s8",
+        "risk": "external_effect",
+        "target": {
+          "site": "pixlr.com"
+        },
+        "arguments": {
+          "page": {
+            "id": "348650c6b477",
+            "site": "pixlr.com"
+          },
+          "selector": "[data-ocade=\"16\"]"
+        },
+        "operation": "web.click",
+        "capability": "browser",
+        "deadlineUtc": "2026-10-31T20:40:28.372Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "url": "https://pixlr.com/express/",
+          "page": {
+            "id": "348650c6b477",
+            "site": "pixlr.com"
+          },
+          "text": "PRODUCTS\nPixlr Express\nPixlr Editor\nCommunity\nFEATURES\nPhoto Collage Maker\nAI Image Generator\nAI Video Generator\nAI Audio Generator\nAI Image Editor\nAI Face Swap\nBackground Remover\nMore\nLog in\nStart creating now\nPricing\nLog in\nPixlr Express\nOpen image\nAI Image Generator\nCreate new   Create collage\nModern AI Powered Photo Editor for Quick and Professional Edits\nSubscribe now\n\nWelcome to the free modern AI powered photo editor by Pixlr. Start editing by clicking on the open photo button, drag n' drop a file or paste from the clipboard (ctrl+v).\n\nCompany\nAbout Us\nPixlr Mobile\nPixlr Desktop\nHelp\nPricing\nContact Us\nEducation\nProducts\nPixlr Agent\nPixlr Editor\nPixlr Express\nLegal\nTerms of Use\nPrivacy Policy\nCookie Policy\nLicense Agreement\nCookie settings\nPixlr Pte Ltd © 2026.\nWhat's new\nJoin the Spooky Fun Today\nHaunt Your Feed With Reflect\nShare Love and Hope This October\nJourneys That Feel Like Home\nEvery Image Tells Your Story\nReimagine Photos With Fun Prompts\nBecause Everyone Deserves To Be Heard\nAdjust Once Love It Forever\nProst To Prettier Pretzel Pictures\nDramatic Glitch Portraits Made Simple\n10/29/2026\nJoin the Spooky Fun Today\nLooking for a fun Halloween project? Our blog is your guide to iconic horror scene prompts made for Pixlr AI image generator. Browse the ideas, test them yourself, and share your spookiest results. Everyone is welcome, whether you are a beginner or a seasoned creator. Come join the eerie fun.\nREAD NOW",
+          "title": "AI Photo Editor free : Pixlr Express - free ai image editing online",
+          "popups": [],
+          "controls": [
+            {
+              "tag": "input",
+              "name": "",
+              "type": "checkbox",
+              "label": "on",
+              "selector": "[data-ocade=\"0\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Pixlr",
+              "selector": "[data-ocade=\"1\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Pixlr Express",
+              "selector": "[data-ocade=\"2\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Pixlr Editor",
+              "selector": "[data-ocade=\"3\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Community",
+              "selector": "[data-ocade=\"4\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Photo Collage Maker",
+              "selector": "[data-ocade=\"5\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "AI Image Generator",
+              "selector": "[data-ocade=\"6\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "AI Video Generator",
+              "selector": "[data-ocade=\"7\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "AI Audio Generator",
+              "selector": "[data-ocade=\"8\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "AI Image Editor",
+              "selector": "[data-ocade=\"9\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "AI Face Swap",
+              "selector": "[data-ocade=\"10\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Background Remover",
+              "selector": "[data-ocade=\"11\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Pricing",
+              "selector": "[data-ocade=\"12\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "AI Image Generator",
+              "selector": "[data-ocade=\"13\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Create collage",
+              "selector": "[data-ocade=\"14\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Subscribe now",
+              "selector": "[data-ocade=\"15\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "About Us",
+              "selector": "[data-ocade=\"16\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Pixlr Mobile",
+              "selector": "[data-ocade=\"17\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Pixlr Desktop",
+              "selector": "[data-ocade=\"18\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Pricing",
+              "selector": "[data-ocade=\"19\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Contact Us",
+              "selector": "[data-ocade=\"20\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Education",
+              "selector": "[data-ocade=\"21\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Pixlr Agent",
+              "selector": "[data-ocade=\"22\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Pixlr Editor",
+              "selector": "[data-ocade=\"23\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Pixlr Express",
+              "selector": "[data-ocade=\"24\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Terms of Use",
+              "selector": "[data-ocade=\"25\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Privacy Policy",
+              "selector": "[data-ocade=\"26\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Cookie Policy",
+              "selector": "[data-ocade=\"27\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "License Agreement",
+              "selector": "[data-ocade=\"28\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Cookie settings",
+              "selector": "[data-ocade=\"29\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "X / Twitter",
+              "selector": "[data-ocade=\"30\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Instagram",
+              "selector": "[data-ocade=\"31\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Discord",
+              "selector": "[data-ocade=\"32\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "YouTube",
+              "selector": "[data-ocade=\"33\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Facebook",
+              "selector": "[data-ocade=\"34\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Join the Spooky Fun Today",
+              "selector": "[data-ocade=\"35\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Haunt Your Feed With Reflect",
+              "selector": "[data-ocade=\"36\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Share Love and Hope This October",
+              "selector": "[data-ocade=\"37\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Journeys That Feel Like Home",
+              "selector": "[data-ocade=\"38\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Every Image Tells Your Story",
+              "selector": "[data-ocade=\"39\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Reimagine Photos With Fun Prompts",
+              "selector": "[data-ocade=\"40\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Because Everyone Deserves To Be Heard",
+              "selector": "[data-ocade=\"41\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Adjust Once Love It Forever",
+              "selector": "[data-ocade=\"42\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Prost To Prettier Pretzel Pictures",
+              "selector": "[data-ocade=\"43\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Dramatic Glitch Portraits Made Simple",
+              "selector": "[data-ocade=\"44\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "READ NOW",
+              "selector": "[data-ocade=\"45\"]"
+            }
+          ],
+          "durationMs": 607.37,
+          "needsSignIn": false
+        },
+        "maybeChanged": true,
+        "observedAtUtc": "2026-10-31T20:30:34.238Z"
+      }
+    },
+    {
+      "summary": "open",
+      "intent": {
+        "v": 1,
+        "key": "s9",
+        "risk": "read",
+        "target": {
+          "site": "www.photopea.com"
+        },
+        "arguments": {
+          "url": "https://www.photopea.com"
+        },
+        "operation": "web.open",
+        "capability": "browser",
+        "deadlineUtc": "2026-10-31T20:40:34.869Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "url": "https://www.photopea.com/",
+          "page": {
+            "id": "6a213a448f73",
+            "site": "www.photopea.com"
+          },
+          "text": "",
+          "title": "Photopea | Online Photo Editor",
+          "controls": [],
+          "durationMs": 327.42,
+          "needsSignIn": false
+        },
+        "maybeChanged": false,
+        "observedAtUtc": "2026-10-31T20:30:39.734Z"
+      }
+    },
+    {
+      "summary": "screenshot",
+      "intent": {
+        "v": 1,
+        "key": "s10",
+        "risk": "reversible_write",
+        "target": {
+          "site": "www.photopea.com"
+        },
+        "arguments": {
+          "page": {
+            "id": "6a213a448f73",
+            "site": "www.photopea.com"
+          },
+          "output": "OCADE output/photopea_page2.png"
+        },
+        "operation": "web.screenshot",
+        "capability": "browser",
+        "deadlineUtc": "2026-10-31T20:40:40.486Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "bytes": 97953,
+          "sha256": "1265eadfea51e9e7b3294fe2e55fb02d1dd36f5b79f24b811b2010a2b46d45ba",
+          "durationMs": 99.54
+        },
+        "maybeChanged": true,
+        "observedAtUtc": "2026-10-31T20:30:45.940Z"
+      }
+    },
+    {
+      "summary": "open",
+      "intent": {
+        "v": 1,
+        "key": "s11",
+        "risk": "read",
+        "target": {
+          "site": "www.photopea.com"
+        },
+        "arguments": {
+          "url": "https://www.photopea.com"
+        },
+        "operation": "web.open",
+        "capability": "browser",
+        "deadlineUtc": "2026-10-31T20:40:46.994Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "url": "https://www.photopea.com/",
+          "page": {
+            "id": "2c858b47d0a9",
+            "site": "www.photopea.com"
+          },
+          "text": "",
+          "title": "Photopea | Online Photo Editor",
+          "controls": [],
+          "durationMs": 305.66,
+          "needsSignIn": false
+        },
+        "maybeChanged": false,
+        "observedAtUtc": "2026-10-31T20:30:53.789Z"
+      }
+    },
+    {
+      "summary": "list",
+      "intent": {
+        "v": 1,
+        "key": "s12",
+        "risk": "read",
+        "arguments": {
+          "path": "OCADE output"
+        },
+        "operation": "fs.list",
+        "capability": "files",
+        "deadlineUtc": "2026-10-31T20:40:54.463Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "entries": [
+            {
+              "kind": "file",
+              "name": "photopea_page2.png",
+              "size": 97953
+            },
+            {
+              "kind": "file",
+              "name": "photopea_state.png",
+              "size": 120684
+            }
+          ],
+          "durationMs": 9.13
+        },
+        "maybeChanged": false,
+        "observedAtUtc": "2026-10-31T20:30:59.504Z"
+      }
+    },
+    {
+      "summary": "preview",
+      "intent": {
+        "v": 1,
+        "key": "s13",
+        "risk": "read",
+        "arguments": {
+          "path": "OCADE output/photopea_state.png"
+        },
+        "operation": "media.preview",
+        "capability": "screen",
+        "deadlineUtc": "2026-10-31T20:41:00.183Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "preview": "51336 base64 chars",
+        "evidence": {
+          "kind": "image",
+          "width": 1280,
+          "height": 720,
+          "durationMs": 53
+        },
+        "maybeChanged": false,
+        "observedAtUtc": "2026-10-31T20:31:05.613Z"
+      }
+    },
+    {
+      "summary": "read",
+      "intent": {
+        "v": 1,
+        "key": "s14",
+        "risk": "read",
+        "target": {
+          "site": "www.photopea.com"
+        },
+        "arguments": {
+          "page": {
+            "id": "4f9ce5afc4de",
+            "site": "www.photopea.com"
+          }
+        },
+        "operation": "web.read",
+        "capability": "browser",
+        "deadlineUtc": "2026-10-31T20:41:06.326Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "url": "https://www.photopea.com/",
+          "page": {
+            "id": "4f9ce5afc4de",
+            "site": "www.photopea.com"
+          },
+          "text": "AboutReport a bugLearnBlogAPI\nFileEditImageLayerSelectFilterViewWindowMoreAccount\nAuto-Select\nFolder\nLayer\nTransform controlsDistances...\nstreet.jpg\n< >\n> <\nHistorySwatches\n≡\nOpen\nLayersChannelsPaths\n≡\nNormal\nDissolve\nDarken\nMultiply\nColor Burn\nLinear Burn\nDarker Color\nLighten\nScreen\nColor Dodge\nLinear Dodge\nLighter Color\nOverlay\nSoft Light\nHard Light\nVivid Light\nLinear Light\nPin Light\nHard Mix\nDifference\nExclusion\nSubtract\nDivide\nHue\nSaturation\nColor\nLuminosity\nOpacity:▼Lock: Fill:▼\nBackground\nAd blocking detected",
+          "title": "Photopea | Online Photo Editor",
+          "controls": [
+            {
+              "tag": "input",
+              "name": "",
+              "type": "file",
+              "label": "",
+              "selector": "[data-ocade=\"0\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "About",
+              "selector": "[data-ocade=\"1\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Report a bug",
+              "selector": "[data-ocade=\"2\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Learn",
+              "selector": "[data-ocade=\"3\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Blog",
+              "selector": "[data-ocade=\"4\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "API",
+              "selector": "[data-ocade=\"5\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "",
+              "selector": "[data-ocade=\"6\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "",
+              "selector": "[data-ocade=\"7\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "",
+              "selector": "[data-ocade=\"8\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "File",
+              "selector": "[data-ocade=\"9\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Edit",
+              "selector": "[data-ocade=\"10\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Image",
+              "selector": "[data-ocade=\"11\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Layer",
+              "selector": "[data-ocade=\"12\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Select",
+              "selector": "[data-ocade=\"13\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Filter",
+              "selector": "[data-ocade=\"14\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "View",
+              "selector": "[data-ocade=\"15\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Window",
+              "selector": "[data-ocade=\"16\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "More",
+              "selector": "[data-ocade=\"17\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Account",
+              "selector": "[data-ocade=\"18\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Find",
+              "selector": "[data-ocade=\"19\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Fullscreen",
+              "selector": "[data-ocade=\"20\"]"
+            },
+            {
+              "tag": "input",
+              "name": "",
+              "type": "checkbox",
+              "label": "Auto-Select",
+              "selector": "[data-ocade=\"21\"]"
+            },
+            {
+              "tag": "select",
+              "name": "",
+              "type": "select-one",
+              "label": "Folder\nLayer",
+              "selector": "[data-ocade=\"22\"]"
+            },
+            {
+              "tag": "input",
+              "name": "",
+              "type": "checkbox",
+              "label": "Transform controls",
+              "selector": "[data-ocade=\"23\"]"
+            },
+            {
+              "tag": "input",
+              "name": "",
+              "type": "checkbox",
+              "label": "Distances",
+              "selector": "[data-ocade=\"24\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Save selected layers",
+              "selector": "[data-ocade=\"25\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Align Left Edges",
+              "selector": "[data-ocade=\"26\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Center Horizontally",
+              "selector": "[data-ocade=\"27\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Align Right Edges",
+              "selector": "[data-ocade=\"28\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Equal Gaps",
+              "selector": "[data-ocade=\"29\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Align Top Edges",
+              "selector": "[data-ocade=\"30\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Center Vertically",
+              "selector": "[data-ocade=\"31\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Align Bottom Edges",
+              "selector": "[data-ocade=\"32\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Equal Gaps",
+              "selector": "[data-ocade=\"33\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "...",
+              "selector": "[data-ocade=\"34\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Align to a Grid",
+              "selector": "[data-ocade=\"35\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Move Tool (V)",
+              "selector": "[data-ocade=\"36\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Rectangle Select (M)",
+              "selector": "[data-ocade=\"37\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Magic Wand (W)",
+              "selector": "[data-ocade=\"38\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Crop Tool (C)",
+              "selector": "[data-ocade=\"39\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Spot Healing Brush Tool (J)",
+              "selector": "[data-ocade=\"40\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Brush Tool (B)",
+              "selector": "[data-ocade=\"41\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Eraser Tool (E)",
+              "selector": "[data-ocade=\"42\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Gradient Tool (G)",
+              "selector": "[data-ocade=\"43\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Blur Tool",
+              "selector": "[data-ocade=\"44\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Dodge Tool (O)",
+              "selector": "[data-ocade=\"45\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Type Tool (T)",
+              "selector": "[data-ocade=\"46\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Pen (P)",
+              "selector": "[data-ocade=\"47\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Path Select (A)",
+              "selector": "[data-ocade=\"48\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Rectangle (U)",
+              "selector": "[data-ocade=\"49\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Hand Tool (H)",
+              "selector": "[data-ocade=\"50\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Zoom Tool (Z)",
+              "selector": "[data-ocade=\"51\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Quick Mask Mode",
+              "selector": "[data-ocade=\"52\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Virtual Keys",
+              "selector": "[data-ocade=\"53\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Info",
+              "selector": "[data-ocade=\"54\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Properties",
+              "selector": "[data-ocade=\"55\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Brush",
+              "selector": "[data-ocade=\"56\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Character",
+              "selector": "[data-ocade=\"57\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Paragraph",
+              "selector": "[data-ocade=\"58\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "CSS",
+              "selector": "[data-ocade=\"59\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Gallery",
+              "selector": "[data-ocade=\"60\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "≡",
+              "selector": "[data-ocade=\"61\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "≡",
+              "selector": "[data-ocade=\"62\"]"
+            },
+            {
+              "tag": "select",
+              "name": "",
+              "type": "select-one",
+              "label": "Normal\nDissolve\nDarken\nMultiply\nColor Burn\nLinear Burn\nDarker Color\nLighten\nScre",
+              "selector": "[data-ocade=\"63\"]"
+            },
+            {
+              "tag": "input",
+              "name": "",
+              "type": "text",
+              "label": "Opacity:",
+              "selector": "[data-ocade=\"64\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "▼",
+              "selector": "[data-ocade=\"65\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Lock:",
+              "selector": "[data-ocade=\"66\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Pixels",
+              "selector": "[data-ocade=\"67\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Position",
+              "selector": "[data-ocade=\"68\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "All",
+              "selector": "[data-ocade=\"69\"]"
+            },
+            {
+              "tag": "input",
+              "name": "",
+              "type": "text",
+              "label": "Fill:",
+              "selector": "[data-ocade=\"70\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "▼",
+              "selector": "[data-ocade=\"71\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Link Layers",
+              "selector": "[data-ocade=\"72\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Layer Style",
+              "selector": "[data-ocade=\"73\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Add Raster Mask",
+              "selector": "[data-ocade=\"74\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "New Adjustment Layer",
+              "selector": "[data-ocade=\"75\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "New Folder",
+              "selector": "[data-ocade=\"76\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "New Layer",
+              "selector": "[data-ocade=\"77\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Delete",
+              "selector": "[data-ocade=\"78\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Ad blocking detected",
+              "selector": "[data-ocade=\"79\"]"
+            }
+          ],
+          "durationMs": 48.38,
+          "needsSignIn": false
+        },
+        "maybeChanged": false,
+        "observedAtUtc": "2026-10-31T20:31:14.775Z"
+      }
+    },
+    {
+      "summary": "click",
+      "intent": {
+        "v": 1,
+        "key": "s15",
+        "risk": "external_effect",
+        "target": {
+          "site": "www.photopea.com"
+        },
+        "arguments": {
+          "page": {
+            "id": "4f9ce5afc4de",
+            "site": "www.photopea.com"
+          },
+          "selector": "[data-ocade=\"11\"]"
+        },
+        "operation": "web.click",
+        "capability": "browser",
+        "deadlineUtc": "2026-10-31T20:41:15.782Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "url": "https://www.photopea.com/",
+          "page": {
+            "id": "4f9ce5afc4de",
+            "site": "www.photopea.com"
+          },
+          "text": "Mode\nAdjustments\nAuto Tone\nAuto Contrast\nAuto Color\nReduce Colors...\nVectorize Bitmap...\nWavelet Decompose\nCanvas Size...\nAlt+Ctrl + C\nImage Size...\nAlt+Ctrl + I\nTransform\nCrop\nTrim...\nCtrl + .\nReveal All\nDuplicate\nApply Image...\nVariables...\nAboutReport a bugLearnBlogAPI\nFileEditImageLayerSelectFilterViewWindowMoreAccount\nAuto-Select\nFolder\nLayer\nTransform controlsDistances...\nstreet.jpg\n< >\n> <\nHistorySwatches\n≡\nOpen\nLayersChannelsPaths\n≡\nNormal\nDissolve\nDarken\nMultiply\nColor Burn\nLinear Burn\nDarker Color\nLighten\nScreen\nColor Dodge\nLinear Dodge\nLighter Color\nOverlay\nSoft Light\nHard Light\nVivid Light\nLinear Light\nPin Light\nHard Mix\nDifference\nExclusion\nSubtract\nDivide\nHue\nSaturation\nColor\nLuminosity\nOpacity:▼Lock: Fill:▼\nBackground\nAd blocking detected",
+          "title": "Photopea | Online Photo Editor",
+          "popups": [],
+          "controls": [
+            {
+              "tag": "input",
+              "name": "",
+              "type": "file",
+              "label": "",
+              "selector": "[data-ocade=\"0\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "About",
+              "selector": "[data-ocade=\"1\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Report a bug",
+              "selector": "[data-ocade=\"2\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Learn",
+              "selector": "[data-ocade=\"3\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Blog",
+              "selector": "[data-ocade=\"4\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "API",
+              "selector": "[data-ocade=\"5\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "",
+              "selector": "[data-ocade=\"6\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "",
+              "selector": "[data-ocade=\"7\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "",
+              "selector": "[data-ocade=\"8\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "File",
+              "selector": "[data-ocade=\"9\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Edit",
+              "selector": "[data-ocade=\"10\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Image",
+              "selector": "[data-ocade=\"11\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Layer",
+              "selector": "[data-ocade=\"12\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Select",
+              "selector": "[data-ocade=\"13\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Filter",
+              "selector": "[data-ocade=\"14\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "View",
+              "selector": "[data-ocade=\"15\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Window",
+              "selector": "[data-ocade=\"16\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "More",
+              "selector": "[data-ocade=\"17\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Account",
+              "selector": "[data-ocade=\"18\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Find",
+              "selector": "[data-ocade=\"19\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Fullscreen",
+              "selector": "[data-ocade=\"20\"]"
+            },
+            {
+              "tag": "input",
+              "name": "",
+              "type": "checkbox",
+              "label": "Auto-Select",
+              "selector": "[data-ocade=\"21\"]"
+            },
+            {
+              "tag": "select",
+              "name": "",
+              "type": "select-one",
+              "label": "Folder\nLayer",
+              "selector": "[data-ocade=\"22\"]"
+            },
+            {
+              "tag": "input",
+              "name": "",
+              "type": "checkbox",
+              "label": "Transform controls",
+              "selector": "[data-ocade=\"23\"]"
+            },
+            {
+              "tag": "input",
+              "name": "",
+              "type": "checkbox",
+              "label": "Distances",
+              "selector": "[data-ocade=\"24\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Save selected layers",
+              "selector": "[data-ocade=\"25\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Align Left Edges",
+              "selector": "[data-ocade=\"26\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Center Horizontally",
+              "selector": "[data-ocade=\"27\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Align Right Edges",
+              "selector": "[data-ocade=\"28\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Equal Gaps",
+              "selector": "[data-ocade=\"29\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Align Top Edges",
+              "selector": "[data-ocade=\"30\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Center Vertically",
+              "selector": "[data-ocade=\"31\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Align Bottom Edges",
+              "selector": "[data-ocade=\"32\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Equal Gaps",
+              "selector": "[data-ocade=\"33\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "...",
+              "selector": "[data-ocade=\"34\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Align to a Grid",
+              "selector": "[data-ocade=\"35\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Move Tool (V)",
+              "selector": "[data-ocade=\"36\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Rectangle Select (M)",
+              "selector": "[data-ocade=\"37\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Magic Wand (W)",
+              "selector": "[data-ocade=\"38\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Crop Tool (C)",
+              "selector": "[data-ocade=\"39\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Spot Healing Brush Tool (J)",
+              "selector": "[data-ocade=\"40\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Brush Tool (B)",
+              "selector": "[data-ocade=\"41\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Eraser Tool (E)",
+              "selector": "[data-ocade=\"42\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Gradient Tool (G)",
+              "selector": "[data-ocade=\"43\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Blur Tool",
+              "selector": "[data-ocade=\"44\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Dodge Tool (O)",
+              "selector": "[data-ocade=\"45\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Type Tool (T)",
+              "selector": "[data-ocade=\"46\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Pen (P)",
+              "selector": "[data-ocade=\"47\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Path Select (A)",
+              "selector": "[data-ocade=\"48\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Rectangle (U)",
+              "selector": "[data-ocade=\"49\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Hand Tool (H)",
+              "selector": "[data-ocade=\"50\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Zoom Tool (Z)",
+              "selector": "[data-ocade=\"51\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Quick Mask Mode",
+              "selector": "[data-ocade=\"52\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Virtual Keys",
+              "selector": "[data-ocade=\"53\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Info",
+              "selector": "[data-ocade=\"54\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Properties",
+              "selector": "[data-ocade=\"55\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Brush",
+              "selector": "[data-ocade=\"56\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Character",
+              "selector": "[data-ocade=\"57\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Paragraph",
+              "selector": "[data-ocade=\"58\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "CSS",
+              "selector": "[data-ocade=\"59\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Gallery",
+              "selector": "[data-ocade=\"60\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "≡",
+              "selector": "[data-ocade=\"61\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "≡",
+              "selector": "[data-ocade=\"62\"]"
+            },
+            {
+              "tag": "select",
+              "name": "",
+              "type": "select-one",
+              "label": "Normal\nDissolve\nDarken\nMultiply\nColor Burn\nLinear Burn\nDarker Color\nLighten\nScre",
+              "selector": "[data-ocade=\"63\"]"
+            },
+            {
+              "tag": "input",
+              "name": "",
+              "type": "text",
+              "label": "Opacity:",
+              "selector": "[data-ocade=\"64\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "▼",
+              "selector": "[data-ocade=\"65\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Lock:",
+              "selector": "[data-ocade=\"66\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Pixels",
+              "selector": "[data-ocade=\"67\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Position",
+              "selector": "[data-ocade=\"68\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "All",
+              "selector": "[data-ocade=\"69\"]"
+            },
+            {
+              "tag": "input",
+              "name": "",
+              "type": "text",
+              "label": "Fill:",
+              "selector": "[data-ocade=\"70\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "▼",
+              "selector": "[data-ocade=\"71\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Link Layers",
+              "selector": "[data-ocade=\"72\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Layer Style",
+              "selector": "[data-ocade=\"73\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Add Raster Mask",
+              "selector": "[data-ocade=\"74\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "New Adjustment Layer",
+              "selector": "[data-ocade=\"75\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "New Folder",
+              "selector": "[data-ocade=\"76\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "New Layer",
+              "selector": "[data-ocade=\"77\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Delete",
+              "selector": "[data-ocade=\"78\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Ad blocking detected",
+              "selector": "[data-ocade=\"79\"]"
+            }
+          ],
+          "durationMs": 635.31,
+          "needsSignIn": false
+        },
+        "maybeChanged": true,
+        "observedAtUtc": "2026-10-31T20:31:23.389Z"
+      }
+    },
+    {
+      "summary": "screenshot",
+      "intent": {
+        "v": 1,
+        "key": "s16",
+        "risk": "reversible_write",
+        "target": {
+          "site": "www.photopea.com"
+        },
+        "arguments": {
+          "page": {
+            "id": "4f9ce5afc4de",
+            "site": "www.photopea.com"
+          },
+          "output": "OCADE output/photopea_menu.png"
+        },
+        "operation": "web.screenshot",
+        "capability": "browser",
+        "deadlineUtc": "2026-10-31T20:41:24.155Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "bytes": 134683,
+          "sha256": "e6b0439216b795c798b55774f08a671e83a66549d08f8000a0e2a9d64319a420",
+          "durationMs": 1104.56
+        },
+        "maybeChanged": true,
+        "observedAtUtc": "2026-10-31T20:31:31.227Z"
+      }
+    },
+    {
+      "summary": "preview",
+      "intent": {
+        "v": 1,
+        "key": "s17",
+        "risk": "read",
+        "arguments": {
+          "path": "street.jpg"
+        },
+        "operation": "media.preview",
+        "capability": "screen",
+        "deadlineUtc": "2026-10-31T20:41:32.231Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "preview": "35232 base64 chars",
+        "evidence": {
+          "kind": "image",
+          "width": 1280,
+          "height": 720,
+          "durationMs": 36.98
+        },
+        "maybeChanged": false,
+        "observedAtUtc": "2026-10-31T20:31:37.858Z"
+      }
+    },
+    {
+      "summary": "preview",
+      "intent": {
+        "v": 1,
+        "key": "s18",
+        "risk": "read",
+        "arguments": {
+          "path": "OCADE output/photopea_menu.png"
+        },
+        "operation": "media.preview",
+        "capability": "screen",
+        "deadlineUtc": "2026-10-31T20:41:39.037Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "preview": "59856 base64 chars",
+        "evidence": {
+          "kind": "image",
+          "width": 1280,
+          "height": 720,
+          "durationMs": 49.9
+        },
+        "maybeChanged": false,
+        "observedAtUtc": "2026-10-31T20:31:52.145Z"
+      }
+    },
+    {
+      "summary": "click",
+      "intent": {
+        "v": 1,
+        "key": "s19",
+        "risk": "external_effect",
+        "target": {
+          "site": "www.photopea.com"
+        },
+        "arguments": {
+          "page": {
+            "id": "4f9ce5afc4de",
+            "site": "www.photopea.com"
+          },
+          "selector": "[data-ocade=\\\"9\\\"]"
+        },
+        "operation": "web.click",
+        "capability": "browser",
+        "deadlineUtc": "2026-10-31T20:41:53.234Z"
+      },
+      "status": "failed",
+      "receipt": {
+        "status": "not_applied",
+        "evidence": {
+          "durationMs": 20009.18
+        },
+        "errorCode": "selector_not_found",
+        "maybeChanged": true,
+        "observedAtUtc": "2026-10-31T20:32:21.982Z"
+      }
+    },
+    {
+      "summary": "read",
+      "intent": {
+        "v": 1,
+        "key": "s20",
+        "risk": "read",
+        "target": {
+          "site": "www.photopea.com"
+        },
+        "arguments": {
+          "page": {
+            "id": "4f9ce5afc4de",
+            "site": "www.photopea.com"
+          }
+        },
+        "operation": "web.read",
+        "capability": "browser",
+        "deadlineUtc": "2026-10-31T20:42:22.678Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "url": "https://www.photopea.com/",
+          "page": {
+            "id": "4f9ce5afc4de",
+            "site": "www.photopea.com"
+          },
+          "text": "Mode\nAdjustments\nAuto Tone\nAuto Contrast\nAuto Color\nReduce Colors...\nVectorize Bitmap...\nWavelet Decompose\nCanvas Size...\nAlt+Ctrl + C\nImage Size...\nAlt+Ctrl + I\nTransform\nCrop\nTrim...\nCtrl + .\nReveal All\nDuplicate\nApply Image...\nVariables...\nAboutReport a bugLearnBlogAPI\nFileEditImageLayerSelectFilterViewWindowMoreAccount\nAuto-Select\nFolder\nLayer\nTransform controlsDistances...\nstreet.jpg\n< >\n> <\nHistorySwatches\n≡\nOpen\nLayersChannelsPaths\n≡\nNormal\nDissolve\nDarken\nMultiply\nColor Burn\nLinear Burn\nDarker Color\nLighten\nScreen\nColor Dodge\nLinear Dodge\nLighter Color\nOverlay\nSoft Light\nHard Light\nVivid Light\nLinear Light\nPin Light\nHard Mix\nDifference\nExclusion\nSubtract\nDivide\nHue\nSaturation\nColor\nLuminosity\nOpacity:▼Lock: Fill:▼\nBackground\nAd blocking detected",
+          "title": "Photopea | Online Photo Editor",
+          "controls": [
+            {
+              "tag": "input",
+              "name": "",
+              "type": "file",
+              "label": "",
+              "selector": "[data-ocade=\"0\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "About",
+              "selector": "[data-ocade=\"1\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Report a bug",
+              "selector": "[data-ocade=\"2\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Learn",
+              "selector": "[data-ocade=\"3\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Blog",
+              "selector": "[data-ocade=\"4\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "API",
+              "selector": "[data-ocade=\"5\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "",
+              "selector": "[data-ocade=\"6\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "",
+              "selector": "[data-ocade=\"7\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "",
+              "selector": "[data-ocade=\"8\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "File",
+              "selector": "[data-ocade=\"9\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Edit",
+              "selector": "[data-ocade=\"10\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Image",
+              "selector": "[data-ocade=\"11\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Layer",
+              "selector": "[data-ocade=\"12\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Select",
+              "selector": "[data-ocade=\"13\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Filter",
+              "selector": "[data-ocade=\"14\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "View",
+              "selector": "[data-ocade=\"15\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Window",
+              "selector": "[data-ocade=\"16\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "More",
+              "selector": "[data-ocade=\"17\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Account",
+              "selector": "[data-ocade=\"18\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Find",
+              "selector": "[data-ocade=\"19\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Fullscreen",
+              "selector": "[data-ocade=\"20\"]"
+            },
+            {
+              "tag": "input",
+              "name": "",
+              "type": "checkbox",
+              "label": "Auto-Select",
+              "selector": "[data-ocade=\"21\"]"
+            },
+            {
+              "tag": "select",
+              "name": "",
+              "type": "select-one",
+              "label": "Folder\nLayer",
+              "selector": "[data-ocade=\"22\"]"
+            },
+            {
+              "tag": "input",
+              "name": "",
+              "type": "checkbox",
+              "label": "Transform controls",
+              "selector": "[data-ocade=\"23\"]"
+            },
+            {
+              "tag": "input",
+              "name": "",
+              "type": "checkbox",
+              "label": "Distances",
+              "selector": "[data-ocade=\"24\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Save selected layers",
+              "selector": "[data-ocade=\"25\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Align Left Edges",
+              "selector": "[data-ocade=\"26\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Center Horizontally",
+              "selector": "[data-ocade=\"27\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Align Right Edges",
+              "selector": "[data-ocade=\"28\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Equal Gaps",
+              "selector": "[data-ocade=\"29\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Align Top Edges",
+              "selector": "[data-ocade=\"30\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Center Vertically",
+              "selector": "[data-ocade=\"31\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Align Bottom Edges",
+              "selector": "[data-ocade=\"32\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Equal Gaps",
+              "selector": "[data-ocade=\"33\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "...",
+              "selector": "[data-ocade=\"34\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Align to a Grid",
+              "selector": "[data-ocade=\"35\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Move Tool (V)",
+              "selector": "[data-ocade=\"36\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Rectangle Select (M)",
+              "selector": "[data-ocade=\"37\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Magic Wand (W)",
+              "selector": "[data-ocade=\"38\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Crop Tool (C)",
+              "selector": "[data-ocade=\"39\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Spot Healing Brush Tool (J)",
+              "selector": "[data-ocade=\"40\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Brush Tool (B)",
+              "selector": "[data-ocade=\"41\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Eraser Tool (E)",
+              "selector": "[data-ocade=\"42\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Gradient Tool (G)",
+              "selector": "[data-ocade=\"43\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Blur Tool",
+              "selector": "[data-ocade=\"44\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Dodge Tool (O)",
+              "selector": "[data-ocade=\"45\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Type Tool (T)",
+              "selector": "[data-ocade=\"46\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Pen (P)",
+              "selector": "[data-ocade=\"47\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Path Select (A)",
+              "selector": "[data-ocade=\"48\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Rectangle (U)",
+              "selector": "[data-ocade=\"49\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Hand Tool (H)",
+              "selector": "[data-ocade=\"50\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Zoom Tool (Z)",
+              "selector": "[data-ocade=\"51\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Quick Mask Mode",
+              "selector": "[data-ocade=\"52\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Virtual Keys",
+              "selector": "[data-ocade=\"53\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Info",
+              "selector": "[data-ocade=\"54\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Properties",
+              "selector": "[data-ocade=\"55\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Brush",
+              "selector": "[data-ocade=\"56\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Character",
+              "selector": "[data-ocade=\"57\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Paragraph",
+              "selector": "[data-ocade=\"58\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "CSS",
+              "selector": "[data-ocade=\"59\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Gallery",
+              "selector": "[data-ocade=\"60\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "≡",
+              "selector": "[data-ocade=\"61\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "≡",
+              "selector": "[data-ocade=\"62\"]"
+            },
+            {
+              "tag": "select",
+              "name": "",
+              "type": "select-one",
+              "label": "Normal\nDissolve\nDarken\nMultiply\nColor Burn\nLinear Burn\nDarker Color\nLighten\nScre",
+              "selector": "[data-ocade=\"63\"]"
+            },
+            {
+              "tag": "input",
+              "name": "",
+              "type": "text",
+              "label": "Opacity:",
+              "selector": "[data-ocade=\"64\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "▼",
+              "selector": "[data-ocade=\"65\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Lock:",
+              "selector": "[data-ocade=\"66\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Pixels",
+              "selector": "[data-ocade=\"67\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Position",
+              "selector": "[data-ocade=\"68\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "All",
+              "selector": "[data-ocade=\"69\"]"
+            },
+            {
+              "tag": "input",
+              "name": "",
+              "type": "text",
+              "label": "Fill:",
+              "selector": "[data-ocade=\"70\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "▼",
+              "selector": "[data-ocade=\"71\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Link Layers",
+              "selector": "[data-ocade=\"72\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Layer Style",
+              "selector": "[data-ocade=\"73\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Add Raster Mask",
+              "selector": "[data-ocade=\"74\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "New Adjustment Layer",
+              "selector": "[data-ocade=\"75\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "New Folder",
+              "selector": "[data-ocade=\"76\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "New Layer",
+              "selector": "[data-ocade=\"77\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Delete",
+              "selector": "[data-ocade=\"78\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Ad blocking detected",
+              "selector": "[data-ocade=\"79\"]"
+            }
+          ],
+          "durationMs": 36.47,
+          "needsSignIn": false
+        },
+        "maybeChanged": false,
+        "observedAtUtc": "2026-10-31T20:32:29.138Z"
+      }
+    },
+    {
+      "summary": "read",
+      "intent": {
+        "v": 1,
+        "key": "s21",
+        "risk": "read",
+        "target": {
+          "site": "www.photopea.com"
+        },
+        "arguments": {
+          "page": {
+            "id": "4f9ce5afc4de",
+            "site": "www.photopea.com"
+          }
+        },
+        "operation": "web.read",
+        "capability": "browser",
+        "deadlineUtc": "2026-10-31T20:42:30.113Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "url": "https://www.photopea.com/",
+          "page": {
+            "id": "4f9ce5afc4de",
+            "site": "www.photopea.com"
+          },
+          "text": "Mode\nAdjustments\nAuto Tone\nAuto Contrast\nAuto Color\nReduce Colors...\nVectorize Bitmap...\nWavelet Decompose\nCanvas Size...\nAlt+Ctrl + C\nImage Size...\nAlt+Ctrl + I\nTransform\nCrop\nTrim...\nCtrl + .\nReveal All\nDuplicate\nApply Image...\nVariables...\nAboutReport a bugLearnBlogAPI\nFileEditImageLayerSelectFilterViewWindowMoreAccount\nAuto-Select\nFolder\nLayer\nTransform controlsDistances...\nstreet.jpg\n< >\n> <\nHistorySwatches\n≡\nOpen\nLayersChannelsPaths\n≡\nNormal\nDissolve\nDarken\nMultiply\nColor Burn\nLinear Burn\nDarker Color\nLighten\nScreen\nColor Dodge\nLinear Dodge\nLighter Color\nOverlay\nSoft Light\nHard Light\nVivid Light\nLinear Light\nPin Light\nHard Mix\nDifference\nExclusion\nSubtract\nDivide\nHue\nSaturation\nColor\nLuminosity\nOpacity:▼Lock: Fill:▼\nBackground\nAd blocking detected",
+          "title": "Photopea | Online Photo Editor",
+          "controls": [
+            {
+              "tag": "input",
+              "name": "",
+              "type": "file",
+              "label": "",
+              "selector": "[data-ocade=\"0\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "About",
+              "selector": "[data-ocade=\"1\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Report a bug",
+              "selector": "[data-ocade=\"2\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Learn",
+              "selector": "[data-ocade=\"3\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Blog",
+              "selector": "[data-ocade=\"4\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "API",
+              "selector": "[data-ocade=\"5\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "",
+              "selector": "[data-ocade=\"6\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "",
+              "selector": "[data-ocade=\"7\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "",
+              "selector": "[data-ocade=\"8\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "File",
+              "selector": "[data-ocade=\"9\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Edit",
+              "selector": "[data-ocade=\"10\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Image",
+              "selector": "[data-ocade=\"11\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Layer",
+              "selector": "[data-ocade=\"12\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Select",
+              "selector": "[data-ocade=\"13\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Filter",
+              "selector": "[data-ocade=\"14\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "View",
+              "selector": "[data-ocade=\"15\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Window",
+              "selector": "[data-ocade=\"16\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "More",
+              "selector": "[data-ocade=\"17\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Account",
+              "selector": "[data-ocade=\"18\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Find",
+              "selector": "[data-ocade=\"19\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Fullscreen",
+              "selector": "[data-ocade=\"20\"]"
+            },
+            {
+              "tag": "input",
+              "name": "",
+              "type": "checkbox",
+              "label": "Auto-Select",
+              "selector": "[data-ocade=\"21\"]"
+            },
+            {
+              "tag": "select",
+              "name": "",
+              "type": "select-one",
+              "label": "Folder\nLayer",
+              "selector": "[data-ocade=\"22\"]"
+            },
+            {
+              "tag": "input",
+              "name": "",
+              "type": "checkbox",
+              "label": "Transform controls",
+              "selector": "[data-ocade=\"23\"]"
+            },
+            {
+              "tag": "input",
+              "name": "",
+              "type": "checkbox",
+              "label": "Distances",
+              "selector": "[data-ocade=\"24\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Save selected layers",
+              "selector": "[data-ocade=\"25\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Align Left Edges",
+              "selector": "[data-ocade=\"26\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Center Horizontally",
+              "selector": "[data-ocade=\"27\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Align Right Edges",
+              "selector": "[data-ocade=\"28\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Equal Gaps",
+              "selector": "[data-ocade=\"29\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Align Top Edges",
+              "selector": "[data-ocade=\"30\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Center Vertically",
+              "selector": "[data-ocade=\"31\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Align Bottom Edges",
+              "selector": "[data-ocade=\"32\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Equal Gaps",
+              "selector": "[data-ocade=\"33\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "...",
+              "selector": "[data-ocade=\"34\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Align to a Grid",
+              "selector": "[data-ocade=\"35\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Move Tool (V)",
+              "selector": "[data-ocade=\"36\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Rectangle Select (M)",
+              "selector": "[data-ocade=\"37\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Magic Wand (W)",
+              "selector": "[data-ocade=\"38\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Crop Tool (C)",
+              "selector": "[data-ocade=\"39\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Spot Healing Brush Tool (J)",
+              "selector": "[data-ocade=\"40\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Brush Tool (B)",
+              "selector": "[data-ocade=\"41\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Eraser Tool (E)",
+              "selector": "[data-ocade=\"42\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Gradient Tool (G)",
+              "selector": "[data-ocade=\"43\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Blur Tool",
+              "selector": "[data-ocade=\"44\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Dodge Tool (O)",
+              "selector": "[data-ocade=\"45\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Type Tool (T)",
+              "selector": "[data-ocade=\"46\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Pen (P)",
+              "selector": "[data-ocade=\"47\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Path Select (A)",
+              "selector": "[data-ocade=\"48\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Rectangle (U)",
+              "selector": "[data-ocade=\"49\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Hand Tool (H)",
+              "selector": "[data-ocade=\"50\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Zoom Tool (Z)",
+              "selector": "[data-ocade=\"51\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Quick Mask Mode",
+              "selector": "[data-ocade=\"52\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Virtual Keys",
+              "selector": "[data-ocade=\"53\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Info",
+              "selector": "[data-ocade=\"54\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Properties",
+              "selector": "[data-ocade=\"55\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Brush",
+              "selector": "[data-ocade=\"56\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Character",
+              "selector": "[data-ocade=\"57\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Paragraph",
+              "selector": "[data-ocade=\"58\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "CSS",
+              "selector": "[data-ocade=\"59\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Gallery",
+              "selector": "[data-ocade=\"60\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "≡",
+              "selector": "[data-ocade=\"61\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "≡",
+              "selector": "[data-ocade=\"62\"]"
+            },
+            {
+              "tag": "select",
+              "name": "",
+              "type": "select-one",
+              "label": "Normal\nDissolve\nDarken\nMultiply\nColor Burn\nLinear Burn\nDarker Color\nLighten\nScre",
+              "selector": "[data-ocade=\"63\"]"
+            },
+            {
+              "tag": "input",
+              "name": "",
+              "type": "text",
+              "label": "Opacity:",
+              "selector": "[data-ocade=\"64\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "▼",
+              "selector": "[data-ocade=\"65\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Lock:",
+              "selector": "[data-ocade=\"66\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Pixels",
+              "selector": "[data-ocade=\"67\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Position",
+              "selector": "[data-ocade=\"68\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "All",
+              "selector": "[data-ocade=\"69\"]"
+            },
+            {
+              "tag": "input",
+              "name": "",
+              "type": "text",
+              "label": "Fill:",
+              "selector": "[data-ocade=\"70\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "▼",
+              "selector": "[data-ocade=\"71\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Link Layers",
+              "selector": "[data-ocade=\"72\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Layer Style",
+              "selector": "[data-ocade=\"73\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Add Raster Mask",
+              "selector": "[data-ocade=\"74\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "New Adjustment Layer",
+              "selector": "[data-ocade=\"75\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "New Folder",
+              "selector": "[data-ocade=\"76\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "New Layer",
+              "selector": "[data-ocade=\"77\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Delete",
+              "selector": "[data-ocade=\"78\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Ad blocking detected",
+              "selector": "[data-ocade=\"79\"]"
+            }
+          ],
+          "durationMs": 32.52,
+          "needsSignIn": false
+        },
+        "maybeChanged": false,
+        "observedAtUtc": "2026-10-31T20:32:38.058Z"
+      }
+    },
+    {
+      "summary": "read",
+      "intent": {
+        "v": 1,
+        "key": "s22",
+        "risk": "read",
+        "target": {
+          "site": "www.photopea.com"
+        },
+        "arguments": {
+          "page": {
+            "id": "4f9ce5afc4de",
+            "site": "www.photopea.com"
+          }
+        },
+        "operation": "web.read",
+        "capability": "browser",
+        "deadlineUtc": "2026-10-31T20:42:39.080Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "url": "https://www.photopea.com/",
+          "page": {
+            "id": "4f9ce5afc4de",
+            "site": "www.photopea.com"
+          },
+          "text": "Mode\nAdjustments\nAuto Tone\nAuto Contrast\nAuto Color\nReduce Colors...\nVectorize Bitmap...\nWavelet Decompose\nCanvas Size...\nAlt+Ctrl + C\nImage Size...\nAlt+Ctrl + I\nTransform\nCrop\nTrim...\nCtrl + .\nReveal All\nDuplicate\nApply Image...\nVariables...\nAboutReport a bugLearnBlogAPI\nFileEditImageLayerSelectFilterViewWindowMoreAccount\nAuto-Select\nFolder\nLayer\nTransform controlsDistances...\nstreet.jpg\n< >\n> <\nHistorySwatches\n≡\nOpen\nLayersChannelsPaths\n≡\nNormal\nDissolve\nDarken\nMultiply\nColor Burn\nLinear Burn\nDarker Color\nLighten\nScreen\nColor Dodge\nLinear Dodge\nLighter Color\nOverlay\nSoft Light\nHard Light\nVivid Light\nLinear Light\nPin Light\nHard Mix\nDifference\nExclusion\nSubtract\nDivide\nHue\nSaturation\nColor\nLuminosity\nOpacity:▼Lock: Fill:▼\nBackground\nAd blocking detected",
+          "title": "Photopea | Online Photo Editor",
+          "controls": [
+            {
+              "tag": "input",
+              "name": "",
+              "type": "file",
+              "label": "",
+              "selector": "[data-ocade=\"0\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "About",
+              "selector": "[data-ocade=\"1\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Report a bug",
+              "selector": "[data-ocade=\"2\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Learn",
+              "selector": "[data-ocade=\"3\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Blog",
+              "selector": "[data-ocade=\"4\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "API",
+              "selector": "[data-ocade=\"5\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "",
+              "selector": "[data-ocade=\"6\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "",
+              "selector": "[data-ocade=\"7\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "",
+              "selector": "[data-ocade=\"8\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "File",
+              "selector": "[data-ocade=\"9\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Edit",
+              "selector": "[data-ocade=\"10\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Image",
+              "selector": "[data-ocade=\"11\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Layer",
+              "selector": "[data-ocade=\"12\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Select",
+              "selector": "[data-ocade=\"13\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Filter",
+              "selector": "[data-ocade=\"14\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "View",
+              "selector": "[data-ocade=\"15\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Window",
+              "selector": "[data-ocade=\"16\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "More",
+              "selector": "[data-ocade=\"17\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Account",
+              "selector": "[data-ocade=\"18\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Find",
+              "selector": "[data-ocade=\"19\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Fullscreen",
+              "selector": "[data-ocade=\"20\"]"
+            },
+            {
+              "tag": "input",
+              "name": "",
+              "type": "checkbox",
+              "label": "Auto-Select",
+              "selector": "[data-ocade=\"21\"]"
+            },
+            {
+              "tag": "select",
+              "name": "",
+              "type": "select-one",
+              "label": "Folder\nLayer",
+              "selector": "[data-ocade=\"22\"]"
+            },
+            {
+              "tag": "input",
+              "name": "",
+              "type": "checkbox",
+              "label": "Transform controls",
+              "selector": "[data-ocade=\"23\"]"
+            },
+            {
+              "tag": "input",
+              "name": "",
+              "type": "checkbox",
+              "label": "Distances",
+              "selector": "[data-ocade=\"24\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Save selected layers",
+              "selector": "[data-ocade=\"25\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Align Left Edges",
+              "selector": "[data-ocade=\"26\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Center Horizontally",
+              "selector": "[data-ocade=\"27\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Align Right Edges",
+              "selector": "[data-ocade=\"28\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Equal Gaps",
+              "selector": "[data-ocade=\"29\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Align Top Edges",
+              "selector": "[data-ocade=\"30\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Center Vertically",
+              "selector": "[data-ocade=\"31\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Align Bottom Edges",
+              "selector": "[data-ocade=\"32\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Equal Gaps",
+              "selector": "[data-ocade=\"33\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "...",
+              "selector": "[data-ocade=\"34\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Align to a Grid",
+              "selector": "[data-ocade=\"35\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Move Tool (V)",
+              "selector": "[data-ocade=\"36\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Rectangle Select (M)",
+              "selector": "[data-ocade=\"37\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Magic Wand (W)",
+              "selector": "[data-ocade=\"38\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Crop Tool (C)",
+              "selector": "[data-ocade=\"39\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Spot Healing Brush Tool (J)",
+              "selector": "[data-ocade=\"40\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Brush Tool (B)",
+              "selector": "[data-ocade=\"41\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Eraser Tool (E)",
+              "selector": "[data-ocade=\"42\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Gradient Tool (G)",
+              "selector": "[data-ocade=\"43\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Blur Tool",
+              "selector": "[data-ocade=\"44\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Dodge Tool (O)",
+              "selector": "[data-ocade=\"45\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Type Tool (T)",
+              "selector": "[data-ocade=\"46\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Pen (P)",
+              "selector": "[data-ocade=\"47\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Path Select (A)",
+              "selector": "[data-ocade=\"48\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Rectangle (U)",
+              "selector": "[data-ocade=\"49\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Hand Tool (H)",
+              "selector": "[data-ocade=\"50\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Zoom Tool (Z)",
+              "selector": "[data-ocade=\"51\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Quick Mask Mode",
+              "selector": "[data-ocade=\"52\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Virtual Keys",
+              "selector": "[data-ocade=\"53\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Info",
+              "selector": "[data-ocade=\"54\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Properties",
+              "selector": "[data-ocade=\"55\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Brush",
+              "selector": "[data-ocade=\"56\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Character",
+              "selector": "[data-ocade=\"57\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Paragraph",
+              "selector": "[data-ocade=\"58\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "CSS",
+              "selector": "[data-ocade=\"59\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Gallery",
+              "selector": "[data-ocade=\"60\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "≡",
+              "selector": "[data-ocade=\"61\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "≡",
+              "selector": "[data-ocade=\"62\"]"
+            },
+            {
+              "tag": "select",
+              "name": "",
+              "type": "select-one",
+              "label": "Normal\nDissolve\nDarken\nMultiply\nColor Burn\nLinear Burn\nDarker Color\nLighten\nScre",
+              "selector": "[data-ocade=\"63\"]"
+            },
+            {
+              "tag": "input",
+              "name": "",
+              "type": "text",
+              "label": "Opacity:",
+              "selector": "[data-ocade=\"64\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "▼",
+              "selector": "[data-ocade=\"65\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Lock:",
+              "selector": "[data-ocade=\"66\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Pixels",
+              "selector": "[data-ocade=\"67\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Position",
+              "selector": "[data-ocade=\"68\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "All",
+              "selector": "[data-ocade=\"69\"]"
+            },
+            {
+              "tag": "input",
+              "name": "",
+              "type": "text",
+              "label": "Fill:",
+              "selector": "[data-ocade=\"70\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "▼",
+              "selector": "[data-ocade=\"71\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Link Layers",
+              "selector": "[data-ocade=\"72\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Layer Style",
+              "selector": "[data-ocade=\"73\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Add Raster Mask",
+              "selector": "[data-ocade=\"74\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "New Adjustment Layer",
+              "selector": "[data-ocade=\"75\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "New Folder",
+              "selector": "[data-ocade=\"76\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "New Layer",
+              "selector": "[data-ocade=\"77\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Delete",
+              "selector": "[data-ocade=\"78\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Ad blocking detected",
+              "selector": "[data-ocade=\"79\"]"
+            }
+          ],
+          "durationMs": 31.63,
+          "needsSignIn": false
+        },
+        "maybeChanged": false,
+        "observedAtUtc": "2026-10-31T20:32:45.962Z"
+      }
+    }
+  ],
+  "outputs": [
+    {
+      "path": "/tmp/p2-photo/OCADE output/photopea_menu.png",
+      "bytes": 134683
+    },
+    {
+      "path": "/tmp/p2-photo/OCADE output/photopea_page2.png",
+      "bytes": 97953
+    },
+    {
+      "path": "/tmp/p2-photo/OCADE output/photopea_state.png",
+      "bytes": 120684
+    }
+  ]
+}

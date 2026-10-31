@@ -32,3 +32,10 @@ Fix, either:
 1. put the project's **secret key** (`sb_secret_…`, Project Settings → API Keys) in this environment's
    `SUPABASE_SERVICE_ROLE_KEY` secret and start a new session (the server client accepts that format), or
 2. approve redeploying the service with a check that verifies service-role credentials cryptographically.
+
+## Update, 31 October 2026 (later)
+
+The G9 blocker above is resolved: the owner replaced the staging service key, and the deployed
+service door accepts it. Live Gemini tasks ran and were verified on staging (text, vision and
+a browser video edit). Results, timings and the defects they exposed are in
+`evidence/2026-10-31-browser/README.md`; the current ledger is in that folder.

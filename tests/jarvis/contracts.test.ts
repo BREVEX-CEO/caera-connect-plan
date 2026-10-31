@@ -166,11 +166,12 @@ test("capability shortlist: descriptor vectors, bounded, continuity, paraphrase-
   // An application nobody listed still reaches the generic desktop capabilities.
   const app = pick("In the Zorblax Pro window, press the Export button");
   assert.ok(app.includes("ui.invoke") && app.includes("apps.list"), String(app));
-  // Continuity: an operation already used stays offered even when it no longer ranks.
+  // Continuity: an operation already used stays offered with its whole role, even when
+  // neither ranks (a page opened on a website is then clicked).
   const used = pick("Write a document", [
     { intent: { operation: "web.close" }, status: "done", receipt: null },
   ] as never);
-  assert.ok(used.includes("web.close"));
+  assert.ok(used.includes("web.close") && used.includes("web.click"), String(used));
   // The descriptor, not a name table, decides: change the text and the ranking follows.
   const tools = [
     { id: "a", text: "convert currency amounts between exchange rates" },
@@ -296,6 +297,21 @@ test("a failed independent check returns to the model for bounded repair", async
     assert.equal(corrected.kind, "queue");
     assert.equal(calls - before, 2);
     assert.match(lastPrompt, /refused your last proposal.*OCADE output/s);
+    // One huge observation never pushes the earlier steps out of the model's history.
+    reply = [{ name: "fs_list", arguments: {} }];
+    const read = (key: string, text: string): Step => ({
+      intent: intent("fs.read_text", key, { path: `${key}.txt` }, deadline),
+      status: "done",
+      receipt: {
+        status: "observed",
+        maybeChanged: false,
+        observedAtUtc: now.toISOString(),
+        evidence: { text },
+      },
+    });
+    await planStep({ ...base, steps: [read("first", "a"), read("huge", "x".repeat(60_000))] });
+    assert.match(lastPrompt, /first\.txt/);
+    assert.match(lastPrompt, /huge\.txt.*\(clipped\)/s);
     assert.equal(batch.kind, "queue");
     if (batch.kind === "queue") {
       assert.equal(batch.intent.operation, "fs.read_text");

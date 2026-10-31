@@ -50,18 +50,17 @@ const T = {
   guard: "npm run jarvis:no-hardcoded",
   staging: "staging checks and real UI run (evidence/2026-10-31-architecture)",
 };
-const LIVE =
-  "live Gemini blocked: the deployed service door refuses this session's key (see report)";
+const LIVE_RUNS = "live Gemini runs (evidence/2026-10-31-browser)";
 const WIN = "needs an interactive Windows machine";
 
 // number: [status, level, owners, tests, reason]
 const C = {
   1: [
     "PARTIAL",
-    "L2",
+    "L4",
     ["authority", "planner", "gateway", "verify"],
-    ["e2e"],
-    `one loop wired end to end with a scripted model; ${LIVE}`,
+    ["e2e", "staging"],
+    `full loop proven in ${LIVE_RUNS} on Linux (text, vision, browser video PASS); browser photo editing not completed; Windows native control untested`,
   ],
   2: [
     "PARTIAL",
@@ -89,10 +88,10 @@ const C = {
   7: ["PASS", "L2", ["migration", "supervisor"], ["db", "e2e"], ""],
   8: [
     "PARTIAL",
-    "L2",
+    "L4",
     ["planner", "contracts"],
-    ["e2e"],
-    `typed checks compiled before any step; ${LIVE}`,
+    ["e2e", "staging"],
+    `Gemini compiles typed checks before any step in ${LIVE_RUNS}; for photo edits it chose existence-only checks`,
   ],
   9: ["PASS", "L1", ["guard", "planner"], ["guard", "unit", "e2e"], ""],
   10: ["PASS", "L1", ["planner", "discovery"], ["unit"], ""],
@@ -125,10 +124,10 @@ const C = {
   19: ["PASS", "L1", ["planner"], ["unit", "e2e"], ""],
   20: [
     "PARTIAL",
-    "L2",
+    "L4",
     ["planner", "gateway"],
-    ["e2e"],
-    `observe and adapt proven with a scripted model; ${LIVE}`,
+    ["e2e", "staging"],
+    `adapts live in ${LIVE_RUNS} (refused selector corrected, verifier-driven repair); stalled on a canvas editor's menus`,
   ],
   21: [
     "PARTIAL",
@@ -271,14 +270,32 @@ const C = {
     ["e2e"],
     "files land in the device folder; no download/read-back from the UI tested",
   ],
-  72: ["PARTIAL", "L3", ["ui"], ["staging"], "signed in, paired a computer, granted access and sent a request on staging; no task can run until live Gemini works"],
+  72: [
+    "PARTIAL",
+    "L3",
+    ["ui"],
+    ["staging"],
+    "UI sign-in, pairing and request on staging; live tasks ran through the production authority from the harness, not yet from the UI",
+  ],
   73: ["PASS", "L2", ["packaging", "gateway"], ["frozen"], ""],
   74: ["PASS", "L2", ["gateway", "agent"], ["gateway", "agent"], ""],
   75: ["PASS", "L2", ["verify"], ["gateway", "media"], ""],
   76: ["PASS", "L2", ["verify"], ["gateway", "media"], ""],
   77: ["PASS", "L1", ["planner"], ["unit"], ""],
-  78: ["UNTESTED", "L0", [], [], LIVE],
-  79: ["BLOCKED", "L0", [], [], `architecture gate not passed; ${LIVE}`],
+  78: [
+    "PARTIAL",
+    "L4",
+    ["authority"],
+    ["staging"],
+    `elapsed, model, execution and wait times recorded per run in ${LIVE_RUNS}; no CPU/memory benchmark; Linux only`,
+  ],
+  79: [
+    "PARTIAL",
+    "L4",
+    [],
+    ["staging"],
+    `browser video trim PASS and verified; browser photo edit not completed (model stalls, Free allowance of 28 requests per window) in ${LIVE_RUNS}`,
+  ],
   80: [
     "PARTIAL",
     "L2",
@@ -288,7 +305,13 @@ const C = {
   ],
   81: ["PASS", "L1", ["guard"], ["guard", "e2e"], ""],
   82: ["PASS", "L1", [], ["unit"], ""],
-  83: ["UNTESTED", "L0", [], [], LIVE],
+  83: [
+    "PARTIAL",
+    "L4",
+    ["authority"],
+    ["staging"],
+    `per-run outcome and confirmations recorded in ${LIVE_RUNS}; no aggregated product metric`,
+  ],
   84: ["FAIL", "L0", [], [], "release gate not met: concepts above are FAIL/BLOCKED/PARTIAL"],
 };
 const STATES = ["PASS", "PARTIAL", "FAIL", "BLOCKED", "UNTESTED"];

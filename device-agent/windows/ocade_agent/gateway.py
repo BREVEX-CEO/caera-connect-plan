@@ -301,12 +301,15 @@ class Gateway:
         if len(json.dumps(evidence)) > 16_000:
             return timed("unknown" if writes else "not_applied", writes, error="evidence_too_large")
         done = timed("observed", writes, evidence)
-        if preview is not None:
+        # The server stores a receipt in at most 64 KiB: a preview that would not fit is left
+        # out (the planner can still ask for one) rather than leave a receipt nobody can record.
+        if preview is not None and len(json.dumps(done)) + len(preview) <= MAX_RECEIPT:
             done["preview"] = preview
         return done
 
 
 MAX_PREVIEW = 64_000
+MAX_RECEIPT = 60_000  # under the server's 65 536-byte stored-receipt limit
 _BASE64 = re.compile(r"[A-Za-z0-9+/]+={0,2}")
 
 _VALIDATORS: dict[str, jsonschema.Draft202012Validator] = {}

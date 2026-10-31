@@ -34,8 +34,15 @@ from reportlab.pdfgen import canvas
 RECEIVED: dict[str, list] = {"forms": [], "uploads": []}
 
 PAGES = {
+    "/app": """<h1>Editor</h1><input type="file" id="pick" style="display:none"
+onchange="document.getElementById('opened').textContent = 'Opened ' + this.files[0].name; this.value = ''"><p id="opened"></p>
+<span contenteditable="true" inputmode="numeric" onkeydown="this.dataset.typed = 1"
+onblur="document.getElementById('committed').textContent = this.dataset.typed ? 'End ' + this.innerText : 'not typed'">20</span>
+<p id="committed"></p>""",
+    "/big": "<p>" + "Long page text. " * 4000 + "</p>" + "".join(f"<button>Control number {i} with a long label {'x' * 60}</button>" for i in range(200)),
     "/": """<h1>OCADE fixture home</h1><h2>Section A</h2><p id="lead">Quarterly status is GREEN.</p>
-<a href="/pages/1">Page one</a> <a href="/pages/2">Page two</a> <a href="/download">Downloads</a>""",
+<a href="/pages/1">Page one</a> <a href="/pages/2">Page two</a> <a href="/download">Downloads</a>
+<a href="/pages/1">Next</a> <a href="/pages/2">Next</a>""",
     "/pages/1": "<h1>Page one</h1><p>Invoice INV-7 is overdue by 12 days.</p><a href='/pages/2'>Next</a>",
     "/pages/2": "<h1>Page two</h1><p>Invoice INV-9 was paid on 2026-10-01.</p>",
     "/form": """<h1>Contact form</h1><form method="post" action="/form">

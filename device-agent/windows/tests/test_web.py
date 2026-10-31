@@ -89,6 +89,17 @@ class WebLadder(unittest.TestCase):
             out["013"] = await run("web.screenshot", {"page": page, "output": "OCADE output/web/001-home.png"})
             out["002"] = await run("web.read", {"page": page})
             out["007"] = await run("web.click", {"page": page, "selector": "text=Page one"})
+            home = (await run("web.open", {"url": base + "/"}))["evidence"]
+            second_next = [c for c in home["controls"] if c["label"] == "Next"][1]
+            out["big"] = await run("web.read", {"page": (await run("web.open", {"url": base + "/big"}))["evidence"]["page"]})
+            app = (await run("web.open", {"url": base + "/app"}))["evidence"]
+            hidden = next(c for c in app["controls"] if c["type"] == "file")
+            out["app"] = await run("web.upload", {"page": app["page"], "selector": hidden["selector"], "path": "upload-me.txt"})
+            out["app-read"] = await run("web.read", {"page": app["page"]})
+            editable = next(c for c in app["controls"] if c["tag"] == "span")
+            out["editable"] = await run("web.fill", {"page": app["page"], "selector": editable["selector"], "value": "8"})
+            out["editable-read"] = await run("web.read", {"page": app["page"]})
+            out["007b"] = await run("web.click", {"page": home["page"], "selector": second_next["selector"]})
             form = (await run("web.open", {"url": base + "/form"}))["evidence"]["page"]
             out["003"] = [
                 await run("web.fill", {"page": form, "selector": "#name", "value": "Ada Test"}),
@@ -152,6 +163,19 @@ class WebLadder(unittest.TestCase):
             self.assertEqual(web_fixture.RECEIVED["uploads"], [{"name": "upload-me.txt", "sha256": expected}])
         with self.subTest("WEB-007 internal navigation"):
             self.assertIn("INV-7", results["007"]["evidence"]["text"])
+        with self.subTest("WEB-007c a click carries a preview of the page afterwards"):
+            self.assertTrue(results["007b"].get("preview"))
+        with self.subTest("WEB-007b repeated labels still get one-element selectors"):
+            self.assertIn("INV-9", results["007b"]["evidence"]["text"])
+        with self.subTest("WEB-002b a very large page still reads, bounded"):
+            self.assertEqual(results["big"]["status"], "observed")
+            self.assertTrue(results["big"]["evidence"]["controls"])
+        with self.subTest("WEB-006b a web app that hides and clears its file input still reports the file"):
+            self.assertTrue(results["app"]["evidence"]["matches"])
+            self.assertIn("Opened upload-me.txt", results["app-read"]["evidence"]["text"])
+        with self.subTest("WEB-003b an app's editable text widget is listed and filled"):
+            self.assertTrue(results["editable"]["evidence"]["matches"])
+            self.assertIn("End 8", results["editable-read"]["evidence"]["text"])  # typed, then committed on blur
         with self.subTest("WEB-008 same-site iframe"):
             self.assertTrue(results["008"]["evidence"]["matches"])
         with self.subTest("WEB-009 popups: same site bound, other site closed"):

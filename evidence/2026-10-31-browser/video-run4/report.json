@@ -1,0 +1,2417 @@
+{
+  "objective": "Use a free video editor in the web browser to cut clip.mp4 down to its first 8 seconds and save the result as a new video file. Keep the original unchanged.",
+  "taskId": "9adb7712-1d47-46b3-a151-48e39e590e5a",
+  "status": "completed",
+  "result": "Done, and checked independently.",
+  "blocker": null,
+  "checks": [
+    {
+      "id": "cut_video_8s",
+      "kind": "media_duration",
+      "params": {
+        "path": "OCADE output/clip.mp4",
+        "value": 8
+      },
+      "description": "The video clip is cut down to its first 8 seconds and saved as a new video file in OCADE output/",
+      "state": "passed"
+    }
+  ],
+  "timing": {
+    "acceptedAt": "2026-10-31T20:51:39.578397+00:00",
+    "finishedAt": "2026-10-31T20:53:00.683822+00:00",
+    "verifiedAt": "2026-10-31T20:53:00.683822+00:00",
+    "deliveredAt": "2026-10-31T20:53:00.683822+00:00",
+    "totalElapsedMs": 81105,
+    "userWaitMs": 1268,
+    "activeExecutionMs": 10496,
+    "modelCalls": 14,
+    "modelMs": 35752,
+    "stepDurationsMs": [
+      5209.98,
+      407.82,
+      65.14,
+      132.16,
+      49.95,
+      205.91,
+      39.38,
+      655.17,
+      33.26,
+      93,
+      33.22,
+      2025.21,
+      1545.42
+    ]
+  },
+  "confirmations": [
+    {
+      "step": "164ccebd-4a23-47a4-aa4b-585392fa26d8",
+      "summary": "upload",
+      "at": "2026-10-31T20:51:55.889Z"
+    },
+    {
+      "step": "08ca695f-a0bd-4271-944a-5b230e3c570c",
+      "summary": "click",
+      "at": "2026-10-31T20:52:29.027Z"
+    }
+  ],
+  "decisions": [
+    {
+      "summary": "open",
+      "intent": {
+        "v": 1,
+        "key": "s1",
+        "risk": "read",
+        "target": {
+          "site": "online-video-cutter.com"
+        },
+        "arguments": {
+          "url": "https://online-video-cutter.com/"
+        },
+        "operation": "web.open",
+        "capability": "browser",
+        "deadlineUtc": "2026-10-31T21:01:39.596Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "url": "https://online-video-cutter.com/",
+          "page": {
+            "id": "b5d918af019b",
+            "site": "online-video-cutter.com"
+          },
+          "text": "Video\nAudio\nPDF\nConverters\nEN\nSign In\nTrim Video\nTrim or cut video of any format\nChoose File\nor drop a file here\nOnline Video Cutter\n\nThis web app comes in handy when you need to cut a small video file. It does not require installation, and it works in your browser.\n\nCrop video\n\nCropping allows you to frame the video to the desired area or change frame proportions.\n\nRotate video\n\nYou can rotate your video 90, 180 or 270 degrees. It can be useful when a portrait scene was shot in a landscape mode or vice versa.\n\nAny format you can think of\n\nThe app supports almost every video format out there. If your file fails to open, then it is probably damaged or it is too big.\n\nEasy video trimming\n\nAfter uploading your file, you can choose the quality and format of the output file. There are no complicated controls — every feature is just one or two clicks away.\n\nSecurity guaranteed\n\nYour files are automatically deleted from our servers a few hours after you are done working with them. Nobody has access to them except you.\n\nVideo editing online\n\nThe app can cut video files right in your browser window. Files of up to 4 GB are supported, and we are about to raise this limit.\n\nFormat-specific tools\nGIF Cutter\nCut MKV\nMOV Cutter\nTrim WEBM\nWMV Cutter\nTrim MPEG\nASF Cutter\nAndroid Video Cutter\nTikTok Video Cutter\nInstagram Video Cutter\nX (ex-Twitter) Video Trimmer\nRate this tool\n4.4\n/\n5\n25063 votes\n© 123apps.com\nBlog\nPrivacy\nRefund policy\nPricing\nHelp\nContact us\nEnglish",
+          "title": "Video Trimmer - Cut Video Online for Free - MP4, AVI, MPG, 3GP",
+          "controls": [
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "",
+              "selector": "[data-ocade=c0]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Video",
+              "selector": "[data-ocade=c1]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Audio",
+              "selector": "[data-ocade=c2]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "PDF",
+              "selector": "[data-ocade=c3]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Converters",
+              "selector": "[data-ocade=c4]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "EN",
+              "selector": "[data-ocade=c5]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Sign In",
+              "selector": "[data-ocade=c6]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "button",
+              "label": "Choose File",
+              "selector": "[data-ocade=c7]"
+            },
+            {
+              "tag": "input",
+              "name": "",
+              "type": "file",
+              "label": "",
+              "selector": "[data-ocade=c8]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "button",
+              "label": "",
+              "selector": "[data-ocade=c9]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "GIF Cutter",
+              "selector": "[data-ocade=c10]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Cut MKV",
+              "selector": "[data-ocade=c11]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "MOV Cutter",
+              "selector": "[data-ocade=c12]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Trim WEBM",
+              "selector": "[data-ocade=c13]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "WMV Cutter",
+              "selector": "[data-ocade=c14]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Trim MPEG",
+              "selector": "[data-ocade=c15]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "ASF Cutter",
+              "selector": "[data-ocade=c16]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Android Video Cutter",
+              "selector": "[data-ocade=c17]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "TikTok Video Cutter",
+              "selector": "[data-ocade=c18]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Instagram Video Cutter",
+              "selector": "[data-ocade=c19]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "X (ex-Twitter) Video Trimmer",
+              "selector": "[data-ocade=c20]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Blog",
+              "selector": "[data-ocade=c21]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Privacy",
+              "selector": "[data-ocade=c22]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Refund policy",
+              "selector": "[data-ocade=c23]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Pricing",
+              "selector": "[data-ocade=c24]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Help",
+              "selector": "[data-ocade=c25]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Contact us",
+              "selector": "[data-ocade=c26]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "English",
+              "selector": "[data-ocade=c27]"
+            },
+            {
+              "tag": "input",
+              "name": "",
+              "type": "file",
+              "label": "",
+              "selector": "[data-ocade=c28]"
+            },
+            {
+              "tag": "input",
+              "name": "avatar",
+              "type": "file",
+              "label": "",
+              "selector": "[data-ocade=c29]"
+            }
+          ],
+          "durationMs": 5209.98,
+          "needsSignIn": false
+        },
+        "maybeChanged": false,
+        "observedAtUtc": "2026-10-31T20:51:51.479Z"
+      }
+    },
+    {
+      "summary": "upload",
+      "intent": {
+        "v": 1,
+        "key": "s2",
+        "risk": "external_effect",
+        "target": {
+          "site": "online-video-cutter.com"
+        },
+        "arguments": {
+          "page": {
+            "id": "b5d918af019b",
+            "site": "online-video-cutter.com"
+          },
+          "path": "clip.mp4",
+          "selector": "[data-ocade=c8]"
+        },
+        "operation": "web.upload",
+        "capability": "browser",
+        "deadlineUtc": "2026-10-31T21:01:52.319Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "matches": true,
+          "attached": [
+            "clip.mp4"
+          ],
+          "durationMs": 407.82
+        },
+        "maybeChanged": true,
+        "observedAtUtc": "2026-10-31T20:51:56.809Z"
+      }
+    },
+    {
+      "summary": "read",
+      "intent": {
+        "v": 1,
+        "key": "s3",
+        "risk": "read",
+        "target": {
+          "site": "online-video-cutter.com"
+        },
+        "arguments": {
+          "page": {
+            "id": "b5d918af019b",
+            "site": "online-video-cutter.com"
+          }
+        },
+        "operation": "web.read",
+        "capability": "browser",
+        "deadlineUtc": "2026-10-31T21:01:57.496Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "url": "https://online-video-cutter.com/",
+          "page": {
+            "id": "b5d918af019b",
+            "site": "online-video-cutter.com"
+          },
+          "text": "Video\nAudio\nPDF\nConverters\nEN\nSign In\nTrim\nReset\nclip.mp4\n00:20.0\n00\n:\n00\n.\n0\n00\n:\n20\n.\n0\nSave\nOnline Video Cutter\n\nThis web app comes in handy when you need to cut a small video file. It does not require installation, and it works in your browser.\n\nCrop video\n\nCropping allows you to frame the video to the desired area or change frame proportions.\n\nRotate video\n\nYou can rotate your video 90, 180 or 270 degrees. It can be useful when a portrait scene was shot in a landscape mode or vice versa.\n\nAny format you can think of\n\nThe app supports almost every video format out there. If your file fails to open, then it is probably damaged or it is too big.\n\nEasy video trimming\n\nAfter uploading your file, you can choose the quality and format of the output file. There are no complicated controls — every feature is just one or two clicks away.\n\nSecurity guaranteed\n\nYour files are automatically deleted from our servers a few hours after you are done working with them. Nobody has access to them except you.\n\nVideo editing online\n\nThe app can cut video files right in your browser window. Files of up to 4 GB are supported, and we are about to raise this limit.\n\nFormat-specific tools\nGIF Cutter\nCut MKV\nMOV Cutter\nTrim WEBM\nWMV Cutter\nTrim MPEG\nASF Cutter\nAndroid Video Cutter\nTikTok Video Cutter\nInstagram Video Cutter\nX (ex-Twitter) Video Trimmer\nRate this tool\n4.4\n/\n5\n25063 votes\n© 123apps.com\nBlog\nPrivacy\nRefund policy\nPricing\nHelp\nContact us\nEnglish",
+          "title": "Video Trimmer - Cut Video Online for Free - MP4, AVI, MPG, 3GP",
+          "controls": [
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "",
+              "selector": "[data-ocade=c0]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Video",
+              "selector": "[data-ocade=c1]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Audio",
+              "selector": "[data-ocade=c2]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "PDF",
+              "selector": "[data-ocade=c3]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Converters",
+              "selector": "[data-ocade=c4]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "EN",
+              "selector": "[data-ocade=c5]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Sign In",
+              "selector": "[data-ocade=c6]"
+            },
+            {
+              "tag": "input",
+              "name": "",
+              "type": "radio",
+              "label": "Trim",
+              "selector": "[data-ocade=c7]"
+            },
+            {
+              "tag": "input",
+              "name": "",
+              "type": "radio",
+              "label": "tool_crop",
+              "selector": "[data-ocade=c8]"
+            },
+            {
+              "tag": "input",
+              "name": "",
+              "type": "radio",
+              "label": "tool_rotate",
+              "selector": "[data-ocade=c9]"
+            },
+            {
+              "tag": "input",
+              "name": "",
+              "type": "radio",
+              "label": "tool_flip",
+              "selector": "[data-ocade=c10]"
+            },
+            {
+              "tag": "input",
+              "name": "",
+              "type": "radio",
+              "label": "tool_resolution",
+              "selector": "[data-ocade=c11]"
+            },
+            {
+              "tag": "input",
+              "name": "",
+              "type": "radio",
+              "label": "tool_volume",
+              "selector": "[data-ocade=c12]"
+            },
+            {
+              "tag": "input",
+              "name": "",
+              "type": "radio",
+              "label": "tool_playback_rate",
+              "selector": "[data-ocade=c13]"
+            },
+            {
+              "tag": "input",
+              "name": "",
+              "type": "radio",
+              "label": "tool_loop",
+              "selector": "[data-ocade=c14]"
+            },
+            {
+              "tag": "input",
+              "name": "",
+              "type": "radio",
+              "label": "tool_stabilization",
+              "selector": "[data-ocade=c15]"
+            },
+            {
+              "tag": "input",
+              "name": "",
+              "type": "radio",
+              "label": "tool_add_image",
+              "selector": "[data-ocade=c16]"
+            },
+            {
+              "tag": "input",
+              "name": "",
+              "type": "radio",
+              "label": "tool_add_text",
+              "selector": "[data-ocade=c17]"
+            },
+            {
+              "tag": "input",
+              "name": "",
+              "type": "radio",
+              "label": "tool_delogo",
+              "selector": "[data-ocade=c18]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "button",
+              "label": "Reset",
+              "selector": "[data-ocade=c19]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "button",
+              "label": "",
+              "selector": "[data-ocade=c20]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "button",
+              "label": "",
+              "selector": "[data-ocade=c21]"
+            },
+            {
+              "tag": "span",
+              "name": "",
+              "type": "",
+              "label": "00",
+              "selector": "[data-ocade=c22]"
+            },
+            {
+              "tag": "span",
+              "name": "",
+              "type": "",
+              "label": "00",
+              "selector": "[data-ocade=c23]"
+            },
+            {
+              "tag": "span",
+              "name": "",
+              "type": "",
+              "label": "0",
+              "selector": "[data-ocade=c24]"
+            },
+            {
+              "tag": "span",
+              "name": "",
+              "type": "",
+              "label": "00",
+              "selector": "[data-ocade=c25]"
+            },
+            {
+              "tag": "span",
+              "name": "",
+              "type": "",
+              "label": "20",
+              "selector": "[data-ocade=c26]"
+            },
+            {
+              "tag": "span",
+              "name": "",
+              "type": "",
+              "label": "0",
+              "selector": "[data-ocade=c27]"
+            },
+            {
+              "tag": "input",
+              "name": "",
+              "type": "checkbox",
+              "label": "inverse",
+              "selector": "[data-ocade=c28]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "",
+              "selector": "[data-ocade=c29]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "button",
+              "label": "Save",
+              "selector": "[data-ocade=c30]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "GIF Cutter",
+              "selector": "[data-ocade=c31]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Cut MKV",
+              "selector": "[data-ocade=c32]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "MOV Cutter",
+              "selector": "[data-ocade=c33]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Trim WEBM",
+              "selector": "[data-ocade=c34]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "WMV Cutter",
+              "selector": "[data-ocade=c35]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Trim MPEG",
+              "selector": "[data-ocade=c36]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "ASF Cutter",
+              "selector": "[data-ocade=c37]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Android Video Cutter",
+              "selector": "[data-ocade=c38]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "TikTok Video Cutter",
+              "selector": "[data-ocade=c39]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Instagram Video Cutter",
+              "selector": "[data-ocade=c40]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "X (ex-Twitter) Video Trimmer",
+              "selector": "[data-ocade=c41]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Blog",
+              "selector": "[data-ocade=c42]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Privacy",
+              "selector": "[data-ocade=c43]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Refund policy",
+              "selector": "[data-ocade=c44]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Pricing",
+              "selector": "[data-ocade=c45]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Help",
+              "selector": "[data-ocade=c46]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Contact us",
+              "selector": "[data-ocade=c47]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "English",
+              "selector": "[data-ocade=c48]"
+            },
+            {
+              "tag": "input",
+              "name": "",
+              "type": "file",
+              "label": "",
+              "selector": "[data-ocade=c49]"
+            },
+            {
+              "tag": "input",
+              "name": "avatar",
+              "type": "file",
+              "label": "",
+              "selector": "[data-ocade=c50]"
+            }
+          ],
+          "durationMs": 65.14,
+          "needsSignIn": false
+        },
+        "maybeChanged": false,
+        "observedAtUtc": "2026-10-31T20:52:01.725Z"
+      }
+    },
+    {
+      "summary": "screenshot",
+      "intent": {
+        "v": 1,
+        "key": "s4",
+        "risk": "reversible_write",
+        "target": {
+          "site": "online-video-cutter.com"
+        },
+        "arguments": {
+          "page": {
+            "id": "b5d918af019b",
+            "site": "online-video-cutter.com"
+          },
+          "output": "OCADE output/cutter.png"
+        },
+        "operation": "web.screenshot",
+        "capability": "browser",
+        "deadlineUtc": "2026-10-31T21:02:02.539Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "bytes": 174710,
+          "sha256": "87c54b824feae2a68065403ba0ad27f2f68847e526c5b8dd1dc5abdd95b577ed",
+          "durationMs": 132.16
+        },
+        "maybeChanged": true,
+        "observedAtUtc": "2026-10-31T20:52:06.709Z"
+      }
+    },
+    {
+      "summary": "read",
+      "intent": {
+        "v": 1,
+        "key": "s5",
+        "risk": "read",
+        "target": {
+          "site": "online-video-cutter.com"
+        },
+        "arguments": {
+          "page": {
+            "id": "b5d918af019b",
+            "site": "online-video-cutter.com"
+          }
+        },
+        "operation": "web.read",
+        "capability": "browser",
+        "deadlineUtc": "2026-10-31T21:02:07.654Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "url": "https://online-video-cutter.com/",
+          "page": {
+            "id": "b5d918af019b",
+            "site": "online-video-cutter.com"
+          },
+          "text": "Video\nAudio\nPDF\nConverters\nEN\nSign In\nTrim\nReset\nclip.mp4\n00:20.0\n00\n:\n00\n.\n0\n00\n:\n20\n.\n0\nSave\nOnline Video Cutter\n\nThis web app comes in handy when you need to cut a small video file. It does not require installation, and it works in your browser.\n\nCrop video\n\nCropping allows you to frame the video to the desired area or change frame proportions.\n\nRotate video\n\nYou can rotate your video 90, 180 or 270 degrees. It can be useful when a portrait scene was shot in a landscape mode or vice versa.\n\nAny format you can think of\n\nThe app supports almost every video format out there. If your file fails to open, then it is probably damaged or it is too big.\n\nEasy video trimming\n\nAfter uploading your file, you can choose the quality and format of the output file. There are no complicated controls — every feature is just one or two clicks away.\n\nSecurity guaranteed\n\nYour files are automatically deleted from our servers a few hours after you are done working with them. Nobody has access to them except you.\n\nVideo editing online\n\nThe app can cut video files right in your browser window. Files of up to 4 GB are supported, and we are about to raise this limit.\n\nFormat-specific tools\nGIF Cutter\nCut MKV\nMOV Cutter\nTrim WEBM\nWMV Cutter\nTrim MPEG\nASF Cutter\nAndroid Video Cutter\nTikTok Video Cutter\nInstagram Video Cutter\nX (ex-Twitter) Video Trimmer\nRate this tool\n4.4\n/\n5\n25063 votes\n© 123apps.com\nBlog\nPrivacy\nRefund policy\nPricing\nHelp\nContact us\nEnglish",
+          "title": "Video Trimmer - Cut Video Online for Free - MP4, AVI, MPG, 3GP",
+          "controls": [
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "",
+              "selector": "[data-ocade=c0]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Video",
+              "selector": "[data-ocade=c1]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Audio",
+              "selector": "[data-ocade=c2]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "PDF",
+              "selector": "[data-ocade=c3]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Converters",
+              "selector": "[data-ocade=c4]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "EN",
+              "selector": "[data-ocade=c5]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Sign In",
+              "selector": "[data-ocade=c6]"
+            },
+            {
+              "tag": "input",
+              "name": "",
+              "type": "radio",
+              "label": "Trim",
+              "selector": "[data-ocade=c7]"
+            },
+            {
+              "tag": "input",
+              "name": "",
+              "type": "radio",
+              "label": "tool_crop",
+              "selector": "[data-ocade=c8]"
+            },
+            {
+              "tag": "input",
+              "name": "",
+              "type": "radio",
+              "label": "tool_rotate",
+              "selector": "[data-ocade=c9]"
+            },
+            {
+              "tag": "input",
+              "name": "",
+              "type": "radio",
+              "label": "tool_flip",
+              "selector": "[data-ocade=c10]"
+            },
+            {
+              "tag": "input",
+              "name": "",
+              "type": "radio",
+              "label": "tool_resolution",
+              "selector": "[data-ocade=c11]"
+            },
+            {
+              "tag": "input",
+              "name": "",
+              "type": "radio",
+              "label": "tool_volume",
+              "selector": "[data-ocade=c12]"
+            },
+            {
+              "tag": "input",
+              "name": "",
+              "type": "radio",
+              "label": "tool_playback_rate",
+              "selector": "[data-ocade=c13]"
+            },
+            {
+              "tag": "input",
+              "name": "",
+              "type": "radio",
+              "label": "tool_loop",
+              "selector": "[data-ocade=c14]"
+            },
+            {
+              "tag": "input",
+              "name": "",
+              "type": "radio",
+              "label": "tool_stabilization",
+              "selector": "[data-ocade=c15]"
+            },
+            {
+              "tag": "input",
+              "name": "",
+              "type": "radio",
+              "label": "tool_add_image",
+              "selector": "[data-ocade=c16]"
+            },
+            {
+              "tag": "input",
+              "name": "",
+              "type": "radio",
+              "label": "tool_add_text",
+              "selector": "[data-ocade=c17]"
+            },
+            {
+              "tag": "input",
+              "name": "",
+              "type": "radio",
+              "label": "tool_delogo",
+              "selector": "[data-ocade=c18]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "button",
+              "label": "Reset",
+              "selector": "[data-ocade=c19]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "button",
+              "label": "",
+              "selector": "[data-ocade=c20]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "button",
+              "label": "",
+              "selector": "[data-ocade=c21]"
+            },
+            {
+              "tag": "span",
+              "name": "",
+              "type": "",
+              "label": "00",
+              "selector": "[data-ocade=c22]"
+            },
+            {
+              "tag": "span",
+              "name": "",
+              "type": "",
+              "label": "00",
+              "selector": "[data-ocade=c23]"
+            },
+            {
+              "tag": "span",
+              "name": "",
+              "type": "",
+              "label": "0",
+              "selector": "[data-ocade=c24]"
+            },
+            {
+              "tag": "span",
+              "name": "",
+              "type": "",
+              "label": "00",
+              "selector": "[data-ocade=c25]"
+            },
+            {
+              "tag": "span",
+              "name": "",
+              "type": "",
+              "label": "20",
+              "selector": "[data-ocade=c26]"
+            },
+            {
+              "tag": "span",
+              "name": "",
+              "type": "",
+              "label": "0",
+              "selector": "[data-ocade=c27]"
+            },
+            {
+              "tag": "input",
+              "name": "",
+              "type": "checkbox",
+              "label": "inverse",
+              "selector": "[data-ocade=c28]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "",
+              "selector": "[data-ocade=c29]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "button",
+              "label": "Save",
+              "selector": "[data-ocade=c30]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "GIF Cutter",
+              "selector": "[data-ocade=c31]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Cut MKV",
+              "selector": "[data-ocade=c32]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "MOV Cutter",
+              "selector": "[data-ocade=c33]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Trim WEBM",
+              "selector": "[data-ocade=c34]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "WMV Cutter",
+              "selector": "[data-ocade=c35]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Trim MPEG",
+              "selector": "[data-ocade=c36]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "ASF Cutter",
+              "selector": "[data-ocade=c37]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Android Video Cutter",
+              "selector": "[data-ocade=c38]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "TikTok Video Cutter",
+              "selector": "[data-ocade=c39]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Instagram Video Cutter",
+              "selector": "[data-ocade=c40]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "X (ex-Twitter) Video Trimmer",
+              "selector": "[data-ocade=c41]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Blog",
+              "selector": "[data-ocade=c42]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Privacy",
+              "selector": "[data-ocade=c43]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Refund policy",
+              "selector": "[data-ocade=c44]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Pricing",
+              "selector": "[data-ocade=c45]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Help",
+              "selector": "[data-ocade=c46]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Contact us",
+              "selector": "[data-ocade=c47]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "English",
+              "selector": "[data-ocade=c48]"
+            },
+            {
+              "tag": "input",
+              "name": "",
+              "type": "file",
+              "label": "",
+              "selector": "[data-ocade=c49]"
+            },
+            {
+              "tag": "input",
+              "name": "avatar",
+              "type": "file",
+              "label": "",
+              "selector": "[data-ocade=c50]"
+            }
+          ],
+          "durationMs": 49.95,
+          "needsSignIn": false
+        },
+        "maybeChanged": false,
+        "observedAtUtc": "2026-10-31T20:52:12.384Z"
+      }
+    },
+    {
+      "summary": "fill",
+      "intent": {
+        "v": 1,
+        "key": "s6",
+        "risk": "reversible_write",
+        "target": {
+          "site": "online-video-cutter.com"
+        },
+        "arguments": {
+          "page": {
+            "id": "b5d918af019b",
+            "site": "online-video-cutter.com"
+          },
+          "value": "08",
+          "selector": "[data-ocade=c26]"
+        },
+        "operation": "web.fill",
+        "capability": "browser",
+        "deadlineUtc": "2026-10-31T21:02:13.190Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "matches": true,
+          "durationMs": 205.91
+        },
+        "maybeChanged": true,
+        "observedAtUtc": "2026-10-31T20:52:18.417Z"
+      }
+    },
+    {
+      "summary": "read",
+      "intent": {
+        "v": 1,
+        "key": "s7",
+        "risk": "read",
+        "target": {
+          "site": "online-video-cutter.com"
+        },
+        "arguments": {
+          "page": {
+            "id": "b5d918af019b",
+            "site": "online-video-cutter.com"
+          }
+        },
+        "operation": "web.read",
+        "capability": "browser",
+        "deadlineUtc": "2026-10-31T21:02:19.403Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "url": "https://online-video-cutter.com/",
+          "page": {
+            "id": "b5d918af019b",
+            "site": "online-video-cutter.com"
+          },
+          "text": "Video\nAudio\nPDF\nConverters\nEN\nSign In\nTrim\nReset\nclip.mp4\n00:08.1\n00\n:\n00\n.\n0\n00\n:\n08\n.\n1\nSave\nOnline Video Cutter\n\nThis web app comes in handy when you need to cut a small video file. It does not require installation, and it works in your browser.\n\nCrop video\n\nCropping allows you to frame the video to the desired area or change frame proportions.\n\nRotate video\n\nYou can rotate your video 90, 180 or 270 degrees. It can be useful when a portrait scene was shot in a landscape mode or vice versa.\n\nAny format you can think of\n\nThe app supports almost every video format out there. If your file fails to open, then it is probably damaged or it is too big.\n\nEasy video trimming\n\nAfter uploading your file, you can choose the quality and format of the output file. There are no complicated controls — every feature is just one or two clicks away.\n\nSecurity guaranteed\n\nYour files are automatically deleted from our servers a few hours after you are done working with them. Nobody has access to them except you.\n\nVideo editing online\n\nThe app can cut video files right in your browser window. Files of up to 4 GB are supported, and we are about to raise this limit.\n\nFormat-specific tools\nGIF Cutter\nCut MKV\nMOV Cutter\nTrim WEBM\nWMV Cutter\nTrim MPEG\nASF Cutter\nAndroid Video Cutter\nTikTok Video Cutter\nInstagram Video Cutter\nX (ex-Twitter) Video Trimmer\nRate this tool\n4.4\n/\n5\n25063 votes\n© 123apps.com\nBlog\nPrivacy\nRefund policy\nPricing\nHelp\nContact us\nEnglish",
+          "title": "Video Trimmer - Cut Video Online for Free - MP4, AVI, MPG, 3GP",
+          "controls": [
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "",
+              "selector": "[data-ocade=c0]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Video",
+              "selector": "[data-ocade=c1]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Audio",
+              "selector": "[data-ocade=c2]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "PDF",
+              "selector": "[data-ocade=c3]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Converters",
+              "selector": "[data-ocade=c4]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "EN",
+              "selector": "[data-ocade=c5]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Sign In",
+              "selector": "[data-ocade=c6]"
+            },
+            {
+              "tag": "input",
+              "name": "",
+              "type": "radio",
+              "label": "Trim",
+              "selector": "[data-ocade=c7]"
+            },
+            {
+              "tag": "input",
+              "name": "",
+              "type": "radio",
+              "label": "tool_crop",
+              "selector": "[data-ocade=c8]"
+            },
+            {
+              "tag": "input",
+              "name": "",
+              "type": "radio",
+              "label": "tool_rotate",
+              "selector": "[data-ocade=c9]"
+            },
+            {
+              "tag": "input",
+              "name": "",
+              "type": "radio",
+              "label": "tool_flip",
+              "selector": "[data-ocade=c10]"
+            },
+            {
+              "tag": "input",
+              "name": "",
+              "type": "radio",
+              "label": "tool_resolution",
+              "selector": "[data-ocade=c11]"
+            },
+            {
+              "tag": "input",
+              "name": "",
+              "type": "radio",
+              "label": "tool_volume",
+              "selector": "[data-ocade=c12]"
+            },
+            {
+              "tag": "input",
+              "name": "",
+              "type": "radio",
+              "label": "tool_playback_rate",
+              "selector": "[data-ocade=c13]"
+            },
+            {
+              "tag": "input",
+              "name": "",
+              "type": "radio",
+              "label": "tool_loop",
+              "selector": "[data-ocade=c14]"
+            },
+            {
+              "tag": "input",
+              "name": "",
+              "type": "radio",
+              "label": "tool_stabilization",
+              "selector": "[data-ocade=c15]"
+            },
+            {
+              "tag": "input",
+              "name": "",
+              "type": "radio",
+              "label": "tool_add_image",
+              "selector": "[data-ocade=c16]"
+            },
+            {
+              "tag": "input",
+              "name": "",
+              "type": "radio",
+              "label": "tool_add_text",
+              "selector": "[data-ocade=c17]"
+            },
+            {
+              "tag": "input",
+              "name": "",
+              "type": "radio",
+              "label": "tool_delogo",
+              "selector": "[data-ocade=c18]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "button",
+              "label": "Reset",
+              "selector": "[data-ocade=c19]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "button",
+              "label": "",
+              "selector": "[data-ocade=c20]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "button",
+              "label": "",
+              "selector": "[data-ocade=c21]"
+            },
+            {
+              "tag": "span",
+              "name": "",
+              "type": "",
+              "label": "00",
+              "selector": "[data-ocade=c22]"
+            },
+            {
+              "tag": "span",
+              "name": "",
+              "type": "",
+              "label": "00",
+              "selector": "[data-ocade=c23]"
+            },
+            {
+              "tag": "span",
+              "name": "",
+              "type": "",
+              "label": "0",
+              "selector": "[data-ocade=c24]"
+            },
+            {
+              "tag": "span",
+              "name": "",
+              "type": "",
+              "label": "00",
+              "selector": "[data-ocade=c25]"
+            },
+            {
+              "tag": "span",
+              "name": "",
+              "type": "",
+              "label": "08",
+              "selector": "[data-ocade=c26]"
+            },
+            {
+              "tag": "span",
+              "name": "",
+              "type": "",
+              "label": "1",
+              "selector": "[data-ocade=c27]"
+            },
+            {
+              "tag": "input",
+              "name": "",
+              "type": "checkbox",
+              "label": "inverse",
+              "selector": "[data-ocade=c28]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "",
+              "selector": "[data-ocade=c29]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "button",
+              "label": "Save",
+              "selector": "[data-ocade=c30]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "GIF Cutter",
+              "selector": "[data-ocade=c31]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Cut MKV",
+              "selector": "[data-ocade=c32]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "MOV Cutter",
+              "selector": "[data-ocade=c33]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Trim WEBM",
+              "selector": "[data-ocade=c34]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "WMV Cutter",
+              "selector": "[data-ocade=c35]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Trim MPEG",
+              "selector": "[data-ocade=c36]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "ASF Cutter",
+              "selector": "[data-ocade=c37]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Android Video Cutter",
+              "selector": "[data-ocade=c38]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "TikTok Video Cutter",
+              "selector": "[data-ocade=c39]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Instagram Video Cutter",
+              "selector": "[data-ocade=c40]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "X (ex-Twitter) Video Trimmer",
+              "selector": "[data-ocade=c41]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Blog",
+              "selector": "[data-ocade=c42]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Privacy",
+              "selector": "[data-ocade=c43]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Refund policy",
+              "selector": "[data-ocade=c44]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Pricing",
+              "selector": "[data-ocade=c45]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Help",
+              "selector": "[data-ocade=c46]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Contact us",
+              "selector": "[data-ocade=c47]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "English",
+              "selector": "[data-ocade=c48]"
+            },
+            {
+              "tag": "input",
+              "name": "",
+              "type": "file",
+              "label": "",
+              "selector": "[data-ocade=c49]"
+            },
+            {
+              "tag": "input",
+              "name": "avatar",
+              "type": "file",
+              "label": "",
+              "selector": "[data-ocade=c50]"
+            }
+          ],
+          "durationMs": 39.38,
+          "needsSignIn": false
+        },
+        "maybeChanged": false,
+        "observedAtUtc": "2026-10-31T20:52:23.781Z"
+      }
+    },
+    {
+      "summary": "click",
+      "intent": {
+        "v": 1,
+        "key": "s8",
+        "risk": "external_effect",
+        "target": {
+          "site": "online-video-cutter.com"
+        },
+        "arguments": {
+          "page": {
+            "id": "b5d918af019b",
+            "site": "online-video-cutter.com"
+          },
+          "selector": "[data-ocade=c30]"
+        },
+        "operation": "web.click",
+        "capability": "browser",
+        "deadlineUtc": "2026-10-31T21:02:24.423Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "url": "https://online-video-cutter.com/",
+          "page": {
+            "id": "b5d918af019b",
+            "site": "online-video-cutter.com"
+          },
+          "text": "Video\nAudio\nPDF\nConverters\nEN\nSign In\nclip.mp4\nEncoding: 0%\nOnline Video Cutter\n\nThis web app comes in handy when you need to cut a small video file. It does not require installation, and it works in your browser.\n\nCrop video\n\nCropping allows you to frame the video to the desired area or change frame proportions.\n\nRotate video\n\nYou can rotate your video 90, 180 or 270 degrees. It can be useful when a portrait scene was shot in a landscape mode or vice versa.\n\nAny format you can think of\n\nThe app supports almost every video format out there. If your file fails to open, then it is probably damaged or it is too big.\n\nEasy video trimming\n\nAfter uploading your file, you can choose the quality and format of the output file. There are no complicated controls — every feature is just one or two clicks away.\n\nSecurity guaranteed\n\nYour files are automatically deleted from our servers a few hours after you are done working with them. Nobody has access to them except you.\n\nVideo editing online\n\nThe app can cut video files right in your browser window. Files of up to 4 GB are supported, and we are about to raise this limit.\n\nFormat-specific tools\nGIF Cutter\nCut MKV\nMOV Cutter\nTrim WEBM\nWMV Cutter\nTrim MPEG\nASF Cutter\nAndroid Video Cutter\nTikTok Video Cutter\nInstagram Video Cutter\nX (ex-Twitter) Video Trimmer\nRate this tool\n4.4\n/\n5\n25063 votes\n© 123apps.com\nBlog\nPrivacy\nRefund policy\nPricing\nHelp\nContact us\nEnglish",
+          "title": "Video Trimmer - Cut Video Online for Free - MP4, AVI, MPG, 3GP",
+          "popups": [],
+          "controls": [
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "",
+              "selector": "[data-ocade=c0]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Video",
+              "selector": "[data-ocade=c1]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Audio",
+              "selector": "[data-ocade=c2]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "PDF",
+              "selector": "[data-ocade=c3]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Converters",
+              "selector": "[data-ocade=c4]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "EN",
+              "selector": "[data-ocade=c5]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Sign In",
+              "selector": "[data-ocade=c6]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "button",
+              "label": "",
+              "selector": "[data-ocade=c7]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "GIF Cutter",
+              "selector": "[data-ocade=c8]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Cut MKV",
+              "selector": "[data-ocade=c9]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "MOV Cutter",
+              "selector": "[data-ocade=c10]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Trim WEBM",
+              "selector": "[data-ocade=c11]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "WMV Cutter",
+              "selector": "[data-ocade=c12]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Trim MPEG",
+              "selector": "[data-ocade=c13]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "ASF Cutter",
+              "selector": "[data-ocade=c14]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Android Video Cutter",
+              "selector": "[data-ocade=c15]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "TikTok Video Cutter",
+              "selector": "[data-ocade=c16]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Instagram Video Cutter",
+              "selector": "[data-ocade=c17]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "X (ex-Twitter) Video Trimmer",
+              "selector": "[data-ocade=c18]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Blog",
+              "selector": "[data-ocade=c19]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Privacy",
+              "selector": "[data-ocade=c20]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Refund policy",
+              "selector": "[data-ocade=c21]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Pricing",
+              "selector": "[data-ocade=c22]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Help",
+              "selector": "[data-ocade=c23]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Contact us",
+              "selector": "[data-ocade=c24]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "English",
+              "selector": "[data-ocade=c25]"
+            },
+            {
+              "tag": "input",
+              "name": "",
+              "type": "file",
+              "label": "",
+              "selector": "[data-ocade=c26]"
+            },
+            {
+              "tag": "input",
+              "name": "avatar",
+              "type": "file",
+              "label": "",
+              "selector": "[data-ocade=c27]"
+            }
+          ],
+          "durationMs": 655.17,
+          "needsSignIn": false
+        },
+        "maybeChanged": true,
+        "observedAtUtc": "2026-10-31T20:52:29.885Z"
+      }
+    },
+    {
+      "summary": "read",
+      "intent": {
+        "v": 1,
+        "key": "s9",
+        "risk": "read",
+        "target": {
+          "site": "online-video-cutter.com"
+        },
+        "arguments": {
+          "page": {
+            "id": "b5d918af019b",
+            "site": "online-video-cutter.com"
+          }
+        },
+        "operation": "web.read",
+        "capability": "browser",
+        "deadlineUtc": "2026-10-31T21:02:30.585Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "url": "https://online-video-cutter.com/",
+          "page": {
+            "id": "b5d918af019b",
+            "site": "online-video-cutter.com"
+          },
+          "text": "Video\nAudio\nPDF\nConverters\nEN\nSign In\nclip.mp4\nBack\nStart over\nSave\nThe file will be saved to your Downloads folder.\nFile size:5.7 MB\nOnline Video Cutter\n\nThis web app comes in handy when you need to cut a small video file. It does not require installation, and it works in your browser.\n\nCrop video\n\nCropping allows you to frame the video to the desired area or change frame proportions.\n\nRotate video\n\nYou can rotate your video 90, 180 or 270 degrees. It can be useful when a portrait scene was shot in a landscape mode or vice versa.\n\nAny format you can think of\n\nThe app supports almost every video format out there. If your file fails to open, then it is probably damaged or it is too big.\n\nEasy video trimming\n\nAfter uploading your file, you can choose the quality and format of the output file. There are no complicated controls — every feature is just one or two clicks away.\n\nSecurity guaranteed\n\nYour files are automatically deleted from our servers a few hours after you are done working with them. Nobody has access to them except you.\n\nVideo editing online\n\nThe app can cut video files right in your browser window. Files of up to 4 GB are supported, and we are about to raise this limit.\n\nFormat-specific tools\nGIF Cutter\nCut MKV\nMOV Cutter\nTrim WEBM\nWMV Cutter\nTrim MPEG\nASF Cutter\nAndroid Video Cutter\nTikTok Video Cutter\nInstagram Video Cutter\nX (ex-Twitter) Video Trimmer\nRate this tool\n4.4\n/\n5\n25063 votes\n© 123apps.com\nBlog\nPrivacy\nRefund policy\nPricing\nHelp\nContact us\nEnglish",
+          "title": "Video Trimmer - Cut Video Online for Free - MP4, AVI, MPG, 3GP",
+          "controls": [
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "",
+              "selector": "[data-ocade=c0]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Video",
+              "selector": "[data-ocade=c1]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Audio",
+              "selector": "[data-ocade=c2]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "PDF",
+              "selector": "[data-ocade=c3]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Converters",
+              "selector": "[data-ocade=c4]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "EN",
+              "selector": "[data-ocade=c5]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Sign In",
+              "selector": "[data-ocade=c6]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Save",
+              "selector": "[data-ocade=c7]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "GIF Cutter",
+              "selector": "[data-ocade=c8]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Cut MKV",
+              "selector": "[data-ocade=c9]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "MOV Cutter",
+              "selector": "[data-ocade=c10]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Trim WEBM",
+              "selector": "[data-ocade=c11]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "WMV Cutter",
+              "selector": "[data-ocade=c12]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Trim MPEG",
+              "selector": "[data-ocade=c13]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "ASF Cutter",
+              "selector": "[data-ocade=c14]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Android Video Cutter",
+              "selector": "[data-ocade=c15]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "TikTok Video Cutter",
+              "selector": "[data-ocade=c16]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Instagram Video Cutter",
+              "selector": "[data-ocade=c17]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "X (ex-Twitter) Video Trimmer",
+              "selector": "[data-ocade=c18]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Blog",
+              "selector": "[data-ocade=c19]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Privacy",
+              "selector": "[data-ocade=c20]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Refund policy",
+              "selector": "[data-ocade=c21]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Pricing",
+              "selector": "[data-ocade=c22]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Help",
+              "selector": "[data-ocade=c23]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Contact us",
+              "selector": "[data-ocade=c24]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "English",
+              "selector": "[data-ocade=c25]"
+            },
+            {
+              "tag": "input",
+              "name": "",
+              "type": "file",
+              "label": "",
+              "selector": "[data-ocade=c26]"
+            },
+            {
+              "tag": "input",
+              "name": "avatar",
+              "type": "file",
+              "label": "",
+              "selector": "[data-ocade=c27]"
+            }
+          ],
+          "durationMs": 33.26,
+          "needsSignIn": false
+        },
+        "maybeChanged": false,
+        "observedAtUtc": "2026-10-31T20:52:34.705Z"
+      }
+    },
+    {
+      "summary": "screenshot",
+      "intent": {
+        "v": 1,
+        "key": "s10",
+        "risk": "reversible_write",
+        "target": {
+          "site": "online-video-cutter.com"
+        },
+        "arguments": {
+          "page": {
+            "id": "b5d918af019b",
+            "site": "online-video-cutter.com"
+          },
+          "output": "OCADE output/saved.png"
+        },
+        "operation": "web.screenshot",
+        "capability": "browser",
+        "deadlineUtc": "2026-10-31T21:02:35.373Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "bytes": 63628,
+          "sha256": "503198d985e9128938349b43180d046dd36ef69587842dd4fb828b03ee9f05c5",
+          "durationMs": 93
+        },
+        "maybeChanged": true,
+        "observedAtUtc": "2026-10-31T20:52:40.004Z"
+      }
+    },
+    {
+      "summary": "read",
+      "intent": {
+        "v": 1,
+        "key": "s11",
+        "risk": "read",
+        "target": {
+          "site": "online-video-cutter.com"
+        },
+        "arguments": {
+          "page": {
+            "id": "b5d918af019b",
+            "site": "online-video-cutter.com"
+          }
+        },
+        "operation": "web.read",
+        "capability": "browser",
+        "deadlineUtc": "2026-10-31T21:02:40.698Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "url": "https://online-video-cutter.com/",
+          "page": {
+            "id": "b5d918af019b",
+            "site": "online-video-cutter.com"
+          },
+          "text": "Video\nAudio\nPDF\nConverters\nEN\nSign In\nclip.mp4\nBack\nStart over\nSave\nThe file will be saved to your Downloads folder.\nFile size:5.7 MB\nOnline Video Cutter\n\nThis web app comes in handy when you need to cut a small video file. It does not require installation, and it works in your browser.\n\nCrop video\n\nCropping allows you to frame the video to the desired area or change frame proportions.\n\nRotate video\n\nYou can rotate your video 90, 180 or 270 degrees. It can be useful when a portrait scene was shot in a landscape mode or vice versa.\n\nAny format you can think of\n\nThe app supports almost every video format out there. If your file fails to open, then it is probably damaged or it is too big.\n\nEasy video trimming\n\nAfter uploading your file, you can choose the quality and format of the output file. There are no complicated controls — every feature is just one or two clicks away.\n\nSecurity guaranteed\n\nYour files are automatically deleted from our servers a few hours after you are done working with them. Nobody has access to them except you.\n\nVideo editing online\n\nThe app can cut video files right in your browser window. Files of up to 4 GB are supported, and we are about to raise this limit.\n\nFormat-specific tools\nGIF Cutter\nCut MKV\nMOV Cutter\nTrim WEBM\nWMV Cutter\nTrim MPEG\nASF Cutter\nAndroid Video Cutter\nTikTok Video Cutter\nInstagram Video Cutter\nX (ex-Twitter) Video Trimmer\nRate this tool\n4.4\n/\n5\n25063 votes\n© 123apps.com\nBlog\nPrivacy\nRefund policy\nPricing\nHelp\nContact us\nEnglish",
+          "title": "Video Trimmer - Cut Video Online for Free - MP4, AVI, MPG, 3GP",
+          "controls": [
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "",
+              "selector": "[data-ocade=c0]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Video",
+              "selector": "[data-ocade=c1]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Audio",
+              "selector": "[data-ocade=c2]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "PDF",
+              "selector": "[data-ocade=c3]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Converters",
+              "selector": "[data-ocade=c4]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "EN",
+              "selector": "[data-ocade=c5]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Sign In",
+              "selector": "[data-ocade=c6]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Save",
+              "selector": "[data-ocade=c7]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "GIF Cutter",
+              "selector": "[data-ocade=c8]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Cut MKV",
+              "selector": "[data-ocade=c9]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "MOV Cutter",
+              "selector": "[data-ocade=c10]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Trim WEBM",
+              "selector": "[data-ocade=c11]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "WMV Cutter",
+              "selector": "[data-ocade=c12]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Trim MPEG",
+              "selector": "[data-ocade=c13]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "ASF Cutter",
+              "selector": "[data-ocade=c14]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Android Video Cutter",
+              "selector": "[data-ocade=c15]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "TikTok Video Cutter",
+              "selector": "[data-ocade=c16]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Instagram Video Cutter",
+              "selector": "[data-ocade=c17]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "X (ex-Twitter) Video Trimmer",
+              "selector": "[data-ocade=c18]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Blog",
+              "selector": "[data-ocade=c19]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Privacy",
+              "selector": "[data-ocade=c20]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Refund policy",
+              "selector": "[data-ocade=c21]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Pricing",
+              "selector": "[data-ocade=c22]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Help",
+              "selector": "[data-ocade=c23]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Contact us",
+              "selector": "[data-ocade=c24]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "English",
+              "selector": "[data-ocade=c25]"
+            },
+            {
+              "tag": "input",
+              "name": "",
+              "type": "file",
+              "label": "",
+              "selector": "[data-ocade=c26]"
+            },
+            {
+              "tag": "input",
+              "name": "avatar",
+              "type": "file",
+              "label": "",
+              "selector": "[data-ocade=c27]"
+            }
+          ],
+          "durationMs": 33.22,
+          "needsSignIn": false
+        },
+        "maybeChanged": false,
+        "observedAtUtc": "2026-10-31T20:52:45.032Z"
+      }
+    },
+    {
+      "summary": "download",
+      "intent": {
+        "v": 1,
+        "key": "s12",
+        "risk": "reversible_write",
+        "target": {
+          "site": "online-video-cutter.com"
+        },
+        "arguments": {
+          "page": {
+            "id": "b5d918af019b",
+            "site": "online-video-cutter.com"
+          },
+          "output": "OCADE output/clip.mp4",
+          "selector": "[data-ocade=c7]"
+        },
+        "operation": "web.download",
+        "capability": "browser",
+        "deadlineUtc": "2026-10-31T21:02:45.784Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "bytes": 5962217,
+          "magic": "0000002066747970",
+          "sha256": "e39fea60c33f6b2c5ace1a47df2a8f7c2e6966b544d5ce2e1211529a2028c7bf",
+          "suggested": "clip (online-video-cutter.com).mp4",
+          "durationMs": 2025.21
+        },
+        "maybeChanged": true,
+        "observedAtUtc": "2026-10-31T20:52:52.464Z"
+      }
+    },
+    {
+      "summary": "Checking the result independently",
+      "intent": {
+        "v": 1,
+        "key": "s13",
+        "risk": "read",
+        "arguments": {
+          "checks": [
+            {
+              "id": "cut_video_8s",
+              "kind": "media_duration",
+              "params": {
+                "path": "OCADE output/clip.mp4",
+                "value": 8
+              },
+              "description": "The video clip is cut down to its first 8 seconds and saved as a new video file in OCADE output/"
+            }
+          ]
+        },
+        "operation": "verify.checks",
+        "capability": "files",
+        "deadlineUtc": "2026-10-31T21:02:53.845Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "durationMs": 1545.42,
+          "predicates": {
+            "cut_video_8s": true
+          },
+          "verifierVersion": "checks-verifier/1"
+        },
+        "maybeChanged": false,
+        "observedAtUtc": "2026-10-31T20:52:59.278Z"
+      }
+    }
+  ],
+  "outputs": [
+    {
+      "path": "/tmp/p2-video/OCADE output/clip.mp4",
+      "bytes": 5962217
+    },
+    {
+      "path": "/tmp/p2-video/OCADE output/cutter.png",
+      "bytes": 174710
+    },
+    {
+      "path": "/tmp/p2-video/OCADE output/saved.png",
+      "bytes": 63628
+    }
+  ]
+}

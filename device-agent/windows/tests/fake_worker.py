@@ -28,6 +28,8 @@ def office_inspect_workbook(path: str) -> dict:
         time.sleep(60)
     if MODE == "slow":
         time.sleep(33)  # longer than the session's 30 s start-up timeout, inside the operation's bound
+    if MODE == "big_preview":  # evidence and a preview each within bounds, together too big to store
+        return {"sha256": "0" * 64, "sheets": [], "note": "x" * 15_000, "preview": "A" * 60_000}
     return {"sha256": "0" * 64, "sheets": []}
 
 

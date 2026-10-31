@@ -147,7 +147,9 @@ class Media(unittest.TestCase):
         self.assertEqual(render["status"], "observed", render)
         self.assertEqual(render["evidence"]["frames"], 240)
         self.assertEqual((bad_range["status"], bad_range["errorCode"]), ("not_applied", "clip_out_of_range"))
-        self.assertEqual((bad_place["status"], bad_place["errorCode"]), ("not_applied", "write_outside_output"))
+        # The shared contract now refuses an output outside 'OCADE output/' before any worker runs;
+        # the sandbox's own write_outside_output refusal stays as the second layer (test_sandbox).
+        self.assertEqual((bad_place["status"], bad_place["errorCode"]), ("not_applied", "invalid_intent"))
         self.assertEqual(verify["evidence"]["predicates"], {"deliverable": True, "wrong_length": False, "too_small": False})
         self.assertEqual({n: (self.root / n).read_bytes() for n in originals}, originals)
         # The card is composited only inside its window: absent at 5 s, centred red at 9 s.

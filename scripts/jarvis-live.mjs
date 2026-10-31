@@ -31,6 +31,8 @@ const { values, positionals } = parseArgs({
     report: { type: "string", default: "jarvis-live-report.json" },
     grant: { type: "string", multiple: true, default: [] },
     rounds: { type: "string", default: "60" },
+    // The test operator confirms each external-effect step, as the person would in the app.
+    "confirm-effects": { type: "boolean", default: false },
   },
 });
 const objective = positionals.join(" ").trim();
@@ -150,6 +152,20 @@ const { taskId } = await authority.startTask(admin, user.id, {
   objective,
 });
 console.log(`task ${taskId}: ${objective}`);
+const confirmations = [];
+// The companion runs while the task does; the operator confirms external effects as they appear.
+let running = true;
+const confirming = (async () => {
+  while (running && values["confirm-effects"]) {
+    const view = await authority.taskView(admin, user.id, taskId);
+    for (const step of view.steps.filter((s) => s.needsConfirmation)) {
+      await authority.confirmAction(admin, user.id, step.id);
+      confirmations.push({ step: step.id, summary: step.summary, at: new Date().toISOString() });
+      console.log(`  operator confirmed: ${step.summary}`);
+    }
+    await new Promise((ok) => setTimeout(ok, 1500));
+  }
+})();
 for (let round = 0; round < Number(values.rounds); round += 1) {
   const view = await authority.taskView(admin, user.id, taskId);
   console.log(
@@ -159,6 +175,8 @@ for (let round = 0; round < Number(values.rounds); round += 1) {
   const run = await agent("run", "--workspace", resolve(values.workspace), "--until-idle");
   if (run.code !== 0) console.error(run.out.slice(-600));
 }
+running = false;
+await confirming;
 const view = await authority.taskView(admin, user.id, taskId);
 const state = must(await admin.rpc("jarvis_task_state", { p_task: taskId }));
 const outputs = (dir) =>
@@ -178,6 +196,8 @@ writeFileSync(
       blocker: view.blocker,
       checks: view.checks,
       timing: view.timing,
+      // Person interventions: each external effect the test operator confirmed.
+      confirmations,
       // Every decision the model made, as queued: operation, arguments, what was observed.
       decisions: state.steps.map((s) => ({
         summary: s.summary,

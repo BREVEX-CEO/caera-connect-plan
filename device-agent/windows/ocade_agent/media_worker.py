@@ -23,7 +23,7 @@ from pathlib import Path
 from mcp.server.mcpserver import MCPServer
 
 from . import scene_gl
-from .sandbox import Refused, output_path, resolve, sha256, write_atomically
+from .sandbox import Refused, output_path, preview_jpeg, resolve, sha256, write_atomically
 
 app = MCPServer("ocade-media")
 WORKSPACE = os.environ.get("OCADE_WORKSPACE", "")
@@ -133,30 +133,11 @@ def media_trim(source: str, start: float, end: float, output: str) -> dict:
     return {"sha256": write_atomically(target, cut), "engine": "ffmpeg"}
 
 
-PREVIEW_BYTES = 45_000  # one small JPEG fits a signed receipt and a planner turn
-
-
-def _jpeg(image) -> bytes:
-    """The image as a JPEG under PREVIEW_BYTES: shrink quality, then size, until it fits."""
-    import io
-
-    image = image.convert("RGB")
-    image.thumbnail((960, 960))
-    while True:
-        for quality in (80, 65, 50, 40):
-            buffer = io.BytesIO()
-            image.save(buffer, "JPEG", quality=quality)
-            if buffer.tell() <= PREVIEW_BYTES:
-                return buffer.getvalue()
-        image = image.resize((max(1, image.width * 3 // 4), max(1, image.height * 3 // 4)))
-
-
 @app.tool()
 @_evidence
 def media_preview(path: str, at: list[float] | None = None) -> dict:
     """Let the planner SEE a file: an image (photo, render, screenshot) as a small JPEG, or a
     video as a labelled contact sheet of frames (evenly spaced, or at the given seconds)."""
-    import base64
     import io
 
     from PIL import Image, ImageDraw
@@ -168,7 +149,7 @@ def media_preview(path: str, at: list[float] | None = None) -> dict:
         with Image.open(source) as image:
             image.load()
             return {"kind": "image", "width": image.width, "height": image.height,
-                    "preview": base64.b64encode(_jpeg(image)).decode()}
+                    "preview": preview_jpeg(image)}
     except (OSError, ValueError):
         pass
     facts = _probe(source)
@@ -197,7 +178,7 @@ def media_preview(path: str, at: list[float] | None = None) -> dict:
     for index, tile in enumerate(tiles):
         sheet.paste(tile, ((index % columns) * tiles[0].width, (index // columns) * tiles[0].height))
     return {"kind": "video", "duration": round(duration, 3), "frames": [round(t, 2) for t in times],
-            "preview": base64.b64encode(_jpeg(sheet)).decode()}
+            "preview": preview_jpeg(sheet)}
 
 
 @app.tool()

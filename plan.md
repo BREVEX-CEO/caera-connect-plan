@@ -448,3 +448,10 @@ Record monotonic UTC-correlated task timestamps with \`submittedAt\`, \`authoriz
 - Built this session: capability descriptors + TF-IDF vector shortlist (top 12, continuity, offered-only selection), model-chosen action batches, verifier-failure feedback for bounded repair, concurrency/multiplexing test, 84-concept validator.
 - Staging: credentials and migration verified; real UI run (sign in, pair, grant, request) recorded. **G9 BLOCKED:** the deployed service refuses this session's legacy service-role key (exact-match key list); see the evidence README for the two fixes.
 - FAIL: 36 visual-anchor fallback, 58 user-interference detection, 84 release gate. BLOCKED: Windows UI concepts (12, 28, 32, 34, 35), macOS (29), installer (68), real tasks (79).
+
+## Live Gemini checkpoint — 31 October 2026 (later)
+
+- G9 resolved: the replaced staging key passes the service door; live Gemini plans, acts and is verified. Ledger now 46 PASS, 28 PARTIAL, 3 FAIL, 7 BLOCKED, 0 UNTESTED (`evidence/2026-10-31-browser/architecture-ledger.md`).
+- Browser video trim through a free web editor: PASS, verified (81 s, 14 model calls). Browser photo editing: FAIL in 9 runs (model loops on canvas-app menus; Free allowance of 28 requests per window). Evidence and timings: `evidence/2026-10-31-browser/README.md`.
+- Nine generic defects found live and fixed with regression tests (history budget, unique control references, evidence cap, router continuity, upload read-back, editable widgets, click preview, stored-receipt limit, planner prompt).
+- Linux/Xvfb only. Not platform or commercial readiness; Windows/macOS concepts remain BLOCKED.

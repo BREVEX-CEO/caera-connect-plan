@@ -1796,7 +1796,8 @@
           "selector": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 500
+            "maxLength": 500,
+            "description": "A control's `selector` exactly as web.open/web.read listed it, or, for visible text that is not listed (a menu item, say), a Playwright selector such as 'text=Save >> visible=true'"
           },
           "value": {
             "type": "string",
@@ -1805,7 +1806,8 @@
           "frame": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 500
+            "maxLength": 500,
+            "description": "A control's `selector` exactly as web.open/web.read listed it, or, for visible text that is not listed (a menu item, say), a Playwright selector such as 'text=Save >> visible=true'"
           }
         },
         "required": [
@@ -1846,7 +1848,8 @@
           "selector": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 500
+            "maxLength": 500,
+            "description": "A control's `selector` exactly as web.open/web.read listed it, or, for visible text that is not listed (a menu item, say), a Playwright selector such as 'text=Save >> visible=true'"
           },
           "option": {
             "type": "string",
@@ -1856,7 +1859,8 @@
           "frame": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 500
+            "maxLength": 500,
+            "description": "A control's `selector` exactly as web.open/web.read listed it, or, for visible text that is not listed (a menu item, say), a Playwright selector such as 'text=Save >> visible=true'"
           }
         },
         "required": [
@@ -1897,12 +1901,14 @@
           "selector": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 500
+            "maxLength": 500,
+            "description": "A control's `selector` exactly as web.open/web.read listed it, or, for visible text that is not listed (a menu item, say), a Playwright selector such as 'text=Save >> visible=true'"
           },
           "frame": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 500
+            "maxLength": 500,
+            "description": "A control's `selector` exactly as web.open/web.read listed it, or, for visible text that is not listed (a menu item, say), a Playwright selector such as 'text=Save >> visible=true'"
           }
         },
         "required": [
@@ -1942,7 +1948,8 @@
           "selector": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 500
+            "maxLength": 500,
+            "description": "A control's `selector` exactly as web.open/web.read listed it, or, for visible text that is not listed (a menu item, say), a Playwright selector such as 'text=Save >> visible=true'"
           },
           "path": {
             "type": "string",
@@ -2064,7 +2071,8 @@
           "selector": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 500
+            "maxLength": 500,
+            "description": "A control's `selector` exactly as web.open/web.read listed it, or, for visible text that is not listed (a menu item, say), a Playwright selector such as 'text=Save >> visible=true'"
           },
           "output": {
             "type": "string",

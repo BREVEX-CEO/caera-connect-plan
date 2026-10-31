@@ -5,6 +5,7 @@ real office engine (LibreOffice here; Excel/Word COM on Windows is UNTESTED).
 Fakes are used only to make workers misbehave; they never stand in for output.
 """
 
+import json
 import shutil
 import tempfile
 import unittest
@@ -197,6 +198,12 @@ class Refusals(unittest.TestCase):
         result = self.one(step, self.fake("hang"))
         self.assertLess((datetime.now() - started).total_seconds(), 20)
         self.assertEqual((result["status"], result["errorCode"]), ("not_applied", "timeout"))
+
+    def test_a_receipt_always_fits_what_the_server_stores(self):
+        result = self.one(intent("office.inspect_workbook", {"path": "book.xlsx"}), self.fake("big_preview"))
+        self.assertEqual(result["status"], "observed", result)
+        self.assertNotIn("preview", result)  # left out, so the receipt can still be recorded
+        self.assertLess(len(json.dumps(result)), 60_000)
 
     def test_a_long_call_within_its_bound_is_not_reported_lost(self):
         result = self.one(intent("office.inspect_workbook", {"path": "book.xlsx"}), self.fake("slow"))

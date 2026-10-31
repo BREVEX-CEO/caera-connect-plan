@@ -81,3 +81,22 @@ def sha256(path: Path) -> str:
         for block in iter(lambda: stream.read(1 << 20), b""):
             digest.update(block)
     return digest.hexdigest()
+
+
+PREVIEW_BYTES = 45_000  # one small JPEG fits a signed receipt and a planner turn
+
+
+def preview_jpeg(image, limit: int = PREVIEW_BYTES) -> str:
+    """A PIL image as base64 JPEG under `limit` bytes: shrink quality, then size, until it fits."""
+    import base64
+    import io
+
+    image = image.convert("RGB")
+    image.thumbnail((960, 960))
+    while True:
+        for quality in (80, 65, 50, 40):
+            buffer = io.BytesIO()
+            image.save(buffer, "JPEG", quality=quality)
+            if buffer.tell() <= limit:
+                return base64.b64encode(buffer.getvalue()).decode()
+        image = image.resize((max(1, image.width * 3 // 4), max(1, image.height * 3 // 4)))

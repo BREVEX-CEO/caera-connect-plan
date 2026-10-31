@@ -1,0 +1,3298 @@
+{
+  "objective": "Use a free photo editor in the web browser to brighten street.jpg, make its colours more vivid and add the caption 'City at dusk'. Save the edited photo as a new file and keep the original unchanged.",
+  "taskId": "27224ced-6a0a-458d-9e32-c2122aa9265e",
+  "status": "blocked",
+  "result": null,
+  "blocker": "I was repeating the same step without progress, so I stopped.",
+  "checks": [
+    {
+      "id": "edited_photo_exists",
+      "kind": "file_exists",
+      "params": {
+        "path": "OCADE output/street_edited.jpg"
+      },
+      "description": "The edited photo is saved as a new file in OCADE output/",
+      "state": "unchecked"
+    }
+  ],
+  "timing": {
+    "acceptedAt": "2026-10-31T20:25:22.013775+00:00",
+    "finishedAt": "2026-10-31T20:27:40.777753+00:00",
+    "verifiedAt": null,
+    "deliveredAt": null,
+    "totalElapsedMs": 138764,
+    "userWaitMs": 627,
+    "activeExecutionMs": 9437,
+    "modelCalls": 21,
+    "modelMs": 71759,
+    "stepDurationsMs": [
+      1200.67,
+      2814.86,
+      357.5,
+      1154.78,
+      1009.26,
+      40.85,
+      46.79,
+      281.24,
+      328.2,
+      54.36,
+      24.07,
+      1496.96,
+      108.13,
+      47.27,
+      37.82,
+      314.61,
+      38.75,
+      43.3,
+      37.59
+    ]
+  },
+  "confirmations": [
+    {
+      "step": "fffc0017-34a0-47d4-b55f-8340058d0765",
+      "summary": "upload",
+      "at": "2026-10-31T20:26:37.165Z"
+    }
+  ],
+  "decisions": [
+    {
+      "summary": "list",
+      "intent": {
+        "v": 1,
+        "key": "s1",
+        "risk": "read",
+        "arguments": {
+          "path": "."
+        },
+        "operation": "fs.list",
+        "capability": "files",
+        "deadlineUtc": "2026-10-31T20:35:22.190Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "entries": [
+            {
+              "kind": "file",
+              "name": "street.jpg",
+              "size": 38504
+            }
+          ],
+          "durationMs": 1200.67
+        },
+        "maybeChanged": false,
+        "observedAtUtc": "2026-10-31T20:25:29.705Z"
+      }
+    },
+    {
+      "summary": "open",
+      "intent": {
+        "v": 1,
+        "key": "s2",
+        "risk": "read",
+        "target": {
+          "site": "www.photopea.com"
+        },
+        "arguments": {
+          "url": "https://www.photopea.com"
+        },
+        "operation": "web.open",
+        "capability": "browser",
+        "deadlineUtc": "2026-10-31T20:35:30.370Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "url": "https://www.photopea.com/",
+          "page": {
+            "id": "97087030ea43",
+            "site": "www.photopea.com"
+          },
+          "text": " Photopea Learn Tutorials Templates API\nFree Online Photo Editor\nUnlock your creativity with the best free photo editor.\n\nTransform your photos with professional-grade tools in a free online photo editor that works right in your browser. No downloads, no hassle.\n\nStart using Photopea\nFully Local\n\nThere are no uploads. Photopea runs on your device, using your CPU and your GPU. All files open instantly, and never leave your device.\n\nCost-Effective\n\nEnjoy all the premium features without spending a dime.\n\nConvenient Editor\n\nNo need to install heavy software on your device. Just open your browser and start editing.\n\nRuns Everywhere\n\nOur photo editor runs on any device. The better hardware you have, the better it runs.\n\nStart using Photopea\nProfessional Editor\n\nPhotopea offers a full suite of editing tools, from basic features like cropping and resizing to advanced features such as layering, masking, and blending.\n\nFull PSD support\n\nPhotopea fully supports a popular PSD format, both opening and saving files. It is the main format of Photopea.\n\nSwiss knife for graphics\n\nOpen and edit PNG, JPG, GIF, BMP, WEBP, SVG, PDF, AI, AVIF, DDS, HEIC, TIFF, MP4, TGA, CDR, PDN, EPS, INDD, Figma and 40 other formats.\n\nPerfect RAW support\n\nPhotopea opens DNG, CR2, CR3, NEF, ARW, RW2, RAF, ORF and FFF files. Set the Exposure, Color Balance, Contrast, Highlights and Shadows, etc.\n\nStart using Photopea\nState-of-the-art AI\n\nRemove background with one click, or replace any part of an image with a new content through a text description.\n\nAll Essential Features\n\nWe have Layers, Masks, Layer Styles, Smart Objects, Adjustment Layers, Channels, Paths and more!\n\nAdjustments and Filters\n\nDo you need Levels and Curves? A Gaussian Blur? Or advanced stuff such as Liquify or Puppet Warp? We have it all!\n\nVector Graphics\n\nCreate and edit vector graphics directly within the editor. Perfect for designers working on logos, icons, or illustrations.\n\nStart using Photopea\nWho Can Benefit from our Free Photo Editor?\nSocial Media Enthusiasts\n\nEnhance your photos before sharing them on platforms like Instagram, Facebook, or Twitter. Make every post stand out with unique edits.\n\nStudents and Educators\n\nCreate stunning visuals for presentations, assignments, and more. Our free online photo editor is a great tool for educational projects.\n\nSmall Business Owners\n\nDesign promotional materials, edit product photos, and create engaging content for your website or online store, all without spending on expensive software.\n\nGraphic Designers\n\nWhether you’re a freelancer or part of a design team, Photopea’s free photo editor offers all the features you need to produce professional-quality work.\n\nStart using Photopea\n\nsupport@photopea.com | Privacy Policy | Twitter | Facebook | Reddit",
+          "title": "Photopea | Online Photo Editor",
+          "controls": [
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Learn photo editing",
+              "selector": "[data-ocade=\"0\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Graphics tutorials",
+              "selector": "[data-ocade=\"1\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Free PSD templates",
+              "selector": "[data-ocade=\"2\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Insert a photo editor into your product",
+              "selector": "[data-ocade=\"3\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Start using Photopea",
+              "selector": "[data-ocade=\"4\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Start using Photopea",
+              "selector": "[data-ocade=\"5\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "40 other formats",
+              "selector": "[data-ocade=\"6\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Start using Photopea",
+              "selector": "[data-ocade=\"7\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Remove background with one click",
+              "selector": "[data-ocade=\"8\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "replace any part of an image",
+              "selector": "[data-ocade=\"9\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Start using Photopea",
+              "selector": "[data-ocade=\"10\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Start using Photopea",
+              "selector": "[data-ocade=\"11\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "support@photopea.com",
+              "selector": "[data-ocade=\"12\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Privacy Policy",
+              "selector": "[data-ocade=\"13\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Twitter",
+              "selector": "[data-ocade=\"14\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Facebook",
+              "selector": "[data-ocade=\"15\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Reddit",
+              "selector": "[data-ocade=\"16\"]"
+            }
+          ],
+          "durationMs": 2814.86,
+          "needsSignIn": false
+        },
+        "maybeChanged": false,
+        "observedAtUtc": "2026-10-31T20:25:38.102Z"
+      }
+    },
+    {
+      "summary": "screenshot",
+      "intent": {
+        "v": 1,
+        "key": "s3",
+        "risk": "reversible_write",
+        "target": {
+          "site": "www.photopea.com"
+        },
+        "arguments": {
+          "page": {
+            "id": "97087030ea43",
+            "site": "www.photopea.com"
+          },
+          "output": "OCADE output/photopea_landing.png"
+        },
+        "operation": "web.screenshot",
+        "capability": "browser",
+        "deadlineUtc": "2026-10-31T20:35:38.925Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "bytes": 606893,
+          "sha256": "c3cc2cb407f89d0cbd8b59add64c602ab041fe9ffdee06e3cee97ab0a42af1bc",
+          "durationMs": 357.5
+        },
+        "maybeChanged": true,
+        "observedAtUtc": "2026-10-31T20:25:47.311Z"
+      }
+    },
+    {
+      "summary": "preview",
+      "intent": {
+        "v": 1,
+        "key": "s4",
+        "risk": "read",
+        "arguments": {
+          "path": "OCADE output/photopea_landing.png"
+        },
+        "operation": "media.preview",
+        "capability": "screen",
+        "deadlineUtc": "2026-10-31T20:35:47.948Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "preview": "51948 base64 chars",
+        "evidence": {
+          "kind": "image",
+          "width": 1280,
+          "height": 720,
+          "durationMs": 1154.78
+        },
+        "maybeChanged": false,
+        "observedAtUtc": "2026-10-31T20:25:53.706Z"
+      }
+    },
+    {
+      "summary": "open",
+      "intent": {
+        "v": 1,
+        "key": "s5",
+        "risk": "read",
+        "target": {
+          "site": "pixlr.com"
+        },
+        "arguments": {
+          "url": "https://pixlr.com"
+        },
+        "operation": "web.open",
+        "capability": "browser",
+        "deadlineUtc": "2026-10-31T20:35:54.401Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "url": "https://pixlr.com/",
+          "page": {
+            "id": "f8ccc4a5f02a",
+            "site": "pixlr.com"
+          },
+          "text": "PRODUCTS\nPixlr Express\nPixlr Editor\nCommunity\nFEATURES\nPhoto Collage Maker\nAI Image Generator\nAI Video Generator\nAI Audio Generator\nAI Image Editor\nAI Face Swap\nBackground Remover\nMore\nLog in\nStart creating now\nPricing\nLog in\nBy using our site, you acknowledge that you read and understand our Cookie Policy.\nCookie settings\nReject\nAccept\n×\nFree AI Photo Editor & Image Generator\nEdit, Generate, and Design Online for Free\n\nPixlr gives you a powerful AI photo editor, AI image generator, AI video maker, face swap, collage maker, and 20+ editing tools — 100% free, right in your browser. Powered by Flux, Kling, Recraft, Veo, and more.\n\nOpen AI Photo Editor\nEdit, enhance and transform photos\nAI Image Generator\nCreate images from text prompts\nAI Instruct Editor\nAI Video Generator\nPhoto Collage Maker\nOpen & Edit\nDrop an image here or click to browse\nOR\nImage\nVideo\nAudio\nGenerate\nAI POWERED\nPowered by the Best AI Models\n\nGenerate stunning images and videos with world-class AI models from leading providers.\n\nFlux · Flux Pro · Kling AI · Recraft V4 · Google Veo · Qwen · Stable Diffusion · SDXL · Seedance · Seedream · Grok Imagine · PixVerse · LTX Video · Vidu · ImagineArt · Wan AI · ElevenLabs · ACE-Step · MiniMax\n\nQUICK LINKS\nAI Tools & Quick Actions\n\nJump straight into Pixlr’s most popular AI-powered photo editing and generative tools.\n\nAI Image Generator\nCreate images from text prompts\nAI Video Generator\nGenerate videos from text or images\nAI Face Swap\nSwap faces in any photo instantly\nAI Remove Background\nOne-click background removal\nPhoto Collage Maker\nCombine photos into layouts\nAI Generative Fill\nFill or replace any area with AI\nAI Remove Object\nErase unwanted objects from photos\nGenerative Expand\nExtend images beyond the frame\nAI CAPABILITIES\nEverything AI, One Platform\n\nFrom photo editing to video generation and audio — Pixlr brings the best AI models together so you can create, transform, and enhance any media in seconds.\n\nPhoto Editing\n\nEnhance and modify images with AI-powered tools.\n\nImage Generation\n\nCreate images from text, references, and prompts.\n\nVideo Generation\n\nGenerate and animate video from text and images.\n\nAudio & Speech\n\nGenerate, clone, and transform audio and speech.\n\nRemove Background\n\nOne-click AI background removal with clean subject isolation.\n\nRemove Object\n\nDraw around unwanted objects and watch them vanish instantly.\n\nGenerative Fill\n\nSelect an area and describe what to generate — add, replace, or reimagine anything.\n\nGenerative Expand\n\nExtend image boundaries in any direction with coherent AI outpainting.\n\nGenerative Transform\n\nMove, resize, and rotate objects freely — AI fills the gap seamlessly.\n\nAI Assistant\n\nEdit images with natural language — describe the change and AI applies it.\n\nSuper Scale\n\nAI upscaling that preserves detail, up to 25 megapixels.\n\nRemove Noise\n\nReduce grain and background noise for cleaner, sharper images.\n\nLOVED BY MANY!\nJoin millions of creators!\n★★★★★\nBest free Photoshop alternative with AI\n\nI dropped my Photoshop subscription after finding Pixlr. The AI image editor tools are incredible — background removal, generative fill, and the AI image generator save me hours every week. It does everything I need without the heavy price tag.\n\nNicholas, F&B\n★★★★★\nAI image generator changed my workflow\n\nThe AI image generator in Pixlr is a game changer. I create social media graphics from text prompts and then fine-tune them in the photo editor. No other online tool combines AI generation and editing this seamlessly.\n\nMéo, Graphic Designer\n★★★★★\nBetter than Photoshop for quick AI edits\n\nPixlr's AI photo editor is faster than Photoshop for everyday tasks. The generative expand and AI background remover work flawlessly. I wish I had found this AI image editing tool sooner!\n\nCandice, Medical Practice\n★★★★★\nThe AI photo editor every small business needs\n\nPixlr is an excellent AI image editor for small businesses. The AI-powered tools handle background removal, object removal, and even image generation. I highly recommend it if you need a Photoshop alternative that's actually affordable.\n\nBraden, Machinery\n★★★★★\nPowerful online photo editor with AI tools\n\nThe AI editing tools in Pixlr are impressive — from generative fill to the AI image generator. I use it for all my product photos and marketing images. It saves me so much time compared to Photoshop.\n\nAnderson, Customer Service\n★★★★★\nMy go-to AI image editor\n\nI absolutely love Pixlr's AI tools. The AI image generator creates stunning visuals from prompts, and the photo editor lets me refine them perfectly. Best online image editor I've used.\n\nLuke, Edu Management\n★★★★★\nReplaced Photoshop with this AI photo editor\n\nOur team switched from Photoshop to Pixlr and haven't looked back. The AI image editor handles everything — from generating campaign visuals to editing product photos. More accessible and way more affordable.\n\nAbhishek, Manage Legal\n★★★★★\nAI-powered editing made simple\n\nI use Pixlr as my go-to AI photo editor for social media content. The AI image generator creates great starting points, and the editing tools let me customize everything. Can't imagine working without it now.\n\nSarah, Marketing\n★★★★★\nOnline Photoshop alternative with AI generation\n\nPixlr is the best online photo editor I've found. The AI image generator and AI editing tools rival what you get in Photoshop — all in the browser, no downloads needed. It handles everything from quick edits to complex AI-generated artwork.\n\nCaroline, Accounting\n★★★★★\nBest AI image editor and generator combo\n\nPixlr combines an AI image generator with a full photo editor — it's the only tool I need. Generate, edit, export. Super easy and the results are fantastic!\n\nJennifer, Retail\n★★★★★\nAI photo editor that actually delivers\n\nThe AI background remover, generative fill, and AI image generator all work brilliantly. This is the Photoshop alternative I've been waiting for.\n\nAmit P\n★★★★★\nAI image generation right in the editor\n\nWhat I love about Pixlr is that the AI image generator is built right into the photo editor. Generate an image, edit it, add text — all in one place. The interface is clean and incredibly user-friendly.\n\nBarış, E-learning\n★★★★★\nFree AI photo editor that rivals Photoshop\n\nPixlr is an amazing free photo editor with AI tools. The AI image generator creates professional visuals, and the editing suite is on par with Photoshop. No watermarks, no hassle — perfect for beginners and pros alike.\n\nSuraj M\n★★★★★\nStunning AI image editing experience\n\nPixlr's AI image editor is exceptionally polished. The generative AI tools produce high-resolution results, and the editing experience is smooth and elegant. It's like having Photoshop and an AI image generator in one.\n\nArman S.\n★★★★★\nThe AI photo editing app I recommend to everyone\n\nPixlr is one of the best AI image editors I've used. The AI-powered features like background removal, image generation, and generative fill are unique. Clean UI and it's all available right in the browser.\n\nZakir H\n★★★★★\nProfessional AI image editor online\n\nA complete online photo editor with powerful AI tools — crop, clone, blur, plus AI generative fill, AI background remover, and an AI image generator. Everything you need without installing Photoshop.\n\nLuis C.\n★★★★★\nBest photo editor with AI image generator\n\nPixlr's AI image generator and photo editor combo is unbeatable. I create marketing visuals from text prompts and then polish them with the editing tools. Free and premium features that rival any Photoshop plan.\n\nManmeet S\n★★★★★\nAI tools that transform your photos instantly\n\nThe AI-powered autofix, generative expand, and AI image generator features are incredible when you need to edit multiple images fast. Pixlr's AI photo editor does in seconds what used to take me minutes in Photoshop.\n\nRahul R.\nGO FURTHER\nUnlock the full Pixlr Suite\n\nGet ad-free editing, thousands of AI credits, access to all image, video and audio models, private mode, priority generation queue, and a h",
+          "title": "Free AI Photo Editor & Image Generator Online | Pixlr",
+          "controls": [
+            {
+              "tag": "input",
+              "name": "",
+              "type": "checkbox",
+              "label": "on",
+              "selector": "[data-ocade=\"0\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Pixlr",
+              "selector": "[data-ocade=\"1\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Pixlr Express",
+              "selector": "[data-ocade=\"2\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Pixlr Editor",
+              "selector": "[data-ocade=\"3\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Community",
+              "selector": "[data-ocade=\"4\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Photo Collage Maker",
+              "selector": "[data-ocade=\"5\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "AI Image Generator",
+              "selector": "[data-ocade=\"6\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "AI Video Generator",
+              "selector": "[data-ocade=\"7\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "AI Audio Generator",
+              "selector": "[data-ocade=\"8\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "AI Image Editor",
+              "selector": "[data-ocade=\"9\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "AI Face Swap",
+              "selector": "[data-ocade=\"10\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Background Remover",
+              "selector": "[data-ocade=\"11\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Pricing",
+              "selector": "[data-ocade=\"12\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Cookie Policy",
+              "selector": "[data-ocade=\"13\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "button",
+              "label": "Cookie settings",
+              "selector": "[data-ocade=\"14\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "button",
+              "label": "Reject",
+              "selector": "[data-ocade=\"15\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "button",
+              "label": "Accept",
+              "selector": "[data-ocade=\"16\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "button",
+              "label": "Reject",
+              "selector": "[data-ocade=\"17\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Open AI Photo Editor",
+              "selector": "[data-ocade=\"18\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "AI Image Generator",
+              "selector": "[data-ocade=\"19\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "AI Instruct Editor",
+              "selector": "[data-ocade=\"20\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "AI Video Generator",
+              "selector": "[data-ocade=\"21\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Photo Collage Maker",
+              "selector": "[data-ocade=\"22\"]"
+            },
+            {
+              "tag": "textarea",
+              "name": "",
+              "type": "textarea",
+              "label": "",
+              "selector": "[data-ocade=\"23\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "AI Image Generator",
+              "selector": "[data-ocade=\"24\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "AI Video Generator",
+              "selector": "[data-ocade=\"25\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "AI Face Swap",
+              "selector": "[data-ocade=\"26\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "AI Remove Background",
+              "selector": "[data-ocade=\"27\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Photo Collage Maker",
+              "selector": "[data-ocade=\"28\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "AI Generative Fill",
+              "selector": "[data-ocade=\"29\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "AI Remove Object",
+              "selector": "[data-ocade=\"30\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Generative Expand",
+              "selector": "[data-ocade=\"31\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Photo Editing\n\nEnhance and modify images with AI-powered tools.",
+              "selector": "[data-ocade=\"32\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Image Generation\n\nCreate images from text, references, and prompts.",
+              "selector": "[data-ocade=\"33\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Video Generation\n\nGenerate and animate video from text and images.",
+              "selector": "[data-ocade=\"34\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Audio & Speech\n\nGenerate, clone, and transform audio and speech.",
+              "selector": "[data-ocade=\"35\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Remove Background",
+              "selector": "[data-ocade=\"36\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Remove Object",
+              "selector": "[data-ocade=\"37\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Generative Fill",
+              "selector": "[data-ocade=\"38\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Generative Expand",
+              "selector": "[data-ocade=\"39\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Generative Transform",
+              "selector": "[data-ocade=\"40\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "AI Assistant",
+              "selector": "[data-ocade=\"41\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Super Scale",
+              "selector": "[data-ocade=\"42\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Remove Noise",
+              "selector": "[data-ocade=\"43\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "See Plans & Pricing",
+              "selector": "[data-ocade=\"44\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Pixlr subscription plans",
+              "selector": "[data-ocade=\"45\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "About Us",
+              "selector": "[data-ocade=\"46\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Pixlr Mobile",
+              "selector": "[data-ocade=\"47\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Pixlr Desktop",
+              "selector": "[data-ocade=\"48\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Pricing",
+              "selector": "[data-ocade=\"49\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Contact Us",
+              "selector": "[data-ocade=\"50\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Education",
+              "selector": "[data-ocade=\"51\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Pixlr Agent",
+              "selector": "[data-ocade=\"52\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Pixlr Editor",
+              "selector": "[data-ocade=\"53\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Pixlr Express",
+              "selector": "[data-ocade=\"54\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Terms of Use",
+              "selector": "[data-ocade=\"55\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Privacy Policy",
+              "selector": "[data-ocade=\"56\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Cookie Policy",
+              "selector": "[data-ocade=\"57\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "License Agreement",
+              "selector": "[data-ocade=\"58\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Cookie settings",
+              "selector": "[data-ocade=\"59\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "X / Twitter",
+              "selector": "[data-ocade=\"60\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Instagram",
+              "selector": "[data-ocade=\"61\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Discord",
+              "selector": "[data-ocade=\"62\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "YouTube",
+              "selector": "[data-ocade=\"63\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Facebook",
+              "selector": "[data-ocade=\"64\"]"
+            }
+          ],
+          "durationMs": 1009.26,
+          "needsSignIn": false
+        },
+        "maybeChanged": false,
+        "observedAtUtc": "2026-10-31T20:26:03.341Z"
+      }
+    },
+    {
+      "summary": "read",
+      "intent": {
+        "v": 1,
+        "key": "s6",
+        "risk": "read",
+        "target": {
+          "site": "www.photopea.com"
+        },
+        "arguments": {
+          "page": {
+            "id": "97087030ea43",
+            "site": "www.photopea.com"
+          }
+        },
+        "operation": "web.read",
+        "capability": "browser",
+        "deadlineUtc": "2026-10-31T20:36:04.032Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "url": "https://www.photopea.com/",
+          "page": {
+            "id": "97087030ea43",
+            "site": "www.photopea.com"
+          },
+          "text": " Photopea Learn Tutorials Templates API\nFree Online Photo Editor\nUnlock your creativity with the best free photo editor.\n\nTransform your photos with professional-grade tools in a free online photo editor that works right in your browser. No downloads, no hassle.\n\nStart using Photopea\nFully Local\n\nThere are no uploads. Photopea runs on your device, using your CPU and your GPU. All files open instantly, and never leave your device.\n\nCost-Effective\n\nEnjoy all the premium features without spending a dime.\n\nConvenient Editor\n\nNo need to install heavy software on your device. Just open your browser and start editing.\n\nRuns Everywhere\n\nOur photo editor runs on any device. The better hardware you have, the better it runs.\n\nStart using Photopea\nProfessional Editor\n\nPhotopea offers a full suite of editing tools, from basic features like cropping and resizing to advanced features such as layering, masking, and blending.\n\nFull PSD support\n\nPhotopea fully supports a popular PSD format, both opening and saving files. It is the main format of Photopea.\n\nSwiss knife for graphics\n\nOpen and edit PNG, JPG, GIF, BMP, WEBP, SVG, PDF, AI, AVIF, DDS, HEIC, TIFF, MP4, TGA, CDR, PDN, EPS, INDD, Figma and 40 other formats.\n\nPerfect RAW support\n\nPhotopea opens DNG, CR2, CR3, NEF, ARW, RW2, RAF, ORF and FFF files. Set the Exposure, Color Balance, Contrast, Highlights and Shadows, etc.\n\nStart using Photopea\nState-of-the-art AI\n\nRemove background with one click, or replace any part of an image with a new content through a text description.\n\nAll Essential Features\n\nWe have Layers, Masks, Layer Styles, Smart Objects, Adjustment Layers, Channels, Paths and more!\n\nAdjustments and Filters\n\nDo you need Levels and Curves? A Gaussian Blur? Or advanced stuff such as Liquify or Puppet Warp? We have it all!\n\nVector Graphics\n\nCreate and edit vector graphics directly within the editor. Perfect for designers working on logos, icons, or illustrations.\n\nStart using Photopea\nWho Can Benefit from our Free Photo Editor?\nSocial Media Enthusiasts\n\nEnhance your photos before sharing them on platforms like Instagram, Facebook, or Twitter. Make every post stand out with unique edits.\n\nStudents and Educators\n\nCreate stunning visuals for presentations, assignments, and more. Our free online photo editor is a great tool for educational projects.\n\nSmall Business Owners\n\nDesign promotional materials, edit product photos, and create engaging content for your website or online store, all without spending on expensive software.\n\nGraphic Designers\n\nWhether you’re a freelancer or part of a design team, Photopea’s free photo editor offers all the features you need to produce professional-quality work.\n\nStart using Photopea\n\nsupport@photopea.com | Privacy Policy | Twitter | Facebook | Reddit",
+          "title": "Photopea | Online Photo Editor",
+          "controls": [
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Learn photo editing",
+              "selector": "[data-ocade=\"0\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Graphics tutorials",
+              "selector": "[data-ocade=\"1\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Free PSD templates",
+              "selector": "[data-ocade=\"2\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Insert a photo editor into your product",
+              "selector": "[data-ocade=\"3\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Start using Photopea",
+              "selector": "[data-ocade=\"4\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Start using Photopea",
+              "selector": "[data-ocade=\"5\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "40 other formats",
+              "selector": "[data-ocade=\"6\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Start using Photopea",
+              "selector": "[data-ocade=\"7\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Remove background with one click",
+              "selector": "[data-ocade=\"8\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "replace any part of an image",
+              "selector": "[data-ocade=\"9\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Start using Photopea",
+              "selector": "[data-ocade=\"10\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Start using Photopea",
+              "selector": "[data-ocade=\"11\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "support@photopea.com",
+              "selector": "[data-ocade=\"12\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Privacy Policy",
+              "selector": "[data-ocade=\"13\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Twitter",
+              "selector": "[data-ocade=\"14\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Facebook",
+              "selector": "[data-ocade=\"15\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Reddit",
+              "selector": "[data-ocade=\"16\"]"
+            }
+          ],
+          "durationMs": 40.85,
+          "needsSignIn": false
+        },
+        "maybeChanged": false,
+        "observedAtUtc": "2026-10-31T20:26:08.736Z"
+      }
+    },
+    {
+      "summary": "read",
+      "intent": {
+        "v": 1,
+        "key": "s7",
+        "risk": "read",
+        "target": {
+          "site": "pixlr.com"
+        },
+        "arguments": {
+          "page": {
+            "id": "f8ccc4a5f02a",
+            "site": "pixlr.com"
+          }
+        },
+        "operation": "web.read",
+        "capability": "browser",
+        "deadlineUtc": "2026-10-31T20:36:09.395Z"
+      },
+      "status": "failed",
+      "receipt": {
+        "status": "not_applied",
+        "evidence": {
+          "durationMs": 46.79
+        },
+        "errorCode": "evidence_too_large",
+        "maybeChanged": false,
+        "observedAtUtc": "2026-10-31T20:26:17.089Z"
+      }
+    },
+    {
+      "summary": "open",
+      "intent": {
+        "v": 1,
+        "key": "s8",
+        "risk": "read",
+        "target": {
+          "site": "www.photopea.com"
+        },
+        "arguments": {
+          "url": "https://www.photopea.com"
+        },
+        "operation": "web.open",
+        "capability": "browser",
+        "deadlineUtc": "2026-10-31T20:36:17.779Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "url": "https://www.photopea.com/",
+          "page": {
+            "id": "23c11c738bac",
+            "site": "www.photopea.com"
+          },
+          "text": " Photopea Learn Tutorials Templates API\nFree Online Photo Editor\nUnlock your creativity with the best free photo editor.\n\nTransform your photos with professional-grade tools in a free online photo editor that works right in your browser. No downloads, no hassle.\n\nStart using Photopea\nFully Local\n\nThere are no uploads. Photopea runs on your device, using your CPU and your GPU. All files open instantly, and never leave your device.\n\nCost-Effective\n\nEnjoy all the premium features without spending a dime.\n\nConvenient Editor\n\nNo need to install heavy software on your device. Just open your browser and start editing.\n\nRuns Everywhere\n\nOur photo editor runs on any device. The better hardware you have, the better it runs.\n\nStart using Photopea\nProfessional Editor\n\nPhotopea offers a full suite of editing tools, from basic features like cropping and resizing to advanced features such as layering, masking, and blending.\n\nFull PSD support\n\nPhotopea fully supports a popular PSD format, both opening and saving files. It is the main format of Photopea.\n\nSwiss knife for graphics\n\nOpen and edit PNG, JPG, GIF, BMP, WEBP, SVG, PDF, AI, AVIF, DDS, HEIC, TIFF, MP4, TGA, CDR, PDN, EPS, INDD, Figma and 40 other formats.\n\nPerfect RAW support\n\nPhotopea opens DNG, CR2, CR3, NEF, ARW, RW2, RAF, ORF and FFF files. Set the Exposure, Color Balance, Contrast, Highlights and Shadows, etc.\n\nStart using Photopea\nState-of-the-art AI\n\nRemove background with one click, or replace any part of an image with a new content through a text description.\n\nAll Essential Features\n\nWe have Layers, Masks, Layer Styles, Smart Objects, Adjustment Layers, Channels, Paths and more!\n\nAdjustments and Filters\n\nDo you need Levels and Curves? A Gaussian Blur? Or advanced stuff such as Liquify or Puppet Warp? We have it all!\n\nVector Graphics\n\nCreate and edit vector graphics directly within the editor. Perfect for designers working on logos, icons, or illustrations.\n\nStart using Photopea\nWho Can Benefit from our Free Photo Editor?\nSocial Media Enthusiasts\n\nEnhance your photos before sharing them on platforms like Instagram, Facebook, or Twitter. Make every post stand out with unique edits.\n\nStudents and Educators\n\nCreate stunning visuals for presentations, assignments, and more. Our free online photo editor is a great tool for educational projects.\n\nSmall Business Owners\n\nDesign promotional materials, edit product photos, and create engaging content for your website or online store, all without spending on expensive software.\n\nGraphic Designers\n\nWhether you’re a freelancer or part of a design team, Photopea’s free photo editor offers all the features you need to produce professional-quality work.\n\nStart using Photopea\n\nsupport@photopea.com | Privacy Policy | Twitter | Facebook | Reddit",
+          "title": "Photopea | Online Photo Editor",
+          "controls": [
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Learn photo editing",
+              "selector": "[data-ocade=\"0\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Graphics tutorials",
+              "selector": "[data-ocade=\"1\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Free PSD templates",
+              "selector": "[data-ocade=\"2\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Insert a photo editor into your product",
+              "selector": "[data-ocade=\"3\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Start using Photopea",
+              "selector": "[data-ocade=\"4\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Start using Photopea",
+              "selector": "[data-ocade=\"5\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "40 other formats",
+              "selector": "[data-ocade=\"6\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Start using Photopea",
+              "selector": "[data-ocade=\"7\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Remove background with one click",
+              "selector": "[data-ocade=\"8\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "replace any part of an image",
+              "selector": "[data-ocade=\"9\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Start using Photopea",
+              "selector": "[data-ocade=\"10\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Start using Photopea",
+              "selector": "[data-ocade=\"11\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "support@photopea.com",
+              "selector": "[data-ocade=\"12\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Privacy Policy",
+              "selector": "[data-ocade=\"13\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Twitter",
+              "selector": "[data-ocade=\"14\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Facebook",
+              "selector": "[data-ocade=\"15\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Reddit",
+              "selector": "[data-ocade=\"16\"]"
+            }
+          ],
+          "durationMs": 281.24,
+          "needsSignIn": false
+        },
+        "maybeChanged": false,
+        "observedAtUtc": "2026-10-31T20:26:22.584Z"
+      }
+    },
+    {
+      "summary": "open",
+      "intent": {
+        "v": 1,
+        "key": "s9",
+        "risk": "read",
+        "target": {
+          "site": "www.photopea.com"
+        },
+        "arguments": {
+          "url": "https://www.photopea.com"
+        },
+        "operation": "web.open",
+        "capability": "browser",
+        "deadlineUtc": "2026-10-31T20:36:23.226Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "url": "https://www.photopea.com/",
+          "page": {
+            "id": "078db50b05eb",
+            "site": "www.photopea.com"
+          },
+          "text": " Photopea Learn Tutorials Templates API\nFree Online Photo Editor\nUnlock your creativity with the best free photo editor.\n\nTransform your photos with professional-grade tools in a free online photo editor that works right in your browser. No downloads, no hassle.\n\nStart using Photopea\nFully Local\n\nThere are no uploads. Photopea runs on your device, using your CPU and your GPU. All files open instantly, and never leave your device.\n\nCost-Effective\n\nEnjoy all the premium features without spending a dime.\n\nConvenient Editor\n\nNo need to install heavy software on your device. Just open your browser and start editing.\n\nRuns Everywhere\n\nOur photo editor runs on any device. The better hardware you have, the better it runs.\n\nStart using Photopea\nProfessional Editor\n\nPhotopea offers a full suite of editing tools, from basic features like cropping and resizing to advanced features such as layering, masking, and blending.\n\nFull PSD support\n\nPhotopea fully supports a popular PSD format, both opening and saving files. It is the main format of Photopea.\n\nSwiss knife for graphics\n\nOpen and edit PNG, JPG, GIF, BMP, WEBP, SVG, PDF, AI, AVIF, DDS, HEIC, TIFF, MP4, TGA, CDR, PDN, EPS, INDD, Figma and 40 other formats.\n\nPerfect RAW support\n\nPhotopea opens DNG, CR2, CR3, NEF, ARW, RW2, RAF, ORF and FFF files. Set the Exposure, Color Balance, Contrast, Highlights and Shadows, etc.\n\nStart using Photopea\nState-of-the-art AI\n\nRemove background with one click, or replace any part of an image with a new content through a text description.\n\nAll Essential Features\n\nWe have Layers, Masks, Layer Styles, Smart Objects, Adjustment Layers, Channels, Paths and more!\n\nAdjustments and Filters\n\nDo you need Levels and Curves? A Gaussian Blur? Or advanced stuff such as Liquify or Puppet Warp? We have it all!\n\nVector Graphics\n\nCreate and edit vector graphics directly within the editor. Perfect for designers working on logos, icons, or illustrations.\n\nStart using Photopea\nWho Can Benefit from our Free Photo Editor?\nSocial Media Enthusiasts\n\nEnhance your photos before sharing them on platforms like Instagram, Facebook, or Twitter. Make every post stand out with unique edits.\n\nStudents and Educators\n\nCreate stunning visuals for presentations, assignments, and more. Our free online photo editor is a great tool for educational projects.\n\nSmall Business Owners\n\nDesign promotional materials, edit product photos, and create engaging content for your website or online store, all without spending on expensive software.\n\nGraphic Designers\n\nWhether you’re a freelancer or part of a design team, Photopea’s free photo editor offers all the features you need to produce professional-quality work.\n\nStart using Photopea\n\nsupport@photopea.com | Privacy Policy | Twitter | Facebook | Reddit",
+          "title": "Photopea | Online Photo Editor",
+          "controls": [
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Learn photo editing",
+              "selector": "[data-ocade=\"0\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Graphics tutorials",
+              "selector": "[data-ocade=\"1\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Free PSD templates",
+              "selector": "[data-ocade=\"2\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Insert a photo editor into your product",
+              "selector": "[data-ocade=\"3\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Start using Photopea",
+              "selector": "[data-ocade=\"4\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Start using Photopea",
+              "selector": "[data-ocade=\"5\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "40 other formats",
+              "selector": "[data-ocade=\"6\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Start using Photopea",
+              "selector": "[data-ocade=\"7\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Remove background with one click",
+              "selector": "[data-ocade=\"8\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "replace any part of an image",
+              "selector": "[data-ocade=\"9\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Start using Photopea",
+              "selector": "[data-ocade=\"10\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Start using Photopea",
+              "selector": "[data-ocade=\"11\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "support@photopea.com",
+              "selector": "[data-ocade=\"12\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Privacy Policy",
+              "selector": "[data-ocade=\"13\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Twitter",
+              "selector": "[data-ocade=\"14\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Facebook",
+              "selector": "[data-ocade=\"15\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Reddit",
+              "selector": "[data-ocade=\"16\"]"
+            }
+          ],
+          "durationMs": 328.2,
+          "needsSignIn": false
+        },
+        "maybeChanged": false,
+        "observedAtUtc": "2026-10-31T20:26:29.305Z"
+      }
+    },
+    {
+      "summary": "upload",
+      "intent": {
+        "v": 1,
+        "key": "s10",
+        "risk": "external_effect",
+        "target": {
+          "site": "www.photopea.com"
+        },
+        "arguments": {
+          "page": {
+            "id": "078db50b05eb",
+            "site": "www.photopea.com"
+          },
+          "path": "street.jpg",
+          "selector": "[data-ocade=\"4\"]"
+        },
+        "operation": "web.upload",
+        "capability": "browser",
+        "deadlineUtc": "2026-10-31T20:36:29.986Z"
+      },
+      "status": "failed",
+      "receipt": {
+        "status": "not_applied",
+        "evidence": {
+          "durationMs": 54.36
+        },
+        "errorCode": "not_a_file_input",
+        "maybeChanged": true,
+        "observedAtUtc": "2026-10-31T20:26:37.973Z"
+      }
+    },
+    {
+      "summary": "read",
+      "intent": {
+        "v": 1,
+        "key": "s11",
+        "risk": "read",
+        "target": {
+          "site": "www.photopea.com"
+        },
+        "arguments": {
+          "page": {
+            "id": "078db50b05eb",
+            "site": "www.photopea.com"
+          }
+        },
+        "operation": "web.read",
+        "capability": "browser",
+        "deadlineUtc": "2026-10-31T20:36:38.669Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "url": "https://www.photopea.com/",
+          "page": {
+            "id": "078db50b05eb",
+            "site": "www.photopea.com"
+          },
+          "text": " Photopea Learn Tutorials Templates API\nFree Online Photo Editor\nUnlock your creativity with the best free photo editor.\n\nTransform your photos with professional-grade tools in a free online photo editor that works right in your browser. No downloads, no hassle.\n\nStart using Photopea\nFully Local\n\nThere are no uploads. Photopea runs on your device, using your CPU and your GPU. All files open instantly, and never leave your device.\n\nCost-Effective\n\nEnjoy all the premium features without spending a dime.\n\nConvenient Editor\n\nNo need to install heavy software on your device. Just open your browser and start editing.\n\nRuns Everywhere\n\nOur photo editor runs on any device. The better hardware you have, the better it runs.\n\nStart using Photopea\nProfessional Editor\n\nPhotopea offers a full suite of editing tools, from basic features like cropping and resizing to advanced features such as layering, masking, and blending.\n\nFull PSD support\n\nPhotopea fully supports a popular PSD format, both opening and saving files. It is the main format of Photopea.\n\nSwiss knife for graphics\n\nOpen and edit PNG, JPG, GIF, BMP, WEBP, SVG, PDF, AI, AVIF, DDS, HEIC, TIFF, MP4, TGA, CDR, PDN, EPS, INDD, Figma and 40 other formats.\n\nPerfect RAW support\n\nPhotopea opens DNG, CR2, CR3, NEF, ARW, RW2, RAF, ORF and FFF files. Set the Exposure, Color Balance, Contrast, Highlights and Shadows, etc.\n\nStart using Photopea\nState-of-the-art AI\n\nRemove background with one click, or replace any part of an image with a new content through a text description.\n\nAll Essential Features\n\nWe have Layers, Masks, Layer Styles, Smart Objects, Adjustment Layers, Channels, Paths and more!\n\nAdjustments and Filters\n\nDo you need Levels and Curves? A Gaussian Blur? Or advanced stuff such as Liquify or Puppet Warp? We have it all!\n\nVector Graphics\n\nCreate and edit vector graphics directly within the editor. Perfect for designers working on logos, icons, or illustrations.\n\nStart using Photopea\nWho Can Benefit from our Free Photo Editor?\nSocial Media Enthusiasts\n\nEnhance your photos before sharing them on platforms like Instagram, Facebook, or Twitter. Make every post stand out with unique edits.\n\nStudents and Educators\n\nCreate stunning visuals for presentations, assignments, and more. Our free online photo editor is a great tool for educational projects.\n\nSmall Business Owners\n\nDesign promotional materials, edit product photos, and create engaging content for your website or online store, all without spending on expensive software.\n\nGraphic Designers\n\nWhether you’re a freelancer or part of a design team, Photopea’s free photo editor offers all the features you need to produce professional-quality work.\n\nStart using Photopea\n\nsupport@photopea.com | Privacy Policy | Twitter | Facebook | Reddit",
+          "title": "Photopea | Online Photo Editor",
+          "controls": [
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Learn photo editing",
+              "selector": "[data-ocade=\"0\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Graphics tutorials",
+              "selector": "[data-ocade=\"1\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Free PSD templates",
+              "selector": "[data-ocade=\"2\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Insert a photo editor into your product",
+              "selector": "[data-ocade=\"3\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Start using Photopea",
+              "selector": "[data-ocade=\"4\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Start using Photopea",
+              "selector": "[data-ocade=\"5\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "40 other formats",
+              "selector": "[data-ocade=\"6\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Start using Photopea",
+              "selector": "[data-ocade=\"7\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Remove background with one click",
+              "selector": "[data-ocade=\"8\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "replace any part of an image",
+              "selector": "[data-ocade=\"9\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Start using Photopea",
+              "selector": "[data-ocade=\"10\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Start using Photopea",
+              "selector": "[data-ocade=\"11\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "support@photopea.com",
+              "selector": "[data-ocade=\"12\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Privacy Policy",
+              "selector": "[data-ocade=\"13\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Twitter",
+              "selector": "[data-ocade=\"14\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Facebook",
+              "selector": "[data-ocade=\"15\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Reddit",
+              "selector": "[data-ocade=\"16\"]"
+            }
+          ],
+          "durationMs": 24.07,
+          "needsSignIn": false
+        },
+        "maybeChanged": false,
+        "observedAtUtc": "2026-10-31T20:26:44.588Z"
+      }
+    },
+    {
+      "summary": "open",
+      "intent": {
+        "v": 1,
+        "key": "s12",
+        "risk": "read",
+        "target": {
+          "site": "pixlr.com"
+        },
+        "arguments": {
+          "url": "https://pixlr.com/editor/"
+        },
+        "operation": "web.open",
+        "capability": "browser",
+        "deadlineUtc": "2026-10-31T20:36:45.604Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "url": "https://pixlr.com/editor/",
+          "page": {
+            "id": "3de2e92eb4ae",
+            "site": "pixlr.com"
+          },
+          "text": "PRODUCTS\nPixlr Express\nPixlr Editor\nCommunity\nFEATURES\nPhoto Collage Maker\nAI Image Generator\nAI Video Generator\nAI Audio Generator\nAI Image Editor\nAI Face Swap\nBackground Remover\nMore\nLog in\nStart creating now\nPricing\nLog in\nBy using our site, you acknowledge that you read and understand our Cookie Policy.\nCookie settings\nReject\nAccept\n×\nPixlr Editor\nOpen image\nCreate new\nFree AI Image Generator   Create collage\nWorlds First and Most Popular Advanced Online Photo Editor\nSubscribe now\n\nWelcome to the free advanced photo editor by Pixlr. Start editing by clicking on the open image button, drag n' drop a file or paste from the clipboard (ctrl+v).\n\nCompany\nAbout Us\nPixlr Mobile\nPixlr Desktop\nHelp\nPricing\nContact Us\nEducation\nProducts\nPixlr Agent\nPixlr Editor\nPixlr Express\nLegal\nTerms of Use\nPrivacy Policy\nCookie Policy\nLicense Agreement\nCookie settings\nPixlr Pte Ltd © 2026.",
+          "title": "Photo Editor Pixlr Free online Image Editing Tool",
+          "controls": [
+            {
+              "tag": "input",
+              "name": "",
+              "type": "checkbox",
+              "label": "on",
+              "selector": "[data-ocade=\"0\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Pixlr",
+              "selector": "[data-ocade=\"1\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Pixlr Express",
+              "selector": "[data-ocade=\"2\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Pixlr Editor",
+              "selector": "[data-ocade=\"3\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Community",
+              "selector": "[data-ocade=\"4\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Photo Collage Maker",
+              "selector": "[data-ocade=\"5\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "AI Image Generator",
+              "selector": "[data-ocade=\"6\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "AI Video Generator",
+              "selector": "[data-ocade=\"7\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "AI Audio Generator",
+              "selector": "[data-ocade=\"8\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "AI Image Editor",
+              "selector": "[data-ocade=\"9\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "AI Face Swap",
+              "selector": "[data-ocade=\"10\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Background Remover",
+              "selector": "[data-ocade=\"11\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Pricing",
+              "selector": "[data-ocade=\"12\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Cookie Policy",
+              "selector": "[data-ocade=\"13\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "button",
+              "label": "Cookie settings",
+              "selector": "[data-ocade=\"14\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "button",
+              "label": "Reject",
+              "selector": "[data-ocade=\"15\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "button",
+              "label": "Accept",
+              "selector": "[data-ocade=\"16\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "button",
+              "label": "Reject",
+              "selector": "[data-ocade=\"17\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Free AI Image Generator",
+              "selector": "[data-ocade=\"18\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Create collage",
+              "selector": "[data-ocade=\"19\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Subscribe now",
+              "selector": "[data-ocade=\"20\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "About Us",
+              "selector": "[data-ocade=\"21\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Pixlr Mobile",
+              "selector": "[data-ocade=\"22\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Pixlr Desktop",
+              "selector": "[data-ocade=\"23\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Pricing",
+              "selector": "[data-ocade=\"24\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Contact Us",
+              "selector": "[data-ocade=\"25\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Education",
+              "selector": "[data-ocade=\"26\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Pixlr Agent",
+              "selector": "[data-ocade=\"27\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Pixlr Editor",
+              "selector": "[data-ocade=\"28\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Pixlr Express",
+              "selector": "[data-ocade=\"29\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Terms of Use",
+              "selector": "[data-ocade=\"30\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Privacy Policy",
+              "selector": "[data-ocade=\"31\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Cookie Policy",
+              "selector": "[data-ocade=\"32\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "License Agreement",
+              "selector": "[data-ocade=\"33\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Cookie settings",
+              "selector": "[data-ocade=\"34\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "X / Twitter",
+              "selector": "[data-ocade=\"35\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Instagram",
+              "selector": "[data-ocade=\"36\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Discord",
+              "selector": "[data-ocade=\"37\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "YouTube",
+              "selector": "[data-ocade=\"38\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Facebook",
+              "selector": "[data-ocade=\"39\"]"
+            }
+          ],
+          "durationMs": 1496.96,
+          "needsSignIn": false
+        },
+        "maybeChanged": false,
+        "observedAtUtc": "2026-10-31T20:26:53.164Z"
+      }
+    },
+    {
+      "summary": "screenshot",
+      "intent": {
+        "v": 1,
+        "key": "s13",
+        "risk": "reversible_write",
+        "target": {
+          "site": "pixlr.com"
+        },
+        "arguments": {
+          "page": {
+            "id": "3de2e92eb4ae",
+            "site": "pixlr.com"
+          },
+          "output": "OCADE output/pixlr_editor.png"
+        },
+        "operation": "web.screenshot",
+        "capability": "browser",
+        "deadlineUtc": "2026-10-31T20:36:53.829Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "bytes": 146933,
+          "sha256": "abe488112a0a2db964ad8956533123ccf340c6b8330bc06e8d26f4e98a5d5093",
+          "durationMs": 108.13
+        },
+        "maybeChanged": true,
+        "observedAtUtc": "2026-10-31T20:26:59.318Z"
+      }
+    },
+    {
+      "summary": "preview",
+      "intent": {
+        "v": 1,
+        "key": "s14",
+        "risk": "read",
+        "arguments": {
+          "path": "OCADE output/pixlr_editor.png"
+        },
+        "operation": "media.preview",
+        "capability": "screen",
+        "deadlineUtc": "2026-10-31T20:36:59.962Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "preview": "54744 base64 chars",
+        "evidence": {
+          "kind": "image",
+          "width": 1280,
+          "height": 720,
+          "durationMs": 47.27
+        },
+        "maybeChanged": false,
+        "observedAtUtc": "2026-10-31T20:27:04.018Z"
+      }
+    },
+    {
+      "summary": "read",
+      "intent": {
+        "v": 1,
+        "key": "s15",
+        "risk": "read",
+        "target": {
+          "site": "pixlr.com"
+        },
+        "arguments": {
+          "page": {
+            "id": "3de2e92eb4ae",
+            "site": "pixlr.com"
+          }
+        },
+        "operation": "web.read",
+        "capability": "browser",
+        "deadlineUtc": "2026-10-31T20:37:04.729Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "url": "https://pixlr.com/editor/",
+          "page": {
+            "id": "3de2e92eb4ae",
+            "site": "pixlr.com"
+          },
+          "text": "PRODUCTS\nPixlr Express\nPixlr Editor\nCommunity\nFEATURES\nPhoto Collage Maker\nAI Image Generator\nAI Video Generator\nAI Audio Generator\nAI Image Editor\nAI Face Swap\nBackground Remover\nMore\nLog in\nStart creating now\nPricing\nLog in\nBy using our site, you acknowledge that you read and understand our Cookie Policy.\nCookie settings\nReject\nAccept\n×\nPixlr Editor\nOpen image\nCreate new\nFree AI Image Generator   Create collage\nWorlds First and Most Popular Advanced Online Photo Editor\nSubscribe now\n\nWelcome to the free advanced photo editor by Pixlr. Start editing by clicking on the open image button, drag n' drop a file or paste from the clipboard (ctrl+v).\n\nCompany\nAbout Us\nPixlr Mobile\nPixlr Desktop\nHelp\nPricing\nContact Us\nEducation\nProducts\nPixlr Agent\nPixlr Editor\nPixlr Express\nLegal\nTerms of Use\nPrivacy Policy\nCookie Policy\nLicense Agreement\nCookie settings\nPixlr Pte Ltd © 2026.",
+          "title": "Photo Editor Pixlr Free online Image Editing Tool",
+          "controls": [
+            {
+              "tag": "input",
+              "name": "",
+              "type": "checkbox",
+              "label": "on",
+              "selector": "[data-ocade=\"0\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Pixlr",
+              "selector": "[data-ocade=\"1\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Pixlr Express",
+              "selector": "[data-ocade=\"2\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Pixlr Editor",
+              "selector": "[data-ocade=\"3\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Community",
+              "selector": "[data-ocade=\"4\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Photo Collage Maker",
+              "selector": "[data-ocade=\"5\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "AI Image Generator",
+              "selector": "[data-ocade=\"6\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "AI Video Generator",
+              "selector": "[data-ocade=\"7\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "AI Audio Generator",
+              "selector": "[data-ocade=\"8\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "AI Image Editor",
+              "selector": "[data-ocade=\"9\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "AI Face Swap",
+              "selector": "[data-ocade=\"10\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Background Remover",
+              "selector": "[data-ocade=\"11\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Pricing",
+              "selector": "[data-ocade=\"12\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Cookie Policy",
+              "selector": "[data-ocade=\"13\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "button",
+              "label": "Cookie settings",
+              "selector": "[data-ocade=\"14\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "button",
+              "label": "Reject",
+              "selector": "[data-ocade=\"15\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "button",
+              "label": "Accept",
+              "selector": "[data-ocade=\"16\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "button",
+              "label": "Reject",
+              "selector": "[data-ocade=\"17\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Free AI Image Generator",
+              "selector": "[data-ocade=\"18\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Create collage",
+              "selector": "[data-ocade=\"19\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Subscribe now",
+              "selector": "[data-ocade=\"20\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "About Us",
+              "selector": "[data-ocade=\"21\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Pixlr Mobile",
+              "selector": "[data-ocade=\"22\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Pixlr Desktop",
+              "selector": "[data-ocade=\"23\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Pricing",
+              "selector": "[data-ocade=\"24\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Contact Us",
+              "selector": "[data-ocade=\"25\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Education",
+              "selector": "[data-ocade=\"26\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Pixlr Agent",
+              "selector": "[data-ocade=\"27\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Pixlr Editor",
+              "selector": "[data-ocade=\"28\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Pixlr Express",
+              "selector": "[data-ocade=\"29\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Terms of Use",
+              "selector": "[data-ocade=\"30\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Privacy Policy",
+              "selector": "[data-ocade=\"31\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Cookie Policy",
+              "selector": "[data-ocade=\"32\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "License Agreement",
+              "selector": "[data-ocade=\"33\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Cookie settings",
+              "selector": "[data-ocade=\"34\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "X / Twitter",
+              "selector": "[data-ocade=\"35\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Instagram",
+              "selector": "[data-ocade=\"36\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Discord",
+              "selector": "[data-ocade=\"37\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "YouTube",
+              "selector": "[data-ocade=\"38\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Facebook",
+              "selector": "[data-ocade=\"39\"]"
+            }
+          ],
+          "durationMs": 37.82,
+          "needsSignIn": false
+        },
+        "maybeChanged": false,
+        "observedAtUtc": "2026-10-31T20:27:10.732Z"
+      }
+    },
+    {
+      "summary": "open",
+      "intent": {
+        "v": 1,
+        "key": "s16",
+        "risk": "read",
+        "target": {
+          "site": "www.photopea.com"
+        },
+        "arguments": {
+          "url": "https://www.photopea.com"
+        },
+        "operation": "web.open",
+        "capability": "browser",
+        "deadlineUtc": "2026-10-31T20:37:11.387Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "url": "https://www.photopea.com/",
+          "page": {
+            "id": "a85328252198",
+            "site": "www.photopea.com"
+          },
+          "text": " Photopea Learn Tutorials Templates API\nFree Online Photo Editor\nUnlock your creativity with the best free photo editor.\n\nTransform your photos with professional-grade tools in a free online photo editor that works right in your browser. No downloads, no hassle.\n\nStart using Photopea\nFully Local\n\nThere are no uploads. Photopea runs on your device, using your CPU and your GPU. All files open instantly, and never leave your device.\n\nCost-Effective\n\nEnjoy all the premium features without spending a dime.\n\nConvenient Editor\n\nNo need to install heavy software on your device. Just open your browser and start editing.\n\nRuns Everywhere\n\nOur photo editor runs on any device. The better hardware you have, the better it runs.\n\nStart using Photopea\nProfessional Editor\n\nPhotopea offers a full suite of editing tools, from basic features like cropping and resizing to advanced features such as layering, masking, and blending.\n\nFull PSD support\n\nPhotopea fully supports a popular PSD format, both opening and saving files. It is the main format of Photopea.\n\nSwiss knife for graphics\n\nOpen and edit PNG, JPG, GIF, BMP, WEBP, SVG, PDF, AI, AVIF, DDS, HEIC, TIFF, MP4, TGA, CDR, PDN, EPS, INDD, Figma and 40 other formats.\n\nPerfect RAW support\n\nPhotopea opens DNG, CR2, CR3, NEF, ARW, RW2, RAF, ORF and FFF files. Set the Exposure, Color Balance, Contrast, Highlights and Shadows, etc.\n\nStart using Photopea\nState-of-the-art AI\n\nRemove background with one click, or replace any part of an image with a new content through a text description.\n\nAll Essential Features\n\nWe have Layers, Masks, Layer Styles, Smart Objects, Adjustment Layers, Channels, Paths and more!\n\nAdjustments and Filters\n\nDo you need Levels and Curves? A Gaussian Blur? Or advanced stuff such as Liquify or Puppet Warp? We have it all!\n\nVector Graphics\n\nCreate and edit vector graphics directly within the editor. Perfect for designers working on logos, icons, or illustrations.\n\nStart using Photopea\nWho Can Benefit from our Free Photo Editor?\nSocial Media Enthusiasts\n\nEnhance your photos before sharing them on platforms like Instagram, Facebook, or Twitter. Make every post stand out with unique edits.\n\nStudents and Educators\n\nCreate stunning visuals for presentations, assignments, and more. Our free online photo editor is a great tool for educational projects.\n\nSmall Business Owners\n\nDesign promotional materials, edit product photos, and create engaging content for your website or online store, all without spending on expensive software.\n\nGraphic Designers\n\nWhether you’re a freelancer or part of a design team, Photopea’s free photo editor offers all the features you need to produce professional-quality work.\n\nStart using Photopea\n\nsupport@photopea.com | Privacy Policy | Twitter | Facebook | Reddit",
+          "title": "Photopea | Online Photo Editor",
+          "controls": [
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Learn photo editing",
+              "selector": "[data-ocade=\"0\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Graphics tutorials",
+              "selector": "[data-ocade=\"1\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Free PSD templates",
+              "selector": "[data-ocade=\"2\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Insert a photo editor into your product",
+              "selector": "[data-ocade=\"3\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Start using Photopea",
+              "selector": "[data-ocade=\"4\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Start using Photopea",
+              "selector": "[data-ocade=\"5\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "40 other formats",
+              "selector": "[data-ocade=\"6\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Start using Photopea",
+              "selector": "[data-ocade=\"7\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Remove background with one click",
+              "selector": "[data-ocade=\"8\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "replace any part of an image",
+              "selector": "[data-ocade=\"9\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Start using Photopea",
+              "selector": "[data-ocade=\"10\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "submit",
+              "label": "Start using Photopea",
+              "selector": "[data-ocade=\"11\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "support@photopea.com",
+              "selector": "[data-ocade=\"12\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Privacy Policy",
+              "selector": "[data-ocade=\"13\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Twitter",
+              "selector": "[data-ocade=\"14\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Facebook",
+              "selector": "[data-ocade=\"15\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Reddit",
+              "selector": "[data-ocade=\"16\"]"
+            }
+          ],
+          "durationMs": 314.61,
+          "needsSignIn": false
+        },
+        "maybeChanged": false,
+        "observedAtUtc": "2026-10-31T20:27:18.899Z"
+      }
+    },
+    {
+      "summary": "read",
+      "intent": {
+        "v": 1,
+        "key": "s17",
+        "risk": "read",
+        "target": {
+          "site": "pixlr.com"
+        },
+        "arguments": {
+          "page": {
+            "id": "3de2e92eb4ae",
+            "site": "pixlr.com"
+          }
+        },
+        "operation": "web.read",
+        "capability": "browser",
+        "deadlineUtc": "2026-10-31T20:37:19.523Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "url": "https://pixlr.com/editor/",
+          "page": {
+            "id": "3de2e92eb4ae",
+            "site": "pixlr.com"
+          },
+          "text": "PRODUCTS\nPixlr Express\nPixlr Editor\nCommunity\nFEATURES\nPhoto Collage Maker\nAI Image Generator\nAI Video Generator\nAI Audio Generator\nAI Image Editor\nAI Face Swap\nBackground Remover\nMore\nLog in\nStart creating now\nPricing\nLog in\nBy using our site, you acknowledge that you read and understand our Cookie Policy.\nCookie settings\nReject\nAccept\n×\nPixlr Editor\nOpen image\nCreate new\nFree AI Image Generator   Create collage\nWorlds First and Most Popular Advanced Online Photo Editor\nSubscribe now\n\nWelcome to the free advanced photo editor by Pixlr. Start editing by clicking on the open image button, drag n' drop a file or paste from the clipboard (ctrl+v).\n\nCompany\nAbout Us\nPixlr Mobile\nPixlr Desktop\nHelp\nPricing\nContact Us\nEducation\nProducts\nPixlr Agent\nPixlr Editor\nPixlr Express\nLegal\nTerms of Use\nPrivacy Policy\nCookie Policy\nLicense Agreement\nCookie settings\nPixlr Pte Ltd © 2026.",
+          "title": "Photo Editor Pixlr Free online Image Editing Tool",
+          "controls": [
+            {
+              "tag": "input",
+              "name": "",
+              "type": "checkbox",
+              "label": "on",
+              "selector": "[data-ocade=\"0\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Pixlr",
+              "selector": "[data-ocade=\"1\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Pixlr Express",
+              "selector": "[data-ocade=\"2\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Pixlr Editor",
+              "selector": "[data-ocade=\"3\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Community",
+              "selector": "[data-ocade=\"4\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Photo Collage Maker",
+              "selector": "[data-ocade=\"5\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "AI Image Generator",
+              "selector": "[data-ocade=\"6\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "AI Video Generator",
+              "selector": "[data-ocade=\"7\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "AI Audio Generator",
+              "selector": "[data-ocade=\"8\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "AI Image Editor",
+              "selector": "[data-ocade=\"9\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "AI Face Swap",
+              "selector": "[data-ocade=\"10\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Background Remover",
+              "selector": "[data-ocade=\"11\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Pricing",
+              "selector": "[data-ocade=\"12\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Cookie Policy",
+              "selector": "[data-ocade=\"13\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "button",
+              "label": "Cookie settings",
+              "selector": "[data-ocade=\"14\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "button",
+              "label": "Reject",
+              "selector": "[data-ocade=\"15\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "button",
+              "label": "Accept",
+              "selector": "[data-ocade=\"16\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "button",
+              "label": "Reject",
+              "selector": "[data-ocade=\"17\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Free AI Image Generator",
+              "selector": "[data-ocade=\"18\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Create collage",
+              "selector": "[data-ocade=\"19\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Subscribe now",
+              "selector": "[data-ocade=\"20\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "About Us",
+              "selector": "[data-ocade=\"21\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Pixlr Mobile",
+              "selector": "[data-ocade=\"22\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Pixlr Desktop",
+              "selector": "[data-ocade=\"23\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Pricing",
+              "selector": "[data-ocade=\"24\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Contact Us",
+              "selector": "[data-ocade=\"25\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Education",
+              "selector": "[data-ocade=\"26\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Pixlr Agent",
+              "selector": "[data-ocade=\"27\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Pixlr Editor",
+              "selector": "[data-ocade=\"28\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Pixlr Express",
+              "selector": "[data-ocade=\"29\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Terms of Use",
+              "selector": "[data-ocade=\"30\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Privacy Policy",
+              "selector": "[data-ocade=\"31\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Cookie Policy",
+              "selector": "[data-ocade=\"32\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "License Agreement",
+              "selector": "[data-ocade=\"33\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Cookie settings",
+              "selector": "[data-ocade=\"34\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "X / Twitter",
+              "selector": "[data-ocade=\"35\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Instagram",
+              "selector": "[data-ocade=\"36\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Discord",
+              "selector": "[data-ocade=\"37\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "YouTube",
+              "selector": "[data-ocade=\"38\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Facebook",
+              "selector": "[data-ocade=\"39\"]"
+            }
+          ],
+          "durationMs": 38.75,
+          "needsSignIn": false
+        },
+        "maybeChanged": false,
+        "observedAtUtc": "2026-10-31T20:27:25.909Z"
+      }
+    },
+    {
+      "summary": "read",
+      "intent": {
+        "v": 1,
+        "key": "s18",
+        "risk": "read",
+        "target": {
+          "site": "pixlr.com"
+        },
+        "arguments": {
+          "page": {
+            "id": "3de2e92eb4ae",
+            "site": "pixlr.com"
+          }
+        },
+        "operation": "web.read",
+        "capability": "browser",
+        "deadlineUtc": "2026-10-31T20:37:26.608Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "url": "https://pixlr.com/editor/",
+          "page": {
+            "id": "3de2e92eb4ae",
+            "site": "pixlr.com"
+          },
+          "text": "PRODUCTS\nPixlr Express\nPixlr Editor\nCommunity\nFEATURES\nPhoto Collage Maker\nAI Image Generator\nAI Video Generator\nAI Audio Generator\nAI Image Editor\nAI Face Swap\nBackground Remover\nMore\nLog in\nStart creating now\nPricing\nLog in\nBy using our site, you acknowledge that you read and understand our Cookie Policy.\nCookie settings\nReject\nAccept\n×\nPixlr Editor\nOpen image\nCreate new\nFree AI Image Generator   Create collage\nWorlds First and Most Popular Advanced Online Photo Editor\nSubscribe now\n\nWelcome to the free advanced photo editor by Pixlr. Start editing by clicking on the open image button, drag n' drop a file or paste from the clipboard (ctrl+v).\n\nCompany\nAbout Us\nPixlr Mobile\nPixlr Desktop\nHelp\nPricing\nContact Us\nEducation\nProducts\nPixlr Agent\nPixlr Editor\nPixlr Express\nLegal\nTerms of Use\nPrivacy Policy\nCookie Policy\nLicense Agreement\nCookie settings\nPixlr Pte Ltd © 2026.",
+          "title": "Photo Editor Pixlr Free online Image Editing Tool",
+          "controls": [
+            {
+              "tag": "input",
+              "name": "",
+              "type": "checkbox",
+              "label": "on",
+              "selector": "[data-ocade=\"0\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Pixlr",
+              "selector": "[data-ocade=\"1\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Pixlr Express",
+              "selector": "[data-ocade=\"2\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Pixlr Editor",
+              "selector": "[data-ocade=\"3\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Community",
+              "selector": "[data-ocade=\"4\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Photo Collage Maker",
+              "selector": "[data-ocade=\"5\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "AI Image Generator",
+              "selector": "[data-ocade=\"6\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "AI Video Generator",
+              "selector": "[data-ocade=\"7\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "AI Audio Generator",
+              "selector": "[data-ocade=\"8\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "AI Image Editor",
+              "selector": "[data-ocade=\"9\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "AI Face Swap",
+              "selector": "[data-ocade=\"10\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Background Remover",
+              "selector": "[data-ocade=\"11\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Pricing",
+              "selector": "[data-ocade=\"12\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Cookie Policy",
+              "selector": "[data-ocade=\"13\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "button",
+              "label": "Cookie settings",
+              "selector": "[data-ocade=\"14\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "button",
+              "label": "Reject",
+              "selector": "[data-ocade=\"15\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "button",
+              "label": "Accept",
+              "selector": "[data-ocade=\"16\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "button",
+              "label": "Reject",
+              "selector": "[data-ocade=\"17\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Free AI Image Generator",
+              "selector": "[data-ocade=\"18\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Create collage",
+              "selector": "[data-ocade=\"19\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Subscribe now",
+              "selector": "[data-ocade=\"20\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "About Us",
+              "selector": "[data-ocade=\"21\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Pixlr Mobile",
+              "selector": "[data-ocade=\"22\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Pixlr Desktop",
+              "selector": "[data-ocade=\"23\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Pricing",
+              "selector": "[data-ocade=\"24\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Contact Us",
+              "selector": "[data-ocade=\"25\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Education",
+              "selector": "[data-ocade=\"26\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Pixlr Agent",
+              "selector": "[data-ocade=\"27\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Pixlr Editor",
+              "selector": "[data-ocade=\"28\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Pixlr Express",
+              "selector": "[data-ocade=\"29\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Terms of Use",
+              "selector": "[data-ocade=\"30\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Privacy Policy",
+              "selector": "[data-ocade=\"31\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Cookie Policy",
+              "selector": "[data-ocade=\"32\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "License Agreement",
+              "selector": "[data-ocade=\"33\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Cookie settings",
+              "selector": "[data-ocade=\"34\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "X / Twitter",
+              "selector": "[data-ocade=\"35\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Instagram",
+              "selector": "[data-ocade=\"36\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Discord",
+              "selector": "[data-ocade=\"37\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "YouTube",
+              "selector": "[data-ocade=\"38\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Facebook",
+              "selector": "[data-ocade=\"39\"]"
+            }
+          ],
+          "durationMs": 43.3,
+          "needsSignIn": false
+        },
+        "maybeChanged": false,
+        "observedAtUtc": "2026-10-31T20:27:31.997Z"
+      }
+    },
+    {
+      "summary": "read",
+      "intent": {
+        "v": 1,
+        "key": "s19",
+        "risk": "read",
+        "target": {
+          "site": "pixlr.com"
+        },
+        "arguments": {
+          "page": {
+            "id": "3de2e92eb4ae",
+            "site": "pixlr.com"
+          }
+        },
+        "operation": "web.read",
+        "capability": "browser",
+        "deadlineUtc": "2026-10-31T20:37:32.674Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "url": "https://pixlr.com/editor/",
+          "page": {
+            "id": "3de2e92eb4ae",
+            "site": "pixlr.com"
+          },
+          "text": "PRODUCTS\nPixlr Express\nPixlr Editor\nCommunity\nFEATURES\nPhoto Collage Maker\nAI Image Generator\nAI Video Generator\nAI Audio Generator\nAI Image Editor\nAI Face Swap\nBackground Remover\nMore\nLog in\nStart creating now\nPricing\nLog in\nBy using our site, you acknowledge that you read and understand our Cookie Policy.\nCookie settings\nReject\nAccept\n×\nPixlr Editor\nOpen image\nCreate new\nFree AI Image Generator   Create collage\nWorlds First and Most Popular Advanced Online Photo Editor\nSubscribe now\n\nWelcome to the free advanced photo editor by Pixlr. Start editing by clicking on the open image button, drag n' drop a file or paste from the clipboard (ctrl+v).\n\nCompany\nAbout Us\nPixlr Mobile\nPixlr Desktop\nHelp\nPricing\nContact Us\nEducation\nProducts\nPixlr Agent\nPixlr Editor\nPixlr Express\nLegal\nTerms of Use\nPrivacy Policy\nCookie Policy\nLicense Agreement\nCookie settings\nPixlr Pte Ltd © 2026.",
+          "title": "Photo Editor Pixlr Free online Image Editing Tool",
+          "controls": [
+            {
+              "tag": "input",
+              "name": "",
+              "type": "checkbox",
+              "label": "on",
+              "selector": "[data-ocade=\"0\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Pixlr",
+              "selector": "[data-ocade=\"1\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Pixlr Express",
+              "selector": "[data-ocade=\"2\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Pixlr Editor",
+              "selector": "[data-ocade=\"3\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Community",
+              "selector": "[data-ocade=\"4\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Photo Collage Maker",
+              "selector": "[data-ocade=\"5\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "AI Image Generator",
+              "selector": "[data-ocade=\"6\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "AI Video Generator",
+              "selector": "[data-ocade=\"7\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "AI Audio Generator",
+              "selector": "[data-ocade=\"8\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "AI Image Editor",
+              "selector": "[data-ocade=\"9\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "AI Face Swap",
+              "selector": "[data-ocade=\"10\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Background Remover",
+              "selector": "[data-ocade=\"11\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Pricing",
+              "selector": "[data-ocade=\"12\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Cookie Policy",
+              "selector": "[data-ocade=\"13\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "button",
+              "label": "Cookie settings",
+              "selector": "[data-ocade=\"14\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "button",
+              "label": "Reject",
+              "selector": "[data-ocade=\"15\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "button",
+              "label": "Accept",
+              "selector": "[data-ocade=\"16\"]"
+            },
+            {
+              "tag": "button",
+              "name": "",
+              "type": "button",
+              "label": "Reject",
+              "selector": "[data-ocade=\"17\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Free AI Image Generator",
+              "selector": "[data-ocade=\"18\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Create collage",
+              "selector": "[data-ocade=\"19\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Subscribe now",
+              "selector": "[data-ocade=\"20\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "About Us",
+              "selector": "[data-ocade=\"21\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Pixlr Mobile",
+              "selector": "[data-ocade=\"22\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Pixlr Desktop",
+              "selector": "[data-ocade=\"23\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Pricing",
+              "selector": "[data-ocade=\"24\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Contact Us",
+              "selector": "[data-ocade=\"25\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Education",
+              "selector": "[data-ocade=\"26\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Pixlr Agent",
+              "selector": "[data-ocade=\"27\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Pixlr Editor",
+              "selector": "[data-ocade=\"28\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Pixlr Express",
+              "selector": "[data-ocade=\"29\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Terms of Use",
+              "selector": "[data-ocade=\"30\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Privacy Policy",
+              "selector": "[data-ocade=\"31\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Cookie Policy",
+              "selector": "[data-ocade=\"32\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "License Agreement",
+              "selector": "[data-ocade=\"33\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Cookie settings",
+              "selector": "[data-ocade=\"34\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "X / Twitter",
+              "selector": "[data-ocade=\"35\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Instagram",
+              "selector": "[data-ocade=\"36\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Discord",
+              "selector": "[data-ocade=\"37\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "YouTube",
+              "selector": "[data-ocade=\"38\"]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Facebook",
+              "selector": "[data-ocade=\"39\"]"
+            }
+          ],
+          "durationMs": 37.59,
+          "needsSignIn": false
+        },
+        "maybeChanged": false,
+        "observedAtUtc": "2026-10-31T20:27:39.177Z"
+      }
+    }
+  ],
+  "outputs": [
+    {
+      "path": "/tmp/p2-photo/OCADE output/photopea_landing.png",
+      "bytes": 606893
+    },
+    {
+      "path": "/tmp/p2-photo/OCADE output/pixlr_editor.png",
+      "bytes": 146933
+    }
+  ]
+}

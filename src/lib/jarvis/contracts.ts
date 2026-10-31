@@ -85,7 +85,13 @@ const httpsUrl = z
     );
   }, "unsupported host");
 const page = z.strictObject({ id: z.string().regex(/^[a-z0-9-]{1,40}$/), site: host });
-const selector = z.string().min(1).max(500);
+const selector = z
+  .string()
+  .min(1)
+  .max(500)
+  .describe(
+    "A control's `selector` exactly as web.open/web.read listed it, or, for visible text that is not listed (a menu item, say), a Playwright selector such as 'text=Save >> visible=true'",
+  );
 
 type Target = { app?: string; site?: string; mcp?: string };
 

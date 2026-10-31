@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import functools
 import ipaddress
+import json
 import os
 import secrets
 import socket
@@ -29,24 +30,32 @@ from urllib.parse import urlparse
 
 from mcp.server.mcpserver import MCPServer
 
-from .sandbox import Refused, output_path, resolve, write_atomically
+from .sandbox import Refused, output_path, preview_jpeg, resolve, write_atomically
 
 app = MCPServer("ocade-web")
 WORKSPACE = os.environ.get("OCADE_WORKSPACE", "")
 PROFILE = Path(os.environ.get("OCADE_AGENT_HOME") or Path.home() / ".ocade-agent") / "browser-profile"
 PRIVATE_ALLOWED = os.environ.get("OCADE_ALLOW_PRIVATE_WEB") == "1"
 TEXT_LIMIT = 8_000
+EVIDENCE_LIMIT = 15_000  # leaves room for popups beside an observation
 _browser: dict = {}
 _pages: dict[str, dict] = {}  # id -> {"page": Page, "site": host fixed at open}
 
 # Inputs, buttons and links the planner may name, each with a selector Playwright can find again.
-_CONTROLS = """() => [...document.querySelectorAll('a[href],button,input,select,textarea,[role=button],iframe')]
-  .filter(e => e.offsetParent !== null).slice(0, 60).map(e => ({
-    tag: e.tagName.toLowerCase(), type: e.type || '', name: e.name || '',
-    label: (e.labels?.[0]?.innerText || e.getAttribute('aria-label') || e.title || e.innerText || e.value || '').trim().slice(0, 80),
-    selector: e.id ? '#' + CSS.escape(e.id) : e.name ? `${e.tagName.toLowerCase()}[name="${e.name}"]`
-      : `text=${(e.innerText || '').trim().slice(0, 60)}`,
-  }))"""
+# Each listed control gets a fresh `data-ocade` number, so its selector names exactly one
+# element even when labels repeat. File inputs are listed even when a web app hides them.
+_CONTROLS = """() => {
+  document.querySelectorAll('[data-ocade]').forEach(e => e.removeAttribute('data-ocade'));
+  return [...document.querySelectorAll('a[href],button,input,select,textarea,[contenteditable]:not([contenteditable=false]),[role=button],[role=menuitem],[role=tab],[role=textbox],[role=spinbutton],[role=slider],iframe')]
+    .filter(e => e.offsetParent !== null || e.type === 'file').slice(0, 80).map((e, i) => {
+      e.setAttribute('data-ocade', 'c' + i);
+      return {
+        tag: e.tagName.toLowerCase(), type: e.type || '', name: (e.name || '').slice(0, 40),
+        label: (e.labels?.[0]?.innerText || e.getAttribute('aria-label') || e.title || e.innerText || e.value || '').trim().slice(0, 80),
+        selector: `[data-ocade=c${i}]`,
+      };
+    });
+}"""
 
 
 def _host(url: str) -> str:
@@ -156,15 +165,22 @@ async def _observe(page_id: str) -> dict:
     entry = _pages[page_id]
     current = entry["page"]
     text = await current.inner_text("body", timeout=10_000)
-    return {
+    observed = {
         "page": {"id": page_id, "site": entry["site"]},
         "url": current.url[:500],
         "title": (await current.title())[:200],
-        "text": text[:TEXT_LIMIT],
         "controls": await current.evaluate(_CONTROLS),
+        "text": text[:TEXT_LIMIT],
         # A sign-in or challenge is the person's to complete in the OCADE browser window.
         "needsSignIn": await current.locator("input[type=password]:visible").count() > 0,
     }
+    # The gateway refuses evidence over 16 KB: give up page text first, then the last controls.
+    excess = len(json.dumps(observed)) - EVIDENCE_LIMIT
+    if excess > 0:
+        observed["text"] = observed["text"][: max(0, len(observed["text"]) - excess)]
+    while len(json.dumps(observed)) > EVIDENCE_LIMIT and observed["controls"]:
+        observed["controls"].pop()
+    return observed
 
 
 def _bind(new_page, site: str) -> str:
@@ -218,8 +234,19 @@ async def web_fill(page: dict, selector: str, value: str, frame: str | None = No
     field = await _one(await _scope(_bound(page), frame), selector)
     if (await field.get_attribute("type") or "").lower() == "password":
         raise Refused("password_field")  # credentials are the person's to type
-    await field.fill(value, timeout=10_000)
-    return {"matches": await field.input_value() == value}
+    if await field.evaluate("e => e.isContentEditable"):
+        # A web app's own text widget listens for real keystrokes, not a set value.
+        if any(ord(ch) < 32 for ch in value):
+            raise Refused("control_characters")  # Enter or Tab could submit or move on
+        await field.focus()
+        await field.page.keyboard.press("ControlOrMeta+A")
+        await field.page.keyboard.type(value)
+    else:
+        await field.fill(value, timeout=10_000)
+    await field.evaluate("e => e.blur()")  # as a person moving on: the widget commits its value
+    # Read back from a form field or an editable element (a web app's own text widget).
+    shown = await field.evaluate("e => 'value' in e ? e.value : e.innerText")
+    return {"matches": shown.strip() == value.strip()}
 
 
 @app.tool()
@@ -267,7 +294,14 @@ async def web_click(page: dict, selector: str, frame: str | None = None) -> dict
             popups.append("closed_off_site")
     if _host(current.url) != entry["site"]:
         return {"leftSite": True, "url": current.url[:500], "popups": popups}
-    return await _observe(page["id"]) | {"popups": popups}
+    # What the page now looks like travels as a preview, so a canvas app's change is seen.
+    from io import BytesIO
+
+    from PIL import Image
+
+    with Image.open(BytesIO(await current.screenshot())) as shot:
+        preview = preview_jpeg(shot, 30_000)  # leaves room for the page beside it in one receipt
+    return await _observe(page["id"]) | {"popups": popups, "preview": preview}
 
 
 @app.tool()
@@ -280,8 +314,13 @@ async def web_upload(page: dict, selector: str, path: str) -> dict:
     field = await _one(_bound(page)["page"], selector)
     if (await field.get_attribute("type") or "").lower() != "file":
         raise Refused("not_a_file_input")
+    # Web apps often read the file on `change` and then clear the input, so the names are
+    # taken by a listener that runs first, not read back afterwards.
+    await field.evaluate(
+        "e => e.addEventListener('change', () => { e.dataset.ocadeAttached = JSON.stringify([...e.files].map(f => f.name)) }, {once: true, capture: true})"
+    )
     await field.set_input_files(str(source))
-    names = await field.evaluate("e => [...e.files].map(f => f.name)")
+    names = json.loads(await field.evaluate("e => e.dataset.ocadeAttached || '[]'"))
     return {"attached": names, "matches": names == [source.name]}
 
 
