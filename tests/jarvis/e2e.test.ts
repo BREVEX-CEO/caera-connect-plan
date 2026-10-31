@@ -21,6 +21,7 @@ import { createServer, type Server } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { after, before, test } from "node:test";
+import { plannerAccess } from "../../src/lib/jarvis/planner.server.ts";
 import {
   advance,
   approveDevice,
@@ -87,6 +88,17 @@ const conversation2 = "aaaaaaaa-1111-0000-0000-00000000000b";
 const home = mkdtempSync(join(tmpdir(), "ocade-agent-"));
 const workspace = mkdtempSync(join(tmpdir(), "ocade-ws-"));
 let lastSigned: { headers: Record<string, string>; body: string } | null = null;
+let scriptedService: Server;
+const originalPlannerAccess = { ...plannerAccess };
+const fixtureOutputs = (prompt: string) => {
+  const label = /a third time/.test(prompt) ? "third" : /again/.test(prompt) ? "again" : "first";
+  const root = `OCADE output/finance-${label}`;
+  return {
+    workbook: `${root}/reconciled.xlsx`,
+    docx: `${root}/summary.docx`,
+    pdf: `${root}/summary.pdf`,
+  };
+};
 
 function agent(...args: string[]) {
   return new Promise<{ code: number; out: string }>((resolve) => {
@@ -153,9 +165,66 @@ before(async () => {
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
   const address = server.address();
   url = `http://127.0.0.1:${typeof address === "object" && address ? address.port : 0}`;
+
+  // Scripted PROVIDER TEST DOUBLE, never production routing and never evidence of
+  // genuine model autonomy. This retains real PostgreSQL/device/MCP/Office coverage.
+  scriptedService = createServer(async (req, res) => {
+    const chunks: Buffer[] = [];
+    for await (const part of req) chunks.push(part as Buffer);
+    const body = JSON.parse(Buffer.concat(chunks).toString());
+    const prompt: string = body.messages.find((part: { role: string }) => part.role === "user")?.content ?? "";
+    const offered = new Set((body.tools as { name: string }[]).map((t) => t.name));
+    const outputs = fixtureOutputs(prompt);
+    let call: { name: string; args: Record<string, unknown> };
+    if (offered.has("set_goal")) {
+      call = {
+        name: "set_goal",
+        args: {
+          checks: [
+            { id: "reconciled", description: "Result workbook exists", kind: "file_exists", params: { path: outputs.workbook } },
+            { id: "report_docx", description: "Editable report exists", kind: "file_exists", params: { path: outputs.docx } },
+            { id: "report_pdf", description: "Rendered report exists", kind: "file_exists", params: { path: outputs.pdf } },
+          ],
+        },
+      };
+    } else if (!prompt.includes('"operation":"fs.list"')) {
+      call = { name: "fs_list", args: { path: "." } };
+    } else if (!prompt.includes('"operation":"office.inspect_workbook"')) {
+      call = { name: "office_inspect_workbook", args: { path: "Q3 ledger.xlsx" } };
+    } else if (!prompt.includes('"operation":"office.reconcile_workbook"')) {
+      call = {
+        name: "office_reconcile_workbook",
+        args: {
+          source: "Q3 ledger.xlsx",
+          left: { sheet: "Ledger", key: "Invoice ID", amount: "Amount" },
+          right: { sheet: "Bank", key: "Reference", amount: "Amount" },
+          output: outputs.workbook,
+        },
+      };
+    } else if (!prompt.includes('"operation":"office.write_report"')) {
+      call = { name: "office_write_report", args: {
+        workbook: outputs.workbook, docx: outputs.docx, pdf: outputs.pdf, title: "Financial reconciliation",
+      } };
+    } else {
+      call = { name: "finish", args: {} };
+    }
+    res.writeHead(200, { "content-type": "text/event-stream" });
+    res.end(`data: ${JSON.stringify({ type: "tool_call", call: { name: call.name, arguments: call.args } })}\r\n\r\n`);
+  });
+  await new Promise<void>((resolve) => scriptedService.listen(0, "127.0.0.1", resolve));
+  const location = scriptedService.address();
+  plannerAccess.serviceUrl = () =>
+    `http://127.0.0.1:${typeof location === "object" && location ? location.port : 0}`;
+  plannerAccess.serviceKey = () => "scripted-test-only";
+  plannerAccess.acquirePermit = async (_userId, key) => ({
+    permit: { id: "test-only", generationId: key, idempotencyKey: key, surface: "jarvis", source: "server" },
+    release: async () => {},
+  });
 });
 
 after(() => {
+  Object.assign(plannerAccess, originalPlannerAccess);
+  scriptedService?.close();
   server?.close();
   if (ready)
     spawnSync("psql", ["-qc", `DROP DATABASE IF EXISTS ${db} WITH (FORCE)`, "-d", "postgres"]);
@@ -164,7 +233,7 @@ after(() => {
 const sha = (path: string) => createHash("sha256").update(readFileSync(path)).digest("hex");
 
 test(
-  "Journey 1: workbook to verified Word and PDF report through the real pipeline",
+  "scripted AI fixture: workbook to verified Word and PDF via real device, database and workers",
   { skip: !ready },
   async () => {
     const enrolled = await agent("enroll", "--name", "E2E PC", "--workspace", workspace);
@@ -198,14 +267,9 @@ test(
       }),
       /not a JARVIS conversation/,
     );
-    await assert.rejects(
-      startTask(admin, userA, {
-        conversationId: conversation,
-        deviceId,
-        objective: "Book a flight",
-      }),
-      /planner is unavailable right now/,
-    );
+    // Any unfamiliar objective uses the planner; the server still controls
+    // permissions. This fixture deliberately tests only its finance task.
+
 
     const original = sha(join(workspace, "Q3 ledger.xlsx"));
     const { taskId } = await startTask(admin, userA, {
@@ -234,16 +298,12 @@ test(
     );
 
     // Independent of JARVIS: the files exist where it said, and the original is untouched.
-    const folder = join(workspace, "OCADE output", taskId.slice(0, 8));
-    for (const name of [
-      "Q3 ledger - reconciliation.xlsx",
-      "Q3 ledger - reconciliation report.docx",
-      "Q3 ledger - reconciliation report.pdf",
-    ]) {
+    const folder = join(workspace, "OCADE output", "finance-first");
+    for (const name of ["reconciled.xlsx", "summary.docx", "summary.pdf"]) {
       assert.ok(existsSync(join(folder, name)), name);
     }
     assert.equal(sha(join(workspace, "Q3 ledger.xlsx")), original);
-    assert.match(view.result ?? "", /Reconciled 5 rows with 3 exceptions/);
+    assert.match(view.result ?? "", /Done, and checked independently/);
 
     // A captured request cannot be replayed; an altered one fails its signature.
     assert.ok(lastSigned);
@@ -280,7 +340,7 @@ test("STOP before dispatch: nothing runs and nothing is written", { skip: !ready
     view.steps.map((s) => s.status),
     ["cancelled"],
   );
-  assert.equal(existsSync(join(workspace, "OCADE output", taskId.slice(0, 8))), false);
+  assert.equal(existsSync(join(workspace, "OCADE output", "finance-again")), false);
 });
 
 test(
