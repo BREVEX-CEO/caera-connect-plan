@@ -133,6 +133,73 @@ def media_trim(source: str, start: float, end: float, output: str) -> dict:
     return {"sha256": write_atomically(target, cut), "engine": "ffmpeg"}
 
 
+PREVIEW_BYTES = 45_000  # one small JPEG fits a signed receipt and a planner turn
+
+
+def _jpeg(image) -> bytes:
+    """The image as a JPEG under PREVIEW_BYTES: shrink quality, then size, until it fits."""
+    import io
+
+    image = image.convert("RGB")
+    image.thumbnail((960, 960))
+    while True:
+        for quality in (80, 65, 50, 40):
+            buffer = io.BytesIO()
+            image.save(buffer, "JPEG", quality=quality)
+            if buffer.tell() <= PREVIEW_BYTES:
+                return buffer.getvalue()
+        image = image.resize((max(1, image.width * 3 // 4), max(1, image.height * 3 // 4)))
+
+
+@app.tool()
+@_evidence
+def media_preview(path: str, at: list[float] | None = None) -> dict:
+    """Let the planner SEE a file: an image (photo, render, screenshot) as a small JPEG, or a
+    video as a labelled contact sheet of frames (evenly spaced, or at the given seconds)."""
+    import base64
+    import io
+
+    from PIL import Image, ImageDraw
+
+    source = resolve(WORKSPACE, path)
+    if not source.is_file():
+        raise Refused("not_a_file")
+    try:
+        with Image.open(source) as image:
+            image.load()
+            return {"kind": "image", "width": image.width, "height": image.height,
+                    "preview": base64.b64encode(_jpeg(image)).decode()}
+    except (OSError, ValueError):
+        pass
+    facts = _probe(source)
+    duration = float(facts.get("format", {}).get("duration", 0) or 0)
+    if duration <= 0 or not any(s.get("codec_type") == "video" for s in facts.get("streams", [])):
+        raise Refused("no_video_stream")
+    times = sorted(t for t in (at or [duration * (i + 0.5) / 9 for i in range(9)]) if 0 <= t < duration)[:12]
+    if not times:
+        raise Refused("invalid_range")
+    tiles = []
+    for moment in times:
+        frame = subprocess.run(
+            [_engine("ffmpeg"), "-v", "error", "-ss", f"{moment}", "-i", str(source), "-frames:v", "1",
+             "-vf", "scale=320:-2", "-f", "image2pipe", "-vcodec", "png", "-"],
+            capture_output=True, timeout=120,
+        ).stdout
+        if frame:
+            tile = Image.open(io.BytesIO(frame)).convert("RGB")
+            ImageDraw.Draw(tile).text((6, 4), f"{moment:.1f}s", fill=(255, 230, 0))
+            tiles.append(tile)
+    if not tiles:
+        raise Refused("media_engine_failed")
+    columns = 3 if len(tiles) > 4 else 2 if len(tiles) > 1 else 1
+    rows = -(-len(tiles) // columns)
+    sheet = Image.new("RGB", (columns * tiles[0].width, rows * tiles[0].height))
+    for index, tile in enumerate(tiles):
+        sheet.paste(tile, ((index % columns) * tiles[0].width, (index // columns) * tiles[0].height))
+    return {"kind": "video", "duration": round(duration, 3), "frames": [round(t, 2) for t in times],
+            "preview": base64.b64encode(_jpeg(sheet)).decode()}
+
+
 @app.tool()
 @_evidence
 def media_analyze(path: str, threshold: float = 0.3) -> dict:

@@ -348,7 +348,8 @@ export function revokeDevice(admin: Admin, userId: string, deviceId: string) {
 
 /* ---------------------------- Signed devices ---------------------------- */
 
-const SIGNING = { prefix: "OCADE-JARVIS-1", skewMs: 300_000, maxBody: 64_000 } as const;
+// A receipt may carry one 64 KB preview image for the planner.
+const SIGNING = { prefix: "OCADE-JARVIS-1", skewMs: 300_000, maxBody: 160_000 } as const;
 export const HEADERS = {
   device: "x-ocade-device",
   timestamp: "x-ocade-timestamp",

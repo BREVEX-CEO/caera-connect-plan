@@ -45,6 +45,33 @@ class Media(unittest.TestCase):
         self.assertEqual((evidence["width"], evidence["height"], evidence["orientation"]), (360, 640, "portrait"))
 
     @unittest.skipUnless(HAS_FFMPEG, "needs ffmpeg and ffprobe")
+    def test_preview_lets_the_planner_see_images_and_video(self):
+        import base64
+        import io
+
+        Image.new("RGB", (3840, 2160), (180, 10, 10)).save(self.root / "big.png")
+        subprocess.run(["ffmpeg", "-v", "error", "-f", "lavfi", "-i", "testsrc2=duration=6:size=640x360:rate=25",
+                        str(self.root / "clip.mp4")], check=True)
+        image, video, picked, missing = self.run_all([
+            ("media.preview", {"path": "big.png"}),
+            ("media.preview", {"path": "clip.mp4"}),
+            ("media.preview", {"path": "clip.mp4", "at": [1, 4.5]}),
+            ("media.preview", {"path": "nothing.png"}),
+        ])
+        for result, kind in ((image, "image"), (video, "video"), (picked, "video")):
+            self.assertEqual(result["status"], "observed", result)
+            self.assertEqual(result["evidence"]["kind"], kind)
+            self.assertNotIn("preview", result["evidence"])  # beside the evidence, never inside it
+            jpeg = base64.b64decode(result["preview"])
+            self.assertLessEqual(len(jpeg), 45_000)
+            with Image.open(io.BytesIO(jpeg)) as seen:
+                self.assertEqual(seen.format, "JPEG")
+        self.assertEqual((image["evidence"]["width"], image["evidence"]["height"]), (3840, 2160))
+        self.assertEqual(len(video["evidence"]["frames"]), 9)
+        self.assertEqual(picked["evidence"]["frames"], [1.0, 4.5])
+        self.assertEqual((missing["status"], missing["errorCode"]), ("not_applied", "not_a_file"))
+
+    @unittest.skipUnless(HAS_FFMPEG, "needs ffmpeg and ffprobe")
     def test_video_inspect_trim_and_verify(self):
         subprocess.run(
             ["ffmpeg", "-v", "error", "-f", "lavfi", "-i", "testsrc=duration=6:size=320x240:rate=25",

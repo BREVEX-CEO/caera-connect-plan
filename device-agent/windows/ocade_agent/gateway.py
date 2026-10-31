@@ -19,6 +19,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 import sys
 import time
 from datetime import datetime, timezone
@@ -291,10 +292,22 @@ class Gateway:
             return timed("unknown" if writes else "not_applied", writes, error="malformed_result")
         if "refused" in evidence:
             return timed("not_applied", writes, error=str(evidence["refused"])[:60])
+        # An image for the planner to look at travels beside the evidence, never inside it.
+        preview = evidence.pop("preview", None)
+        if preview is not None and (
+            not isinstance(preview, str) or len(preview) > MAX_PREVIEW or not _BASE64.fullmatch(preview)
+        ):
+            return timed("unknown" if writes else "not_applied", writes, error="malformed_result")
         if len(json.dumps(evidence)) > 16_000:
             return timed("unknown" if writes else "not_applied", writes, error="evidence_too_large")
-        return timed("observed", writes, evidence)
+        done = timed("observed", writes, evidence)
+        if preview is not None:
+            done["preview"] = preview
+        return done
 
+
+MAX_PREVIEW = 64_000
+_BASE64 = re.compile(r"[A-Za-z0-9+/]+={0,2}")
 
 _VALIDATORS: dict[str, jsonschema.Draft202012Validator] = {}
 

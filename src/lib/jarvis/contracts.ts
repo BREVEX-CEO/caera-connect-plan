@@ -428,6 +428,20 @@ export const OPERATIONS = {
       output: workspacePath,
     }),
   },
+  "media.preview": {
+    role: "media_engine",
+    // Sending what a file looks like to the online planner is the person's choice.
+    capability: "screen",
+    risk: "read",
+    arguments: z.strictObject({
+      path: workspacePath.describe("An image, render, screenshot or video in the workspace"),
+      at: z
+        .array(num(0, 86_400))
+        .max(12)
+        .optional()
+        .describe("Video only: the seconds to show; default nine evenly spaced frames"),
+    }),
+  },
   "media.analyze": {
     engine: "ffmpeg",
     role: "media_engine",
@@ -770,6 +784,12 @@ export const actionReceipt = z
     maybeChanged: z.boolean(),
     observedAtUtc: z.iso.datetime(),
     evidence: evidence.default({}),
+    /** A small JPEG (base64) the planner sees on its next turn; see `media.preview`. */
+    preview: z
+      .string()
+      .max(64_000)
+      .regex(/^[A-Za-z0-9+/]+={0,2}$/)
+      .optional(),
     errorCode: z
       .string()
       .regex(/^[a-z0-9_]{1,60}$/)

@@ -104,6 +104,37 @@
         "additionalProperties": false
       }
     },
+    "media.preview": {
+      "role": "media_engine",
+      "capability": "screen",
+      "risk": "read",
+      "arguments": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 260,
+            "description": "An image, render, screenshot or video in the workspace"
+          },
+          "at": {
+            "description": "Video only: the seconds to show; default nine evenly spaced frames",
+            "maxItems": 12,
+            "type": "array",
+            "items": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 86400
+            }
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "additionalProperties": false
+      }
+    },
     "media.analyze": {
       "role": "media_engine",
       "capability": "files",
@@ -2268,6 +2299,11 @@
           "maxLength": 80
         },
         "additionalProperties": {}
+      },
+      "preview": {
+        "type": "string",
+        "maxLength": 64000,
+        "pattern": "^[A-Za-z0-9+/]+={0,2}$"
       },
       "errorCode": {
         "type": "string",

@@ -451,11 +451,22 @@ test(
     const { plannerAccess } = await import("../../src/lib/jarvis/planner.server.ts");
     const deviceId = sql(`SELECT id FROM public.jarvis_devices WHERE user_id = '${userA}'`);
     writeFileSync(join(workspace, "status.txt"), "Status: GREEN\nOwner: Finance\n");
+    spawnSync("python3", [
+      "-c",
+      "from PIL import Image; import sys; Image.new('RGB', (640, 360), (200, 20, 20)).save(sys.argv[1])",
+      join(workspace, "chart.png"),
+    ]);
+    // Looking at an image and sharing it with the online planner is the person's `screen` choice.
+    sql(
+      `INSERT INTO public.jarvis_permissions (user_id, device_id, capability, allowed) VALUES ('${userA}', '${deviceId}', 'screen', true)`,
+      "postgres",
+    );
     const serviceKey = "test-service-role-key";
     const sent: { tools: { name: string; parameters: unknown }[]; prompt: string }[] = [];
     let providerUp = true;
     const script: ((prompt: string) => { name: string; args: unknown })[] = [
       () => ({ name: "fs_read_text", args: { path: "status.txt" } }),
+      () => ({ name: "media_preview", args: { path: "chart.png" } }),
       (prompt) => ({
         name: "office_write_document",
         args: {
@@ -648,6 +659,14 @@ test(
         sent.some((s) => /Status: GREEN/.test(s.prompt)),
         "the model saw the observed file text",
       );
+      // The model SAW the image it asked for: the turn after media.preview carries it as image data.
+      const looked = sent.findIndex((s) => s.prompt.includes('"inline_data"'));
+      assert.ok(looked > 0, "a preview reached the provider as an image");
+      assert.match(sent[looked].prompt, /"mime_type":"image\/jpeg"/);
+      assert.ok(
+        sent.some((s) => /Status: GREEN/.test(s.prompt)),
+        "the model saw the observed file text",
+      );
       // Every planner turn spent exactly one JARVIS permit; the outage turn was released, not charged.
       const permits = JSON.parse(
         sql(
@@ -655,12 +674,12 @@ test(
           "postgres",
         ),
       );
-      assert.equal(permits.succeeded, 4, JSON.stringify(permits)); // goal + 3 steps
+      assert.equal(permits.succeeded, 5, JSON.stringify(permits)); // goal + 4 steps
       assert.ok(!permits.reserved, JSON.stringify(permits));
 
       // Elapsed time (M3): server timestamps, device-measured steps, the outage as time waiting on the person.
       const timing = view.timing;
-      assert.equal(timing.modelCalls, 5, JSON.stringify(timing)); // 4 charged turns + the refused outage turn
+      assert.equal(timing.modelCalls, 6, JSON.stringify(timing)); // 5 charged turns + the refused outage turn
       assert.ok(timing.modelMs > 0, JSON.stringify(timing));
       assert.ok(timing.userWaitMs > 0, JSON.stringify(timing));
       assert.ok(
