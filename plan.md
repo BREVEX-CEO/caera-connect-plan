@@ -1,6 +1,200 @@
 # OCADE JARVIS — Master Engineering and Execution Plan for Claude Opus 5.5
 
+## BINDING PRODUCT CONTRACT — TRUE AI AUTONOMY, ZERO HARDCODED CUSTOMER JOURNEYS, REAL TESTS, COMMERCIAL LAUNCH
+
+**Latest owner direction, 31 October 2026. Authoritative over every conflicting earlier CODE-FIRST, TEST-LATER, fixed-workflow, milestone, or staged planner instruction further down this file.** Preserve the selected OD-AVGHHC backbone, all P00–P22 packages, original headings, existing research annexes and 236-entry heading/concept traceability. Historic examples and checkpoints are source evidence, NOT authorization to reproduce their limitations. Reconcile all implementation against current HEAD; never mistake a plan for completed code.
+
+> **Owner mandate — full engineering control within the existing boundaries:** “You have full control. Act like an elite engineer. Debloat and improve OCADE completely. No matter what, no hardcoded customer application journeys, scripts, files or workflows. AI must take care of the whole task autonomously; OCADE code is its hands, legs, senses and tools. Make it work well for real customers, test it thoroughly and qualify it for commercial public launch.”
+
+“Full control” authorizes repository engineering, replacing hardcoded production routing, removing verified dead/duplicate code, adding necessary capabilities, redesigning user experience, testing in authorized isolated environments, fixing bugs, rerunning tests and committing reviewed changes **only to ocade/p00-p22-implementation**. It does **not** authorize changing/merging main, deployment, Supabase migrations against live projects, paid services or purchases, GitHub Actions, enabling payments, personal PC access, real customer data, user-account actions outside agreed scopes, secret exposure or scheduled background continuation. These still need separate authority. Absolute owner spending ceiling **₹0**. No GitHub Actions. Never weaken permissions, MFA, RLS, STOP, owner protection, revocation, independent verification, original-file integrity or account isolation.
+
+### 1. What OCADE JARVIS IS — full product definition
+
+**OCADE BY CARCC** is the product. **JARVIS** is a website-first, online-AI-directed, local-first autonomous computer work agent. The customer gives one natural-language text or voice request, names any desired input or result and approves scope where necessary. The online AI is the **brain**: understands the goal, composes and revises a plan, chooses which verified capabilities to invoke and evaluates what remains. The **OCADE software** is the hands/legs/senses: signed device companion, local trusted MCP gateway, generic native/file/media/format tools, browser/OS adapters, durable permissions/leases/journal, and **separate independent verifier**. It executes on each customer's authorized paired PC, not exclusively on the developer's PC, and returns genuine usable editable files or an accurately reported action/result. No customer writes code, learns MCP, manually assembles a toolchain, installs Docker, or supplies a sequence of application clicks.
+
+**Customer promise:** User states final result → AI discovers reachable healthy tools, files and apps → AI decides safe next actions → OCADE executes through best authorized method → AI observes/adapts → independent software verifies → JARVIS delivers outcome. No fixed route derived from a keyword. No secret prebuilt demonstration where a tester executes the media edit for the model.
+
+**Absolute no-hardcoded rule (binding runtime invariant):** No production prompt regex or brand-specific if/switch that decides a workflow; no hardcoded apps to open, fixed sites, filenames, clips, UI selector chains, canned 10-step recipes, source file aliases, sample inputs or per-application scripts that substitute for AI task planning. No site-specific customer journey disguised in JSON/model system prompt, vendor-specific command lookup or fallback. No permanent "reconcile spreadsheet" special case. Application identification may be sourced dynamically from OS metadata and can be presented to the model as data; it cannot be assumed by the developer. Task goals must not be constrained to prewritten supportedOutcome patterns.
+
+**Crucial distinction:** Zero hardcoded **application/user journeys** is not “delete all .py/.js/.sh files” or “LLM must reproduce an image codec by clicking.” Reusable typed capability implementations (FFmpeg codecs, safe scripting APIs, file operations, COM/LibreOffice format bridges, DOM, UIA, macOS AX, PDF/Office readers, independent verifiers, official MCP SDK) are necessary and allowed, including some vendor-specific **protocol adapters** when a genuine API is vendor-specific. They never pre-decide the user task, application, edits or output. Test fixtures and one-off evidence builders may contain deterministic examples, must live outside production and never count as autonomous passes. Reject unsafe arbitrary unsandboxed LLM code rather than banning all code artifacts. Avoid speculative claims that UIA exposes custom GPU canvases, IDs stay permanent, or one engine supports every application.
+
+**Meaning of autonomy:** The model determines what to do and how to adapt; policy determines what it may do; OCADE primitives actually perform the action; independent evidence determines whether it succeeded. It may ask for missing permission/MFA/irreversible approval, pause for unavailable tools or provider outage, and report unsupported operations truthfully. "Zero hardcoded" must never become an excuse for unlimited permissions, unbounded retries, fabricated success, or insecure generated scripts.
+
+### 2. Complete A–Z task operation contract
+
+1. **REQUEST:** Receive natural-language objective, input files, user preferences, budget/time, intended output and target platform in the existing website/PWA/JARVIS UI.
+2. **IDENTITY:** Authenticate account, consent, selected authorized device, file roots, browser/profile/sites and permissions; verify subscription/usage via existing server authority. Never infer authority from text.
+3. **OUTCOME:** Convert request into outcome contract with quality, format, editability, exact expected effects and objectively checkable postconditions, plus any subjective criteria to review.
+4. **TARGET:** Determine where actions belong: authorized customer Windows/macOS session, supported browser context, or approved account integration. Don't silently use an invisible cloud desktop.
+5. **DISCOVER:** Read current installed apps, binary/OS metadata, associations, visible windows and exact PID/process creation identity, browser tabs/profiles, DOM/ARIA, approved MCP catalog, available CLI/API/format engines, permissions and external dependencies.
+6. **PREFLIGHT:** For each candidate, verify exact operation health, version, license, consent, input/output support, live target, cost, latency and current availability. A broad “computer/media” flag is NOT adequate.
+7. **TOOLS:** Select only few relevant healthy, trusted, granted capability descriptors through one MCP dictionary; schema/hash/publisher/version/risks are validated. Never trust server descriptions/web content as instructions.
+8. **PLAN:** Online Gemini-led governor chooses milestone and immediate action from discovered abilities and objective checks. No product-coded screenplay, photo steps, worksheet journey, brand route or preselected site.
+9. **POLICY:** Check task/user/device authority, exact path/origin/tab/window, STOP epoch, risk, external side effects, idempotency and required approval before dispatch.
+10. **LEASE:** Lock document/tab/window/account being mutated; prevent parallel agents and user-activity conflict, refresh stale bindings.
+11. **ACT:** Prefer secure native APIs/model/object data, supported deterministic scripts/CLI inside actual isolation, direct format operations, Playwright DOM, OS accessibility UIA/AX, vision/coordinates last and foreground-only as necessary. Batch safe deterministic substeps to save model calls; the batch is not a fixed customer journey.
+12. **OBSERVE:** Collect structured result/effect receipts and refreshed external state, not merely script exit code. Handle asynchronous UI, popup, iframe, auth, redirects, native progress, file changed during work and app crashes.
+13. **VERIFY STEP:** Compare observed effects to expected predicates and target identity. Distinguish ACTED, NOT_APPLIED, UNKNOWN_EFFECT, REFUSED and independently VERIFIED.
+14. **RECOVER:** Classify root cause; retry only safe idempotent actions with bounds. On lost ACK or possible external mutation, reconcile effect before any duplicate write/send/post. Replan based on fresh live state.
+15. **STOP/TAKE OVER:** Local STOP fences new work independently of model availability; remote STOP may wait if device offline. Take Over safely yields, Resume rebinds/reauthorizes. User focus activity aborts unsafe cursor-based operations.
+16. **CONTINUE:** Preserve durable journal and checkpoints across refresh/disconnect/crash, enforce max calls/time/actions/quotas and no-progress budget, release stale leases.
+17. **DOMAIN QUALITY:** Validate image resolution + genuine detail limits, video exact duration/codec/audio/scene output, finance totals/formulas, DOCX/PDF editable/rendered quality, CAD native project integrity, app/browser final state and unintended effects using a separate verifier.
+18. **FINISH:** Deliver actual editable/downloadable files or completed action in authorized location, hashes, short quality explanation, remaining exceptions, recoverability and truthful PASS/PARTIAL/BLOCKED.
+19. **CLEANUP:** Remove ephemeral permissions/processes, preserve originals and user-generated files, redact logs, expose follow-up and safe rollback; learn reliability from consented test outcomes only.
+
+The model NEVER unilaterally claims success. Accepted result = independently re-opened/re-read/re-rendered postconditions attached to exact actor-produced artifact and account/device/task history. No HTTP 200, AI text, mock, no-op screenshot, local demo or “file exists” shortcut.
+
+### 3. Backbone architecture to preserve and repair
+
+**OD-AVGHHC — Outcome-Driven Adaptive Verifier-Gated Hierarchical Hybrid Control** remains the selected Architecture C. One **goal supervisor** sets outcomes and safety/permission constraints; an adaptive **receding-horizon pilot** chooses the next bounded action and re-plans as evidence changes; one **trusted lazy MCP gateway** mediates tool discovery, schemas, lifecycle, security and execution; **OS/format/browser workers** execute using native-first mechanisms; a **separate verifier** reads actual results; **server task authority** controls state, permissions, leases, durable receipts and STOP. Compare against simpler methods with real benchmarks; do not claim universal superiority just from a diagram.
+
+**Topology:** User UI → existing Supabase auth/RLS + commercial permit → existing ocade-intelligence-service → model governor/pilot → dynamic capability registry/preflight → policy/risk/action validator → paired signed Device Agent and official MCP SDK gateway → generic native/format/OS/browser/vetted specialist workers → effect receipt → independent verifier → new AI decision or final deliverable. Offline Chat is separate and never silently substitutes for JARVIS's online planner.
+
+**Single owners:** one planner path, task-state machine, schema/contract, gateway, device key/installation authority, permission source, journal and verifier. Keep current React/TanStack/Cloudflare/Supabase website, user data, Chat, Library, pricing boundaries and all valid historical migrations. No duplicate runtime or detached new universal_agent framework. Preserve P00–P22 and 236 traceable concepts as a requirements map, not hardcoded runtime tool list.
+
+**Discovery and contracts:** Windows Start Menu/App Paths/installed packages, process/window leases, registered browsers, file associations, COM interfaces where available; macOS Launch Services/AX/AppleScript dictionaries/TCC; web DOM/site origins; approved MCP manifests/tools/list; format magic and installed engines. A manifest includes operation, typed JSON schema, preflight, supported platforms/versions, actual dependency, trust/license/hash, risk, permission scope, execution mechanism, outcome evidence and cost/latency. Trust ladder = discovered → reviewed → approved → healthy → scoped grant → dispatched → verified. Lazy start only active workers. Do not equate a Python venv to security sandbox or dynamically download/execute untrusted software.
+
+**Native-first hierarchy:** direct safe object model/API/files → supported sandboxed program/script/CLI and verified format engines → Playwright DOM/ARIA/site APIs → UIA/AX (revalidate live elements, PID/HWND and window focus) → screenshot/vision/coordinate fallback only when permitted. Recognize Electron/GPU/custom-canvas and minimized-window limitations; app-specific deep adapters are optional reviewed *capabilities*, not workflow brains. Permissions and user takeover govern every path.
+
+### 4. Mandatory hardcoding/debloat engineering audit
+
+Inspect **every production file, every router/model prompt/config/worker and every import from test or evidence**, not only .py. Record each candidate as DELETE DEAD, REPLACE FIXED JOURNEY, GENERALIZE CAPABILITY, RETAIN NECESSARY FORMAT/OS ADAPTER, or TEST/EVIDENCE ONLY. Trace callers, ownership, permissions, output/verifier parity and regression before removal. Do not destroy meaningful tests or compress code for a line-count target.
+
+**Known concrete candidates at branch b9f9581:**
+- **src/lib/jarvis/supervisor.ts** — supportedOutcome currently uses “reconcile + xlsx/workbook/Excel” regex; JOURNEY_1_CHECKS and a hardcoded fs.list → office.inspect_workbook → office.reconcile_workbook → office.write_report → verify.reconciliation_report sequence. This is a REAL production fixed journey, not fully autonomous. Replace with AI-selected operations and goal-specific dynamically compiled outcome checks. Preserve proven finance verifiers as reusable mechanisms.
+- **device-agent/windows/ocade_agent/office_worker.py** — evaluate assumptions of exactly two sheets, fixed financial headers, mandatory report format. Keep legitimate composable spreadsheet, DOCX/PDF operations, remove user-task recipes and generalize schemas.
+- **device-agent/windows/ocade_agent/engine.py** — Excel/Word COM and LibreOffice are legitimate format adapters. Detect installed supported engines and health dynamically, avoid assuming Office is available, handle other compatible tools by capabilities.
+- **web_worker.py, catalog.py, gateway.py, planner.server.ts, contracts/protocol.json** — keep generic Playwright and official MCP, trusted tool schema pinning and user permission checks; eliminate any hardcoded app/site/selector/output prompt shortcuts. Dynamic allowed tool selection cannot mean dangerous unrestricted dynamic code.
+- **device-agent/windows/tests/qualify_photo_web.py** — fixed Photopea steps/selector chain are a **test script only**, NOT production AI autonomy proof. Vary the site and task in real AI trials.
+- **evidence/2026-10-31-intelligence/media/build_film.py, verify_film.py** — fixed timestamps/shots/captions reproduce a film sample and checks; evidence-only, never product routing. Do not label a native FFmpeg scripted film as AI-directed web editing.
+- Inspect all other production TypeScript/Python/SQL/UI layers for prompt-name filters, fixed apps, static launch aliases, hardcoded URLs/site selectors, native window guesses, canned success, duplicate engine branches, TODO placeholders and obsolete planner-key references.
+
+**Static anti-hardcoding gate:** production may not import tests/evidence; no known user-goal keyword condition chooses a prewritten multi-step journey or hardcoded editor. Whitelisted engine/format-specific APIs require documented technical necessity. **Dynamic metamorphic gate:** different names, phrasing, files, compatible installed programs, arbitrary site UI and tool manifests should still yield valid novel model plans; unavailable tools should produce truthful blocked states. Do not ban files by extension: code/artifacts are part of professional work.
+
+**Error modes to fix at shared root:** missing FFmpeg, Python, LibreOffice, Chromium binary or DISPLAY/Xvfb only discovered mid-task; certificate/OS dependencies; wrong window or tab; UI changes, late controls, focus loss; unsafe MCP and worker startup; planner provider/key and auth/consent; STOP races; unknown effect and lost ACK; excessive model calls and quota retry; model's false assertion; fake Photoshop/photo/video success; false macOS/Windows qualification. Fix dependency preflight, safe leases/receipts/recovery and output verification before app-name exceptions.
+
+### 5. Three existing staging Gemini API key slots — actual testing, safe free use
+
+Use the **three owner-authorized server-side staging Gemini slots** through the already existing authenticated **ocade-intelligence-service**, instead of resurrecting the retired jarvis-planner or JARVIS_PLANNER_KEY. Existing plan migration was completed **in code** at b9f9581: server-side planner adapter, commercial permit, service user binding, consent, provider tool-call normalization, bounded provider slot failover and separate verifier. **Live staging model execution remains NOT VERIFIED.** Staging migration 20261030120000 was reported unapplied; a deployed authenticated JARVIS web server/test account was absent. No silent deployment or schema migration.
+
+**Required three-slot procedure:**
+1. Inspect authorization/configuration at the secure *server secret boundary*. Verify configured/active primary, secondary, tertiary; their target staging environment, approved model, provider billing/free-tier eligibility and provider terms **without revealing any key or key fragment**. Do not place any key in source, plan, client, VITE_/PUBLIC_ variable, logs or customer agent.
+2. Verify official model ID, real provider quota and whether limits are shared by project/account or key. **Three keys are redundancy, NOT authorization to evade one project's quota or to spend money.** Any unknown no-cost status blocks a live call. Do not claim quotas based on stale data.
+3. Smoke-test **each eligible slot independently** in a consenting isolated test account with minimal real-model work; record slot label, successful tool-call schema, request IDs, tokens/quota, refusal/timeout/rate-limit and cost=₹0 evidence. Never test all three on every user prompt for show.
+4. Test bounded primary → secondary → tertiary failover ONLY where provider policy, quota and existing code permit, one commercial permit per logical planning turn and no duplicated external effect. Current provider code caps total attempts; never bypass consent or paid limits. Preserve safe WAITING on exhaustion/outage; no silent local model fallback.
+5. Execute genuine AI-created tool calls, browser task and file outcome using real staging service authentication, RLS, consent, generation permit, current task-authority migration and device agent. Scripted provider regressions remain tests but cannot substitute for live Gemini proof.
+6. Test all keys missing/revoked, server 401/403, provider 429/5xx, malformed stream/schema, quota reset, STOP, cancelled permit and no-double-charge; verify proper release/retry handling with server-side redacted logs. Only apply staging migration/deploy after separate explicit approval; continue free isolated/local tests when blocked.
+
+### 6. Customer PC installation and dependency distribution — not developer-machine-only
+
+**Required customer experience:** Windows customer installs one signed per-user Device Agent, pairs via account approval, grants scoped permissions, and can run tasks without manually installing Python, Node, Docker, Git, LibreOffice, FFmpeg, MCP, Playwright or developer tooling. A clean non-admin computer with no Office must still run capabilities it actually supports. If optional software is missing, declare that particular capability unavailable or install only legally distributable, approved and consented components with version pin/rollback; do not impersonate Microsoft Office licensing or assume missing proprietary apps are free.
+
+**Windows build/installer:** bundle or safely provision reviewed runtime, pinned Python modules and native extensions, official MCP SDK, managed browser engine where required, OS UIA/Win32 libraries, isolated task workspaces, journal, DPAPI-secured keys, signed update/repair/uninstall, service/user-session constraints, version/ABI checks and intelligent dependency self-test. Maintain a tested OS, CPU/architecture, memory/disk, browser and file-format compatibility matrix. Preflight dependency and platform capability *before* user task execution. Do not require administrator privileges without clear need or bypass UAC.
+
+**macOS:** shared contracts/governor/gateway, native separate AX/AppleScript/Launch Services driver, explicit TCC permission, signed/notarized package, Keychain, Intel/Apple Silicon compatibility where claimed and native interactive session. Windows COM/UIA cannot run as a substitute. Do not claim macOS supported until native clean-install and app automation proof. Supported Android access and iOS web surfaces need separately verified qualifications; no imaginary iOS control.
+
+**Docker/cloud reality:** Docker + Linux + Xvfb are useful for disposable browser Chromium, local databases, safe codecs/builds and deterministic regression. They **cannot** provide interactive Windows UIA/Office COM or native macOS AX/TCC on a Linux host. Do not impose Docker as a customer dependency or claim Docker solves Windows GUI. Native Windows/macOS qualification requires legally usable real OS interactive test environments, even if unavailable under ₹0. No GitHub Actions; prefer approved free containers/local runners. A test on the developer's computer proves only that machine, not customer portability.
+
+**Deployment/updates:** installer/SBOM/licence provenance, no unapproved dependency downloads, no secret extraction, no user password/cookie scraping, encrypted pairing, backwards compatible task contracts, upgrade/downgrade and rollback, safe uninstall/customer data deletion. Versioned capability self-check before an agent advertises readiness. Staging service remains existing and no live deployment is implied by editing plan.
+
+### 7. Browser, text UX and professional multi-domain work
+
+**Text-first UI:** one natural-language composer, optional file/device/website scope, minimal ambient status, subtle collapsed step history, actionable permissions/errors, accessible compact STOP/Take Over/Resume, responsive/reduced-motion/keyboard/screen-reader quality, truthful delivery links. Do not expose internal MCP setup or provider keys; preserve Chat Auto/Online/Offline separation, Library, auth and account privacy. Voice and mobile should not create hidden device authority.
+
+**Real web control:** origin/profile/tab binding, public HTTPS network policy, DNS/redirect SSRF, live DOM/ARIA selectors, delayed fields, iframe/popup, upload/download, user MFA/consent handoff, worker crash/restart and independent output checking. Avoid hardcoding Photopea or one web editor in production; test multiple unfamiliar websites with changed layouts.
+
+**First two owner acceptance outcomes (not routing special cases):** (A) authorized ordinary photo → requested visual improvement, genuine 3840×2160 export and source preserved, visually reviewed; software cannot invent original sensor detail from mere resize. (B) cinematic AI-themed **exactly 60-second MP4**, creative choice of legally usable footage/graphics/music, narrative/cuts/titles/grade and independently checked codec/duration/audio/frames, optional editable project. Both must be **AI-planned and genuinely executed through OCADE's allowed tools**, not solely a copied fixed photo.py/film.py or a tester-made render. The former scripted Photopea run and FFmpeg film belong to evidence baselines; they do not pass the autonomous release gate. Preserve financial, docs, PDFs, browser, chess/CAD and cross-app task ambition through actual capabilities and domain verifiers; only advertise qualified scope.
+
+**Speed without deception:** preflight all needed tools; cache time-bounded catalog, fewer tool descriptions per AI turn, deterministic safe operation batching, local file/render throughput, bounded calls/retries and no screenshot-loop spam. Record actual p50/p95 latency, model calls, per-task cost, user interventions and independent verified success. No asserted universal zero latency or 100% accuracy.
+
+### 8. Mandatory implementation order — code, test, fix, retest TOGETHER
+
+Historical “CODE FIRST, NO TESTING” instructions below are **retired for current work**. P00–P22 package names and backbone remain; use their dependency graph without recreating solved modules or waiting for another testing prompt. Make the smallest complete maintainable production fix, run its tests and neighboring regressions, inspect failure evidence, fix, retest, remove dead branches and continue. No unverified refactor that loses required security or tests.
+
+1. Read current SHA, AGENTS.md/CLAUDE.md/Decisions.md/ToRemove.md, source, permits, workers, authority migrations and evidence. Establish baseline commands without GitHub Actions or paid service.
+2. Inventory hardcoded production journeys; remove supportedOutcome/fixed Journey 1; implement generic outcome compiler + AI-selected healthy capability action + independent general checks. Preserve useful reconciliation engine as composable capability.
+3. Repair dynamic registry and preflight, no fixed app selection, official MCP gateway, safe code execution, exact target identity, permission and operation-level health.
+4. Repair model integration through existing staging intelligence service and test **all three legitimate eligible keys** per §5 without leaks, spending or quota bypass; keep live model staging status BLOCKED when missing migration, consent, hosting or no-cost proof.
+5. Repair/install browser/native/format engine dependencies and customer PC packaging, OS-specific adapters and unavailable-capability messages; no developer-only PATH behavior.
+6. Restore complete signed-in UI, task history, text-first UX, cancellation/Take Over, output delivery and usability/accessibility.
+7. Execute real AI-controlled photo and one-minute film, then independent media QA; broaden unfamiliar browser/workbook/docs/CAD/chess if genuine supported tools available.
+8. Fault-inject crash/STOP/unknown-effect/provider quota/permissions/wrong target; repair root cause, rerun original and adversarial cases, no hidden retries.
+9. Debloat duplicates/obsolete planner and hardcoded demo paths; regression check Chat, Library, auth, Offline Chat and release gate behavior after any cleanup.
+10. Qualify fresh native Windows customer installation and actual Office/UIA where licensed, native macOS where actually available, plus server-only/browser test matrix. Mark unavailable hardware BLOCKED.
+11. Prepare support/operations/licensing/privacy/update/rollback/customer deletion evidence, release candidate artifact and exact SHA. Ask separately for owner approval of main merge/deployment/payment activation, never assume it.
+
+### 9. Complete independent test matrix and proof classes
+
+**T0 static/build:** typecheck, lint, format (identify pre-existing failures), build, security/secret audit, dependency licences and CVEs, API/schema contracts, 236-index traceability, production-not-import-test/evidence, no hardcoded task routing.
+**T1 unit:** user-goal variants, unknown compatible app selection, objective/check compiler, model tool schema normalization, permission denial, STOP epoch, receipts, idempotency, verifier false/unknown cases, retry budget and tool catalog schema drift.
+**T2 integration:** actual local PostgreSQL migrations and RLS/authority, service handler + commercial ledger, official MCP workers, real LibreOffice/FFmpeg/format engines, isolated filesystem and browser Chromium under Xvfb; mocked provider runs labeled **SCRIPTED/MOCK**, not REAL MODEL.
+**T3 real AI staging:** three eligible provider key slots with redacted individual health and permitted failover, actual model plan, correct permit accounting/consent, auth boundaries, real tool dispatch and verified output. Staging key presence without a call is not passing.
+**T4 browser end-to-end:** 20+ distinct scenario classes: dynamic form controls, uploads/downloads, files, editing, DOM, frames, popups, redirects, auth/MFA handoff, downloads, postconditions, focus/STOP, alternative site/unknown layout and prompt injection. Each result includes genuine screenshot/trace and independent artifact hash.
+**T5 photo/video:** model invents editing sequence live; 4K photo and exactly 60-second cinematic video, objective+visual quality, source permissions, file/codec/frame/audio checks, original unchanged; run an alternative compatible editor and altered inputs/phrases. Scripted Photopea and manually scripted film can be comparison baselines only.
+**T6 native Windows:** clean installer on ≥2 independent representative devices/sessions, fresh non-admin user, Office absent/present where licensed, COM/UIA, DPI, monitors, background/foreground limitations, explorer/app discovery, wrong-window focus, crashes, STOP, version upgrade/uninstall and hashes. Linux/VM mocks are not equivalent.
+**T7 native macOS:** AX/TCC/Keychain, supported architecture, real app control and package signature/notarization, security, STOP and clean install. Absent native machine = BLOCKED, not PASS.
+**T8 multi-domain acceptance:** general files, editable docs/PDF, finance reconciliations, browser cross-app, media; CAD/chess only where genuinely installed/qualified; random alternative apps and files, each with independent domain postconditions.
+**T9 adversarial/chaos:** 2 concurrent agents same window, stale PID/HWND, change focus, prompt injection, external MCP manifest swap, SSRF, lost ACK after possible mutation, crash/restart, offline device, permissions revoked, fake provider reply, quota exhausted, key revoked, model safety refusal, wrong account/data, destructive undo and illegal dependency/license.
+**T10 commercial user:** brand-new customer onboarding, readable UI, permissions, uninstall/remove device, privacy/terms, cost and quota protection, telemetry redaction, rollback, accessibility, support escalation and customer-ready help.
+
+**Measured acceptance:** Declare supported families before testing and target **≥95% independently verified real-task success per major released family** (proposed ≥40 independent unprepared tasks per family, including alternative apps and wording; enlarge for meaningful statistical confidence), zero known critical auth/secret/wrong-target/data-loss/replay/permission bugs, and no known critical unresolved defect. Publish numerator/denominator, platform, genuine provider calls vs mocks, failure count, STOP/confirmation proof, artifact hashes and p50/p95 latency. Success of manually rendered artifacts, scripts, mocked models or HTTP 200 is not evidence of end-to-end autonomy. Report FAIL/PARTIAL/BLOCKED/UNTESTED with exact environment, commands, artifacts and commit SHA. No impossible 100% coverage promise.
+
+### 10. Commercial launch checklist (every item needs independent evidence)
+
+**Product & autonomy**
+- [ ] No fixed user task/app-name workflow or prewritten website/film/photo script in production or hidden model prompt.
+- [ ] Dynamic AI plan reaches healthy, authorized tools for unfamiliar legitimate goals; alternative compatible apps tested.
+- [ ] Reusable specialist codecs/formats/OS APIs remain discoverable without dictating the task itinerary.
+- [ ] Independent goal checks, outcome, unknown-effect and error reports bind to real customer files/actions.
+- [ ] Desktop/background limitations and unsupported apps truthfully disclosed, no false universal control.
+
+**Auth, security & lifecycle**
+- [ ] Real user/device pairing, server RLS, grants/consent, MFA boundaries, commercial permits, key protections and revocation tested.
+- [ ] STOP/Take Over/Resume/local fences, crash journal, safe retries, lost ACK reconciliation, exact window/site identity and wrong-target denials tested.
+- [ ] Prompt injection, SSRF/private IP, malicious tools, sandbox escapes, cross-user requests, data leaks, unsafe generated scripts and secret audits passed.
+- [ ] Originals/rollback and legal data deletion verified, no unattended purchases/payment/customer data mutation.
+
+**Keys, costs and staging**
+- [ ] All THREE designated server-side Gemini staging slots securely verified for eligibility/availability; no secret copied.
+- [ ] Each eligible key passed real minimal provider smoke, valid model/tool schema and redacted free-cost accounting.
+- [ ] Authorized failover and shared quota respected; 3 keys are not 3 invented quota pools.
+- [ ] Existing ocade-intelligence-service, staging migrations, consent, auth and generation gate tested with real end-to-end provider and tool use.
+- [ ] No spending, GitHub Actions, paid sign-up, unapproved staging deployment or migrations.
+
+**Customer machine & professional outcomes**
+- [ ] One-click Windows user installation works on clean non-developer PC without manual Python/Docker/Node/MCP/FFmpeg setup.
+- [ ] Supported Windows UIA/Office/browser workflows pass genuine native tests, including STOP, focus and multiple monitor/DPI.
+- [ ] macOS native driver, permissions, signing/notarization and real-device tests pass before any macOS support claim.
+- [ ] Real AI creates 4K enhanced photo and 60-second cinematic AI film from unfamiliar inputs; independent quality/effect evidence, not demo script.
+- [ ] Other advertised document, spreadsheet, CAD/chess, browser, cross-app and media families have genuine independently checked outcomes.
+- [ ] JARVIS UI: simple text prompt, subtle status, accessible STOP/Take Over, clear waiting/error, verifiable file delivery, reduced motion/mobile behavior.
+
+**Release discipline**
+- [ ] All static/unit/integration/live-provider/browser/native/security/chaos tests PASS for declared support; honest BLOCKED/UNSUPPORTED recorded.
+- [ ] ≥95% measured success per major released family with documented sample, failures and no critical open bugs; performance/quotas measured, not invented.
+- [ ] Signed/versioned packages, licence/SBOM, updates/uninstall, privacy/security terms, monitoring, rollback, support and incident playbook ready.
+- [ ] Exact commit SHA and real evidence set delivered; explicit separate owner approval obtained before merge to main, staging/production deployment, payments or any cost.
+
+**Release status names:** DOCUMENTED ≠ CODED ≠ LOCAL TEST PASS ≠ REAL AI PASS ≠ NATIVE PLATFORM PASS ≠ READY FOR OWNER LAUNCH. Current source is **NOT PUBLIC-LAUNCH VERIFIED**. No editing of this plan alone changes that status.
+
+### 11. Next coding agent's mandatory first actions and reporting
+
+Act as a senior/principal engineer and autonomous engineering lead **within authorized repository/no-cost scope**. Start on current HEAD of ocade/p00-p22-implementation; inspect AGENTS.md, CLAUDE.md, ToRemove.md, actual repository, migrations, online intelligence boundary, gateway, device agent and previously measured evidence. Keep P00–P22 and every annex concept intact; implement, test, repair, retest and remove unnecessary code rather than generate another abstract proposal.
+
+**First:** eliminate the fixed supervisor Journey 1 and every other production hardcoded app/file/script path; build a dynamic goal-to-capability pipeline and tests with unfamiliar tasks, preserving legal format/OS engines and independent verification. **Second:** finish the secure 3-slot staging Gemini real-model route under existing consent/permit/no-spend rules, explicitly block unauthorized migrations/deployments. **Third:** prove real AI-directed photo and video workflows, plus native customer install and other supported task families with genuine independent evidence. **Throughout:** improve the customer text-first UI, safe STOP, reliability, security and debloat. Do not give up at a green mock suite, single Photoshop/Photopea sample, or missing native machine.
+
+Report **workstream | what changed | exact tests and environment | independently verified outcomes | PASS/FAIL/PARTIAL/BLOCKED | real provider/cost/quotas | remaining launch blockers and safe next step** with SHA, no invented tests or claims.
+
+**ONE RULE TO REMEMBER: AI is the brain; OCADE is the authorized, reusable hands/legs and independent verifier. ZERO HARDCODED CUSTOMER WORKFLOWS. Full engineering rigor; real results, truthful limits, public launch only after evidence and separate release approval.**
+
+---
+
+
+
 ## LATEST STAGING PLANNER MIGRATION DECISION — 31 OCTOBER 2026
+
+> **HISTORICAL CONTEXT, ALREADY IMPLEMENTED LOCALLY AT b9f9581:** The service reuse adapter is coded, and the obsolete jarvis-planner/old secret were removed. The paragraphs below predate that code and should not cause reimplementation or restoration. Real authenticated staging Gemini tests remain unverified. Refer to the binding contract at the top.
+
 
 Owner requests that JARVIS reuse the already-deployed, authenticated staging `ocade-intelligence-service`, rather than requiring a new `jarvis-planner` deployment and new `JARVIS_PLANNER_KEY`. Preserve the current code until a safe migration is implemented and tested. Do not rename an unrelated key or place sensitive server credentials in client code. The existing service requires server authentication, user identity, consent and a valid generation permit; these boundaries must remain effective.
 
@@ -34,6 +228,9 @@ Staging inventory confirms `ocade-intelligence-service` and `ocade-intelligence`
 
 
 ## Immediate owner directive — CODE FIRST, complete P00–P22 implementation before testing
+
+> **SUPERSEDED OWNER WORKFLOW:** Historical record, not current permission to skip verification. The latest binding contract requires coding, tests, repairs and retests together. Preserve factual historic checkpoints only.
+
 
 **Current assignment: finish the entire source-code implementation, not a milestone demo or a test campaign. This directive governs the implementation workflow wherever later sections describe evidence-gated or test-first package exits.** Keep all product requirements, security boundaries, and release criteria; change their **order of execution**, not their meaning.
 
@@ -414,6 +611,9 @@ Measure real task completion, p50/p95 end-to-end latency, per-tool time, model t
 
 ## 17. Deferred test evidence, release gates and qualification
 
+> **CURRENT RULE:** Previously deferred testing/finish line sequencing is superseded. Apply current test-and-fix contract and zero-hardcoded autonomy gates above; retain the historical P00–P22 names and research records.
+
+
 **Not a coding-phase exit gate.** This entire section applies to the dedicated testing/qualification stage **after** P00–P22 production code is written. Do not run the full matrix or stop implementation here. Preserve every security and verification requirement in the code now, and label unexecuted checks UNTESTED.
 
 
@@ -432,6 +632,9 @@ Measure real task completion, p50/p95 end-to-end latency, per-tool time, model t
 - Final frozen-candidate verification and consenting-user pilot only after explicit owner permission. No deployment from this plan alone.
 
 ## 18. Implementation sequence P00–P22 (dependency-ordered, CODE FIRST)
+
+> **CURRENT RULE:** Previously deferred testing/finish line sequencing is superseded. Apply current test-and-fix contract and zero-hardcoded autonomy gates above; retain the historical P00–P22 names and research records.
+
 
 **During this assignment, for every remaining package:** inspect current owner and callers → implement the smallest complete production-code change directly → wire it into the existing product → handle permissions, errors, STOP and durable state → move immediately to the next dependency-ready package. **No test-first loop, per-package test gate, benchmark, milestone report or intermediate commit.** The rightmost column is a **deferred qualification checklist** and dependency map, not a reason to pause coding. Record each package as CODED/INCOMPLETE/UNTESTED; do not call it VERIFIED before testing. Existing locally coded packages must be inspected and reused, not rebuilt.
 
@@ -699,6 +902,9 @@ A completed task returns a concise explanation, any exceptions, verification sum
 
 ## 28. Deferred test matrix and qualification gates for Claude
 
+> **CURRENT RULE:** Previously deferred testing/finish line sequencing is superseded. Apply current test-and-fix contract and zero-hardcoded autonomy gates above; retain the historical P00–P22 names and research records.
+
+
 **After coding only:** this section is the acceptance/test backlog for the next stage. Do not create its full test harness or run its commands as a prerequisite to finishing P00–P22 production code. Implement the safeguards and testable seams now; execute the tests after the owner authorizes the testing phase. Existing tests remain intact.
 
 
@@ -752,6 +958,9 @@ Use contract tests for TS/Python schema parity, client/server validation, protoc
 - **P20–P22:** qualify three priority customer journeys and seven scenario families, adversarial/supply-chain tests, benchmark architecture choices, release handoff only with explicit owner approval.
 
 ## 29. Two separate completion gates — code now, tests later
+
+> **CURRENT RULE:** Previously deferred testing/finish line sequencing is superseded. Apply current test-and-fix contract and zero-hardcoded autonomy gates above; retain the historical P00–P22 names and research records.
+
 
 ### 29.1 CODE COMPLETE — UNTESTED (current assignment)
 
@@ -1060,6 +1269,9 @@ These are later requirements/refinements, **not literal headings of the original
 ---
 
 ## Final Claude handoff instruction
+
+> **CURRENT RULE:** Previously deferred testing/finish line sequencing is superseded. Apply current test-and-fix contract and zero-hardcoded autonomy gates above; retain the historical P00–P22 names and research records.
+
 
 **Read the immediate CODE-FIRST directive and Sections 21–30, then write production code immediately.** Do not equate source traceability with implemented behavior.
 
