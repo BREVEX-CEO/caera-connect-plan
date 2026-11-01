@@ -1,0 +1,35 @@
+# Fast, secrets-free reproduction and regression gate; never performs customer tasks.
+name: JARVIS planner safety
+on:
+  push:
+    branches: ["ocade/p00-p22-implementation"]
+    paths:
+      - ".github/workflows/jarvis-planner-safety.yml"
+      - "tests/security/**"
+      - "src/lib/jarvis/**"
+      - "src/lib/intelligence/contract.ts"
+      - "package.json"
+      - "package-lock.json"
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: jarvis-planner-safety-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  planner-safety:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Reproduce planner trust-boundary failures
+        run: node --experimental-strip-types --no-warnings --test tests/security/*.test.ts
+      - name: Show canonical source formatting for remote authoring
+        if: always()
+        run: |
+          node --input-type=module -e 'import fs from "node:fs"; import prettier from "prettier"; for (const path of process.argv.slice(1)) console.log("OCADE_FORMAT:" + JSON.stringify({path, content: await prettier.format(fs.readFileSync(path, "utf8"), {...await prettier.resolveConfig(path), filepath:path})}));' tests/security/planner.test.ts .github/workflows/jarvis-planner-safety.yml
