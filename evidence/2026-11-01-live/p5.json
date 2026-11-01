@@ -1,0 +1,3272 @@
+{
+  "objective": "Check python.org for the newest stable Python 3 release and save its version number and release date in a short note in my folder.",
+  "taskId": "593d6a32-0f59-4e5a-ad13-91504889adf4",
+  "status": "blocked",
+  "result": null,
+  "blocker": "Not finished: python_org_check did not pass.",
+  "checks": [
+    {
+      "id": "python_note_exists",
+      "kind": "file_exists",
+      "params": {
+        "path": "OCADE output/python_version.txt"
+      },
+      "description": "A note file containing the newest stable Python 3 release info is saved in OCADE output/",
+      "state": "passed"
+    },
+    {
+      "id": "python_org_check",
+      "kind": "web_text_contains",
+      "params": {
+        "url": "https://www.python.org/",
+        "text": "Download Python"
+      },
+      "description": "The python.org homepage indicates the latest stable release or contains Python 3 info",
+      "state": "failed"
+    }
+  ],
+  "timing": {
+    "acceptedAt": "2026-11-01T10:49:31.294706+00:00",
+    "finishedAt": "2026-11-01T10:50:48.338316+00:00",
+    "verifiedAt": null,
+    "deliveredAt": null,
+    "totalElapsedMs": 77044,
+    "userWaitMs": 1240,
+    "activeExecutionMs": 7506,
+    "modelCalls": 11,
+    "modelMs": 40413,
+    "stepDurationsMs": [
+      649.21,
+      1740.49,
+      1052.41,
+      772.46,
+      3.81,
+      397.86,
+      1250.55,
+      417.11,
+      378.08,
+      444.28,
+      400.16
+    ]
+  },
+  "confirmations": [
+    {
+      "step": "d81bfda1-ed43-4fef-b33e-5a1027a1eaf9",
+      "effect": "web.click {\n  \"page\": {\n    \"id\": \"44693bd2ff76\",\n    \"site\": \"www.python.org\"\n  },\n  \"selector\": \"[data-ocade=c23]\"\n}",
+      "at": "2026-11-01T10:49:52.205Z"
+    }
+  ],
+  "decisions": [
+    {
+      "summary": "read",
+      "intent": {
+        "v": 1,
+        "key": "s1",
+        "risk": "read",
+        "target": {
+          "site": "www.python.org"
+        },
+        "arguments": {
+          "page": {
+            "id": "main",
+            "site": "www.python.org"
+          }
+        },
+        "operation": "web.read",
+        "capability": "browser",
+        "deadlineUtc": "2026-11-01T10:59:31.577Z"
+      },
+      "status": "failed",
+      "receipt": {
+        "status": "not_applied",
+        "evidence": {
+          "durationMs": 649.21
+        },
+        "errorCode": "page_gone",
+        "maybeChanged": false,
+        "observedAtUtc": "2026-11-01T10:49:39.357Z"
+      }
+    },
+    {
+      "summary": "open",
+      "intent": {
+        "v": 1,
+        "key": "s2",
+        "risk": "read",
+        "target": {
+          "site": "www.python.org"
+        },
+        "arguments": {
+          "url": "https://www.python.org/"
+        },
+        "operation": "web.open",
+        "capability": "browser",
+        "deadlineUtc": "2026-11-01T10:59:39.993Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "url": "https://www.python.org/",
+          "page": {
+            "id": "44693bd2ff76",
+            "site": "www.python.org"
+          },
+          "text": "Skip to content\nPython\nPSF\nDocs\nPyPI\nJobs\nCommunity\nDonate\n \nSearch This Site\n GO\nSocialize\nAbout\n \nDownloads\n \nDocumentation\n \nCommunity\n \nSuccess Stories\n \nNews\n \nEvents\n# Write Fibonacci series up to n\n>>> def fib(n):\n...     a, b = 0, 1\n...     while a < n:\n...         print(a, end=' ')\n...         a, b = b, a+b\n...     print()\n...\n>>> fib(1000)\n0 1 1 2 3 5 8 13 21 34 55 89 144 233 377 610 987\n\nFunctions Defined\n\nThe core of extensible programming is defining functions. Python allows mandatory and optional arguments, keyword arguments, and even arbitrary argument lists. More about defining functions\n\n1\n2\n3\n4\n5\n\nPython is a programming language that lets you work quickly\nand integrate systems more effectively. Learn More\n\n Security notice: the emSign root CA has been removed from certifi. Upgrade certifi, pip, uv and sigstore now.   See more\nGet Started\n\nWhether you're new to programming or an experienced developer, it's easy to learn and use Python.\n\nStart with our Beginner’s Guide\n\nDownload\n\nPython source code and installers are available for download for all versions!\n\nLatest: Python 3.15.2\n\nDocs\n\nDocumentation for Python's standard library, along with tutorials and guides, are available online.\n\ndocs.python.org\n\nJobs\n\nLooking for work or have a Python related position that you're trying to hire for? Our relaunched community-run job board is the place to go.\n\njobs.python.org\n\nLatest News\n\nMore news\n\n2026-10-29\nAnnouncing PSF Community Service Award Recipients!\n2026-10-26\nPython 3.15.2, 3.14.10, 3.13.18, 3.12.16 and 3.11.18 are out\n2026-10-22\nMark Your Calendars! PSF Board Office Hours for the Year Ahead\n2026-10-21\nPython 3.15.1, 3.14.9 and 3.13.17 are out\n2026-10-20\nWikis: Relaunched!\nUpcoming Events\n\nMore\n\n2026-11-06\nPyCon ES 2026\n2026-11-07\nPython El Salvador vuelve — Meetup de Reactivación\n2026-11-11\nEdmonton.py: The Edmonton Python User Group\n2026-11-12\nPython Help\n2026-11-12\nPython Leiden User Group\nSuccess Stories\n\nMore\n\nWant to know how Python is performing on Arm across Linux, Windows, and the cloud? Our 2025 update highlights the latest JIT improvements, ecosystem milestones like GitHub runners and PyTorch on Windows, and the continued collaboration driving it all forward.\n\nPython on Arm: 2025 Update by Diego Russo\n\n\n\nUse Python for…\n\nMore\n\nWeb Development: Django, Pyramid, Bottle, Tornado, Flask, Litestar, FastAPI\nGUI Development: tkInter, PyGObject, PyQt, PySide, Kivy, wxPython, DearPyGui\nAI and Machine Learning: PyTorch, TensorFlow, scikit-learn, Transformers, Anthropic, LangChain\nScientific and Numeric: SciPy, Pandas, IPython\nSoftware Development: Buildbot, Trac, Roundup\nSystem Administration: Ansible, Salt, OpenStack, xonsh\n>>> Python Software Foundation\n\nThe mission of the Python Software Foundation is to promote, protect, and advance the Python programming language, and to support and facilitate the growth of a diverse and international community of Python programmers. Learn more\n\nBecome a Member Donate to the PSF\n\nAbout\nApplications\nQuotes\nGetting Started\nHelp\nDownloads\nAll releases\nSource code\nWindows\nmacOS\nAndroid\niOS\nOther Platforms\nLicense\nAlternative Implementations\nDocumentation\nDocs\nAudio/Visual Talks\nBeginner's Guide\nFAQ\nNon-English Docs\nPEP Index\nPython Books\nPython Essays\nCommunity\nDiversity\nMailing Lists\nIRC\nForums\nPSF Annual Impact Report\nPython Conferences\nSpecial Interest Groups\nPython Logo\nPython Wiki\nCode of Conduct\nCommunity Awards\nGet Involved\nShared Stories\nSuccess Stories\nArts\nBusiness\nEducation\nEngineering\nGovernment\nScientific\nSoftware Development\nNews\nPython News\nPSF Newsletter\nPSF News\nPyCon US News\nPython Insider\nNews from the Community\nEvents\nPython Events\nUser Group Events\nPython Events Archive\nUser Group Events Archive\nSubmit an Event\nContributing\nDeveloper's Guide\nIssue Tracker\npython-dev list\nCore Mentorship\nReport a Security Issue\nHelp & General Contact\n \nDiversity Initiatives\n \nSubmit Website Bug\n \nStatus \n\nCopyright ©2001-2026.  Python Software Foundation  Legal Statements  Privacy Notice",
+          "title": "Welcome to Python.org",
+          "controls": [
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Skip to content",
+              "selector": "[data-ocade=c0]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "The Python Programming Language",
+              "selector": "[data-ocade=c1]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "The Python Software Foundation",
+              "selector": "[data-ocade=c2]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Python Documentation",
+              "selector": "[data-ocade=c3]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Python Package Index",
+              "selector": "[data-ocade=c4]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Python Job Board",
+              "selector": "[data-ocade=c5]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Community",
+              "selector": "[data-ocade=c6]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "",
+              "selector": "[data-ocade=c7]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Donate",
+              "selector": "[data-ocade=c8]"
+            },
+            {
+              "tag": "input",
+              "name": "q",
+              "type": "search",
+              "label": "Search This Site",
+              "selector": "[data-ocade=c9]"
+            },
+            {
+              "tag": "button",
+              "name": "submit",
+              "type": "submit",
+              "label": "Submit this Search",
+              "selector": "[data-ocade=c10]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Socialize",
+              "selector": "[data-ocade=c11]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "About",
+              "selector": "[data-ocade=c12]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Downloads",
+              "selector": "[data-ocade=c13]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Documentation",
+              "selector": "[data-ocade=c14]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Community",
+              "selector": "[data-ocade=c15]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "success-stories",
+              "selector": "[data-ocade=c16]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "News from around the Python world",
+              "selector": "[data-ocade=c17]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Events",
+              "selector": "[data-ocade=c18]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "More about defining functions",
+              "selector": "[data-ocade=c19]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Learn More",
+              "selector": "[data-ocade=c20]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "See more",
+              "selector": "[data-ocade=c21]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Start with our Beginner’s Guide",
+              "selector": "[data-ocade=c22]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Python 3.15.2",
+              "selector": "[data-ocade=c23]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "docs.python.org",
+              "selector": "[data-ocade=c24]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "jobs.python.org",
+              "selector": "[data-ocade=c25]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "More news",
+              "selector": "[data-ocade=c26]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Announcing PSF Community Service Award Recipients!",
+              "selector": "[data-ocade=c27]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Python 3.15.2, 3.14.10, 3.13.18, 3.12.16 and 3.11.18 are out",
+              "selector": "[data-ocade=c28]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Mark Your Calendars! PSF Board Office Hours for the Year Ahead",
+              "selector": "[data-ocade=c29]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Python 3.15.1, 3.14.9 and 3.13.17 are out",
+              "selector": "[data-ocade=c30]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Wikis: Relaunched!",
+              "selector": "[data-ocade=c31]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "More Events",
+              "selector": "[data-ocade=c32]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "PyCon ES 2026",
+              "selector": "[data-ocade=c33]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Python El Salvador vuelve — Meetup de Reactivación",
+              "selector": "[data-ocade=c34]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Edmonton.py: The Edmonton Python User Group",
+              "selector": "[data-ocade=c35]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Python Help",
+              "selector": "[data-ocade=c36]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Python Leiden User Group",
+              "selector": "[data-ocade=c37]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "More Success Stories",
+              "selector": "[data-ocade=c38]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Want to know how Python is performing on Arm across Linux, Windows, and the clou",
+              "selector": "[data-ocade=c39]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Python on Arm: 2025 Update",
+              "selector": "[data-ocade=c40]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "More Applications",
+              "selector": "[data-ocade=c41]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Django",
+              "selector": "[data-ocade=c42]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Pyramid",
+              "selector": "[data-ocade=c43]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Bottle",
+              "selector": "[data-ocade=c44]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Tornado",
+              "selector": "[data-ocade=c45]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Flask",
+              "selector": "[data-ocade=c46]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Litestar",
+              "selector": "[data-ocade=c47]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "FastAPI",
+              "selector": "[data-ocade=c48]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "tkInter",
+              "selector": "[data-ocade=c49]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "PyGObject",
+              "selector": "[data-ocade=c50]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "PyQt",
+              "selector": "[data-ocade=c51]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "PySide",
+              "selector": "[data-ocade=c52]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Kivy",
+              "selector": "[data-ocade=c53]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "wxPython",
+              "selector": "[data-ocade=c54]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "DearPyGui",
+              "selector": "[data-ocade=c55]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "PyTorch",
+              "selector": "[data-ocade=c56]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "TensorFlow",
+              "selector": "[data-ocade=c57]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "scikit-learn",
+              "selector": "[data-ocade=c58]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Transformers",
+              "selector": "[data-ocade=c59]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Anthropic",
+              "selector": "[data-ocade=c60]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "LangChain",
+              "selector": "[data-ocade=c61]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "SciPy",
+              "selector": "[data-ocade=c62]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Pandas",
+              "selector": "[data-ocade=c63]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "IPython",
+              "selector": "[data-ocade=c64]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Buildbot",
+              "selector": "[data-ocade=c65]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Trac",
+              "selector": "[data-ocade=c66]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Roundup",
+              "selector": "[data-ocade=c67]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Ansible",
+              "selector": "[data-ocade=c68]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Salt",
+              "selector": "[data-ocade=c69]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "OpenStack",
+              "selector": "[data-ocade=c70]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "xonsh",
+              "selector": "[data-ocade=c71]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Python Software Foundation",
+              "selector": "[data-ocade=c72]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Learn more",
+              "selector": "[data-ocade=c73]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Become a Member",
+              "selector": "[data-ocade=c74]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Donate to the PSF",
+              "selector": "[data-ocade=c75]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "About",
+              "selector": "[data-ocade=c76]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Applications",
+              "selector": "[data-ocade=c77]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Quotes",
+              "selector": "[data-ocade=c78]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Getting Started",
+              "selector": "[data-ocade=c79]"
+            }
+          ],
+          "durationMs": 1740.49,
+          "needsSignIn": false
+        },
+        "maybeChanged": false,
+        "observedAtUtc": "2026-11-01T10:49:46.000Z"
+      }
+    },
+    {
+      "summary": "click",
+      "intent": {
+        "v": 1,
+        "key": "s3",
+        "risk": "external_effect",
+        "target": {
+          "site": "www.python.org"
+        },
+        "arguments": {
+          "page": {
+            "id": "44693bd2ff76",
+            "site": "www.python.org"
+          },
+          "selector": "[data-ocade=c23]"
+        },
+        "operation": "web.click",
+        "capability": "browser",
+        "deadlineUtc": "2026-11-01T10:59:46.926Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "preview": "37036 base64 chars",
+        "evidence": {
+          "url": "https://www.python.org/downloads/release/python-3152/",
+          "page": {
+            "id": "44693bd2ff76",
+            "site": "www.python.org"
+          },
+          "text": "Skip to content\nPython\nPSF\nDocs\nPyPI\nJobs\nCommunity\nDonate\n \nSearch This Site\n GO\nSocialize\nAbout\n \nDownloads\n \nDocumentation\n \nCommunity\n \nSuccess Stories\n \nNews\n \nEvents\nPython 3.15.2\n\nRelease date: Oct. 25, 2026\n\nThis is the second maintenance release of Python 3.15\n\nPython 3.15.2 is an expedited security release and the second maintenance release of 3.15, containing around 130 bugfixes, build improvements and documentation changes from 70 contributors since 3.15.1.\n\nThis is an expedited security release to address the compromised eMudhra intermediate CA keys. These keys are now blocked by the ssl module as a last resort against their use. Normal uses of pip, including to upgrade pip itself, are now safe from attacks based on those compromised keys, even if pip hasn't been updated yet.\n\nSecurity content in this release\n\nCVE-2026-115557 gh-160040: Distrust compromised eMudhra intermediate CA keys\n\nCVE-2026-114583 gh-160097: Reject links replacing the destination in tarfile.tar_filter\n\ngh-160300: Reject cookies with a negative version in http.cookiejar\n\nFull Changelog\n\nFiles\nmacOS\n\nDownload macOS installer\n\nWindows\n\nDownload Python install manager\n\nSource release\n\nDownload XZ compressed source tarball\n\nVersion\tOperating system\tDescription\tFile size\tSigstore\tSBOM\tSHA-256 checksum\nGzipped source tarball\tSource release\t\t34.2 MB\t.sigstore\tSPDX\tf74e1db0eabd651cd01e4e2a00201bd41866abe74869ab716f9bf33cbbaa0943\nXZ compressed source tarball\tSource release\t\t26.7 MB\t.sigstore\tSPDX\t8b5536d280142ecf6cdfe15d12a21ba1c65e300bbf7b28a8d0cdb849575797de\nAndroid embeddable package (aarch64)\tAndroid\t\t23.2 MB\t.sigstore\t\tcfd4f0fdaff465ba62ebf3c3df2c8c410d0802fef3f98897082460df704cfef6\nAndroid embeddable package (x86_64)\tAndroid\t\t23.6 MB\t.sigstore\t\te5b46c72295e558991bbe98415ac29bc1448aca35a8e660ddfe017e20305cbf8\niOS XCframework\tiOS\t\t82.2 MB\t.sigstore\t\t0f9fc7f61ceb8278a69fc7ec6089aad81789a96fa42f31cfe6d2f5f860d20a62\nmacOS installer\tmacOS\tfor macOS 10.15 and later\t78.1 MB\t.sigstore\t\t2c6104475535b720b45774c68b0dfc9fcca2235353cf9ff81e05488f89845396\nWindows installer (64-bit)\tWindows\tRecommended\t35.9 MB\t.sigstore\tSPDX\t06e225a228191b0f4d1dcf6905fbb21bf9f6970d13a2ec63137ab9bee76f15aa\nWindows installer (32-bit)\tWindows\t\t34.3 MB\t.sigstore\tSPDX\ta1040151c8af7a31dcfa3d4da2648040806dfe86050622166cbebc7747f23027\nWindows installer (ARM64)\tWindows\t\t35.2 MB\t.sigstore\tSPDX\ta3957667a6305f0fa4c5ce6c73def927ddcad36190b9e27eb4a04e1a9a153c93\nWindows embeddable package (64-bit)\tWindows\t\t13.1 MB\t.sigstore\tSPDX\td012f3aa29cf07436dae8aea1fec0fd195c2612a0b059b1f915ae0afb9ad1f62\nWindows embeddable package (32-bit)\tWindows\t\t11.4 MB\t.sigstore\tSPDX\t8d20269d378040117c9cec11d1ad6c6d17c6b77774424955ee180a0f49c6b41e\nWindows embeddable package (ARM64)\tWindows\t\t12.4 MB\t.sigstore\tSPDX\t089eae5e8aba8284c2ce59df008c1dc915af46fd9e8b1227e3a7f315211567c9\nAbout\nApplications\nQuotes\nGetting Started\nHelp\nDownloads\nAll releases\nSource code\nWindows\nmacOS\nAndroid\niOS\nOther Platforms\nLicense\nAlternative Implementations\nDocumentation\nDocs\nAudio/Visual Talks\nBeginner's Guide\nFAQ\nNon-English Docs\nPEP Index\nPython Books\nPython Essays\nCommunity\nDiversity\nMailing Lists\nIRC\nForums\nPSF Annual Impact Report\nPython Conferences\nSpecial Interest Groups\nPython Logo\nPython Wiki\nCode of Conduct\nCommunity Awards\nGet Involved\nShared Stories\nSuccess Stories\nArts\nBusiness\nEducation\nEngineering\nGovernment\nScientific\nSoftware Development\nNews\nPython News\nPSF Newsletter\nPSF News\nPyCon US News\nPython Insider\nNews from the Community\nEvents\nPython Events\nUser Group Events\nPython Events Archive\nUser Group Events Archive\nSubmit an Event\nContributing\nDeveloper's Guide\nIssue Tracker\npython-dev list\nCore Mentorship\nReport a Security Issue\nHelp & General Contact\n \nDiversity Initiatives\n \nSubmit Website Bug\n \nStatus \n\nCopyright ©2001-2026.  Python Software Foundation  Legal Statements  Privacy Notice",
+          "title": "Python Release Python 3.15.2 | Python.org",
+          "popups": [],
+          "controls": [
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Skip to content",
+              "selector": "[data-ocade=c0]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "The Python Programming Language",
+              "selector": "[data-ocade=c1]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "The Python Software Foundation",
+              "selector": "[data-ocade=c2]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Python Documentation",
+              "selector": "[data-ocade=c3]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Python Package Index",
+              "selector": "[data-ocade=c4]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Python Job Board",
+              "selector": "[data-ocade=c5]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Community",
+              "selector": "[data-ocade=c6]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "",
+              "selector": "[data-ocade=c7]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Donate",
+              "selector": "[data-ocade=c8]"
+            },
+            {
+              "tag": "input",
+              "name": "q",
+              "type": "search",
+              "label": "Search This Site",
+              "selector": "[data-ocade=c9]"
+            },
+            {
+              "tag": "button",
+              "name": "submit",
+              "type": "submit",
+              "label": "Submit this Search",
+              "selector": "[data-ocade=c10]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Socialize",
+              "selector": "[data-ocade=c11]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "About",
+              "selector": "[data-ocade=c12]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Downloads",
+              "selector": "[data-ocade=c13]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Documentation",
+              "selector": "[data-ocade=c14]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Community",
+              "selector": "[data-ocade=c15]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "success-stories",
+              "selector": "[data-ocade=c16]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "News from around the Python world",
+              "selector": "[data-ocade=c17]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Events",
+              "selector": "[data-ocade=c18]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "the compromised eMudhra intermediate CA keys",
+              "selector": "[data-ocade=c19]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "CVE-2026-115557",
+              "selector": "[data-ocade=c20]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "gh-160040",
+              "selector": "[data-ocade=c21]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "CVE-2026-114583",
+              "selector": "[data-ocade=c22]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "gh-160097",
+              "selector": "[data-ocade=c23]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "gh-160300",
+              "selector": "[data-ocade=c24]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Full Changelog",
+              "selector": "[data-ocade=c25]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Download macOS installer",
+              "selector": "[data-ocade=c26]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Download Python install manager",
+              "selector": "[data-ocade=c27]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Download XZ compressed source tarball",
+              "selector": "[data-ocade=c28]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Sigstore",
+              "selector": "[data-ocade=c29]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "SBOM",
+              "selector": "[data-ocade=c30]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Gzipped source tarball",
+              "selector": "[data-ocade=c31]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": ".sigstore",
+              "selector": "[data-ocade=c32]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "SPDX",
+              "selector": "[data-ocade=c33]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "XZ compressed source tarball",
+              "selector": "[data-ocade=c34]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": ".sigstore",
+              "selector": "[data-ocade=c35]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "SPDX",
+              "selector": "[data-ocade=c36]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Android embeddable package (aarch64)",
+              "selector": "[data-ocade=c37]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": ".sigstore",
+              "selector": "[data-ocade=c38]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Android embeddable package (x86_64)",
+              "selector": "[data-ocade=c39]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": ".sigstore",
+              "selector": "[data-ocade=c40]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "iOS XCframework",
+              "selector": "[data-ocade=c41]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": ".sigstore",
+              "selector": "[data-ocade=c42]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "macOS installer",
+              "selector": "[data-ocade=c43]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": ".sigstore",
+              "selector": "[data-ocade=c44]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Windows installer (64-bit)",
+              "selector": "[data-ocade=c45]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": ".sigstore",
+              "selector": "[data-ocade=c46]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "SPDX",
+              "selector": "[data-ocade=c47]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Windows installer (32-bit)",
+              "selector": "[data-ocade=c48]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": ".sigstore",
+              "selector": "[data-ocade=c49]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "SPDX",
+              "selector": "[data-ocade=c50]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Windows installer (ARM64)",
+              "selector": "[data-ocade=c51]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": ".sigstore",
+              "selector": "[data-ocade=c52]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "SPDX",
+              "selector": "[data-ocade=c53]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Windows embeddable package (64-bit)",
+              "selector": "[data-ocade=c54]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": ".sigstore",
+              "selector": "[data-ocade=c55]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "SPDX",
+              "selector": "[data-ocade=c56]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Windows embeddable package (32-bit)",
+              "selector": "[data-ocade=c57]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": ".sigstore",
+              "selector": "[data-ocade=c58]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "SPDX",
+              "selector": "[data-ocade=c59]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Windows embeddable package (ARM64)",
+              "selector": "[data-ocade=c60]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": ".sigstore",
+              "selector": "[data-ocade=c61]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "SPDX",
+              "selector": "[data-ocade=c62]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "About",
+              "selector": "[data-ocade=c63]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Applications",
+              "selector": "[data-ocade=c64]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Quotes",
+              "selector": "[data-ocade=c65]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Getting Started",
+              "selector": "[data-ocade=c66]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Help",
+              "selector": "[data-ocade=c67]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Downloads",
+              "selector": "[data-ocade=c68]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "All releases",
+              "selector": "[data-ocade=c69]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Source code",
+              "selector": "[data-ocade=c70]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Windows",
+              "selector": "[data-ocade=c71]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "macOS",
+              "selector": "[data-ocade=c72]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Android",
+              "selector": "[data-ocade=c73]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "iOS",
+              "selector": "[data-ocade=c74]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Other Platforms",
+              "selector": "[data-ocade=c75]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "License",
+              "selector": "[data-ocade=c76]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Alternative Implementations",
+              "selector": "[data-ocade=c77]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Documentation",
+              "selector": "[data-ocade=c78]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Docs",
+              "selector": "[data-ocade=c79]"
+            }
+          ],
+          "durationMs": 1052.41,
+          "needsSignIn": false
+        },
+        "maybeChanged": true,
+        "observedAtUtc": "2026-11-01T10:49:54.372Z"
+      }
+    },
+    {
+      "summary": "list",
+      "intent": {
+        "v": 1,
+        "key": "s4",
+        "risk": "read",
+        "arguments": {
+          "path": "."
+        },
+        "operation": "fs.list",
+        "capability": "files",
+        "deadlineUtc": "2026-11-01T10:59:55.017Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "entries": [],
+          "durationMs": 772.46
+        },
+        "maybeChanged": false,
+        "observedAtUtc": "2026-11-01T10:50:00.584Z"
+      }
+    },
+    {
+      "summary": "write text",
+      "intent": {
+        "v": 1,
+        "key": "s5",
+        "risk": "reversible_write",
+        "arguments": {
+          "path": "OCADE output/python_version.txt",
+          "text": "Python version: 3.15.2\nRelease date: Oct. 25, 2026"
+        },
+        "operation": "fs.write_text",
+        "capability": "files",
+        "deadlineUtc": "2026-11-01T11:00:01.209Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "bytes": 50,
+          "sha256": "07cea04b9fdf94f2d617d6a608ed626e16494c6de9105cf58e38f6801341d65e",
+          "matches": true,
+          "durationMs": 3.81
+        },
+        "maybeChanged": true,
+        "observedAtUtc": "2026-11-01T10:50:06.070Z"
+      }
+    },
+    {
+      "summary": "open",
+      "intent": {
+        "v": 1,
+        "key": "s5-2",
+        "risk": "read",
+        "target": {
+          "site": "www.python.org"
+        },
+        "arguments": {
+          "url": "https://www.python.org/"
+        },
+        "operation": "web.open",
+        "capability": "browser",
+        "deadlineUtc": "2026-11-01T11:00:01.209Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "url": "https://www.python.org/",
+          "page": {
+            "id": "9bb6416050d5",
+            "site": "www.python.org"
+          },
+          "text": "Skip to content\nPython\nPSF\nDocs\nPyPI\nJobs\nCommunity\nDonate\n \nSearch This Site\n GO\nSocialize\nAbout\n \nDownloads\n \nDocumentation\n \nCommunity\n \nSuccess Stories\n \nNews\n \nEvents\n# Write Fibonacci series up to n\n>>> def fib(n):\n...     a, b = 0, 1\n...     while a < n:\n...         print(a, end=' ')\n...         a, b = b, a+b\n...     print()\n...\n>>> fib(1000)\n0 1 1 2 3 5 8 13 21 34 55 89 144 233 377 610 987\n\nFunctions Defined\n\nThe core of extensible programming is defining functions. Python allows mandatory and optional arguments, keyword arguments, and even arbitrary argument lists. More about defining functions\n\n1\n2\n3\n4\n5\n\nPython is a programming language that lets you work quickly\nand integrate systems more effectively. Learn More\n\n Security notice: the emSign root CA has been removed from certifi. Upgrade certifi, pip, uv and sigstore now.   See more\nGet Started\n\nWhether you're new to programming or an experienced developer, it's easy to learn and use Python.\n\nStart with our Beginner’s Guide\n\nDownload\n\nPython source code and installers are available for download for all versions!\n\nLatest: Python 3.15.2\n\nDocs\n\nDocumentation for Python's standard library, along with tutorials and guides, are available online.\n\ndocs.python.org\n\nJobs\n\nLooking for work or have a Python related position that you're trying to hire for? Our relaunched community-run job board is the place to go.\n\njobs.python.org\n\nLatest News\n\nMore news\n\n2026-10-29\nAnnouncing PSF Community Service Award Recipients!\n2026-10-26\nPython 3.15.2, 3.14.10, 3.13.18, 3.12.16 and 3.11.18 are out\n2026-10-22\nMark Your Calendars! PSF Board Office Hours for the Year Ahead\n2026-10-21\nPython 3.15.1, 3.14.9 and 3.13.17 are out\n2026-10-20\nWikis: Relaunched!\nUpcoming Events\n\nMore\n\n2026-11-06\nPyCon ES 2026\n2026-11-07\nPython El Salvador vuelve — Meetup de Reactivación\n2026-11-11\nEdmonton.py: The Edmonton Python User Group\n2026-11-12\nPython Help\n2026-11-12\nPython Leiden User Group\nSuccess Stories\n\nMore\n\nWant to know how Python is performing on Arm across Linux, Windows, and the cloud? Our 2025 update highlights the latest JIT improvements, ecosystem milestones like GitHub runners and PyTorch on Windows, and the continued collaboration driving it all forward.\n\nPython on Arm: 2025 Update by Diego Russo\n\n\n\nUse Python for…\n\nMore\n\nWeb Development: Django, Pyramid, Bottle, Tornado, Flask, Litestar, FastAPI\nGUI Development: tkInter, PyGObject, PyQt, PySide, Kivy, wxPython, DearPyGui\nAI and Machine Learning: PyTorch, TensorFlow, scikit-learn, Transformers, Anthropic, LangChain\nScientific and Numeric: SciPy, Pandas, IPython\nSoftware Development: Buildbot, Trac, Roundup\nSystem Administration: Ansible, Salt, OpenStack, xonsh\n>>> Python Software Foundation\n\nThe mission of the Python Software Foundation is to promote, protect, and advance the Python programming language, and to support and facilitate the growth of a diverse and international community of Python programmers. Learn more\n\nBecome a Member Donate to the PSF\n\nAbout\nApplications\nQuotes\nGetting Started\nHelp\nDownloads\nAll releases\nSource code\nWindows\nmacOS\nAndroid\niOS\nOther Platforms\nLicense\nAlternative Implementations\nDocumentation\nDocs\nAudio/Visual Talks\nBeginner's Guide\nFAQ\nNon-English Docs\nPEP Index\nPython Books\nPython Essays\nCommunity\nDiversity\nMailing Lists\nIRC\nForums\nPSF Annual Impact Report\nPython Conferences\nSpecial Interest Groups\nPython Logo\nPython Wiki\nCode of Conduct\nCommunity Awards\nGet Involved\nShared Stories\nSuccess Stories\nArts\nBusiness\nEducation\nEngineering\nGovernment\nScientific\nSoftware Development\nNews\nPython News\nPSF Newsletter\nPSF News\nPyCon US News\nPython Insider\nNews from the Community\nEvents\nPython Events\nUser Group Events\nPython Events Archive\nUser Group Events Archive\nSubmit an Event\nContributing\nDeveloper's Guide\nIssue Tracker\npython-dev list\nCore Mentorship\nReport a Security Issue\nHelp & General Contact\n \nDiversity Initiatives\n \nSubmit Website Bug\n \nStatus \n\nCopyright ©2001-2026.  Python Software Foundation  Legal Statements  Privacy Notice",
+          "title": "Welcome to Python.org",
+          "controls": [
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Skip to content",
+              "selector": "[data-ocade=c0]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "The Python Programming Language",
+              "selector": "[data-ocade=c1]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "The Python Software Foundation",
+              "selector": "[data-ocade=c2]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Python Documentation",
+              "selector": "[data-ocade=c3]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Python Package Index",
+              "selector": "[data-ocade=c4]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Python Job Board",
+              "selector": "[data-ocade=c5]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Community",
+              "selector": "[data-ocade=c6]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "",
+              "selector": "[data-ocade=c7]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Donate",
+              "selector": "[data-ocade=c8]"
+            },
+            {
+              "tag": "input",
+              "name": "q",
+              "type": "search",
+              "label": "Search This Site",
+              "selector": "[data-ocade=c9]"
+            },
+            {
+              "tag": "button",
+              "name": "submit",
+              "type": "submit",
+              "label": "Submit this Search",
+              "selector": "[data-ocade=c10]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Socialize",
+              "selector": "[data-ocade=c11]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "About",
+              "selector": "[data-ocade=c12]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Downloads",
+              "selector": "[data-ocade=c13]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Documentation",
+              "selector": "[data-ocade=c14]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Community",
+              "selector": "[data-ocade=c15]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "success-stories",
+              "selector": "[data-ocade=c16]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "News from around the Python world",
+              "selector": "[data-ocade=c17]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Events",
+              "selector": "[data-ocade=c18]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "More about defining functions",
+              "selector": "[data-ocade=c19]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Learn More",
+              "selector": "[data-ocade=c20]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "See more",
+              "selector": "[data-ocade=c21]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Start with our Beginner’s Guide",
+              "selector": "[data-ocade=c22]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Python 3.15.2",
+              "selector": "[data-ocade=c23]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "docs.python.org",
+              "selector": "[data-ocade=c24]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "jobs.python.org",
+              "selector": "[data-ocade=c25]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "More news",
+              "selector": "[data-ocade=c26]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Announcing PSF Community Service Award Recipients!",
+              "selector": "[data-ocade=c27]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Python 3.15.2, 3.14.10, 3.13.18, 3.12.16 and 3.11.18 are out",
+              "selector": "[data-ocade=c28]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Mark Your Calendars! PSF Board Office Hours for the Year Ahead",
+              "selector": "[data-ocade=c29]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Python 3.15.1, 3.14.9 and 3.13.17 are out",
+              "selector": "[data-ocade=c30]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Wikis: Relaunched!",
+              "selector": "[data-ocade=c31]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "More Events",
+              "selector": "[data-ocade=c32]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "PyCon ES 2026",
+              "selector": "[data-ocade=c33]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Python El Salvador vuelve — Meetup de Reactivación",
+              "selector": "[data-ocade=c34]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Edmonton.py: The Edmonton Python User Group",
+              "selector": "[data-ocade=c35]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Python Help",
+              "selector": "[data-ocade=c36]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Python Leiden User Group",
+              "selector": "[data-ocade=c37]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "More Success Stories",
+              "selector": "[data-ocade=c38]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Want to know how Python is performing on Arm across Linux, Windows, and the clou",
+              "selector": "[data-ocade=c39]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Python on Arm: 2025 Update",
+              "selector": "[data-ocade=c40]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "More Applications",
+              "selector": "[data-ocade=c41]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Django",
+              "selector": "[data-ocade=c42]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Pyramid",
+              "selector": "[data-ocade=c43]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Bottle",
+              "selector": "[data-ocade=c44]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Tornado",
+              "selector": "[data-ocade=c45]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Flask",
+              "selector": "[data-ocade=c46]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Litestar",
+              "selector": "[data-ocade=c47]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "FastAPI",
+              "selector": "[data-ocade=c48]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "tkInter",
+              "selector": "[data-ocade=c49]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "PyGObject",
+              "selector": "[data-ocade=c50]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "PyQt",
+              "selector": "[data-ocade=c51]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "PySide",
+              "selector": "[data-ocade=c52]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Kivy",
+              "selector": "[data-ocade=c53]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "wxPython",
+              "selector": "[data-ocade=c54]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "DearPyGui",
+              "selector": "[data-ocade=c55]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "PyTorch",
+              "selector": "[data-ocade=c56]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "TensorFlow",
+              "selector": "[data-ocade=c57]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "scikit-learn",
+              "selector": "[data-ocade=c58]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Transformers",
+              "selector": "[data-ocade=c59]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Anthropic",
+              "selector": "[data-ocade=c60]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "LangChain",
+              "selector": "[data-ocade=c61]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "SciPy",
+              "selector": "[data-ocade=c62]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Pandas",
+              "selector": "[data-ocade=c63]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "IPython",
+              "selector": "[data-ocade=c64]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Buildbot",
+              "selector": "[data-ocade=c65]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Trac",
+              "selector": "[data-ocade=c66]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Roundup",
+              "selector": "[data-ocade=c67]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Ansible",
+              "selector": "[data-ocade=c68]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Salt",
+              "selector": "[data-ocade=c69]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "OpenStack",
+              "selector": "[data-ocade=c70]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "xonsh",
+              "selector": "[data-ocade=c71]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Python Software Foundation",
+              "selector": "[data-ocade=c72]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Learn more",
+              "selector": "[data-ocade=c73]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Become a Member",
+              "selector": "[data-ocade=c74]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Donate to the PSF",
+              "selector": "[data-ocade=c75]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "About",
+              "selector": "[data-ocade=c76]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Applications",
+              "selector": "[data-ocade=c77]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Quotes",
+              "selector": "[data-ocade=c78]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Getting Started",
+              "selector": "[data-ocade=c79]"
+            }
+          ],
+          "durationMs": 397.86,
+          "needsSignIn": false
+        },
+        "maybeChanged": false,
+        "observedAtUtc": "2026-11-01T10:50:08.232Z"
+      }
+    },
+    {
+      "summary": "Checking the result independently",
+      "intent": {
+        "v": 1,
+        "key": "s7",
+        "risk": "read",
+        "arguments": {
+          "checks": [
+            {
+              "id": "python_note_exists",
+              "kind": "file_exists",
+              "params": {
+                "path": "OCADE output/python_version.txt"
+              },
+              "description": "A note file containing the newest stable Python 3 release info is saved in OCADE output/"
+            },
+            {
+              "id": "python_org_check",
+              "kind": "web_text_contains",
+              "params": {
+                "url": "https://www.python.org/",
+                "text": "Download Python"
+              },
+              "description": "The python.org homepage indicates the latest stable release or contains Python 3 info"
+            }
+          ]
+        },
+        "operation": "verify.checks",
+        "capability": "files",
+        "deadlineUtc": "2026-11-01T11:00:08.864Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "durationMs": 1250.55,
+          "predicates": {
+            "python_org_check": false,
+            "python_note_exists": true
+          },
+          "verifierVersion": "checks-verifier/1"
+        },
+        "maybeChanged": false,
+        "observedAtUtc": "2026-11-01T10:50:17.010Z"
+      }
+    },
+    {
+      "summary": "open",
+      "intent": {
+        "v": 1,
+        "key": "s8",
+        "risk": "read",
+        "target": {
+          "site": "www.python.org"
+        },
+        "arguments": {
+          "url": "https://www.python.org/"
+        },
+        "operation": "web.open",
+        "capability": "browser",
+        "deadlineUtc": "2026-11-01T11:00:17.628Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "url": "https://www.python.org/",
+          "page": {
+            "id": "8521331ef2bd",
+            "site": "www.python.org"
+          },
+          "text": "Skip to content\nPython\nPSF\nDocs\nPyPI\nJobs\nCommunity\nDonate\n \nSearch This Site\n GO\nSocialize\nAbout\n \nDownloads\n \nDocumentation\n \nCommunity\n \nSuccess Stories\n \nNews\n \nEvents\n# Write Fibonacci series up to n\n>>> def fib(n):\n...     a, b = 0, 1\n...     while a < n:\n...         print(a, end=' ')\n...         a, b = b, a+b\n...     print()\n...\n>>> fib(1000)\n0 1 1 2 3 5 8 13 21 34 55 89 144 233 377 610 987\n\nFunctions Defined\n\nThe core of extensible programming is defining functions. Python allows mandatory and optional arguments, keyword arguments, and even arbitrary argument lists. More about defining functions\n\n1\n2\n3\n4\n5\n\nPython is a programming language that lets you work quickly\nand integrate systems more effectively. Learn More\n\n Security notice: the emSign root CA has been removed from certifi. Upgrade certifi, pip, uv and sigstore now.   See more\nGet Started\n\nWhether you're new to programming or an experienced developer, it's easy to learn and use Python.\n\nStart with our Beginner’s Guide\n\nDownload\n\nPython source code and installers are available for download for all versions!\n\nLatest: Python 3.15.2\n\nDocs\n\nDocumentation for Python's standard library, along with tutorials and guides, are available online.\n\ndocs.python.org\n\nJobs\n\nLooking for work or have a Python related position that you're trying to hire for? Our relaunched community-run job board is the place to go.\n\njobs.python.org\n\nLatest News\n\nMore news\n\n2026-10-29\nAnnouncing PSF Community Service Award Recipients!\n2026-10-26\nPython 3.15.2, 3.14.10, 3.13.18, 3.12.16 and 3.11.18 are out\n2026-10-22\nMark Your Calendars! PSF Board Office Hours for the Year Ahead\n2026-10-21\nPython 3.15.1, 3.14.9 and 3.13.17 are out\n2026-10-20\nWikis: Relaunched!\nUpcoming Events\n\nMore\n\n2026-11-06\nPyCon ES 2026\n2026-11-07\nPython El Salvador vuelve — Meetup de Reactivación\n2026-11-11\nEdmonton.py: The Edmonton Python User Group\n2026-11-12\nPython Help\n2026-11-12\nPython Leiden User Group\nSuccess Stories\n\nMore\n\nWant to know how Python is performing on Arm across Linux, Windows, and the cloud? Our 2025 update highlights the latest JIT improvements, ecosystem milestones like GitHub runners and PyTorch on Windows, and the continued collaboration driving it all forward.\n\nPython on Arm: 2025 Update by Diego Russo\n\n\n\nUse Python for…\n\nMore\n\nWeb Development: Django, Pyramid, Bottle, Tornado, Flask, Litestar, FastAPI\nGUI Development: tkInter, PyGObject, PyQt, PySide, Kivy, wxPython, DearPyGui\nAI and Machine Learning: PyTorch, TensorFlow, scikit-learn, Transformers, Anthropic, LangChain\nScientific and Numeric: SciPy, Pandas, IPython\nSoftware Development: Buildbot, Trac, Roundup\nSystem Administration: Ansible, Salt, OpenStack, xonsh\n>>> Python Software Foundation\n\nThe mission of the Python Software Foundation is to promote, protect, and advance the Python programming language, and to support and facilitate the growth of a diverse and international community of Python programmers. Learn more\n\nBecome a Member Donate to the PSF\n\nAbout\nApplications\nQuotes\nGetting Started\nHelp\nDownloads\nAll releases\nSource code\nWindows\nmacOS\nAndroid\niOS\nOther Platforms\nLicense\nAlternative Implementations\nDocumentation\nDocs\nAudio/Visual Talks\nBeginner's Guide\nFAQ\nNon-English Docs\nPEP Index\nPython Books\nPython Essays\nCommunity\nDiversity\nMailing Lists\nIRC\nForums\nPSF Annual Impact Report\nPython Conferences\nSpecial Interest Groups\nPython Logo\nPython Wiki\nCode of Conduct\nCommunity Awards\nGet Involved\nShared Stories\nSuccess Stories\nArts\nBusiness\nEducation\nEngineering\nGovernment\nScientific\nSoftware Development\nNews\nPython News\nPSF Newsletter\nPSF News\nPyCon US News\nPython Insider\nNews from the Community\nEvents\nPython Events\nUser Group Events\nPython Events Archive\nUser Group Events Archive\nSubmit an Event\nContributing\nDeveloper's Guide\nIssue Tracker\npython-dev list\nCore Mentorship\nReport a Security Issue\nHelp & General Contact\n \nDiversity Initiatives\n \nSubmit Website Bug\n \nStatus \n\nCopyright ©2001-2026.  Python Software Foundation  Legal Statements  Privacy Notice",
+          "title": "Welcome to Python.org",
+          "controls": [
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Skip to content",
+              "selector": "[data-ocade=c0]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "The Python Programming Language",
+              "selector": "[data-ocade=c1]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "The Python Software Foundation",
+              "selector": "[data-ocade=c2]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Python Documentation",
+              "selector": "[data-ocade=c3]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Python Package Index",
+              "selector": "[data-ocade=c4]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Python Job Board",
+              "selector": "[data-ocade=c5]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Community",
+              "selector": "[data-ocade=c6]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "",
+              "selector": "[data-ocade=c7]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Donate",
+              "selector": "[data-ocade=c8]"
+            },
+            {
+              "tag": "input",
+              "name": "q",
+              "type": "search",
+              "label": "Search This Site",
+              "selector": "[data-ocade=c9]"
+            },
+            {
+              "tag": "button",
+              "name": "submit",
+              "type": "submit",
+              "label": "Submit this Search",
+              "selector": "[data-ocade=c10]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Socialize",
+              "selector": "[data-ocade=c11]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "About",
+              "selector": "[data-ocade=c12]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Downloads",
+              "selector": "[data-ocade=c13]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Documentation",
+              "selector": "[data-ocade=c14]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Community",
+              "selector": "[data-ocade=c15]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "success-stories",
+              "selector": "[data-ocade=c16]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "News from around the Python world",
+              "selector": "[data-ocade=c17]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Events",
+              "selector": "[data-ocade=c18]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": ">_\nLaunch Interactive Shell",
+              "selector": "[data-ocade=c19]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "More about defining functions",
+              "selector": "[data-ocade=c20]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Learn More",
+              "selector": "[data-ocade=c21]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "See more",
+              "selector": "[data-ocade=c22]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Start with our Beginner’s Guide",
+              "selector": "[data-ocade=c23]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Python 3.15.2",
+              "selector": "[data-ocade=c24]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "docs.python.org",
+              "selector": "[data-ocade=c25]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "jobs.python.org",
+              "selector": "[data-ocade=c26]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "More news",
+              "selector": "[data-ocade=c27]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Announcing PSF Community Service Award Recipients!",
+              "selector": "[data-ocade=c28]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Python 3.15.2, 3.14.10, 3.13.18, 3.12.16 and 3.11.18 are out",
+              "selector": "[data-ocade=c29]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Mark Your Calendars! PSF Board Office Hours for the Year Ahead",
+              "selector": "[data-ocade=c30]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Python 3.15.1, 3.14.9 and 3.13.17 are out",
+              "selector": "[data-ocade=c31]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Wikis: Relaunched!",
+              "selector": "[data-ocade=c32]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "More Events",
+              "selector": "[data-ocade=c33]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "PyCon ES 2026",
+              "selector": "[data-ocade=c34]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Python El Salvador vuelve — Meetup de Reactivación",
+              "selector": "[data-ocade=c35]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Edmonton.py: The Edmonton Python User Group",
+              "selector": "[data-ocade=c36]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Python Help",
+              "selector": "[data-ocade=c37]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Python Leiden User Group",
+              "selector": "[data-ocade=c38]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "More Success Stories",
+              "selector": "[data-ocade=c39]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Want to know how Python is performing on Arm across Linux, Windows, and the clou",
+              "selector": "[data-ocade=c40]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Python on Arm: 2025 Update",
+              "selector": "[data-ocade=c41]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "More Applications",
+              "selector": "[data-ocade=c42]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Django",
+              "selector": "[data-ocade=c43]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Pyramid",
+              "selector": "[data-ocade=c44]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Bottle",
+              "selector": "[data-ocade=c45]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Tornado",
+              "selector": "[data-ocade=c46]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Flask",
+              "selector": "[data-ocade=c47]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Litestar",
+              "selector": "[data-ocade=c48]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "FastAPI",
+              "selector": "[data-ocade=c49]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "tkInter",
+              "selector": "[data-ocade=c50]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "PyGObject",
+              "selector": "[data-ocade=c51]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "PyQt",
+              "selector": "[data-ocade=c52]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "PySide",
+              "selector": "[data-ocade=c53]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Kivy",
+              "selector": "[data-ocade=c54]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "wxPython",
+              "selector": "[data-ocade=c55]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "DearPyGui",
+              "selector": "[data-ocade=c56]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "PyTorch",
+              "selector": "[data-ocade=c57]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "TensorFlow",
+              "selector": "[data-ocade=c58]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "scikit-learn",
+              "selector": "[data-ocade=c59]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Transformers",
+              "selector": "[data-ocade=c60]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Anthropic",
+              "selector": "[data-ocade=c61]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "LangChain",
+              "selector": "[data-ocade=c62]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "SciPy",
+              "selector": "[data-ocade=c63]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Pandas",
+              "selector": "[data-ocade=c64]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "IPython",
+              "selector": "[data-ocade=c65]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Buildbot",
+              "selector": "[data-ocade=c66]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Trac",
+              "selector": "[data-ocade=c67]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Roundup",
+              "selector": "[data-ocade=c68]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Ansible",
+              "selector": "[data-ocade=c69]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Salt",
+              "selector": "[data-ocade=c70]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "OpenStack",
+              "selector": "[data-ocade=c71]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "xonsh",
+              "selector": "[data-ocade=c72]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Python Software Foundation",
+              "selector": "[data-ocade=c73]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Learn more",
+              "selector": "[data-ocade=c74]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Become a Member",
+              "selector": "[data-ocade=c75]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Donate to the PSF",
+              "selector": "[data-ocade=c76]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "About",
+              "selector": "[data-ocade=c77]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Applications",
+              "selector": "[data-ocade=c78]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Quotes",
+              "selector": "[data-ocade=c79]"
+            }
+          ],
+          "durationMs": 417.11,
+          "needsSignIn": false
+        },
+        "maybeChanged": false,
+        "observedAtUtc": "2026-11-01T10:50:24.573Z"
+      }
+    },
+    {
+      "summary": "Checking the result independently",
+      "intent": {
+        "v": 1,
+        "key": "s9",
+        "risk": "read",
+        "arguments": {
+          "checks": [
+            {
+              "id": "python_note_exists",
+              "kind": "file_exists",
+              "params": {
+                "path": "OCADE output/python_version.txt"
+              },
+              "description": "A note file containing the newest stable Python 3 release info is saved in OCADE output/"
+            },
+            {
+              "id": "python_org_check",
+              "kind": "web_text_contains",
+              "params": {
+                "url": "https://www.python.org/",
+                "text": "Download Python"
+              },
+              "description": "The python.org homepage indicates the latest stable release or contains Python 3 info"
+            }
+          ]
+        },
+        "operation": "verify.checks",
+        "capability": "files",
+        "deadlineUtc": "2026-11-01T11:00:25.226Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "durationMs": 378.08,
+          "predicates": {
+            "python_org_check": false,
+            "python_note_exists": true
+          },
+          "verifierVersion": "checks-verifier/1"
+        },
+        "maybeChanged": false,
+        "observedAtUtc": "2026-11-01T10:50:31.515Z"
+      }
+    },
+    {
+      "summary": "open",
+      "intent": {
+        "v": 1,
+        "key": "s10",
+        "risk": "read",
+        "target": {
+          "site": "www.python.org"
+        },
+        "arguments": {
+          "url": "https://www.python.org/"
+        },
+        "operation": "web.open",
+        "capability": "browser",
+        "deadlineUtc": "2026-11-01T11:00:32.172Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "url": "https://www.python.org/",
+          "page": {
+            "id": "c3c6a0cbaba5",
+            "site": "www.python.org"
+          },
+          "text": "Skip to content\nPython\nPSF\nDocs\nPyPI\nJobs\nCommunity\nDonate\n \nSearch This Site\n GO\nSocialize\nAbout\n \nDownloads\n \nDocumentation\n \nCommunity\n \nSuccess Stories\n \nNews\n \nEvents\n# Write Fibonacci series up to n\n>>> def fib(n):\n...     a, b = 0, 1\n...     while a < n:\n...         print(a, end=' ')\n...         a, b = b, a+b\n...     print()\n...\n>>> fib(1000)\n0 1 1 2 3 5 8 13 21 34 55 89 144 233 377 610 987\n\nFunctions Defined\n\nThe core of extensible programming is defining functions. Python allows mandatory and optional arguments, keyword arguments, and even arbitrary argument lists. More about defining functions\n\n1\n2\n3\n4\n5\n\nPython is a programming language that lets you work quickly\nand integrate systems more effectively. Learn More\n\n Security notice: the emSign root CA has been removed from certifi. Upgrade certifi, pip, uv and sigstore now.   See more\nGet Started\n\nWhether you're new to programming or an experienced developer, it's easy to learn and use Python.\n\nStart with our Beginner’s Guide\n\nDownload\n\nPython source code and installers are available for download for all versions!\n\nLatest: Python 3.15.2\n\nDocs\n\nDocumentation for Python's standard library, along with tutorials and guides, are available online.\n\ndocs.python.org\n\nJobs\n\nLooking for work or have a Python related position that you're trying to hire for? Our relaunched community-run job board is the place to go.\n\njobs.python.org\n\nLatest News\n\nMore news\n\n2026-10-29\nAnnouncing PSF Community Service Award Recipients!\n2026-10-26\nPython 3.15.2, 3.14.10, 3.13.18, 3.12.16 and 3.11.18 are out\n2026-10-22\nMark Your Calendars! PSF Board Office Hours for the Year Ahead\n2026-10-21\nPython 3.15.1, 3.14.9 and 3.13.17 are out\n2026-10-20\nWikis: Relaunched!\nUpcoming Events\n\nMore\n\n2026-11-06\nPyCon ES 2026\n2026-11-07\nPython El Salvador vuelve — Meetup de Reactivación\n2026-11-11\nEdmonton.py: The Edmonton Python User Group\n2026-11-12\nPython Help\n2026-11-12\nPython Leiden User Group\nSuccess Stories\n\nMore\n\nWant to know how Python is performing on Arm across Linux, Windows, and the cloud? Our 2025 update highlights the latest JIT improvements, ecosystem milestones like GitHub runners and PyTorch on Windows, and the continued collaboration driving it all forward.\n\nPython on Arm: 2025 Update by Diego Russo\n\n\n\nUse Python for…\n\nMore\n\nWeb Development: Django, Pyramid, Bottle, Tornado, Flask, Litestar, FastAPI\nGUI Development: tkInter, PyGObject, PyQt, PySide, Kivy, wxPython, DearPyGui\nAI and Machine Learning: PyTorch, TensorFlow, scikit-learn, Transformers, Anthropic, LangChain\nScientific and Numeric: SciPy, Pandas, IPython\nSoftware Development: Buildbot, Trac, Roundup\nSystem Administration: Ansible, Salt, OpenStack, xonsh\n>>> Python Software Foundation\n\nThe mission of the Python Software Foundation is to promote, protect, and advance the Python programming language, and to support and facilitate the growth of a diverse and international community of Python programmers. Learn more\n\nBecome a Member Donate to the PSF\n\nAbout\nApplications\nQuotes\nGetting Started\nHelp\nDownloads\nAll releases\nSource code\nWindows\nmacOS\nAndroid\niOS\nOther Platforms\nLicense\nAlternative Implementations\nDocumentation\nDocs\nAudio/Visual Talks\nBeginner's Guide\nFAQ\nNon-English Docs\nPEP Index\nPython Books\nPython Essays\nCommunity\nDiversity\nMailing Lists\nIRC\nForums\nPSF Annual Impact Report\nPython Conferences\nSpecial Interest Groups\nPython Logo\nPython Wiki\nCode of Conduct\nCommunity Awards\nGet Involved\nShared Stories\nSuccess Stories\nArts\nBusiness\nEducation\nEngineering\nGovernment\nScientific\nSoftware Development\nNews\nPython News\nPSF Newsletter\nPSF News\nPyCon US News\nPython Insider\nNews from the Community\nEvents\nPython Events\nUser Group Events\nPython Events Archive\nUser Group Events Archive\nSubmit an Event\nContributing\nDeveloper's Guide\nIssue Tracker\npython-dev list\nCore Mentorship\nReport a Security Issue\nHelp & General Contact\n \nDiversity Initiatives\n \nSubmit Website Bug\n \nStatus \n\nCopyright ©2001-2026.  Python Software Foundation  Legal Statements  Privacy Notice",
+          "title": "Welcome to Python.org",
+          "controls": [
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Skip to content",
+              "selector": "[data-ocade=c0]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "The Python Programming Language",
+              "selector": "[data-ocade=c1]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "The Python Software Foundation",
+              "selector": "[data-ocade=c2]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Python Documentation",
+              "selector": "[data-ocade=c3]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Python Package Index",
+              "selector": "[data-ocade=c4]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Python Job Board",
+              "selector": "[data-ocade=c5]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Community",
+              "selector": "[data-ocade=c6]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "",
+              "selector": "[data-ocade=c7]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Donate",
+              "selector": "[data-ocade=c8]"
+            },
+            {
+              "tag": "input",
+              "name": "q",
+              "type": "search",
+              "label": "Search This Site",
+              "selector": "[data-ocade=c9]"
+            },
+            {
+              "tag": "button",
+              "name": "submit",
+              "type": "submit",
+              "label": "Submit this Search",
+              "selector": "[data-ocade=c10]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Socialize",
+              "selector": "[data-ocade=c11]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "About",
+              "selector": "[data-ocade=c12]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Downloads",
+              "selector": "[data-ocade=c13]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Documentation",
+              "selector": "[data-ocade=c14]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Community",
+              "selector": "[data-ocade=c15]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "success-stories",
+              "selector": "[data-ocade=c16]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "News from around the Python world",
+              "selector": "[data-ocade=c17]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Events",
+              "selector": "[data-ocade=c18]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "More about defining functions",
+              "selector": "[data-ocade=c19]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Learn More",
+              "selector": "[data-ocade=c20]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "See more",
+              "selector": "[data-ocade=c21]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Start with our Beginner’s Guide",
+              "selector": "[data-ocade=c22]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Python 3.15.2",
+              "selector": "[data-ocade=c23]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "docs.python.org",
+              "selector": "[data-ocade=c24]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "jobs.python.org",
+              "selector": "[data-ocade=c25]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "More news",
+              "selector": "[data-ocade=c26]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Announcing PSF Community Service Award Recipients!",
+              "selector": "[data-ocade=c27]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Python 3.15.2, 3.14.10, 3.13.18, 3.12.16 and 3.11.18 are out",
+              "selector": "[data-ocade=c28]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Mark Your Calendars! PSF Board Office Hours for the Year Ahead",
+              "selector": "[data-ocade=c29]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Python 3.15.1, 3.14.9 and 3.13.17 are out",
+              "selector": "[data-ocade=c30]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Wikis: Relaunched!",
+              "selector": "[data-ocade=c31]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "More Events",
+              "selector": "[data-ocade=c32]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "PyCon ES 2026",
+              "selector": "[data-ocade=c33]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Python El Salvador vuelve — Meetup de Reactivación",
+              "selector": "[data-ocade=c34]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Edmonton.py: The Edmonton Python User Group",
+              "selector": "[data-ocade=c35]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Python Help",
+              "selector": "[data-ocade=c36]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Python Leiden User Group",
+              "selector": "[data-ocade=c37]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "More Success Stories",
+              "selector": "[data-ocade=c38]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Want to know how Python is performing on Arm across Linux, Windows, and the clou",
+              "selector": "[data-ocade=c39]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Python on Arm: 2025 Update",
+              "selector": "[data-ocade=c40]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "More Applications",
+              "selector": "[data-ocade=c41]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Django",
+              "selector": "[data-ocade=c42]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Pyramid",
+              "selector": "[data-ocade=c43]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Bottle",
+              "selector": "[data-ocade=c44]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Tornado",
+              "selector": "[data-ocade=c45]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Flask",
+              "selector": "[data-ocade=c46]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Litestar",
+              "selector": "[data-ocade=c47]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "FastAPI",
+              "selector": "[data-ocade=c48]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "tkInter",
+              "selector": "[data-ocade=c49]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "PyGObject",
+              "selector": "[data-ocade=c50]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "PyQt",
+              "selector": "[data-ocade=c51]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "PySide",
+              "selector": "[data-ocade=c52]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Kivy",
+              "selector": "[data-ocade=c53]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "wxPython",
+              "selector": "[data-ocade=c54]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "DearPyGui",
+              "selector": "[data-ocade=c55]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "PyTorch",
+              "selector": "[data-ocade=c56]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "TensorFlow",
+              "selector": "[data-ocade=c57]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "scikit-learn",
+              "selector": "[data-ocade=c58]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Transformers",
+              "selector": "[data-ocade=c59]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Anthropic",
+              "selector": "[data-ocade=c60]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "LangChain",
+              "selector": "[data-ocade=c61]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "SciPy",
+              "selector": "[data-ocade=c62]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Pandas",
+              "selector": "[data-ocade=c63]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "IPython",
+              "selector": "[data-ocade=c64]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Buildbot",
+              "selector": "[data-ocade=c65]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Trac",
+              "selector": "[data-ocade=c66]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Roundup",
+              "selector": "[data-ocade=c67]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Ansible",
+              "selector": "[data-ocade=c68]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Salt",
+              "selector": "[data-ocade=c69]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "OpenStack",
+              "selector": "[data-ocade=c70]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "xonsh",
+              "selector": "[data-ocade=c71]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Python Software Foundation",
+              "selector": "[data-ocade=c72]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Learn more",
+              "selector": "[data-ocade=c73]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Become a Member",
+              "selector": "[data-ocade=c74]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Donate to the PSF",
+              "selector": "[data-ocade=c75]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "About",
+              "selector": "[data-ocade=c76]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Applications",
+              "selector": "[data-ocade=c77]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Quotes",
+              "selector": "[data-ocade=c78]"
+            },
+            {
+              "tag": "a",
+              "name": "",
+              "type": "",
+              "label": "Getting Started",
+              "selector": "[data-ocade=c79]"
+            }
+          ],
+          "durationMs": 444.28,
+          "needsSignIn": false
+        },
+        "maybeChanged": false,
+        "observedAtUtc": "2026-11-01T10:50:38.697Z"
+      }
+    },
+    {
+      "summary": "Checking the result independently",
+      "intent": {
+        "v": 1,
+        "key": "s11",
+        "risk": "read",
+        "arguments": {
+          "checks": [
+            {
+              "id": "python_note_exists",
+              "kind": "file_exists",
+              "params": {
+                "path": "OCADE output/python_version.txt"
+              },
+              "description": "A note file containing the newest stable Python 3 release info is saved in OCADE output/"
+            },
+            {
+              "id": "python_org_check",
+              "kind": "web_text_contains",
+              "params": {
+                "url": "https://www.python.org/",
+                "text": "Download Python"
+              },
+              "description": "The python.org homepage indicates the latest stable release or contains Python 3 info"
+            }
+          ]
+        },
+        "operation": "verify.checks",
+        "capability": "files",
+        "deadlineUtc": "2026-11-01T11:00:39.329Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "durationMs": 400.16,
+          "predicates": {
+            "python_org_check": false,
+            "python_note_exists": true
+          },
+          "verifierVersion": "checks-verifier/1"
+        },
+        "maybeChanged": false,
+        "observedAtUtc": "2026-11-01T10:50:47.044Z"
+      }
+    }
+  ],
+  "outputs": [
+    {
+      "path": "/tmp/live/p5/OCADE output/python_version.txt",
+      "bytes": 50
+    }
+  ]
+}

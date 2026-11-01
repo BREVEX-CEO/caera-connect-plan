@@ -504,3 +504,10 @@ Record monotonic UTC-correlated task timestamps with \`submittedAt\`, \`authoriz
 
 
 **Pending physical-media qualification (1 November 2026):** The supplied editor screenshots show synthetic bars and incomplete edits; they are not proof of cinematic real-car deliverables. A genuinely licensed car photograph and 30-second car video must be supplied or discovered with lawful reuse and used only after G0–G12 evidence permits acceptance. Test exactly the same *outcome* across Linux, Windows and macOS supported capabilities, record per-platform untested/blocked support rather than replacing missing macOS AX with a Windows-only bridge. Current implementation is **NO-GO** until these and all critical gate failures are repaired and independently retested.
+
+## Cross-platform CI and live repair checkpoint — 1 November 2026
+
+- Free GitHub Actions matrix green (runs 13–15): Linux build/DB/end-to-end (no longer skipped), Linux/macOS/Windows companion suites, Windows UIA-001…012 against an unseen compiled app, Windows unsigned installer + frozen workers. A cloud Windows runner is not a customer PC: Windows concepts are PARTIAL, not PASS.
+- New generic capabilities: `fs.write_text`, `fs.replace_text` (confirmed, sha-guarded, original kept), `shell.run` (confirmed; PowerShell/sh; process-tree containment on timeout and STOP), window image + control boxes for `ui.click_point`, typed keys to a control, live user-input pause (concept 58).
+- Security fixes: interpreter-run MCP server scripts now pinned (`argSha256`); exact effect shown for confirmation; deliverables no longer 0600; worker env gains Windows system folders only.
+- Live Gemini on a disposable Linux container: 10 of 14 attempts PASS, 6 of 6 on the final code (`evidence/2026-11-01-live/README.md`); five generic planner/worker defects found live and fixed with regression tests. Ledger 46 PASS, 36 PARTIAL, 1 BLOCKED, 1 FAIL — **G12 no-go**.
