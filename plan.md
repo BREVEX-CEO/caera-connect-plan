@@ -1,3 +1,580 @@
+# OCADE — Complete Commercial Launch Readiness | 266-Point Owner Implementation Contract
+
+> **Added 1 November 2026.** This owner-directed implementation checklist is placed first for execution priority. It complements the canonical 84-concept architecture and the existing rules below; it does **not** authorize merging into main, production deployment, payments, certificate acquisition, spending, irreversible changes, or exposing secrets. Existing safety and release gates continue to apply. Preconfigured staging credentials may be used for authorized staging tests with least privilege and strict non-disclosure.
+>
+> **Scope:** Complete all 266 numbered requirements and all other unfinished authorized product work; verify rather than assume completion. Do not introduce task-specific hardcoding to pass tests. Readiness percentages represent verified release gates, not claimed bug-free guarantees.
+
+**OCADE — Complete Commercial Launch Readiness | Continuation Prompt**
+
+**Rules and execution requirements**
+
+1. Continue directly from the current OCADE development session. Do not restart the project, repeat completed research unnecessarily, or create another architecture proposal without implementing the required changes.
+
+2. Work exclusively on `ocade/p00-p22-implementation` in `BREVEX-CEO/caera-connect-plan`. Never merge into `main`, deploy to production, enable payments, spend money, or access my physical computer without my explicit approval.
+
+3. Your objective is to make **OCADE BY CARCC** a genuinely functional, independently verified, public-ready commercial software product across every officially supported component and platform.
+
+4. **Do the actual coding.** Inspect, reproduce, fix, implement, integrate, simplify, test, and independently verify. Documentation alone is not progress.
+
+5. Preserve the existing local-first architecture: Gemini intelligence, task supervisor, local Device Agent, trusted Gateway, MCP/STDIO capability workers, execution controller, independent verifier, and customer-facing website.
+
+6. Do not rewrite functioning architecture merely to make it appear more advanced. Change architecture only where evidence proves a correctness, security, reliability, performance, scalability, or maintainability benefit.
+
+7. Read the current `plan.md`, `CLAUDE.md`, `AGENTS.md`, architecture ledger, prior evidence, tests, repository structure, and relevant implementation files before modifying an existing component.
+
+8. Inspect actual Git history, branch HEAD, local changes, staging configuration, package versions, workflows, tests, and unresolved blockers. Treat historical reports as evidence, not as proof of current functionality.
+
+9. Preserve all existing authorized changes. Never overwrite another developer's edits, delete important tests, or revert unrelated work.
+
+10. Maintain a verified inventory of every application surface, architectural concept, feature, dependency, security boundary, test, and release requirement.
+
+11. Classify every finding as **PASS, PARTIAL, FAIL, BLOCKED, or UNTESTED**. Never label a feature complete solely because code exists.
+
+12. Separate confirmed defects from inferred risks, missing functionality, incomplete integration, and insufficient testing.
+
+13. Fix every reproducible critical and high-priority defect. For any unresolved issue, document the exact blocker and keep the release gate closed.
+
+14. Do not claim 100% bug-free software. The objective is **100% completion of verified launch requirements, zero known critical safety defects, and at least 90% independently verified success on representative real tasks**.
+
+15. Prioritize **P0 safety and correctness → P1 production reliability → P2 performance and polish**. Do not prioritize cosmetic features ahead of broken task execution.
+
+16. Implement improvements in small, reversible, reviewable changes with focused regression tests. Run relevant tests after every change and broader tests after integration.
+
+17. Use cloud infrastructure for testing first. Only request access to my computer after supported cloud tests pass and real consumer-device testing cannot be completed otherwise.
+
+18. Prefer existing free, authorized testing environments and already configured services. Do not create unapproved cloud resources or trigger costs.
+
+19. Keep the repository private or public according to its actual authorized configuration. Never change visibility without approval.
+
+20. Do not modify production secrets, production data, access policies, or release channels without authorization.
+
+**Architecture and execution**
+
+21. Retain **one coherent task-authority system** responsible for task state, permissions, ownership, STOP, takeover, continuation, action dispatch, and truthful completion status.
+
+22. Keep Gemini as the configured online planning brain. Do not secretly switch to another model, invent a local JARVIS fallback, or create competing autonomous planners.
+
+23. Preserve the configured model-routing policies and approved provider credentials. Validate actual model availability, quotas, limits, and failure behavior before making model changes.
+
+24. Keep capability-based execution. No production code may depend on predefined customer applications, filenames, specific user tasks, demonstration journeys, or hardcoded results.
+
+25. **Never hardcode files, answers, browser paths, application names, selectors, commands, expected output documents, or special-case workflows merely to make a test pass.**
+
+26. Test fixtures may contain synthetic files and independent expected results, but production logic must solve unfamiliar inputs using general capabilities and observed state.
+
+27. Do not replace genuine execution with fake receipts, simulated task completions, generated success messages, or pre-created deliverables.
+
+28. Preserve the intended execution preference: native APIs and object models → supported scripts and CLI → native file/project operations → browser DOM/CDP → Playwright → OS accessibility → vision/coordinates when needed.
+
+29. Choose the fastest reliable mechanism for each step based on actual capabilities, permissions, cost, observability, and failure risk.
+
+30. Add automatic **mechanism fallback** where safe. If DOM interaction fails, inspect available alternatives rather than blindly repeating the same action.
+
+31. Improve the supervisor so it maintains objective, target state, milestones, permissions, available capabilities, current observations, completed actions, unresolved uncertainty, and remaining work.
+
+32. Store durable task state independently of Gemini's conversational context so interruptions and context truncation do not destroy progress.
+
+33. Add a bounded receding-horizon planner: plan enough to act effectively, execute, observe the result, then replan only when necessary.
+
+34. Separate **planning, action execution, result observation, and verification** into explicit interfaces and states.
+
+35. Give every action a unique identifier, task identifier, target identity, permission context, deadline, and observable outcome.
+
+36. Prevent duplicate side effects after retries, server restarts, timeout responses, disconnections, or acknowledgement failures.
+
+37. Preserve receipts distinguishing **executed, verified, refused, failed, cancelled, and outcome unknown**. Never infer success from a dispatched command.
+
+38. Improve persistent journaling, recovery checkpoints, durable action reconciliation, and crash-safe resumption.
+
+39. Do not automatically repeat destructive or externally visible operations when the previous effect is uncertain.
+
+40. Implement reliable ownership fences so STOP, Take Over, revocation, sign-out, device removal, and task cancellation prevent new unauthorized actions.
+
+41. Ensure an in-flight operation either stops safely or reports honestly what may already have changed.
+
+42. Keep the Gateway modular. Do not introduce one microservice per tool or turn the 84 architectural concepts into 84 separate services.
+
+43. Establish stable typed contracts between planner, task authority, Gateway, workers, verifier, and user interface.
+
+44. Add version negotiation and compatibility checking between the website/backend, Device Agent, Gateway, and bundled workers.
+
+45. Refuse incompatible components with actionable upgrade instructions rather than continuing unpredictably.
+
+**Gemini accuracy and grounding**
+
+46. Fix the demonstrated Python.org wrong-download failure generically. Gemini must distinguish the correct release row, release version, artifact type, platform, architecture, and actual download target.
+
+47. Do not fix that failure by hardcoding Python.org, the current version, a specific download address, page row, CSS selector, or table position.
+
+48. Build or strengthen an evidence-grounded **Target Resolution Layer** that connects model-selected intent to an observed, unambiguous DOM element, accessibility element, file, process, or application window.
+
+49. Assign temporary observation-scoped identities to discovered elements so the model can refer to concrete targets without inventing coordinates or selectors.
+
+50. Preserve useful target metadata: label, role, accessible name, href, text, containing row, nearby headings, bounds, visibility, selected state, and originating observation.
+
+51. When several elements have identical names such as “Download,” use their surrounding table row, version, platform, and related attributes to disambiguate.
+
+52. Require fresh observations before sensitive actions. Reject stale element references when pages, windows, documents, or processes have changed.
+
+53. Prevent Gemini from navigating to unobserved deep URLs when the user's task requires following an authoritative source.
+
+54. Distinguish verified facts from model memory and assumptions. Never report current external facts without an actual observation or valid trusted source.
+
+55. When the source is a complex table, inspect structured rows and columns rather than relying only on a screenshot or an isolated link label.
+
+56. When observations are incomplete, gather targeted additional evidence instead of guessing.
+
+57. Prefer accessibility and structured browser information when reliable; use screenshots and visual interpretation where structure is unavailable or insufficient.
+
+58. Implement coordinate transforms correctly across scrolling, zoom, DPI, display scaling, window movement, resizing, and multiple monitors.
+
+59. Refuse ambiguous or wrong-window actions. Bind desktop actions to exact window identities and verify that the target is still valid immediately before execution.
+
+60. Improve fallback from structured controls to visual grounding without creating repeated screenshot loops.
+
+61. Implement image-based target matching where necessary, with confidence thresholds, stale-image detection, coordinate validation, and post-action observation.
+
+62. Add adversarial tests for duplicate buttons, changing page layouts, dynamic tables, identical filenames, overlapping windows, dialogs, hidden controls, overlays, and redirected downloads.
+
+63. Improve Gemini's ability to recover after clicking the wrong target, detecting the mistake before accepting or overwriting an incorrect result.
+
+64. Do not solve model errors by adding an expanding library of special-case prompts for individual websites or applications.
+
+65. Measure target selection accuracy independently by comparing the actual selected object against a hidden expected target.
+
+**Independent verification**
+
+66. Strengthen the independent verifier so completion depends on **real postconditions**, not Gemini's confidence or tool-call success.
+
+67. Separate model-generated verification proposals from authoritative task acceptance rules and independently observed outcomes.
+
+68. Fix verifier gaming: Gemini must never modify a customer's file simply to satisfy an incorrectly specified test.
+
+69. Distinguish an invalid verification condition from defective customer work and require clarification or a trustworthy alternative check when necessary.
+
+70. Verify file modifications using hashes, actual contents, parseability, expected semantics, and relevant application-level behavior.
+
+71. Verify spreadsheets through formulas, recalculated values, ranges, output structure, and independent checks of expected financial or numerical results.
+
+72. Verify Word/PDF deliverables through actual document structure, contents, page rendering where necessary, and preservation of requested formatting.
+
+73. Verify images through real file properties, requested visible changes, render inspection, and appropriate perceptual checks rather than existence alone.
+
+74. Verify videos through actual encoded output, duration, frames, audio, codec/container compatibility, requested edits, and playback checks.
+
+75. Verify code repairs by running the relevant command, tests or application and observing the changed behavior.
+
+76. Verify browser work by checking actual resulting page state, downloaded artifact, submitted data, or other independently observable effect.
+
+77. Where full automatic verification is impossible, report what was proven, what remains uncertain, and what requires human review.
+
+78. Record evidence references with each important action while protecting customer data and excluding secrets.
+
+79. Keep the verifier isolated from the planner's unverifiable claims and hidden test answer keys.
+
+80. Build regression tests specifically reproducing the false-positive verification and unauthorized source-editing failures already observed.
+
+**Execution speed and efficiency**
+
+81. Optimize for **fastest correct completed task**, not fastest unverified click.
+
+82. Instrument planning latency, provider latency, tool startup, execution time, observation time, verification time, retries, and total elapsed task time.
+
+83. Remove unnecessary Gemini calls, repeated tool discovery, redundant context generation, repeated file reads, and excessive screenshots.
+
+84. Batch independent read-only observations where safe, preserving enough output for Gemini to reason correctly.
+
+85. Do not batch dependent writes or risky actions when intermediate verification is necessary.
+
+86. Cache stable capability metadata, unchanged file hashes, tool schemas, and other reusable observations using safe invalidation rules.
+
+87. Use targeted incremental observations rather than re-reading entire files, pages, or tool catalogs on every step.
+
+88. Keep frequently needed workers warm where this measurably improves performance without compromising resource usage or STOP behavior.
+
+89. Add progress and stall detection for repeated actions, repeated errors, no state change, exhausted budgets, and ineffective retries.
+
+90. Limit retries by error category, risk, elapsed time, and remaining task budget.
+
+91. Optimize prompt and context composition without hiding critical observations, permissions, error information, or verification requirements.
+
+92. Parallelize independent safe work only when process, file, window, and browser-target isolation can be guaranteed.
+
+93. Prefer native file operations and direct APIs over simulated clicking whenever equivalent verified results are possible.
+
+94. Profile actual slow paths before optimizing. Benchmark every optimization against the previous implementation.
+
+95. Never remove security checks or independent verification merely to make a benchmark faster.
+
+96. Measure median, p95 and p99 latency, model calls per task, retries, token usage, resource consumption, and completed verified outcomes.
+
+**Dependencies and runtime management**
+
+97. Build a **generic Dependency Manager** that identifies capabilities and prerequisites missing from the customer's environment.
+
+98. Keep OCADE's own required runtime, libraries, and browser automation components bundled wherever supported. Customers must not need Python or developer tooling merely to start OCADE.
+
+99. Distinguish bundled application dependencies from additional dependencies needed for a particular customer-requested task.
+
+100. Detect installed tools and versions using reliable platform mechanisms rather than assuming a package exists because one executable appears in PATH.
+
+101. Support discovery of relevant runtimes and engines such as Python, Node.js, Java, .NET, FFmpeg, LibreOffice, browser engines, and native application dependencies when tasks require them.
+
+102. Do not bundle every possible programming language or framework unnecessarily. Download optional task-specific dependencies only when actually needed and authorized.
+
+103. Inspect OS version, CPU architecture, package architecture, installation scope, existing versions, permissions, disk space, and network availability before proposing installation.
+
+104. Support x64 and ARM64 where officially targeted. Treat x86 support as a deliberate compatibility decision with actual build/test evidence.
+
+105. Prefer trusted platform package managers, verified vendor distributions, or controlled installation manifests when suitable.
+
+106. Resolve required package version, operating-system support, architecture, integrity hash, authenticity, compatibility, and applicable licence before installation.
+
+107. Never blindly run commands copied from unknown webpages or untrusted model outputs.
+
+108. Show the exact package, source, version, destination, privileges, expected changes, and security implications before approval.
+
+109. Request administrator elevation only for an authorized operation that truly requires it. Keep normal OCADE operation unelevated.
+
+110. Detect UAC denial, insufficient permissions, missing installation privileges, enterprise policy restrictions, and package-manager failures.
+
+111. Detect missing DLLs, `.dylib` files, `.so` libraries, incompatible native modules, conflicting versions, missing VC++ runtimes, and broken runtime paths where relevant.
+
+112. Diagnose missing executable paths, environment variables, file associations, registry entries, configuration files, and working directories.
+
+113. Diagnose antivirus, SmartScreen, Gatekeeper, quarantine, and application-control restrictions without disabling or bypassing security protections.
+
+114. Provide clear troubleshooting messages when an installation is blocked by legitimate security policies.
+
+115. Make dependency installations resumable, bounded, journaled, and recoverable where the platform supports those guarantees.
+
+116. After installation, verify the executable's actual version, architecture, startup behavior, and the exact capability the task requires.
+
+117. Resume the original task automatically only after the dependency is independently verified and the authorization remains valid.
+
+118. If installation fails, preserve the original task state, record the exact error, and offer safe recovery or manual administrator assistance.
+
+119. Build real clean-machine tests for missing Python, Node.js, FFmpeg, Office engines, blocked installations, architecture mismatches, insufficient storage, restricted privileges, interrupted downloads, and incompatible versions.
+
+120. Ensure installers and dependency workflows work without developer-specific paths, cached packages, local credentials, or preconfigured developer environments.
+
+**Windows customer readiness**
+
+121. Validate the actual Windows installer on clean Windows 10 and Windows 11 consumer environments, not only Windows Server GitHub runners.
+
+122. Test fresh installation, first launch, browser bundle, local Gateway startup, pairing, task execution, restart, upgrade, repair, and uninstall.
+
+123. Verify all required DLLs, Python modules, Playwright binaries, runtime assets, and MCP workers exist in the distributed package.
+
+124. Remove accidental dependencies on Git, Python, Node.js, PowerShell 7, compilers, SDKs, or developer PATH configuration unless explicitly required by a supported optional capability.
+
+125. Preserve native Windows UIA, Win32 and COM compatibility with real installed applications and Windows security boundaries.
+
+126. Test foreground control, user interference, wrong-window prevention, minimized windows, closed processes, elevated windows, and inaccessible UI controls.
+
+127. Test DPI scaling, zoom, high-resolution displays, multiple monitors, different refresh rates, and window repositioning.
+
+128. Test standard user accounts, UAC prompts, controlled-folder access, antivirus restrictions, OneDrive folders, Unicode paths, and long filenames.
+
+129. Validate background operation after sleep, wake, lock/unlock, restart, network disconnection, sign-out, and device removal.
+
+130. Verify that STOP and task cancellation terminate unauthorized subprocess trees and report incomplete effects correctly.
+
+**macOS and Linux readiness**
+
+131. Implement real macOS native accessibility support using appropriate platform APIs instead of claiming Windows control provides macOS coverage.
+
+132. Support the macOS permission model, including Accessibility and other required user-granted permissions, with clear onboarding and revocation behavior.
+
+133. Validate supported Intel and Apple Silicon devices and actual native execution, packaging, and dependency availability.
+
+134. Implement or verify Linux desktop control for explicitly supported X11 and Wayland configurations. Respect compositor and desktop security limitations.
+
+135. Handle Linux desktop portals, user-session permissions, packaging differences, executable paths, shared libraries, and distribution compatibility.
+
+136. Provide platform-specific implementations behind shared capability contracts rather than contaminating the planner with OS-specific hardcoded journeys.
+
+137. If an operation genuinely cannot work on a supported platform, detect the limitation before execution and report it accurately.
+
+138. Do not mark any operating system fully supported until native installation, pairing, execution, STOP, recovery, and independent task verification pass on representative hardware.
+
+**Browser and application control**
+
+139. Dynamically discover the actual installed browsers and profiles. Do not assume Chrome, Edge, or a particular profile is available.
+
+140. Bind automation to the authorized browser session, exact tab, origin, and target; never silently act in an unrelated session.
+
+141. Prefer DOM/CDP/Playwright structured operations where possible and use visual control only when required.
+
+142. Detect navigation, popups, downloads, redirects, file pickers, permission prompts, authentication challenges, and dynamic content safely.
+
+143. Respect anti-bot protections, authentication boundaries, website permissions, and security-sensitive user confirmations.
+
+144. Ensure newly encountered applications can be operated through generic discoverable capabilities whenever their interfaces and permissions support it.
+
+145. Test unfamiliar and randomly named applications, files, websites and UI layouts to prove execution is genuinely capability-based.
+
+**Customer interface and product features**
+
+146. Audit and complete Landing, Authentication, Chat, JARVIS, Library, Devices, Apps & Websites, Settings, Usage, and Owner/Staff administration.
+
+147. Inventory and test every button, menu, link, route, input, modal, file upload, download, permission dialog, and state transition.
+
+148. Make first-use onboarding simple: install, sign in, pair device, grant the specific permissions needed, and complete the first authorized task.
+
+149. Show accurate device states such as Ready, Offline, Permission Required, Busy, Disconnected, and Removed.
+
+150. Provide live task progress with current action, completed steps, verified results, remaining work, and user intervention requests.
+
+151. Display actual operation details in approval dialogs, not vague summaries supplied by Gemini.
+
+152. Ensure STOP, Take Over, Continue, Retry, and Remove Device behave correctly and visibly.
+
+153. Finish file delivery, download, preview, editing, and recovery flows for produced artifacts.
+
+154. Preserve separate behavior for online JARVIS and offline Chat; never silently substitute one for the other.
+
+155. Complete supported voice, interruption, microphone permission, wake-state reporting, and accessibility features without misleading background-listening claims.
+
+156. Validate responsive website and PWA behavior on major desktop and mobile browsers, including accessibility and session recovery.
+
+157. Complete any already-scoped Android companion capabilities and tests only after core architecture and cloud gates pass. Do not create unrelated mobile apps.
+
+158. Validate iOS browser/PWA behavior using supported hosted browser or simulator testing where available; do not invent native iOS functionality.
+
+159. Optimize frontend performance, loading states, code splitting, accessibility, caching, image delivery, international text, reduced motion, and meaningful error feedback.
+
+160. Eliminate dead controls, duplicate pages, obsolete branding, broken navigation, and unnecessary interface complexity.
+
+**Backend and infrastructure**
+
+161. Audit task authority, database RLS, authentication, privileged operations, staff/owner boundaries, device ownership, and audit logging end to end.
+
+162. Test authorization against forged device identities, replayed requests, expired sessions, revoked keys, cross-account access, and duplicate action submission.
+
+163. Verify migrations on disposable databases, including forward migration, rollback strategy, data integrity, and permission preservation.
+
+164. Implement durable job processing, retry limits, idempotency, queue backpressure, and overload protection where missing.
+
+165. Add server-side rate limits and resource budgets that protect availability without allowing a model to bypass task authority.
+
+166. Improve provider error handling for timeouts, quota exhaustion, invalid responses, outages, and partial tool execution.
+
+167. Prevent server credentials or service-role keys from reaching model-controlled commands, local workers, browser pages, test logs, or customer downloads.
+
+168. Enforce TLS, secure headers, safe cookies, CSRF protection, input validation, and appropriate Content Security Policy.
+
+169. Test for XSS, SQL injection, SSRF, path traversal, command injection, unsafe deserialization, insecure direct-object references, and privilege escalation.
+
+170. Threat-model malicious websites, prompt injection in customer files, untrusted MCP tools, malicious downloads, compromised worker processes, and stolen device credentials.
+
+171. Protect local file access through explicit grants, scope enforcement, race-safe writes, version checks, backup behavior, and non-destructive defaults.
+
+172. Verify database backups through actual restoration drills. Test infrastructure recovery, incident handling, and user-visible service failure behavior.
+
+173. Profile real load and scale only as evidence requires. Avoid premature multi-region complexity or unnecessary infrastructure expenses.
+
+**Security, privacy, and operations**
+
+174. Preserve MFA and all established owner/staff safeguards. Never weaken security merely to make an automated test pass.
+
+175. Keep customer content private and separate from other accounts, support systems, model traces, and unrelated customer sessions.
+
+176. Make logs useful but redact passwords, authorization headers, tokens, API keys, sensitive file contents, and private data.
+
+177. Add structured crash reports, health checks, latency metrics, failure classifications, and diagnostics with privacy-respecting controls.
+
+178. Implement a user-accessible diagnostic report that can explain connection, permission, runtime, dependency, Gateway, browser, and execution failures.
+
+179. Ensure customer data export, account deletion, device revocation, and retention processes operate consistently with published privacy commitments and applicable requirements.
+
+180. Prepare necessary non-payment legal and governance documentation, licence notices, privacy disclosures, Terms of Service, and installation guidance.
+
+181. Add release notes, troubleshooting documentation, support procedures, incident response, service status communication, and recovery instructions.
+
+182. Verify the commercial redistribution rights of bundled runtimes, dependencies, libraries, models, assets, and external components.
+
+183. Keep all payment, checkout, billing, merchant-of-record, and subscription integration work outside this assignment.
+
+184. Exclude code-signing certificate acquisition and certificate-signing work from this assignment. Do not compensate by bypassing OS or antivirus security protections.
+
+**Packaging, updates, and reliability**
+
+185. Build fully reproducible installers and release artifacts for supported platforms and architectures using declared, version-pinned dependencies.
+
+186. Verify package integrity and every bundled worker's startup, not just successful compilation.
+
+187. Support clean installation, upgrade, repair, restart, rollback, and uninstall without destroying customer documents or unrelated settings.
+
+188. Implement a safe update mechanism with version compatibility, integrity checks, rollback, and recovery after interrupted updates.
+
+189. Never let an update silently execute during a critical customer action or leave partially replaced executables running.
+
+190. Test installation on clean VMs and physical machines without developer tools, cached browser binaries, or previously installed OCADE components.
+
+191. Run long-duration stability tests to detect CPU spikes, memory leaks, orphaned workers, unreleased handles, output-pipe hangs, and excessive disk usage.
+
+192. Test low-memory machines, slow storage, limited bandwidth, unstable Wi-Fi, limited permissions, and constrained user accounts.
+
+193. Ensure network outages cause clear state transitions and safe task recovery rather than hidden success or uncontrolled retries.
+
+**Independent testing and evidence**
+
+194. Build a permanent, versioned test matrix covering every supported OS, CPU architecture, browser, DPI configuration, permission level, and installation scenario.
+
+195. Include unit, protocol, integration, database, security, accessibility, browser, desktop UI, packaging, installer, performance, and disaster-recovery tests.
+
+196. Run existing CI suites and eliminate silently skipped essential tests. Required tests must fail the release gate when their prerequisites are unavailable.
+
+197. Preserve synthetic test fixtures and hidden independent oracles, but never reveal expected customer-task answers to the production planner.
+
+198. Generate randomized test data, application names, filenames, layouts, input values, user instructions, and environmental conditions to detect hardcoding.
+
+199. Include real Gemini-controlled E2E tests rather than only mocked or scripted model responses.
+
+200. Test actual spreadsheet reconciliation, document creation, coding repairs, browser research, file manipulation, image operations, video operations, and general PC tasks through reusable capability interfaces.
+
+201. Select representative tasks from real customer problems; never special-case the examples in production code.
+
+202. Measure first-attempt success, recovery-assisted success, final verified success, intervention frequency, wrong-target incidents, time per task, and model calls.
+
+203. Treat the historical 15/24 clean passes as an existing evidence checkpoint, not proof of a current success rate after subsequent fixes.
+
+204. Create larger unseen evaluation sets with varying difficulty and fresh inputs. Prevent repeated retries on known fixtures from artificially raising reported success.
+
+205. Require at least **90% independently verified real-task success** on the agreed representative launch suite, plus explicit platform-specific reliability gates.
+
+206. Require zero known critical security or safety defects, zero unauthorized actions, zero fabricated successes, and zero unresolved release-blocking failures.
+
+207. Retest every previously observed bug, including wrong Python download, hallucinated versions, invented URLs, verifier gaming, repeated reads, and Python 3.12 subprocess hanging.
+
+208. Repeat regression and integration tests under the actual runtime versions and binaries shipped to customers.
+
+209. Test Windows consumer desktops separately from Windows Server CI runners; test native macOS and supported Linux configurations separately.
+
+210. Perform controlled crash, process-kill, network-loss, interrupted-update, permission-revocation, STOP, takeover, and retry-injection tests.
+
+211. Verify output quality independently, including edits that appear valid but contain incorrect values, missing content, damaged formatting, or altered unrelated files.
+
+212. Review security, privacy, package provenance, and failure recovery before any feature is declared launch-ready.
+
+213. Do not delete tests to improve pass rates, reduce validation standards to force a green result, or mark blocked scenarios as passed.
+
+**Commercial launch readiness: verified 10% milestones**
+
+214. Implement a measurable **0–100% Commercial Launch Readiness Score**, divided into ten independently verifiable milestones, each worth 10 percentage points.
+
+215. **10% — Repository and architecture baseline:** source integrity, contracts, test inventory, dependency audit, security invariants, and reproducible builds verified.
+
+216. **20% — Core Gateway and device authority:** pairing, permissions, worker execution, journaling, STOP, takeover, and recovery independently verified.
+
+217. **30% — Installer and dependency readiness:** bundled prerequisites, clean installation, dependency diagnosis, safe authorized repair, upgrade and uninstall tested.
+
+218. **40% — Computer and browser control:** generic target discovery, accurate execution, wrong-target protection, browser handling, and supported OS adapters verified.
+
+219. **50% — Gemini intelligence and grounding:** unfamiliar-task planning, correct target selection, observed-source reasoning, adaptive execution, and loop prevention verified.
+
+220. **60% — Independent verification and recovery:** trustworthy completion checks, false-success prevention, file protection, checkpoint recovery, and negative/adversarial tests verified.
+
+221. **70% — Customer-facing product:** required web pages, authentication, onboarding, Chat, JARVIS, Devices, Library, Settings, approvals, and deliverables verified.
+
+222. **80% — Security, infrastructure, and operations:** authorization, privacy, secrets isolation, resilience, observability, backup restoration, support, and operational tests verified.
+
+223. **90% — Platform and performance qualification:** all advertised OS/architecture configurations, installation and runtime compatibility, stress tests, and latency targets verified.
+
+224. **100% — Final commercial release qualification:** unseen real-task acceptance, complete regression matrix, closed-beta validation, all mandatory gates, and zero known critical release blockers verified.
+
+225. A milestone earns its full 10% only when every mandatory acceptance condition in that milestone passes with recorded evidence. Otherwise mark it PARTIAL or BLOCKED without awarding unearned percentage points.
+
+226. Add granular completion tracking within milestones, but distinguish work completed from launch-gate approval. Do not manipulate weights to show artificially high readiness.
+
+227. Calculate the score from actual test artifacts, current commit, verified implementation, and explicit gate criteria. Never generate the percentage using Gemini's subjective opinion.
+
+228. Do not automatically start at 0%. Re-evaluate completed work and existing evidence against these milestone gates and calculate the real baseline.
+
+229. Report **passed, partial, failed, blocked, and untested** requirements separately from the overall readiness percentage.
+
+230. Every score must include the tested commit SHA, date, evidence location, supported platforms, remaining blockers, and why each completed milestone qualifies.
+
+231. Track progress at 10% increments, and whenever useful report the exact verified percentage between those checkpoints without pretending it is a success probability.
+
+232. At each 10% milestone, report the actual changes made, tests passed, defects fixed, performance impact, remaining work, and whether the next stage is safely unlocked.
+
+233. If a regression invalidates previously earned readiness, reduce the score accordingly. Never maintain an inflated historic score.
+
+234. **100% readiness means all agreed launch requirements passed**, not a guarantee that software can never encounter an unexpected bug.
+
+**Implementation workflow and reporting**
+
+235. Begin by inspecting the actual current branch and calculating the evidence-based readiness baseline.
+
+236. Compare current code against every relevant requirement in this prompt and the existing canonical architecture ledger.
+
+237. Create or update a single authoritative implementation backlog, preserving the existing plan and eliminating duplicate issue lists where safe.
+
+238. Record each issue with severity, precise cause, affected module, required change, reproduction steps, acceptance criteria, test location, and current status.
+
+239. Immediately prioritize the most consequential verified failures: Gemini grounding, incorrect verification, unsafe edits, incomplete dependency management, and platform readiness.
+
+240. Work continuously through the backlog, fixing the root cause rather than adding superficial exceptions or test-specific patches.
+
+241. After each meaningful change, run focused tests, resolve failures, and then run the appropriate broader integration suite.
+
+242. Before each substantial refactor, measure its expected benefit and preserve functionality, security controls, public interfaces, and regression coverage.
+
+243. Remove dead code, duplicate abstractions, obsolete pathways, unused packages, redundant model prompts, unnecessary background workers, and outdated customer-facing branding only after verifying safe removal.
+
+244. Do not pursue arbitrary line-count reduction. Optimize for maintainability, correctness, reliability, and measured performance.
+
+245. Preserve the no-hardcoded-apps rule throughout all changes. Generic capabilities must work against new tasks and new applications without further application-specific coding.
+
+246. Maintain strict separation between developer tests and customer-distributed runtime artifacts.
+
+247. Use the free GitHub Actions environment and disposable test systems intelligently; avoid unnecessary reruns and wasted quota.
+
+248. Fix CI failures from their actual logs. Do not blindly rerun identical failing jobs or alter test expectations without evidence that those expectations are incorrect.
+
+249. Run all possible tests in cloud environments before requesting any physical-device testing.
+
+250. Commit coherent implementation changes to the authorized implementation branch with accurate commit messages and supporting tests. Do not merge, deploy, or publish release artifacts.
+
+251. Do not claim missing approvals are implementation blockers unless the work genuinely cannot proceed using authorized, safe alternatives.
+
+252. Distinguish work that requires my approval—credentials, real-device access, privileged services, destructive operations, spending, or deployment—from work you can perform independently.
+
+253. Do not request approvals unnecessarily. Continue independent coding, fixture generation, test development, analysis, and local/cloud validation wherever safe.
+
+254. When genuine owner approval is required, present the exact requested action, why it is necessary, its risks, and the remaining work that can proceed without it.
+
+255. Keep a concise live engineering status with: **Current Readiness %, Fixed, Added, Removed, Tests, Speed, Failures, Blockers, Next Work**.
+
+256. Provide a full evidence report at meaningful milestones, including actual code changes, commit references, platform coverage, measured task outcomes, and unresolved limitations.
+
+257. Never say “fully complete,” “all fixed,” or “ready for public launch” while critical functionality remains blocked, unimplemented, untested, or unsafe.
+
+258. Never sacrifice security or verification to achieve higher task success percentages or faster execution times.
+
+259. Benchmark OCADE against relevant currently available AI assistants and computer-use tools using identical, independently scored tasks. Compare correctness, latency, recovery, customer control, security, privacy, and usability. Do not claim superiority without results.
+
+260. Focus on OCADE's competitive advantage: **reliably completing real customer work on the customer's authorized computer, faster and with independently verified results**.
+
+261. Maintain launch scope discipline. Do not add unrelated features, unnecessary architectures, speculative integrations, or complex infrastructure that does not improve release readiness.
+
+262. Do not stop after preparing a checklist, adding a few regression tests, or obtaining one green CI run. Continue implementing the remaining authorized work and re-evaluating the release gates.
+
+263. If an issue is blocked, record it accurately and continue independent tasks from the next highest-priority workstream.
+
+264. Work toward full launch-readiness qualification, with every required part implemented, integrated, tested, documented, secure, maintainable, and performant.
+
+265. Your final release recommendation must be **GO or NO-GO**, supported by real test results. A NO-GO result is required whenever a mandatory safety or launch gate remains unmet.
+
+266. **Do not ask me to repeat settled decisions. Do not replace coding with planning. Do not hardcode task-specific answers. Do not fake success. Fix root causes, optimize execution, verify everything, and report genuine commercial-launch progress in 10% milestones.**
+
+**Start with the actual current repository state, fix the highest-impact existing failures, and continue implementation toward independently verified public commercial readiness.**
+
+
+---
+
 # OCADE JARVIS — Canonical Engineering Architecture, Wiring and Gate-First Implementation Plan
 
 > **Binding owner contract | 31 October 2026 | Repository: \`BREVEX-CEO/caera-connect-plan\` | Working branch: \`ocade/p00-p22-implementation\`**
