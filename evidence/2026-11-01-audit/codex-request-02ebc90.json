@@ -1,0 +1,184 @@
+{
+  "schemaVersion": 1,
+  "repository": "BREVEX-CEO/caera-connect-plan",
+  "branch": "ocade/p00-p22-implementation",
+  "sourceCommit": "02ebc90d60051648c26cab5d9ae441581c8e689a",
+  "sourceTree": "1ee86626f456abb09ee18c3726e74ea46e81a71c",
+  "run": 41347623794,
+  "url": "https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41347623794",
+  "jobs": [
+    {
+      "id": 124970736860,
+      "name": "Planner safety / source formatting · Linux",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 124971036184,
+      "name": "Portable build / model contracts / ephemeral DB · Linux",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 124972005785,
+      "name": "Python MCP / journal / browser · macos-latest",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 124972005828,
+      "name": "Windows unsigned installer / frozen MCP smoke · NOT release-ready",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 124972005836,
+      "name": "Python MCP / journal / browser · windows-latest",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 124972005896,
+      "name": "Python MCP / journal / browser · ubuntu-latest",
+      "status": "completed",
+      "conclusion": "success"
+    }
+  ],
+  "scope": "Synthetic hosted-runner component/integration proof, not live Gemini/real-customer/consumer-hardware qualification",
+  "checks": {
+    "focusedJavaScript": {
+      "total": 75,
+      "pass": 75
+    },
+    "integrationJavaScript": {
+      "total": 81,
+      "pass": 81
+    },
+    "sandbox": {
+      "total": 6,
+      "pass": 6
+    },
+    "focusedMcpWorkers": {
+      "total": 4,
+      "pass": 4,
+      "workbookNegativeCases": 4,
+      "workbookPositiveControls": 3
+    },
+    "focusedChromium": {
+      "required": 2,
+      "pass": 2,
+      "skips": 0
+    },
+    "builtHandoff": {
+      "passed": 4,
+      "failed": 0,
+      "cases": []
+    },
+    "companion": {
+      "linux": {
+        "discovered": 63,
+        "skipped": 3,
+        "unexpectedSkips": 0
+      },
+      "windows": {
+        "discovered": 63,
+        "skipped": 3,
+        "unexpectedSkips": 0
+      },
+      "macos": {
+        "discovered": 63,
+        "skipped": 2,
+        "unexpectedSkips": 0
+      }
+    }
+  },
+  "migration": {
+    "path": "supabase/migrations/20261101201849_preserve_complete_jarvis_objectives.sql",
+    "generatedWith": "Supabase CLI 2.122.0 in unlinked runner temporary directory, run 59",
+    "existingMigrationsModified": false,
+    "fullRequestBoundary": 8000,
+    "forwardReplay": "PASS",
+    "invalidLengthControls": "PASS",
+    "restoredReplay": "PASS",
+    "deployment": "NONE; disposable runner PostgreSQL16 only"
+  },
+  "packaging": {
+    "bundleFiles": 649,
+    "bundleBytes": 672136296,
+    "installedFiles": 651,
+    "installedBytes": 676799340,
+    "installerBytes": 221515842,
+    "installerSha256": "9F8C4A6C3E2C21DDE650B08F45D793546BCB8EAAF92C54408FD40E2C7697EB81",
+    "bundleAndInstallerRebuildDifferences": 0,
+    "allSixActiveWindowsWorkersStarted": true,
+    "bundledChromiumWithEmptyPathBeforeAndAfterInstall": true,
+    "strictWorkerShutdownDiagnostics": "PASS",
+    "installRepairUninstall": "PASS; unrelated synthetic files preserved"
+  },
+  "diagnostics": {
+    "description": "Matched log-message occurrences, not process/performance/soak metrics. Run61 retains prior tests and adds scalar/lifespan cases.",
+    "run58": {
+      "linux": {
+        "ignoredException": 5,
+        "closedLoop": 6,
+        "closedPipe": 0
+      },
+      "windows": {
+        "ignoredException": 6,
+        "closedLoop": 4,
+        "closedPipe": 4
+      },
+      "macos": {
+        "ignoredException": 0,
+        "closedLoop": 0,
+        "closedPipe": 0
+      }
+    },
+    "run61": {
+      "linux": {
+        "ignoredException": 0,
+        "closedLoop": 0,
+        "closedPipe": 0
+      },
+      "windows": {
+        "ignoredException": 0,
+        "closedLoop": 0,
+        "closedPipe": 0
+      },
+      "macos": {
+        "ignoredException": 0,
+        "closedLoop": 0,
+        "closedPipe": 0
+      }
+    }
+  },
+  "remaining": [
+    "Exact-effect approval truncation newly found in source; next adversarial candidate",
+    "Opaque native/browser mutation risk classifications need confirmation hardening",
+    "Independent semantic acceptance/anti-gaming, original-file/directory races and verifier web transport remain open",
+    "Unknown-effect resolution remains incomplete despite safe waiting fence",
+    "Signed-in bubble and full authenticated customer pipeline remain unqualified",
+    "No fresh real-Gemini success/latency measurement, consumer-hardware/beta qualification or release certification"
+  ],
+  "decision": "NO-GO",
+  "mainRefReadOnly": "e53725a25a48508b990135b93c0a6bfa555bb87e",
+  "authorization": {
+    "mainModifiedByThisSession": false,
+    "productionDeployment": false,
+    "hostedSchemaChanges": false,
+    "liveProviderCalls": false,
+    "spending": false,
+    "personalComputerProductTests": false,
+    "realCustomerDataChanges": false
+  },
+  "restore": {
+    "sourceSha": "02ebc90d60051648c26cab5d9ae441581c8e689a",
+    "archiveSha256": "0534cc98299a0791268af1fdd4aa19f4b602b6166db429cda38a7b42a3b4cd00",
+    "schemaSha256": "6e208b7d5c944180e60a08de68282bddf03729a7739a1f73f1ebfc363dd7d6be",
+    "dataSha256": "ed0fd1ae0f4b328232275bd71aae516fcf0642e57d295589085588fa5bb887b5",
+    "restoreSeconds": 0,
+    "truncatedArchiveRejected": true,
+    "permissionChecks": "PASS",
+    "scope": "disposable PostgreSQL 16 with Supabase platform stubs"
+  }
+}

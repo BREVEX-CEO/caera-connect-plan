@@ -339,10 +339,12 @@
         {
           "id": "exact_approvals",
           "text": "Approval shows the exact operation and arguments",
-          "status": "PASS",
+          "status": "PARTIAL",
           "evidence": [
-            "tests/jarvis/contracts.test.ts"
-          ]
+            "tests/jarvis/contracts.test.ts",
+            "tests/security/confirmation.test.ts"
+          ],
+          "reason": "The authority truncates serialized approval arguments at 4000 characters, hiding a valid command/edit suffix. Full exact-effect and opaque-handler risk regressions are the next candidate; authenticated dialog qualification remains incomplete."
         },
         {
           "id": "onboarding",

@@ -94,6 +94,36 @@ jobs:
       - name: Packaging qualification scripts compile
         if: success() || failure()
         run: python -m py_compile device-agent/windows/packaging/check_frozen.py device-agent/windows/packaging/compare_browser_payloads.py
+      - name: Generate the proposed risk contract in the disposable checkout (restore branch files before other gates)
+        if: failure()
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from "node:fs";
+          import { spawnSync } from "node:child_process";
+          const sourcePath = "src/lib/jarvis/contracts.ts";
+          const protocolPath = "device-agent/windows/ocade_agent/protocol.json";
+          const originalSource = fs.readFileSync(sourcePath, "utf8");
+          const originalProtocol = fs.readFileSync(protocolPath, "utf8");
+          try {
+            let candidate = originalSource;
+            for (const operation of ["apps.launch", "ui.invoke", "ui.set_value", "ui.send_keys", "ui.click_point", "web.fill", "web.select", "web.download"]) {
+              const begin = candidate.indexOf('  "' + operation + '": {');
+              const end = candidate.indexOf("\n  },", begin);
+              if (begin < 0 || end < 0) throw Error("Missing operation " + operation);
+              const block = candidate.slice(begin, end);
+              if ((block.match(/risk: "reversible_write"/g) || []).length !== 1) throw Error("Unexpected original risk " + operation);
+              candidate = candidate.slice(0, begin) + block.replace('risk: "reversible_write"', 'risk: "external_effect"') + candidate.slice(end);
+            }
+            fs.writeFileSync(sourcePath, candidate);
+            const result = spawnSync(process.execPath, ["--experimental-strip-types", "--no-warnings", "scripts/jarvis-protocol.ts"], { stdio: "inherit" });
+            if (result.status !== 0) throw Error("Protocol generation failed");
+            console.log("OCADE_CANDIDATE_CONTRACT:" + JSON.stringify({path:sourcePath,content:candidate}));
+            console.log("OCADE_CANDIDATE_PROTOCOL:" + JSON.stringify({path:protocolPath,content:fs.readFileSync(protocolPath,"utf8")}));
+          } finally {
+            fs.writeFileSync(sourcePath, originalSource);
+            fs.writeFileSync(protocolPath, originalProtocol);
+          }
+          NODE
       - name: TypeScript safety before the platform matrix
         if: success() || failure()
         run: npm run typecheck
@@ -103,7 +133,7 @@ jobs:
       - name: Formatting evidence for failed remote candidates
         if: failure()
         run: |
-          node --input-type=module -e 'import fs from "node:fs"; import prettier from "prettier"; for (const path of process.argv.slice(1)) console.log("OCADE_FORMAT:" + JSON.stringify({path, content: await prettier.format(fs.readFileSync(path, "utf8"), {...await prettier.resolveConfig(path), filepath:path})}));' src/lib/jarvis/contracts.ts src/lib/jarvis/planner.server.ts tests/security/planner.test.ts tests/security/verification.test.ts tests/security/readiness.test.ts tests/security/recovery.test.ts tests/security/objective.test.ts src/lib/jarvis/authority.server.ts src/lib/jarvis/supervisor.ts scripts/launch-readiness.mjs tests/jarvis/contracts.test.ts tests/jarvis/e2e.test.ts src/lib/jarvis/objective.ts src/lib/jarvis/functions.ts src/jarvis/JarvisWorkspace.tsx src/jarvis/JarvisBubble.tsx src/routes/ocade-jarvis.tsx ToRemove.md evidence/readiness/gates.json .github/workflows/jarvis-cloud-validation.yml
+          node --input-type=module -e 'import fs from "node:fs"; import prettier from "prettier"; for (const path of process.argv.slice(1)) console.log("OCADE_FORMAT:" + JSON.stringify({path, content: await prettier.format(fs.readFileSync(path, "utf8"), {...await prettier.resolveConfig(path), filepath:path})}));' src/lib/jarvis/contracts.ts src/lib/jarvis/planner.server.ts tests/security/planner.test.ts tests/security/verification.test.ts tests/security/readiness.test.ts tests/security/recovery.test.ts tests/security/objective.test.ts tests/security/confirmation.test.ts src/lib/jarvis/authority.server.ts src/lib/jarvis/supervisor.ts scripts/launch-readiness.mjs tests/jarvis/contracts.test.ts tests/jarvis/e2e.test.ts src/lib/jarvis/objective.ts src/lib/jarvis/functions.ts src/jarvis/JarvisWorkspace.tsx src/jarvis/JarvisBubble.tsx src/routes/ocade-jarvis.tsx ToRemove.md evidence/readiness/gates.json .github/workflows/jarvis-cloud-validation.yml
 
   contracts-db:
     needs: planner-safety
