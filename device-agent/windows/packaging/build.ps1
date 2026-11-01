@@ -4,6 +4,9 @@
 # STATUS: CODED, UNTESTED.
 $ErrorActionPreference = "Stop"
 Set-Location (Split-Path $PSScriptRoot)
+# Use a package-local Chromium store, never the build user's AppData browser cache.
+# This directory is embedded in the frozen release so customers install no browser tools.
+$env:PLAYWRIGHT_BROWSERS_PATH = Join-Path $PSScriptRoot "playwright-browsers"
 python -m venv .build-venv
 .\.build-venv\Scripts\python -m pip install -r requirements.txt pyinstaller==6.22.3
 .\.build-venv\Scripts\python -m playwright install chromium
