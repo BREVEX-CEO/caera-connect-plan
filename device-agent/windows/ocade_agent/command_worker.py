@@ -89,6 +89,17 @@ def _bounded(data: bytes) -> str:
     return text if len(text) <= OUTPUT_LIMIT else text[:OUTPUT_LIMIT // 2] + "\n…\n" + text[-OUTPUT_LIMIT // 2:]
 
 
+async def _exited(process, seconds: float) -> bool:
+    """Whether the command itself ended in time. Not process.wait(): on Python 3.12 that
+    also waits for every process holding the output pipes to let go."""
+    deadline = time.monotonic() + seconds
+    while process.returncode is None:
+        if time.monotonic() >= deadline:
+            return False
+        await asyncio.sleep(0.05)
+    return True
+
+
 @app.tool()
 async def shell_run(command: str, timeoutSeconds: int = 60) -> dict:
     """Run one confirmed command in the workspace folder and report exactly what it printed."""
@@ -107,11 +118,7 @@ async def shell_run(command: str, timeoutSeconds: int = 60) -> dict:
     output = asyncio.ensure_future(process.communicate())
     held = False
     try:
-        try:
-            await asyncio.wait_for(process.wait(), timeoutSeconds)
-            timed_out = False
-        except asyncio.TimeoutError:
-            timed_out = True
+        timed_out = not await _exited(process, timeoutSeconds)
         if not timed_out:
             try:  # the command ended; something it started may still hold its output open
                 await asyncio.wait_for(asyncio.shield(output), 2)
