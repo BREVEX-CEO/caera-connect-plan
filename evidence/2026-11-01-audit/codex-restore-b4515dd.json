@@ -1,0 +1,19 @@
+{
+  "sourceSha": "b4515dda95df2690682f46cc1b4cd038e8aa6871",
+  "archiveSha256": "142ce946ff5e8bfcec05b7502a3940eb0c7f066d082cf78ca3e6817b46f4d4d5",
+  "schemaSha256": "7b8a9b777db2f4e439ee05add709f584bf004e4cc0709cd5de558f257c1a8b57",
+  "dataSha256": "903939ff92be045b2cfa15e3f0a889c53acf84b16f7d88cb6098189dafe65a85",
+  "restoreSeconds": 0,
+  "truncatedArchiveRejected": true,
+  "permissionChecks": "PASS",
+  "scope": "disposable PostgreSQL 16 with Supabase platform stubs",
+  "runId": 41337661535,
+  "jobId": 124940966490,
+  "runUrl": "https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41337661535",
+  "jobConclusion": "success",
+  "elapsedTimeResolution": "whole seconds; 0 means under one second on this small synthetic fixture",
+  "limitations": [
+    "Supabase auth/storage platform objects are test stubs",
+    "No hosted backup/PITR, external storage bytes, global role restoration, database-level service configuration or infrastructure failover qualified"
+  ]
+}
