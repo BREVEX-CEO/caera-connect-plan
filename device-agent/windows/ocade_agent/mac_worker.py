@@ -130,10 +130,12 @@ def _leased(window: dict):
 
     now = next((w for w in open_windows(400) if w["hwnd"] == window["hwnd"]), None)
     if now is None:
-        import Quartz  # type: ignore[import-not-found]
-
-        anywhere = Quartz.CGWindowListCopyWindowInfo(Quartz.kCGWindowListOptionIncludingWindow, window["hwnd"]) or []
-        raise Refused("window_minimized" if anywhere else "window_gone")  # off screen but alive = minimized
+        # Minimized windows leave the on-screen list; ask Accessibility whether the same process
+        # still holds a minimized window. Either way nothing is acted on.
+        started = _started(window["pid"])
+        alive = started is not None and abs(started - window["started"]) <= 1
+        windows = (_attribute(AX.AXUIElementCreateApplication(window["pid"]), "AXWindows") or []) if alive else []
+        raise Refused("window_minimized" if any(_attribute(w, "AXMinimized") for w in windows) else "window_gone")
     if now["pid"] != window["pid"] or now["exe"] != window["exe"] or abs(now["started"] - window["started"]) > 1:
         raise Refused("window_changed")
     x, y, width, height = now["bounds"]

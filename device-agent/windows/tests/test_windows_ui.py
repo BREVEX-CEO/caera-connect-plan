@@ -50,7 +50,12 @@ class EnvironmentContract(unittest.TestCase):
     def test_the_desktop_bridge_is_reported_only_where_it_works(self):
         from ocade_agent import discovery
 
-        self.assertEqual("desktop" in discovery.engines(), sys.platform == "win32")
+        works = sys.platform == "win32"
+        if sys.platform == "darwin":  # only once the person has granted Accessibility
+            import ApplicationServices
+
+            works = bool(ApplicationServices.AXIsProcessTrusted())
+        self.assertEqual("desktop" in discovery.engines(), works)
 
 
 @unittest.skipUnless(sys.platform == "win32", "needs a Windows desktop")
