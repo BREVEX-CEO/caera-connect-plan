@@ -424,7 +424,7 @@ export const OPERATIONS = {
   },
   "fs.read_text": {
     summary:
-      "Read the text of a workspace file: plain text, CSV, Markdown, JSON, Word document, spreadsheet cell values or PDF text.",
+      "Read the text of a workspace file: any plain-text file (scripts, configs, CSV, Markdown, JSON…), Word document, spreadsheet cell values or PDF text.",
     role: "fs_sandbox",
     capability: "files",
     risk: "read",

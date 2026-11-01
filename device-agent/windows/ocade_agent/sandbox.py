@@ -22,7 +22,7 @@ import tempfile
 from pathlib import Path
 
 OUTPUT_DIR = "OCADE output"
-# Plain-text files JARVIS reads, writes and verifies as UTF-8. Nothing Windows runs on a double click.
+# Plain-text files JARVIS may CREATE. Nothing Windows runs on a double click.
 TEXT_SUFFIXES = (".txt", ".csv", ".tsv", ".md", ".json", ".xml", ".html", ".yaml", ".yml", ".ini", ".log",
                  ".ps1", ".py", ".sql")
 _RESERVED = re.compile(r"^(con|prn|aux|nul|com[0-9]|lpt[0-9])(\..*)?$", re.IGNORECASE)
@@ -64,6 +64,13 @@ def output_path(workspace: str | os.PathLike, relative: str) -> Path:
     if target.exists():
         raise Refused("output_exists")
     return target
+
+
+def plain_text(path: Path, limit: int = 2_000_000) -> str | None:
+    """A file's text when it is plain text (any name: scripts, configs, .env), else None."""
+    with open(path, "rb") as stream:
+        data = stream.read(limit)
+    return None if b"\0" in data else data.decode("utf-8", errors="replace")
 
 
 def write_atomically(target: Path, produce) -> str:

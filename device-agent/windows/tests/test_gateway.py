@@ -155,6 +155,25 @@ class Journey(unittest.TestCase):
             self.assertEqual(os.stat(self.root / "tool.py").st_mode & 0o777, 0o755)  # mode kept
             self.assertEqual(os.stat(self.root / f"{self.out}/note.txt").st_mode & 0o044, 0o044)  # not 0600
 
+    def test_any_plain_text_file_is_read_and_verified_by_content_not_by_name(self):
+        (self.root / "export.sh").write_text("#!/bin/sh\ndate > reports/out.txt\n")
+        (self.root / ".env.example").write_text("API_URL=https://api.example.test\n")
+        (self.root / "logo.png").write_bytes(b"\x89PNG\r\n\x1a\n\0\0\0\rIHDR")
+        script, dotfile, binary, verified = self.run_all(Gateway(str(self.root)), [
+            intent("fs.read_text", {"path": "export.sh"}),
+            intent("fs.read_text", {"path": ".env.example"}),
+            intent("fs.read_text", {"path": "logo.png"}),
+            intent("verify.checks", {"checks": [
+                {"id": "sh", "description": "script", "kind": "file_contains", "params": {"path": "export.sh", "text": "reports/"}},
+                {"id": "png", "description": "binary", "kind": "file_contains", "params": {"path": "logo.png", "text": "PNG"}},
+            ]}),
+        ])
+        self.assertIn("reports/out.txt", script["evidence"]["text"])
+        self.assertIn("API_URL", dotfile["evidence"]["text"])
+        self.assertEqual(binary["errorCode"], "unsupported_file_type")
+        self.assertEqual(verified["evidence"]["predicates"]["sh"], True)
+        self.assertIsNone(verified["evidence"]["predicates"].get("png"))  # not observable, never a guess
+
     def test_missing_outputs_are_not_passed(self):
         [verified] = self.run_all(Gateway(str(self.root)), [self.checks()])
         self.assertEqual(verified["evidence"]["predicates"], {"net": False, "wrong": False, "pdf": False})

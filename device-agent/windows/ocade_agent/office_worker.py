@@ -22,7 +22,7 @@ from docx import Document
 from mcp.server.mcpserver import MCPServer
 
 from . import engine
-from .sandbox import OUTPUT_DIR, TEXT_SUFFIXES, Refused, output_path, resolve, sha256, write_atomically
+from .sandbox import OUTPUT_DIR, TEXT_SUFFIXES, Refused, output_path, plain_text, resolve, sha256, write_atomically
 
 app = MCPServer("ocade-office")
 WORKSPACE = os.environ.get("OCADE_WORKSPACE", "")
@@ -85,14 +85,12 @@ def office_inspect_workbook(path: str) -> dict:
 @app.tool()
 @_evidence
 def fs_read_text(path: str) -> dict:
-    """The text of a workspace file (txt, csv, md, docx, xlsx, pdf), bounded."""
+    """The text of a workspace file (any plain-text file, docx, xlsx, pdf), bounded."""
     source = resolve(WORKSPACE, path)
     if not source.is_file():
         raise Refused("not_a_file")
     suffix = source.suffix.lower()
-    if suffix in TEXT_SUFFIXES:
-        text = source.read_text(encoding="utf-8", errors="replace")
-    elif suffix == ".docx":
+    if suffix == ".docx":
         document = Document(str(source))
         text = "\n".join(p.text for p in document.paragraphs) + "\n" + "\n".join(
             "\t".join(cell.text for cell in row.cells) for table in document.tables for row in table.rows
@@ -110,7 +108,9 @@ def fs_read_text(path: str) -> dict:
 
         text = "\n".join(page.extract_text() or "" for page in PdfReader(source).pages)
     else:
-        raise Refused("unsupported_file_type")
+        text = plain_text(source)
+        if text is None:
+            raise Refused("unsupported_file_type")
     return {"sha256": sha256(source), "text": text[:8_000], "truncated": len(text) > 8_000}
 
 
@@ -132,7 +132,7 @@ def fs_replace_text(path: str, text: str, expectSha256: str) -> dict:
     target = resolve(WORKSPACE, path)
     if not target.is_file():
         raise Refused("not_a_file")
-    if target.suffix.lower() not in TEXT_SUFFIXES:
+    if target.suffix.lower() in (".docx", ".xlsx", ".pdf") or plain_text(target) is None:
         raise Refused("unsupported_file_type")
     root = Path(os.path.realpath(WORKSPACE))
     output_root = root / OUTPUT_DIR
