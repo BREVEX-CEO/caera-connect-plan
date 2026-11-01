@@ -12,8 +12,11 @@ document and its PDF. What to read, compute and write is the planner's choice.
 from __future__ import annotations
 
 import functools
+import hashlib
 import os
+import secrets
 import shutil
+import tempfile
 import time
 from pathlib import Path
 
@@ -156,27 +159,33 @@ def _rewrite(path: str, expect: str, change) -> dict:
     target = resolve(WORKSPACE, path)
     if not target.is_file():
         raise Refused("not_a_file")
-    if target.suffix.lower() in (".docx", ".xlsx", ".pdf") or plain_text(target) is None:
+    with target.open("rb") as stream:
+        data = stream.read(2_000_001)
+    if len(data) > 2_000_000:
+        raise Refused("file_too_large")
+    if target.suffix.lower() in (".docx", ".xlsx", ".pdf") or b"\0" in data:
         raise Refused("unsupported_file_type")
     root = Path(os.path.realpath(WORKSPACE))
     output_root = root / OUTPUT_DIR
     relative = target.relative_to(root)
     if os.path.commonpath([output_root, target]) == str(output_root):
         raise Refused("write_inside_output")  # JARVIS's own outputs are never edited; write a new one
-    before = sha256(target)
+    before = hashlib.sha256(data).hexdigest()
     if before != expect:
         raise Refused("file_changed")  # someone changed it since it was read: read it again
     try:
-        current = target.read_bytes().decode("utf-8")
+        current = data.decode("utf-8")
     except UnicodeDecodeError:
         current = None  # not UTF-8: only a whole replacement can change it
     text = change(current)
-    stamp = time.strftime("%Y%m%dT%H%M%SZ", time.gmtime())
+    stamp = f"{time.strftime('%Y%m%dT%H%M%SZ', time.gmtime())}-{secrets.token_hex(8)}"
     original = output_path(WORKSPACE, f"{OUTPUT_DIR}/originals/{relative.as_posix()}.{stamp}{target.suffix}")
-    write_atomically(original, lambda temporary: shutil.copyfile(target, temporary))
-    staged = target.with_name(f".ocade-{target.name}")
+    write_atomically(original, lambda temporary: temporary.write_bytes(data))
+    handle, temporary = tempfile.mkstemp(dir=target.parent, prefix=".ocade-", suffix=target.suffix)
+    staged = Path(temporary)
     try:
-        staged.write_bytes(text.encode("utf-8"))
+        with os.fdopen(handle, "wb") as stream:
+            stream.write(text.encode("utf-8"))
         shutil.copymode(target, staged)
         if sha256(target) != before:
             raise Refused("file_changed")

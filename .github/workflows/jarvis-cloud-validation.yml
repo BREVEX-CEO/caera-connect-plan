@@ -62,6 +62,9 @@ jobs:
         if: success() || failure()
         working-directory: device-agent/windows
         run: python -m unittest tests.test_gateway.Journey.test_duplicate_verifier_ids_cannot_erase_a_failed_check tests.test_gateway.Journey.test_repair_preserves_an_unrelated_hidden_staging_name tests.test_gateway.Journey.test_repeated_repairs_keep_distinct_exact_originals -v
+      - name: TypeScript safety before the platform matrix
+        if: success() || failure()
+        run: npm run typecheck
       - name: Source formatting
         if: success() || failure()
         run: npm run format:check

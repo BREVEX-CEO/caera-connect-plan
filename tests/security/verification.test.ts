@@ -43,10 +43,22 @@ test("completion requires proof of the exact, well-formed saved acceptance rules
   const proof = verified([check]);
   for (const [name, checks, step] of [
     ["empty task checks", [], proof],
-    ["duplicate identifiers", [check, { ...check, params: { path: "absent.txt", text: "missing" } }], proof],
+    [
+      "duplicate identifiers",
+      [check, { ...check, params: { path: "absent.txt", text: "missing" } }],
+      proof,
+    ],
     ["missing predicate arguments", [{ ...check, params: { path } }], proof],
-    ["verifier checked another file", [check], verified([{ ...check, params: { path: "other.txt", text: check.params!.text } }])],
-    ["verifier used a weaker predicate", [check], verified([{ ...check, kind: "file_exists", params: { path } }])],
+    [
+      "verifier checked another file",
+      [check],
+      verified([{ ...check, params: { path: "other.txt", text: check.params!.text } }]),
+    ],
+    [
+      "verifier used a weaker predicate",
+      [check],
+      verified([{ ...check, kind: "file_exists", params: { path } }]),
+    ],
     ["unknown receipt", [check], { ...proof, receipt: { ...proof.receipt!, status: "unknown" } }],
   ] as const) {
     await t.test(name, async () => {
@@ -77,19 +89,45 @@ test("goal compilation refuses duplicate, incomplete or conflicting acceptance p
   plannerAccess.serviceUrl = () => `http://127.0.0.1:${port}`;
   plannerAccess.serviceKey = () => "synthetic-loopback-key";
   plannerAccess.acquirePermit = async (_user, key) => ({
-    permit: { id: "permit", generationId: key, idempotencyKey: key, surface: "jarvis", source: "server" },
+    permit: {
+      id: "permit",
+      generationId: key,
+      idempotencyKey: key,
+      surface: "jarvis",
+      source: "server",
+    },
     release: async () => {},
   });
   try {
     for (const [name, proposed] of [
-      ["duplicate identifiers", [check, { ...check, params: { path: "different.txt", text: "different" } }]],
+      [
+        "duplicate identifiers",
+        [check, { ...check, params: { path: "different.txt", text: "different" } }],
+      ],
       ["missing required content", [{ ...check, params: { path } }]],
-      ["missing workbook coordinates", [{ ...check, kind: "workbook_cell_equals", params: { path } }]],
-      ["invalid duration type", [{ ...check, kind: "media_duration", params: { path, value: "thirty" } }]],
+      [
+        "missing workbook coordinates",
+        [{ ...check, kind: "workbook_cell_equals", params: { path } }],
+      ],
+      [
+        "invalid duration type",
+        [{ ...check, kind: "media_duration", params: { path, value: "thirty" } }],
+      ],
+      [
+        "website check without browser and site grants",
+        [{ ...check, kind: "web_text_contains", params: { url: "https://scope.example/", text: "required" } }],
+      ],
+      [
+        "window check without application grants",
+        [{ ...check, kind: "window_exists", params: { exe: "unfamiliar.exe" } }],
+      ],
     ] as const) {
       await t.test(name, async () => {
         checks = [...proposed];
-        await assert.rejects(compileGoal(base.userId, base.objective, base.grants), PlannerUnavailable);
+        await assert.rejects(
+          compileGoal(base.userId, base.objective, base.grants),
+          PlannerUnavailable,
+        );
       });
     }
     checks = [check];
@@ -97,9 +135,18 @@ test("goal compilation refuses duplicate, incomplete or conflicting acceptance p
     await assert.rejects(compileGoal(base.userId, base.objective, base.grants), PlannerUnavailable);
     duplicateProposal = false;
     assert.deepEqual(await compileGoal(base.userId, base.objective, base.grants), [check]);
+    checks = [{ ...check, kind: "web_text_contains", params: { url: "https://scope.example/", text: "required" } }];
+    const allowed = ["files", "browser", "site:scope.example"];
+    assert.deepEqual(await compileGoal(base.userId, base.objective, allowed), checks);
+    assert.equal((await planStep({ ...base, checks, grants: allowed, steps: [verified(checks)] })).kind, "settle");
+    assert.equal((await planStep({ ...base, checks, steps: [verified(checks)] })).kind, "block");
+    checks = [{ ...checks[0], params: { url: "https://name:password@scope.example/", text: "required" } }];
+    await assert.rejects(compileGoal(base.userId, base.objective, allowed), PlannerUnavailable);
   } finally {
     Object.assign(plannerAccess, saved);
     server.closeAllConnections();
-    await new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
+    await new Promise<void>((resolve, reject) =>
+      server.close((error) => (error ? reject(error) : resolve())),
+    );
   }
 });

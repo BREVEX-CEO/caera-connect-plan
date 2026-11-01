@@ -18,7 +18,7 @@ import { z } from "zod";
 import {
   OPERATIONS,
   intent,
-  outcomeCheck,
+  taskChecks,
   type Operation,
   type OutcomeCheck,
 } from "./contracts.ts";
@@ -254,6 +254,8 @@ export class PlannerUnavailable extends Error {}
 export function plannerMessage(code: string): string {
   if (code === "online_not_consented")
     return "JARVIS plans with online intelligence, and you have not agreed to it yet.";
+  if (code === "invalid_goal_scope")
+    return "The requested outcome needs website or app access that is not allowed on this computer.";
   if (code === "allowance_exhausted")
     return "Your JARVIS allowance is used up until your usage window resets.";
   if (
@@ -485,7 +487,7 @@ export async function compileGoal(
   allowed: string[],
   onTimed?: (ms: number) => void,
 ) {
-  const [call] = await callPlanner({
+  const calls = await callPlanner({
     userId,
     onTimed,
     key: `jarvis-goal:${crypto.randomUUID()}`,
@@ -508,10 +510,7 @@ export async function compileGoal(
         description: "The fixed checks for this task.",
         parameters: z.toJSONSchema(
           z.object({
-            checks: z
-              .array(outcomeCheck.required({ kind: true, params: true }))
-              .min(1)
-              .max(6),
+            checks: taskChecks,
           }),
           { io: "input" },
         ),
@@ -520,14 +519,32 @@ export async function compileGoal(
   });
   const parsed = z
     .object({
-      checks: z
-        .array(outcomeCheck.required({ kind: true, params: true }))
-        .min(1)
-        .max(6),
+      checks: taskChecks,
     })
-    .safeParse(call.args);
-  if (call.name !== "set_goal" || !parsed.success) throw new PlannerUnavailable("invalid_goal");
-  return parsed.data.checks as OutcomeCheck[];
+    .safeParse(calls[0].args);
+  if (calls.length !== 1 || calls[0].name !== "set_goal" || !parsed.success) throw new PlannerUnavailable("invalid_goal");
+  if (!canVerifyChecks(parsed.data.checks, allowed))
+    throw new PlannerUnavailable("invalid_goal_scope");
+  return parsed.data.checks;
+}
+
+/** Acceptance predicates do not confer website or application access. */
+function canVerifyChecks(checks: OutcomeCheck[], grants: string[]): boolean {
+  if (!grants.includes("files")) return false;
+  return checks.every((check) => {
+    if (check.kind === "web_text_contains") {
+      const url = new URL(check.params!.url!);
+      return (
+        !url.username &&
+        !url.password &&
+        grants.includes("browser") &&
+        grants.includes(`site:${url.hostname}`)
+      );
+    }
+    if (check.kind === "window_exists")
+      return grants.includes("apps") && grants.includes(`app:${check.params!.exe}`);
+    return true;
+  });
 }
 
 /**
@@ -618,11 +635,27 @@ export async function planStep(input: {
   now: Date;
   onModelCall?: (ms: number) => void;
 }): Promise<Decision> {
-  const { steps, checks, now } = input;
+  const { steps, now } = input;
+  const acceptance = taskChecks.safeParse(input.checks);
+  if (!acceptance.success)
+    return { kind: "block", reason: "The saved outcome checks are invalid. Nothing was run." };
+  const checks = acceptance.data;
+  if (!canVerifyChecks(checks, input.grants))
+    return { kind: "block", reason: "The outcome's websites or applications are not authorized on this computer." };
   if (steps.some(open)) return { kind: "wait" };
 
-  // The verifier's answer counts only if nothing ran after it.
+  // A receipt proves only the exact acceptance rules the independent worker actually read.
   const last = steps.at(-1);
+  if (last?.intent.operation === "verify.checks" && last.status === "done") {
+    const dispatched = taskChecks.safeParse(last.intent.arguments.checks);
+    if (
+      !dispatched.success ||
+      JSON.stringify(dispatched.data) !== JSON.stringify(checks) ||
+      last.receipt?.status !== "observed" ||
+      last.receipt.errorCode
+    )
+      return { kind: "block", reason: "The verification does not match this task's outcome checks." };
+  }
   const verified =
     last?.intent.operation === "verify.checks" ? evidenceOf([last], "verify.checks") : undefined;
   if (verified) {

@@ -987,6 +987,49 @@ export const outcomeCheck = z.object({
 });
 export type OutcomeCheck = z.infer<typeof outcomeCheck>;
 
+/** New task acceptance rules must be executable and independently distinguishable. */
+export const taskChecks = z
+  .array(outcomeCheck.required({ kind: true, params: true }))
+  .min(1)
+  .max(6)
+  .superRefine((checks, context) => {
+    const ids = new Set<string>();
+    const required = {
+      file_exists: ["path"],
+      file_contains: ["path", "text"],
+      file_parses: ["path"],
+      workbook_cell_equals: ["path", "sheet", "cell", "value"],
+      web_text_contains: ["url", "text"],
+      window_exists: ["exe"],
+      media_duration: ["path", "value"],
+      media_quality: ["path", "value", "width", "height"],
+      image_size: ["path", "width", "height"],
+      scene_render: ["path"],
+    } as const;
+    for (const [index, check] of checks.entries()) {
+      if (ids.has(check.id))
+        context.addIssue({ code: "custom", path: [index, "id"], message: "duplicate check id" });
+      ids.add(check.id);
+      for (const field of required[check.kind])
+        if (check.params[field] === undefined)
+          context.addIssue({
+            code: "custom",
+            path: [index, "params", field],
+            message: "required for this check kind",
+          });
+      if (
+        ["media_duration", "media_quality"].includes(check.kind) &&
+        (typeof check.params.value !== "number" || check.params.value < 0)
+      )
+        context.addIssue({
+          code: "custom",
+          path: [index, "params", "value"],
+          message: "duration must be a nonnegative number",
+        });
+    }
+  });
+
+
 /** The settlement record: every fixed check lands in exactly one list. */
 const verificationResult = z.object({
   passed: z.array(z.string()),

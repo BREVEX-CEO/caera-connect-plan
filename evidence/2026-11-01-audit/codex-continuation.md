@@ -44,3 +44,11 @@ Three repaired defects: exact URL provenance; complete provider-turn requirement
 - Added test-only reproducers: `tests/security/verification.test.ts` and three focused real-worker tests in `test_gateway.py`. Do not call these fixed until red reproduction, repair and the next full matrix pass.
 - The database settlement function is service-role-only, SECURITY INVOKER with an empty search path. Its passed-ID set does not itself bind the latest verifier receipt or prevent duplicate outcome IDs; application/worker fixes are necessary, with additional database defense still to assess. No deployed migration was changed.
 - Anonymous verifier URL fetching and browser DNS/redirect enforcement still need security review. Original-file compare-before-replace also has a residual concurrent-writer window; do not broaden the narrow output-publication guarantee to all in-place writes.
+
+## Reproduced verifier and repair failures / candidate repair
+
+[Run 50](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41336480756), `94d7428`: all previous 32 JS tests PASS; 12 new JS failures (parent-suite failures included), plus all three real-worker regressions FAIL/ERROR. The hidden staging file was actually deleted; the second backup raised `output_exists`; duplicate predicates were reported as observed success. No expensive platform jobs ran on this failing preflight.
+
+Candidate: one shared typed task-check validator requires unique IDs and each kind's actual parameters; a terminal verifier receipt must match the exact saved contract; website/app checks cannot grant themselves access. The independent worker separately refuses duplicate IDs. Repair uses unique temporary files and backup identities, one bounded content snapshot for the SHA/edit/backup, preserving unrelated hidden files and every original version. The general original-file check/replace concurrency window remains an explicit separate limitation.
+
+Next: inspect the candidate preflight, apply cloud canonical formatting if required, fix any type/test failures, then await the entire six-job matrix. Only then refresh the existing 266/84/readiness ledgers. The customer-intent interpretation/anti-gaming problem is still PARTIAL: validated model-proposed checks alone do not prove their semantic agreement with the user's request.
