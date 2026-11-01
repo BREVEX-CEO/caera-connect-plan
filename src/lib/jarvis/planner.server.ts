@@ -185,6 +185,23 @@ export function unseenAddress(url: unknown, objective: string, steps: Step[]) {
   );
 }
 
+/**
+ * A cancelled step means the person took over (or stopped) the computer: what was seen
+ * before may have changed. Nothing that changes state runs until a read has looked again.
+ */
+export function observedSinceTakeOver(steps: Step[]) {
+  const cancelled = steps.map((step) => step.status).lastIndexOf("cancelled");
+  if (cancelled < 0) return;
+  const looked = steps
+    .slice(cancelled + 1)
+    .some((step) => step.status === "done" && step.intent.risk === "read");
+  if (!looked) {
+    throw new Error(
+      "the person took over the computer since your last observation: observe the current state again first",
+    );
+  }
+}
+
 /** No progress: the same step (or the same run of up to three steps) three times in a row, or too many refused steps. */
 export function stalled(steps: Step[]): string | null {
   const signature = (step: Step) => JSON.stringify([step.intent.operation, step.intent.arguments]);
@@ -600,6 +617,7 @@ export async function planStep(input: {
     if (!operation) throw new Error("that tool was not offered this turn");
     if (operation === "web.open")
       unseenAddress((args as { url?: unknown })?.url, input.objective, steps);
+    if (OPERATIONS[operation].risk !== "read") observedSinceTakeOver(steps);
     return {
       operation,
       summary: `${operation.replace(/^\w+\./, "").replace(/_/g, " ")}`,

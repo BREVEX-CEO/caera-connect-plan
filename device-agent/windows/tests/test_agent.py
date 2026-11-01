@@ -167,5 +167,62 @@ class StopInFlightTest(unittest.TestCase):
         self.assertGreater(gateway.epoch, 0, "the local fence moved")
 
 
+CHILD = """
+import sys, anyio
+sys.path[:0] = [{tests!r}]
+from ocade_agent.agent import Agent
+from ocade_agent.gateway import Gateway
+from ocade_agent.journal import Journal
+from pathlib import Path
+from tests.test_agent import FakeDevice, hung_write
+
+class StillRunning(FakeDevice):
+    def request(self, payload):
+        return 200, {{"action": {{"id": "k1"}}}}
+
+workspace = Path({workspace!r})
+gateway = Gateway(str(workspace), {{"fs_sandbox": "tests.fake_worker", "sys_core": "tests.fake_worker"}}, extra_path={tests!r})
+
+async def go():
+    async with gateway:
+        await Agent(StillRunning(), Journal(workspace / "journal.sqlite"), gateway).handle({{"id": "k1", "intent": hung_write()}})
+
+anyio.run(go)
+"""
+
+
+def hung_write():
+    spec = PROTOCOL["operations"]["office.write_workbook"]
+    return {
+        "v": 1, "key": "write", "operation": "office.write_workbook",
+        "capability": spec["capability"], "risk": spec["risk"],
+        "arguments": {"path": "OCADE output/x.xlsx", "sheets": [{"name": "S", "rows": [[1]]}]},
+        "deadlineUtc": (datetime.now(timezone.utc) + timedelta(minutes=5)).isoformat().replace("+00:00", "Z"),
+    }
+
+
+class ProcessKillTest(unittest.TestCase):
+    def test_a_companion_killed_mid_write_reports_unknown_after_restart_and_never_reruns(self):
+        import subprocess
+        import sys
+
+        workspace = Path(tempfile.mkdtemp())
+        (workspace / ".fake_mode").write_text("hang")
+        child = subprocess.Popen([sys.executable, "-c", CHILD.format(tests=TESTS, workspace=str(workspace))])
+        journal_path = workspace / "journal.sqlite"
+        deadline = time.monotonic() + 30
+        while time.monotonic() < deadline and not (journal_path.exists() and Journal(journal_path).get("k1")):
+            time.sleep(0.2)
+        time.sleep(1)  # the write is now dispatched to its worker
+        child.kill()  # SIGKILL / TerminateProcess: no cleanup runs
+        child.wait()
+        self.assertEqual(Journal(journal_path).get("k1")[0], "started")
+
+        device = FakeDevice()  # the restarted companion is handed the same action again
+        anyio.run(Agent(device, Journal(journal_path), FailingGateway()).handle, {"id": "k1", "intent": hung_write()})
+        sent = device.sent[-1]["receipt"]
+        self.assertEqual((sent["status"], sent["maybeChanged"], sent["errorCode"]), ("unknown", True, "interrupted"))
+
+
 if __name__ == "__main__":
     unittest.main()

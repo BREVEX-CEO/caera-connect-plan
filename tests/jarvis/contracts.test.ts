@@ -431,3 +431,25 @@ test("a deep address typed from memory is refused; home pages and seen links are
     /was not seen in this task/,
   );
 });
+
+test("after Take Over nothing that changes state runs until the planner looked again", async () => {
+  const { observedSinceTakeOver } = await import("../../src/lib/jarvis/planner.server.ts");
+  const step = (operation: "fs.list" | "fs.write_text", status: string): Step => ({
+    intent: intent(
+      operation,
+      `${operation}-${status}`,
+      operation === "fs.list" ? {} : { path: "OCADE output/a.txt", text: "x" },
+      deadline,
+    ),
+    status,
+    receipt: null,
+  });
+  assert.doesNotThrow(() => observedSinceTakeOver([step("fs.write_text", "done")]));
+  assert.throws(
+    () => observedSinceTakeOver([step("fs.list", "done"), step("fs.write_text", "cancelled")]),
+    /observe the current state again/,
+  );
+  assert.doesNotThrow(() =>
+    observedSinceTakeOver([step("fs.write_text", "cancelled"), step("fs.list", "done")]),
+  );
+});

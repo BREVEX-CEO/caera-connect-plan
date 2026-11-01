@@ -5,101 +5,388 @@
       "n": 1,
       "name": "Repository and architecture baseline",
       "conditions": [
-        { "id": "integrity", "text": "One implementation branch; protocol contract and no-hardcode guard pass in CI", "status": "PASS", "evidence": ["scripts/jarvis-protocol.ts", "scripts/jarvis-no-hardcoded-journeys.mjs", ".github/workflows/jarvis-cloud-validation.yml"] },
-        { "id": "contracts", "text": "TypeScript and Python share one generated protocol, checked for drift", "status": "PASS", "evidence": ["device-agent/windows/ocade_agent/protocol.json", "tests/jarvis/contracts.test.ts"] },
-        { "id": "no_silent_skips", "text": "Every required test fails the gate when its prerequisites are missing", "status": "PARTIAL", "evidence": ["tests/jarvis/e2e.test.ts"], "reason": "end-to-end tests are guarded in CI; companion tests still skip on Windows/macOS without a guard" },
-        { "id": "dependency_audit", "text": "Shipped web and companion dependencies have no known vulnerabilities (CI-enforced)", "status": "PASS", "evidence": [".github/workflows/jarvis-cloud-validation.yml"] },
-        { "id": "security_invariants", "text": "Sandbox, secret scan, STOP and confirmation invariants have regression tests", "status": "PASS", "evidence": ["device-agent/windows/tests/test_sandbox.py", "scripts/scan-bundle-secrets.mjs", "device-agent/windows/tests/test_shell.py"] },
-        { "id": "reproducible_build", "text": "Release artifacts rebuild bit-identically from pinned inputs", "status": "UNTESTED", "evidence": [], "reason": "installer builds from pinned inputs in CI; two builds have not been compared" }
+        {
+          "id": "integrity",
+          "text": "One implementation branch; protocol contract and no-hardcode guard pass in CI",
+          "status": "PASS",
+          "evidence": [
+            "scripts/jarvis-protocol.ts",
+            "scripts/jarvis-no-hardcoded-journeys.mjs",
+            ".github/workflows/jarvis-cloud-validation.yml"
+          ]
+        },
+        {
+          "id": "contracts",
+          "text": "TypeScript and Python share one generated protocol, checked for drift",
+          "status": "PASS",
+          "evidence": [
+            "device-agent/windows/ocade_agent/protocol.json",
+            "tests/jarvis/contracts.test.ts"
+          ]
+        },
+        {
+          "id": "no_silent_skips",
+          "text": "Every required test fails the gate when its prerequisites are missing",
+          "status": "PARTIAL",
+          "evidence": [
+            "tests/jarvis/e2e.test.ts"
+          ],
+          "reason": "end-to-end tests are guarded in CI; companion tests still skip on Windows/macOS without a guard"
+        },
+        {
+          "id": "dependency_audit",
+          "text": "Shipped web and companion dependencies have no known vulnerabilities (CI-enforced)",
+          "status": "PASS",
+          "evidence": [
+            ".github/workflows/jarvis-cloud-validation.yml"
+          ]
+        },
+        {
+          "id": "security_invariants",
+          "text": "Sandbox, secret scan, STOP and confirmation invariants have regression tests",
+          "status": "PASS",
+          "evidence": [
+            "device-agent/windows/tests/test_sandbox.py",
+            "scripts/scan-bundle-secrets.mjs",
+            "device-agent/windows/tests/test_shell.py"
+          ]
+        },
+        {
+          "id": "reproducible_build",
+          "text": "Release artifacts rebuild bit-identically from pinned inputs",
+          "status": "UNTESTED",
+          "evidence": [],
+          "reason": "installer builds from pinned inputs in CI; two builds have not been compared"
+        }
       ]
     },
     {
       "n": 2,
       "name": "Core Gateway and device authority",
       "conditions": [
-        { "id": "pairing_revocation", "text": "Pairing, signed requests and revocation refuse forged or revoked devices", "status": "PASS", "evidence": ["tests/jarvis/e2e.test.ts", "tests/jarvis/db/authority.test.sql"] },
-        { "id": "permissions", "text": "Grants, RLS and cross-account isolation hold in the database", "status": "PASS", "evidence": ["tests/jarvis/db/authority.test.sql"] },
-        { "id": "worker_execution", "text": "MCP workers are pinned, schema-checked, isolated and crash-safe", "status": "PASS", "evidence": ["device-agent/windows/tests/test_gateway.py", "device-agent/windows/tests/test_catalog.py"] },
-        { "id": "journal_idempotency", "text": "Journal, idempotency and lost-ACK reconciliation never repeat an effect", "status": "PASS", "evidence": ["device-agent/windows/tests/test_agent.py"] },
-        { "id": "stop", "text": "STOP fences dispatch and ends in-flight process trees on every OS", "status": "PASS", "evidence": ["device-agent/windows/tests/test_shell.py", "tests/jarvis/e2e.test.ts"] },
-        { "id": "takeover", "text": "Take Over and resume refresh targets before any new action", "status": "PARTIAL", "evidence": ["tests/jarvis/db/authority.test.sql"], "reason": "resume issues a new controller; targets are not re-observed after takeover" },
-        { "id": "crash_recovery", "text": "Companion crash and restart resume from durable checkpoints without duplicate effects", "status": "PARTIAL", "evidence": ["device-agent/windows/tests/test_agent.py"], "reason": "journal replay tested; a kill-and-restart of the running companion is not" }
+        {
+          "id": "pairing_revocation",
+          "text": "Pairing, signed requests and revocation refuse forged or revoked devices",
+          "status": "PASS",
+          "evidence": [
+            "tests/jarvis/e2e.test.ts",
+            "tests/jarvis/db/authority.test.sql"
+          ]
+        },
+        {
+          "id": "permissions",
+          "text": "Grants, RLS and cross-account isolation hold in the database",
+          "status": "PASS",
+          "evidence": [
+            "tests/jarvis/db/authority.test.sql"
+          ]
+        },
+        {
+          "id": "worker_execution",
+          "text": "MCP workers are pinned, schema-checked, isolated and crash-safe",
+          "status": "PASS",
+          "evidence": [
+            "device-agent/windows/tests/test_gateway.py",
+            "device-agent/windows/tests/test_catalog.py"
+          ]
+        },
+        {
+          "id": "journal_idempotency",
+          "text": "Journal, idempotency and lost-ACK reconciliation never repeat an effect",
+          "status": "PASS",
+          "evidence": [
+            "device-agent/windows/tests/test_agent.py"
+          ]
+        },
+        {
+          "id": "stop",
+          "text": "STOP fences dispatch and ends in-flight process trees on every OS",
+          "status": "PASS",
+          "evidence": [
+            "device-agent/windows/tests/test_shell.py",
+            "tests/jarvis/e2e.test.ts"
+          ]
+        },
+        {
+          "id": "takeover",
+          "text": "Take Over and resume: nothing that changes state runs before a fresh observation; stale web selectors refused",
+          "status": "PASS",
+          "evidence": [
+            "tests/jarvis/contracts.test.ts",
+            "tests/jarvis/db/authority.test.sql",
+            "device-agent/windows/tests/test_web.py"
+          ]
+        },
+        {
+          "id": "crash_recovery",
+          "text": "Companion killed mid-write and restarted: the write is reported unknown/interrupted and never re-run",
+          "status": "PASS",
+          "evidence": [
+            "device-agent/windows/tests/test_agent.py"
+          ]
+        }
       ]
     },
     {
       "n": 3,
       "name": "Installer and dependency readiness",
       "conditions": [
-        { "id": "bundle_builds", "text": "Self-contained installer builds and every frozen worker starts", "status": "PARTIAL", "evidence": ["device-agent/windows/packaging/check_frozen.py"], "reason": "Windows Server runner only; unsigned (signing excluded by owner)" },
-        { "id": "clean_install", "text": "Clean install, first launch and pairing on consumer Windows 10/11", "status": "BLOCKED", "evidence": [], "reason": "needs a consumer Windows desktop or VM" },
-        { "id": "dependency_manager", "text": "Missing task dependencies are detected and installed only after authorization, then verified", "status": "FAIL", "evidence": [], "reason": "no dependency manager; the model installs through confirmed shell commands" },
-        { "id": "upgrade_uninstall", "text": "Upgrade, repair, rollback and uninstall keep customer files", "status": "UNTESTED", "evidence": [] }
+        {
+          "id": "bundle_builds",
+          "text": "Self-contained installer builds and every frozen worker starts",
+          "status": "PARTIAL",
+          "evidence": [
+            "device-agent/windows/packaging/check_frozen.py"
+          ],
+          "reason": "Windows Server runner only; unsigned (signing excluded by owner)"
+        },
+        {
+          "id": "clean_install",
+          "text": "Clean install, first launch and pairing on consumer Windows 10/11",
+          "status": "BLOCKED",
+          "evidence": [],
+          "reason": "needs a consumer Windows desktop or VM"
+        },
+        {
+          "id": "dependency_manager",
+          "text": "Missing task dependencies are detected and installed only after authorization, then verified",
+          "status": "FAIL",
+          "evidence": [],
+          "reason": "no dependency manager; the model installs through confirmed shell commands"
+        },
+        {
+          "id": "upgrade_uninstall",
+          "text": "Upgrade, repair, rollback and uninstall keep customer files",
+          "status": "UNTESTED",
+          "evidence": []
+        }
       ]
     },
     {
       "n": 4,
       "name": "Computer and browser control",
       "conditions": [
-        { "id": "web_targets", "text": "Web targets are observation-scoped, row-disambiguated, stale references refused", "status": "PASS", "evidence": ["device-agent/windows/tests/test_web.py"] },
-        { "id": "web_safety", "text": "Site binding, redirects, popups, sign-in hand-off and injected text handled", "status": "PASS", "evidence": ["device-agent/windows/tests/test_web.py"] },
-        { "id": "windows_uia", "text": "Windows UIA control with exact window leases and wrong-target refusal", "status": "PARTIAL", "evidence": ["device-agent/windows/tests/test_windows_ui.py"], "reason": "Windows Server runner only; consumer desktop, DPI and multi-monitor untested" },
-        { "id": "macos_ax", "text": "macOS accessibility control", "status": "FAIL", "evidence": [], "reason": "not implemented" },
-        { "id": "linux_desktop", "text": "Linux X11/Wayland desktop control", "status": "FAIL", "evidence": [], "reason": "not implemented" },
-        { "id": "visual_grounding", "text": "Image-based target matching with confidence and stale-image checks", "status": "PARTIAL", "evidence": ["device-agent/windows/tests/test_windows_ui.py"], "reason": "window image and control boxes go to the model; no template matching or confidence score" }
+        {
+          "id": "web_targets",
+          "text": "Web targets are observation-scoped, row-disambiguated, stale references refused",
+          "status": "PASS",
+          "evidence": [
+            "device-agent/windows/tests/test_web.py"
+          ]
+        },
+        {
+          "id": "web_safety",
+          "text": "Site binding, redirects, popups, sign-in hand-off and injected text handled",
+          "status": "PASS",
+          "evidence": [
+            "device-agent/windows/tests/test_web.py"
+          ]
+        },
+        {
+          "id": "windows_uia",
+          "text": "Windows UIA control with exact window leases and wrong-target refusal",
+          "status": "PARTIAL",
+          "evidence": [
+            "device-agent/windows/tests/test_windows_ui.py"
+          ],
+          "reason": "Windows Server runner only; consumer desktop, DPI and multi-monitor untested"
+        },
+        {
+          "id": "macos_ax",
+          "text": "macOS accessibility control",
+          "status": "FAIL",
+          "evidence": [],
+          "reason": "not implemented"
+        },
+        {
+          "id": "linux_desktop",
+          "text": "Linux X11/Wayland desktop control",
+          "status": "FAIL",
+          "evidence": [],
+          "reason": "not implemented"
+        },
+        {
+          "id": "visual_grounding",
+          "text": "Image-based target matching with confidence and stale-image checks",
+          "status": "PARTIAL",
+          "evidence": [
+            "device-agent/windows/tests/test_windows_ui.py"
+          ],
+          "reason": "window image and control boxes go to the model; no template matching or confidence score"
+        }
       ]
     },
     {
       "n": 5,
       "name": "Gemini intelligence and grounding",
       "conditions": [
-        { "id": "unseen_success", "text": "At least 90% first-attempt verified success on unseen representative tasks", "status": "FAIL", "evidence": ["evidence/2026-11-01-live/README.md"], "reason": "12 of 17 on the first attempt (71%)" },
-        { "id": "observed_sources", "text": "Facts and addresses come from observations; unseen deep URLs refused", "status": "PASS", "evidence": ["tests/jarvis/contracts.test.ts"] },
-        { "id": "loop_prevention", "text": "Repeated steps and repeated runs of steps stop the task", "status": "PASS", "evidence": ["tests/jarvis/contracts.test.ts"] },
-        { "id": "target_accuracy", "text": "Target-selection accuracy measured against hidden expected targets", "status": "UNTESTED", "evidence": [] }
+        {
+          "id": "unseen_success",
+          "text": "At least 90% first-attempt verified success on unseen representative tasks",
+          "status": "FAIL",
+          "evidence": [
+            "evidence/2026-11-01-live/README.md"
+          ],
+          "reason": "12 of 17 on the first attempt (71%)"
+        },
+        {
+          "id": "observed_sources",
+          "text": "Facts and addresses come from observations; unseen deep URLs refused",
+          "status": "PASS",
+          "evidence": [
+            "tests/jarvis/contracts.test.ts"
+          ]
+        },
+        {
+          "id": "loop_prevention",
+          "text": "Repeated steps and repeated runs of steps stop the task",
+          "status": "PASS",
+          "evidence": [
+            "tests/jarvis/contracts.test.ts"
+          ]
+        },
+        {
+          "id": "target_accuracy",
+          "text": "Target-selection accuracy measured against hidden expected targets",
+          "status": "UNTESTED",
+          "evidence": []
+        }
       ]
     },
     {
       "n": 6,
       "name": "Independent verification and recovery",
       "conditions": [
-        { "id": "postconditions", "text": "Completion requires independently observed postconditions", "status": "PASS", "evidence": ["device-agent/windows/tests/test_gateway.py", "tests/jarvis/e2e.test.ts"] },
-        { "id": "no_gaming", "text": "A model never edits customer files to satisfy a wrong check", "status": "PARTIAL", "evidence": ["evidence/2026-11-01-live/README.md"], "reason": "instruction added; no enforcement and no live retest" },
-        { "id": "file_protection", "text": "Originals kept; newer edits never overwritten; outputs never replace files", "status": "PASS", "evidence": ["device-agent/windows/tests/test_gateway.py", "device-agent/windows/tests/test_sandbox.py"] },
-        { "id": "rich_verification", "text": "Verifier checks semantics for documents, spreadsheets, images, video and code repairs", "status": "PARTIAL", "evidence": ["device-agent/windows/ocade_agent/verify_worker.py"], "reason": "files, cells, media and renders checked; code repairs not re-run by the verifier" }
+        {
+          "id": "postconditions",
+          "text": "Completion requires independently observed postconditions",
+          "status": "PASS",
+          "evidence": [
+            "device-agent/windows/tests/test_gateway.py",
+            "tests/jarvis/e2e.test.ts"
+          ]
+        },
+        {
+          "id": "no_gaming",
+          "text": "A model never edits customer files to satisfy a wrong check",
+          "status": "PARTIAL",
+          "evidence": [
+            "evidence/2026-11-01-live/README.md"
+          ],
+          "reason": "instruction added; no enforcement and no live retest"
+        },
+        {
+          "id": "file_protection",
+          "text": "Originals kept; newer edits never overwritten; outputs never replace files",
+          "status": "PASS",
+          "evidence": [
+            "device-agent/windows/tests/test_gateway.py",
+            "device-agent/windows/tests/test_sandbox.py"
+          ]
+        },
+        {
+          "id": "rich_verification",
+          "text": "Verifier checks semantics for documents, spreadsheets, images, video and code repairs",
+          "status": "PARTIAL",
+          "evidence": [
+            "device-agent/windows/ocade_agent/verify_worker.py"
+          ],
+          "reason": "files, cells, media and renders checked; code repairs not re-run by the verifier"
+        }
       ]
     },
     {
       "n": 7,
       "name": "Customer-facing product",
       "conditions": [
-        { "id": "surface_audit", "text": "Every page, control and state transition inventoried and tested", "status": "UNTESTED", "evidence": [] },
-        { "id": "exact_approvals", "text": "Approval shows the exact operation and arguments", "status": "PASS", "evidence": ["tests/jarvis/contracts.test.ts"] },
-        { "id": "onboarding", "text": "Install, sign in, pair, grant and first task without developer help", "status": "UNTESTED", "evidence": [] }
+        {
+          "id": "surface_audit",
+          "text": "Every page, control and state transition inventoried and tested",
+          "status": "UNTESTED",
+          "evidence": []
+        },
+        {
+          "id": "exact_approvals",
+          "text": "Approval shows the exact operation and arguments",
+          "status": "PASS",
+          "evidence": [
+            "tests/jarvis/contracts.test.ts"
+          ]
+        },
+        {
+          "id": "onboarding",
+          "text": "Install, sign in, pair, grant and first task without developer help",
+          "status": "UNTESTED",
+          "evidence": []
+        }
       ]
     },
     {
       "n": 8,
       "name": "Security, infrastructure and operations",
       "conditions": [
-        { "id": "secrets_isolation", "text": "Server keys never reach workers, commands, pages or logs", "status": "PARTIAL", "evidence": ["device-agent/windows/tests/test_shell.py", "scripts/jarvis-live.mjs"], "reason": "worker env sanitized and tested; no end-to-end secret canary test" },
-        { "id": "backup_restore", "text": "Database backup restored in a drill", "status": "UNTESTED", "evidence": [] },
-        { "id": "diagnostics", "text": "Customer-readable diagnostic report", "status": "FAIL", "evidence": [], "reason": "not implemented" }
+        {
+          "id": "secrets_isolation",
+          "text": "Server keys never reach workers, commands, pages or logs",
+          "status": "PARTIAL",
+          "evidence": [
+            "device-agent/windows/tests/test_shell.py",
+            "scripts/jarvis-live.mjs"
+          ],
+          "reason": "worker env sanitized and tested; no end-to-end secret canary test"
+        },
+        {
+          "id": "backup_restore",
+          "text": "Database backup restored in a drill",
+          "status": "UNTESTED",
+          "evidence": []
+        },
+        {
+          "id": "diagnostics",
+          "text": "Customer-readable diagnostic report",
+          "status": "FAIL",
+          "evidence": [],
+          "reason": "not implemented"
+        }
       ]
     },
     {
       "n": 9,
       "name": "Platform and performance qualification",
       "conditions": [
-        { "id": "platforms", "text": "Every advertised OS/architecture qualified on representative hardware", "status": "BLOCKED", "evidence": [], "reason": "no consumer Windows, macOS or Linux desktop hardware" },
-        { "id": "latency", "text": "Median and p95 task latency measured against targets", "status": "UNTESTED", "evidence": [] }
+        {
+          "id": "platforms",
+          "text": "Every advertised OS/architecture qualified on representative hardware",
+          "status": "BLOCKED",
+          "evidence": [],
+          "reason": "no consumer Windows, macOS or Linux desktop hardware"
+        },
+        {
+          "id": "latency",
+          "text": "Median and p95 task latency measured against targets",
+          "status": "UNTESTED",
+          "evidence": []
+        }
       ]
     },
     {
       "n": 10,
       "name": "Final commercial release qualification",
       "conditions": [
-        { "id": "acceptance", "text": "Unseen real-task acceptance suite at 90% or more, all gates closed", "status": "BLOCKED", "evidence": [], "reason": "depends on milestones 1-9" },
-        { "id": "closed_beta", "text": "Closed-beta validation", "status": "BLOCKED", "evidence": [], "reason": "depends on milestones 1-9" }
+        {
+          "id": "acceptance",
+          "text": "Unseen real-task acceptance suite at 90% or more, all gates closed",
+          "status": "BLOCKED",
+          "evidence": [],
+          "reason": "depends on milestones 1-9"
+        },
+        {
+          "id": "closed_beta",
+          "text": "Closed-beta validation",
+          "status": "BLOCKED",
+          "evidence": [],
+          "reason": "depends on milestones 1-9"
+        }
       ]
     }
   ]
