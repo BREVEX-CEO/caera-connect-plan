@@ -430,6 +430,17 @@ export const OPERATIONS = {
     risk: "read",
     arguments: z.strictObject({ path: workspacePath }),
   },
+  "fs.write_text": {
+    summary:
+      "Write a new plain-text file (txt, csv, tsv, md, json, xml, html, yaml, ini, log, ps1, py, sql): the person's originals are never changed.",
+    role: "fs_sandbox",
+    capability: "files",
+    risk: "reversible_write",
+    arguments: z.strictObject({
+      path: outputPath(),
+      text: z.string().max(50_000),
+    }),
+  },
   "media.inspect": {
     summary:
       "Technical facts of an image, audio or video file: dimensions, duration, codecs and streams.",
@@ -627,6 +638,18 @@ export const OPERATIONS = {
       expectTitle: z.string().min(1).max(200),
     }),
     target: (a: { window: { exe: string } }): Target => ({ app: a.window.exe }),
+  },
+  "shell.run": {
+    summary:
+      "Run one command in the workspace folder (PowerShell on Windows, sh elsewhere) to inspect or repair the computer or work with files; the person reads and confirms the exact command first. Returns exit code and output.",
+    role: "shell",
+    capability: "computer_control",
+    risk: "external_effect",
+    arguments: z.strictObject({
+      command: z.string().min(1).max(4000),
+      timeoutSeconds: z.int().min(1).max(600).default(60),
+    }),
+    seconds: 620,
   },
   "web.open": {
     summary:

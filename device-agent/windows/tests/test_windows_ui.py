@@ -96,7 +96,7 @@ class WindowsUiLadder(unittest.TestCase):
                 out["set"] = await run("ui.set_value", {"window": window, "element": box, "value": "Quarterly GREEN"})
                 out["invoke"] = await run("ui.invoke", {"window": window, "element": {"name": "Save", "controlType": "Button"}})
                 out["after_invoke"] = self.note()
-                out["keys"] = await run("ui.send_keys", {"window": window, "keys": "^a{BACKSPACE}typed by keys", "element": box})
+                out["keys"] = await run("ui.send_keys", {"window": window, "keys": "{END}+{HOME}{BACKSPACE}typed by keys", "element": box})
                 await run("ui.invoke", {"window": window, "element": {"automationId": "saveButton"}})
                 out["after_keys"] = self.note()
                 # The person presses a key: JARVIS's hands pause, then continue once they are quiet.

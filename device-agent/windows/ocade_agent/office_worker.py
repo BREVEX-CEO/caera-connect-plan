@@ -20,7 +20,7 @@ from docx import Document
 from mcp.server.mcpserver import MCPServer
 
 from . import engine
-from .sandbox import Refused, output_path, resolve, sha256, write_atomically
+from .sandbox import TEXT_SUFFIXES, Refused, output_path, resolve, sha256, write_atomically
 
 app = MCPServer("ocade-office")
 WORKSPACE = os.environ.get("OCADE_WORKSPACE", "")
@@ -88,7 +88,7 @@ def fs_read_text(path: str) -> dict:
     if not source.is_file():
         raise Refused("not_a_file")
     suffix = source.suffix.lower()
-    if suffix in (".txt", ".csv", ".md", ".json"):
+    if suffix in TEXT_SUFFIXES:
         text = source.read_text(encoding="utf-8", errors="replace")
     elif suffix == ".docx":
         document = Document(str(source))
@@ -110,6 +110,17 @@ def fs_read_text(path: str) -> dict:
     else:
         raise Refused("unsupported_file_type")
     return {"sha256": sha256(source), "text": text[:8_000], "truncated": len(text) > 8_000}
+
+
+@app.tool()
+@_evidence
+def fs_write_text(path: str, text: str) -> dict:
+    """A new UTF-8 text file under OCADE output, written atomically and read back."""
+    target = output_path(WORKSPACE, path)
+    if target.suffix.lower() not in TEXT_SUFFIXES:
+        raise Refused("unsupported_file_type")
+    digest = write_atomically(target, lambda temporary: temporary.write_text(text, encoding="utf-8", newline=""))
+    return {"sha256": digest, "bytes": target.stat().st_size, "matches": target.read_bytes().decode("utf-8") == text}
 
 
 @app.tool()

@@ -38,6 +38,7 @@ WORKERS = {
     "ui_bridge": "ocade_agent.windows_worker",
     "web_automation": "ocade_agent.web_worker",
     "media_engine": "ocade_agent.media_worker",
+    "shell": "ocade_agent.command_worker",
 }
 MAX_CALL_SECONDS = 300
 # Network and browser settings the device owner chose, and the Windows system folders app

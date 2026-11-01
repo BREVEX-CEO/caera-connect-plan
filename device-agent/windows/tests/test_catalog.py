@@ -68,7 +68,7 @@ class Catalog(unittest.TestCase):
         self.assertEqual(sorted(r["reason"] for r in rejected),
                          ["duplicate_tool", "id_collision", "invalid_manifest", "invalid_manifest", "invalid_manifest"])
         self.assertEqual([d["id"] for d in catalog.describe(accepted)], ["echo"])
-        self.assertEqual({b["id"] for b in catalog.bundled()}, {"fs_sandbox", "sys_core", "ui_bridge", "web_automation", "verifier", "media_engine"})
+        self.assertEqual({b["id"] for b in catalog.bundled()}, {"fs_sandbox", "sys_core", "ui_bridge", "web_automation", "verifier", "media_engine", "shell"})
 
     def call(self, external, *steps, max_external=4):
         async def go():

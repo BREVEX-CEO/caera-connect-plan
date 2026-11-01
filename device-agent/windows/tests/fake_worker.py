@@ -59,6 +59,12 @@ def fs_read_text(path: str) -> dict:
 
 
 @app.tool()
+def fs_write_text(path: str, text: str) -> dict:
+    """Text."""
+    return {}
+
+
+@app.tool()
 def office_write_document(docx: str, title: str, sections: list[dict], pdf: str | None = None) -> dict:
     """Document."""
     return {}

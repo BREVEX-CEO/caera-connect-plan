@@ -25,7 +25,7 @@ from docx import Document
 from mcp.server.mcpserver import MCPServer
 from pypdf import PdfReader
 
-from .sandbox import Refused, resolve
+from .sandbox import TEXT_SUFFIXES, Refused, resolve
 
 app = MCPServer("ocade-verifier")
 WORKSPACE = os.environ.get("OCADE_WORKSPACE", "")
@@ -54,7 +54,7 @@ def _text(path: Path) -> str | None:
     """Independent text read of a saved file; None when the type cannot be read."""
     suffix = path.suffix.lower()
     try:
-        if suffix in (".txt", ".csv", ".md", ".json", ".html"):
+        if suffix in TEXT_SUFFIXES:
             return path.read_text(encoding="utf-8", errors="replace")
         if suffix == ".docx":
             document = Document(io.BytesIO(path.read_bytes()))

@@ -40,7 +40,7 @@ class PackagingContract(unittest.TestCase):
 
         gateway = Gateway("sandbox")
         with patch.object(sys, "frozen", True, create=True), patch.object(sys, "executable", "C:/OCADE/ocade-agent-bg.exe"):
-            for role in ("fs_sandbox", "sys_core", "verifier", "ui_bridge", "web_automation"):
+            for role in ("fs_sandbox", "sys_core", "verifier", "ui_bridge", "web_automation", "shell"):
                 params = gateway._parameters(role)
                 self.assertEqual(params.args, ["worker", gateway.modules[role]])
                 self.assertTrue(params.command.endswith("ocade-agent.exe"))
@@ -105,6 +105,29 @@ class Journey(unittest.TestCase):
         [again] = self.run_all(Gateway(str(self.root)), [intent("office.write_workbook", {
             "path": f"{self.out}/r.xlsx", "sheets": [{"name": "R", "rows": [[1]]}]})])
         self.assertEqual((again["status"], again["errorCode"]), ("not_applied", "output_exists"))
+
+    def test_text_files_are_new_exact_and_verified(self):
+        text = "Get-Service | Where-Object Status -eq 'Stopped'\r\nnaïve café — ✓\n"
+        script = f"{self.out}/fix.ps1"
+        wrote, again, program, outside, verified = self.run_all(Gateway(str(self.root)), [
+            intent("fs.write_text", {"path": script, "text": text}),
+            intent("fs.write_text", {"path": script, "text": "replaced"}),
+            intent("fs.write_text", {"path": f"{self.out}/run.bat", "text": "del /q *"}),
+            intent("fs.write_text", {"path": "Q3 ledger.csv", "text": "x"}),
+            intent("verify.checks", {"checks": [
+                {"id": "has", "description": "script", "kind": "file_contains", "params": {"path": script, "text": "naïve café"}},
+                {"id": "not", "description": "absent", "kind": "file_contains", "params": {"path": script, "text": "Remove-Item"}},
+            ]}),
+        ])
+        self.assertEqual(wrote["status"], "observed", wrote)
+        self.assertTrue(wrote["evidence"]["matches"])
+        self.assertEqual((self.root / script).read_bytes(), text.encode("utf-8"))  # line endings kept exactly
+        self.assertEqual(again["errorCode"], "output_exists")
+        self.assertEqual((self.root / script).read_bytes(), text.encode("utf-8"))
+        self.assertEqual(program["errorCode"], "unsupported_file_type")
+        self.assertFalse((self.root / f"{self.out}/run.bat").exists())
+        self.assertEqual(outside["errorCode"], "invalid_intent")  # originals live outside OCADE output
+        self.assertEqual(verified["evidence"]["predicates"], {"has": True, "not": False})
 
     def test_missing_outputs_are_not_passed(self):
         [verified] = self.run_all(Gateway(str(self.root)), [self.checks()])

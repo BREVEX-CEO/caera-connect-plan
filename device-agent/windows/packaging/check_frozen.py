@@ -15,7 +15,7 @@ from mcp.client.stdio import StdioServerParameters, stdio_client
 from PIL import Image
 
 WORKERS = ("ocade_agent.office_worker", "ocade_agent.verify_worker", "ocade_agent.media_worker",
-           "ocade_agent.web_worker", "ocade_agent.windows_worker")
+           "ocade_agent.web_worker", "ocade_agent.windows_worker", "ocade_agent.command_worker")
 
 
 async def main(executable: str, path: str) -> None:

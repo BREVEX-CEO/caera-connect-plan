@@ -12,7 +12,7 @@ from PyInstaller.utils.hooks import collect_submodules
 # process that cannot see this source tree and silently returned nothing (no workers shipped).
 ROOT = os.path.abspath(os.path.join(SPECPATH, ".."))
 bundled = sorted(f"ocade_agent.{path.stem}" for path in Path(ROOT, "ocade_agent").glob("*.py"))
-for worker in ("office_worker", "verify_worker", "windows_worker", "web_worker", "media_worker"):
+for worker in ("office_worker", "verify_worker", "windows_worker", "web_worker", "media_worker", "command_worker"):
     assert f"ocade_agent.{worker}" in bundled, f"ocade_agent.{worker} missing from the build"
 
 # The frozen installer must carry its own Playwright Chromium, not depend on

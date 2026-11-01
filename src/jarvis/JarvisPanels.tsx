@@ -144,7 +144,10 @@ const ACCESS: { capability: string; label: string }[] = [
   { capability: "files", label: "Files in its JARVIS folder" },
   { capability: "apps", label: "Open and use allowed apps" },
   { capability: "browser", label: "Use allowed websites" },
-  { capability: "computer_control", label: "Click on screen when nothing else works" },
+  {
+    capability: "computer_control",
+    label: "Click on screen when nothing else works, and run commands you confirm",
+  },
   { capability: "mcp", label: "Use tool servers you approved on that computer" },
 ];
 
