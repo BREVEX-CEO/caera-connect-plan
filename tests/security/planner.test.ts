@@ -19,6 +19,9 @@ const suffix = crypto.randomUUID();
 const path = `/releases/${suffix}/artifact`;
 const origin = "https://source.example";
 const target = `${origin}${path}?arch=arm64`;
+const credentialTarget = new URL(target);
+credentialTarget.username = "synthetic";
+credentialTarget.password = crypto.randomUUID();
 const observation = (evidence: Record<string, unknown>): Step => ({
   intent: intent("web.open", "source", { url: origin }, deadline),
   status: "done",
@@ -39,7 +42,7 @@ test("observed addresses retain their exact origin, path and query", async (t) =
     ["different origin", `https://other.example${path}?arch=arm64`, [source]],
     ["shorter path", `${origin}/releases/${suffix}`, [source]],
     ["different query", `${origin}${path}?arch=x64`, [source]],
-    ["credentials", `***source.example${path}?arch=arm64`, [source]],
+    ["credentials", credentialTarget.href, [source]],
     ["failed observation", target, [{ ...source, status: "failed" }]],
     [
       "unapplied observation",

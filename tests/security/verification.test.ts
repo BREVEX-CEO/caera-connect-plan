@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
 import { test } from "node:test";
-import { intent, type OutcomeCheck } from "../../src/lib/jarvis/contracts.ts";
+import { intent, outcomeCheck, type OutcomeCheck } from "../../src/lib/jarvis/contracts.ts";
 import {
   compileGoal,
   planStep,
@@ -155,9 +155,10 @@ test("goal compilation refuses duplicate, incomplete or conflicting acceptance p
       "settle",
     );
     assert.equal((await planStep({ ...base, checks, steps: [verified(checks)] })).kind, "block");
-    checks = [
-      { ...checks[0], params: { url: "***scope.example/", text: "required" } },
-    ];
+    const credentialUrl = new URL("https://scope.example/");
+    credentialUrl.username = "synthetic";
+    credentialUrl.password = crypto.randomUUID();
+    checks = [{ ...checks[0], params: { url: credentialUrl.href, text: "required" } }];
     await assert.rejects(compileGoal(base.userId, base.objective, allowed), PlannerUnavailable);
   } finally {
     Object.assign(plannerAccess, saved);
@@ -165,5 +166,19 @@ test("goal compilation refuses duplicate, incomplete or conflicting acceptance p
     await new Promise<void>((resolve, reject) =>
       server.close((error) => (error ? reject(error) : resolve())),
     );
+  }
+});
+
+test("invalid verifier URLs return schema errors without throwing", () => {
+  const credentialUrl = new URL("https://scope.example/");
+  credentialUrl.username = "synthetic";
+  credentialUrl.password = crypto.randomUUID();
+  for (const url of ["invalid address", "https://", credentialUrl.href]) {
+    const result = outcomeCheck.safeParse({
+      ...check,
+      kind: "web_text_contains",
+      params: { url, text: "required" },
+    });
+    assert.equal(result.success, false);
   }
 });

@@ -79,13 +79,19 @@ const httpsUrl = z
   .url({ protocol: /^https$/ })
   .max(2000)
   .refine((url) => {
-    const { hostname, port } = new URL(url);
-    return (
-      host.safeParse(hostname).success &&
-      !port &&
-      !/(^|\.)localhost$/.test(hostname) &&
-      !/^[0-9.]+$/.test(hostname)
-    );
+    try {
+      const { hostname, port, username, password } = new URL(url);
+      return (
+        host.safeParse(hostname).success &&
+        !port &&
+        !username &&
+        !password &&
+        !/(^|\.)localhost$/.test(hostname) &&
+        !/^[0-9.]+$/.test(hostname)
+      );
+    } catch {
+      return false;
+    }
   }, "unsupported host");
 const page = z.strictObject({ id: z.string().regex(/^[a-z0-9-]{1,40}$/), site: host });
 const selector = z
