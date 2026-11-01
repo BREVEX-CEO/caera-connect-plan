@@ -136,7 +136,7 @@ Each numbered requirement is classified on its own. PASS means fully met with ev
 | 128 | UNTESTED | standard user/UAC/OneDrive/Unicode untested |
 | 129 | UNTESTED | sleep/lock/network untested |
 | 130 | PASS | process-tree STOP tests on Windows CI |
-| 131 | PARTIAL | mac_worker coded, CI result pending |
+| 131 | PARTIAL | mac_worker: MAC-001..012 pass on GitHub macOS runner (CI run 45); consumer Mac untested |
 | 132 | PARTIAL | AX trust check/refusal; no onboarding UI |
 | 133 | BLOCKED | no Intel Mac / consumer Apple hardware |
 | 134 | PARTIAL | no Linux desktop control; excluded and not offered |
