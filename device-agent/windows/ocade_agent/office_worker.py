@@ -52,9 +52,10 @@ def fs_list(path: str = ".") -> dict:
     for item in sorted(folder.iterdir(), key=lambda p: p.name.lower())[:200]:
         if item.name.startswith("."):
             continue
-        entries.append(
-            {"name": item.name, "kind": "folder" if item.is_dir() else "file", "size": item.stat().st_size}
-        )
+        entry = {"name": item.name, "kind": "folder" if item.is_dir() else "file", "size": item.stat().st_size}
+        if os.name == "posix" and item.is_file():
+            entry["executable"] = os.access(item, os.X_OK)  # a script without it cannot be started directly
+        entries.append(entry)
     return {"entries": entries}
 
 
@@ -129,6 +130,29 @@ def fs_write_text(path: str, text: str) -> dict:
 @_evidence
 def fs_replace_text(path: str, text: str, expectSha256: str) -> dict:
     """Replace a text file in place, only if it is still the version that was read; keep the original."""
+    return _rewrite(path, expectSha256, lambda _: text)
+
+
+@app.tool()
+@_evidence
+def fs_edit_text(path: str, edits: list[dict], expectSha256: str) -> dict:
+    """Change exact passages of a text file in place (each `find` must occur exactly once), only if it is
+    still the version that was read; everything else stays byte-for-byte; the original is kept."""
+
+    def edited(current: str | None) -> str:
+        if current is None:
+            raise Refused("not_utf8")
+        for edit in edits:
+            if current.count(edit["find"]) != 1:
+                raise Refused("find_not_unique" if edit["find"] in current else "find_not_found")
+            current = current.replace(edit["find"], edit["replace"])
+        return current
+
+    return _rewrite(path, expectSha256, edited)
+
+
+def _rewrite(path: str, expect: str, change) -> dict:
+    """The one in-place writer: same version as read, original kept, mode kept, atomic swap."""
     target = resolve(WORKSPACE, path)
     if not target.is_file():
         raise Refused("not_a_file")
@@ -140,8 +164,13 @@ def fs_replace_text(path: str, text: str, expectSha256: str) -> dict:
     if os.path.commonpath([output_root, target]) == str(output_root):
         raise Refused("write_inside_output")  # JARVIS's own outputs are never edited; write a new one
     before = sha256(target)
-    if before != expectSha256:
+    if before != expect:
         raise Refused("file_changed")  # someone changed it since it was read: read it again
+    try:
+        current = target.read_bytes().decode("utf-8")
+    except UnicodeDecodeError:
+        current = None  # not UTF-8: only a whole replacement can change it
+    text = change(current)
     stamp = time.strftime("%Y%m%dT%H%M%SZ", time.gmtime())
     original = output_path(WORKSPACE, f"{OUTPUT_DIR}/originals/{relative.as_posix()}.{stamp}{target.suffix}")
     write_atomically(original, lambda temporary: shutil.copyfile(target, temporary))

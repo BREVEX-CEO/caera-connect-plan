@@ -343,7 +343,9 @@ def media_render_timeline(
             chain.append(f"unsharp=5:5:{grade['sharpen']}:5:5:0")
         if grade.get("vignette"):
             chain.append(f"vignette=angle={0.2 + 0.6 * grade['vignette']}")
-        chain += [f"trim=duration={length:.4f}", "setpts=PTS-STARTPTS", f"settb=1/{fps}", "setsar=1", "format=yuv420p"]
+        # setpts leaves no declared frame rate on ffmpeg 7+; xfade and concat need a constant one.
+        chain += [f"trim=duration={length:.4f}", "setpts=PTS-STARTPTS", f"fps={fps}", f"settb=1/{fps}", "setsar=1",
+                  "format=yuv420p"]
         graph.append(f"[{index}:v]{','.join(chain)}[c{index}]")
         if clip.get("audio", True) and any(s.get("codec_type") == "audio" for s in facts.get("streams", [])):
             audio_parts.append((index, length, clip.get("audioGain", 0.0) + clipAudioGain, speed))
@@ -354,8 +356,9 @@ def media_render_timeline(
         transition = clips[index].get("transition") or {}
         kind, overlap = transition.get("type", "cut"), transition.get("duration", 0.0)
         if kind == "cut" or overlap <= 0:
-            # concat answers in microseconds; xfade later needs both sides at 1/fps
-            graph.append(f"{label}[c{index}]concat=n=2:v=1:a=0,settb=1/{fps}[j{index}]")
+            # concat answers in microseconds and (ffmpeg 7+) with no declared frame rate; xfade
+            # later needs both sides at a constant fps and a 1/fps time base
+            graph.append(f"{label}[c{index}]concat=n=2:v=1:a=0,fps={fps},settb=1/{fps}[j{index}]")
             starts.append(timeline)
             timeline += lengths[index]
         else:

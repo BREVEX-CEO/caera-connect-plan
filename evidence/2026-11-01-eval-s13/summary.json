@@ -1,0 +1,107 @@
+{
+  "seed": 13,
+  "passed": 9,
+  "total": 11,
+  "commit": "48af97e",
+  "results": [
+    {
+      "task": "config_repair",
+      "pass": false,
+      "detail": "exit 0, got '', want 'rows=9 total=4261.53'",
+      "settled": "completed",
+      "elapsedMs": 51656,
+      "modelCalls": 7,
+      "wallSeconds": 66.8
+    },
+    {
+      "task": "crlf_script",
+      "pass": false,
+      "detail": "exit 1, archive lists []",
+      "settled": "completed",
+      "elapsedMs": 43241,
+      "modelCalls": 7,
+      "wallSeconds": 57.7
+    },
+    {
+      "task": "dedupe_contacts",
+      "pass": true,
+      "detail": "lumen_contacts.csv",
+      "settled": "completed",
+      "elapsedMs": 25669,
+      "modelCalls": 5,
+      "wallSeconds": 36.9
+    },
+    {
+      "task": "totals_workbook",
+      "pass": true,
+      "detail": "client_invoice_totals.xlsx: numbers [3395.73, 2546.77, 2269.29], expected {'Harbor Cafe': 3395.73, 'Sierra Bikes': 2269.29, 'Northwind Labs': 2546.77}",
+      "settled": "completed",
+      "elapsedMs": 47072,
+      "modelCalls": 7,
+      "wallSeconds": 59.8
+    },
+    {
+      "task": "log_cause",
+      "pass": true,
+      "detail": "note text 'the sierra-sync job failed at 2026-10-31t02:49:12z because the certificate has expired.'",
+      "settled": "completed",
+      "elapsedMs": 22930,
+      "modelCalls": 5,
+      "wallSeconds": 35.4
+    },
+    {
+      "task": "yaml_to_json",
+      "pass": true,
+      "detail": "kestrel.json",
+      "settled": "completed",
+      "elapsedMs": 24344,
+      "modelCalls": 5,
+      "wallSeconds": 35.7
+    },
+    {
+      "task": "failing_test",
+      "pass": true,
+      "detail": "exit 0, tests untouched True",
+      "settled": "completed",
+      "elapsedMs": 33300,
+      "modelCalls": 6,
+      "wallSeconds": 44.5
+    },
+    {
+      "task": "biggest_files",
+      "pass": true,
+      "detail": "want ['harbor4.tmp', 'ember0.tmp', 'lumen2.dat']",
+      "settled": "completed",
+      "elapsedMs": 50666,
+      "modelCalls": 7,
+      "wallSeconds": 62.8
+    },
+    {
+      "task": "port_conflict",
+      "pass": true,
+      "detail": "Lumen board ready 232",
+      "settled": "completed",
+      "elapsedMs": 42199,
+      "modelCalls": 8,
+      "wallSeconds": 55.0
+    },
+    {
+      "task": "markdown_doc",
+      "pass": true,
+      "detail": "[('Title', 'Delta Harbor Plan'), ('Heading 1', 'Budget'), ('Normal', '- russet lumen'), ('Heading 1', 'Risks'), ('Normal', '- cobalt prairie'), ('Heading 1', 'Timeline')]",
+      "settled": "completed",
+      "elapsedMs": 21968,
+      "modelCalls": 5,
+      "wallSeconds": 31.2
+    },
+    {
+      "task": "web_fact",
+      "pass": true,
+      "detail": "want 3.15.2, notes 'Python 3.15.2'",
+      "settled": "completed",
+      "elapsedMs": 34096,
+      "modelCalls": 6,
+      "wallSeconds": 45.7
+    }
+  ]
+}

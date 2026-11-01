@@ -12,6 +12,7 @@ on:
       - "src/routes/api/jarvis.device.ts"
       - "device-agent/**"
       - "tests/jarvis/**"
+      - "tests/web/**"
       - "scripts/jarvis-*.mjs"
       - "scripts/jarvis-protocol.ts"
       - "scripts/verify-full.mjs"
@@ -52,6 +53,9 @@ jobs:
       PGPORT: "5432"
       PGUSER: postgres
       PGPASSWORD: jarvis_disposable_ci_only
+      # Placeholder client configuration for the audited CI build: no real project is named or reached.
+      VITE_SUPABASE_URL: https://ci-placeholder.supabase.co
+      VITE_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci_placeholder
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
@@ -81,6 +85,13 @@ jobs:
       - name: Complete disposable database authority tests
         if: success() || failure()
         run: npm run test:jarvis-db
+      - name: Website surface audit (built site served locally; every reachable page, desktop and phone)
+        if: success() || failure()
+        run: |
+          python -m playwright install chromium
+          npx wrangler dev --ip 127.0.0.1 --port 8787 --local > wrangler.log 2>&1 &
+          for i in $(seq 1 60); do curl -sf -o /dev/null http://127.0.0.1:8787/ && break; sleep 2; done
+          python tests/web/surface_audit.py http://127.0.0.1:8787
       - name: Launch readiness is computed only from existing evidence
         if: success() || failure()
         run: npm run readiness

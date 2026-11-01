@@ -77,6 +77,12 @@ def system_inspect(programs: list[str] | None = None) -> dict:
 
 
 @app.tool()
+def fs_edit_text(path: str, edits: list[dict], expectSha256: str) -> dict:
+    """Edit."""
+    return {}
+
+
+@app.tool()
 def office_write_document(docx: str, title: str, sections: list[dict], pdf: str | None = None) -> dict:
     """Document."""
     return {}

@@ -160,6 +160,39 @@ class Journey(unittest.TestCase):
             self.assertEqual(os.stat(self.root / "tool.py").st_mode & 0o777, 0o755)  # mode kept
             self.assertEqual(os.stat(self.root / f"{self.out}/note.txt").st_mode & 0o044, 0o044)  # not 0600
 
+    def test_exact_edits_change_only_what_they_name(self):
+        config = '{\n  "column": "total",\n  "output": "amber_summary.txt",\n}\n'
+        (self.root / "settings.json").write_text(config)
+        (self.root / "run.sh").write_text("#!/bin/sh\necho hi\n")
+        os.chmod(self.root / "run.sh", 0o644)
+        read, listing = self.run_all(Gateway(str(self.root)), [
+            intent("fs.read_text", {"path": "settings.json"}), intent("fs.list", {"path": "."})])
+        digest = read["evidence"]["sha256"]
+        edited, missing, twice = self.run_all(Gateway(str(self.root)), [
+            intent("fs.edit_text", {"path": "settings.json", "expectSha256": digest, "edits": [
+                {"find": '"total"', "replace": '"amount_total"'}, {"find": '.txt",\n}', "replace": '.txt"\n}'}]}),
+            intent("fs.edit_text", {"path": "settings.json", "expectSha256": digest,
+                                    "edits": [{"find": "nowhere", "replace": "x"}]}),
+            intent("fs.edit_text", {"path": "settings.json", "expectSha256": digest,
+                                    "edits": [{"find": '"', "replace": "'"}]}),
+        ])
+        self.assertEqual(edited["status"], "observed", edited)
+        self.assertEqual(json.loads((self.root / "settings.json").read_text()),
+                         {"column": "amount_total", "output": "amber_summary.txt"})  # the output name is untouched
+        self.assertEqual(missing["errorCode"], "file_changed")  # the first edit already changed it
+        self.assertEqual(twice["errorCode"], "file_changed")
+        [fresh] = self.run_all(Gateway(str(self.root)), [intent("fs.read_text", {"path": "settings.json"})])
+        nowhere, ambiguous = self.run_all(Gateway(str(self.root)), [
+            intent("fs.edit_text", {"path": "settings.json", "expectSha256": fresh["evidence"]["sha256"],
+                                    "edits": [{"find": "nowhere", "replace": "x"}]}),
+            intent("fs.edit_text", {"path": "settings.json", "expectSha256": fresh["evidence"]["sha256"],
+                                    "edits": [{"find": '"', "replace": "'"}]}),
+        ])
+        self.assertEqual((nowhere["errorCode"], ambiguous["errorCode"]), ("find_not_found", "find_not_unique"))
+        if os.name == "posix":
+            entries = {e["name"]: e for e in listing["evidence"]["entries"]}
+            self.assertFalse(entries["run.sh"]["executable"])
+
     def test_any_plain_text_file_is_read_and_verified_by_content_not_by_name(self):
         (self.root / "export.sh").write_text("#!/bin/sh\ndate > reports/out.txt\n")
         (self.root / ".env.example").write_text("API_URL=https://api.example.test\n")

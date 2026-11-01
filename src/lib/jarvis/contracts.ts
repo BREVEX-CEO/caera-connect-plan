@@ -453,6 +453,23 @@ export const OPERATIONS = {
       expectSha256: z.string().regex(/^[0-9a-f]{64}$/),
     }),
   },
+  "fs.edit_text": {
+    summary:
+      "Change exact passages of an existing plain-text workspace file in place (each `find` must occur exactly once; everything else stays as it was), after the person confirms. Needs the sha256 fs.read_text returned; the original is kept under 'OCADE output/originals/'.",
+    role: "fs_sandbox",
+    capability: "files",
+    risk: "external_effect",
+    arguments: z.strictObject({
+      path: workspacePath,
+      edits: z
+        .array(
+          z.strictObject({ find: z.string().min(1).max(10_000), replace: z.string().max(10_000) }),
+        )
+        .min(1)
+        .max(20),
+      expectSha256: z.string().regex(/^[0-9a-f]{64}$/),
+    }),
+  },
   "media.inspect": {
     summary:
       "Technical facts of an image, audio or video file: dimensions, duration, codecs and streams.",

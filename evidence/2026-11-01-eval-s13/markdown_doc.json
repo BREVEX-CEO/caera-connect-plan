@@ -1,0 +1,183 @@
+{
+  "objective": "Turn my plan.md into a Word document that keeps its title and headings.",
+  "taskId": "bbbcfc96-aa78-4aac-853d-b4c77fcfae2f",
+  "status": "completed",
+  "result": "Done, and checked independently.",
+  "blocker": null,
+  "checks": [
+    {
+      "id": "plan_docx_exists",
+      "kind": "file_exists",
+      "params": {
+        "path": "OCADE output/plan.docx"
+      },
+      "description": "The plan.md file is converted into a Word document in the OCADE output folder.",
+      "state": "passed"
+    }
+  ],
+  "timing": {
+    "acceptedAt": "2026-11-01T14:37:32.978778+00:00",
+    "finishedAt": "2026-11-01T14:37:54.94641+00:00",
+    "verifiedAt": "2026-11-01T14:37:54.94641+00:00",
+    "deliveredAt": "2026-11-01T14:37:54.94641+00:00",
+    "totalElapsedMs": 21968,
+    "userWaitMs": 0,
+    "activeExecutionMs": 1795,
+    "modelCalls": 5,
+    "modelMs": 10713,
+    "stepDurationsMs": [
+      846.68,
+      3.4,
+      34.41,
+      910.12
+    ]
+  },
+  "confirmations": [],
+  "decisions": [
+    {
+      "summary": "list",
+      "intent": {
+        "v": 1,
+        "key": "s1",
+        "risk": "read",
+        "arguments": {
+          "path": "."
+        },
+        "operation": "fs.list",
+        "capability": "files",
+        "deadlineUtc": "2026-11-01T14:47:33.286Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "entries": [
+            {
+              "kind": "file",
+              "name": "plan.md",
+              "size": 102
+            }
+          ],
+          "durationMs": 846.68
+        },
+        "maybeChanged": false,
+        "observedAtUtc": "2026-11-01T14:37:39.641Z"
+      }
+    },
+    {
+      "summary": "read text",
+      "intent": {
+        "v": 1,
+        "key": "s2",
+        "risk": "read",
+        "arguments": {
+          "path": "plan.md"
+        },
+        "operation": "fs.read_text",
+        "capability": "files",
+        "deadlineUtc": "2026-11-01T14:47:40.316Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "text": "# Delta Harbor Plan\n\n## Budget\n- russet lumen\n\n## Risks\n- cobalt prairie\n\n## Timeline\n- ember meadow\n\n",
+          "sha256": "ea15f76174c98feeb829574e4050b4aed13d9dd8c61dfb63f526420675cba290",
+          "truncated": false,
+          "durationMs": 3.4
+        },
+        "maybeChanged": false,
+        "observedAtUtc": "2026-11-01T14:37:43.653Z"
+      }
+    },
+    {
+      "summary": "write document",
+      "intent": {
+        "v": 1,
+        "key": "s3",
+        "risk": "reversible_write",
+        "arguments": {
+          "docx": "OCADE output/plan.docx",
+          "title": "Delta Harbor Plan",
+          "sections": [
+            {
+              "heading": "Budget",
+              "paragraphs": [
+                "- russet lumen"
+              ]
+            },
+            {
+              "heading": "Risks",
+              "paragraphs": [
+                "- cobalt prairie"
+              ]
+            },
+            {
+              "heading": "Timeline",
+              "paragraphs": [
+                "- ember meadow"
+              ]
+            }
+          ]
+        },
+        "operation": "office.write_document",
+        "capability": "files",
+        "deadlineUtc": "2026-11-01T14:47:44.282Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "sha256": {
+            "docx": "c10d4cc3c91f9b43302d5c805f523288d26dff73af3517bd7a24ca47d277ea35"
+          },
+          "durationMs": 34.41
+        },
+        "maybeChanged": true,
+        "observedAtUtc": "2026-11-01T14:37:48.701Z"
+      }
+    },
+    {
+      "summary": "Checking the result independently",
+      "intent": {
+        "v": 1,
+        "key": "s4",
+        "risk": "read",
+        "arguments": {
+          "checks": [
+            {
+              "id": "plan_docx_exists",
+              "kind": "file_exists",
+              "params": {
+                "path": "OCADE output/plan.docx"
+              },
+              "description": "The plan.md file is converted into a Word document in the OCADE output folder."
+            }
+          ]
+        },
+        "operation": "verify.checks",
+        "capability": "files",
+        "deadlineUtc": "2026-11-01T14:47:49.351Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "durationMs": 910.12,
+          "predicates": {
+            "plan_docx_exists": true
+          },
+          "verifierVersion": "checks-verifier/1"
+        },
+        "maybeChanged": false,
+        "observedAtUtc": "2026-11-01T14:37:53.950Z"
+      }
+    }
+  ],
+  "outputs": [
+    {
+      "path": "/tmp/ocade-eval/13/markdown_doc/OCADE output/plan.docx",
+      "bytes": 36682
+    }
+  ]
+}
