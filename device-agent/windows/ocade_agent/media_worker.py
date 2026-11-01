@@ -427,7 +427,7 @@ def media_render_timeline(
         delay = int(starts[index] * 1000)
         graph.append(f"[{index}:a]aresample=48000,aformat=channel_layouts=stereo,{_atempo(speed)},"
                      f"atrim=duration={length:.4f},afade=t=in:d=0.08,afade=t=out:st={max(length - 0.12, 0)}:d=0.12,"
-                     f"volume={gain}dB,adelay={delay}|{delay}[ca{index}]")
+                     f"volume={gain}dB,adelay={delay}|{delay},apad=whole_dur={duration}[ca{index}]")
         effects.append(f"[ca{index}]")
     for number, layer in enumerate(audio or []):
         length = layer["duration"]
@@ -464,7 +464,9 @@ def media_render_timeline(
         if layer.get("fadeOut"):
             filters.append(f"afade=t=out:st={max(length - layer['fadeOut'], 0)}:d={layer['fadeOut']}")
         delay = int(layer["start"] * 1000)
-        filters += [f"volume={layer.get('gain', 0.0)}dB", f"adelay={delay}|{delay}"]
+        # Every mix input lasts the whole programme: with inputs that end early, amix on
+        # ffmpeg 7+ sometimes ended the mix with them (silence for the rest of the film).
+        filters += [f"volume={layer.get('gain', 0.0)}dB", f"adelay={delay}|{delay}", f"apad=whole_dur={duration}"]
         graph.append(",".join(filters) + f"[l{number}]")
         (beds if layer.get("role") == "music" else effects).append(f"[l{number}]")
     mixed = None

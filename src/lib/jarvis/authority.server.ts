@@ -15,6 +15,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Json } from "@/integrations/supabase/types";
 import { readBoundedRequestText } from "../read-bounded-request.ts";
+import { JARVIS_CONSENT_NEEDED } from "./consent-needed.ts";
 import {
   PROTOCOL_VERSION,
   actionIntent,
@@ -250,6 +251,9 @@ export async function startTask(
     checks = await compileGoal(userId, objective, grants, (ms) => (goalMs = ms));
   } catch (error) {
     if (!(error instanceof PlannerUnavailable)) throw error;
+    if (error.message === "online_not_consented") {
+      throw new JarvisRefusal("online_not_consented", JARVIS_CONSENT_NEEDED);
+    }
     throw new JarvisRefusal(
       "planner_unavailable",
       `${plannerMessage(error.message)} Nothing was started.`,

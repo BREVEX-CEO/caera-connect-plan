@@ -224,7 +224,7 @@ export class PlannerUnavailable extends Error {}
 /** What a person can do about each reason the planner could not answer. */
 export function plannerMessage(code: string): string {
   if (code === "online_not_consented")
-    return "Turn on Online Intelligence in Settings to let JARVIS plan this.";
+    return "JARVIS plans with online intelligence, and you have not agreed to it yet.";
   if (code === "allowance_exhausted")
     return "Your JARVIS allowance is used up until your usage window resets.";
   if (code === "rate_limited" || code === "provider_unavailable") {

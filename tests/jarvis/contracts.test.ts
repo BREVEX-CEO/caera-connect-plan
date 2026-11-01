@@ -458,3 +458,10 @@ test("after Take Over nothing that changes state runs until the planner looked a
     observedSinceTakeOver([step("fs.write_text", "cancelled"), step("fs.list", "done")]),
   );
 });
+
+test("a new account's JARVIS request is refused with the exact message the page answers by asking", async () => {
+  const { plannerMessage } = await import("../../src/lib/jarvis/planner.server.ts");
+  const { JARVIS_CONSENT_NEEDED } = await import("../../src/lib/jarvis/consent-needed.ts");
+  assert.ok(JARVIS_CONSENT_NEEDED.startsWith(plannerMessage("online_not_consented")));
+  assert.doesNotMatch(plannerMessage("online_not_consented"), /Settings/); // Settings has no "turn on" for it
+});

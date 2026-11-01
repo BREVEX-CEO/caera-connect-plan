@@ -300,6 +300,7 @@ def main() -> int:
     parser.add_argument("--out", required=True)
     parser.add_argument("--only", nargs="*")
     parser.add_argument("--selfcheck", action="store_true", help="every oracle must FAIL on the untouched problem")
+    parser.add_argument("--pause", type=float, default=60, help="seconds between tasks: respect the shared model quota")
     args = parser.parse_args()
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
@@ -336,6 +337,7 @@ def main() -> int:
                         "elapsedMs": timing.get("totalElapsedMs"), "modelCalls": timing.get("modelCalls"),
                         "wallSeconds": round(time.monotonic() - started, 1)})
         print(json.dumps(results[-1]), flush=True)
+        time.sleep(args.pause)
     passed = sum(r["pass"] for r in results)
     summary = {"seed": args.seed, "passed": passed, "total": len(results),
                "commit": subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=ROOT, capture_output=True,

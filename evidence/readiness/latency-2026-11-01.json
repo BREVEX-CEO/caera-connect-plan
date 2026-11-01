@@ -1,0 +1,14 @@
+{
+  "tasks": 36,
+  "elapsedSeconds": {
+    "median": 39.0,
+    "p95": 79.7,
+    "max": 123.0
+  },
+  "modelCalls": {
+    "median": 6.0,
+    "p95": 11,
+    "max": 11
+  },
+  "passedMedianSeconds": 33.9
+}

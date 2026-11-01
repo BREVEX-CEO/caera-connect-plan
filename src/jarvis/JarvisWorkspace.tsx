@@ -33,6 +33,8 @@ import { cn, typedBeforeHydration } from "@/lib/utils";
 import { useJarvisPreferences, readPreferences, writePreferences } from "./preferences";
 import { SectionPanel, TaskPanel, type Section } from "./JarvisPanels";
 import { takeHandOff } from "./bubble-state";
+import { JARVIS_CONSENT_NEEDED } from "@/lib/jarvis/consent-needed";
+import { askOnlineConsent } from "@/lib/intelligence/online-consent-ask";
 import { appendOcadeMessage, createConversation } from "@/lib/ocade.functions";
 import {
   getJarvisTask,
@@ -171,9 +173,16 @@ export function JarvisWorkspace({
       await appendOcadeMessage({
         data: { conversationId: conversation, role: "user", content: objective },
       });
-      await startJarvisTask({
-        data: { conversationId: conversation, deviceId: device.id, objective },
-      });
+      const start = () =>
+        startJarvisTask({ data: { conversationId: conversation, deviceId: device.id, objective } });
+      try {
+        await start();
+      } catch (error) {
+        // A new account is asked here, as Chat asks, and the request is sent again on "I agree".
+        if (!(error instanceof Error) || error.message !== JARVIS_CONSENT_NEEDED) throw error;
+        if (!(await askOnlineConsent())) throw error;
+        await start();
+      }
       setDraft("");
       if (conversation !== conversationId) {
         void navigate({ to: "/ocade-jarvis", search: { c: conversation } });

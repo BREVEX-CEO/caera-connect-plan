@@ -88,7 +88,6 @@ def main(base: str, publishable: str, task: str, seed: int) -> int:
         page.goto(base + "/ocade-jarvis", wait_until="networkidle")
         page.get_by_label("Message JARVIS").fill(request)
         page.keyboard.press("Enter")  # sends, as in Chat
-        refusal = page.locator("#jarvis-send-status")
 
         running = threading.Event()
         running.set()
@@ -103,14 +102,14 @@ def main(base: str, publishable: str, task: str, seed: int) -> int:
         deadline = time.monotonic() + 900
         while time.monotonic() < deadline:
             page.wait_for_timeout(2000)
-            for agree in page.get_by_role("button", name="Agree").all():
-                agree.click()  # the person's online-intelligence consent, asked at first send
+            for agree in page.get_by_role("button", name="I agree").all():
+                agree.click()  # the person's online-intelligence agreement, asked at first send
             for allow in page.get_by_role("button", name="Allow this step").all():
                 effect = allow.locator("xpath=ancestor::li[1]").locator("pre").inner_text()
                 allowed.append(effect[:300])
                 allow.click()
             text = page.inner_text("main")
-            if refusal.count() or "Nothing was started" in text or "busy right now" in text:
+            if "Nothing was started" in text or "busy right now" in text:
                 outcome = f"not started: {text[-300:]}"
                 break
             if "checked independently" in text or "Not finished" in text or "stopped" in text.lower():

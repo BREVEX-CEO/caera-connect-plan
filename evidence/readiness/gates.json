@@ -228,9 +228,11 @@
           "text": "At least 90% first-attempt verified success on unseen representative tasks",
           "status": "FAIL",
           "evidence": [
-            "evidence/2026-11-01-live/README.md"
+            "evidence/2026-11-01-live/README.md",
+            "evidence/2026-11-01-eval-s12/README.md",
+            "evidence/2026-11-01-eval-s13/README.md"
           ],
-          "reason": "12 of 17 on the first attempt (71%)"
+          "reason": "unseen randomized eval, first attempt on valid tasks: seed 11 7/10, seed 12 9/11, seed 13 9/11, seed 14 2/4 = 27/36 (75%); below 90%"
         },
         {
           "id": "observed_sources",
@@ -305,8 +307,12 @@
         {
           "id": "surface_audit",
           "text": "Every page, control and state transition inventoried and tested",
-          "status": "UNTESTED",
-          "evidence": []
+          "status": "PARTIAL",
+          "evidence": [
+            "tests/web/surface_audit.py",
+            ".github/workflows/jarvis-cloud-validation.yml"
+          ],
+          "reason": "every reachable page audited in Chromium (desktop and phone: status, console/page errors, h1, lang, alt, accessible names), signed out in CI and signed in locally; individual controls and state transitions are not all exercised"
         },
         {
           "id": "exact_approvals",
@@ -319,8 +325,11 @@
         {
           "id": "onboarding",
           "text": "Install, sign in, pair, grant and first task without developer help",
-          "status": "UNTESTED",
-          "evidence": []
+          "status": "PARTIAL",
+          "evidence": [
+            "tests/web/jarvis_ui_flow.py"
+          ],
+          "reason": "sign-in, pairing through Settings > Devices and grants verified on staging through the website; the first task from the website is UNTESTED (shared Gemini quota exhausted)"
         }
       ]
     },
@@ -341,8 +350,9 @@
         {
           "id": "backup_restore",
           "text": "Database backup restored in a drill",
-          "status": "UNTESTED",
-          "evidence": []
+          "status": "BLOCKED",
+          "evidence": [],
+          "reason": "a restore drill needs the hosted project's backup/restore controls on a disposable copy; not available without owner approval"
         },
         {
           "id": "diagnostics",
@@ -369,8 +379,11 @@
         {
           "id": "latency",
           "text": "Median and p95 task latency measured against targets",
-          "status": "UNTESTED",
-          "evidence": []
+          "status": "PARTIAL",
+          "evidence": [
+            "evidence/readiness/latency-2026-11-01.json"
+          ],
+          "reason": "measured on 36 real Gemini tasks (Linux, staging): median 39.0 s, p95 79.7 s end to end, median 6 model calls; no owner-agreed latency targets yet, and Windows/macOS not measured"
         }
       ]
     },
