@@ -1,0 +1,81 @@
+{
+  "sourceSha": "52396a3ff5167407d7bd1a792f179508502a02f3",
+  "sourceTreeSha": "3b63bf4745e011b94edc8f1f9dbf8f01ad74acb6",
+  "run": {
+    "id": 41341255804,
+    "number": 56,
+    "conclusion": "success",
+    "url": "https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41341255804"
+  },
+  "jobs": [
+    {
+      "id": 124951549974,
+      "name": "Planner safety / source formatting · Linux",
+      "conclusion": "success"
+    },
+    {
+      "id": 124951794158,
+      "name": "Portable build / model contracts / ephemeral DB · Linux",
+      "conclusion": "success"
+    },
+    {
+      "id": 124952703657,
+      "name": "Python MCP / journal / browser · windows-latest",
+      "conclusion": "success"
+    },
+    {
+      "id": 124952703672,
+      "name": "Python MCP / journal / browser · ubuntu-latest",
+      "conclusion": "success"
+    },
+    {
+      "id": 124952703715,
+      "name": "Python MCP / journal / browser · macos-latest",
+      "conclusion": "success"
+    },
+    {
+      "id": 124952703750,
+      "name": "Windows unsigned installer / frozen MCP smoke · NOT release-ready",
+      "conclusion": "success"
+    }
+  ],
+  "browserPayload": {
+    "beforeFiles": 604,
+    "afterFiles": 314,
+    "beforeBytes": 752827379,
+    "afterBytes": 461909478,
+    "removedBytes": 290917901,
+    "removedFiles": 290,
+    "retainedFilesByteIdentical": true
+  },
+  "installerBytes": 221537774,
+  "buildBundle": {
+    "files": 649,
+    "bytes": 672134408
+  },
+  "installedBundle": {
+    "files": 651,
+    "bytes": 676797452
+  },
+  "checks": {
+    "focusedJs": 58,
+    "jsIntegration": 64,
+    "companionTestsDiscoveredPerOs": 60,
+    "platformSkips": {
+      "linux": 3,
+      "windows": 3,
+      "macos": 2
+    },
+    "byteIdenticalBundleRebuild": true,
+    "byteIdenticalInstallerRebuild": true,
+    "bundledBrowserWithEmptyPath": true,
+    "installedBundledBrowserWithEmptyPath": true,
+    "logicalRestore": "PASS"
+  },
+  "limits": [
+    "Fixture/component cloud proof; no consumer-hardware certification",
+    "Browser payload saving only; no runtime task-latency claim",
+    "No new live Gemini acceptance/accuracy result",
+    "Public launch and G12 remain NO-GO"
+  ]
+}

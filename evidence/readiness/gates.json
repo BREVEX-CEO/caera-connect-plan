@@ -97,10 +97,12 @@
         {
           "id": "journal_idempotency",
           "text": "Journal, idempotency and lost-ACK reconciliation never repeat an effect",
-          "status": "PASS",
+          "status": "PARTIAL",
           "evidence": [
-            "device-agent/windows/tests/test_agent.py"
-          ]
+            "device-agent/windows/tests/test_agent.py",
+            "tests/security/recovery.test.ts"
+          ],
+          "reason": "Same-action journal/lost-ACK replay is tested, but source review found that a new planner turn after manual resume can re-propose an unknown effect. Independent effect-resolution workflow is incomplete; new recovery regressions are under qualification."
         },
         {
           "id": "stop",
@@ -124,10 +126,12 @@
         {
           "id": "crash_recovery",
           "text": "Companion killed mid-write and restarted: the write is reported unknown/interrupted and never re-run",
-          "status": "PASS",
+          "status": "PARTIAL",
           "evidence": [
-            "device-agent/windows/tests/test_agent.py"
-          ]
+            "device-agent/windows/tests/test_agent.py",
+            "tests/security/recovery.test.ts"
+          ],
+          "reason": "Same-action journal/lost-ACK replay is tested, but source review found that a new planner turn after manual resume can re-propose an unknown effect. Independent effect-resolution workflow is incomplete; new recovery regressions are under qualification."
         }
       ]
     },

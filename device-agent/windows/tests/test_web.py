@@ -234,6 +234,32 @@ class WebLadder(unittest.TestCase):
         for name in ("001-home.png", "003-form-filled.png", "004-form-sent.png"):
             self.evidence(f"WEB-{name}", output / name)
 
+    def test_observed_addresses_are_exact_including_fragments_or_explicitly_omitted(self):
+        token = os.urandom(16).hex()
+        route = "/" + token * 20
+        known = "/" + token * 8 + "?item=" + token + "#/view/" + token
+        oversized = "/" + token * 70
+        web_fixture.PAGES[route] = (
+            '<h1>Address fixture</h1><a href="' + known + '">Known address</a>'
+            '<a href="' + oversized + '">Oversized address</a>'
+        )
+        self.addCleanup(web_fixture.PAGES.pop, route, None)
+
+        async def steps(run, gateway):
+            return await run("web.open", {"url": self.base + route})
+
+        result = self.run_steps(steps)
+        self.assertEqual(result["status"], "observed", result)
+        observed = result["evidence"]
+        with self.subTest("page address is not truncated"):
+            self.assertEqual(observed["url"], self.base + route)
+        links = {control["label"]: control for control in observed["controls"]}
+        with self.subTest("link address and SPA fragment remain exact"):
+            self.assertEqual(links["Known address"]["href"], known)
+        with self.subTest("over-limit addresses are omitted explicitly"):
+            self.assertNotIn("href", links["Oversized address"])
+            self.assertEqual(links["Oversized address"].get("hrefOmitted"), "too_long")
+
     def test_private_network_refused_without_owner_flag(self):
         async def steps(run, gateway):
             return [await run("web.open", {"url": self.base + "/"}), await run("web.open", {"url": "https://localhost/"})]

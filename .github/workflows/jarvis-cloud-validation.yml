@@ -64,6 +64,16 @@ jobs:
         if: success() || failure()
         working-directory: device-agent/windows
         run: python -m unittest tests.test_gateway.Journey.test_duplicate_verifier_ids_cannot_erase_a_failed_check tests.test_gateway.Journey.test_repair_preserves_an_unrelated_hidden_staging_name tests.test_gateway.Journey.test_repeated_repairs_keep_distinct_exact_originals -v
+      - name: Install isolated browser fixture prerequisites
+        if: success() || failure()
+        run: |
+          python -m pip install reportlab==4.5.1
+          python -m playwright install --no-shell chromium
+          python -c 'from playwright.sync_api import sync_playwright; p=sync_playwright().start(); print("OCADE_BROWSER_EXECUTABLE=" + p.chromium.executable_path); p.stop()' >> "$GITHUB_ENV"
+      - name: Browser address evidence is exact (required real-browser case, no skips)
+        if: success() || failure()
+        working-directory: device-agent/windows
+        run: xvfb-run -a python -c 'import sys, unittest; suite=unittest.defaultTestLoader.loadTestsFromName("tests.test_web.WebLadder.test_observed_addresses_are_exact_including_fragments_or_explicitly_omitted"); result=unittest.TextTestRunner(verbosity=2).run(suite); sys.exit(0 if result.wasSuccessful() and result.testsRun == 1 and not result.skipped else 1)'
       - name: Restore script syntax and refusal outside disposable CI
         if: success() || failure()
         run: |
@@ -91,7 +101,7 @@ jobs:
       - name: Formatting evidence for failed remote candidates
         if: failure()
         run: |
-          node --input-type=module -e 'import fs from "node:fs"; import prettier from "prettier"; for (const path of process.argv.slice(1)) console.log("OCADE_FORMAT:" + JSON.stringify({path, content: await prettier.format(fs.readFileSync(path, "utf8"), {...await prettier.resolveConfig(path), filepath:path})}));' src/lib/jarvis/contracts.ts src/lib/jarvis/planner.server.ts tests/security/planner.test.ts tests/security/verification.test.ts tests/security/readiness.test.ts scripts/launch-readiness.mjs tests/jarvis/contracts.test.ts tests/jarvis/e2e.test.ts .github/workflows/jarvis-cloud-validation.yml
+          node --input-type=module -e 'import fs from "node:fs"; import prettier from "prettier"; for (const path of process.argv.slice(1)) console.log("OCADE_FORMAT:" + JSON.stringify({path, content: await prettier.format(fs.readFileSync(path, "utf8"), {...await prettier.resolveConfig(path), filepath:path})}));' src/lib/jarvis/contracts.ts src/lib/jarvis/planner.server.ts tests/security/planner.test.ts tests/security/verification.test.ts tests/security/readiness.test.ts tests/security/recovery.test.ts src/lib/jarvis/authority.server.ts src/lib/jarvis/supervisor.ts scripts/launch-readiness.mjs tests/jarvis/contracts.test.ts tests/jarvis/e2e.test.ts .github/workflows/jarvis-cloud-validation.yml
 
   contracts-db:
     needs: planner-safety
