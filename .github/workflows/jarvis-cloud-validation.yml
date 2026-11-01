@@ -76,6 +76,9 @@ jobs:
             test "$status" -eq 2
             test "$output" = "REFUSED: a disposable GitHub Actions PostgreSQL service is required."
           fi
+      - name: Validate the actual readiness contract
+        if: success() || failure()
+        run: npm run readiness
       - name: Packaging qualification scripts compile
         if: success() || failure()
         run: python -m py_compile device-agent/windows/packaging/check_frozen.py device-agent/windows/packaging/compare_browser_payloads.py

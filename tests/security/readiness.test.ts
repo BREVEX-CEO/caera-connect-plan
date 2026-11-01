@@ -28,7 +28,16 @@ test("readiness rejects omitted, duplicated and empty mandatory criteria", async
     mkdirSync(join(root, "evidence/readiness"), { recursive: true });
     for (const args of [
       ["init", "-q", "--initial-branch=synthetic-fixture"],
-      ["-c", "user.name=Synthetic CI", "-c", "user.email=ci@example.test", "commit", "--allow-empty", "-qm", "synthetic fixture"],
+      [
+        "-c",
+        "user.name=Synthetic CI",
+        "-c",
+        "user.email=ci@example.test",
+        "commit",
+        "--allow-empty",
+        "-qm",
+        "synthetic fixture",
+      ],
     ]) {
       const git = spawnSync("git", args, { cwd: root, encoding: "utf8" });
       assert.equal(git.status, 0, git.stderr);
@@ -41,16 +50,67 @@ test("readiness rejects omitted, duplicated and empty mandatory criteria", async
     assert.equal(valid.status, 0, valid.stderr);
     assert.match(valid.stdout, /Readiness 0% earned/);
     const cases: [string, (value: ReturnType<typeof fixture>) => void][] = [
-      ["missing milestone", (v) => { v.milestones.pop(); }],
-      ["duplicate milestone", (v) => { v.milestones[9].n = 1; }],
-      ["extra milestone", (v) => { v.milestones.push({ ...v.milestones[0], n: 11 }); }],
-      ["empty milestone", (v) => { v.milestones[1].conditions.push(...v.milestones[0].conditions); v.milestones[0].conditions = []; }],
-      ["missing mandatory condition", (v) => { v.milestones[0].conditions.pop(); }],
-      ["duplicate condition", (v) => { v.milestones[1].conditions[0].id = v.milestones[0].conditions[0].id; }],
-      ["unknown state", (v) => { v.milestones[0].conditions[0].status = "DONE"; }],
-      ["partial without reason", (v) => { v.milestones[0].conditions[0].status = "PARTIAL"; }],
-      ["PASS without evidence", (v) => { v.milestones[0].conditions[0].status = "PASS"; }],
-      ["directory as PASS evidence", (v) => { Object.assign(v.milestones[0].conditions[0], { status: "PASS", evidence: ["evidence"] }); }],
+      [
+        "missing milestone",
+        (v) => {
+          v.milestones.pop();
+        },
+      ],
+      [
+        "duplicate milestone",
+        (v) => {
+          v.milestones[9].n = 1;
+        },
+      ],
+      [
+        "extra milestone",
+        (v) => {
+          v.milestones.push({ ...v.milestones[0], n: 11 });
+        },
+      ],
+      [
+        "empty milestone",
+        (v) => {
+          v.milestones[1].conditions.push(...v.milestones[0].conditions);
+          v.milestones[0].conditions = [];
+        },
+      ],
+      [
+        "missing mandatory condition",
+        (v) => {
+          v.milestones[0].conditions.pop();
+        },
+      ],
+      [
+        "duplicate condition",
+        (v) => {
+          v.milestones[1].conditions[0].id = v.milestones[0].conditions[0].id;
+        },
+      ],
+      [
+        "unknown state",
+        (v) => {
+          v.milestones[0].conditions[0].status = "DONE";
+        },
+      ],
+      [
+        "partial without reason",
+        (v) => {
+          v.milestones[0].conditions[0].status = "PARTIAL";
+        },
+      ],
+      [
+        "PASS without evidence",
+        (v) => {
+          v.milestones[0].conditions[0].status = "PASS";
+        },
+      ],
+      [
+        "directory as PASS evidence",
+        (v) => {
+          Object.assign(v.milestones[0].conditions[0], { status: "PASS", evidence: ["evidence"] });
+        },
+      ],
     ];
     for (const [name, change] of cases) {
       await t.test(name, () => {

@@ -29,15 +29,25 @@ const isEvidence = (path) => {
   try {
     const target = realpathSync(path);
     const inside = relative(root, target);
-    return !isAbsolute(inside) && inside !== ".." && !inside.startsWith("../") &&
-      !inside.startsWith("..\\") && statSync(target).isFile();
+    return (
+      !isAbsolute(inside) &&
+      inside !== ".." &&
+      !inside.startsWith("../") &&
+      !inside.startsWith("..\\") &&
+      statSync(target).isFile()
+    );
   } catch {
     return false;
   }
 };
 for (const milestone of milestones) {
-  if (!milestone || !Number.isInteger(milestone.n) || milestone.n < 1 || milestone.n > 10 ||
-      numbers.has(milestone.n)) {
+  if (
+    !milestone ||
+    !Number.isInteger(milestone.n) ||
+    milestone.n < 1 ||
+    milestone.n > 10 ||
+    numbers.has(milestone.n)
+  ) {
     problems.push("Milestone numbers must be distinct integers from 1 to 10.");
     continue;
   }
@@ -65,8 +75,10 @@ for (const milestone of milestones) {
     if (c.status === "PASS" && !c.evidence.length) problems.push(`${where}: PASS without evidence`);
     for (const path of c.evidence)
       if (!isEvidence(path)) problems.push(`${where}: invalid or missing evidence file ${path}`);
-    if (!["PASS", "UNTESTED"].includes(c.status) &&
-        (typeof c.reason !== "string" || !c.reason.trim()))
+    if (
+      !["PASS", "UNTESTED"].includes(c.status) &&
+      (typeof c.reason !== "string" || !c.reason.trim())
+    )
       problems.push(`${where}: no reason`);
   }
 }
