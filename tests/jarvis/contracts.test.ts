@@ -117,6 +117,11 @@ test("operations needing an engine the computer lacks are never offered", async 
   );
   assert.ok(offeredOperations(["files", "browser"], null).includes("scene.render"));
   assert.ok(!offeredOperations(["files"], null).includes("web.open"));
+  // A computer without a desktop bridge (macOS/Linux today) is never offered window control.
+  const noDesktop = offeredOperations(["apps", "computer_control"], ["ffmpeg"]);
+  assert.ok(!noDesktop.some((o) => o.startsWith("ui.") || o.startsWith("apps.")));
+  assert.ok(noDesktop.includes("shell.run") && noDesktop.includes("system.inspect"));
+  assert.ok(offeredOperations(["apps"], ["desktop"]).includes("ui.inspect"));
 });
 
 test("every operation schema stays inside the provider's schema subset", async () => {

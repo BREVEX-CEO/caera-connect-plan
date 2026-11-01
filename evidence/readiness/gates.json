@@ -150,9 +150,12 @@
         {
           "id": "dependency_manager",
           "text": "Missing task dependencies are detected and installed only after authorization, then verified",
-          "status": "FAIL",
-          "evidence": [],
-          "reason": "no dependency manager; the model installs through confirmed shell commands"
+          "status": "PARTIAL",
+          "evidence": [
+            "device-agent/windows/tests/test_gateway.py",
+            "src/lib/jarvis/planner.server.ts"
+          ],
+          "reason": "system.inspect reports OS, architecture, disk and program locations before and after a confirmed install; no journaled resumable installer, integrity/licence resolution or clean-machine tests"
         },
         {
           "id": "upgrade_uninstall",
@@ -343,10 +346,12 @@
         },
         {
           "id": "diagnostics",
-          "text": "Customer-readable diagnostic report",
-          "status": "FAIL",
-          "evidence": [],
-          "reason": "not implemented"
+          "text": "Customer-readable diagnostic report (ocade_agent diagnose): pairing, workspace, server, engines, MCP manifests, every worker, STOP",
+          "status": "PASS",
+          "evidence": [
+            "device-agent/windows/tests/test_agent.py",
+            "device-agent/windows/ocade_agent/agent.py"
+          ]
         }
       ]
     },

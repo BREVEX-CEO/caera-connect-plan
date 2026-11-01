@@ -1,0 +1,183 @@
+{
+  "objective": "Turn my plan.md into a Word document that keeps its title and headings.",
+  "taskId": "3f454fd1-17ed-46df-aac3-bc347e8ed683",
+  "status": "completed",
+  "result": "Done, and checked independently.",
+  "blocker": null,
+  "checks": [
+    {
+      "id": "plan_docx_exists",
+      "kind": "file_exists",
+      "params": {
+        "path": "OCADE output/plan.docx"
+      },
+      "description": "The Word document plan.docx has been created in OCADE output/.",
+      "state": "passed"
+    }
+  ],
+  "timing": {
+    "acceptedAt": "2026-11-01T14:08:02.018935+00:00",
+    "finishedAt": "2026-11-01T14:08:24.46046+00:00",
+    "verifiedAt": "2026-11-01T14:08:24.46046+00:00",
+    "deliveredAt": "2026-11-01T14:08:24.46046+00:00",
+    "totalElapsedMs": 22442,
+    "userWaitMs": 0,
+    "activeExecutionMs": 1702,
+    "modelCalls": 5,
+    "modelMs": 12577,
+    "stepDurationsMs": [
+      815.85,
+      3.87,
+      30.07,
+      852.47
+    ]
+  },
+  "confirmations": [],
+  "decisions": [
+    {
+      "summary": "list",
+      "intent": {
+        "v": 1,
+        "key": "s1",
+        "risk": "read",
+        "arguments": {
+          "path": "."
+        },
+        "operation": "fs.list",
+        "capability": "files",
+        "deadlineUtc": "2026-11-01T14:18:02.317Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "entries": [
+            {
+              "kind": "file",
+              "name": "plan.md",
+              "size": 111
+            }
+          ],
+          "durationMs": 815.85
+        },
+        "maybeChanged": false,
+        "observedAtUtc": "2026-11-01T14:08:08.109Z"
+      }
+    },
+    {
+      "summary": "read text",
+      "intent": {
+        "v": 1,
+        "key": "s2",
+        "risk": "read",
+        "arguments": {
+          "path": "plan.md"
+        },
+        "operation": "fs.read_text",
+        "capability": "files",
+        "deadlineUtc": "2026-11-01T14:18:08.742Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "text": "# Fjord Prairie Plan\n\n## Goals\n- juniper ember\n\n## Open questions\n- meadow tundra\n\n## Budget\n- kestrel cobalt\n\n",
+          "sha256": "35df52b06ee948972ac9d5388bb056e55d162b7364c3e62b87542c29703bd674",
+          "truncated": false,
+          "durationMs": 3.87
+        },
+        "maybeChanged": false,
+        "observedAtUtc": "2026-11-01T14:08:12.134Z"
+      }
+    },
+    {
+      "summary": "write document",
+      "intent": {
+        "v": 1,
+        "key": "s3",
+        "risk": "reversible_write",
+        "arguments": {
+          "docx": "OCADE output/plan.docx",
+          "title": "Fjord Prairie Plan",
+          "sections": [
+            {
+              "heading": "Goals",
+              "paragraphs": [
+                "- juniper ember"
+              ]
+            },
+            {
+              "heading": "Open questions",
+              "paragraphs": [
+                "- meadow tundra"
+              ]
+            },
+            {
+              "heading": "Budget",
+              "paragraphs": [
+                "- kestrel cobalt"
+              ]
+            }
+          ]
+        },
+        "operation": "office.write_document",
+        "capability": "files",
+        "deadlineUtc": "2026-11-01T14:18:12.800Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "sha256": {
+            "docx": "8baaed76e99b0789e36d2c48f4b96474df536ad91b033ff2d382ea3c9ace7162"
+          },
+          "durationMs": 30.07
+        },
+        "maybeChanged": true,
+        "observedAtUtc": "2026-11-01T14:08:17.465Z"
+      }
+    },
+    {
+      "summary": "Checking the result independently",
+      "intent": {
+        "v": 1,
+        "key": "s4",
+        "risk": "read",
+        "arguments": {
+          "checks": [
+            {
+              "id": "plan_docx_exists",
+              "kind": "file_exists",
+              "params": {
+                "path": "OCADE output/plan.docx"
+              },
+              "description": "The Word document plan.docx has been created in OCADE output/."
+            }
+          ]
+        },
+        "operation": "verify.checks",
+        "capability": "files",
+        "deadlineUtc": "2026-11-01T14:18:18.124Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "durationMs": 852.47,
+          "predicates": {
+            "plan_docx_exists": true
+          },
+          "verifierVersion": "checks-verifier/1"
+        },
+        "maybeChanged": false,
+        "observedAtUtc": "2026-11-01T14:08:23.372Z"
+      }
+    }
+  ],
+  "outputs": [
+    {
+      "path": "/tmp/ocade-eval/11/markdown_doc/OCADE output/plan.docx",
+      "bytes": 36687
+    }
+  ]
+}

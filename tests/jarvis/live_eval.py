@@ -264,7 +264,9 @@ def markdown_doc(ws: Path, rng: random.Random):
 def web_fact(ws: Path, rng: random.Random):
     def oracle(ws: Path):
         page = urllib.request.urlopen("https://www.python.org/downloads/", timeout=20).read().decode()
-        latest = page.split("Download Python ", 1)[1].split("<", 1)[0].strip()
+        import re
+
+        latest = re.search(r"Download Python (\d+\.\d+\.\d+)", page).group(1)
         notes = [p for p in ws.rglob("*") if p.is_file() and p.suffix in (".txt", ".md")]
         text = " ".join(p.read_text(errors="replace") for p in notes)
         return latest in text, f"want {latest}, notes {text[:120]!r}"

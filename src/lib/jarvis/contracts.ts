@@ -939,7 +939,8 @@ export const outcomeCheck = z.object({
     ])
     .optional()
     .describe(
-      "params — file_exists {path}; file_contains {path,text}; workbook_cell_equals {path,sheet,cell,value}; " +
+      "params — file_exists {path}: a file with content or a folder with something in it; file_contains {path,text}: " +
+        "the words appear (letter case and spacing ignored); workbook_cell_equals {path,sheet,cell,value}; " +
         "web_text_contains {url,text}; window_exists {exe,text?}; media_duration {path,value}; " +
         "media_quality {path,value,width,height}: playable H.264/AAC stereo of exactly value seconds, at least " +
         "width x height, broadcast loudness, no long black or silent gap; image_size {path,width,height}; " +

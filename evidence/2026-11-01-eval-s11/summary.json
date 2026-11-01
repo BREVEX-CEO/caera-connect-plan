@@ -1,0 +1,107 @@
+{
+  "seed": 11,
+  "passed": 8,
+  "total": 11,
+  "commit": "d9fd59b",
+  "results": [
+    {
+      "task": "config_repair",
+      "pass": false,
+      "detail": "exit 0, got '', want 'rows=7 total=2815.64'",
+      "settled": "completed",
+      "elapsedMs": 46757,
+      "modelCalls": 7,
+      "wallSeconds": 62.5
+    },
+    {
+      "task": "crlf_script",
+      "pass": false,
+      "detail": "exit 1, archive lists []",
+      "settled": "completed",
+      "elapsedMs": 41269,
+      "modelCalls": 7,
+      "wallSeconds": 55.0
+    },
+    {
+      "task": "dedupe_contacts",
+      "pass": true,
+      "detail": "delta_contacts.csv",
+      "settled": "completed",
+      "elapsedMs": 79720,
+      "modelCalls": 5,
+      "wallSeconds": 92.2
+    },
+    {
+      "task": "totals_workbook",
+      "pass": true,
+      "detail": "client_totals.xlsx: numbers [2353.23, 6114.01], expected {'Northwind Labs': 2353.23, 'Quartz Legal': 0.0, 'Blue Fern Studio': 6114.01}",
+      "settled": "blocked",
+      "elapsedMs": 122970,
+      "modelCalls": 11,
+      "wallSeconds": 136.5
+    },
+    {
+      "task": "log_cause",
+      "pass": true,
+      "detail": "notes ['russet_sync_note.txt']",
+      "settled": "completed",
+      "elapsedMs": 23536,
+      "modelCalls": 5,
+      "wallSeconds": 33.5
+    },
+    {
+      "task": "yaml_to_json",
+      "pass": true,
+      "detail": "meadow.json",
+      "settled": "completed",
+      "elapsedMs": 24119,
+      "modelCalls": 5,
+      "wallSeconds": 33.5
+    },
+    {
+      "task": "failing_test",
+      "pass": true,
+      "detail": "exit 0, tests untouched True",
+      "settled": "completed",
+      "elapsedMs": 37093,
+      "modelCalls": 6,
+      "wallSeconds": 50.0
+    },
+    {
+      "task": "biggest_files",
+      "pass": true,
+      "detail": "want ['tundra1.dat', 'quartz3.bin', 'ember0.bin']",
+      "settled": "completed",
+      "elapsedMs": 48416,
+      "modelCalls": 7,
+      "wallSeconds": 62.2
+    },
+    {
+      "task": "port_conflict",
+      "pass": true,
+      "detail": "Cobalt board ready 472",
+      "settled": "completed",
+      "elapsedMs": 46202,
+      "modelCalls": 8,
+      "wallSeconds": 56.1
+    },
+    {
+      "task": "markdown_doc",
+      "pass": true,
+      "detail": "[('Title', 'Fjord Prairie Plan'), ('Heading 1', 'Goals'), ('Normal', '- juniper ember'), ('Heading 1', 'Open questions'), ('Normal', '- meadow tundra'), ('Heading 1', 'Budget')]",
+      "settled": "completed",
+      "elapsedMs": 22442,
+      "modelCalls": 5,
+      "wallSeconds": 34.0
+    },
+    {
+      "task": "web_fact",
+      "pass": false,
+      "detail": "want | Python.org, notes ''",
+      "settled": "blocked",
+      "elapsedMs": 37186,
+      "modelCalls": 6,
+      "wallSeconds": 49.4
+    }
+  ]
+}

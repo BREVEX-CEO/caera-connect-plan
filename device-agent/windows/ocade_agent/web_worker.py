@@ -236,7 +236,11 @@ async def web_open(url: str) -> dict:
     site = _host(url)
     if not _allowed_url(url) or not _public_by_dns(site):
         raise Refused("site_not_public")
-    current = await (await _context()).new_page()
+    try:
+        context = await _context()
+    except Exception:
+        raise Refused("browser_unavailable")  # no display, or the browser cannot start here: retrying will not help
+    current = await context.new_page()
     try:
         await current.goto(url, wait_until="domcontentloaded", timeout=45_000)
     except Exception:

@@ -75,6 +75,8 @@ def _check(kind: str, params: dict) -> bool | None:
             path = resolve(WORKSPACE, params["path"])
         except (Refused, KeyError):
             return False
+        if kind == "file_exists" and path.is_dir():
+            return any(path.iterdir())  # a folder counts when something is in it
         if not path.is_file():
             return False
         if kind == "file_exists":
@@ -83,8 +85,10 @@ def _check(kind: str, params: dict) -> bool | None:
             text = _text(path)
             if text is None:
                 return None
+            # Words, not typography: letter case and runs of spaces/newlines do not decide a check.
+            wanted, found = (" ".join(t.split()).casefold() for t in (params.get("text", "\0"), text))
             # A PDF must also render with no blank page, not merely carry the words.
-            return params.get("text", "\0") in text and (path.suffix.lower() != ".pdf" or _pdf_renders(path))
+            return bool(wanted) and wanted in found and (path.suffix.lower() != ".pdf" or _pdf_renders(path))
         try:
             value = openpyxl.load_workbook(path, data_only=True)[params["sheet"]][params["cell"]].value
         except Exception:

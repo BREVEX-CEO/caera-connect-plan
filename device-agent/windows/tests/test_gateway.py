@@ -118,6 +118,10 @@ class Journey(unittest.TestCase):
             intent("verify.checks", {"checks": [
                 {"id": "has", "description": "script", "kind": "file_contains", "params": {"path": script, "text": "naïve café"}},
                 {"id": "not", "description": "absent", "kind": "file_contains", "params": {"path": script, "text": "Remove-Item"}},
+                {"id": "case", "description": "case and spacing", "kind": "file_contains",
+                 "params": {"path": script, "text": "NAÏVE   CAFÉ"}},
+                {"id": "folder", "description": "a folder with files", "kind": "file_exists", "params": {"path": self.out}},
+                {"id": "blank", "description": "only spaces", "kind": "file_contains", "params": {"path": script, "text": "   "}},
             ]}),
         ])
         self.assertEqual(wrote["status"], "observed", wrote)
@@ -128,7 +132,8 @@ class Journey(unittest.TestCase):
         self.assertEqual(program["errorCode"], "unsupported_file_type")
         self.assertFalse((self.root / f"{self.out}/run.bat").exists())
         self.assertEqual(outside["errorCode"], "invalid_intent")  # originals live outside OCADE output
-        self.assertEqual(verified["evidence"]["predicates"], {"has": True, "not": False})
+        self.assertEqual(verified["evidence"]["predicates"],
+                         {"has": True, "not": False, "case": True, "folder": True, "blank": False})
 
     def test_repair_in_place_keeps_the_original_and_never_overwrites_a_newer_edit(self):
         (self.root / "tool.py").write_text("print('broken'\n")

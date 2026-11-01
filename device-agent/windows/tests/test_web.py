@@ -41,6 +41,19 @@ def intent(operation, arguments):
     }
 
 
+class BrowserUnavailable(unittest.TestCase):
+    def test_a_browser_that_cannot_start_is_named_not_a_generic_error(self):
+        from unittest.mock import patch
+
+        async def go():
+            async with Gateway(tempfile.mkdtemp()) as gateway:
+                return await gateway.run(intent("web.open", {"url": "https://example.com/"}), gateway.epoch)
+
+        with patch.dict(os.environ, {"OCADE_BROWSER_EXECUTABLE": str(Path(tempfile.mkdtemp()) / "no-browser")}):
+            result = anyio.run(go)
+        self.assertEqual((result["status"], result["errorCode"]), ("not_applied", "browser_unavailable"))
+
+
 @unittest.skipUnless(READY, "needs a display and a Chromium executable")
 class WebLadder(unittest.TestCase):
     def setUp(self):
