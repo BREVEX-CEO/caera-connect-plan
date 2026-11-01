@@ -42,6 +42,11 @@ const ready =
   (spawnSync("which", ["soffice"]).status === 0 ||
     spawnSync("which", ["libreoffice"]).status === 0);
 
+// CI must run the end-to-end tests, not skip them for a missing prerequisite.
+test("end-to-end prerequisites are installed in CI", { skip: !process.env.CI }, () => {
+  assert.ok(ready, "psql, the companion's Python packages and LibreOffice are required in CI");
+});
+
 function sql(text: string, role = "service_role"): string {
   const run = spawnSync("psql", ["-X", "-Atq", "-v", "ON_ERROR_STOP=1", "-d", db], {
     input: `SET ROLE ${role};\n${text}`,

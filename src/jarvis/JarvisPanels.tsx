@@ -438,7 +438,7 @@ export function TaskPanel({
       {task.blocker ? <p className="mt-1 text-muted-foreground">{task.blocker}</p> : null}
       <ol className="mt-2 space-y-1">
         {task.steps.map((step) => (
-          <li key={step.id} className="flex items-center gap-2">
+          <li key={step.id} className="flex flex-wrap items-center gap-2">
             <span className="w-20 shrink-0 text-xs text-muted-foreground">
               {step.status.replace("_", " ")}
             </span>
@@ -446,6 +446,11 @@ export function TaskPanel({
             <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
               {duration(step.durationMs)}
             </span>
+            {step.effect ? (
+              <pre className="mt-1 max-h-48 w-full basis-full overflow-auto whitespace-pre-wrap break-all rounded bg-muted p-2 text-xs">
+                {step.effect}
+              </pre>
+            ) : null}
             {step.needsConfirmation ? (
               <button
                 type="button"

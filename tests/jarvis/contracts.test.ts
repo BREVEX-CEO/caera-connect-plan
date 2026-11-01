@@ -367,3 +367,12 @@ test("tool schemas are normalized to what the provider accepts, nothing else cha
     required: ["v"],
   });
 });
+
+test("the person confirms the exact command, not a model-written summary", async () => {
+  const { exactEffect } = await import("../../src/lib/jarvis/authority.server.ts");
+  const command = "Get-Service Spooler | Restart-Service -Force";
+  const shown = exactEffect(intent("shell.run", "fix", { command }, deadline));
+  assert.match(shown, /^shell\.run /);
+  assert.ok(shown.includes(JSON.stringify(command)), shown);
+  assert.match(exactEffect({ operation: "shell.run" }), /do not allow it/);
+});

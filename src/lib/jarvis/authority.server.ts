@@ -328,6 +328,8 @@ export async function taskView(admin: Admin, userId: string, taskId: string) {
       summary: step.summary,
       status: step.status,
       needsConfirmation: step.status === "needs_confirmation",
+      // What the person allows is the exact operation and arguments, not a model-written summary.
+      effect: step.status === "needs_confirmation" ? exactEffect(step.intent) : undefined,
     })),
     device: task.deviceName,
     timing,
@@ -340,6 +342,13 @@ export async function taskView(admin: Admin, userId: string, taskId: string) {
         .filter((value): value is string => typeof value === "string");
     }),
   };
+}
+
+export function exactEffect(intent: unknown): string {
+  const parsed = actionIntent.safeParse(intent);
+  if (!parsed.success) return "An action that could not be read: do not allow it.";
+  const text = `${parsed.data.operation} ${JSON.stringify(parsed.data.arguments, null, 2)}`;
+  return text.length > 4000 ? `${text.slice(0, 4000)}\n… (shortened)` : text;
 }
 
 export function approveDevice(admin: Admin, userId: string, code: string) {
