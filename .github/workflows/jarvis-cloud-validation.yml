@@ -225,7 +225,7 @@ jobs:
       - name: Linux companion tests (real Chromium on a disposable Xvfb desktop)
         if: runner.os == 'Linux'
         working-directory: device-agent/windows
-        run: xvfb-run -a python -m tests.run_required "needs a Windows desktop" "needs a Mac desktop with Accessibility granted" "needs a display and OCADE_PUBLIC_WEB=1"
+        run: xvfb-run -a python -m tests.run_required "needs a Windows desktop" "needs Windows process handles" "needs a Mac desktop with Accessibility granted" "needs a display and OCADE_PUBLIC_WEB=1"
       - name: Windows companion tests (real desktop UI, browser, shell)
         if: runner.os == 'Windows'
         working-directory: device-agent/windows
@@ -236,7 +236,7 @@ jobs:
       - name: macOS companion tests
         if: runner.os == 'macOS'
         working-directory: device-agent/windows
-        run: python -m tests.run_required "needs a Windows desktop" "needs a display and OCADE_PUBLIC_WEB=1"
+        run: python -m tests.run_required "needs a Windows desktop" "needs Windows process handles" "needs a display and OCADE_PUBLIC_WEB=1"
       # These tests exercise portable contracts; they do NOT establish real
       # foreground UI automation, macOS AX, customer pairing, or actual media quality.
 

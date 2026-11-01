@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "43c50ed87178bc6474a0464d5324689a707e86f9",
+  "run": 41349526739,
+  "url": "https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41349526739",
+  "jobs": [
+    {
+      "id": 124976494080,
+      "name": "Planner safety / source formatting · Linux",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 124976703394,
+      "name": "Portable build / model contracts / ephemeral DB · Linux",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 124977693209,
+      "name": "Python MCP / journal / browser · macos-latest",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 124977693244,
+      "name": "Windows unsigned installer / frozen MCP smoke · NOT release-ready",
+      "status": "completed",
+      "conclusion": "failure"
+    },
+    {
+      "id": 124977693270,
+      "name": "Python MCP / journal / browser · windows-latest",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 124977693309,
+      "name": "Python MCP / journal / browser · ubuntu-latest",
+      "status": "completed",
+      "conclusion": "success"
+    }
+  ],
+  "focusedJavaScript": {
+    "total": 89,
+    "pass": 89
+  },
+  "integrationJavaScript": {
+    "total": 95,
+    "pass": 95
+  },
+  "requiredBrowserCases": 2,
+  "realMcpWorkerCases": 4,
+  "builtHandoff": {
+    "pass": 4,
+    "fail": 0
+  },
+  "installer": {
+    "bundleRebuildDifferences": 0,
+    "installerRebuildDifferences": 0,
+    "installedNonceRead": "PASS",
+    "qualification": "FAIL",
+    "failure": "WinError 32 deleting owned browser-profile/Default/Sessions_Encrypted/Tabs_... after worker closure",
+    "originalFileLockOwner": "NOT CAPTURED; do not attribute it to a specific process",
+    "repairUninstall": "Not completed after failure"
+  },
+  "lastFullQualifiedCommit": "02ebc90d60051648c26cab5d9ae441581c8e689a",
+  "decision": "NO-GO"
+}
