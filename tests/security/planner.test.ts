@@ -39,10 +39,18 @@ test("observed addresses retain their exact origin, path and query", async (t) =
     ["different origin", `https://other.example${path}?arch=arm64`, [source]],
     ["shorter path", `${origin}/releases/${suffix}`, [source]],
     ["different query", `${origin}${path}?arch=x64`, [source]],
-    ["credentials", `https://name:password@source.example${path}?arch=arm64`, [source]],
+    ["credentials", `***source.example${path}?arch=arm64`, [source]],
     ["failed observation", target, [{ ...source, status: "failed" }]],
-    ["unapplied observation", target, [{ ...source, receipt: { ...source.receipt!, status: "not_applied" } }]],
-    ["URL mentioned only as a prose substring", target, [observation({ text: `Never open ${target}.bad` })]],
+    [
+      "unapplied observation",
+      target,
+      [{ ...source, receipt: { ...source.receipt!, status: "not_applied" } }],
+    ],
+    [
+      "URL mentioned only as a prose substring",
+      target,
+      [observation({ text: `Never open ${target}.bad` })],
+    ],
   ] as const) {
     await t.test(name, () => assert.throws(() => unseenAddress(url, "", [...steps])));
   }
@@ -88,29 +96,55 @@ test("only a complete, matching provider turn may define a goal", async (t) => {
   plannerAccess.serviceUrl = () => `http://127.0.0.1:${address.port}`;
   plannerAccess.serviceKey = () => "synthetic-loopback-key";
   plannerAccess.acquirePermit = async (_user, key) => ({
-    permit: { id: "permit", generationId: key, idempotencyKey: key, surface: "jarvis", source: "server" },
+    permit: {
+      id: "permit",
+      generationId: key,
+      idempotencyKey: key,
+      surface: "jarvis",
+      source: "server",
+    },
     release: async () => {},
   });
   const altered = { ...call, arguments: { checks: [{ ...check, id: "substituted" }] } };
   try {
     for (const [name, response] of [
       ["closed without final", [event]],
-      ["cancelled final", [event, { ...terminal, response: { ...terminal.response, stopReason: "cancelled" } }]],
-      ["final changed the proposal", [event, { ...terminal, response: { ...terminal.response, toolCalls: [altered] } }]],
+      [
+        "cancelled final",
+        [event, { ...terminal, response: { ...terminal.response, stopReason: "cancelled" } }],
+      ],
+      [
+        "final changed the proposal",
+        [event, { ...terminal, response: { ...terminal.response, toolCalls: [altered] } }],
+      ],
       ["call after final", [event, terminal, event]],
       ["duplicate final", [event, terminal, terminal]],
-      ["too many calls", [...Array.from({ length: 6 }, (_, n) => ({ ...event, call: { ...call, id: `c${n}` } })), terminal]],
+      [
+        "too many calls",
+        [
+          ...Array.from({ length: 6 }, (_, n) => ({ ...event, call: { ...call, id: `c${n}` } })),
+          terminal,
+        ],
+      ],
     ] as const) {
       await t.test(name, async () => {
         frames = [...response];
-        await assert.rejects(compileGoal("synthetic-user", "Create the requested output", ["files"]), PlannerUnavailable);
+        await assert.rejects(
+          compileGoal("synthetic-user", "Create the requested output", ["files"]),
+          PlannerUnavailable,
+        );
       });
     }
     frames = [event, terminal];
-    assert.deepEqual(await compileGoal("synthetic-user", "Create the requested output", ["files"]), [check]);
+    assert.deepEqual(
+      await compileGoal("synthetic-user", "Create the requested output", ["files"]),
+      [check],
+    );
   } finally {
     Object.assign(plannerAccess, saved);
     server.closeAllConnections();
-    await new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
+    await new Promise<void>((resolve, reject) =>
+      server.close((error) => (error ? reject(error) : resolve())),
+    );
   }
 });

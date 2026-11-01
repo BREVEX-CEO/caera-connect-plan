@@ -165,21 +165,52 @@ export function shortlistOperations(
  * link's `href`), is allowed; anything else goes back to the model as a refusal.
  */
 export function unseenAddress(url: unknown, objective: string, steps: Step[]) {
-  let parsed: URL;
-  try {
-    parsed = new URL(String(url));
-  } catch {
-    return; // the argument schema refuses it
+  const address = (value: string, base?: string) => {
+    try {
+      const parsed = new URL(value, base);
+      if (parsed.protocol !== "https:" || parsed.username || parsed.password) return null;
+      parsed.hash = "";
+      return parsed;
+    } catch {
+      return null;
+    }
+  };
+  const parsed = address(String(url));
+  if (!parsed) throw new Error("the address must be public https without credentials");
+  if (parsed.pathname === "/" && !parsed.search) return;
+
+  // Explicit addresses in the person's request are data, never substring matches.
+  const requested =
+    objective.match(/https:\/\/[^\s<>"'`]+|(?:[a-z0-9-]+\.)+[a-z][a-z0-9-]*\/[^\s<>"'`]*/gi) ?? [];
+  for (const value of requested) {
+    const candidate = value.replace(/[.,;!?)\]}]+$/, "");
+    const explicit = address(candidate.startsWith("https://") ? candidate : `https://${candidate}`);
+    if (explicit?.href === parsed.href) return;
   }
-  if ((parsed.pathname === "/" || parsed.pathname === "") && !parsed.search) return;
-  const seen = objective + JSON.stringify(steps.map((step) => step.receipt?.evidence ?? null));
-  const path = parsed.pathname + parsed.search;
-  if (
-    seen.includes(parsed.href) ||
-    seen.includes(`"${path}"`) ||
-    seen.includes(path.replace(/\/$/, ""))
-  )
-    return;
+
+  for (const step of steps) {
+    if (
+      !step.intent.operation.startsWith("web.") ||
+      step.status !== "done" ||
+      step.receipt?.status !== "observed" ||
+      step.receipt.errorCode
+    )
+      continue;
+    const observed = step.receipt.evidence;
+    const base = address(
+      typeof observed.url === "string"
+        ? observed.url
+        : String(step.intent.arguments.url ?? ""),
+    );
+    // Relative links belong to the exact source origin, never to the proposed destination.
+    if (!base || base.hostname !== step.intent.target?.site) continue;
+    if (base.href === parsed.href) return;
+    if (!Array.isArray(observed.controls)) continue;
+    for (const control of observed.controls) {
+      if (!control || typeof control !== "object" || typeof control.href !== "string") continue;
+      if (address(control.href, base.href)?.href === parsed.href) return;
+    }
+  }
   throw new Error(
     `${parsed.href} was not seen in this task: open the site's home page or an address a page listed (a link's href)`,
   );
@@ -227,7 +258,9 @@ export function plannerMessage(code: string): string {
     return "JARVIS plans with online intelligence, and you have not agreed to it yet.";
   if (code === "allowance_exhausted")
     return "Your JARVIS allowance is used up until your usage window resets.";
-  if (code === "rate_limited" || code === "provider_unavailable") {
+  if (
+    ["rate_limited", "provider_rate_limited", "provider_unavailable", "online_unavailable"].includes(code)
+  ) {
     return "JARVIS's online planner is busy right now.";
   }
   return "JARVIS's online planner is unavailable right now.";
@@ -397,20 +430,44 @@ async function callPlanner(input: {
       );
     }
     // Read the whole stream so the service settles the permit; keep its function calls in order.
-    const calls: { name: string; args: Record<string, unknown> }[] = [];
+    const proposedCall = z.object({
+      id: z.string().min(1).max(200),
+      name: z.string().min(1).max(200),
+      arguments: z.record(z.string(), z.unknown()),
+    });
+    const calls: z.infer<typeof proposedCall>[] = [];
+    let complete = false;
     try {
       for await (const payload of sseData(response.body, "planner_stream_incomplete")) {
         const event = JSON.parse(payload) as IntelligenceEvent;
+        if (complete) throw new PlannerUnavailable("planner_events_after_final");
         if (event.type === "refusal") throw new PlannerUnavailable(event.code);
-        if (event.type === "tool_call" && calls.length < MAX_BATCH)
-          calls.push({ name: event.call.name, args: event.call.arguments });
+        if (event.type === "tool_call") {
+          const call = proposedCall.parse(event.call);
+          if (calls.length >= MAX_BATCH || calls.some((prior) => prior.id === call.id))
+            throw new PlannerUnavailable("invalid_decision");
+          calls.push(call);
+        }
+        if (event.type === "final") {
+          const final = z
+            .object({
+              backend: z.literal("online"),
+              stopReason: z.literal("tool_use"),
+              toolCalls: z.array(proposedCall).min(1).max(MAX_BATCH),
+            })
+            .parse(event.response);
+          if (JSON.stringify(final.toolCalls) !== JSON.stringify(calls))
+            throw new PlannerUnavailable("planner_final_mismatch");
+          complete = true;
+        }
       }
+      if (!complete) throw new PlannerUnavailable("planner_stream_incomplete");
     } catch (error) {
       if (error instanceof PlannerUnavailable) throw error;
       throw new PlannerUnavailable("planner_stream_failed");
     }
     if (!calls.length) throw new PlannerUnavailable("no_decision");
-    return calls;
+    return calls.map((call) => ({ name: call.name, args: call.arguments }));
   } finally {
     input.onTimed?.(performance.now() - started);
   }

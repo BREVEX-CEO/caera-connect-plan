@@ -202,9 +202,16 @@ test("a failed independent check returns to the model for bounded repair", async
     for await (const chunk of req) body += chunk;
     lastPrompt = JSON.parse(body).messages.at(-1).content;
     res.writeHead(200, { "content-type": "text/event-stream" });
+    const calls = (replies.shift() ?? reply).map((call, i) => ({ ...call, id: `call-${i}` }));
     res.end(
-      (replies.shift() ?? reply)
-        .map((call) => `data: ${JSON.stringify({ type: "tool_call", call })}\r\n\r\n`)
+      [
+        ...calls.map((call) => ({ type: "tool_call", call })),
+        {
+          type: "final",
+          response: { backend: "online", stopReason: "tool_use", toolCalls: calls },
+        },
+      ]
+        .map((event) => `data: ${JSON.stringify(event)}\r\n\r\n`)
         .join(""),
     );
   });

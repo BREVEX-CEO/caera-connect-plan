@@ -243,8 +243,17 @@ before(async () => {
       call = { name: "finish", args: {} };
     }
     res.writeHead(200, { "content-type": "text/event-stream" });
+    const proposal = { id: "scripted-call", name: call.name, arguments: call.args };
     res.end(
-      `data: ${JSON.stringify({ type: "tool_call", call: { name: call.name, arguments: call.args } })}\r\n\r\n`,
+      [
+        { type: "tool_call", call: proposal },
+        {
+          type: "final",
+          response: { backend: "online", stopReason: "tool_use", toolCalls: [proposal] },
+        },
+      ]
+        .map((event) => `data: ${JSON.stringify(event)}\r\n\r\n`)
+        .join(""),
     );
   });
   await new Promise<void>((resolve) => scriptedService.listen(0, "127.0.0.1", resolve));
