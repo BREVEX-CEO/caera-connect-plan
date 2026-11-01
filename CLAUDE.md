@@ -1,3 +1,5 @@
+first run 'caveman ultra ' and 'ponytail full'
+
 # CLAUDE.md
 
 Behavioral guidelines to reduce common LLM coding mistakes. Merge with project-specific instructions as needed.
@@ -108,3 +110,15 @@ For every requested change, use the first option that **fully** solves it:
 6. Report briefly: **changed**, **removed**, **tests/results**, **measured gain**, **BLOCKED/UNTESTED**. Mention shortcuts only when they have a real limit and a clear trigger to revisit.
 
 **Definition of success:** the smallest maintainable codebase that preserves every approved feature and safety invariant, with zero **known** unaddressed critical regressions in the verified scope—not an impossible promise of zero bugs everywhere.
+
+
+## OCADE current owner priority — 1 November 2026
+
+- In Claude Code, first invoke the available Caveman Ultra and Ponytail Full chat commands. These are not shell commands; verify activation and do not invent success if unavailable.
+- Work only on `ocade/p00-p22-implementation`. Preserve `main`, deployed infrastructure, payment settings, customer data and the owner's physical PC. Only no-cost disposable cloud verification via GitHub Actions is newly approved; **never** start the production deployment, offline model publishing or paid provider workflows.
+- **No hardcoded customer applications, task journeys, media asset paths, editor sequences, tool choices or canned output.** Discover capabilities and live UI state; Gemini alone determines the next user-task action. Scoped native protocol adapters and format codecs are permissible without routing by product name.
+- Extend the **existing** locally installed OCADE Device Agent as the outbound-only Local Gateway; do not create another companion, independent cloud desktop, planner or gateway. The customer should install one reviewed/signed self-contained package once, pair securely and grant access, without developer setup or installing Python/Node/MCP separately.
+- Gate all side effects through authorized account/device scopes, exact target, risk, STOP epoch, deadlines, idempotency journal and independent evidence. On failed receipts, ambiguous effect, user interference or disconnected service, never repeat an unverified mutation blindly; stop with a truthful reason after bounded recovery.
+- Respect the three server-only Gemini key slots as **availability redundancy**, not independent quota pools; a shared-project HTTP 429 must never rotate keys to evade rate limits. Optimize model calls with measured state deltas, concise observations, safe model-selected batching and cycle detection; no substituted planner or fake task deliverables.
+- Use Windows, macOS and Linux cloud tests for available portable functionality, and package/validate native runtimes only where implemented. CI is not proof of interactive Windows/macOS desktop operation. Genuine acceptance uses unprepared, real-world customer media and separately verified edited artifacts; synthetic color bars establish only mechanical pipeline behavior.
+- Repair root causes, then rerun targeted and wider tests. Apply KISS, YAGNI, DRY and SOLID in proportion to demonstrated need, prioritize maximum safe debloating, and report PASS/PARTIAL/FAIL/BLOCKED by exact platform and commit. Never claim production readiness while critical/high-severity defects or mandatory gates remain.
