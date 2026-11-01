@@ -23,6 +23,7 @@ import asyncio
 import functools
 import ipaddress
 import json
+import re
 import os
 import secrets
 import socket
@@ -43,22 +44,31 @@ _browser: dict = {}
 _pages: dict[str, dict] = {}  # id -> {"page": Page, "site": host fixed at open}
 
 # Inputs, buttons and links the planner may name, each with a selector Playwright can find again.
-# Each listed control gets a fresh `data-ocade` number, so its selector names exactly one
-# element even when labels repeat. File inputs are listed even when a web app hides them.
-_CONTROLS = """() => {
+# Selectors carry this observation's token: one from an older read no longer matches anything
+# (refused as selector_not_found) instead of silently naming whatever now has that number.
+# A label that repeats on the page ("Download" in every row) also carries its row's text.
+# File inputs are listed even when a web app hides them.
+_CONTROLS = """(token) => {
   document.querySelectorAll('[data-ocade]').forEach(e => e.removeAttribute('data-ocade'));
-  return [...document.querySelectorAll('a[href],button,input,select,textarea,[contenteditable]:not([contenteditable=false]),[role=button],[role=menuitem],[role=tab],[role=textbox],[role=spinbutton],[role=slider],iframe')]
-    .filter(e => e.offsetParent !== null || e.type === 'file').slice(0, 80).map((e, i) => {
-      e.setAttribute('data-ocade', 'c' + i);
-      return {
-        tag: e.tagName.toLowerCase(), type: e.type || '', name: (e.name || '').slice(0, 40),
-        label: (e.labels?.[0]?.innerText || e.getAttribute('aria-label') || e.title || e.innerText || e.value || '').trim().slice(0, 80),
-        selector: `[data-ocade=c${i}]`,
-        // Where a link goes, so it can be opened as seen (same site: path only, to stay small).
-        ...(e.tagName === 'A' && /^https?:/.test(e.href)
-          ? { href: (e.origin === location.origin ? e.pathname + e.search : e.href).slice(0, 160) } : {}),
-      };
-    });
+  const flat = s => (s || '').replace(/\\s+/g, ' ').trim();
+  const listed = [...document.querySelectorAll('a[href],button,input,select,textarea,[contenteditable]:not([contenteditable=false]),[role=button],[role=menuitem],[role=tab],[role=textbox],[role=spinbutton],[role=slider],iframe')]
+    .filter(e => e.offsetParent !== null || e.type === 'file').slice(0, 80);
+  const labels = listed.map(e => flat(e.labels?.[0]?.innerText || e.getAttribute('aria-label') || e.title || e.innerText || e.value).slice(0, 80));
+  const seen = {};
+  labels.forEach(l => { seen[l] = (seen[l] || 0) + 1; });
+  return listed.map((e, i) => {
+    e.setAttribute('data-ocade', `${token}-${i}`);
+    const row = seen[labels[i]] > 1 ? e.closest('tr,li,[role=row]') : null;
+    return {
+      tag: e.tagName.toLowerCase(), type: e.type || '', name: (e.name || '').slice(0, 40),
+      label: labels[i],
+      selector: `[data-ocade="${token}-${i}"]`,
+      ...(row ? { row: flat(row.innerText).slice(0, 120) } : {}),
+      // Where a link goes, so it can be opened as seen (same site: path only, to stay small).
+      ...(e.tagName === 'A' && /^https?:/.test(e.href)
+        ? { href: (e.origin === location.origin ? e.pathname + e.search : e.href).slice(0, 160) } : {}),
+    };
+  });
 }"""
 
 
@@ -155,6 +165,9 @@ async def _scope(entry: dict, frame: str | None):
 
 async def _one(scope, selector: str):
     """Exactly one element; web apps render late, so wait (bounded) for it to exist first."""
+    observed = re.match(r'\[data-ocade="([0-9a-f]+)-\d+"\]$', selector)
+    if observed and observed.group(1) not in {entry.get("token") for entry in _pages.values()}:
+        raise Refused("stale_selector")  # from an older observation: read the page again
     target = scope.locator(selector)
     try:
         await target.first.wait_for(state="attached", timeout=20_000)
@@ -169,11 +182,12 @@ async def _observe(page_id: str) -> dict:
     entry = _pages[page_id]
     current = entry["page"]
     text = await current.inner_text("body", timeout=10_000)
+    token = entry["token"] = secrets.token_hex(3)
     observed = {
         "page": {"id": page_id, "site": entry["site"]},
         "url": current.url[:500],
         "title": (await current.title())[:200],
-        "controls": await current.evaluate(_CONTROLS),
+        "controls": await current.evaluate(_CONTROLS, token),
         "text": text[:TEXT_LIMIT],
         # A sign-in or challenge is the person's to complete in the OCADE browser window.
         "needsSignIn": await current.locator("input[type=password]:visible").count() > 0,

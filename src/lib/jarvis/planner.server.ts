@@ -240,7 +240,8 @@ const SYSTEM = [
   "When the outcome says how the work is to be done (for example in a web browser), do it that way.",
   "On a website, follow the links a page lists (web.open the address in a link's `href`; a path is on the same",
   "site) instead of typing addresses you have not seen in this task, and",
-  "act on a control by the exact `selector` web.open/web.read listed for it; to see a page",
+  "act on a control by the exact `selector` the newest observation of that page listed (older ones are refused);",
+  "when a label repeats, its `row` (the table row or list item it sits in) tells which one fits the request; to see a page",
   "(for example one drawn on a canvas), web.screenshot it to a new file and look at that with media.preview.",
   "web.open and web.click already return the page as it is afterwards; web.read only when it may have changed since.",
 ].join(" ");

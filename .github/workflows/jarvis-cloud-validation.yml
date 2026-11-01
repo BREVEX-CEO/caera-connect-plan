@@ -20,6 +20,8 @@ on:
       - "supabase/migrations/**"
       - "CLAUDE.md"
       - "plan.md"
+      - "evidence/readiness/**"
+      - "scripts/launch-readiness.mjs"
   workflow_dispatch:
 
 permissions:
@@ -79,6 +81,9 @@ jobs:
       - name: Complete disposable database authority tests
         if: success() || failure()
         run: npm run test:jarvis-db
+      - name: Launch readiness is computed only from existing evidence
+        if: success() || failure()
+        run: npm run readiness
       - name: Known-vulnerability audit of shipped dependencies (web and companion)
         if: success() || failure()
         run: |

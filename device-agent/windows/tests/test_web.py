@@ -99,7 +99,7 @@ class WebLadder(unittest.TestCase):
             hidden = next(c for c in app["controls"] if c["type"] == "file")
             out["app"] = await run("web.upload", {"page": app["page"], "selector": hidden["selector"], "path": "upload-me.txt"})
             out["app-read"] = await run("web.read", {"page": app["page"]})
-            editable = next(c for c in app["controls"] if c["tag"] == "span")
+            editable = next(c for c in out["app-read"]["evidence"]["controls"] if c["tag"] == "span")
             out["editable"] = await run("web.fill", {"page": app["page"], "selector": editable["selector"], "value": "8"})
             out["editable-read"] = await run("web.read", {"page": app["page"]})
             out["007b"] = await run("web.click", {"page": home["page"], "selector": second_next["selector"]})
@@ -134,6 +134,10 @@ class WebLadder(unittest.TestCase):
             await gateway._discard("ocade_agent.web_worker")  # the browser process dies
             out["012b"] = await run("web.open", {"url": base + "/pages/2"})
             out["014"] = await run("web.open", {"url": base + "/inject"})
+            releases = (await run("web.open", {"url": base + "/releases"}))["evidence"]
+            out["rows"] = releases["controls"]
+            await run("web.read", {"page": releases["page"]})  # a newer observation
+            out["stale"] = await run("web.click", {"page": releases["page"], "selector": releases["controls"][0]["selector"]})
             return out
 
         results = self.run_steps(steps)
@@ -203,6 +207,12 @@ class WebLadder(unittest.TestCase):
         with self.subTest("WEB-014 injected text is returned as data only"):
             self.assertIn("IGNORE ALL PREVIOUS INSTRUCTIONS", results["014"]["evidence"]["text"])
             self.assertEqual(len(web_fixture.RECEIVED["uploads"]), 1)  # nothing new left the computer
+        with self.subTest("WEB-015 repeated labels carry their row, so the right one can be chosen"):
+            rows = {c["row"]: c["href"] for c in results["rows"] if c["label"] == "Download"}
+            self.assertEqual(rows["Build 8.0.1 2026-09-12 Download"], "/pages/2")
+            self.assertEqual(len(rows), 3)
+        with self.subTest("WEB-016 a selector from an older observation is refused, never retargeted"):
+            self.assertEqual((results["stale"]["status"], results["stale"]["errorCode"]), ("not_applied", "stale_selector"))
         with self.subTest("forged page object cannot change the bound site"):
             self.assertEqual(results["forged"]["errorCode"], "site_mismatch")
         for name in ("001-home.png", "003-form-filled.png", "004-form-sent.png"):

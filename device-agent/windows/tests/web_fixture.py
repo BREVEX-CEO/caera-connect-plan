@@ -45,6 +45,10 @@ onblur="document.getElementById('committed').textContent = this.dataset.typed ? 
 <a href="/pages/1">Next</a> <a href="/pages/2">Next</a>""",
     "/pages/1": "<h1>Page one</h1><p>Invoice INV-7 is overdue by 12 days.</p><a href='/pages/2'>Next</a>",
     "/pages/2": "<h1>Page two</h1><p>Invoice INV-9 was paid on 2026-10-01.</p>",
+    "/releases": "<h1>Releases</h1><table>" + "".join(
+        f"<tr><td>Build {v}</td><td>{d}</td><td><a href='/pages/{n}'>Download</a></td></tr>"
+        for n, (v, d) in enumerate([("7.2.0", "2026-03-01"), ("8.0.1", "2026-09-12"), ("7.9.4", "2026-06-30")], 1)
+    ) + "</table>",
     "/form": """<h1>Contact form</h1><form method="post" action="/form">
 <label>Name <input id="name" name="name"></label><label>Email <input id="email" name="email"></label>
 <label>Notes <textarea id="notes" name="notes"></textarea></label>
