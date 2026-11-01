@@ -224,6 +224,21 @@ class Journey(unittest.TestCase):
         self.assertTrue(evidence["programs"][Path(_sys.executable).name]["path"])
         self.assertIsNone(evidence["programs"]["ocade-no-such-program-x9"]["path"])
 
+    def test_repairs_are_checked_by_parsing_never_by_running(self):
+        files = {"good.json": '{"a": 1}', "bad.json": '{"a": 1,}', "good.py": "print('x')\n",
+                 "bad.py": "def f(:\n", "run.py": "open('ran.txt', 'w').write('ran')\n",
+                 "good.csv": "a,b\n1,2\n", "ragged.csv": "a,b\n1,2,3\n", "conf.toml": "x = 1\n", "notes.md": "# hi\n"}
+        for name, text in files.items():
+            (self.root / name).write_text(text)
+        [verified] = self.run_all(Gateway(str(self.root)), [intent("verify.checks", {"checks": [
+            {"id": name.replace(".", "_"), "description": name, "kind": "file_parses", "params": {"path": name}}
+            for name in files]})])
+        self.assertEqual(verified["evidence"]["predicates"], {
+            "good_json": True, "bad_json": False, "good_py": True, "bad_py": False, "run_py": True,
+            "good_csv": True, "ragged_csv": False, "conf_toml": True, "notes_md": None})
+        self.assertIn("SyntaxError", verified["evidence"]["measured"]["bad_py"]["error"])  # why, for the repair
+        self.assertFalse((self.root / "ran.txt").exists(), "parsing a script never runs it")
+
     def test_missing_outputs_are_not_passed(self):
         [verified] = self.run_all(Gateway(str(self.root)), [self.checks()])
         self.assertEqual(verified["evidence"]["predicates"], {"net": False, "wrong": False, "pdf": False})

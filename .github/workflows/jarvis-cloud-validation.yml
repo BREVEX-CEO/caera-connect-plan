@@ -175,7 +175,11 @@ jobs:
           "C:\Program Files (x86)\Inno Setup 6" | Out-File -FilePath $env:GITHUB_PATH -Append
       - name: Build disposable unsigned companion installer
         shell: pwsh
-        run: ./device-agent/windows/packaging/build.ps1
+        run: |
+          # PyInstaller stamps the build time into each Windows executable unless this is set.
+          $env:SOURCE_DATE_EPOCH = git log -1 --format=%ct
+          "SOURCE_DATE_EPOCH=$env:SOURCE_DATE_EPOCH" | Out-File -FilePath $env:GITHUB_ENV -Append
+          ./device-agent/windows/packaging/build.ps1
       - name: Verify all frozen MCP workers actually start
         shell: pwsh
         run: |

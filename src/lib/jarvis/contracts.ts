@@ -946,6 +946,7 @@ export const outcomeCheck = z.object({
     .enum([
       "file_exists",
       "file_contains",
+      "file_parses",
       "workbook_cell_equals",
       "web_text_contains",
       "window_exists",
@@ -957,7 +958,8 @@ export const outcomeCheck = z.object({
     .optional()
     .describe(
       "params — file_exists {path}: a file with content or a folder with something in it; file_contains {path,text}: " +
-        "the words appear (letter case and spacing ignored); workbook_cell_equals {path,sheet,cell,value}; " +
+        "the words appear (letter case and spacing ignored); file_parses {path}: a JSON, Python, XML, TOML, INI or " +
+        "CSV file is well-formed for its format (nothing is run); workbook_cell_equals {path,sheet,cell,value}; " +
         "web_text_contains {url,text}; window_exists {exe,text?}; media_duration {path,value}; " +
         "media_quality {path,value,width,height}: playable H.264/AAC stereo of exactly value seconds, at least " +
         "width x height, broadcast loudness, no long black or silent gap; image_size {path,width,height}; " +

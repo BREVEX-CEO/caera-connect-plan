@@ -70,6 +70,12 @@ def _text(path: Path) -> str | None:
 
 def _check(kind: str, params: dict, notes: dict) -> bool | None:
     """One typed predicate, read from the real file, page or window. None means unobservable."""
+    if kind == "file_parses":
+        try:
+            path = resolve(WORKSPACE, params["path"])
+        except (Refused, KeyError):
+            return False
+        return _parses(path, notes) if path.is_file() else False
     if kind in ("file_exists", "file_contains", "workbook_cell_equals"):
         try:
             path = resolve(WORKSPACE, params["path"])
@@ -147,6 +153,39 @@ def _check(kind: str, params: dict, notes: dict) -> bool | None:
             return None
         return _window_exists(params.get("exe", ""), params.get("text"))
     return None
+
+
+def _parses(path: Path, notes: dict) -> bool | None:
+    """Well-formed for its format, by the standard library's own parsers; nothing is executed."""
+    import configparser
+    import csv
+    import tomllib
+    import xml.etree.ElementTree as ElementTree
+
+    text = plain_text(path)
+    if text is None:
+        return None
+    suffix = path.suffix.lower()
+    parsers = {
+        ".json": json.loads,
+        ".py": lambda t: compile(t, path.name, "exec", dont_inherit=True),  # compiled, never run
+        ".xml": ElementTree.fromstring,
+        ".toml": tomllib.loads,
+        ".ini": lambda t: configparser.ConfigParser().read_string(t),
+        ".cfg": lambda t: configparser.ConfigParser().read_string(t),
+        ".csv": lambda t: [len(row) for row in csv.reader(t.splitlines())],
+    }
+    if suffix not in parsers:
+        return None
+    try:
+        rows = parsers[suffix](text)
+    except Exception as error:  # the reason is evidence for the repair
+        notes["error"] = f"{type(error).__name__}: {str(error)[:200]}"
+        return False
+    if suffix == ".csv" and len({n for n in rows if n}) > 1:
+        notes["error"] = "rows have different numbers of fields"
+        return False
+    return True
 
 
 def _scene_bound(size: tuple[int, int], text: dict) -> bool:

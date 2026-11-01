@@ -148,7 +148,9 @@ class WebLadder(unittest.TestCase):
             await gateway._discard("ocade_agent.web_worker")  # the browser process dies
             out["012b"] = await run("web.open", {"url": base + "/pages/2"})
             out["014"] = await run("web.open", {"url": base + "/inject"})
-            releases = (await run("web.open", {"url": base + "/releases"}))["evidence"]
+            opened_releases = await run("web.open", {"url": base + "/releases"})
+            assert "page" in opened_releases["evidence"], opened_releases  # the refusal, if any, is the evidence
+            releases = opened_releases["evidence"]
             out["rows"] = releases["controls"]
             await run("web.read", {"page": releases["page"]})  # a newer observation
             out["stale"] = await run("web.click", {"page": releases["page"], "selector": releases["controls"][0]["selector"]})
