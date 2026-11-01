@@ -153,6 +153,12 @@ class Agent:
 
 
 def main(argv: list[str] | None = None) -> int:
+    # A frozen customer installer has its own verified Chromium; neither the
+    # customer's Edge/Chrome nor a developer-level Playwright install is needed.
+    if getattr(sys, "frozen", False):
+        bundled_browsers = Path(getattr(sys, "_MEIPASS", "")) / "playwright-browsers"
+        if bundled_browsers.is_dir():
+            os.environ["PLAYWRIGHT_BROWSERS_PATH"] = str(bundled_browsers)
     parser = argparse.ArgumentParser(prog="ocade_agent")
     parser.add_argument("command", choices=["enroll", "run", "stop", "worker"])
     parser.add_argument("module", nargs="?", help=argparse.SUPPRESS)
