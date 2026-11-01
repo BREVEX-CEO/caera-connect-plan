@@ -54,12 +54,14 @@
         },
         {
           "id": "reproducible_build",
-          "text": "The frozen companion (939 files) and the installer built from an independently rebuilt bundle are byte-identical (CI run 42, Windows runner)",
+          "text": "The frozen companion and installer each rebuild byte-identically; real bundled Chromium starts with empty PATH before and after install (cloud run 56, Windows runner)",
           "status": "PASS",
           "evidence": [
             "device-agent/windows/packaging/compare_builds.py",
             ".github/workflows/jarvis-cloud-validation.yml",
-            "device-agent/windows/packaging/build.ps1"
+            "device-agent/windows/packaging/build.ps1",
+            "device-agent/windows/packaging/check_frozen.py",
+            "evidence/2026-11-01-audit/codex-packaging-52396a3.json"
           ]
         }
       ]
@@ -100,9 +102,10 @@
           "status": "PARTIAL",
           "evidence": [
             "device-agent/windows/tests/test_agent.py",
-            "tests/security/recovery.test.ts"
+            "tests/security/recovery.test.ts",
+            "evidence/2026-11-01-audit/codex-recovery-83f3142.json"
           ],
-          "reason": "Same-action journal/lost-ACK replay is tested, but source review found that a new planner turn after manual resume can re-propose an unknown effect. Independent effect-resolution workflow is incomplete; new recovery regressions are under qualification."
+          "reason": "Run 57 reproduced new-action replay after resume and discarded minimal unknown markers; run 58 fences both in planner/authority before provider/queue calls. An independent durable effect-resolution workflow and comprehensive recovery qualification are still incomplete."
         },
         {
           "id": "stop",
@@ -129,9 +132,10 @@
           "status": "PARTIAL",
           "evidence": [
             "device-agent/windows/tests/test_agent.py",
-            "tests/security/recovery.test.ts"
+            "tests/security/recovery.test.ts",
+            "evidence/2026-11-01-audit/codex-recovery-83f3142.json"
           ],
-          "reason": "Same-action journal/lost-ACK replay is tested, but source review found that a new planner turn after manual resume can re-propose an unknown effect. Independent effect-resolution workflow is incomplete; new recovery regressions are under qualification."
+          "reason": "Run 57 reproduced new-action replay after resume and discarded minimal unknown markers; run 58 fences both in planner/authority before provider/queue calls. An independent durable effect-resolution workflow and comprehensive recovery qualification are still incomplete."
         }
       ]
     },

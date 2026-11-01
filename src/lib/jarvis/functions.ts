@@ -10,6 +10,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSession } from "@/lib/security/session-middleware";
+import { taskObjective } from "./objective";
 
 const uuid = z.uuid();
 
@@ -39,7 +40,7 @@ export const startJarvisTask = createServerFn({ method: "POST" })
       .object({
         conversationId: uuid,
         deviceId: uuid,
-        objective: z.string().trim().min(1).max(1000),
+        objective: taskObjective,
       })
       .parse(i),
   )

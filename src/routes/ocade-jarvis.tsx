@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import { JarvisWorkspace } from "@/jarvis/JarvisWorkspace";
+import { MAX_OBJECTIVE_LENGTH } from "@/lib/jarvis/objective";
 
 /**
  * OCADE JARVIS, beside Chat. Its task engine is retired while a new one is
@@ -13,7 +14,7 @@ export const Route = createFileRoute("/ocade-jarvis")({
      * Words to start from, put in the box and never sent: a Shortcut (iPhone
      * Shortcuts, Siri, a home-screen link) can open JARVIS with a request ready.
      */
-    ask: z.string().max(1000).optional().catch(undefined),
+    ask: z.string().max(MAX_OBJECTIVE_LENGTH).optional(),
   }),
   head: () => ({
     links: [{ rel: "canonical", href: "https://ocade.in/ocade-jarvis" }],

@@ -100,9 +100,11 @@ def _check(kind: str, params: dict, notes: dict) -> bool | None:
         except Exception:
             return False
         expected = params.get("value")
-        if isinstance(expected, (int, float)) and isinstance(value, (int, float)):
-            return abs(value - expected) < TOLERANCE
-        return value is not None and str(value) == str(expected)
+        # Excel booleans are not numbers, and text/number coercion can turn
+        # an incorrect result into a passing acceptance predicate.
+        if type(expected) in (int, float):
+            return type(value) in (int, float) and abs(value - expected) < TOLERANCE
+        return isinstance(expected, str) and isinstance(value, str) and value == expected
     if kind == "media_duration":
         try:
             path = resolve(WORKSPACE, params["path"])

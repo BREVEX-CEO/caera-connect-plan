@@ -27,14 +27,15 @@ import re
 import os
 import secrets
 import socket
+from contextlib import asynccontextmanager
 from pathlib import Path
 from urllib.parse import urlparse
 
+import anyio
 from mcp.server.mcpserver import MCPServer
 
 from .sandbox import Refused, output_path, preview_jpeg, resolve, write_atomically
 
-app = MCPServer("ocade-web")
 WORKSPACE = os.environ.get("OCADE_WORKSPACE", "")
 PROFILE = Path(os.environ.get("OCADE_AGENT_HOME") or Path.home() / ".ocade-agent") / "browser-profile"
 PRIVATE_ALLOWED = os.environ.get("OCADE_ALLOW_PRIVATE_WEB") == "1"
@@ -42,6 +43,33 @@ TEXT_LIMIT = 8_000
 EVIDENCE_LIMIT = 15_000  # leaves room for popups beside an observation
 _browser: dict = {}
 _pages: dict[str, dict] = {}  # id -> {"page": Page, "site": host fixed at open}
+
+
+async def _close_browser() -> None:
+    """One cleanup owner for server shutdown and partially failed startup."""
+    context = _browser.pop("context", None)
+    playwright = _browser.pop("playwright", None)
+    _pages.clear()
+    # The MCP transport bounds process shutdown and contains the whole tree.
+    # EOF/cancellation must still give Chromium and its driver a chance to close.
+    with anyio.CancelScope(shield=True):
+        try:
+            if context is not None:
+                await context.close()
+        finally:
+            if playwright is not None:
+                await playwright.stop()
+
+
+@asynccontextmanager
+async def _lifespan(_server):
+    try:
+        yield
+    finally:
+        await _close_browser()
+
+
+app = MCPServer("ocade-web", lifespan=_lifespan)
 
 # Inputs, buttons and links the planner may name, each with a selector Playwright can find again.
 # Selectors carry this observation's token: one from an older read no longer matches anything
@@ -121,21 +149,26 @@ async def _context():
         from playwright.async_api import async_playwright
 
         playwright = await async_playwright().start()
-        PROFILE.mkdir(parents=True, exist_ok=True)
-        options = {"user_data_dir": str(PROFILE), "headless": False, "accept_downloads": True}
-        executable = os.environ.get("OCADE_BROWSER_EXECUTABLE")
-        proxy = os.environ.get("HTTPS_PROXY") or os.environ.get("https_proxy")
-        if proxy:
-            options["proxy"] = {"server": proxy, "bypass": os.environ.get("NO_PROXY", "")}
-        if executable:
-            context = await playwright.chromium.launch_persistent_context(executable_path=executable, **options)
-        else:
-            try:
-                context = await playwright.chromium.launch_persistent_context(channel="msedge", **options)
-            except Exception:
-                context = await playwright.chromium.launch_persistent_context(**options)
-        await context.route("**/*", _guard)
-        _browser.update(playwright=playwright, context=context)
+        _browser["playwright"] = playwright
+        try:
+            PROFILE.mkdir(parents=True, exist_ok=True)
+            options = {"user_data_dir": str(PROFILE), "headless": False, "accept_downloads": True}
+            executable = os.environ.get("OCADE_BROWSER_EXECUTABLE")
+            proxy = os.environ.get("HTTPS_PROXY") or os.environ.get("https_proxy")
+            if proxy:
+                options["proxy"] = {"server": proxy, "bypass": os.environ.get("NO_PROXY", "")}
+            if executable:
+                context = await playwright.chromium.launch_persistent_context(executable_path=executable, **options)
+            else:
+                try:
+                    context = await playwright.chromium.launch_persistent_context(channel="msedge", **options)
+                except Exception:
+                    context = await playwright.chromium.launch_persistent_context(**options)
+            _browser["context"] = context
+            await context.route("**/*", _guard)
+        except BaseException:
+            await _close_browser()
+            raise
     return _browser["context"]
 
 

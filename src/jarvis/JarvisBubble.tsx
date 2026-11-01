@@ -9,7 +9,8 @@ import { useEffect, useRef, useState } from "react";
 import { ArrowUp, ChevronDown, Maximize2, Mic } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { writePlacement, type Placement } from "./bubble-state";
+import { MAX_OBJECTIVE_LENGTH } from "@/lib/jarvis/objective";
+import { handOff, writePlacement, type Placement } from "./bubble-state";
 
 const SIZE = 52;
 const EDGE = 8;
@@ -81,7 +82,8 @@ export function Bubble({ placement }: { placement: Placement }) {
 
   const openJarvis = (ask?: string) => {
     setOpen(false);
-    void navigate({ to: "/ocade-jarvis", search: ask?.trim() ? { ask: ask.trim() } : {} });
+    if (ask?.trim()) handOff({ text: ask });
+    void navigate({ to: "/ocade-jarvis", search: {} });
   };
 
   const panelBelow = y < viewport.h / 2;
@@ -150,7 +152,7 @@ export function Bubble({ placement }: { placement: Placement }) {
               <input
                 placeholder="What should JARVIS do?"
                 value={words}
-                maxLength={1000}
+                maxLength={MAX_OBJECTIVE_LENGTH}
                 onChange={(event) => setWords(event.target.value)}
                 className="h-10 w-full bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
               />

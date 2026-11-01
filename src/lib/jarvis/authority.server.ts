@@ -16,6 +16,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Json } from "@/integrations/supabase/types";
 import { readBoundedRequestText } from "../read-bounded-request.ts";
 import { JARVIS_CONSENT_NEEDED } from "./consent-needed.ts";
+import { taskObjective } from "./objective.ts";
 import {
   PROTOCOL_VERSION,
   actionIntent,
@@ -251,7 +252,10 @@ export async function startTask(
   userId: string,
   input: { conversationId: string; deviceId: string; objective: string },
 ) {
-  const objective = input.objective.replace(/\s+/g, " ").trim().slice(0, 200);
+  const accepted = taskObjective.safeParse(input.objective);
+  if (!accepted.success)
+    throw new JarvisRefusal("invalid_objective", accepted.error.issues[0].message);
+  const objective = accepted.data;
   const grants = await call<string[]>(admin, "jarvis_grants", {
     p_user: userId,
     p_device: input.deviceId,

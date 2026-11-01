@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "7f3188d99116dafcabefa77361e75a78b80f12d1",
+  "run": 41346868376,
+  "url": "https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41346868376",
+  "scope": "Synthetic cloud regression; no live provider/account/device/customer workflow",
+  "javascript": {
+    "focused": {
+      "total": 75,
+      "pass": 68,
+      "fail": 7,
+      "parentSuiteFailures": 1
+    },
+    "integration": {
+      "total": 81,
+      "pass": 74,
+      "fail": 7,
+      "parentSuiteFailures": 1
+    }
+  },
+  "realWorkbook": {
+    "negativeCases": 4,
+    "falsePositivePredicates": 4,
+    "positiveControls": 3,
+    "positiveControlsPassed": 3
+  },
+  "realBrowserWorker": {
+    "requiredCases": 2,
+    "addressCase": "PASS",
+    "lifetimeCase": "FAIL",
+    "reason": "the MCP server must own browser shutdown",
+    "skips": 0
+  },
+  "postgres": {
+    "fixtureRoleCorrection": "Synthetic Auth/conversation setup as database owner, then real enrollment/task lifecycle as service_role; no privileges changed",
+    "observedFailure": "new row for relation \"jarvis_tasks\" violates check constraint \"jarvis_tasks_title_check\"",
+    "restore": "Also rejected by restore fixture replay; not a restore product regression"
+  },
+  "builtBrowserHandoff": {
+    "passed": 0,
+    "failed": 4,
+    "cases": [
+      {
+        "viewport": "desktop",
+        "case": "significant whitespace",
+        "error": "Locator expected to have Value 'Repair cb486408def2397886b639f4e177cb0e  draft.py without losing this block:\nif ready:\n    print(\"a  b\")\nKeep the original unchanged. Preserve résumé नमस्ते 🌌.'\nActual value: Repair cb486408def2397886b639f4e177cb0e draft.py without losing this block: if ready: print(\"a b\") Keep the original unchanged. Preserve résumé नमस्ते 🌌. \nCall log:\n  - Expect \"to_have_value\" locator(\"#jarvis-composer\") with timeout 5000ms\n  - waiting for locator(\"#jarvis-composer\")\n    14 × locator resolved to <textarea rows=\"1\" maxlength=\"8000\" id=\"jarvis-composer\" placeholder=\"Sign in "
+      },
+      {
+        "viewport": "desktop",
+        "case": "8000-character boundary",
+        "error": "Locator expected to have Value 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      },
+      {
+        "viewport": "phone",
+        "case": "significant whitespace",
+        "error": "Locator expected to have Value 'Repair cb486408def2397886b639f4e177cb0e  draft.py without losing this block:\nif ready:\n    print(\"a  b\")\nKeep the original unchanged. Preserve résumé नमस्ते 🌌.'\nActual value: Repair cb486408def2397886b639f4e177cb0e draft.py without losing this block: if ready: print(\"a b\") Keep the original unchanged. Preserve résumé नमस्ते 🌌. \nCall log:\n  - Expect \"to_have_value\" locator(\"#jarvis-composer\") with timeout 5000ms\n  - waiting for locator(\"#jarvis-composer\")\n    14 × locator resolved to <textarea rows=\"1\" maxlength=\"8000\" id=\"jarvis-composer\" placeholder=\"Sign in "
+      },
+      {
+        "viewport": "phone",
+        "case": "8000-character boundary",
+        "error": "Locator expected to have Value 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      }
+    ]
+  },
+  "formatting": {
+    "remaining": "ToRemove.md extra blank line; exact cloud formatting captured"
+  },
+  "migrationGeneratedBy": {
+    "cli": "Supabase CLI 2.122.0",
+    "run": 41346110582,
+    "path": "supabase/migrations/20261101201849_preserve_complete_jarvis_objectives.sql",
+    "scope": "Unlinked runner temporary directory; no schema deployment"
+  },
+  "qualifiedRuntimeSourceBeforeFix": "83f3142236e5d413e6f7520a7196632b3e4e0c62",
+  "releaseDecision": "NO-GO"
+}

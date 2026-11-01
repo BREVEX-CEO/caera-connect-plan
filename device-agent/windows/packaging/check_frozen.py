@@ -9,6 +9,7 @@ import argparse
 import asyncio
 import json
 import secrets
+import sys
 import tempfile
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -52,6 +53,13 @@ async def main(executable: str, path: str) -> None:
     received = []
 
     class Fixture(BaseHTTPRequestHandler):
+        def handle(self):
+            # Chromium can abandon speculative connections before sending a request.
+            try:
+                super().handle()
+            except (ConnectionResetError, BrokenPipeError):
+                pass
+
         def do_GET(self):
             received.append(self.path)
             self.send_response(200)
@@ -81,20 +89,27 @@ async def main(executable: str, path: str) -> None:
                         "OCADE_BROWSER_EXECUTABLE": str(chrome),
                     },
                 )
-                async with stdio_client(params) as (read, write), ClientSession(
-                    read, write, read_timeout_seconds=90
-                ) as session:
-                    await session.initialize()
-                    result = {"module": module, "tools": len((await session.list_tools()).tools)}
-                    if module.endswith("media_worker"):
-                        result["inspect"] = facts(await session.call_tool("media_inspect", {"path": "a.png"}))["kind"]
-                    if module.endswith("web_worker"):
-                        url = f"http://127.0.0.1:{server.server_address[1]}/{nonce}"
-                        page = facts(await session.call_tool("web_open", {"url": url}))
-                        if page.get("title") != nonce or nonce not in page.get("text", "") or "/" + nonce not in received:
-                            raise RuntimeError("the frozen bundled browser did not read the real fixture")
-                        facts(await session.call_tool("web_close", {"page": page["page"]}))
-                        result["bundledBrowserFixture"] = True
+                with tempfile.TemporaryFile(mode="w+", encoding="utf-8", errors="replace") as errors:
+                    async with stdio_client(params, errlog=errors) as (read, write), ClientSession(
+                        read, write, read_timeout_seconds=90
+                    ) as session:
+                        await session.initialize()
+                        result = {"module": module, "tools": len((await session.list_tools()).tools)}
+                        if module.endswith("media_worker"):
+                            result["inspect"] = facts(await session.call_tool("media_inspect", {"path": "a.png"}))["kind"]
+                        if module.endswith("web_worker"):
+                            url = f"http://127.0.0.1:{server.server_address[1]}/{nonce}"
+                            page = facts(await session.call_tool("web_open", {"url": url}))
+                            if page.get("title") != nonce or nonce not in page.get("text", "") or "/" + nonce not in received:
+                                raise RuntimeError("the frozen bundled browser did not read the real fixture")
+                            facts(await session.call_tool("web_close", {"page": page["page"]}))
+                            result["bundledBrowserFixture"] = True
+                    errors.seek(0)
+                    diagnostic = errors.read()
+                    if diagnostic:
+                        sys.stderr.write(diagnostic)
+                    if "Exception ignored in:" in diagnostic or "Traceback (most recent call last):" in diagnostic:
+                        raise RuntimeError("unclean frozen worker shutdown: " + module)
                     print(json.dumps(result), flush=True)
     finally:
         server.shutdown()

@@ -34,6 +34,7 @@ import { useJarvisPreferences, readPreferences, writePreferences } from "./prefe
 import { SectionPanel, TaskPanel, type Section } from "./JarvisPanels";
 import { takeHandOff } from "./bubble-state";
 import { JARVIS_CONSENT_NEEDED } from "@/lib/jarvis/consent-needed";
+import { MAX_OBJECTIVE_LENGTH, taskObjective } from "@/lib/jarvis/objective";
 import { askOnlineConsent } from "@/lib/intelligence/online-consent-ask";
 import { appendOcadeMessage, createConversation } from "@/lib/ocade.functions";
 import {
@@ -73,7 +74,8 @@ export function JarvisWorkspace({
   const [draft, setDraft] = useState("");
   // Words typed while the page was still loading, or carried from Chat, stay in the box.
   useEffect(() => {
-    const typed = typedBeforeHydration("jarvis-composer") || takeHandOff()?.text;
+    const handed = takeHandOff()?.text;
+    const typed = typedBeforeHydration("jarvis-composer") || handed;
     if (typed) setDraft((current) => current || typed);
   }, []);
   // Taken once and dropped from the address, so a reload or Back does not type it again.
@@ -81,7 +83,7 @@ export function JarvisWorkspace({
   useEffect(() => {
     if (!ask?.trim() || asked.current) return;
     asked.current = true;
-    setDraft((current) => current || ask.replace(/\s+/g, " ").trim().slice(0, 1000));
+    setDraft((current) => current || ask);
     void navigate({
       to: "/ocade-jarvis",
       search: (previous) => ({ ...previous, ask: undefined }),
@@ -162,8 +164,13 @@ export function JarvisWorkspace({
   const [sending, setSending] = useState(false);
 
   const send = async () => {
-    const objective = draft.trim();
-    if (!objective || !device || sending) return;
+    if (!device || sending) return;
+    const accepted = taskObjective.safeParse(draft);
+    if (!accepted.success) {
+      toast.error(accepted.error.issues[0].message);
+      return;
+    }
+    const objective = accepted.data;
     setSending(true);
     try {
       const conversation =
@@ -446,7 +453,7 @@ export function JarvisWorkspace({
                 id="jarvis-composer"
                 value={draft}
                 rows={1}
-                maxLength={8000}
+                maxLength={MAX_OBJECTIVE_LENGTH}
                 placeholder={signedIn ? "What should JARVIS do?" : "Sign in to talk to JARVIS"}
                 onChange={(event) => setDraft(event.target.value)}
                 onKeyDown={(event) => {

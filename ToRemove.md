@@ -7,7 +7,6 @@
 - **Parity and independence:** `packaging/compare_browser_payloads.py` permits only headless-shell removal. `packaging/check_frozen.py` runs real frozen MCP workers and a real nonce-bearing local HTTP fixture in bundled Chromium with empty PATH, both before and after installation. Bundle and installer rebuilds had zero differing files; install/diagnose/repair/uninstall passed. [Machine-readable evidence](evidence/2026-11-01-audit/codex-packaging-52396a3.json).
 - This proves payload reduction and the measured fixture paths. It does not qualify customer browsers, real-Gemini task accuracy, all browser features, macOS/Linux packages, consumer hardware or task-latency improvement. No source capability or test was removed.
 
-
 ## Fixed finance journey and scripted media/web runners retired — 31 October 2026
 
 - **Removed:** `office.reconcile_workbook`, `office.write_report` and `verify.reconciliation_report` (one hard-wired task: fixed `Reconciliation`/`Summary` sheets, fixed report layout, fixed verifier), `device-agent/windows/tests/qualify_photo_web.py` (fixed Photopea click script) and `device-agent/windows/tests/qualify_media.py` (ran developer-authored media plans), and the `tread` 3D material pattern (could not follow a wheel's own axis).
