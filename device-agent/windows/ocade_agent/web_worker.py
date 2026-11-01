@@ -203,13 +203,21 @@ async def _observe(page_id: str) -> dict:
 
 async def _capture(current) -> bytes:
     """What the page shows, once it has painted: capturing a page before its first frame
-    (a window that just opened) fails with "Unable to capture screenshot"."""
-    try:
-        painted = current.evaluate("() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))")
-        await asyncio.wait_for(painted, 5)  # a hidden page never paints
-    except Exception:
-        pass  # the capture below reports honestly either way
-    return await current.screenshot(full_page=False)
+    (a window that just opened) fails with "Unable to capture screenshot". One more try
+    after raising the tab covers a window the display has not mapped yet; then it fails."""
+    for attempt in (1, 2):
+        try:
+            painted = current.evaluate("() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))")
+            await asyncio.wait_for(painted, 5)  # a hidden page never paints
+        except Exception:
+            pass  # the capture below reports honestly either way
+        try:
+            return await current.screenshot(full_page=False)
+        except Exception:
+            if attempt == 2:
+                raise
+            await current.bring_to_front()
+            await asyncio.sleep(0.5)
 
 
 def _bind(new_page, site: str) -> str:

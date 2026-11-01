@@ -440,6 +440,15 @@ export function JarvisWorkspace({
                 maxLength={8000}
                 placeholder={signedIn ? "What should JARVIS do?" : "Sign in to talk to JARVIS"}
                 onChange={(event) => setDraft(event.target.value)}
+                onKeyDown={(event) => {
+                  // As in Chat: Enter sends, Shift+Enter is a new line, and an Enter that
+                  // confirms an input method's composition never sends half a sentence.
+                  if (event.nativeEvent.isComposing || event.keyCode === 229) return;
+                  if (event.key === "Enter" && !event.shiftKey) {
+                    event.preventDefault();
+                    if (!sendBlockedReason) event.currentTarget.form?.requestSubmit(); // same gate as Send
+                  }
+                }}
                 className="max-h-40 min-h-10 flex-1 resize-none bg-transparent px-2 py-2 text-[15px] outline-none placeholder:text-muted-foreground"
               />
               <button

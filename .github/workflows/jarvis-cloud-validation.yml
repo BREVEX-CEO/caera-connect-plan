@@ -147,6 +147,9 @@ jobs:
         if: runner.os == 'Windows'
         working-directory: device-agent/windows
         run: python -m tests.run_required "Start-Process children do not inherit the command's output" "needs a display and OCADE_PUBLIC_WEB=1"
+      - name: Probe whether this macOS runner grants Accessibility trust (decides if AX can be qualified here)
+        if: runner.os == 'macOS'
+        run: python -c "import ctypes; ax = ctypes.cdll.LoadLibrary('/System/Library/Frameworks/ApplicationServices.framework/ApplicationServices'); print('AXIsProcessTrusted =', ax.AXIsProcessTrusted())"
       - name: macOS companion tests
         if: runner.os == 'macOS'
         working-directory: device-agent/windows

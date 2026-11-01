@@ -87,7 +87,8 @@ def main(base: str, publishable: str, task: str, seed: int) -> int:
         page.keyboard.press("Escape")
         page.goto(base + "/ocade-jarvis", wait_until="networkidle")
         page.get_by_label("Message JARVIS").fill(request)
-        page.keyboard.press("Enter")
+        page.keyboard.press("Enter")  # sends, as in Chat
+        refusal = page.locator("#jarvis-send-status")
 
         running = threading.Event()
         running.set()
@@ -109,6 +110,9 @@ def main(base: str, publishable: str, task: str, seed: int) -> int:
                 allowed.append(effect[:300])
                 allow.click()
             text = page.inner_text("main")
+            if refusal.count() or "Nothing was started" in text or "busy right now" in text:
+                outcome = f"not started: {text[-300:]}"
+                break
             if "checked independently" in text or "Not finished" in text or "stopped" in text.lower():
                 outcome = text
                 break
