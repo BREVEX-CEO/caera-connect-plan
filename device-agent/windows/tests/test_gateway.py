@@ -67,6 +67,43 @@ class Journey(unittest.TestCase):
     """Generic primitives on real files: read a workbook, write a computed one and a report,
     then the separate verifier re-reads what was saved. The steps are a test's, not a product route."""
 
+    def test_verifier_preserves_workbook_scalar_types(self):
+        """A boolean or text cell cannot prove a requested numeric result."""
+        import uuid
+        from openpyxl import Workbook
+
+        filename = uuid.uuid4().hex + ".xlsx"
+        book = Workbook()
+        sheet = book.active
+        sheet.title = "Values"
+        for row in ((True,), (False,), ("1",), (1,), (1.003,)):
+            sheet.append(row)
+        book.save(self.root / filename)
+        book.close()
+        cases = [
+            ("boolean_one", "A1", 1, False),
+            ("boolean_zero", "A2", 0, False),
+            ("text_is_not_number", "A3", 1, False),
+            ("number_is_not_text", "A4", "1", False),
+            ("exact_number", "A4", 1, True),
+            ("exact_text", "A3", "1", True),
+            ("numeric_tolerance", "A5", 1, True),
+        ]
+        checks = [
+            {"id": key, "description": "The cell has the requested scalar value",
+             "kind": "workbook_cell_equals",
+             "params": {"path": filename, "sheet": "Values", "cell": cell, "value": expected}}
+            for key, cell, expected, _ in cases
+        ]
+        async def run():
+            async with Gateway(str(self.root)) as gateway:
+                return await gateway.run(intent("verify.checks", {"checks": checks}), gateway.epoch)
+        receipt = anyio.run(run)
+        self.assertEqual(receipt["status"], "observed", receipt)
+        for key, _, _, expected in cases:
+            with self.subTest(case=key):
+                self.assertEqual(receipt["evidence"]["predicates"][key], expected, receipt)
+
     def setUp(self):
         self.root = Path(tempfile.mkdtemp())
         ledger_workbook(self.root / "Q3 ledger.xlsx")

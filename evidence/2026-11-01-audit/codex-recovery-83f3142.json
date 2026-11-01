@@ -1,0 +1,168 @@
+{
+  "schemaVersion": 1,
+  "scope": "Cloud-only synthetic component/integration qualification; no live provider/customer/consumer qualification",
+  "repository": "BREVEX-CEO/caera-connect-plan",
+  "branch": "ocade/p00-p22-implementation",
+  "sourceCommit": "83f3142236e5d413e6f7520a7196632b3e4e0c62",
+  "sourceTree": "501e455d98b83a557d22205eea730f5cf8699b8c",
+  "reproduction": {
+    "commit": "f3fadc4110a116b336612332fcabe390f2b9e345",
+    "run": 41344044167,
+    "url": "https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41344044167",
+    "focusedJavaScript": {
+      "total": 68,
+      "pass": 59,
+      "fail": 9,
+      "parentSuiteFailuresIncluded": 2
+    },
+    "realBrowser": {
+      "requiredCases": 1,
+      "skipped": 0,
+      "failedSubcases": 3
+    },
+    "controls": "Read batching and uncertain-read recovery PASS; existing real-worker safety checks 3 PASS"
+  },
+  "qualification": {
+    "run": 41344591917,
+    "url": "https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41344591917",
+    "status": "ALL_SIX_JOBS_PASS",
+    "focusedJavaScript": {
+      "total": 68,
+      "pass": 68,
+      "fail": 0
+    },
+    "integrationJavaScript": {
+      "total": 74,
+      "pass": 74,
+      "fail": 0
+    },
+    "sandbox": {
+      "total": 6,
+      "pass": 6
+    },
+    "focusedMcpWorkers": {
+      "total": 3,
+      "pass": 3
+    },
+    "focusedChromium": {
+      "total": 1,
+      "pass": 1,
+      "skipped": 0
+    },
+    "companion": {
+      "linux": {
+        "discovered": 61,
+        "skipped": 3,
+        "unexpectedSkips": 0
+      },
+      "windows": {
+        "discovered": 61,
+        "skipped": 3,
+        "unexpectedSkips": 0
+      },
+      "macos": {
+        "discovered": 61,
+        "skipped": 2,
+        "unexpectedSkips": 0
+      }
+    },
+    "allJobs": [
+      {
+        "id": 124961603523,
+        "name": "Planner safety / source formatting · Linux",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 124961921233,
+        "name": "Portable build / model contracts / ephemeral DB · Linux",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 124963322052,
+        "name": "Python MCP / journal / browser · ubuntu-latest",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 124963322059,
+        "name": "Python MCP / journal / browser · windows-latest",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 124963322079,
+        "name": "Windows unsigned installer / frozen MCP smoke · NOT release-ready",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 124963322091,
+        "name": "Python MCP / journal / browser · macos-latest",
+        "status": "completed",
+        "conclusion": "success"
+      }
+    ],
+    "packaging": {
+      "bundleFiles": 649,
+      "installedFiles": 651,
+      "installedBytes": 676797728,
+      "installerBytes": 221513814,
+      "installerSha256": "AEC097AC848FC8ADC55A668026A8927996AA1C181A9B065CAEA5AB6EE86355E0",
+      "bundleAndInstallerRebuildDifferences": 0,
+      "bundledBrowserBeforeAndAfterInstall": true
+    }
+  },
+  "fixed": [
+    "Unknown mutation status is retained even when a full action receipt is unavailable",
+    "Planner and authority stop unknown writes before provider/queue/settlement",
+    "Only read-only operations may be batched",
+    "SPA fragments and complete bounded observed URLs remain exact; oversize addresses are explicitly omitted"
+  ],
+  "remaining": [
+    "Effect resolution is a conservative waiting fence, not a completed reconciliation workflow",
+    "DB admission/legacy queues were not strengthened by this change",
+    "Semantic acceptance and source-file race safety remain incomplete",
+    "Unreviewed high-risk verifier transport/native-action classifications remain release blockers",
+    "Successful frozen-worker smoke emits background closed-pipe / connection-reset tracebacks during shutdown; inspect and reproduce separately before runtime health claims"
+  ],
+  "metrics": {
+    "requirements": {
+      "pass": 71,
+      "partial": 158,
+      "fail": 14,
+      "blocked": 5,
+      "untested": 18,
+      "total": 266
+    },
+    "architecture": {
+      "pass": 42,
+      "partial": 40,
+      "fail": 1,
+      "blocked": 1,
+      "untested": 0,
+      "total": 84
+    },
+    "readiness": {
+      "earnedPercent": 10,
+      "milestones": 1,
+      "totalMilestones": 10,
+      "pass": 18,
+      "partial": 16,
+      "fail": 2,
+      "blocked": 5,
+      "untested": 1,
+      "total": 42
+    },
+    "decision": "NO-GO"
+  },
+  "authorization": {
+    "mainChanged": false,
+    "productionDeployed": false,
+    "personalComputerUsedForTesting": false,
+    "liveProviderCalls": false,
+    "spending": false,
+    "customerDataChanged": false
+  }
+}

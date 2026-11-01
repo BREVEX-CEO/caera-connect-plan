@@ -1,5 +1,13 @@
 # OCADE retirement manifest
 
+## Unused bundled Chromium headless shell removed — 1 November 2026
+
+- **Removed from Windows packaging:** Playwright's `chromium_headless_shell-*` payload, using the pinned SDK's `install --no-shell chromium`. Runtime code launches the explicitly bundled full Chromium executable.
+- **Same-SDK measurement:** [cloud run 56](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41341255804), source `52396a3ff5167407d7bd1a792f179508502a02f3`: full 604 files / 752,827,379 bytes → retained 314 files / 461,909,478 bytes. Removed 290 files / 290,917,901 bytes (277.44 MiB; 38.6434%). Every retained runtime file is byte-identical; SDK `.links` cache-registration metadata is excluded from comparison.
+- **Parity and independence:** `packaging/compare_browser_payloads.py` permits only headless-shell removal. `packaging/check_frozen.py` runs real frozen MCP workers and a real nonce-bearing local HTTP fixture in bundled Chromium with empty PATH, both before and after installation. Bundle and installer rebuilds had zero differing files; install/diagnose/repair/uninstall passed. [Machine-readable evidence](evidence/2026-11-01-audit/codex-packaging-52396a3.json).
+- This proves payload reduction and the measured fixture paths. It does not qualify customer browsers, real-Gemini task accuracy, all browser features, macOS/Linux packages, consumer hardware or task-latency improvement. No source capability or test was removed.
+
+
 ## Fixed finance journey and scripted media/web runners retired — 31 October 2026
 
 - **Removed:** `office.reconcile_workbook`, `office.write_report` and `verify.reconciliation_report` (one hard-wired task: fixed `Reconciliation`/`Summary` sheets, fixed report layout, fixed verifier), `device-agent/windows/tests/qualify_photo_web.py` (fixed Photopea click script) and `device-agent/windows/tests/qualify_media.py` (ran developer-authored media plans), and the `tread` 3D material pattern (could not follow a wheel's own axis).

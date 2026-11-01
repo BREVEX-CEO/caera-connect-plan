@@ -98,3 +98,8 @@ Current concept assessment: PASS 42, PARTIAL 40, FAIL 1, BLOCKED 1, UNTESTED 0. 
 - #75/#76 are PARTIAL: independent structural checks and matching requests are proven, while professional semantic quality and adequate acceptance-rule coverage remain incomplete.
 - #80 gains URL-origin, truncated-provider-turn, duplicate-check, weakened-verifier and unrelated-file regressions; consumer/native scope remains limited.
 - #84 remains FAIL; **G12 and public launch remain NO-GO**. No fresh real-Gemini accuracy or consumer-hardware claim follows from these cloud checks.
+
+
+### Recovery/address follow-up — run 58, source `83f3142`
+
+[Full cloud run 58](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41344591917): all six jobs PASS; 68 focused JS, 74 Linux integration JS, required real Chromium exact-address regression and 61 companion tests discovered per OS (explicit skips 3/3/2). #49 now batches only independent reads; every mutation waits for fresh planning. #50/#80 gain SPA-fragment and non-truncated address evidence. Unknown writes, including minimal durable STOP/crash markers, are conservatively fenced before provider/queue calls; this does not implement effect resolution. Concept states remain 42 PASS / 40 PARTIAL / 1 FAIL / 1 BLOCKED. Green frozen-browser smoke still logs shutdown transport tracebacks, which require investigation. See `../2026-11-01-audit/codex-recovery-83f3142.json`. **G12 NO-GO.**

@@ -8,6 +8,8 @@ on:
     paths:
       - ".github/workflows/jarvis-cloud-validation.yml"
       - "src/lib/jarvis/**"
+      - "src/jarvis/**"
+      - "src/routes/ocade-jarvis.tsx"
       - "src/lib/intelligence/**"
       - "src/routes/api/jarvis.device.ts"
       - "device-agent/**"
@@ -39,7 +41,7 @@ jobs:
   planner-safety:
     name: Planner safety / source formatting · Linux
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 12
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
@@ -63,7 +65,7 @@ jobs:
       - name: Verifier collisions and unrelated-file preservation (real MCP workers)
         if: success() || failure()
         working-directory: device-agent/windows
-        run: python -m unittest tests.test_gateway.Journey.test_duplicate_verifier_ids_cannot_erase_a_failed_check tests.test_gateway.Journey.test_repair_preserves_an_unrelated_hidden_staging_name tests.test_gateway.Journey.test_repeated_repairs_keep_distinct_exact_originals -v
+        run: python -m unittest tests.test_gateway.Journey.test_verifier_preserves_workbook_scalar_types tests.test_gateway.Journey.test_duplicate_verifier_ids_cannot_erase_a_failed_check tests.test_gateway.Journey.test_repair_preserves_an_unrelated_hidden_staging_name tests.test_gateway.Journey.test_repeated_repairs_keep_distinct_exact_originals -v
       - name: Install isolated browser fixture prerequisites
         if: success() || failure()
         run: |
@@ -95,15 +97,31 @@ jobs:
       - name: TypeScript safety before the platform matrix
         if: success() || failure()
         run: npm run typecheck
+      - name: Generate the objective schema migration with the pinned CLI (unlinked temporary directory only)
+        if: success() || failure()
+        run: |
+          migration_work=$(mktemp -d "$RUNNER_TEMP/ocade-migration-XXXXXX")
+          npx --yes supabase@2.122.0 migration new preserve_complete_jarvis_objectives --workdir "$migration_work" <<'SQL'
+          -- Preserve the complete request the task authority already uses as its title.
+          -- No execution authority, grants, status or existing data is changed.
+          BEGIN;
+          ALTER TABLE public.jarvis_tasks DROP CONSTRAINT jarvis_tasks_title_check;
+          ALTER TABLE public.jarvis_tasks ADD CONSTRAINT jarvis_tasks_title_check
+            CHECK (length(btrim(title)) BETWEEN 1 AND 8000);
+          COMMIT;
+          SQL
+          node --input-type=module -e 'import fs from "node:fs"; import path from "node:path"; const root=path.join(process.argv[1],"supabase/migrations"); const files=fs.readdirSync(root); if(files.length!==1) throw Error("Unexpected generated migration count"); console.log("OCADE_MIGRATION:" + JSON.stringify({path:"supabase/migrations/"+files[0],content:fs.readFileSync(path.join(root,files[0]),"utf8")}));' "$migration_work"
       - name: Source formatting
         if: success() || failure()
         run: npm run format:check
       - name: Formatting evidence for failed remote candidates
         if: failure()
         run: |
-          node --input-type=module -e 'import fs from "node:fs"; import prettier from "prettier"; for (const path of process.argv.slice(1)) console.log("OCADE_FORMAT:" + JSON.stringify({path, content: await prettier.format(fs.readFileSync(path, "utf8"), {...await prettier.resolveConfig(path), filepath:path})}));' src/lib/jarvis/contracts.ts src/lib/jarvis/planner.server.ts tests/security/planner.test.ts tests/security/verification.test.ts tests/security/readiness.test.ts tests/security/recovery.test.ts src/lib/jarvis/authority.server.ts src/lib/jarvis/supervisor.ts scripts/launch-readiness.mjs tests/jarvis/contracts.test.ts tests/jarvis/e2e.test.ts .github/workflows/jarvis-cloud-validation.yml
+          node --input-type=module -e 'import fs from "node:fs"; import prettier from "prettier"; for (const path of process.argv.slice(1)) console.log("OCADE_FORMAT:" + JSON.stringify({path, content: await prettier.format(fs.readFileSync(path, "utf8"), {...await prettier.resolveConfig(path), filepath:path})}));' src/lib/jarvis/contracts.ts src/lib/jarvis/planner.server.ts tests/security/planner.test.ts tests/security/verification.test.ts tests/security/readiness.test.ts tests/security/recovery.test.ts tests/security/objective.test.ts src/lib/jarvis/authority.server.ts src/lib/jarvis/supervisor.ts scripts/launch-readiness.mjs tests/jarvis/contracts.test.ts tests/jarvis/e2e.test.ts .github/workflows/jarvis-cloud-validation.yml
 
   contracts-db:
+    # Reproduction candidate only: run the isolated Linux DB/UI regression after a focused failure.
+    if: ${{ !cancelled() }}
     needs: planner-safety
     name: Portable build / model contracts / ephemeral DB · Linux
     runs-on: ubuntu-latest
@@ -168,6 +186,7 @@ jobs:
           npx wrangler dev --ip 127.0.0.1 --port 8787 --local > wrangler.log 2>&1 &
           for i in $(seq 1 60); do curl -sf -o /dev/null http://127.0.0.1:8787/ && break; sleep 2; done
           python tests/web/surface_audit.py http://127.0.0.1:8787
+          python tests/web/objective_handoff.py http://127.0.0.1:8787
       - name: Launch readiness is computed only from existing evidence
         if: success() || failure()
         run: |
