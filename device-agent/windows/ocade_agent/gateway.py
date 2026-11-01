@@ -40,10 +40,12 @@ WORKERS = {
     "media_engine": "ocade_agent.media_worker",
 }
 MAX_CALL_SECONDS = 300
-# Network and browser settings the device owner chose; never account credentials or tokens.
+# Network and browser settings the device owner chose, and the Windows system folders app
+# discovery reads (the SDK's minimal set omits them); never account credentials or tokens.
 PASS_THROUGH = (
     "HTTPS_PROXY", "HTTP_PROXY", "NO_PROXY", "DISPLAY", "XAUTHORITY",
     "OCADE_BROWSER_EXECUTABLE", "PLAYWRIGHT_BROWSERS_PATH", "OCADE_ALLOW_PRIVATE_WEB",
+    "PROGRAMDATA", "PROGRAMFILES", "PROGRAMFILES(X86)", "WINDIR",
 )
 
 

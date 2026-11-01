@@ -77,6 +77,8 @@ def _element(window, element: dict):
         for name, key in (("automationId", "auto_id"), ("name", "title"), ("controlType", "control_type"))
         if element.get(name)
     }
+    if not criteria:
+        raise Refused("element_ambiguous")  # no description would match whatever comes first
     try:
         return window.child_window(**criteria).wrapper_object()
     except ElementAmbiguousError:
@@ -183,7 +185,7 @@ def ui_send_keys(window: dict, keys: str) -> dict:
     target.set_focus()
     if win32gui.GetForegroundWindow() != window["hwnd"]:
         raise Refused("focus_lost")
-    send_keys(keys, pause=0.02)
+    send_keys(keys, pause=0.02, with_spaces=True)  # default drops every space in typed text
     return {"title": target.window_text()[:200]}
 
 
