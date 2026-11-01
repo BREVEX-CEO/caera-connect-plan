@@ -9,7 +9,7 @@ resolved here, once, before any file is opened:
 - the resolved real path (after symlinks and junctions) must stay inside the
   real workspace;
 - writes go only under `OCADE output/`, never replace an existing file, and land
-  atomically (temporary file, then rename in the same folder), so an original is
+  atomically (temporary file, then no-replace publication in the same folder), so an original is
   never touched and a crash never leaves a half-written deliverable.
 """
 
@@ -83,7 +83,13 @@ def write_atomically(target: Path, produce) -> str:
         produce(Path(temporary))
         if target.exists():
             raise Refused("output_exists")
-        os.replace(temporary, target)
+        try:
+            if os.name == "nt":
+                os.rename(temporary, target)  # Windows rename never replaces an existing destination.
+            else:
+                os.link(temporary, target)  # Atomic create-if-absent; the temporary link is removed below.
+        except FileExistsError:
+            raise Refused("output_exists") from None
     finally:
         if os.path.exists(temporary):
             os.remove(temporary)

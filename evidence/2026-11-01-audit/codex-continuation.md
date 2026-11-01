@@ -21,9 +21,11 @@ The safety suite uses randomized resource paths, synthetic responses and a runne
 
 ## Verification / continuation
 
-Candidate fixes are awaiting cloud results; do not mark their requirements PASS yet. The old #53 PASS evidence was incomplete and is invalidated by the red reproducer until the repair passes.
+Planner/contract preflight: 32/32 PASS on `cc682e4` in [run 49](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41335093972). Full matrix not yet qualified; do not mark broad requirements PASS yet.
 
-1. Inspect the newest JARVIS cloud validation run for this branch. If preflight formatting fails, take canonical formatting from its `OCADE_FORMAT:` JSON log records and commit those exact texts; rerun the required matrix.
+**High — competing-file overwrite, requirements 68/70/171/206/210/211.** The same run reproduced a real-file race: `write_atomically` checked existence then called `os.replace`, overwriting a customer's destination created between those operations. The new `test_concurrent_customer_file_is_never_replaced` deterministically inserts that interleaving; the old code fails (Refused not raised). Candidate uses no-replace Windows rename / POSIX hard-link publication, retains ordinary permissions and cleans temporary files. Filesystems without the required atomic primitive fail rather than silently fall back to overwriting. The old #53 PASS evidence was incomplete and is invalidated by the red reproducer until the repair passes.
+
+1. Inspect the newest JARVIS cloud validation run for this branch. The atomic-publication fix must pass the six standard-library sandbox tests and the full Linux/Windows/macOS, DB/browser/build and frozen installer matrix. If preflight formatting fails, take canonical formatting from its `OCADE_FORMAT:` JSON log records and commit those exact texts; rerun the required matrix.
 2. Investigate actual failures; never rerun unchanged failures to hunt for green.
 3. After the matrix passes, record exact SHA/run/test counts here, update the existing requirement audit and architecture evidence, then continue binding verification/anti-gaming and provider recovery.
 4. The verifier's anonymous URL fetch and the browser request guard need SSRF/redirect/DNS review. This is an unverified source concern, not a claimed exploit or completed fix.

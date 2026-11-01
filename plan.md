@@ -1088,3 +1088,8 @@ Record monotonic UTC-correlated task timestamps with \`submittedAt\`, \`authoriz
 - New generic capabilities: `fs.write_text`, `fs.replace_text` (confirmed, sha-guarded, original kept), `shell.run` (confirmed; PowerShell/sh; process-tree containment on timeout and STOP), window image + control boxes for `ui.click_point`, typed keys to a control, live user-input pause (concept 58).
 - Security fixes: interpreter-run MCP server scripts now pinned (`argSha256`); exact effect shown for confirmation; deliverables no longer 0600; worker env gains Windows system folders only.
 - Live Gemini on a disposable Linux container: 15 clean PASS of 24 attempts, 12 of 17 unseen problems on the first attempt (below the 90% target) (`evidence/2026-11-01-live/README.md`); five generic planner/worker defects found live and fixed with regression tests. Ledger 46 PASS, 36 PARTIAL, 1 BLOCKED, 1 FAIL — **G12 no-go**.
+
+
+## Codex safety checkpoint — 1 November 2026
+
+Current continuation and exact cloud evidence: [Codex checkpoint](evidence/2026-11-01-audit/codex-continuation.md). HEAD baseline `df705de` was verified against successful cloud run 46. Twelve URL/protocol adversarial cases reproduced real defects on `d7d727f`; their repaired planner and sibling contracts pass 32/32 on `cc682e4`. A newly reproduced competing-file overwrite race in atomic publication is under repair; the full matrix remains pending. Historical 112/266 and 20% commercial figures are not fresh certification. No architecture/customer acceptance or public-release gate is upgraded. Continue P03/P11/P17/P18/P21 safety work; G12 remains NO-GO.
