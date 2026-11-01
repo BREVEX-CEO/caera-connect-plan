@@ -98,7 +98,7 @@ def main(base: str, publishable: str, task: str, seed: int) -> int:
                 time.sleep(1)
 
         threading.Thread(target=work, daemon=True).start()
-        outcome = "timeout"
+        outcome, resumed = "timeout", 0
         deadline = time.monotonic() + 900
         while time.monotonic() < deadline:
             page.wait_for_timeout(2000)
@@ -109,9 +109,15 @@ def main(base: str, publishable: str, task: str, seed: int) -> int:
                 allowed.append(effect[:300])
                 allow.click()
             text = page.inner_text("main")
-            if "Nothing was started" in text or "busy right now" in text:
+            if "Nothing was started" in text:
                 outcome = f"not started: {text[-300:]}"
                 break
+            resume = page.get_by_role("button", name="Resume")
+            if "busy right now" in text and resume.count() and resumed < 3:
+                page.wait_for_timeout(90_000)  # as a person would: wait for the planner, then resume
+                resume.first.click()
+                resumed += 1
+                continue
             if "checked independently" in text or "Not finished" in text or "stopped" in text.lower():
                 outcome = text
                 break

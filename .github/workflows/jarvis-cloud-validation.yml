@@ -161,6 +161,8 @@ jobs:
     name: Windows unsigned installer / frozen MCP smoke · NOT release-ready
     runs-on: windows-latest
     timeout-minutes: 60
+    env:
+      PYTHONHASHSEED: "0" # a fixed hash seed is part of a reproducible PyInstaller build
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
@@ -178,6 +180,13 @@ jobs:
         shell: pwsh
         run: |
           & ./device-agent/windows/.build-venv/Scripts/python.exe ./device-agent/windows/packaging/check_frozen.py "device-agent/windows/dist/OCADE JARVIS/ocade-agent.exe"
+      - name: Rebuild the frozen bundle from the same inputs and require identical files
+        shell: pwsh
+        working-directory: device-agent/windows/packaging
+        run: |
+          $env:PLAYWRIGHT_BROWSERS_PATH = Join-Path (Get-Location) "playwright-browsers"
+          ..\.build-venv\Scripts\pyinstaller --noconfirm --distpath ..\dist2 --workpath ..\build2 ocade-agent.spec
+          ..\.build-venv\Scripts\python compare_builds.py "..\dist\OCADE JARVIS" "..\dist2\OCADE JARVIS"
       - name: Verify expected installer exists
         shell: pwsh
         run: |
