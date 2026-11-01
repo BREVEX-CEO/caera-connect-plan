@@ -31,6 +31,8 @@ from .journal import Journal
 VERSION = "0.1.0"
 WATCH_SECONDS = 2.0
 TICK_SECONDS = 0.25
+# Finite network/5xx receipt redelivery; journalled action effects are NEVER re-executed.
+RECEIPT_RETRY_DELAYS = (1.0, 2.0, 4.0, 8.0)
 
 
 def default_home() -> Path:
@@ -105,13 +107,22 @@ class Agent:
             self.journal.start(activity, intent)
             result = await self._run_watched(activity, intent)
         self.journal.finish(activity, result)
-        while True:
-            status, body = await anyio.to_thread.run_sync(
-                self.device.request, {"op": "receipt", "activityId": activity, "receipt": result}
-            )
+        # A refused receipt used to retry forever (e.g. 413/422). Preserve the
+        # durable result; never execute the effect again simply because ACK failed.
+        for attempt in range(len(RECEIPT_RETRY_DELAYS) + 1):
+            try:
+                status, body = await anyio.to_thread.run_sync(
+                    self.device.request, {"op": "receipt", "activityId": activity, "receipt": result}
+                )
+            except OSError:
+                status, body = 503, {}  # transport outage: retry only this exact saved receipt
             if status == 200 or status in (401, 409):
                 return  # recorded, or the server has a final answer this receipt cannot change
-            await anyio.sleep(2 + random.random() * 3)
+            if 400 <= status < 500 and status not in (408, 425, 429):
+                raise ConnectionError(f"receipt_rejected_{status}")  # permanent: repair before resending
+            if attempt == len(RECEIPT_RETRY_DELAYS):
+                raise ConnectionError(f"receipt_delivery_unavailable_{status}")
+            await anyio.sleep(RECEIPT_RETRY_DELAYS[attempt])
 
     async def run(self, until_idle: bool = False) -> None:
         # What the person can choose from: installed apps and approved external MCP servers.
