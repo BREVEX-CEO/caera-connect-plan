@@ -14,18 +14,35 @@ test("task startup preserves complete accepted requests and rejects invalid ones
     for await (const chunk of request) raw += chunk;
     providerCalls += 1;
     const body = JSON.parse(raw);
-    providerRequest = JSON.parse(body.messages.find((message: { role: string }) => message.role === "user").content).request;
+    providerRequest = JSON.parse(
+      body.messages.find((message: { role: string }) => message.role === "user").content,
+    ).request;
     const proposal = {
       id: "goal",
       name: "set_goal",
-      arguments: { checks: [{ id: "output", description: "The requested output exists",
-        kind: "file_exists", params: { path: output } }] },
+      arguments: {
+        checks: [
+          {
+            id: "output",
+            description: "The requested output exists",
+            kind: "file_exists",
+            params: { path: output },
+          },
+        ],
+      },
     };
     response.writeHead(200, { "content-type": "text/event-stream" });
-    response.end([
-      { type: "tool_call", call: proposal },
-      { type: "final", response: { backend: "online", stopReason: "tool_use", toolCalls: [proposal] } },
-    ].map((event) => `data: ${JSON.stringify(event)}\r\n\r\n`).join(""));
+    response.end(
+      [
+        { type: "tool_call", call: proposal },
+        {
+          type: "final",
+          response: { backend: "online", stopReason: "tool_use", toolCalls: [proposal] },
+        },
+      ]
+        .map((event) => `data: ${JSON.stringify(event)}\r\n\r\n`)
+        .join(""),
+    );
   });
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
   const saved = { ...plannerAccess };
@@ -33,24 +50,38 @@ test("task startup preserves complete accepted requests and rejects invalid ones
   plannerAccess.serviceUrl = () => `http://127.0.0.1:${port}`;
   plannerAccess.serviceKey = () => "synthetic-loopback-key";
   plannerAccess.acquirePermit = async (_user, key) => ({
-    permit: { id: "p", generationId: key, idempotencyKey: key, surface: "jarvis", source: "server" },
+    permit: {
+      id: "p",
+      generationId: key,
+      idempotencyKey: key,
+      surface: "jarvis",
+      source: "server",
+    },
     release: async () => {},
   });
   const calls: string[] = [];
   let savedRequest: unknown;
-  const admin = { rpc: async (name: string, args: Record<string, unknown>) => {
-    calls.push(name);
-    if (name === "jarvis_grants") return { data: ["files"], error: null };
-    assert.equal(name, "jarvis_open_task", "a reused task needs no extra planning or dispatch");
-    savedRequest = args.p_title;
-    return { data: [{ task_id: "existing", status: "waiting", reused: true }], error: null };
-  } } as unknown as Admin;
+  const admin = {
+    rpc: async (name: string, args: Record<string, unknown>) => {
+      calls.push(name);
+      if (name === "jarvis_grants") return { data: ["files"], error: null };
+      assert.equal(name, "jarvis_open_task", "a reused task needs no extra planning or dispatch");
+      savedRequest = args.p_title;
+      return { data: [{ task_id: "existing", status: "waiting", reused: true }], error: null };
+    },
+  } as unknown as Admin;
   const base = { conversationId: "conversation", deviceId: "device" };
   try {
     const nonce = crypto.randomUUID();
     for (const [name, objective] of [
-      ["request longer than 200 characters", `Read ${nonce}.txt. ${"Keep the original file unchanged. ".repeat(10)}Create a summary.`],
-      ["code and filename whitespace", `Repair ${nonce}  draft.py while preserving this block:\nif ready:\n    print("a  b")\nDo not flatten indentation.`],
+      [
+        "request longer than 200 characters",
+        `Read ${nonce}.txt. ${"Keep the original file unchanged. ".repeat(10)}Create a summary.`,
+      ],
+      [
+        "code and filename whitespace",
+        `Repair ${nonce}  draft.py while preserving this block:\nif ready:\n    print("a  b")\nDo not flatten indentation.`,
+      ],
       ["complete 8000-character composer boundary", "x".repeat(8000 - nonce.length) + nonce],
     ]) {
       await t.test(name, async () => {
@@ -71,12 +102,18 @@ test("task startup preserves complete accepted requests and rejects invalid ones
         const beforeDatabase = calls.length;
         await assert.rejects(startTask(admin, "user", { ...base, objective }));
         assert.equal(providerCalls, beforeProvider);
-        assert.equal(calls.length, beforeDatabase, "reject before requesting permissions or opening a task");
+        assert.equal(
+          calls.length,
+          beforeDatabase,
+          "reject before requesting permissions or opening a task",
+        );
       });
     }
   } finally {
     Object.assign(plannerAccess, saved);
     server.closeAllConnections();
-    await new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
+    await new Promise<void>((resolve, reject) =>
+      server.close((error) => (error ? reject(error) : resolve())),
+    );
   }
 });

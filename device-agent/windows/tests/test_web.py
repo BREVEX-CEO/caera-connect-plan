@@ -93,6 +93,36 @@ class WebLadder(unittest.TestCase):
         else:
             (target / name).write_text(json.dumps(data, indent=2, default=str))
 
+    def test_mcp_lifespan_closes_browser_and_failed_startup(self):
+        """The real registered server lifetime releases pages, Chromium and its driver."""
+        from unittest.mock import patch
+        from ocade_agent import web_worker
+
+        lifespan = web_worker.app.settings.lifespan
+        self.assertTrue(callable(lifespan), "the MCP server must own browser shutdown")
+        async def run():
+            async with lifespan(web_worker.app):
+                opened = await web_worker.web_open(url=self.base + "/")
+                self.assertNotIn("refused", opened, opened)
+                context = web_worker._browser["context"]
+                pages = list(context.pages)
+                browser = context.browser
+                self.assertTrue(pages)
+            self.assertFalse(web_worker._browser, "no stale driver/context may survive shutdown")
+            self.assertFalse(web_worker._pages, "closed page identities must not survive shutdown")
+            self.assertTrue(all(page.is_closed() for page in pages))
+            if browser is not None:
+                self.assertFalse(browser.is_connected())
+            async with lifespan(web_worker.app):
+                with patch.dict(os.environ, {"OCADE_BROWSER_EXECUTABLE": str(self.root / "missing-browser")}):
+                    failed = await web_worker.web_open(url=self.base + "/")
+                self.assertEqual(failed, {"refused": "browser_unavailable"})
+                self.assertFalse(web_worker._browser, "failed launch must release its started driver immediately")
+        with patch.object(web_worker, "PROFILE", self.home / "lifecycle-profile"), patch.object(
+            web_worker, "PRIVATE_ALLOWED", True
+        ), patch.object(web_worker, "WORKSPACE", str(self.root)):
+            anyio.run(run)
+
     def test_web_ladder(self):
         base = self.base
         (self.root / "upload-me.txt").write_text("OCADE upload sample\n")

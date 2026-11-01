@@ -1,7 +1,6 @@
 -- Full request storage through the real service-only lifecycle; disposable DB only.
 \set ON_ERROR_STOP on
 BEGIN;
-SET LOCAL ROLE service_role;
 DO $$
 DECLARE
   account uuid := gen_random_uuid();
@@ -18,6 +17,8 @@ BEGIN
   INSERT INTO auth.users (id, email) VALUES (account, account::text || '@example.test');
   INSERT INTO public.ocade_conversations (id, user_id, title, surface)
     VALUES (conversation, account, 'Request preservation', 'jarvis');
+  -- Auth fixtures are the database owner's setup; production lifecycle runs as service_role.
+  SET LOCAL ROLE service_role;
   SELECT * INTO enrollment FROM public.jarvis_enroll_device(
     repeat(replace(gen_random_uuid()::text, '-', ''), 4), 'Synthetic request computer',
     'linux', '0.1.0', repeat('0', 64));

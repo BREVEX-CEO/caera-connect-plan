@@ -72,10 +72,10 @@ jobs:
           python -m pip install reportlab==4.5.1
           python -m playwright install --no-shell chromium
           python -c 'from playwright.sync_api import sync_playwright; p=sync_playwright().start(); print("OCADE_BROWSER_EXECUTABLE=" + p.chromium.executable_path); p.stop()' >> "$GITHUB_ENV"
-      - name: Browser address evidence is exact (required real-browser case, no skips)
+      - name: Required real-browser address and lifecycle cases (no skips)
         if: success() || failure()
         working-directory: device-agent/windows
-        run: xvfb-run -a python -c 'import sys, unittest; suite=unittest.defaultTestLoader.loadTestsFromName("tests.test_web.WebLadder.test_observed_addresses_are_exact_including_fragments_or_explicitly_omitted"); result=unittest.TextTestRunner(verbosity=2).run(suite); sys.exit(0 if result.wasSuccessful() and result.testsRun == 1 and not result.skipped else 1)'
+        run: xvfb-run -a python -c 'import sys, unittest; suite=unittest.defaultTestLoader.loadTestsFromNames(["tests.test_web.WebLadder.test_observed_addresses_are_exact_including_fragments_or_explicitly_omitted", "tests.test_web.WebLadder.test_mcp_lifespan_closes_browser_and_failed_startup"]); result=unittest.TextTestRunner(verbosity=2).run(suite); sys.exit(0 if result.wasSuccessful() and result.testsRun == 1 and not result.skipped else 1)'
       - name: Restore script syntax and refusal outside disposable CI
         if: success() || failure()
         run: |
@@ -97,27 +97,13 @@ jobs:
       - name: TypeScript safety before the platform matrix
         if: success() || failure()
         run: npm run typecheck
-      - name: Generate the objective schema migration with the pinned CLI (unlinked temporary directory only)
-        if: success() || failure()
-        run: |
-          migration_work=$(mktemp -d "$RUNNER_TEMP/ocade-migration-XXXXXX")
-          npx --yes supabase@2.122.0 migration new preserve_complete_jarvis_objectives --workdir "$migration_work" <<'SQL'
-          -- Preserve the complete request the task authority already uses as its title.
-          -- No execution authority, grants, status or existing data is changed.
-          BEGIN;
-          ALTER TABLE public.jarvis_tasks DROP CONSTRAINT jarvis_tasks_title_check;
-          ALTER TABLE public.jarvis_tasks ADD CONSTRAINT jarvis_tasks_title_check
-            CHECK (length(btrim(title)) BETWEEN 1 AND 8000);
-          COMMIT;
-          SQL
-          node --input-type=module -e 'import fs from "node:fs"; import path from "node:path"; const root=path.join(process.argv[1],"supabase/migrations"); const files=fs.readdirSync(root); if(files.length!==1) throw Error("Unexpected generated migration count"); console.log("OCADE_MIGRATION:" + JSON.stringify({path:"supabase/migrations/"+files[0],content:fs.readFileSync(path.join(root,files[0]),"utf8")}));' "$migration_work"
       - name: Source formatting
         if: success() || failure()
         run: npm run format:check
       - name: Formatting evidence for failed remote candidates
         if: failure()
         run: |
-          node --input-type=module -e 'import fs from "node:fs"; import prettier from "prettier"; for (const path of process.argv.slice(1)) console.log("OCADE_FORMAT:" + JSON.stringify({path, content: await prettier.format(fs.readFileSync(path, "utf8"), {...await prettier.resolveConfig(path), filepath:path})}));' src/lib/jarvis/contracts.ts src/lib/jarvis/planner.server.ts tests/security/planner.test.ts tests/security/verification.test.ts tests/security/readiness.test.ts tests/security/recovery.test.ts tests/security/objective.test.ts src/lib/jarvis/authority.server.ts src/lib/jarvis/supervisor.ts scripts/launch-readiness.mjs tests/jarvis/contracts.test.ts tests/jarvis/e2e.test.ts .github/workflows/jarvis-cloud-validation.yml
+          node --input-type=module -e 'import fs from "node:fs"; import prettier from "prettier"; for (const path of process.argv.slice(1)) console.log("OCADE_FORMAT:" + JSON.stringify({path, content: await prettier.format(fs.readFileSync(path, "utf8"), {...await prettier.resolveConfig(path), filepath:path})}));' src/lib/jarvis/contracts.ts src/lib/jarvis/planner.server.ts tests/security/planner.test.ts tests/security/verification.test.ts tests/security/readiness.test.ts tests/security/recovery.test.ts tests/security/objective.test.ts src/lib/jarvis/authority.server.ts src/lib/jarvis/supervisor.ts scripts/launch-readiness.mjs tests/jarvis/contracts.test.ts tests/jarvis/e2e.test.ts ToRemove.md .github/workflows/jarvis-cloud-validation.yml
 
   contracts-db:
     # Reproduction candidate only: run the isolated Linux DB/UI regression after a focused failure.
@@ -183,6 +169,7 @@ jobs:
         if: success() || failure()
         run: |
           python -m playwright install chromium
+          test -f .output/server/index.mjs || npm run build
           npx wrangler dev --ip 127.0.0.1 --port 8787 --local > wrangler.log 2>&1 &
           for i in $(seq 1 60); do curl -sf -o /dev/null http://127.0.0.1:8787/ && break; sleep 2; done
           python tests/web/surface_audit.py http://127.0.0.1:8787
