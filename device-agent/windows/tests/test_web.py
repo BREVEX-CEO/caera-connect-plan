@@ -10,6 +10,7 @@ import io
 import json
 import os
 import shutil
+import sys
 import tempfile
 import unittest
 import urllib.request
@@ -24,7 +25,9 @@ from ocade_agent.gateway import PROTOCOL, Gateway
 from tests import web_fixture
 
 BROWSER = os.environ.get("OCADE_BROWSER_EXECUTABLE") or shutil.which("chromium")
-READY = bool(BROWSER and os.environ.get("DISPLAY"))
+# Windows cannot launch our POSIX-only certificate-pinned fixture wrapper yet.
+# macOS can launch a GUI browser without an X11 DISPLAY; Linux needs Xvfb.
+READY = bool(BROWSER and (sys.platform == "darwin" or (sys.platform != "win32" and os.environ.get("DISPLAY"))))
 EVIDENCE = os.environ.get("OCADE_EVIDENCE_DIR")
 
 
