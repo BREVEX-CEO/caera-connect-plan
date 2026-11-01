@@ -1,6 +1,7 @@
 import os
 import tempfile
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 
 from ocade_agent.sandbox import Refused, output_path, resolve, write_atomically
@@ -41,6 +42,25 @@ class SandboxTest(unittest.TestCase):
             output_path(self.root, "OCADE output/t/report.docx")
         self.assertEqual(caught.exception.code, "output_exists")
         self.assertEqual((self.root / "book.xlsx").read_bytes(), b"original")
+
+    def test_concurrent_customer_file_is_never_replaced(self):
+        target = output_path(self.root, "OCADE output/" + os.urandom(8).hex() + ".txt")
+        exists = Path.exists
+
+        def customer_writes_after_check(path):
+            was_present = exists(path)
+            if path == target and not was_present:
+                path.write_bytes(b"customer work")
+            return was_present
+
+        # Deterministic interleaving: another writer creates the destination after
+        # the last existence check, before publication. These are real files.
+        with patch.object(Path, "exists", customer_writes_after_check):
+            with self.assertRaises(Refused) as caught:
+                write_atomically(target, lambda temporary: temporary.write_bytes(b"agent output"))
+        self.assertEqual(caught.exception.code, "output_exists")
+        self.assertEqual(target.read_bytes(), b"customer work")
+        self.assertEqual(list(target.parent.glob(".ocade-*")), [])
 
     def test_interrupted_write_leaves_nothing(self):
         target = output_path(self.root, "OCADE output/t/half.xlsx")

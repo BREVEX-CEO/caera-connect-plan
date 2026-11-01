@@ -198,9 +198,7 @@ export function unseenAddress(url: unknown, objective: string, steps: Step[]) {
       continue;
     const observed = step.receipt.evidence;
     const base = address(
-      typeof observed.url === "string"
-        ? observed.url
-        : String(step.intent.arguments.url ?? ""),
+      typeof observed.url === "string" ? observed.url : String(step.intent.arguments.url ?? ""),
     );
     // Relative links belong to the exact source origin, never to the proposed destination.
     if (!base || base.hostname !== step.intent.target?.site) continue;
@@ -259,7 +257,12 @@ export function plannerMessage(code: string): string {
   if (code === "allowance_exhausted")
     return "Your JARVIS allowance is used up until your usage window resets.";
   if (
-    ["rate_limited", "provider_rate_limited", "provider_unavailable", "online_unavailable"].includes(code)
+    [
+      "rate_limited",
+      "provider_rate_limited",
+      "provider_unavailable",
+      "online_unavailable",
+    ].includes(code)
   ) {
     return "JARVIS's online planner is busy right now.";
   }
