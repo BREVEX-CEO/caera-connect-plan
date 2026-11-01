@@ -54,6 +54,9 @@ _CONTROLS = """() => {
         tag: e.tagName.toLowerCase(), type: e.type || '', name: (e.name || '').slice(0, 40),
         label: (e.labels?.[0]?.innerText || e.getAttribute('aria-label') || e.title || e.innerText || e.value || '').trim().slice(0, 80),
         selector: `[data-ocade=c${i}]`,
+        // Where a link goes, so it can be opened as seen (same site: path only, to stay small).
+        ...(e.tagName === 'A' && /^https?:/.test(e.href)
+          ? { href: (e.origin === location.origin ? e.pathname + e.search : e.href).slice(0, 160) } : {}),
       };
     });
 }"""

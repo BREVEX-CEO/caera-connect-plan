@@ -166,6 +166,9 @@ class WebLadder(unittest.TestCase):
             self.assertEqual(web_fixture.RECEIVED["uploads"], [{"name": "upload-me.txt", "sha256": expected}])
         with self.subTest("WEB-007 internal navigation"):
             self.assertIn("INV-7", results["007"]["evidence"]["text"])
+        with self.subTest("WEB-007d a link's address is listed, so it can be opened as seen"):
+            links = {c["label"]: c.get("href") for c in results["001"]["evidence"]["controls"]}
+            self.assertEqual(links["Page one"], "/pages/1")
         with self.subTest("WEB-007c a click carries a preview of the page afterwards"):
             self.assertTrue(results["007b"].get("preview"))
         with self.subTest("WEB-007b repeated labels still get one-element selectors"):

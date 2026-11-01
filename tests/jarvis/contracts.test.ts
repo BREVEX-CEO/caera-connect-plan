@@ -402,3 +402,32 @@ test("every result of a batch is seen in full; a repeated pair of steps is a sta
   assert.equal(stalled([...pair, ...pair]), null);
   assert.match(stalled([...pair, ...pair, ...pair]) ?? "", /repeating/);
 });
+
+test("a deep address typed from memory is refused; home pages and seen links are not", async () => {
+  const { unseenAddress } = await import("../../src/lib/jarvis/planner.server.ts");
+  const page: Step = {
+    intent: intent("web.open", "o", { url: "https://www.python.org/downloads/" }, deadline),
+    status: "done",
+    receipt: {
+      status: "observed",
+      maybeChanged: false,
+      observedAtUtc: now.toISOString(),
+      evidence: { controls: [{ label: "Python 3.15.2", href: "/downloads/release/python-3152/" }] },
+    },
+  };
+  assert.doesNotThrow(() => unseenAddress("https://www.python.org/", "", []));
+  assert.doesNotThrow(() =>
+    unseenAddress("https://www.python.org/downloads/release/python-3152/", "", [page]),
+  );
+  assert.doesNotThrow(() =>
+    unseenAddress(
+      "https://docs.example.com/guide/install",
+      "see docs.example.com/guide/install",
+      [],
+    ),
+  );
+  assert.throws(
+    () => unseenAddress("https://www.python.org/downloads/release/python-3131/", "", [page]),
+    /was not seen in this task/,
+  );
+});
