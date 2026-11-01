@@ -7,6 +7,7 @@ is not covered here: only technical facts are. Web video editors are not covered
 
 import json
 import os
+import re
 import sys
 import shutil
 import subprocess
@@ -169,6 +170,11 @@ class Media(unittest.TestCase):
         # The shared contract now refuses an output outside 'OCADE output/' before any worker runs;
         # the sandbox's own write_outside_output refusal stays as the second layer (test_sandbox).
         self.assertEqual((bad_place["status"], bad_place["errorCode"]), ("not_applied", "invalid_intent"))
+        if not verify["evidence"]["predicates"]["deliverable"]:  # say exactly what the audio does, per half second
+            levels = subprocess.run(["ffmpeg", "-hide_banner", "-i", str(self.root / "OCADE output/edit.mp4"), "-af",
+                                     "asetnsamples=24000,astats=metadata=1:reset=1,ametadata=print:key=lavfi.astats.Overall.RMS_level",
+                                     "-f", "null", "-"], capture_output=True, text=True).stderr
+            print("RMS per 0.5 s:", re.findall(r"RMS_level=(-?[0-9.inf]+)", levels))
         self.assertEqual(verify["evidence"]["predicates"], {"deliverable": True, "wrong_length": False, "too_small": False},
                          verify["evidence"].get("measured"))
         self.assertEqual(verify["evidence"]["measured"]["deliverable"]["channels"], 2)  # the verifier says what it measured

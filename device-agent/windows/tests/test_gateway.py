@@ -162,7 +162,7 @@ class Journey(unittest.TestCase):
 
     def test_exact_edits_change_only_what_they_name(self):
         config = '{\n  "column": "total",\n  "output": "amber_summary.txt",\n}\n'
-        (self.root / "settings.json").write_text(config)
+        (self.root / "settings.json").write_bytes(config.encode())  # exact bytes, no Windows newline translation
         (self.root / "run.sh").write_text("#!/bin/sh\necho hi\n")
         os.chmod(self.root / "run.sh", 0o644)
         read, listing = self.run_all(Gateway(str(self.root)), [

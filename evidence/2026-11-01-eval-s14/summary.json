@@ -1,0 +1,107 @@
+{
+  "seed": 14,
+  "passed": 2,
+  "total": 11,
+  "commit": "648a6ab",
+  "results": [
+    {
+      "task": "config_repair",
+      "pass": false,
+      "detail": "exit 0, got '', want 'rows=9 total=3725.02'",
+      "settled": "completed",
+      "elapsedMs": 50189,
+      "modelCalls": 8,
+      "wallSeconds": 68.5
+    },
+    {
+      "task": "crlf_script",
+      "pass": false,
+      "detail": "exit 1, archive lists []",
+      "settled": "completed",
+      "elapsedMs": 40792,
+      "modelCalls": 7,
+      "wallSeconds": 53.9
+    },
+    {
+      "task": "dedupe_contacts",
+      "pass": true,
+      "detail": "clean_contacts.csv",
+      "settled": "completed",
+      "elapsedMs": 26860,
+      "modelCalls": 5,
+      "wallSeconds": 38.9
+    },
+    {
+      "task": "totals_workbook",
+      "pass": true,
+      "detail": "client_totals.xlsx: numbers [6840.04, 884.12, 3426.85, 11151.01], expected {'Quartz Legal': 3426.85, 'Sierra Bikes': 6840.04, 'Northwind Labs': 884.12}",
+      "settled": "completed",
+      "elapsedMs": 43302,
+      "modelCalls": 7,
+      "wallSeconds": 56.9
+    },
+    {
+      "task": "log_cause",
+      "pass": false,
+      "detail": "note text ''",
+      "settled": "waiting",
+      "elapsedMs": 4709,
+      "modelCalls": 2,
+      "wallSeconds": 14.6
+    },
+    {
+      "task": "yaml_to_json",
+      "pass": false,
+      "detail": "no equal JSON",
+      "settled": null,
+      "elapsedMs": null,
+      "modelCalls": null,
+      "wallSeconds": 6.4
+    },
+    {
+      "task": "failing_test",
+      "pass": false,
+      "detail": "exit 1, tests untouched True",
+      "settled": "waiting",
+      "elapsedMs": 5252,
+      "modelCalls": 2,
+      "wallSeconds": 14.7
+    },
+    {
+      "task": "biggest_files",
+      "pass": false,
+      "detail": "want ['meadow5.tmp', 'sierra4.tmp', 'prairie1.mov']",
+      "settled": null,
+      "elapsedMs": null,
+      "modelCalls": null,
+      "wallSeconds": 5.2
+    },
+    {
+      "task": "port_conflict",
+      "pass": false,
+      "detail": "not serving: timed out",
+      "settled": null,
+      "elapsedMs": null,
+      "modelCalls": null,
+      "wallSeconds": 10.1
+    },
+    {
+      "task": "markdown_doc",
+      "pass": false,
+      "detail": "no docx",
+      "settled": null,
+      "elapsedMs": null,
+      "modelCalls": null,
+      "wallSeconds": 5.5
+    },
+    {
+      "task": "web_fact",
+      "pass": false,
+      "detail": "want 3.15.2, notes ''",
+      "settled": null,
+      "elapsedMs": null,
+      "modelCalls": null,
+      "wallSeconds": 5.9
+    }
+  ]
+}

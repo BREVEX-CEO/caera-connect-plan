@@ -198,10 +198,12 @@ def _media_quality(path: Path, params: dict, notes: dict) -> bool | None:
     peak = re.findall(r"Peak:\s+(-?[0-9.]+) dBFS", log)
     black = [(float(a), float(b)) for a, b in re.findall(r"black_start:([0-9.]+) black_end:([0-9.]+)", log)]
     silent = [float(a) for a in re.findall(r"silence_start: (-?[0-9.]+)", log)]
+    ends = [float(a) for a in re.findall(r"silence_end: (-?[0-9.]+)", log)]
     inside = lambda t: 1.0 < t < duration - 2.0  # noqa: E731 — the opening and the closing fade are allowed
     notes.update(loudnessLufs=float(integrated[-1]) if integrated else None, peakDbfs=float(peak[-1]) if peak else None,
                  blackInside=[s for s in black if inside(s[0]) or inside(s[1])][:5],
-                 silentInside=[t for t in silent if inside(t)][:5])
+                 silentInside=[[round(t, 2), round(ends[i], 2) if i < len(ends) else None]
+                               for i, t in enumerate(silent) if inside(t)][:5])
     return (
         bool(integrated) and -20.0 <= float(integrated[-1]) <= -9.0
         and bool(peak) and float(peak[-1]) <= -0.5
