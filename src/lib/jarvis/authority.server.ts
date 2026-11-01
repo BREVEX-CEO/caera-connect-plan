@@ -372,8 +372,7 @@ export async function taskView(admin: Admin, userId: string, taskId: string) {
 export function exactEffect(intent: unknown): string {
   const parsed = actionIntent.safeParse(intent);
   if (!parsed.success) return "An action that could not be read: do not allow it.";
-  const text = `${parsed.data.operation} ${JSON.stringify(parsed.data.arguments, null, 2)}`;
-  return text.length > 4000 ? `${text.slice(0, 4000)}\n… (shortened)` : text;
+  return `${parsed.data.operation} ${JSON.stringify(parsed.data.arguments, null, 2)}`;
 }
 
 export function approveDevice(admin: Admin, userId: string, code: string) {

@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "20f3f468b641f6bd2b73a627ea0e7bd895a76e25",
+  "run": 41349211612,
+  "url": "https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41349211612",
+  "scope": "Synthetic policy-contract and approval serialization tests; no actions executed",
+  "tests": {
+    "total": 89,
+    "pass": 76,
+    "fail": 13,
+    "negativeCases": 11,
+    "parentSuiteFailures": 2,
+    "completeArgumentFailures": 3,
+    "opaqueInteractionRiskFailures": 8,
+    "positiveControl": "PASS"
+  },
+  "existingControls": {
+    "realWorkers": 4,
+    "requiredBrowserCases": 2,
+    "unexpectedSkips": 0,
+    "typeScript": "PASS"
+  },
+  "generatedProtocol": {
+    "canonicalGenerator": "scripts/jarvis-protocol.ts",
+    "sourceAndProtocolCaptured": true,
+    "branchFilesRestoredBeforeOtherGates": true,
+    "sourceCandidateEqualsPublishedText": true,
+    "operations": [
+      "apps.launch",
+      "ui.invoke",
+      "ui.set_value",
+      "ui.send_keys",
+      "ui.click_point",
+      "web.fill",
+      "web.select",
+      "web.download"
+    ]
+  },
+  "fullMatrix": "Gated off on expected red",
+  "decision": "NO-GO"
+}

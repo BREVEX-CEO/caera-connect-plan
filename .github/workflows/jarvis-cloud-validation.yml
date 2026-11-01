@@ -94,36 +94,6 @@ jobs:
       - name: Packaging qualification scripts compile
         if: success() || failure()
         run: python -m py_compile device-agent/windows/packaging/check_frozen.py device-agent/windows/packaging/compare_browser_payloads.py
-      - name: Generate the proposed risk contract in the disposable checkout (restore branch files before other gates)
-        if: failure()
-        run: |
-          node --input-type=module <<'NODE'
-          import fs from "node:fs";
-          import { spawnSync } from "node:child_process";
-          const sourcePath = "src/lib/jarvis/contracts.ts";
-          const protocolPath = "device-agent/windows/ocade_agent/protocol.json";
-          const originalSource = fs.readFileSync(sourcePath, "utf8");
-          const originalProtocol = fs.readFileSync(protocolPath, "utf8");
-          try {
-            let candidate = originalSource;
-            for (const operation of ["apps.launch", "ui.invoke", "ui.set_value", "ui.send_keys", "ui.click_point", "web.fill", "web.select", "web.download"]) {
-              const begin = candidate.indexOf('  "' + operation + '": {');
-              const end = candidate.indexOf("\n  },", begin);
-              if (begin < 0 || end < 0) throw Error("Missing operation " + operation);
-              const block = candidate.slice(begin, end);
-              if ((block.match(/risk: "reversible_write"/g) || []).length !== 1) throw Error("Unexpected original risk " + operation);
-              candidate = candidate.slice(0, begin) + block.replace('risk: "reversible_write"', 'risk: "external_effect"') + candidate.slice(end);
-            }
-            fs.writeFileSync(sourcePath, candidate);
-            const result = spawnSync(process.execPath, ["--experimental-strip-types", "--no-warnings", "scripts/jarvis-protocol.ts"], { stdio: "inherit" });
-            if (result.status !== 0) throw Error("Protocol generation failed");
-            console.log("OCADE_CANDIDATE_CONTRACT:" + JSON.stringify({path:sourcePath,content:candidate}));
-            console.log("OCADE_CANDIDATE_PROTOCOL:" + JSON.stringify({path:protocolPath,content:fs.readFileSync(protocolPath,"utf8")}));
-          } finally {
-            fs.writeFileSync(sourcePath, originalSource);
-            fs.writeFileSync(protocolPath, originalProtocol);
-          }
-          NODE
       - name: TypeScript safety before the platform matrix
         if: success() || failure()
         run: npm run typecheck

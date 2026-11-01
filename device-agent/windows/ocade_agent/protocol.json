@@ -1527,7 +1527,7 @@
     "apps.launch": {
       "role": "ui_bridge",
       "capability": "apps",
-      "risk": "reversible_write",
+      "risk": "external_effect",
       "arguments": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
@@ -1596,7 +1596,7 @@
     "ui.invoke": {
       "role": "ui_bridge",
       "capability": "apps",
-      "risk": "reversible_write",
+      "risk": "external_effect",
       "arguments": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
@@ -1660,7 +1660,7 @@
     "ui.set_value": {
       "role": "ui_bridge",
       "capability": "apps",
-      "risk": "reversible_write",
+      "risk": "external_effect",
       "arguments": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
@@ -1729,7 +1729,7 @@
     "ui.send_keys": {
       "role": "ui_bridge",
       "capability": "apps",
-      "risk": "reversible_write",
+      "risk": "external_effect",
       "arguments": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
@@ -1798,7 +1798,7 @@
     "ui.click_point": {
       "role": "ui_bridge",
       "capability": "computer_control",
-      "risk": "reversible_write",
+      "risk": "external_effect",
       "arguments": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
@@ -1942,7 +1942,7 @@
     "web.fill": {
       "role": "web_automation",
       "capability": "browser",
-      "risk": "reversible_write",
+      "risk": "external_effect",
       "arguments": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
@@ -1994,7 +1994,7 @@
     "web.select": {
       "role": "web_automation",
       "capability": "browser",
-      "risk": "reversible_write",
+      "risk": "external_effect",
       "arguments": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
@@ -2217,7 +2217,7 @@
     "web.download": {
       "role": "web_automation",
       "capability": "browser",
-      "risk": "reversible_write",
+      "risk": "external_effect",
       "arguments": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
