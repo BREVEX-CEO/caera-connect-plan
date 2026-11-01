@@ -608,10 +608,12 @@ test(
     };
     const objective = "Summarise status.txt into a Word note";
     try {
-      // No consent: the service refuses, nothing starts, nothing is charged.
+      // No consent: the service refuses with the exact message the page answers by asking;
+      // nothing starts, nothing is charged.
+      const { JARVIS_CONSENT_NEEDED } = await import("../../src/lib/jarvis/consent-needed.ts");
       await assert.rejects(
         startTask(admin, userA, { conversationId: conversation2, deviceId, objective }),
-        /Turn on Online Intelligence/,
+        (error: Error) => error.message === JARVIS_CONSENT_NEEDED,
       );
       sql(
         `UPDATE public.profiles SET online_ai_consent_at = now(), online_ai_consent_version = '${ONLINE_CONSENT_VERSION}' WHERE id = '${userA}'`,
