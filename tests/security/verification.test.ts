@@ -115,7 +115,13 @@ test("goal compilation refuses duplicate, incomplete or conflicting acceptance p
       ],
       [
         "website check without browser and site grants",
-        [{ ...check, kind: "web_text_contains", params: { url: "https://scope.example/", text: "required" } }],
+        [
+          {
+            ...check,
+            kind: "web_text_contains",
+            params: { url: "https://scope.example/", text: "required" },
+          },
+        ],
       ],
       [
         "window check without application grants",
@@ -135,12 +141,23 @@ test("goal compilation refuses duplicate, incomplete or conflicting acceptance p
     await assert.rejects(compileGoal(base.userId, base.objective, base.grants), PlannerUnavailable);
     duplicateProposal = false;
     assert.deepEqual(await compileGoal(base.userId, base.objective, base.grants), [check]);
-    checks = [{ ...check, kind: "web_text_contains", params: { url: "https://scope.example/", text: "required" } }];
+    checks = [
+      {
+        ...check,
+        kind: "web_text_contains",
+        params: { url: "https://scope.example/", text: "required" },
+      },
+    ];
     const allowed = ["files", "browser", "site:scope.example"];
     assert.deepEqual(await compileGoal(base.userId, base.objective, allowed), checks);
-    assert.equal((await planStep({ ...base, checks, grants: allowed, steps: [verified(checks)] })).kind, "settle");
+    assert.equal(
+      (await planStep({ ...base, checks, grants: allowed, steps: [verified(checks)] })).kind,
+      "settle",
+    );
     assert.equal((await planStep({ ...base, checks, steps: [verified(checks)] })).kind, "block");
-    checks = [{ ...checks[0], params: { url: "https://name:password@scope.example/", text: "required" } }];
+    checks = [
+      { ...checks[0], params: { url: "***scope.example/", text: "required" } },
+    ];
     await assert.rejects(compileGoal(base.userId, base.objective, allowed), PlannerUnavailable);
   } finally {
     Object.assign(plannerAccess, saved);

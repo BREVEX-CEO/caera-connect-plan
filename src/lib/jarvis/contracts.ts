@@ -1029,7 +1029,6 @@ export const taskChecks = z
     }
   });
 
-
 /** The settlement record: every fixed check lands in exactly one list. */
 const verificationResult = z.object({
   passed: z.array(z.string()),

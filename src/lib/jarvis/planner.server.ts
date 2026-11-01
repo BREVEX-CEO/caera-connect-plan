@@ -15,13 +15,7 @@
  * model is substituted.
  */
 import { z } from "zod";
-import {
-  OPERATIONS,
-  intent,
-  taskChecks,
-  type Operation,
-  type OutcomeCheck,
-} from "./contracts.ts";
+import { OPERATIONS, intent, taskChecks, type Operation, type OutcomeCheck } from "./contracts.ts";
 import { evidenceOf, open, settleChecks, type Decision, type Step } from "./supervisor.ts";
 import {
   sseData,
@@ -522,7 +516,8 @@ export async function compileGoal(
       checks: taskChecks,
     })
     .safeParse(calls[0].args);
-  if (calls.length !== 1 || calls[0].name !== "set_goal" || !parsed.success) throw new PlannerUnavailable("invalid_goal");
+  if (calls.length !== 1 || calls[0].name !== "set_goal" || !parsed.success)
+    throw new PlannerUnavailable("invalid_goal");
   if (!canVerifyChecks(parsed.data.checks, allowed))
     throw new PlannerUnavailable("invalid_goal_scope");
   return parsed.data.checks;
@@ -641,7 +636,10 @@ export async function planStep(input: {
     return { kind: "block", reason: "The saved outcome checks are invalid. Nothing was run." };
   const checks = acceptance.data;
   if (!canVerifyChecks(checks, input.grants))
-    return { kind: "block", reason: "The outcome's websites or applications are not authorized on this computer." };
+    return {
+      kind: "block",
+      reason: "The outcome's websites or applications are not authorized on this computer.",
+    };
   if (steps.some(open)) return { kind: "wait" };
 
   // A receipt proves only the exact acceptance rules the independent worker actually read.
@@ -654,7 +652,10 @@ export async function planStep(input: {
       last.receipt?.status !== "observed" ||
       last.receipt.errorCode
     )
-      return { kind: "block", reason: "The verification does not match this task's outcome checks." };
+      return {
+        kind: "block",
+        reason: "The verification does not match this task's outcome checks.",
+      };
   }
   const verified =
     last?.intent.operation === "verify.checks" ? evidenceOf([last], "verify.checks") : undefined;
