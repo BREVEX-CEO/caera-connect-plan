@@ -1,0 +1,124 @@
+# Only implementation-branch, no-deploy, no-provider-secret validation.
+# GitHub standard hosted runners are free on public repositories; no larger runners.
+name: JARVIS cloud validation (no deployment)
+
+on:
+  push:
+    branches: ["ocade/p00-p22-implementation"]
+    paths:
+      - ".github/workflows/jarvis-cloud-validation.yml"
+      - "src/lib/jarvis/**"
+      - "src/lib/intelligence/**"
+      - "src/routes/api/jarvis.device.ts"
+      - "device-agent/**"
+      - "tests/jarvis/**"
+      - "scripts/jarvis-*.mjs"
+      - "scripts/jarvis-protocol.ts"
+      - "scripts/verify-full.mjs"
+      - "package.json"
+      - "package-lock.json"
+      - "supabase/migrations/**"
+      - "CLAUDE.md"
+      - "plan.md"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: jarvis-cloud-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  contracts-db:
+    name: Portable build / model contracts / ephemeral DB · Linux
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: jarvis_disposable_ci_only
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 8
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: "5432"
+      PGUSER: postgres
+      PGPASSWORD: jarvis_disposable_ci_only
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - name: Install exact JS dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Install disposable Postgres test client
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client
+      - name: Standard source and build gates
+        run: npm run verify:full
+      - name: JARVIS protocol matches checked-in contracts
+        run: npm run jarvis:protocol-check
+      - name: No application-specific production journeys
+        run: npm run jarvis:no-hardcoded
+      - name: JARVIS contracts, safety and end-to-end mock tests
+        run: node --experimental-strip-types --no-warnings --test tests/jarvis/*.test.ts
+      - name: Complete disposable database authority tests
+        run: npm run test:jarvis-db
+
+  companion-cross-platform:
+    name: Python MCP / journal / browser · ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: "3.12"
+      - name: Install locked companion dependencies on test runner only
+        run: python -m pip install -r device-agent/windows/requirements.txt
+      - name: Install test-only Chromium
+        run: python -m playwright install chromium
+      - name: Companion MCP, receipt, sandbox and browser regressions
+        working-directory: device-agent/windows
+        run: python -m unittest discover -s tests -t .
+      # These tests exercise portable contracts; they do NOT establish real
+      # foreground UI automation, macOS AX, customer pairing, or actual media quality.
+
+  windows-installer-smoke:
+    name: Windows unsigned installer / frozen MCP smoke · NOT release-ready
+    runs-on: windows-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: "3.12"
+      - name: Install build-only Inno Setup
+        shell: pwsh
+        run: |
+          choco install innosetup --yes --no-progress
+          "C:\Program Files (x86)\Inno Setup 6" | Out-File -FilePath $env:GITHUB_PATH -Append
+      - name: Build disposable unsigned companion installer
+        shell: pwsh
+        run: ./device-agent/windows/packaging/build.ps1
+      - name: Verify all frozen MCP workers actually start
+        shell: pwsh
+        run: |
+          & ./device-agent/windows/.build-venv/Scripts/python.exe ./device-agent/windows/packaging/check_frozen.py "device-agent/windows/dist/OCADE JARVIS/ocade-agent.exe"
+      - name: Verify expected installer exists
+        shell: pwsh
+        run: |
+          $installer = "device-agent/windows/packaging/Output/OCADE-JARVIS-Setup-0.1.0.exe"
+          if (!(Test-Path $installer)) { throw "Installer missing: $installer" }
+          Get-FileHash $installer -Algorithm SHA256 | Select-Object -Property Algorithm,Hash
+      # No publishing, signing, user-PC control, deploy, provider calls or secrets.
