@@ -41,8 +41,13 @@ class PackagingContract(unittest.TestCase):
 
         gateway = Gateway("sandbox")
         with patch.object(sys, "frozen", True, create=True), patch.object(sys, "executable", "C:/OCADE/ocade-agent-bg.exe"):
+            # Exactly as run() calls it: the worker key is the role's module (the old test passed
+            # roles, which hid that the installed companion could start no worker at all).
             for role in ("fs_sandbox", "sys_core", "verifier", "ui_bridge", "web_automation", "shell"):
-                params = gateway._parameters(role)
+                key = gateway._target({"operation": next(o for o, s in PROTOCOL["operations"].items()
+                                                         if s["role"] == role), "arguments": {}},
+                                      {"role": role})[0]
+                params = gateway._parameters(key)
                 self.assertEqual(params.args, ["worker", gateway.modules[role]])
                 self.assertTrue(params.command.endswith("ocade-agent.exe"))
 

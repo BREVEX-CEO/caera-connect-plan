@@ -26,12 +26,13 @@
         },
         {
           "id": "no_silent_skips",
-          "text": "Every required test fails the gate when its prerequisites are missing",
-          "status": "PARTIAL",
+          "text": "Required tests fail the gate when prerequisites are missing: end-to-end guarded in CI; companion suites on Linux, macOS and Windows fail on any skip not allowed for that OS (CI run 40 green)",
+          "status": "PASS",
           "evidence": [
-            "tests/jarvis/e2e.test.ts"
-          ],
-          "reason": "end-to-end tests are guarded in CI; companion tests still skip on Windows/macOS without a guard"
+            "device-agent/windows/tests/run_required.py",
+            "tests/jarvis/e2e.test.ts",
+            ".github/workflows/jarvis-cloud-validation.yml"
+          ]
         },
         {
           "id": "dependency_audit",

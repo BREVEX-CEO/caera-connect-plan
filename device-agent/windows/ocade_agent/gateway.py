@@ -135,9 +135,9 @@ class Gateway:
         # A packaged companion is one executable that runs its own workers
         # (the console build: a windowed executable has no stdout for the MCP protocol).
         if getattr(sys, "frozen", False):
-            # The packaged agent accepts a MODULE name, not a capability role.
-            # Both fs_sandbox and sys_core legitimately share office_worker.
-            command = [str(Path(sys.executable).with_name("ocade-agent.exe")), "worker", self.modules[key]]
+            # Workers are keyed by MODULE (fs_sandbox and sys_core share office_worker), and the
+            # packaged agent takes that module name.
+            command = [str(Path(sys.executable).with_name("ocade-agent.exe")), "worker", key]
         else:
             command = [sys.executable, "-s", "-m", key]
         return StdioServerParameters(command=command[0], args=command[1:], env=environment, cwd=package_root)
