@@ -41,6 +41,66 @@ class StoppedServer(FakeDevice):
         return 200, {}
 
 
+class ReceiptResponseDevice(FakeDevice):
+    def __init__(self, statuses):
+        super().__init__()
+        self.statuses = iter(statuses)
+
+    def request(self, payload):
+        self.sent.append(payload)
+        if payload["op"] == "receipt":
+            return next(self.statuses), {}
+        return 200, {}
+
+
+class ReceiptDeliveryTest(unittest.TestCase):
+    def setUp(self):
+        self.journal = Journal(Path(tempfile.mkdtemp()) / "journal.sqlite")
+        self.intent = {"risk": "reversible_write"}
+        self.receipt = {
+            "status": "observed", "maybeChanged": True,
+            "observedAtUtc": "2026-10-30T00:00:00.000Z", "evidence": {},
+        }
+        self.journal.start("receipt-a", self.intent)
+        self.journal.finish("receipt-a", self.receipt)
+        self.action = {"id": "receipt-a", "intent": self.intent}
+
+    def test_permanent_refusal_does_not_loop_or_repeat_effect(self):
+        for status in (400, 403, 413, 422, 426):
+            with self.subTest(status=status):
+                device = ReceiptResponseDevice([status])
+                agent = Agent(device, self.journal, FailingGateway())
+                with self.assertRaisesRegex(ConnectionError, f"receipt_rejected_{status}"):
+                    anyio.run(agent.handle, self.action)
+                self.assertEqual(len(device.sent), 1)
+                self.assertEqual(self.journal.get("receipt-a")[0], "finished")
+
+    def test_transient_refusal_retries_only_the_saved_receipt(self):
+        device = ReceiptResponseDevice([503, 502, 200])
+        agent = Agent(device, self.journal, FailingGateway())
+        previous = agent_module.RECEIPT_RETRY_DELAYS
+        agent_module.RECEIPT_RETRY_DELAYS = (0, 0)
+        try:
+            anyio.run(agent.handle, self.action)
+        finally:
+            agent_module.RECEIPT_RETRY_DELAYS = previous
+        self.assertEqual(len(device.sent), 3)
+        self.assertTrue(all(sent["receipt"] == self.receipt for sent in device.sent))
+
+    def test_transient_refusal_exhaustion_is_bounded_and_durable(self):
+        device = ReceiptResponseDevice([503, 503, 503])
+        agent = Agent(device, self.journal, FailingGateway())
+        previous = agent_module.RECEIPT_RETRY_DELAYS
+        agent_module.RECEIPT_RETRY_DELAYS = (0, 0)
+        try:
+            with self.assertRaisesRegex(ConnectionError, "receipt_delivery_unavailable_503"):
+                anyio.run(agent.handle, self.action)
+        finally:
+            agent_module.RECEIPT_RETRY_DELAYS = previous
+        self.assertEqual(len(device.sent), 3)
+        self.assertEqual(self.journal.get("receipt-a")[0], "finished")
+
+
 class JournalTest(unittest.TestCase):
     def setUp(self):
         self.journal = Journal(Path(tempfile.mkdtemp()) / "journal.sqlite")
