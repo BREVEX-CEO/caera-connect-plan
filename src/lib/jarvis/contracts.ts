@@ -21,7 +21,7 @@ export const PROTOCOL_VERSION = 1;
 const RISKS = ["read", "reversible_write", "external_effect"] as const;
 
 /** Shared programs an operation needs on the computer; the device reports which it has. */
-export const ENGINES = ["ffmpeg", "browser", "office"] as const;
+export const ENGINES = ["ffmpeg", "browser", "office", "desktop"] as const;
 
 /** Paths are relative to a workspace folder the person chose on the device itself. */
 const workspacePath = z
@@ -598,6 +598,7 @@ export const OPERATIONS = {
   },
   "apps.list": {
     summary: "List the desktop applications installed and the windows open on the computer.",
+    engine: "desktop",
     role: "ui_bridge",
     capability: "apps",
     risk: "read",
@@ -605,6 +606,7 @@ export const OPERATIONS = {
   },
   "apps.launch": {
     summary: "Start an installed desktop application the person allowed.",
+    engine: "desktop",
     role: "ui_bridge",
     capability: "apps",
     risk: "reversible_write",
@@ -614,6 +616,7 @@ export const OPERATIONS = {
   "ui.inspect": {
     summary:
       "Read and see one open application window: its controls with names, values, state and each one's box as window fractions, plus an image of the window.",
+    engine: "desktop",
     role: "ui_bridge",
     capability: "apps",
     risk: "read",
@@ -623,6 +626,7 @@ export const OPERATIONS = {
   "ui.invoke": {
     summary:
       "Press or activate a control (button, menu item, link) in an application window by its accessibility identity.",
+    engine: "desktop",
     role: "ui_bridge",
     capability: "apps",
     risk: "reversible_write",
@@ -631,6 +635,7 @@ export const OPERATIONS = {
   },
   "ui.set_value": {
     summary: "Type or set the value of a text field or control in an application window.",
+    engine: "desktop",
     role: "ui_bridge",
     capability: "apps",
     risk: "reversible_write",
@@ -640,6 +645,7 @@ export const OPERATIONS = {
   "ui.send_keys": {
     summary:
       "Send keyboard keys to an application window: to the given control (focused first), else to whichever control has focus.",
+    engine: "desktop",
     role: "ui_bridge",
     capability: "apps",
     risk: "reversible_write",
@@ -653,6 +659,7 @@ export const OPERATIONS = {
   "ui.click_point": {
     summary:
       "Click a point (window fractions, for example inside a box ui.inspect reported or a spot seen in its image) when no accessible control can be reached.",
+    engine: "desktop",
     role: "ui_bridge",
     capability: "computer_control",
     risk: "reversible_write",

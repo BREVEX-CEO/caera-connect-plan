@@ -36,6 +36,13 @@ def engines() -> list[str]:
         found.append("browser")
     if engine.office_available():
         found.append("office")
+    if sys.platform == "win32":  # the desktop bridge (UI Automation) exists only on Windows today
+        try:
+            import pywinauto  # type: ignore[import-not-found]  # noqa: F401
+
+            found.append("desktop")
+        except ImportError:
+            pass
     return found
 
 

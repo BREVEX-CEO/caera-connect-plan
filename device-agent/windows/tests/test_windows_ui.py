@@ -47,6 +47,12 @@ class EnvironmentContract(unittest.TestCase):
         self.assertNotIn("OCADE_SECRET_TOKEN", env)
 
 
+    def test_the_desktop_bridge_is_reported_only_where_it_works(self):
+        from ocade_agent import discovery
+
+        self.assertEqual("desktop" in discovery.engines(), sys.platform == "win32")
+
+
 @unittest.skipUnless(sys.platform == "win32", "needs a Windows desktop")
 class WindowsUiLadder(unittest.TestCase):
     def setUp(self):
