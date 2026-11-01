@@ -1442,6 +1442,27 @@
         "additionalProperties": false
       }
     },
+    "system.inspect": {
+      "role": "sys_core",
+      "capability": "apps",
+      "risk": "read",
+      "arguments": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "programs": {
+            "default": [],
+            "maxItems": 20,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._+-]{1,60}$"
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    },
     "apps.list": {
       "role": "ui_bridge",
       "capability": "apps",

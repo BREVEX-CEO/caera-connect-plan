@@ -160,6 +160,41 @@ def fs_replace_text(path: str, text: str, expectSha256: str) -> dict:
 
 @app.tool()
 @_evidence
+def system_inspect(programs: list[str] | None = None) -> dict:
+    """OS, architecture, free workspace disk and where named programs resolve; nothing is run."""
+    import platform
+
+    from . import discovery
+
+    found = {}
+    for name in (programs or [])[:20]:
+        path = shutil.which(name) or discovery.app_path(name if name.lower().endswith(".exe") else f"{name}.exe")
+        if path and os.path.isfile(path):
+            found[name] = {"path": path[:300], "bytes": os.path.getsize(path), **_file_version(path)}
+        else:
+            found[name] = {"path": None}
+    return {
+        "os": platform.system(), "release": platform.release(), "version": platform.version()[:120],
+        "machine": platform.machine(), "freeBytes": shutil.disk_usage(WORKSPACE).free, "programs": found,
+    }
+
+
+def _file_version(path: str) -> dict:
+    """The version Windows records in a program file's resources, when it has one."""
+    if os.name != "nt":
+        return {}
+    try:
+        import win32api  # type: ignore[import-not-found]
+
+        info = win32api.GetFileVersionInfo(path, "\\")
+        ms, ls = info["FileVersionMS"], info["FileVersionLS"]
+        return {"fileVersion": f"{ms >> 16}.{ms & 0xFFFF}.{ls >> 16}.{ls & 0xFFFF}"}
+    except Exception:
+        return {}
+
+
+@app.tool()
+@_evidence
 def office_write_document(docx: str, title: str, sections: list[dict], pdf: str | None = None) -> dict:
     """A new editable Word document from headings, paragraphs and tables; optionally its PDF."""
     docx_path = output_path(WORKSPACE, docx)

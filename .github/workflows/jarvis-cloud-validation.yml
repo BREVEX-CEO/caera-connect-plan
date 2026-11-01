@@ -120,15 +120,13 @@ jobs:
       - name: Install test-runner engines (ffmpeg, LibreOffice) on Windows
         if: runner.os == 'Windows'
         shell: pwsh
-        run: |
-          choco install ffmpeg libreoffice-fresh --yes --no-progress
-          "C:\Program Files\LibreOffice\program" | Out-File -FilePath $env:GITHUB_PATH -Append
+        # Not added to PATH: LibreOffice's folder holds its own python.exe, and OCADE finds it where it installs.
+        run: choco install ffmpeg libreoffice-fresh --yes --no-progress
       - name: Install test-runner engines (ffmpeg, LibreOffice) on macOS
         if: runner.os == 'macOS'
         run: |
           brew install ffmpeg
           brew install --cask libreoffice
-          echo "/Applications/LibreOffice.app/Contents/MacOS" >> "$GITHUB_PATH"
       # Every skip must be one this OS is allowed; any other skipped test fails the job.
       - name: Linux companion tests (real Chromium on a disposable Xvfb desktop)
         if: runner.os == 'Linux'

@@ -583,6 +583,19 @@ export const OPERATIONS = {
         .max(10),
     }),
   },
+  "system.inspect": {
+    summary:
+      "Facts about this computer before installing or repairing anything: OS, version, CPU architecture, free disk space in the workspace, and where each named program (for example python, node, ffmpeg, winget, brew) resolves, without running it.",
+    role: "sys_core",
+    capability: "apps",
+    risk: "read",
+    arguments: z.strictObject({
+      programs: z
+        .array(z.string().regex(/^[A-Za-z0-9._+-]{1,60}$/))
+        .max(20)
+        .default([]),
+    }),
+  },
   "apps.list": {
     summary: "List the desktop applications installed and the windows open on the computer.",
     role: "ui_bridge",

@@ -71,6 +71,12 @@ def fs_replace_text(path: str, text: str, expectSha256: str) -> dict:
 
 
 @app.tool()
+def system_inspect(programs: list[str] | None = None) -> dict:
+    """Inspect."""
+    return {}
+
+
+@app.tool()
 def office_write_document(docx: str, title: str, sections: list[dict], pdf: str | None = None) -> dict:
     """Document."""
     return {}

@@ -7,7 +7,6 @@ Fakes are used only to make workers misbehave; they never stand in for output.
 
 import json
 import os
-import shutil
 import tempfile
 import unittest
 from datetime import datetime, timedelta, timezone
@@ -15,11 +14,12 @@ from pathlib import Path
 
 import anyio
 
+from ocade_agent.engine import office_available
 from ocade_agent.gateway import PROTOCOL, Gateway
 from tests.fixtures import ledger_workbook
 
 TESTS = str(Path(__file__).resolve().parent.parent)
-HAS_ENGINE = bool(shutil.which("soffice") or shutil.which("libreoffice"))
+HAS_ENGINE = office_available()  # the product's own discovery, as a customer's computer would use it
 
 
 def intent(operation, arguments, minutes=10, **overrides):
@@ -173,6 +173,18 @@ class Journey(unittest.TestCase):
         self.assertEqual(binary["errorCode"], "unsupported_file_type")
         self.assertEqual(verified["evidence"]["predicates"]["sh"], True)
         self.assertIsNone(verified["evidence"]["predicates"].get("png"))  # not observable, never a guess
+
+    def test_system_facts_and_programs_are_read_without_running_them(self):
+        import sys as _sys
+
+        [facts] = self.run_all(Gateway(str(self.root)), [
+            intent("system.inspect", {"programs": [Path(_sys.executable).name, "ocade-no-such-program-x9"]})])
+        self.assertEqual(facts["status"], "observed", facts)
+        evidence = facts["evidence"]
+        self.assertGreater(evidence["freeBytes"], 0)
+        self.assertTrue(evidence["machine"])
+        self.assertTrue(evidence["programs"][Path(_sys.executable).name]["path"])
+        self.assertIsNone(evidence["programs"]["ocade-no-such-program-x9"]["path"])
 
     def test_missing_outputs_are_not_passed(self):
         [verified] = self.run_all(Gateway(str(self.root)), [self.checks()])

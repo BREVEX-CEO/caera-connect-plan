@@ -167,6 +167,25 @@ class StopInFlightTest(unittest.TestCase):
         self.assertGreater(gateway.epoch, 0, "the local fence moved")
 
 
+class DiagnoseTest(unittest.TestCase):
+    def test_diagnosis_names_what_to_fix_and_reveals_nothing(self):
+        home = Path(tempfile.mkdtemp())
+        (home / "mcp").mkdir()
+        (home / "mcp" / "broken.json").write_text("not json")
+        (home / "device.json").write_text('{"deviceId": "d-1", "lastTimestamp": 1}')
+        (home / "STOP").touch()
+        checks = {c["check"]: c for c in agent_module.diagnose(home, "https://127.0.0.1:9", str(home / "gone"))}
+        self.assertTrue(checks["paired"]["ok"])
+        self.assertFalse(checks["workspace"]["ok"])
+        self.assertFalse(checks["server"]["ok"])
+        self.assertFalse(checks["stop"]["ok"])
+        self.assertEqual(checks["mcp:broken.json"]["detail"], "manifest not used: invalid_manifest")
+        workers = [c for name, c in checks.items() if name.startswith("worker:")]
+        self.assertEqual(len(workers), len(set(agent_module.WORKERS.values())))
+        self.assertTrue(all(c["ok"] for c in workers), workers)
+        self.assertFalse((home / "device-key.bin").exists(), "diagnosing never creates or reads the key")
+
+
 CHILD = """
 import sys, anyio
 sys.path[:0] = [{tests!r}]

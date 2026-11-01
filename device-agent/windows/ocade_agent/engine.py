@@ -53,11 +53,15 @@ def office_available() -> bool:
 
 
 def _soffice() -> str | None:
+    """LibreOffice on PATH, or where its own installer puts it (it adds nothing to PATH)."""
     found = shutil.which("soffice") or shutil.which("libreoffice")
-    if found or sys.platform != "win32":
+    if found:
         return found
-    default = Path(os.environ.get("PROGRAMFILES", r"C:\Program Files")) / "LibreOffice/program/soffice.exe"
-    return str(default) if default.exists() else None
+    default = {
+        "win32": Path(os.environ.get("PROGRAMFILES", r"C:\Program Files")) / "LibreOffice/program/soffice.exe",
+        "darwin": Path("/Applications/LibreOffice.app/Contents/MacOS/soffice"),
+    }.get(sys.platform)
+    return str(default) if default and default.exists() else None
 
 
 def _libreoffice_convert(source: Path, target_format: str, out_dir: Path) -> Path:

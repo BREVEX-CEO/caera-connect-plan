@@ -3,6 +3,7 @@
     ocade_agent enroll --server https://ocade.in --workspace "%USERPROFILE%\\Documents\\JARVIS"
     ocade_agent run          (server and workspace remembered from enroll)
     ocade_agent stop         (local STOP: no network, no model)
+    ocade_agent diagnose     (what is wrong on this computer, in plain words)
 
 Outbound only. While an action runs, the loop keeps asking the server about its
 task; the moment the task is no longer running (STOP, Take Over, revoke, owner
@@ -25,7 +26,7 @@ import anyio
 
 from . import catalog, discovery
 from .device import Device
-from .gateway import WORKERS, Gateway, receipt
+from .gateway import PROTOCOL, WORKERS, Gateway, receipt
 from .journal import Journal
 
 VERSION = "0.1.0"
@@ -152,6 +153,68 @@ class Agent:
             idle = min(idle * 2, 30.0)
 
 
+def diagnose(home: Path, server: str | None, workspace: str | None) -> list[dict]:
+    """What a person (or support) needs to see when JARVIS cannot work on this computer.
+    Read-only: no task is claimed, nothing is written outside a probe file that is removed,
+    and no key, token or file content is shown."""
+    import tempfile
+    import urllib.request
+
+    checks: list[dict] = []
+
+    def check(name: str, ok: bool, detail: str) -> None:
+        checks.append({"check": name, "ok": ok, "detail": detail})
+
+    check("software", True, f"OCADE JARVIS {VERSION}, protocol v{PROTOCOL['version']}, {platform.system()} "
+                            f"{platform.release()} {platform.machine()}, Python {platform.python_version()}")
+    saved = json.loads((home / "device.json").read_text()) if (home / "device.json").exists() else {}
+    check("paired", bool(saved.get("deviceId")),
+          "paired with an OCADE account" if saved.get("deviceId") else "not paired: run enroll and type the code in OCADE")
+    if workspace and Path(workspace).is_dir():
+        try:
+            with tempfile.TemporaryFile(dir=workspace):
+                pass
+            check("workspace", True, f"{workspace} exists and JARVIS can save into it")
+        except OSError as error:
+            check("workspace", False, f"{workspace} cannot be written ({error.strerror}); check its permissions")
+    else:
+        check("workspace", False, "no JARVIS folder chosen, or it was moved or deleted")
+    if server:
+        try:
+            with urllib.request.urlopen(urllib.request.Request(server, method="HEAD"), timeout=10):
+                pass
+            check("server", True, f"{server} reachable")
+        except urllib.error.HTTPError:
+            check("server", True, f"{server} reachable")
+        except Exception as error:
+            check("server", False, f"{server} unreachable ({type(error).__name__}); check the internet connection or proxy")
+    else:
+        check("server", False, "no OCADE server address saved; run enroll first")
+    engines = discovery.engines()
+    for engine in ("browser", "ffmpeg", "office"):
+        check(f"engine:{engine}", engine in engines,
+              "available" if engine in engines else "not found: operations that need it are not offered")
+    external, rejected = catalog.load(home)
+    for entry in rejected:
+        check(f"mcp:{entry['file']}", False, f"manifest not used: {entry['reason']}")
+    for manifest in external.values():
+        check(f"mcp:{manifest['id']}", manifest["state"] == "trusted", manifest["state"])
+
+    async def workers() -> None:
+        async with Gateway(workspace or tempfile.mkdtemp(), home=str(home)) as gateway:
+            for module in sorted(set(WORKERS.values())):
+                try:
+                    await gateway._session(module)
+                    check(f"worker:{module.rsplit('.', 1)[1]}", True, "starts and offers exactly its approved tools")
+                except Exception as error:
+                    check(f"worker:{module.rsplit('.', 1)[1]}", False, f"did not start ({type(error).__name__})")
+
+    anyio.run(workers)
+    check("stop", not (home / "STOP").exists(),
+          "no local STOP" if not (home / "STOP").exists() else "STOP is set on this computer; run starts JARVIS again")
+    return checks
+
+
 def main(argv: list[str] | None = None) -> int:
     # A frozen customer installer has its own verified Chromium; neither the
     # customer's Edge/Chrome nor a developer-level Playwright install is needed.
@@ -160,7 +223,7 @@ def main(argv: list[str] | None = None) -> int:
         if bundled_browsers.is_dir():
             os.environ["PLAYWRIGHT_BROWSERS_PATH"] = str(bundled_browsers)
     parser = argparse.ArgumentParser(prog="ocade_agent")
-    parser.add_argument("command", choices=["enroll", "run", "stop", "worker"])
+    parser.add_argument("command", choices=["enroll", "run", "stop", "worker", "diagnose"])
     parser.add_argument("module", nargs="?", help=argparse.SUPPRESS)
     parser.add_argument("--server")
     parser.add_argument("--name", default=platform.node() or "My computer")
@@ -182,6 +245,11 @@ def main(argv: list[str] | None = None) -> int:
     saved = json.loads((home / "device.json").read_text()) if (home / "device.json").exists() else {}
     server = args.server or saved.get("server")
     workspace = args.workspace or saved.get("workspace")
+    if args.command == "diagnose":
+        checks = diagnose(home, server, workspace)
+        for item in checks:
+            print(f"{'OK  ' if item['ok'] else 'FIX '} {item['check']}: {item['detail']}")
+        return 0 if all(item["ok"] for item in checks if not item["check"].startswith("engine:")) else 1
     if not server:
         print("--server is required the first time", file=sys.stderr)
         return 2

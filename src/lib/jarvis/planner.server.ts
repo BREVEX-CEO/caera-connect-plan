@@ -241,6 +241,8 @@ const SYSTEM = [
   "and ui.click_point only when nothing else can reach the control. Use only apps and sites in `allowed`.",
   "shell.run runs one command the person reads and confirms: use it when no typed operation fits (diagnosing or",
   "repairing the computer, installing software); look before changing anything, and judge its exit code and output.",
+  "Before installing a program, system.inspect what is already there (OS, architecture, disk); install with the",
+  "platform's own package manager when one is present, then inspect again to confirm it is in place.",
   "To change an existing text file, fs.read_text it and fs.replace_text it with the sha256 that read returned; never",
   "write file contents through a command. Never change where the person's own scripts or programs read or write:",
   "only files JARVIS itself creates go under 'OCADE output/'.",
