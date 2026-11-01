@@ -12,6 +12,11 @@ python -m venv .build-venv
 .\.build-venv\Scripts\python -m playwright install chromium
 Set-Location packaging
 ..\.build-venv\Scripts\pyinstaller --noconfirm --distpath ..\dist --workpath ..\build ocade-agent.spec
+if ($env:SOURCE_DATE_EPOCH) {
+  # Reproducible installer: every bundled file carries the commit's time, not the build's.
+  $stamp = [DateTimeOffset]::FromUnixTimeSeconds([long]$env:SOURCE_DATE_EPOCH).UtcDateTime
+  Get-ChildItem ..\dist -Recurse -File | ForEach-Object { $_.LastWriteTimeUtc = $stamp }
+}
 if ($env:OCADE_SIGN_THUMBPRINT) {
   Get-ChildItem "..\dist\OCADE JARVIS\*.exe" | ForEach-Object {
     signtool sign /sha1 $env:OCADE_SIGN_THUMBPRINT /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 $_.FullName

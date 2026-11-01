@@ -4,6 +4,9 @@
 ; STATUS: CODED, UNTESTED. Build with packaging/build.ps1.
 #define Version "0.1.0"
 #define Server "https://ocade.in"
+#ifndef Dist
+  #define Dist "..\dist"
+#endif
 
 [Setup]
 AppId={{C7C66684-E9C6-4651-9943-4685C78C52FA}
@@ -23,7 +26,7 @@ TimeStampsInUTC=yes
 UninstallDisplayName=OCADE JARVIS
 
 [Files]
-Source: "..\dist\OCADE JARVIS\*"; DestDir: "{app}"; Flags: recursesubdirs ignoreversion
+Source: "{#Dist}\OCADE JARVIS\*"; DestDir: "{app}"; Flags: recursesubdirs ignoreversion
 
 [Dirs]
 Name: "{userdocs}\OCADE JARVIS"

@@ -191,7 +191,9 @@ jobs:
           $env:PLAYWRIGHT_BROWSERS_PATH = Join-Path (Get-Location) "playwright-browsers"
           ..\.build-venv\Scripts\pyinstaller --noconfirm --distpath ..\dist2 --workpath ..\build2 ocade-agent.spec
           ..\.build-venv\Scripts\python compare_builds.py "..\dist\OCADE JARVIS" "..\dist2\OCADE JARVIS"
-          iscc /O"Output2" ocade-agent.iss
+          $stamp = [DateTimeOffset]::FromUnixTimeSeconds([long]$env:SOURCE_DATE_EPOCH).UtcDateTime
+          Get-ChildItem ..\dist2 -Recurse -File | ForEach-Object { $_.LastWriteTimeUtc = $stamp }
+          iscc /DDist=..\dist2 /O"Output2" ocade-agent.iss  # the second installer from the second, rebuilt bundle
           ..\.build-venv\Scripts\python compare_builds.py Output Output2
       - name: Installer lifecycle - install, diagnose, repair, uninstall; the person's files survive
         shell: pwsh
