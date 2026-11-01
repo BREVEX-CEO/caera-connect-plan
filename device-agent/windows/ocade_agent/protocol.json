@@ -75,6 +75,36 @@
         "additionalProperties": false
       }
     },
+    "fs.replace_text": {
+      "role": "fs_sandbox",
+      "capability": "files",
+      "risk": "external_effect",
+      "arguments": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 260
+          },
+          "text": {
+            "type": "string",
+            "maxLength": 50000
+          },
+          "expectSha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        },
+        "required": [
+          "path",
+          "text",
+          "expectSha256"
+        ],
+        "additionalProperties": false
+      }
+    },
     "media.inspect": {
       "role": "media_engine",
       "capability": "files",

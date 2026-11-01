@@ -28,6 +28,10 @@ TEXT_SUFFIXES = (".txt", ".csv", ".tsv", ".md", ".json", ".xml", ".html", ".yaml
 _RESERVED = re.compile(r"^(con|prn|aux|nul|com[0-9]|lpt[0-9])(\..*)?$", re.IGNORECASE)
 
 
+_UMASK = os.umask(0o022)
+os.umask(_UMASK)
+
+
 class Refused(Exception):
     """An action asked for something outside the workspace's rules."""
 
@@ -67,6 +71,7 @@ def write_atomically(target: Path, produce) -> str:
     target.parent.mkdir(parents=True, exist_ok=True)
     handle, temporary = tempfile.mkstemp(dir=target.parent, prefix=".ocade-", suffix=target.suffix)
     os.close(handle)
+    os.chmod(temporary, 0o666 & ~_UMASK)  # a deliverable gets ordinary file permissions, not mkstemp's 0600
     try:
         produce(Path(temporary))
         if target.exists():

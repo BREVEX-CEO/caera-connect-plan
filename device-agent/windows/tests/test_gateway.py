@@ -6,6 +6,7 @@ Fakes are used only to make workers misbehave; they never stand in for output.
 """
 
 import json
+import os
 import shutil
 import tempfile
 import unittest
@@ -128,6 +129,31 @@ class Journey(unittest.TestCase):
         self.assertFalse((self.root / f"{self.out}/run.bat").exists())
         self.assertEqual(outside["errorCode"], "invalid_intent")  # originals live outside OCADE output
         self.assertEqual(verified["evidence"]["predicates"], {"has": True, "not": False})
+
+    def test_repair_in_place_keeps_the_original_and_never_overwrites_a_newer_edit(self):
+        (self.root / "tool.py").write_text("print('broken'\n")
+        os.chmod(self.root / "tool.py", 0o755)
+        [read] = self.run_all(Gateway(str(self.root)), [intent("fs.read_text", {"path": "tool.py"})])
+        fixed = "print('fixed')\n"
+        replaced, stale, own, binary = self.run_all(Gateway(str(self.root)), [
+            intent("fs.replace_text", {"path": "tool.py", "text": fixed, "expectSha256": read["evidence"]["sha256"]}),
+            intent("fs.replace_text", {"path": "tool.py", "text": "x", "expectSha256": read["evidence"]["sha256"]}),
+            intent("fs.write_text", {"path": f"{self.out}/note.txt", "text": "mine"}),
+            intent("fs.replace_text", {"path": "Q3 ledger.xlsx", "text": "x", "expectSha256": "0" * 64}),
+        ])
+        self.assertEqual(replaced["status"], "observed", replaced)
+        self.assertTrue(replaced["evidence"]["matches"])
+        self.assertEqual((self.root / "tool.py").read_text(), fixed)
+        self.assertEqual((self.root / replaced["evidence"]["original"]).read_text(), "print('broken'\n")
+        self.assertEqual(stale["errorCode"], "file_changed")  # the person's (or JARVIS's) newer version stays
+        self.assertEqual((self.root / "tool.py").read_text(), fixed)
+        self.assertEqual(binary["errorCode"], "unsupported_file_type")
+        [inside] = self.run_all(Gateway(str(self.root)), [intent("fs.replace_text", {
+            "path": f"{self.out}/note.txt", "text": "y", "expectSha256": own["evidence"]["sha256"]})])
+        self.assertEqual(inside["errorCode"], "write_inside_output")
+        if os.name == "posix":
+            self.assertEqual(os.stat(self.root / "tool.py").st_mode & 0o777, 0o755)  # mode kept
+            self.assertEqual(os.stat(self.root / f"{self.out}/note.txt").st_mode & 0o044, 0o044)  # not 0600
 
     def test_missing_outputs_are_not_passed(self):
         [verified] = self.run_all(Gateway(str(self.root)), [self.checks()])

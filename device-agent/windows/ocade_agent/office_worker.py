@@ -13,6 +13,8 @@ from __future__ import annotations
 
 import functools
 import os
+import shutil
+import time
 from pathlib import Path
 
 import openpyxl
@@ -20,7 +22,7 @@ from docx import Document
 from mcp.server.mcpserver import MCPServer
 
 from . import engine
-from .sandbox import TEXT_SUFFIXES, Refused, output_path, resolve, sha256, write_atomically
+from .sandbox import OUTPUT_DIR, TEXT_SUFFIXES, Refused, output_path, resolve, sha256, write_atomically
 
 app = MCPServer("ocade-office")
 WORKSPACE = os.environ.get("OCADE_WORKSPACE", "")
@@ -121,6 +123,39 @@ def fs_write_text(path: str, text: str) -> dict:
         raise Refused("unsupported_file_type")
     digest = write_atomically(target, lambda temporary: temporary.write_text(text, encoding="utf-8", newline=""))
     return {"sha256": digest, "bytes": target.stat().st_size, "matches": target.read_bytes().decode("utf-8") == text}
+
+
+@app.tool()
+@_evidence
+def fs_replace_text(path: str, text: str, expectSha256: str) -> dict:
+    """Replace a text file in place, only if it is still the version that was read; keep the original."""
+    target = resolve(WORKSPACE, path)
+    if not target.is_file():
+        raise Refused("not_a_file")
+    if target.suffix.lower() not in TEXT_SUFFIXES:
+        raise Refused("unsupported_file_type")
+    root = Path(os.path.realpath(WORKSPACE))
+    output_root = root / OUTPUT_DIR
+    relative = target.relative_to(root)
+    if os.path.commonpath([output_root, target]) == str(output_root):
+        raise Refused("write_inside_output")  # JARVIS's own outputs are never edited; write a new one
+    before = sha256(target)
+    if before != expectSha256:
+        raise Refused("file_changed")  # someone changed it since it was read: read it again
+    stamp = time.strftime("%Y%m%dT%H%M%SZ", time.gmtime())
+    original = output_path(WORKSPACE, f"{OUTPUT_DIR}/originals/{relative.as_posix()}.{stamp}{target.suffix}")
+    write_atomically(original, lambda temporary: shutil.copyfile(target, temporary))
+    staged = target.with_name(f".ocade-{target.name}")
+    try:
+        staged.write_bytes(text.encode("utf-8"))
+        shutil.copymode(target, staged)
+        if sha256(target) != before:
+            raise Refused("file_changed")
+        os.replace(staged, target)
+    finally:
+        staged.unlink(missing_ok=True)
+    return {"sha256Before": before, "sha256": sha256(target), "original": original.relative_to(root).as_posix(),
+            "matches": target.read_bytes().decode("utf-8") == text}
 
 
 @app.tool()

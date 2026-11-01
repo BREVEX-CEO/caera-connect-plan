@@ -441,6 +441,18 @@ export const OPERATIONS = {
       text: z.string().max(50_000),
     }),
   },
+  "fs.replace_text": {
+    summary:
+      "Replace the whole text of an existing plain-text workspace file (for example to repair a script or config), after the person confirms. Needs the sha256 fs.read_text returned, so a change made since is never overwritten; the original is kept under 'OCADE output/originals/'.",
+    role: "fs_sandbox",
+    capability: "files",
+    risk: "external_effect",
+    arguments: z.strictObject({
+      path: workspacePath,
+      text: z.string().max(50_000),
+      expectSha256: z.string().regex(/^[0-9a-f]{64}$/),
+    }),
+  },
   "media.inspect": {
     summary:
       "Technical facts of an image, audio or video file: dimensions, duration, codecs and streams.",
