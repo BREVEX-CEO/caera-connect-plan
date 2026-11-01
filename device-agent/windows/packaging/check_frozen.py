@@ -19,6 +19,14 @@ WORKERS = ("ocade_agent.office_worker", "ocade_agent.verify_worker", "ocade_agen
 
 
 async def main(executable: str, path: str) -> None:
+    # PyInstaller --onedir places datas in _internal on modern builds.
+    # A green worker handshake without a browser bundle is not an installable product.
+    root = Path(executable).resolve().parent
+    candidates = (root / "_internal" / "playwright-browsers", root / "playwright-browsers")
+    browsers = [candidate for candidate in candidates if candidate.is_dir()]
+    if not any(any(folder.rglob("chrome.exe")) for folder in browsers):
+        raise RuntimeError("frozen installer is missing its Playwright Chromium dependency")
+    print(json.dumps({"browserBundled": True}), flush=True)
     workspace = Path(tempfile.mkdtemp())
     Image.new("RGB", (320, 180), (200, 10, 10)).save(workspace / "a.png")
     for module in WORKERS:
