@@ -51,12 +51,24 @@ jobs:
         env:
           PYTHONPATH: device-agent/windows
         run: python -m unittest discover -s device-agent/windows/tests -p test_sandbox.py -v
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        if: success() || failure()
+        with:
+          python-version: "3.12"
+      - name: Install locked runtime for focused real-worker safety checks
+        if: success() || failure()
+        run: python -m pip install -r device-agent/windows/requirements.txt
+      - name: Verifier collisions and unrelated-file preservation (real MCP workers)
+        if: success() || failure()
+        working-directory: device-agent/windows
+        run: python -m unittest tests.test_gateway.Journey.test_duplicate_verifier_ids_cannot_erase_a_failed_check tests.test_gateway.Journey.test_repair_preserves_an_unrelated_hidden_staging_name tests.test_gateway.Journey.test_repeated_repairs_keep_distinct_exact_originals -v
       - name: Source formatting
+        if: success() || failure()
         run: npm run format:check
       - name: Formatting evidence for failed remote candidates
         if: failure()
         run: |
-          node --input-type=module -e 'import fs from "node:fs"; import prettier from "prettier"; for (const path of process.argv.slice(1)) console.log("OCADE_FORMAT:" + JSON.stringify({path, content: await prettier.format(fs.readFileSync(path, "utf8"), {...await prettier.resolveConfig(path), filepath:path})}));' src/lib/jarvis/planner.server.ts tests/security/planner.test.ts tests/jarvis/contracts.test.ts tests/jarvis/e2e.test.ts .github/workflows/jarvis-cloud-validation.yml
+          node --input-type=module -e 'import fs from "node:fs"; import prettier from "prettier"; for (const path of process.argv.slice(1)) console.log("OCADE_FORMAT:" + JSON.stringify({path, content: await prettier.format(fs.readFileSync(path, "utf8"), {...await prettier.resolveConfig(path), filepath:path})}));' src/lib/jarvis/contracts.ts src/lib/jarvis/planner.server.ts tests/security/planner.test.ts tests/security/verification.test.ts tests/jarvis/contracts.test.ts tests/jarvis/e2e.test.ts .github/workflows/jarvis-cloud-validation.yml
 
   contracts-db:
     needs: planner-safety

@@ -1,0 +1,84 @@
+{
+  "sourceSha": "897675b5fb0dd02e05a1e66c4075f1e481f05dfc",
+  "branch": "ocade/p00-p22-implementation",
+  "run": {
+    "id": 41335250240,
+    "number": 49,
+    "url": "https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41335250240",
+    "conclusion": "success"
+  },
+  "environment": "GitHub standard hosted disposable runners; no provider calls or customer-PC/product execution",
+  "jobs": [
+    {
+      "id": 124933588381,
+      "name": "Planner safety / source formatting · Linux",
+      "conclusion": "success"
+    },
+    {
+      "id": 124933712056,
+      "name": "Windows unsigned installer / frozen MCP smoke · NOT release-ready",
+      "conclusion": "success"
+    },
+    {
+      "id": 124933712084,
+      "name": "Python MCP / journal / browser · ubuntu-latest",
+      "conclusion": "success"
+    },
+    {
+      "id": 124933712122,
+      "name": "Python MCP / journal / browser · macos-latest",
+      "conclusion": "success"
+    },
+    {
+      "id": 124933712124,
+      "name": "Portable build / model contracts / ephemeral DB · Linux",
+      "conclusion": "success"
+    },
+    {
+      "id": 124933712212,
+      "name": "Python MCP / journal / browser · windows-latest",
+      "conclusion": "success"
+    }
+  ],
+  "checks": {
+    "plannerAndContracts": {
+      "pass": 32,
+      "fail": 0,
+      "skip": 0
+    },
+    "jsIntegration": {
+      "pass": 38,
+      "fail": 0,
+      "skip": 0
+    },
+    "sandbox": {
+      "pass": 6,
+      "fail": 0
+    },
+    "companion": {
+      "linux": {
+        "discovered": 57,
+        "platformSkips": 3
+      },
+      "windows": {
+        "discovered": 57,
+        "platformSkips": 3
+      },
+      "macos": {
+        "discovered": 57,
+        "platformSkips": 2
+      }
+    },
+    "portableBuildGates": 7,
+    "database": "PASS",
+    "dependencyAudits": "PASS",
+    "installer": "PASS: frozen workers, bundle + installer reproducibility, install/repair/uninstall"
+  },
+  "limitations": [
+    "Consumer Windows 10/11 and representative Macs are not qualified",
+    "No real-Gemini accuracy remeasurement",
+    "266-requirement independent audit remains unfinished",
+    "Previously reported 112/266 is historical; 20% commercial readiness is not upgraded",
+    "New verifier/staging defects are being reproduced in the next checkpoint"
+  ]
+}

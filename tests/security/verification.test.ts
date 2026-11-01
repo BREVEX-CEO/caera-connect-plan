@@ -1,0 +1,105 @@
+/** Fixed acceptance rules and the actual dispatched verifier request must agree. */
+import assert from "node:assert/strict";
+import { createServer } from "node:http";
+import { test } from "node:test";
+import { intent, type OutcomeCheck } from "../../src/lib/jarvis/contracts.ts";
+import {
+  compileGoal,
+  planStep,
+  plannerAccess,
+  PlannerUnavailable,
+} from "../../src/lib/jarvis/planner.server.ts";
+import type { Step } from "../../src/lib/jarvis/supervisor.ts";
+
+const now = new Date("2026-11-01T00:00:00Z");
+const deadline = new Date(now.getTime() + 60_000);
+const path = `OCADE output/${crypto.randomUUID()}.txt`;
+const check: OutcomeCheck = {
+  id: "requested",
+  description: "The requested output contains the requested content",
+  kind: "file_contains",
+  params: { path, text: "independently required content" },
+};
+const verified = (checks: OutcomeCheck[]): Step => ({
+  intent: intent("verify.checks", "verify", { checks }, deadline),
+  status: "done",
+  receipt: {
+    status: "observed",
+    maybeChanged: false,
+    observedAtUtc: now.toISOString(),
+    evidence: { predicates: { requested: true } },
+  },
+});
+const base = {
+  userId: "synthetic-user",
+  objective: "Produce the requested output",
+  checks: [check],
+  grants: ["files"],
+  now,
+  turnKey: "synthetic-verification",
+};
+
+test("completion requires proof of the exact, well-formed saved acceptance rules", async (t) => {
+  const proof = verified([check]);
+  for (const [name, checks, step] of [
+    ["empty task checks", [], proof],
+    ["duplicate identifiers", [check, { ...check, params: { path: "absent.txt", text: "missing" } }], proof],
+    ["missing predicate arguments", [{ ...check, params: { path } }], proof],
+    ["verifier checked another file", [check], verified([{ ...check, params: { path: "other.txt", text: check.params!.text } }])],
+    ["verifier used a weaker predicate", [check], verified([{ ...check, kind: "file_exists", params: { path } }])],
+    ["unknown receipt", [check], { ...proof, receipt: { ...proof.receipt!, status: "unknown" } }],
+  ] as const) {
+    await t.test(name, async () => {
+      const decision = await planStep({ ...base, checks: [...checks], steps: [step] });
+      assert.equal(decision.kind, "block", JSON.stringify(decision));
+    });
+  }
+  assert.equal((await planStep({ ...base, steps: [proof] })).kind, "settle");
+});
+
+test("goal compilation refuses duplicate, incomplete or conflicting acceptance proposals", async (t) => {
+  let checks: OutcomeCheck[] = [check];
+  let duplicateProposal = false;
+  const server = createServer(async (req, res) => {
+    for await (const chunk of req) void chunk;
+    const call = { id: "goal", name: "set_goal", arguments: { checks } };
+    const calls = duplicateProposal ? [call, { ...call, id: "other-goal" }] : [call];
+    const frames = [
+      ...calls.map((call) => ({ type: "tool_call", call })),
+      { type: "final", response: { backend: "online", stopReason: "tool_use", toolCalls: calls } },
+    ];
+    res.writeHead(200, { "content-type": "text/event-stream" });
+    res.end(frames.map((event) => `data: ${JSON.stringify(event)}\r\n\r\n`).join(""));
+  });
+  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const saved = { ...plannerAccess };
+  const { port } = server.address() as { port: number };
+  plannerAccess.serviceUrl = () => `http://127.0.0.1:${port}`;
+  plannerAccess.serviceKey = () => "synthetic-loopback-key";
+  plannerAccess.acquirePermit = async (_user, key) => ({
+    permit: { id: "permit", generationId: key, idempotencyKey: key, surface: "jarvis", source: "server" },
+    release: async () => {},
+  });
+  try {
+    for (const [name, proposed] of [
+      ["duplicate identifiers", [check, { ...check, params: { path: "different.txt", text: "different" } }]],
+      ["missing required content", [{ ...check, params: { path } }]],
+      ["missing workbook coordinates", [{ ...check, kind: "workbook_cell_equals", params: { path } }]],
+      ["invalid duration type", [{ ...check, kind: "media_duration", params: { path, value: "thirty" } }]],
+    ] as const) {
+      await t.test(name, async () => {
+        checks = [...proposed];
+        await assert.rejects(compileGoal(base.userId, base.objective, base.grants), PlannerUnavailable);
+      });
+    }
+    checks = [check];
+    duplicateProposal = true;
+    await assert.rejects(compileGoal(base.userId, base.objective, base.grants), PlannerUnavailable);
+    duplicateProposal = false;
+    assert.deepEqual(await compileGoal(base.userId, base.objective, base.grants), [check]);
+  } finally {
+    Object.assign(plannerAccess, saved);
+    server.closeAllConnections();
+    await new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
+  }
+});

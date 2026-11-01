@@ -112,6 +112,36 @@ class Journey(unittest.TestCase):
             "path": f"{self.out}/r.xlsx", "sheets": [{"name": "R", "rows": [[1]]}]})])
         self.assertEqual((again["status"], again["errorCode"]), ("not_applied", "output_exists"))
 
+    def test_duplicate_verifier_ids_cannot_erase_a_failed_check(self):
+        existing = os.urandom(8).hex() + ".txt"
+        (self.root / existing).write_text("real file", encoding="utf-8")
+        checks = [
+            {"id": "same", "description": "absent", "kind": "file_exists",
+             "params": {"path": os.urandom(8).hex() + ".txt"}},
+            {"id": "same", "description": "present", "kind": "file_exists",
+             "params": {"path": existing}},
+        ]
+        [result] = self.run_all(Gateway(str(self.root)), [intent("verify.checks", {"checks": checks})])
+        self.assertEqual((result["status"], result.get("errorCode")), ("not_applied", "invalid_checks"))
+
+    def test_repeated_repairs_keep_distinct_exact_originals(self):
+        from unittest.mock import patch
+        from ocade_agent import office_worker
+        from ocade_agent.sandbox import sha256
+
+        name = os.urandom(8).hex() + ".txt"
+        target = self.root / name
+        target.write_bytes(b"version one")
+        with patch.object(office_worker, "WORKSPACE", str(self.root)), patch.object(
+            office_worker.time, "strftime", return_value="same-clock-tick"
+        ):
+            first = office_worker._rewrite(name, sha256(target), lambda _: "version two")
+            second = office_worker._rewrite(name, sha256(target), lambda _: "version three")
+        self.assertNotEqual(first["original"], second["original"])
+        self.assertEqual((self.root / first["original"]).read_bytes(), b"version one")
+        self.assertEqual((self.root / second["original"]).read_bytes(), b"version two")
+        self.assertEqual(target.read_bytes(), b"version three")
+
     def test_text_files_are_new_exact_and_verified(self):
         text = "Get-Service | Where-Object Status -eq 'Stopped'\r\nnaïve café — ✓\n"
         script = f"{self.out}/fix.ps1"
@@ -164,6 +194,21 @@ class Journey(unittest.TestCase):
         if os.name == "posix":
             self.assertEqual(os.stat(self.root / "tool.py").st_mode & 0o777, 0o755)  # mode kept
             self.assertEqual(os.stat(self.root / f"{self.out}/note.txt").st_mode & 0o044, 0o044)  # not 0600
+
+    def test_repair_preserves_an_unrelated_hidden_staging_name(self):
+        name = os.urandom(8).hex() + ".py"
+        target = self.root / name
+        hidden = self.root / (".ocade-" + name)
+        target.write_text("print('old')\n", encoding="utf-8")
+        hidden.write_bytes(b"unrelated customer data")
+        [read] = self.run_all(Gateway(str(self.root)), [intent("fs.read_text", {"path": name})])
+        [result] = self.run_all(Gateway(str(self.root)), [intent("fs.edit_text", {
+            "path": name, "expectSha256": read["evidence"]["sha256"],
+            "edits": [{"find": "'old'", "replace": "'new'"}],
+        })])
+        self.assertEqual(result["status"], "observed", result)
+        self.assertEqual(hidden.read_bytes(), b"unrelated customer data")
+        self.assertEqual(target.read_text(encoding="utf-8"), "print('new')\n")
 
     def test_exact_edits_change_only_what_they_name(self):
         config = '{\n  "column": "total",\n  "output": "amber_summary.txt",\n}\n'
