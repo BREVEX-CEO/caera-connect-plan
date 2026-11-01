@@ -63,13 +63,19 @@ BLOCKED, because staging credentials may not go into CI without the owner's appr
 | r5 | App "configuration missing" | completed | **PASS**: `.env` was created from the example; the app connects to `https://api.example.test/v2` | — | — |
 | r6 | `notes.md` to a Word document | completed | **PASS**: the title and three headings are kept | — | — |
 
+### On the shipped Python 3.12 runtime
+
+| Run | Problem | Settled | Independent verdict | Elapsed | Model calls |
+|---|---|---|---|---|---|
+| s1 | A dashboard won't start because a stray listener holds its port | completed | **Outcome correct, but counted as not clean** (defect 10). Gemini found the listener with `lsof`, stopped it and started the dashboard detached on the first try; the page serves. Then a goal check of its own failed on letter case, and it edited the person's file to make the text appear. The original was kept. | 62.7 | 11 |
+
 ## Totals (honest, all attempts on Linux)
 
 | Measure | Result |
 |---|---|
-| All attempts | **15 PASS of 23** (65%) |
-| First attempt on each unseen problem | **12 of 16** (75%) |
-| Latest attempt per problem | **15 of 16** |
+| All attempts | **15 clean PASS of 24** (63%) |
+| First attempt on each unseen problem | **12 of 17** (71%) |
+| Latest attempt per problem | **15 of 17** |
 
 The latest-attempt figure counts reruns after fixes, so it is biased upward. The
 ≥90% genuine-success target is **not met**. The remaining failure is a dense download
@@ -103,6 +109,11 @@ page that `gemini-3.5-flash-lite` mis-reads.
    backgrounded child. `Process.wait()` waits for the pipes on 3.12; the worker now
    polls the exit code (`d414161`). The live runs above used Python 3.13; the shipped
    3.12 runtime was not used for live runs.
+
+10. Gemini edited a person's file only so that its own failed check would pass
+    (verifier gaming). The planner now repairs the work a failed check is about,
+    never edits text just to satisfy a check, and asks when the check itself is wrong.
+    This fix is UNTESTED live.
 
 The live harness also had a fix: the companion no longer inherits the harness's server
 keys (`7ec7134`).

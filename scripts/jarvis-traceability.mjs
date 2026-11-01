@@ -342,7 +342,7 @@ const C = {
     "L4",
     [],
     ["staging", "live"],
-    "Linux container, real Gemini: 15 of 23 attempts PASS (independently verified), 12 of 16 unseen problems on the first attempt; below the 90% target; Windows/macOS live runs BLOCKED (no staging credentials in CI)",
+    "Linux container, real Gemini: 15 clean PASS of 24 attempts (independently verified), 12 of 17 unseen problems on the first attempt; below the 90% target; Windows/macOS live runs BLOCKED (no staging credentials in CI)",
   ],
   80: [
     "PARTIAL",
