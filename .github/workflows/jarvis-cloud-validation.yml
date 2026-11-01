@@ -114,14 +114,34 @@ jobs:
         shell: bash
         run: |
           python -c 'from playwright.sync_api import sync_playwright; p=sync_playwright().start(); print("OCADE_BROWSER_EXECUTABLE=" + p.chromium.executable_path); p.stop()' >> "$GITHUB_ENV"
-      - name: Linux real Chromium through disposable Xvfb desktop
+      - name: Install test-runner engines (ffmpeg, LibreOffice) on Linux
+        if: runner.os == 'Linux'
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg libreoffice-calc libreoffice-writer
+      - name: Install test-runner engines (ffmpeg, LibreOffice) on Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          choco install ffmpeg libreoffice-fresh --yes --no-progress
+          "C:\Program Files\LibreOffice\program" | Out-File -FilePath $env:GITHUB_PATH -Append
+      - name: Install test-runner engines (ffmpeg, LibreOffice) on macOS
+        if: runner.os == 'macOS'
+        run: |
+          brew install ffmpeg
+          brew install --cask libreoffice
+          echo "/Applications/LibreOffice.app/Contents/MacOS" >> "$GITHUB_PATH"
+      # Every skip must be one this OS is allowed; any other skipped test fails the job.
+      - name: Linux companion tests (real Chromium on a disposable Xvfb desktop)
         if: runner.os == 'Linux'
         working-directory: device-agent/windows
-        run: xvfb-run -a python -m unittest discover -s tests -t .
-      - name: Windows/macOS companion tests (native Windows browser fixture currently unsupported)
-        if: runner.os != 'Linux'
+        run: xvfb-run -a python -m tests.run_required "needs a Windows desktop" "needs a display and OCADE_PUBLIC_WEB=1"
+      - name: Windows companion tests (real desktop UI, browser, shell)
+        if: runner.os == 'Windows'
         working-directory: device-agent/windows
-        run: python -m unittest discover -s tests -t .
+        run: python -m tests.run_required "Start-Process children do not inherit the command's output" "needs a display and OCADE_PUBLIC_WEB=1"
+      - name: macOS companion tests
+        if: runner.os == 'macOS'
+        working-directory: device-agent/windows
+        run: python -m tests.run_required "needs a Windows desktop" "needs a display and OCADE_PUBLIC_WEB=1"
       # These tests exercise portable contracts; they do NOT establish real
       # foreground UI automation, macOS AX, customer pairing, or actual media quality.
 

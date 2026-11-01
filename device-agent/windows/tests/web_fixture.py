@@ -15,7 +15,10 @@ import base64
 import hashlib
 import io
 import ipaddress
+import os
 import ssl
+import subprocess
+import sys
 import tempfile
 import threading
 from datetime import datetime, timedelta, timezone
@@ -137,25 +140,43 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def _certificate(folder: Path) -> tuple[Path, Path, str]:
-    """A self-signed certificate for 127.0.0.1 and localhost, and its SPKI pin."""
-    key = ec.generate_private_key(ec.SECP256R1())
-    name = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "ocade-fixture")])
+    """A throwaway CA and a certificate it signs for 127.0.0.1/localhost; returns the leaf's SPKI pin.
+
+    Linux/macOS browsers trust the leaf by pin; a disposable Windows CI runner trusts the CA
+    (see serve). The CA expires in a day and its key is never written to disk."""
     now = datetime.now(timezone.utc)
+    ca_key = ec.generate_private_key(ec.SECP256R1())
+    ca_name = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "OCADE test fixture CA")])
+    ca = (
+        x509.CertificateBuilder().subject_name(ca_name).issuer_name(ca_name).public_key(ca_key.public_key())
+        .serial_number(x509.random_serial_number()).not_valid_before(now - timedelta(minutes=5))
+        .not_valid_after(now + timedelta(days=1))
+        .add_extension(x509.BasicConstraints(ca=True, path_length=0), critical=True)
+        .sign(ca_key, hashes.SHA256())
+    )
+    key = ec.generate_private_key(ec.SECP256R1())
     certificate = (
-        x509.CertificateBuilder().subject_name(name).issuer_name(name).public_key(key.public_key())
+        x509.CertificateBuilder()
+        .subject_name(x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "ocade-fixture")]))
+        .issuer_name(ca_name).public_key(key.public_key())
         .serial_number(x509.random_serial_number()).not_valid_before(now - timedelta(minutes=5))
         .not_valid_after(now + timedelta(days=1))
         .add_extension(x509.SubjectAlternativeName([
             x509.DNSName("localhost"), x509.IPAddress(ipaddress.ip_address("127.0.0.1"))]), critical=False)
-        .sign(key, hashes.SHA256())
+        .sign(ca_key, hashes.SHA256())
     )
     cert_path, key_path = folder / "cert.pem", folder / "key.pem"
-    cert_path.write_bytes(certificate.public_bytes(serialization.Encoding.PEM))
+    (folder / "ca.pem").write_bytes(ca.public_bytes(serialization.Encoding.PEM))
+    cert_path.write_bytes(certificate.public_bytes(serialization.Encoding.PEM) + ca.public_bytes(serialization.Encoding.PEM))
     key_path.write_bytes(key.private_bytes(serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8,
                                            serialization.NoEncryption()))
     spki = certificate.public_key().public_bytes(serialization.Encoding.DER,
                                                  serialization.PublicFormat.SubjectPublicKeyInfo)
     return cert_path, key_path, base64.b64encode(hashlib.sha256(spki).digest()).decode()
+
+
+# Only a disposable CI Windows runner may trust the fixture CA; never a developer's or customer's PC.
+WINDOWS_CI = sys.platform == "win32" and os.environ.get("CI") == "true"
 
 
 def serve() -> tuple[ThreadingHTTPServer, str, str]:
@@ -167,11 +188,15 @@ def serve() -> tuple[ThreadingHTTPServer, str, str]:
     context.load_cert_chain(cert_path, key_path)
     server.socket = context.wrap_socket(server.socket, server_side=True)
     threading.Thread(target=server.serve_forever, daemon=True).start()
+    if WINDOWS_CI:
+        subprocess.run(["certutil", "-addstore", "-f", "Root", str(folder / "ca.pem")], check=True, capture_output=True)
     return server, f"https://127.0.0.1:{server.server_port}", pin
 
 
 def browser_wrapper(chrome: str, pin: str) -> str:
     """A test-only browser launcher: trusts exactly the fixture certificate; no sandbox as root in containers."""
+    if WINDOWS_CI:
+        return chrome  # the runner's machine store trusts the fixture CA
     script = Path(tempfile.mkdtemp()) / "chrome-test"
     script.write_text(f'#!/bin/sh\nexec "{chrome}" --no-sandbox --ignore-certificate-errors-spki-list={pin} "$@"\n')
     script.chmod(0o755)
