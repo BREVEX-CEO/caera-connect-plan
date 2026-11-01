@@ -1534,7 +1534,7 @@
         "properties": {
           "exe": {
             "type": "string",
-            "pattern": "^[A-Za-z0-9 ._()+-]{1,80}\\.exe$"
+            "pattern": "^[A-Za-z0-9 ._()+-]{1,80}$"
           },
           "open": {
             "type": "string",
@@ -1561,7 +1561,7 @@
             "properties": {
               "exe": {
                 "type": "string",
-                "pattern": "^[A-Za-z0-9 ._()+-]{1,80}\\.exe$"
+                "pattern": "^[A-Za-z0-9 ._()+-]{1,80}$"
               },
               "pid": {
                 "type": "integer",
@@ -1606,7 +1606,7 @@
             "properties": {
               "exe": {
                 "type": "string",
-                "pattern": "^[A-Za-z0-9 ._()+-]{1,80}\\.exe$"
+                "pattern": "^[A-Za-z0-9 ._()+-]{1,80}$"
               },
               "pid": {
                 "type": "integer",
@@ -1670,7 +1670,7 @@
             "properties": {
               "exe": {
                 "type": "string",
-                "pattern": "^[A-Za-z0-9 ._()+-]{1,80}\\.exe$"
+                "pattern": "^[A-Za-z0-9 ._()+-]{1,80}$"
               },
               "pid": {
                 "type": "integer",
@@ -1739,7 +1739,7 @@
             "properties": {
               "exe": {
                 "type": "string",
-                "pattern": "^[A-Za-z0-9 ._()+-]{1,80}\\.exe$"
+                "pattern": "^[A-Za-z0-9 ._()+-]{1,80}$"
               },
               "pid": {
                 "type": "integer",
@@ -1808,7 +1808,7 @@
             "properties": {
               "exe": {
                 "type": "string",
-                "pattern": "^[A-Za-z0-9 ._()+-]{1,80}\\.exe$"
+                "pattern": "^[A-Za-z0-9 ._()+-]{1,80}$"
               },
               "pid": {
                 "type": "integer",
@@ -2438,7 +2438,7 @@
                     },
                     "exe": {
                       "type": "string",
-                      "pattern": "^[A-Za-z0-9 ._()+-]{1,80}\\.exe$"
+                      "pattern": "^[A-Za-z0-9 ._()+-]{1,80}$"
                     },
                     "width": {
                       "type": "integer",

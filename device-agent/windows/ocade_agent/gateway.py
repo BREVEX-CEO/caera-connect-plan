@@ -35,7 +35,8 @@ WORKERS = {
     "fs_sandbox": "ocade_agent.office_worker",
     "sys_core": "ocade_agent.office_worker",
     "verifier": "ocade_agent.verify_worker",
-    "ui_bridge": "ocade_agent.windows_worker",
+    # One desktop capability, one bridge per platform behind the same operations.
+    "ui_bridge": "ocade_agent.mac_worker" if sys.platform == "darwin" else "ocade_agent.windows_worker",
     "web_automation": "ocade_agent.web_worker",
     "media_engine": "ocade_agent.media_worker",
     "shell": "ocade_agent.command_worker",

@@ -30,3 +30,6 @@ Start-Sleep -Seconds 3
 Check (-not (Test-Path (Join-Path $app "ocade-agent.exe"))) "uninstall removes the companion"
 Check ($null -eq (Get-ItemProperty $run -ErrorAction SilentlyContinue)."OCADE JARVIS") "uninstall removes the sign-in start"
 Check ((Get-Content (Join-Path $docs "my-notes.txt")) -eq "keep me") "uninstall keeps the person's JARVIS folder and files"
+
+# Every check above throws on failure; the expected non-zero exit of the unpaired diagnose is not the result.
+exit 0

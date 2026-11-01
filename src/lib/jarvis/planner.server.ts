@@ -234,7 +234,7 @@ export function plannerMessage(code: string): string {
 }
 
 const SYSTEM = [
-  "You are the planner of OCADE JARVIS, which carries out a person's outcome on their own Windows computer.",
+  "You are the planner of OCADE JARVIS, which carries out a person's outcome on their own computer.",
   "Choose the next function; add up to four more in the same turn only when none depends on another's result",
   "(an external effect always runs alone). Prefer, in order: workspace file, document, media and 3D-scene operations, website",
   "operations, then app windows through accessibility (ui.inspect before ui.invoke/ui.set_value/ui.send_keys),",

@@ -36,11 +36,17 @@ def engines() -> list[str]:
         found.append("browser")
     if engine.office_available():
         found.append("office")
-    if sys.platform == "win32":  # the desktop bridge (UI Automation) exists only on Windows today
-        try:
-            import pywinauto  # type: ignore[import-not-found]  # noqa: F401
+    if sys.platform == "win32":  # UI Automation
+        import importlib.util
 
+        if importlib.util.find_spec("pywinauto"):
             found.append("desktop")
+    elif sys.platform == "darwin":  # Accessibility, only once the person has granted it
+        try:
+            import ApplicationServices  # type: ignore[import-not-found]
+
+            if ApplicationServices.AXIsProcessTrusted():
+                found.append("desktop")
         except ImportError:
             pass
     return found
@@ -48,6 +54,10 @@ def engines() -> list[str]:
 
 def installed_apps(limit: int = 300) -> list[dict]:
     """[{name, exe}] for apps a person can launch, de-duplicated by executable."""
+    if sys.platform == "darwin":
+        from .mac_worker import installed_apps as mac_apps
+
+        return [{"name": a["name"], "exe": a["exe"]} for a in mac_apps(limit)]
     if sys.platform != "win32":
         return []
     import winreg

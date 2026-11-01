@@ -54,10 +54,13 @@
         },
         {
           "id": "reproducible_build",
-          "text": "Release artifacts rebuild bit-identically from pinned inputs",
-          "status": "UNTESTED",
-          "evidence": [],
-          "reason": "installer builds from pinned inputs in CI; two builds have not been compared"
+          "text": "The frozen companion (939 files) and the installer built from an independently rebuilt bundle are byte-identical (CI run 42, Windows runner)",
+          "status": "PASS",
+          "evidence": [
+            "device-agent/windows/packaging/compare_builds.py",
+            ".github/workflows/jarvis-cloud-validation.yml",
+            "device-agent/windows/packaging/build.ps1"
+          ]
         }
       ]
     },
@@ -139,7 +142,7 @@
           "evidence": [
             "device-agent/windows/packaging/check_frozen.py"
           ],
-          "reason": "Windows Server runner only; unsigned (signing excluded by owner)"
+          "reason": "Windows Server runner: builds reproducibly, every frozen worker starts; the installed companion could start no worker until 947ceee (found by the lifecycle test); unsigned (signing excluded by owner)"
         },
         {
           "id": "clean_install",
@@ -161,8 +164,11 @@
         {
           "id": "upgrade_uninstall",
           "text": "Upgrade, repair, rollback and uninstall keep customer files",
-          "status": "UNTESTED",
-          "evidence": []
+          "status": "PARTIAL",
+          "evidence": [
+            "device-agent/windows/packaging/test_install.ps1"
+          ],
+          "reason": "install, reinstall (repair) and uninstall keep the person's files on the Windows runner; upgrade between versions and rollback untested (one version exists)"
         }
       ]
     },

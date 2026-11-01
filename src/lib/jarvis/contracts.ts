@@ -41,10 +41,13 @@ const outputPath = (what = "The new file") =>
       `${what}: a new path that starts with 'OCADE output/', e.g. 'OCADE output/result.ext'`,
     );
 
-/** An executable's file name, as `apps.list` reports it and an `app:` permission names it. */
+/**
+ * An app's executable name, as `apps.list` reports it and an `app:` permission names it:
+ * `name.exe` on Windows, the bundle's executable name on macOS.
+ */
 const exe = z
   .string()
-  .regex(/^[A-Za-z0-9 ._()+-]{1,80}\.exe$/)
+  .regex(/^[A-Za-z0-9 ._()+-]{1,80}$/)
   .transform((name) => name.toLowerCase());
 
 /**

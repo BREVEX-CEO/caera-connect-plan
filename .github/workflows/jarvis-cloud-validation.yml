@@ -142,11 +142,11 @@ jobs:
       - name: Linux companion tests (real Chromium on a disposable Xvfb desktop)
         if: runner.os == 'Linux'
         working-directory: device-agent/windows
-        run: xvfb-run -a python -m tests.run_required "needs a Windows desktop" "needs a display and OCADE_PUBLIC_WEB=1"
+        run: xvfb-run -a python -m tests.run_required "needs a Windows desktop" "needs a Mac desktop with Accessibility granted" "needs a display and OCADE_PUBLIC_WEB=1"
       - name: Windows companion tests (real desktop UI, browser, shell)
         if: runner.os == 'Windows'
         working-directory: device-agent/windows
-        run: python -m tests.run_required "Start-Process children do not inherit the command's output" "needs a display and OCADE_PUBLIC_WEB=1"
+        run: python -m tests.run_required "Start-Process children do not inherit the command's output" "needs a Mac desktop with Accessibility granted" "needs a display and OCADE_PUBLIC_WEB=1"
       - name: Probe whether this macOS runner grants Accessibility trust (decides if AX can be qualified here)
         if: runner.os == 'macOS'
         run: python -c "import ctypes; ax = ctypes.cdll.LoadLibrary('/System/Library/Frameworks/ApplicationServices.framework/ApplicationServices'); print('AXIsProcessTrusted =', ax.AXIsProcessTrusted())"
