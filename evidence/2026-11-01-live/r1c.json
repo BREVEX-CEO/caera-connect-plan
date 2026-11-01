@@ -1,0 +1,4803 @@
+{
+  "objective": "Download the source code archive (.tgz) of the newest stable Python 3 release from python.org into my folder.",
+  "taskId": "cfd9f5a0-2a3d-45f3-853f-76c348ecd2d5",
+  "status": "blocked",
+  "result": null,
+  "blocker": "I was repeating the same steps without progress, so I stopped.",
+  "checks": [
+    {
+      "id": "python_tgz_downloaded",
+      "kind": "file_exists",
+      "params": {
+        "path": "OCADE output/Python-3.13.2.tgz"
+      },
+      "description": "The source code archive (.tgz) of Python 3.13.2 is downloaded into OCADE output/",
+      "state": "unchecked"
+    }
+  ],
+  "timing": {
+    "acceptedAt": "2026-11-01T11:24:33.093283+00:00",
+    "finishedAt": "2026-11-01T11:26:20.090134+00:00",
+    "verifiedAt": null,
+    "deliveredAt": null,
+    "totalElapsedMs": 106997,
+    "userWaitMs": 5463,
+    "activeExecutionMs": 6076,
+    "modelCalls": 13,
+    "modelMs": 76108,
+    "stepDurationsMs": [
+      2784.3,
+      1118.16,
+      1031.32,
+      1048.83,
+      27.96,
+      34.16,
+      31.47
+    ]
+  },
+  "confirmations": [
+    {
+      "step": "02fb5112-3c91-49c0-a346-d754a7f7e151",
+      "effect": "web.click {\n  \"page\": {\n    \"id\": \"7ed3a7012e4c\",\n    \"site\": \"www.python.org\"\n  },\n  \"selector\": \"[data-ocade=c13]\"\n}",
+      "at": "2026-11-01T11:24:51.178Z"
+    },
+    {
+      "step": "775448fe-c529-46ce-b1da-98abd2dfa97d",
+      "effect": "web.click {\n  \"page\": {\n    \"id\": \"7ed3a7012e4c\",\n    \"site\": \"www.python.org\"\n  },\n  \"selector\": \"[data-ocade=c36]\"\n}",
+      "at": "2026-11-01T11:25:08.095Z"
+    },
+    {
+      "step": "ed81a19a-0832-457b-9a78-d9e02db0e847",
+      "effect": "web.click {\n  \"page\": {\n    \"id\": \"7ed3a7012e4c\",\n    \"site\": \"www.python.org\"\n  },\n  \"selector\": \"[data-ocade=c53]\"\n}",
+      "at": "2026-11-01T11:25:28.376Z"
+    }
+  ],
+  "decisions": [
+    {
+      "summary": "open",
+      "intent": {
+        "v": 1,
+        "key": "s1",
+        "risk": "read",
+        "target": {
+          "site": "www.python.org"
+        },
+        "arguments": {
+          "url": "https://www.python.org/"
+        },
+        "operation": "web.open",
+        "capability": "browser",
+        "deadlineUtc": "2026-11-01T11:34:33.388Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "url": "https://www.python.org/",
+          "page": {
+            "id": "7ed3a7012e4c",
+            "site": "www.python.org"
+          },
+          "text": "Skip to content\nPython\nPSF\nDocs\nPyPI\nJobs\nCommunity\nDonate\n \nSearch This Site\n GO\nSocialize\nAbout\n \nDownloads\n \nDocumentation\n \nCommunity\n \nSuccess Stories\n \nNews\n \nEvents\n# Write Fibonacci series up to n\n>>> def fib(n):\n...     a, b = 0, 1\n...     while a < n:\n...         print(a, end=' ')\n...         a, b = b, a+b\n...     print()\n...\n>>> fib(1000)\n0 1 1 2 3 5 8 13 21 34 55 89 144 233 377 610 987\n\nFunctions Defined\n\nThe core of extensible programming is defining functions. Python allows mandatory and optional arguments, keyword arguments, and even arbitrary argument lists. More about defining functions\n\n1\n2\n3\n4\n5\n\nPython is a programming language that lets you work quickly\nand integrate systems more effectively. Learn More\n\n Security notice: the emSign root CA has been removed from certifi. Upgrade certifi, pip, uv and sigstore now.   See more\nGet Started\n\nWhether you're new to programming or an experienced developer, it's easy to learn and use Python.\n\nStart with our Beginner’s Guide\n\nDownload\n\nPython source code and installers are available for download for all versions!\n\nLatest: Python 3.15.2\n\nDocs\n\nDocumentation for Python's standard library, along with tutorials and guides, are available online.\n\ndocs.python.org\n\nJobs\n\nLooking for work or have a Python related position that you're trying to hire for? Our relaunched community-run job board is the place to go.\n\njobs.python.org\n\nLatest News\n\nMore news\n\n2026-10-29\nAnnouncing PSF Community Service Award Recipients!\n2026-10-26\nPython 3.15.2, 3.14.10, 3.13.18, 3.12.16 and 3.11.18 are out\n2026-10-22\nMark Your Calendars! PSF Board Office Hours for the Year Ahead\n2026-10-21\nPython 3.15.1, 3.14.9 and 3.13.17 are out\n2026-10-20\nWikis: Relaunched!\nUpcoming Events\n\nMore\n\n2026-11-06\nPyCon ES 2026\n2026-11-07\nPython El Salvador vuelve — Meetup de Reactivación\n2026-11-11\nEdmonton.py: The Edmonton Python User Group\n2026-11-12\nPython Help\n2026-11-12\nPython Leiden User Group\nSuccess Stories\n\nMore\n\nWant to know how Python is performing on Arm across Linux, Windows, and the cloud? Our 2025 update highlights the latest JIT improvements, ecosystem milestones like GitHub runners and PyTorch on Windows, and the continued collaboration driving it all forward.\n\nPython on Arm: 2025 Update by Diego Russo\n\n\n\nUse Python for…\n\nMore\n\nWeb Development: Django, Pyramid, Bottle, Tornado, Flask, Litestar, FastAPI\nGUI Development: tkInter, PyGObject, PyQt, PySide, Kivy, wxPython, DearPyGui\nAI and Machine Learning: PyTorch, TensorFlow, scikit-learn, Transformers, Anthropic, LangChain\nScientific and Numeric: SciPy, Pandas, IPython\nSoftware Development: Buildbot, Trac, Roundup\nSystem Administration: Ansible, Salt, OpenStack, xonsh\n>>> Python Software Foundation\n\nThe mission of the Python Software Foundation is to promote, protect, and advance the Python programming language, and to support and facilitate the growth of a diverse and international community of Python programmers. Learn more\n\nBecome a Member Donate to the PSF\n\nAbout\nApplications\nQuotes\nGetting Started\nHelp\nDownloads\nAll releases\nSource code\nWindows\nmacOS\nAndroid\niOS\nOther Platforms\nLicense\nAlternative Implementations\nDocumentation\nDocs\nAudio/Visual Talks\nBeginner's Guide\nFAQ\nNon-English Docs\nPEP Index\nPython Books\nPython Essays\nCommunity\nDiversity\nMailing Lists\nIRC\nForums\nPSF Annual Impact Report\nPython Conferences\nSpecial Interest Groups\nPython Logo\nPython Wiki\nCode of Conduct\nCommunity Awards\nGet Involved\nShared Stories\nSuccess Stories\nArts\nBusiness\nEducation\nEngineering\nGovernment\nScientific\nSoftware Development\nNews\nPython News\nPSF Newsletter\nPSF News\nPyCon US News\nPython Insider\nNews from the Community\nEvents\nPython Events\nUser Group Events\nPython Events Archive\nUser ",
+          "title": "Welcome to Python.org",
+          "controls": [
+            {
+              "tag": "a",
+              "href": "/",
+              "name": "",
+              "type": "",
+              "label": "Skip to content",
+              "selector": "[data-ocade=c0]"
+            },
+            {
+              "tag": "a",
+              "href": "/",
+              "name": "",
+              "type": "",
+              "label": "The Python Programming Language",
+              "selector": "[data-ocade=c1]"
+            },
+            {
+              "tag": "a",
+              "href": "/psf/",
+              "name": "",
+              "type": "",
+              "label": "The Python Software Foundation",
+              "selector": "[data-ocade=c2]"
+            },
+            {
+              "tag": "a",
+              "href": "https://docs.python.org/",
+              "name": "",
+              "type": "",
+              "label": "Python Documentation",
+              "selector": "[data-ocade=c3]"
+            },
+            {
+              "tag": "a",
+              "href": "https://pypi.org/",
+              "name": "",
+              "type": "",
+              "label": "Python Package Index",
+              "selector": "[data-ocade=c4]"
+            },
+            {
+              "tag": "a",
+              "href": "/jobs/",
+              "name": "",
+              "type": "",
+              "label": "Python Job Board",
+              "selector": "[data-ocade=c5]"
+            },
+            {
+              "tag": "a",
+              "href": "/community/",
+              "name": "",
+              "type": "",
+              "label": "Community",
+              "selector": "[data-ocade=c6]"
+            },
+            {
+              "tag": "a",
+              "href": "/",
+              "name": "",
+              "type": "",
+              "label": "",
+              "selector": "[data-ocade=c7]"
+            },
+            {
+              "tag": "a",
+              "href": "https://donate.python.org/",
+              "name": "",
+              "type": "",
+              "label": "Donate",
+              "selector": "[data-ocade=c8]"
+            },
+            {
+              "tag": "input",
+              "name": "q",
+              "type": "search",
+              "label": "Search This Site",
+              "selector": "[data-ocade=c9]"
+            },
+            {
+              "tag": "button",
+              "name": "submit",
+              "type": "submit",
+              "label": "Submit this Search",
+              "selector": "[data-ocade=c10]"
+            },
+            {
+              "tag": "a",
+              "href": "/",
+              "name": "",
+              "type": "",
+              "label": "Socialize",
+              "selector": "[data-ocade=c11]"
+            },
+            {
+              "tag": "a",
+              "href": "/about/",
+              "name": "",
+              "type": "",
+              "label": "About",
+              "selector": "[data-ocade=c12]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/",
+              "name": "",
+              "type": "",
+              "label": "Downloads",
+              "selector": "[data-ocade=c13]"
+            },
+            {
+              "tag": "a",
+              "href": "/doc/",
+              "name": "",
+              "type": "",
+              "label": "Documentation",
+              "selector": "[data-ocade=c14]"
+            },
+            {
+              "tag": "a",
+              "href": "/community/",
+              "name": "",
+              "type": "",
+              "label": "Community",
+              "selector": "[data-ocade=c15]"
+            },
+            {
+              "tag": "a",
+              "href": "/success-stories/",
+              "name": "",
+              "type": "",
+              "label": "success-stories",
+              "selector": "[data-ocade=c16]"
+            },
+            {
+              "tag": "a",
+              "href": "/blogs/",
+              "name": "",
+              "type": "",
+              "label": "News from around the Python world",
+              "selector": "[data-ocade=c17]"
+            },
+            {
+              "tag": "a",
+              "href": "/events/",
+              "name": "",
+              "type": "",
+              "label": "Events",
+              "selector": "[data-ocade=c18]"
+            },
+            {
+              "tag": "a",
+              "href": "https://docs.python.org/3/tutorial/controlflow.html#defining-functions",
+              "name": "",
+              "type": "",
+              "label": "More about defining functions",
+              "selector": "[data-ocade=c19]"
+            },
+            {
+              "tag": "a",
+              "href": "/doc/",
+              "name": "",
+              "type": "",
+              "label": "Learn More",
+              "selector": "[data-ocade=c20]"
+            },
+            {
+              "tag": "a",
+              "href": "https://discuss.python.org/t/information-for-python-users-regarding-emudhra-emsign-ca-certificate-security-incident/109576",
+              "name": "",
+              "type": "",
+              "label": "See more",
+              "selector": "[data-ocade=c21]"
+            },
+            {
+              "tag": "a",
+              "href": "/about/gettingstarted/",
+              "name": "",
+              "type": "",
+              "label": "Start with our Beginner’s Guide",
+              "selector": "[data-ocade=c22]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3152/",
+              "name": "",
+              "type": "",
+              "label": "Python 3.15.2",
+              "selector": "[data-ocade=c23]"
+            },
+            {
+              "tag": "a",
+              "href": "https://docs.python.org/",
+              "name": "",
+              "type": "",
+              "label": "docs.python.org",
+              "selector": "[data-ocade=c24]"
+            },
+            {
+              "tag": "a",
+              "href": "https://jobs.python.org/",
+              "name": "",
+              "type": "",
+              "label": "jobs.python.org",
+              "selector": "[data-ocade=c25]"
+            },
+            {
+              "tag": "a",
+              "href": "/blogs/",
+              "name": "",
+              "type": "",
+              "label": "More news",
+              "selector": "[data-ocade=c26]"
+            },
+            {
+              "tag": "a",
+              "href": "https://pyfound.blogspot.com/2026/10/announcing-psf-community-service-award.html",
+              "name": "",
+              "type": "",
+              "label": "Announcing PSF Community Service Award Recipients!",
+              "selector": "[data-ocade=c27]"
+            },
+            {
+              "tag": "a",
+              "href": "https://blog.python.org/2026/10/python-3152-31410-31318-31216-31118/",
+              "name": "",
+              "type": "",
+              "label": "Python 3.15.2, 3.14.10, 3.13.18, 3.12.16 and 3.11.18 are out",
+              "selector": "[data-ocade=c28]"
+            },
+            {
+              "tag": "a",
+              "href": "https://pyfound.blogspot.com/2026/10/mark-your-calendars-psf-board-office.html",
+              "name": "",
+              "type": "",
+              "label": "Mark Your Calendars! PSF Board Office Hours for the Year Ahead",
+              "selector": "[data-ocade=c29]"
+            },
+            {
+              "tag": "a",
+              "href": "https://blog.python.org/2026/10/python-3151-3149-31317/",
+              "name": "",
+              "type": "",
+              "label": "Python 3.15.1, 3.14.9 and 3.13.17 are out",
+              "selector": "[data-ocade=c30]"
+            },
+            {
+              "tag": "a",
+              "href": "https://pyfound.blogspot.com/2026/10/wikis-relaunched.html",
+              "name": "",
+              "type": "",
+              "label": "Wikis: Relaunched!",
+              "selector": "[data-ocade=c31]"
+            },
+            {
+              "tag": "a",
+              "href": "/events/calendars/",
+              "name": "",
+              "type": "",
+              "label": "More Events",
+              "selector": "[data-ocade=c32]"
+            },
+            {
+              "tag": "a",
+              "href": "/events/python-events/2150/",
+              "name": "",
+              "type": "",
+              "label": "PyCon ES 2026",
+              "selector": "[data-ocade=c33]"
+            },
+            {
+              "tag": "a",
+              "href": "/events/python-user-group/2253/",
+              "name": "",
+              "type": "",
+              "label": "Python El Salvador vuelve — Meetup de Reactivación",
+              "selector": "[data-ocade=c34]"
+            },
+            {
+              "tag": "a",
+              "href": "/events/python-user-group/2249/",
+              "name": "",
+              "type": "",
+              "label": "Edmonton.py: The Edmonton Python User Group",
+              "selector": "[data-ocade=c35]"
+            },
+            {
+              "tag": "a",
+              "href": "/events/python-user-group/2254/",
+              "name": "",
+              "type": "",
+              "label": "Python Help",
+              "selector": "[data-ocade=c36]"
+            },
+            {
+              "tag": "a",
+              "href": "/events/python-user-group/2212/",
+              "name": "",
+              "type": "",
+              "label": "Python Leiden User Group",
+              "selector": "[data-ocade=c37]"
+            },
+            {
+              "tag": "a",
+              "href": "/success-stories/",
+              "name": "",
+              "type": "",
+              "label": "More Success Stories",
+              "selector": "[data-ocade=c38]"
+            },
+            {
+              "tag": "a",
+              "href": "/success-stories/python-on-arm-2025-update/",
+              "name": "",
+              "type": "",
+              "label": "Want to know how Python is performing on Arm across Linux, Windows, and the clou",
+              "selector": "[data-ocade=c39]"
+            },
+            {
+              "tag": "a",
+              "href": "/success-stories/python-on-arm-2025-update/",
+              "name": "",
+              "type": "",
+              "label": "Python on Arm: 2025 Update",
+              "selector": "[data-ocade=c40]"
+            },
+            {
+              "tag": "a",
+              "href": "/about/apps",
+              "name": "",
+              "type": "",
+              "label": "More Applications",
+              "selector": "[data-ocade=c41]"
+            },
+            {
+              "tag": "a",
+              "href": "https://www.djangoproject.com/",
+              "name": "",
+              "type": "",
+              "label": "Django",
+              "selector": "[data-ocade=c42]"
+            },
+            {
+              "tag": "a",
+              "href": "https://trypyramid.com/",
+              "name": "",
+              "type": "",
+              "label": "Pyramid",
+              "selector": "[data-ocade=c43]"
+            },
+            {
+              "tag": "a",
+              "href": "https://bottlepy.org/",
+              "name": "",
+              "type": "",
+              "label": "Bottle",
+              "selector": "[data-ocade=c44]"
+            },
+            {
+              "tag": "a",
+              "href": "https://www.tornadoweb.org/",
+              "name": "",
+              "type": "",
+              "label": "Tornado",
+              "selector": "[data-ocade=c45]"
+            },
+            {
+              "tag": "a",
+              "href": "https://flask.palletsprojects.com/",
+              "name": "",
+              "type": "",
+              "label": "Flask",
+              "selector": "[data-ocade=c46]"
+            },
+            {
+              "tag": "a",
+              "href": "https://litestar.dev/",
+              "name": "",
+              "type": "",
+              "label": "Litestar",
+              "selector": "[data-ocade=c47]"
+            },
+            {
+              "tag": "a",
+              "href": "https://fastapi.tiangolo.com/",
+              "name": "",
+              "type": "",
+              "label": "FastAPI",
+              "selector": "[data-ocade=c48]"
+            },
+            {
+              "tag": "a",
+              "href": "https://en.wikipedia.org/wiki/Tkinter",
+              "name": "",
+              "type": "",
+              "label": "tkInter",
+              "selector": "[data-ocade=c49]"
+            },
+            {
+              "tag": "a",
+              "href": "https://pygobject.gnome.org/",
+              "name": "",
+              "type": "",
+              "label": "PyGObject",
+              "selector": "[data-ocade=c50]"
+            },
+            {
+              "tag": "a",
+              "href": "https://riverbankcomputing.com/software/pyqt/intro",
+              "name": "",
+              "type": "",
+              "label": "PyQt",
+              "selector": "[data-ocade=c51]"
+            },
+            {
+              "tag": "a",
+              "href": "https://wiki.qt.io/Qt_for_Python",
+              "name": "",
+              "type": "",
+              "label": "PySide",
+              "selector": "[data-ocade=c52]"
+            },
+            {
+              "tag": "a",
+              "href": "https://kivy.org/",
+              "name": "",
+              "type": "",
+              "label": "Kivy",
+              "selector": "[data-ocade=c53]"
+            },
+            {
+              "tag": "a",
+              "href": "https://www.wxpython.org/",
+              "name": "",
+              "type": "",
+              "label": "wxPython",
+              "selector": "[data-ocade=c54]"
+            },
+            {
+              "tag": "a",
+              "href": "https://dearpygui.readthedocs.io/en/latest/",
+              "name": "",
+              "type": "",
+              "label": "DearPyGui",
+              "selector": "[data-ocade=c55]"
+            },
+            {
+              "tag": "a",
+              "href": "https://pytorch.org/",
+              "name": "",
+              "type": "",
+              "label": "PyTorch",
+              "selector": "[data-ocade=c56]"
+            },
+            {
+              "tag": "a",
+              "href": "https://www.tensorflow.org/",
+              "name": "",
+              "type": "",
+              "label": "TensorFlow",
+              "selector": "[data-ocade=c57]"
+            },
+            {
+              "tag": "a",
+              "href": "https://scikit-learn.org/",
+              "name": "",
+              "type": "",
+              "label": "scikit-learn",
+              "selector": "[data-ocade=c58]"
+            },
+            {
+              "tag": "a",
+              "href": "https://huggingface.co/docs/transformers/",
+              "name": "",
+              "type": "",
+              "label": "Transformers",
+              "selector": "[data-ocade=c59]"
+            },
+            {
+              "tag": "a",
+              "href": "https://docs.anthropic.com/",
+              "name": "",
+              "type": "",
+              "label": "Anthropic",
+              "selector": "[data-ocade=c60]"
+            },
+            {
+              "tag": "a",
+              "href": "https://langchain.com/",
+              "name": "",
+              "type": "",
+              "label": "LangChain",
+              "selector": "[data-ocade=c61]"
+            },
+            {
+              "tag": "a",
+              "href": "https://scipy.org/",
+              "name": "",
+              "type": "",
+              "label": "SciPy",
+              "selector": "[data-ocade=c62]"
+            },
+            {
+              "tag": "a",
+              "href": "https://pandas.pydata.org/",
+              "name": "",
+              "type": "",
+              "label": "Pandas",
+              "selector": "[data-ocade=c63]"
+            },
+            {
+              "tag": "a",
+              "href": "https://ipython.org/",
+              "name": "",
+              "type": "",
+              "label": "IPython",
+              "selector": "[data-ocade=c64]"
+            },
+            {
+              "tag": "a",
+              "href": "https://buildbot.net/",
+              "name": "",
+              "type": "",
+              "label": "Buildbot",
+              "selector": "[data-ocade=c65]"
+            },
+            {
+              "tag": "a",
+              "href": "https://trac.edgewall.org/",
+              "name": "",
+              "type": "",
+              "label": "Trac",
+              "selector": "[data-ocade=c66]"
+            },
+            {
+              "tag": "a",
+              "href": "https://www.roundup-tracker.org/",
+              "name": "",
+              "type": "",
+              "label": "Roundup",
+              "selector": "[data-ocade=c67]"
+            },
+            {
+              "tag": "a",
+              "href": "https://docs.ansible.com/",
+              "name": "",
+              "type": "",
+              "label": "Ansible",
+              "selector": "[data-ocade=c68]"
+            },
+            {
+              "tag": "a",
+              "href": "https://saltproject.io/",
+              "name": "",
+              "type": "",
+              "label": "Salt",
+              "selector": "[data-ocade=c69]"
+            },
+            {
+              "tag": "a",
+              "href": "https://www.openstack.org/",
+              "name": "",
+              "type": "",
+              "label": "OpenStack",
+              "selector": "[data-ocade=c70]"
+            },
+            {
+              "tag": "a",
+              "href": "https://xon.sh/",
+              "name": "",
+              "type": "",
+              "label": "xonsh",
+              "selector": "[data-ocade=c71]"
+            },
+            {
+              "tag": "a",
+              "href": "/psf/",
+              "name": "",
+              "type": "",
+              "label": "Python Software Foundation",
+              "selector": "[data-ocade=c72]"
+            },
+            {
+              "tag": "a",
+              "href": "/psf/",
+              "name": "",
+              "type": "",
+              "label": "Learn more",
+              "selector": "[data-ocade=c73]"
+            },
+            {
+              "tag": "a",
+              "href": "/psf/membership/",
+              "name": "",
+              "type": "",
+              "label": "Become a Member",
+              "selector": "[data-ocade=c74]"
+            },
+            {
+              "tag": "a",
+              "href": "/psf/donations/",
+              "name": "",
+              "type": "",
+              "label": "Donate to the PSF",
+              "selector": "[data-ocade=c75]"
+            },
+            {
+              "tag": "a",
+              "href": "/about/",
+              "name": "",
+              "type": "",
+              "label": "About",
+              "selector": "[data-ocade=c76]"
+            },
+            {
+              "tag": "a",
+              "href": "/about/apps/",
+              "name": "",
+              "type": "",
+              "label": "Applications",
+              "selector": "[data-ocade=c77]"
+            },
+            {
+              "tag": "a",
+              "href": "/about/quotes/",
+              "name": "",
+              "type": "",
+              "label": "Quotes",
+              "selector": "[data-ocade=c78]"
+            },
+            {
+              "tag": "a",
+              "href": "/about/gettingstarted/",
+              "name": "",
+              "type": "",
+              "label": "Getting Started",
+              "selector": "[data-ocade=c79]"
+            }
+          ],
+          "durationMs": 2784.3,
+          "needsSignIn": false
+        },
+        "maybeChanged": false,
+        "observedAtUtc": "2026-11-01T11:24:45.260Z"
+      }
+    },
+    {
+      "summary": "click",
+      "intent": {
+        "v": 1,
+        "key": "s2",
+        "risk": "external_effect",
+        "target": {
+          "site": "www.python.org"
+        },
+        "arguments": {
+          "page": {
+            "id": "7ed3a7012e4c",
+            "site": "www.python.org"
+          },
+          "selector": "[data-ocade=c13]"
+        },
+        "operation": "web.click",
+        "capability": "browser",
+        "deadlineUtc": "2026-11-01T11:34:45.948Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "preview": "35008 base64 chars",
+        "evidence": {
+          "url": "https://www.python.org/downloads/",
+          "page": {
+            "id": "7ed3a7012e4c",
+            "site": "www.python.org"
+          },
+          "text": "Skip to content\nPython\nPSF\nDocs\nPyPI\nJobs\nCommunity\nDonate\n \nSearch This Site\n GO\nSocialize\nAbout\n \nDownloads\n \nDocumentation\n \nCommunity\n \nSuccess Stories\n \nNews\n \nEvents\nDownload the latest source release\n\nDownload Python 3.15.2\n\nLooking for Python with a different OS? Python for Windows, Linux/Unix, macOS, Android, iOS, other\n\nWant to help test development versions of Python 3.16? Pre-releases, Docker images\n\n Security notice: the emSign root CA has been removed from certifi. Upgrade certifi, pip, uv and sigstore now.   See more\nActive Python releases\n\nFor more information visit the Python Developer's Guide.\n\nPython version Maintenance status   First released End of support Release schedule\n3.16 pre-release Download 2027-10-06 (planned) 2032-10 PEP 826\n3.15 bugfix Download 2026-10-09 2031-10 PEP 790\n3.14 bugfix Download 2025-10-07 2030-10 PEP 745\n3.13 security Download 2024-10-07 2029-10 PEP 719\n3.12 security Download 2023-10-02 2028-10 PEP 693\n3.11 security Download 2022-10-24 2027-10 PEP 664\n3.10 end-of-life, last release was 3.10.22 Download 2021-10-04 2026-10-01 PEP 619\nLooking for a specific release?\n\nPython releases by version number:\n\nRelease version Release date   Click for more\nPython 3.15.2 Oct. 25, 2026  Download Release notes\nPython 3.15.1 Oct. 21, 2026  Download Release notes\nPython 3.15.0 Oct. 9, 2026  Download Release notes\nPython 3.14.10 Oct. 25, 2026  Download Release notes\nPython 3.14.9 Oct. 21, 2026  Download Release notes\nPython 3.14.8 Sept. 30, 2026  Download Release notes\nPython 3.14.7 Aug. 5, 2026  Download Release notes\nPython 3.14.6 June 10, 2026  Download Release notes\nPython 3.14.5 May 10, 2026  Download Release notes\nPython 3.14.4 April 7, 2026  Download Release notes\nPython 3.14.3 Feb. 3, 2026  Download Release notes\nPython 3.14.2 Dec. 5, 2025  Download Release notes\nPython 3.14.1 Dec. 2, 2025  Download Release notes\nPython 3.14.0 Oct. 7, 2025  Download Release notes\nPython 3.13.18 Oct. 25, 2026  Download Release notes\nPython 3.13.17 Oct. 21, 2026  Download Release notes\nPython 3.13.16 Sept. 30, 2026  Download Release notes\nPython 3.13.15 Aug. 5, 2026  Download Release notes\nPython 3.13.14 June 10, 2026  Download Release notes\nPython 3.13.13 April 7, 2026  Download Release notes\nPython 3.13.12 Feb. 3, 2026  Download Release notes\nPython 3.13.11 Dec. 5, 2025  Download Release notes\nPython 3.13.10 Dec. 2, 2025  Download Release notes\nPython 3.13.9 Oct. 14, 2025  Download Release notes\nPython 3.13.8 Oct. 7, 2025  Download Release notes\nPython 3.13.7 Aug. 14, 2025  Download Release notes\nPython 3.13.6 Aug. 6, 2025  Download Release notes\nPython 3.13.5 June 11, 2025  Download Release notes\nPython 3.13.4 June 3, 2025  Download Release notes\nPython 3.13.3 April 8, 2025  Download Release notes\nPython 3.13.2 Feb. 4, 2025  Download Release notes\nPython 3.13.1 Dec. 3, 2024  Download Release notes\nPython 3.13.0 Oct. 7, 2024  Download Release notes\nPython 3.12.16 Oct. 25, 2026  Download Release notes\nPython 3.12.15 Sept. 30, 2026  Download Release notes\nPython 3.12.14 Aug. 12, 2026  Download Release notes\nPython 3.12.13 March 3, 2026  Download Release notes\nPython 3.12.12 Oct. 9, 2025  Download Release notes\nPython 3.12.11 June 3, 2025  Download Release notes\nPython 3.12.10 April 8, 2025  Download Release notes\nPython 3.12.9 Feb. 4, 2025  Download Release notes\nPython 3.12.8 Dec. 3, 2024  Download Release notes\nPython 3.12.7 Oct. 1, 2024  Download Release notes\nPython 3.12.6 Sept. 6, 2024  Download Release notes\nPython 3.12.5 Aug. 6, 2024  Download Release notes\nPython 3.12.4 June 6, 2024  Download Release notes\nPython 3.12.3 April 9, 2024",
+          "title": "Download Python | Python.org",
+          "popups": [],
+          "controls": [
+            {
+              "tag": "a",
+              "href": "/downloads/",
+              "name": "",
+              "type": "",
+              "label": "Skip to content",
+              "selector": "[data-ocade=c0]"
+            },
+            {
+              "tag": "a",
+              "href": "/",
+              "name": "",
+              "type": "",
+              "label": "The Python Programming Language",
+              "selector": "[data-ocade=c1]"
+            },
+            {
+              "tag": "a",
+              "href": "/psf/",
+              "name": "",
+              "type": "",
+              "label": "The Python Software Foundation",
+              "selector": "[data-ocade=c2]"
+            },
+            {
+              "tag": "a",
+              "href": "https://docs.python.org/",
+              "name": "",
+              "type": "",
+              "label": "Python Documentation",
+              "selector": "[data-ocade=c3]"
+            },
+            {
+              "tag": "a",
+              "href": "https://pypi.org/",
+              "name": "",
+              "type": "",
+              "label": "Python Package Index",
+              "selector": "[data-ocade=c4]"
+            },
+            {
+              "tag": "a",
+              "href": "/jobs/",
+              "name": "",
+              "type": "",
+              "label": "Python Job Board",
+              "selector": "[data-ocade=c5]"
+            },
+            {
+              "tag": "a",
+              "href": "/community/",
+              "name": "",
+              "type": "",
+              "label": "Community",
+              "selector": "[data-ocade=c6]"
+            },
+            {
+              "tag": "a",
+              "href": "/",
+              "name": "",
+              "type": "",
+              "label": "",
+              "selector": "[data-ocade=c7]"
+            },
+            {
+              "tag": "a",
+              "href": "https://donate.python.org/",
+              "name": "",
+              "type": "",
+              "label": "Donate",
+              "selector": "[data-ocade=c8]"
+            },
+            {
+              "tag": "input",
+              "name": "q",
+              "type": "search",
+              "label": "Search This Site",
+              "selector": "[data-ocade=c9]"
+            },
+            {
+              "tag": "button",
+              "name": "submit",
+              "type": "submit",
+              "label": "Submit this Search",
+              "selector": "[data-ocade=c10]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/",
+              "name": "",
+              "type": "",
+              "label": "Socialize",
+              "selector": "[data-ocade=c11]"
+            },
+            {
+              "tag": "a",
+              "href": "/about/",
+              "name": "",
+              "type": "",
+              "label": "About",
+              "selector": "[data-ocade=c12]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/",
+              "name": "",
+              "type": "",
+              "label": "Downloads",
+              "selector": "[data-ocade=c13]"
+            },
+            {
+              "tag": "a",
+              "href": "/doc/",
+              "name": "",
+              "type": "",
+              "label": "Documentation",
+              "selector": "[data-ocade=c14]"
+            },
+            {
+              "tag": "a",
+              "href": "/community/",
+              "name": "",
+              "type": "",
+              "label": "Community",
+              "selector": "[data-ocade=c15]"
+            },
+            {
+              "tag": "a",
+              "href": "/success-stories/",
+              "name": "",
+              "type": "",
+              "label": "success-stories",
+              "selector": "[data-ocade=c16]"
+            },
+            {
+              "tag": "a",
+              "href": "/blogs/",
+              "name": "",
+              "type": "",
+              "label": "News from around the Python world",
+              "selector": "[data-ocade=c17]"
+            },
+            {
+              "tag": "a",
+              "href": "/events/",
+              "name": "",
+              "type": "",
+              "label": "Events",
+              "selector": "[data-ocade=c18]"
+            },
+            {
+              "tag": "a",
+              "href": "/ftp/python/3.15.2/Python-3.15.2.tar.xz",
+              "name": "",
+              "type": "",
+              "label": "Download Python 3.15.2",
+              "selector": "[data-ocade=c19]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/windows/",
+              "name": "",
+              "type": "",
+              "label": "Windows",
+              "selector": "[data-ocade=c20]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/source/",
+              "name": "",
+              "type": "",
+              "label": "Linux/Unix",
+              "selector": "[data-ocade=c21]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/macos/",
+              "name": "",
+              "type": "",
+              "label": "macOS",
+              "selector": "[data-ocade=c22]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/android/",
+              "name": "",
+              "type": "",
+              "label": "Android",
+              "selector": "[data-ocade=c23]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/ios/",
+              "name": "",
+              "type": "",
+              "label": "iOS",
+              "selector": "[data-ocade=c24]"
+            },
+            {
+              "tag": "a",
+              "href": "/download/other/",
+              "name": "",
+              "type": "",
+              "label": "other",
+              "selector": "[data-ocade=c25]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/latest/prerelease/",
+              "name": "",
+              "type": "",
+              "label": "Pre-releases",
+              "selector": "[data-ocade=c26]"
+            },
+            {
+              "tag": "a",
+              "href": "https://gitlab.com/python-devs/ci-images",
+              "name": "",
+              "type": "",
+              "label": "Docker images",
+              "selector": "[data-ocade=c27]"
+            },
+            {
+              "tag": "a",
+              "href": "https://discuss.python.org/t/information-for-python-users-regarding-emudhra-emsign-ca-certificate-security-incident/109576",
+              "name": "",
+              "type": "",
+              "label": "See more",
+              "selector": "[data-ocade=c28]"
+            },
+            {
+              "tag": "a",
+              "href": "https://devguide.python.org/versions/#versions",
+              "name": "",
+              "type": "",
+              "label": "For more information visit the Python Developer's Guide",
+              "selector": "[data-ocade=c29]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/latest/python3.16/",
+              "name": "",
+              "type": "",
+              "label": "Download",
+              "selector": "[data-ocade=c30]"
+            },
+            {
+              "tag": "a",
+              "href": "https://peps.python.org/pep-0826/",
+              "name": "",
+              "type": "",
+              "label": "PEP 826",
+              "selector": "[data-ocade=c31]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/latest/python3.15/",
+              "name": "",
+              "type": "",
+              "label": "Download",
+              "selector": "[data-ocade=c32]"
+            },
+            {
+              "tag": "a",
+              "href": "https://peps.python.org/pep-0790/",
+              "name": "",
+              "type": "",
+              "label": "PEP 790",
+              "selector": "[data-ocade=c33]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/latest/python3.14/",
+              "name": "",
+              "type": "",
+              "label": "Download",
+              "selector": "[data-ocade=c34]"
+            },
+            {
+              "tag": "a",
+              "href": "https://peps.python.org/pep-0745/",
+              "name": "",
+              "type": "",
+              "label": "PEP 745",
+              "selector": "[data-ocade=c35]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/latest/python3.13/",
+              "name": "",
+              "type": "",
+              "label": "Download",
+              "selector": "[data-ocade=c36]"
+            },
+            {
+              "tag": "a",
+              "href": "https://peps.python.org/pep-0719/",
+              "name": "",
+              "type": "",
+              "label": "PEP 719",
+              "selector": "[data-ocade=c37]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/latest/python3.12/",
+              "name": "",
+              "type": "",
+              "label": "Download",
+              "selector": "[data-ocade=c38]"
+            },
+            {
+              "tag": "a",
+              "href": "https://peps.python.org/pep-0693/",
+              "name": "",
+              "type": "",
+              "label": "PEP 693",
+              "selector": "[data-ocade=c39]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/latest/python3.11/",
+              "name": "",
+              "type": "",
+              "label": "Download",
+              "selector": "[data-ocade=c40]"
+            },
+            {
+              "tag": "a",
+              "href": "https://peps.python.org/pep-0664/",
+              "name": "",
+              "type": "",
+              "label": "PEP 664",
+              "selector": "[data-ocade=c41]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-31022/",
+              "name": "",
+              "type": "",
+              "label": "3.10.22",
+              "selector": "[data-ocade=c42]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/latest/python3.10/",
+              "name": "",
+              "type": "",
+              "label": "Download",
+              "selector": "[data-ocade=c43]"
+            },
+            {
+              "tag": "a",
+              "href": "https://peps.python.org/pep-0619/",
+              "name": "",
+              "type": "",
+              "label": "PEP 619",
+              "selector": "[data-ocade=c44]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3152/",
+              "name": "",
+              "type": "",
+              "label": "Python 3.15.2",
+              "selector": "[data-ocade=c45]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3152/",
+              "name": "",
+              "type": "",
+              "label": "Download",
+              "selector": "[data-ocade=c46]"
+            },
+            {
+              "tag": "a",
+              "href": "https://docs.python.org/release/3.15.2/whatsnew/changelog.html",
+              "name": "",
+              "type": "",
+              "label": "Release notes",
+              "selector": "[data-ocade=c47]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3151/",
+              "name": "",
+              "type": "",
+              "label": "Python 3.15.1",
+              "selector": "[data-ocade=c48]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3151/",
+              "name": "",
+              "type": "",
+              "label": "Download",
+              "selector": "[data-ocade=c49]"
+            },
+            {
+              "tag": "a",
+              "href": "https://docs.python.org/release/3.15.1/whatsnew/changelog.html",
+              "name": "",
+              "type": "",
+              "label": "Release notes",
+              "selector": "[data-ocade=c50]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3150/",
+              "name": "",
+              "type": "",
+              "label": "Python 3.15.0",
+              "selector": "[data-ocade=c51]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3150/",
+              "name": "",
+              "type": "",
+              "label": "Download",
+              "selector": "[data-ocade=c52]"
+            },
+            {
+              "tag": "a",
+              "href": "https://docs.python.org/release/3.15.0/whatsnew/changelog.html",
+              "name": "",
+              "type": "",
+              "label": "Release notes",
+              "selector": "[data-ocade=c53]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-31410/",
+              "name": "",
+              "type": "",
+              "label": "Python 3.14.10",
+              "selector": "[data-ocade=c54]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-31410/",
+              "name": "",
+              "type": "",
+              "label": "Download",
+              "selector": "[data-ocade=c55]"
+            },
+            {
+              "tag": "a",
+              "href": "https://docs.python.org/release/3.14.10/whatsnew/changelog.html",
+              "name": "",
+              "type": "",
+              "label": "Release notes",
+              "selector": "[data-ocade=c56]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3149/",
+              "name": "",
+              "type": "",
+              "label": "Python 3.14.9",
+              "selector": "[data-ocade=c57]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3149/",
+              "name": "",
+              "type": "",
+              "label": "Download",
+              "selector": "[data-ocade=c58]"
+            },
+            {
+              "tag": "a",
+              "href": "https://docs.python.org/release/3.14.9/whatsnew/changelog.html",
+              "name": "",
+              "type": "",
+              "label": "Release notes",
+              "selector": "[data-ocade=c59]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3148/",
+              "name": "",
+              "type": "",
+              "label": "Python 3.14.8",
+              "selector": "[data-ocade=c60]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3148/",
+              "name": "",
+              "type": "",
+              "label": "Download",
+              "selector": "[data-ocade=c61]"
+            },
+            {
+              "tag": "a",
+              "href": "https://docs.python.org/release/3.14.8/whatsnew/changelog.html",
+              "name": "",
+              "type": "",
+              "label": "Release notes",
+              "selector": "[data-ocade=c62]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3147/",
+              "name": "",
+              "type": "",
+              "label": "Python 3.14.7",
+              "selector": "[data-ocade=c63]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3147/",
+              "name": "",
+              "type": "",
+              "label": "Download",
+              "selector": "[data-ocade=c64]"
+            },
+            {
+              "tag": "a",
+              "href": "https://docs.python.org/release/3.14.7/whatsnew/changelog.html",
+              "name": "",
+              "type": "",
+              "label": "Release notes",
+              "selector": "[data-ocade=c65]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3146/",
+              "name": "",
+              "type": "",
+              "label": "Python 3.14.6",
+              "selector": "[data-ocade=c66]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3146/",
+              "name": "",
+              "type": "",
+              "label": "Download",
+              "selector": "[data-ocade=c67]"
+            },
+            {
+              "tag": "a",
+              "href": "https://docs.python.org/release/3.14.6/whatsnew/changelog.html",
+              "name": "",
+              "type": "",
+              "label": "Release notes",
+              "selector": "[data-ocade=c68]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3145/",
+              "name": "",
+              "type": "",
+              "label": "Python 3.14.5",
+              "selector": "[data-ocade=c69]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3145/",
+              "name": "",
+              "type": "",
+              "label": "Download",
+              "selector": "[data-ocade=c70]"
+            },
+            {
+              "tag": "a",
+              "href": "https://docs.python.org/release/3.14.5/whatsnew/changelog.html",
+              "name": "",
+              "type": "",
+              "label": "Release notes",
+              "selector": "[data-ocade=c71]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3144/",
+              "name": "",
+              "type": "",
+              "label": "Python 3.14.4",
+              "selector": "[data-ocade=c72]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3144/",
+              "name": "",
+              "type": "",
+              "label": "Download",
+              "selector": "[data-ocade=c73]"
+            },
+            {
+              "tag": "a",
+              "href": "https://docs.python.org/release/3.14.4/whatsnew/changelog.html",
+              "name": "",
+              "type": "",
+              "label": "Release notes",
+              "selector": "[data-ocade=c74]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3143/",
+              "name": "",
+              "type": "",
+              "label": "Python 3.14.3",
+              "selector": "[data-ocade=c75]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3143/",
+              "name": "",
+              "type": "",
+              "label": "Download",
+              "selector": "[data-ocade=c76]"
+            },
+            {
+              "tag": "a",
+              "href": "https://docs.python.org/release/3.14.3/whatsnew/changelog.html",
+              "name": "",
+              "type": "",
+              "label": "Release notes",
+              "selector": "[data-ocade=c77]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3142/",
+              "name": "",
+              "type": "",
+              "label": "Python 3.14.2",
+              "selector": "[data-ocade=c78]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3142/",
+              "name": "",
+              "type": "",
+              "label": "Download",
+              "selector": "[data-ocade=c79]"
+            }
+          ],
+          "durationMs": 1118.16,
+          "needsSignIn": false
+        },
+        "maybeChanged": true,
+        "observedAtUtc": "2026-11-01T11:24:53.500Z"
+      }
+    },
+    {
+      "summary": "click",
+      "intent": {
+        "v": 1,
+        "key": "s3",
+        "risk": "external_effect",
+        "target": {
+          "site": "www.python.org"
+        },
+        "arguments": {
+          "page": {
+            "id": "7ed3a7012e4c",
+            "site": "www.python.org"
+          },
+          "selector": "[data-ocade=c36]"
+        },
+        "operation": "web.click",
+        "capability": "browser",
+        "deadlineUtc": "2026-11-01T11:34:54.269Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "preview": "34696 base64 chars",
+        "evidence": {
+          "url": "https://www.python.org/downloads/release/python-31318/",
+          "page": {
+            "id": "7ed3a7012e4c",
+            "site": "www.python.org"
+          },
+          "text": "Skip to content\nPython\nPSF\nDocs\nPyPI\nJobs\nCommunity\nDonate\n \nSearch This Site\n GO\nSocialize\nAbout\n \nDownloads\n \nDocumentation\n \nCommunity\n \nSuccess Stories\n \nNews\n \nEvents\nPython 3.13.18\n\nRelease date: Oct. 25, 2026\n\nThis is a security release of Python 3.13\n\nNote: The release you're looking at is Python 3.13.18, a security bugfix release for the legacy 3.13 series. Python 3.15 is now the latest feature release series of Python 3. Get the latest release of 3.15.x here.\n\nThis is an expedited security release to address the compromised eMudhra intermediate CA keys. These keys are now blocked by the ssl module as a last resort against their use. Normal uses of pip, including to upgrade pip itself, are now safe from attacks based on those compromised keys, even if pip hasn't been updated yet.\n\nSecurity content in this release\n\nCVE-2026-115557 gh-160040: Distrust compromised eMudhra intermediate CA keys\n\nCVE-2026-77214 CVE-2026-102633 gh-158876: Update bundled Expat to 2.9.0\n\nCVE-2024-3220 gh-159428: Don't read mimetypes.knownfiles by default on Windows\n\nCVE-2026-114583 gh-160097: Reject links replacing the destination in tarfile.tar_filter\n\ngh-87720: Fix additional header refolding-quoting edge case\n\ngh-157579: Fix race condition in the cleanup of tempfile.TemporaryDirectory\n\ngh-160300: Reject cookies with a negative version in http.cookiejar\n\nNo installers\n\nAccording to the release calendar specified in PEP 719, Python 3.13 is now in the \"security fixes only\" stage of its life cycle: the 3.13 branch only accepts security fixes, and releases of those are made irregularly in source-only form until October 2028. Python 3.13 isn't receiving regular bug fixes anymore, and binary installers are no longer provided for it. Python 3.13.17 was the last bugfix release of Python 3.13 with binary installers.\n\nFull Changelog\n\nFiles\nSource release\n\nDownload XZ compressed source tarball\n\nVersion\tOperating system\tDescription\tFile size\tSigstore\tSBOM\tGPG\tSHA-256 checksum\nGzipped source tarball\tSource release\t\t28.8 MB\t.sigstore\tSPDX\tSIG\t99dbc847fb6a3fb26358370fb4c591215864116ebb584f2b89ab0b74c51dfa2a\nXZ compressed source tarball\tSource release\t\t22.2 MB\t.sigstore\tSPDX\tSIG\tabb0102e6d4ae027509bcb82327d9dd85515b44a3ba8ad538cfc5e9847029f68\nAbout\nApplications\nQuotes\nGetting Started\nHelp\nDownloads\nAll releases\nSource code\nWindows\nmacOS\nAndroid\niOS\nOther Platforms\nLicense\nAlternative Implementations\nDocumentation\nDocs\nAudio/Visual Talks\nBeginner's Guide\nFAQ\nNon-English Docs\nPEP Index\nPython Books\nPython Essays\nCommunity\nDiversity\nMailing Lists\nIRC\nForums\nPSF Annual Impact Report\nPython Conferences\nSpecial Interest Groups\nPython Logo\nPython Wiki\nCode of Conduct\nCommunity Awards\nGet Involved\nShared Stories\nSuccess Stories\nArts\nBusiness\nEducation\nEngineering\nGovernment\nScientific\nSoftware Development\nNews\nPython News\nPSF Newsletter\nPSF News\nPyCon US News\nPython Insider\nNews from the Community\nEvents\nPython Events\nUser Group Events\nPython Events Archive\nUser Group Events Archive\nSubmit an Event\nContributing\nDeveloper's Guide\nIssue Tracker\npython-dev list\nCore Mentorship\nReport a Security Issue\nHelp & General Contact\n \nDiversity Initiatives\n \nSubmit Website Bug\n \nStatus \n\nCopyright ©2001-2026.  Python Software Foundation  Legal Statements  Privacy Notice",
+          "title": "Python Release Python 3.13.18 | Python.org",
+          "popups": [],
+          "controls": [
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-31318/",
+              "name": "",
+              "type": "",
+              "label": "Skip to content",
+              "selector": "[data-ocade=c0]"
+            },
+            {
+              "tag": "a",
+              "href": "/",
+              "name": "",
+              "type": "",
+              "label": "The Python Programming Language",
+              "selector": "[data-ocade=c1]"
+            },
+            {
+              "tag": "a",
+              "href": "/psf/",
+              "name": "",
+              "type": "",
+              "label": "The Python Software Foundation",
+              "selector": "[data-ocade=c2]"
+            },
+            {
+              "tag": "a",
+              "href": "https://docs.python.org/",
+              "name": "",
+              "type": "",
+              "label": "Python Documentation",
+              "selector": "[data-ocade=c3]"
+            },
+            {
+              "tag": "a",
+              "href": "https://pypi.org/",
+              "name": "",
+              "type": "",
+              "label": "Python Package Index",
+              "selector": "[data-ocade=c4]"
+            },
+            {
+              "tag": "a",
+              "href": "/jobs/",
+              "name": "",
+              "type": "",
+              "label": "Python Job Board",
+              "selector": "[data-ocade=c5]"
+            },
+            {
+              "tag": "a",
+              "href": "/community/",
+              "name": "",
+              "type": "",
+              "label": "Community",
+              "selector": "[data-ocade=c6]"
+            },
+            {
+              "tag": "a",
+              "href": "/",
+              "name": "",
+              "type": "",
+              "label": "",
+              "selector": "[data-ocade=c7]"
+            },
+            {
+              "tag": "a",
+              "href": "https://donate.python.org/",
+              "name": "",
+              "type": "",
+              "label": "Donate",
+              "selector": "[data-ocade=c8]"
+            },
+            {
+              "tag": "input",
+              "name": "q",
+              "type": "search",
+              "label": "Search This Site",
+              "selector": "[data-ocade=c9]"
+            },
+            {
+              "tag": "button",
+              "name": "submit",
+              "type": "submit",
+              "label": "Submit this Search",
+              "selector": "[data-ocade=c10]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-31318/",
+              "name": "",
+              "type": "",
+              "label": "Socialize",
+              "selector": "[data-ocade=c11]"
+            },
+            {
+              "tag": "a",
+              "href": "/about/",
+              "name": "",
+              "type": "",
+              "label": "About",
+              "selector": "[data-ocade=c12]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/",
+              "name": "",
+              "type": "",
+              "label": "Downloads",
+              "selector": "[data-ocade=c13]"
+            },
+            {
+              "tag": "a",
+              "href": "/doc/",
+              "name": "",
+              "type": "",
+              "label": "Documentation",
+              "selector": "[data-ocade=c14]"
+            },
+            {
+              "tag": "a",
+              "href": "/community/",
+              "name": "",
+              "type": "",
+              "label": "Community",
+              "selector": "[data-ocade=c15]"
+            },
+            {
+              "tag": "a",
+              "href": "/success-stories/",
+              "name": "",
+              "type": "",
+              "label": "success-stories",
+              "selector": "[data-ocade=c16]"
+            },
+            {
+              "tag": "a",
+              "href": "/blogs/",
+              "name": "",
+              "type": "",
+              "label": "News from around the Python world",
+              "selector": "[data-ocade=c17]"
+            },
+            {
+              "tag": "a",
+              "href": "/events/",
+              "name": "",
+              "type": "",
+              "label": "Events",
+              "selector": "[data-ocade=c18]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/",
+              "name": "",
+              "type": "",
+              "label": "Get the latest release of 3.15.x here",
+              "selector": "[data-ocade=c19]"
+            },
+            {
+              "tag": "a",
+              "href": "https://discuss.python.org/t/information-for-python-users-regarding-emudhra-emsign-ca-certificate-security-incident/109576",
+              "name": "",
+              "type": "",
+              "label": "the compromised eMudhra intermediate CA keys",
+              "selector": "[data-ocade=c20]"
+            },
+            {
+              "tag": "a",
+              "href": "https://www.cve.org/CVERecord?id=CVE-2026-115557",
+              "name": "",
+              "type": "",
+              "label": "CVE-2026-115557",
+              "selector": "[data-ocade=c21]"
+            },
+            {
+              "tag": "a",
+              "href": "https://github.com/python/cpython/issues/160040",
+              "name": "",
+              "type": "",
+              "label": "gh-160040",
+              "selector": "[data-ocade=c22]"
+            },
+            {
+              "tag": "a",
+              "href": "https://www.cve.org/CVERecord?id=CVE-2026-77214",
+              "name": "",
+              "type": "",
+              "label": "CVE-2026-77214",
+              "selector": "[data-ocade=c23]"
+            },
+            {
+              "tag": "a",
+              "href": "https://www.cve.org/CVERecord?id=CVE-2026-102633",
+              "name": "",
+              "type": "",
+              "label": "CVE-2026-102633",
+              "selector": "[data-ocade=c24]"
+            },
+            {
+              "tag": "a",
+              "href": "https://github.com/python/cpython/issues/158876",
+              "name": "",
+              "type": "",
+              "label": "gh-158876",
+              "selector": "[data-ocade=c25]"
+            },
+            {
+              "tag": "a",
+              "href": "https://www.cve.org/CVERecord?id=CVE-2024-3220",
+              "name": "",
+              "type": "",
+              "label": "CVE-2024-3220",
+              "selector": "[data-ocade=c26]"
+            },
+            {
+              "tag": "a",
+              "href": "https://github.com/python/cpython/issues/159428",
+              "name": "",
+              "type": "",
+              "label": "gh-159428",
+              "selector": "[data-ocade=c27]"
+            },
+            {
+              "tag": "a",
+              "href": "https://www.cve.org/CVERecord?id=CVE-2026-114583",
+              "name": "",
+              "type": "",
+              "label": "CVE-2026-114583",
+              "selector": "[data-ocade=c28]"
+            },
+            {
+              "tag": "a",
+              "href": "https://github.com/python/cpython/issues/160097",
+              "name": "",
+              "type": "",
+              "label": "gh-160097",
+              "selector": "[data-ocade=c29]"
+            },
+            {
+              "tag": "a",
+              "href": "https://github.com/python/cpython/issues/87720",
+              "name": "",
+              "type": "",
+              "label": "gh-87720",
+              "selector": "[data-ocade=c30]"
+            },
+            {
+              "tag": "a",
+              "href": "https://github.com/python/cpython/issues/157579",
+              "name": "",
+              "type": "",
+              "label": "gh-157579",
+              "selector": "[data-ocade=c31]"
+            },
+            {
+              "tag": "a",
+              "href": "https://github.com/python/cpython/issues/160300",
+              "name": "",
+              "type": "",
+              "label": "gh-160300",
+              "selector": "[data-ocade=c32]"
+            },
+            {
+              "tag": "a",
+              "href": "https://peps.python.org/pep-0719/",
+              "name": "",
+              "type": "",
+              "label": "PEP 719",
+              "selector": "[data-ocade=c33]"
+            },
+            {
+              "tag": "a",
+              "href": "https://docs.python.org/release/3.13.18/whatsnew/changelog.html",
+              "name": "",
+              "type": "",
+              "label": "Full Changelog",
+              "selector": "[data-ocade=c34]"
+            },
+            {
+              "tag": "a",
+              "href": "/ftp/python/3.13.18/Python-3.13.18.tar.xz",
+              "name": "",
+              "type": "",
+              "label": "Download XZ compressed source tarball",
+              "selector": "[data-ocade=c35]"
+            },
+            {
+              "tag": "a",
+              "href": "/download/sigstore/",
+              "name": "",
+              "type": "",
+              "label": "Sigstore",
+              "selector": "[data-ocade=c36]"
+            },
+            {
+              "tag": "a",
+              "href": "/download/sbom/",
+              "name": "",
+              "type": "",
+              "label": "SBOM",
+              "selector": "[data-ocade=c37]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/",
+              "name": "",
+              "type": "",
+              "label": "GPG",
+              "selector": "[data-ocade=c38]"
+            },
+            {
+              "tag": "a",
+              "href": "/ftp/python/3.13.18/Python-3.13.18.tgz",
+              "name": "",
+              "type": "",
+              "label": "Gzipped source tarball",
+              "selector": "[data-ocade=c39]"
+            },
+            {
+              "tag": "a",
+              "href": "/ftp/python/3.13.18/Python-3.13.18.tgz.sigstore",
+              "name": "",
+              "type": "",
+              "label": ".sigstore",
+              "selector": "[data-ocade=c40]"
+            },
+            {
+              "tag": "a",
+              "href": "/ftp/python/3.13.18/Python-3.13.18.tgz.spdx.json",
+              "name": "",
+              "type": "",
+              "label": "SPDX",
+              "selector": "[data-ocade=c41]"
+            },
+            {
+              "tag": "a",
+              "href": "/ftp/python/3.13.18/Python-3.13.18.tgz.asc",
+              "name": "",
+              "type": "",
+              "label": "SIG",
+              "selector": "[data-ocade=c42]"
+            },
+            {
+              "tag": "a",
+              "href": "/ftp/python/3.13.18/Python-3.13.18.tar.xz",
+              "name": "",
+              "type": "",
+              "label": "XZ compressed source tarball",
+              "selector": "[data-ocade=c43]"
+            },
+            {
+              "tag": "a",
+              "href": "/ftp/python/3.13.18/Python-3.13.18.tar.xz.sigstore",
+              "name": "",
+              "type": "",
+              "label": ".sigstore",
+              "selector": "[data-ocade=c44]"
+            },
+            {
+              "tag": "a",
+              "href": "/ftp/python/3.13.18/Python-3.13.18.tar.xz.spdx.json",
+              "name": "",
+              "type": "",
+              "label": "SPDX",
+              "selector": "[data-ocade=c45]"
+            },
+            {
+              "tag": "a",
+              "href": "/ftp/python/3.13.18/Python-3.13.18.tar.xz.asc",
+              "name": "",
+              "type": "",
+              "label": "SIG",
+              "selector": "[data-ocade=c46]"
+            },
+            {
+              "tag": "a",
+              "href": "/about/",
+              "name": "",
+              "type": "",
+              "label": "About",
+              "selector": "[data-ocade=c47]"
+            },
+            {
+              "tag": "a",
+              "href": "/about/apps/",
+              "name": "",
+              "type": "",
+              "label": "Applications",
+              "selector": "[data-ocade=c48]"
+            },
+            {
+              "tag": "a",
+              "href": "/about/quotes/",
+              "name": "",
+              "type": "",
+              "label": "Quotes",
+              "selector": "[data-ocade=c49]"
+            },
+            {
+              "tag": "a",
+              "href": "/about/gettingstarted/",
+              "name": "",
+              "type": "",
+              "label": "Getting Started",
+              "selector": "[data-ocade=c50]"
+            },
+            {
+              "tag": "a",
+              "href": "/about/help/",
+              "name": "",
+              "type": "",
+              "label": "Help",
+              "selector": "[data-ocade=c51]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/",
+              "name": "",
+              "type": "",
+              "label": "Downloads",
+              "selector": "[data-ocade=c52]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/",
+              "name": "",
+              "type": "",
+              "label": "All releases",
+              "selector": "[data-ocade=c53]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/source/",
+              "name": "",
+              "type": "",
+              "label": "Source code",
+              "selector": "[data-ocade=c54]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/windows/",
+              "name": "",
+              "type": "",
+              "label": "Windows",
+              "selector": "[data-ocade=c55]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/macos/",
+              "name": "",
+              "type": "",
+              "label": "macOS",
+              "selector": "[data-ocade=c56]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/android/",
+              "name": "",
+              "type": "",
+              "label": "Android",
+              "selector": "[data-ocade=c57]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/ios/",
+              "name": "",
+              "type": "",
+              "label": "iOS",
+              "selector": "[data-ocade=c58]"
+            },
+            {
+              "tag": "a",
+              "href": "/download/other/",
+              "name": "",
+              "type": "",
+              "label": "Other Platforms",
+              "selector": "[data-ocade=c59]"
+            },
+            {
+              "tag": "a",
+              "href": "https://docs.python.org/3/license.html",
+              "name": "",
+              "type": "",
+              "label": "License",
+              "selector": "[data-ocade=c60]"
+            },
+            {
+              "tag": "a",
+              "href": "/download/alternatives",
+              "name": "",
+              "type": "",
+              "label": "Alternative Implementations",
+              "selector": "[data-ocade=c61]"
+            },
+            {
+              "tag": "a",
+              "href": "/doc/",
+              "name": "",
+              "type": "",
+              "label": "Documentation",
+              "selector": "[data-ocade=c62]"
+            },
+            {
+              "tag": "a",
+              "href": "/doc/",
+              "name": "",
+              "type": "",
+              "label": "Docs",
+              "selector": "[data-ocade=c63]"
+            },
+            {
+              "tag": "a",
+              "href": "/doc/av",
+              "name": "",
+              "type": "",
+              "label": "Audio/Visual Talks",
+              "selector": "[data-ocade=c64]"
+            },
+            {
+              "tag": "a",
+              "href": "https://wiki.python.org/python/getting-started/BeginnersGuide.html",
+              "name": "",
+              "type": "",
+              "label": "Beginner's Guide",
+              "selector": "[data-ocade=c65]"
+            },
+            {
+              "tag": "a",
+              "href": "https://docs.python.org/3/faq/",
+              "name": "",
+              "type": "",
+              "label": "FAQ",
+              "selector": "[data-ocade=c66]"
+            },
+            {
+              "tag": "a",
+              "href": "https://translations.python.org/",
+              "name": "",
+              "type": "",
+              "label": "Non-English Docs",
+              "selector": "[data-ocade=c67]"
+            },
+            {
+              "tag": "a",
+              "href": "https://peps.python.org/",
+              "name": "",
+              "type": "",
+              "label": "PEP Index",
+              "selector": "[data-ocade=c68]"
+            },
+            {
+              "tag": "a",
+              "href": "https://wiki.python.org/moin/PythonBooks",
+              "name": "",
+              "type": "",
+              "label": "Python Books",
+              "selector": "[data-ocade=c69]"
+            },
+            {
+              "tag": "a",
+              "href": "/doc/essays/",
+              "name": "",
+              "type": "",
+              "label": "Python Essays",
+              "selector": "[data-ocade=c70]"
+            },
+            {
+              "tag": "a",
+              "href": "/community/",
+              "name": "",
+              "type": "",
+              "label": "Community",
+              "selector": "[data-ocade=c71]"
+            },
+            {
+              "tag": "a",
+              "href": "/community/diversity/",
+              "name": "",
+              "type": "",
+              "label": "Diversity",
+              "selector": "[data-ocade=c72]"
+            },
+            {
+              "tag": "a",
+              "href": "/community/lists/",
+              "name": "",
+              "type": "",
+              "label": "Mailing Lists",
+              "selector": "[data-ocade=c73]"
+            },
+            {
+              "tag": "a",
+              "href": "/community/irc/",
+              "name": "",
+              "type": "",
+              "label": "IRC",
+              "selector": "[data-ocade=c74]"
+            },
+            {
+              "tag": "a",
+              "href": "/community/forums/",
+              "name": "",
+              "type": "",
+              "label": "Forums",
+              "selector": "[data-ocade=c75]"
+            },
+            {
+              "tag": "a",
+              "href": "/psf/annual-report/2024/",
+              "name": "",
+              "type": "",
+              "label": "PSF Annual Impact Report",
+              "selector": "[data-ocade=c76]"
+            },
+            {
+              "tag": "a",
+              "href": "/community/workshops/",
+              "name": "",
+              "type": "",
+              "label": "Python Conferences",
+              "selector": "[data-ocade=c77]"
+            },
+            {
+              "tag": "a",
+              "href": "/community/sigs/",
+              "name": "",
+              "type": "",
+              "label": "Special Interest Groups",
+              "selector": "[data-ocade=c78]"
+            },
+            {
+              "tag": "a",
+              "href": "/community/logos/",
+              "name": "",
+              "type": "",
+              "label": "Python Logo",
+              "selector": "[data-ocade=c79]"
+            }
+          ],
+          "durationMs": 1031.32,
+          "needsSignIn": false
+        },
+        "maybeChanged": true,
+        "observedAtUtc": "2026-11-01T11:25:10.440Z"
+      }
+    },
+    {
+      "summary": "click",
+      "intent": {
+        "v": 1,
+        "key": "s4",
+        "risk": "external_effect",
+        "target": {
+          "site": "www.python.org"
+        },
+        "arguments": {
+          "page": {
+            "id": "7ed3a7012e4c",
+            "site": "www.python.org"
+          },
+          "selector": "[data-ocade=c53]"
+        },
+        "operation": "web.click",
+        "capability": "browser",
+        "deadlineUtc": "2026-11-01T11:35:11.109Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "preview": "35008 base64 chars",
+        "evidence": {
+          "url": "https://www.python.org/downloads/",
+          "page": {
+            "id": "7ed3a7012e4c",
+            "site": "www.python.org"
+          },
+          "text": "Skip to content\nPython\nPSF\nDocs\nPyPI\nJobs\nCommunity\nDonate\n \nSearch This Site\n GO\nSocialize\nAbout\n \nDownloads\n \nDocumentation\n \nCommunity\n \nSuccess Stories\n \nNews\n \nEvents\nDownload the latest source release\n\nDownload Python 3.15.2\n\nLooking for Python with a different OS? Python for Windows, Linux/Unix, macOS, Android, iOS, other\n\nWant to help test development versions of Python 3.16? Pre-releases, Docker images\n\n Security notice: the emSign root CA has been removed from certifi. Upgrade certifi, pip, uv and sigstore now.   See more\nActive Python releases\n\nFor more information visit the Python Developer's Guide.\n\nPython version Maintenance status   First released End of support Release schedule\n3.16 pre-release Download 2027-10-06 (planned) 2032-10 PEP 826\n3.15 bugfix Download 2026-10-09 2031-10 PEP 790\n3.14 bugfix Download 2025-10-07 2030-10 PEP 745\n3.13 security Download 2024-10-07 2029-10 PEP 719\n3.12 security Download 2023-10-02 2028-10 PEP 693\n3.11 security Download 2022-10-24 2027-10 PEP 664\n3.10 end-of-life, last release was 3.10.22 Download 2021-10-04 2026-10-01 PEP 619\nLooking for a specific release?\n\nPython releases by version number:\n\nRelease version Release date   Click for more\nPython 3.15.2 Oct. 25, 2026  Download Release notes\nPython 3.15.1 Oct. 21, 2026  Download Release notes\nPython 3.15.0 Oct. 9, 2026  Download Release notes\nPython 3.14.10 Oct. 25, 2026  Download Release notes\nPython 3.14.9 Oct. 21, 2026  Download Release notes\nPython 3.14.8 Sept. 30, 2026  Download Release notes\nPython 3.14.7 Aug. 5, 2026  Download Release notes\nPython 3.14.6 June 10, 2026  Download Release notes\nPython 3.14.5 May 10, 2026  Download Release notes\nPython 3.14.4 April 7, 2026  Download Release notes\nPython 3.14.3 Feb. 3, 2026  Download Release notes\nPython 3.14.2 Dec. 5, 2025  Download Release notes\nPython 3.14.1 Dec. 2, 2025  Download Release notes\nPython 3.14.0 Oct. 7, 2025  Download Release notes\nPython 3.13.18 Oct. 25, 2026  Download Release notes\nPython 3.13.17 Oct. 21, 2026  Download Release notes\nPython 3.13.16 Sept. 30, 2026  Download Release notes\nPython 3.13.15 Aug. 5, 2026  Download Release notes\nPython 3.13.14 June 10, 2026  Download Release notes\nPython 3.13.13 April 7, 2026  Download Release notes\nPython 3.13.12 Feb. 3, 2026  Download Release notes\nPython 3.13.11 Dec. 5, 2025  Download Release notes\nPython 3.13.10 Dec. 2, 2025  Download Release notes\nPython 3.13.9 Oct. 14, 2025  Download Release notes\nPython 3.13.8 Oct. 7, 2025  Download Release notes\nPython 3.13.7 Aug. 14, 2025  Download Release notes\nPython 3.13.6 Aug. 6, 2025  Download Release notes\nPython 3.13.5 June 11, 2025  Download Release notes\nPython 3.13.4 June 3, 2025  Download Release notes\nPython 3.13.3 April 8, 2025  Download Release notes\nPython 3.13.2 Feb. 4, 2025  Download Release notes\nPython 3.13.1 Dec. 3, 2024  Download Release notes\nPython 3.13.0 Oct. 7, 2024  Download Release notes\nPython 3.12.16 Oct. 25, 2026  Download Release notes\nPython 3.12.15 Sept. 30, 2026  Download Release notes\nPython 3.12.14 Aug. 12, 2026  Download Release notes\nPython 3.12.13 March 3, 2026  Download Release notes\nPython 3.12.12 Oct. 9, 2025  Download Release notes\nPython 3.12.11 June 3, 2025  Download Release notes\nPython 3.12.10 April 8, 2025  Download Release notes\nPython 3.12.9 Feb. 4, 2025  Download Release notes\nPython 3.12.8 Dec. 3, 2024  Download Release notes\nPython 3.12.7 Oct. 1, 2024  Download Release notes\nPython 3.12.6 Sept. 6, 2024  Download Release notes\nPython 3.12.5 Aug. 6, 2024  Download Release notes\nPython 3.12.4 June 6, 2024  Download Release notes\nPython 3.12.3 April 9, 2024",
+          "title": "Download Python | Python.org",
+          "popups": [],
+          "controls": [
+            {
+              "tag": "a",
+              "href": "/downloads/",
+              "name": "",
+              "type": "",
+              "label": "Skip to content",
+              "selector": "[data-ocade=c0]"
+            },
+            {
+              "tag": "a",
+              "href": "/",
+              "name": "",
+              "type": "",
+              "label": "The Python Programming Language",
+              "selector": "[data-ocade=c1]"
+            },
+            {
+              "tag": "a",
+              "href": "/psf/",
+              "name": "",
+              "type": "",
+              "label": "The Python Software Foundation",
+              "selector": "[data-ocade=c2]"
+            },
+            {
+              "tag": "a",
+              "href": "https://docs.python.org/",
+              "name": "",
+              "type": "",
+              "label": "Python Documentation",
+              "selector": "[data-ocade=c3]"
+            },
+            {
+              "tag": "a",
+              "href": "https://pypi.org/",
+              "name": "",
+              "type": "",
+              "label": "Python Package Index",
+              "selector": "[data-ocade=c4]"
+            },
+            {
+              "tag": "a",
+              "href": "/jobs/",
+              "name": "",
+              "type": "",
+              "label": "Python Job Board",
+              "selector": "[data-ocade=c5]"
+            },
+            {
+              "tag": "a",
+              "href": "/community/",
+              "name": "",
+              "type": "",
+              "label": "Community",
+              "selector": "[data-ocade=c6]"
+            },
+            {
+              "tag": "a",
+              "href": "/",
+              "name": "",
+              "type": "",
+              "label": "",
+              "selector": "[data-ocade=c7]"
+            },
+            {
+              "tag": "a",
+              "href": "https://donate.python.org/",
+              "name": "",
+              "type": "",
+              "label": "Donate",
+              "selector": "[data-ocade=c8]"
+            },
+            {
+              "tag": "input",
+              "name": "q",
+              "type": "search",
+              "label": "Search This Site",
+              "selector": "[data-ocade=c9]"
+            },
+            {
+              "tag": "button",
+              "name": "submit",
+              "type": "submit",
+              "label": "Submit this Search",
+              "selector": "[data-ocade=c10]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/",
+              "name": "",
+              "type": "",
+              "label": "Socialize",
+              "selector": "[data-ocade=c11]"
+            },
+            {
+              "tag": "a",
+              "href": "/about/",
+              "name": "",
+              "type": "",
+              "label": "About",
+              "selector": "[data-ocade=c12]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/",
+              "name": "",
+              "type": "",
+              "label": "Downloads",
+              "selector": "[data-ocade=c13]"
+            },
+            {
+              "tag": "a",
+              "href": "/doc/",
+              "name": "",
+              "type": "",
+              "label": "Documentation",
+              "selector": "[data-ocade=c14]"
+            },
+            {
+              "tag": "a",
+              "href": "/community/",
+              "name": "",
+              "type": "",
+              "label": "Community",
+              "selector": "[data-ocade=c15]"
+            },
+            {
+              "tag": "a",
+              "href": "/success-stories/",
+              "name": "",
+              "type": "",
+              "label": "success-stories",
+              "selector": "[data-ocade=c16]"
+            },
+            {
+              "tag": "a",
+              "href": "/blogs/",
+              "name": "",
+              "type": "",
+              "label": "News from around the Python world",
+              "selector": "[data-ocade=c17]"
+            },
+            {
+              "tag": "a",
+              "href": "/events/",
+              "name": "",
+              "type": "",
+              "label": "Events",
+              "selector": "[data-ocade=c18]"
+            },
+            {
+              "tag": "a",
+              "href": "/ftp/python/3.15.2/Python-3.15.2.tar.xz",
+              "name": "",
+              "type": "",
+              "label": "Download Python 3.15.2",
+              "selector": "[data-ocade=c19]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/windows/",
+              "name": "",
+              "type": "",
+              "label": "Windows",
+              "selector": "[data-ocade=c20]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/source/",
+              "name": "",
+              "type": "",
+              "label": "Linux/Unix",
+              "selector": "[data-ocade=c21]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/macos/",
+              "name": "",
+              "type": "",
+              "label": "macOS",
+              "selector": "[data-ocade=c22]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/android/",
+              "name": "",
+              "type": "",
+              "label": "Android",
+              "selector": "[data-ocade=c23]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/ios/",
+              "name": "",
+              "type": "",
+              "label": "iOS",
+              "selector": "[data-ocade=c24]"
+            },
+            {
+              "tag": "a",
+              "href": "/download/other/",
+              "name": "",
+              "type": "",
+              "label": "other",
+              "selector": "[data-ocade=c25]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/latest/prerelease/",
+              "name": "",
+              "type": "",
+              "label": "Pre-releases",
+              "selector": "[data-ocade=c26]"
+            },
+            {
+              "tag": "a",
+              "href": "https://gitlab.com/python-devs/ci-images",
+              "name": "",
+              "type": "",
+              "label": "Docker images",
+              "selector": "[data-ocade=c27]"
+            },
+            {
+              "tag": "a",
+              "href": "https://discuss.python.org/t/information-for-python-users-regarding-emudhra-emsign-ca-certificate-security-incident/109576",
+              "name": "",
+              "type": "",
+              "label": "See more",
+              "selector": "[data-ocade=c28]"
+            },
+            {
+              "tag": "a",
+              "href": "https://devguide.python.org/versions/#versions",
+              "name": "",
+              "type": "",
+              "label": "For more information visit the Python Developer's Guide",
+              "selector": "[data-ocade=c29]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/latest/python3.16/",
+              "name": "",
+              "type": "",
+              "label": "Download",
+              "selector": "[data-ocade=c30]"
+            },
+            {
+              "tag": "a",
+              "href": "https://peps.python.org/pep-0826/",
+              "name": "",
+              "type": "",
+              "label": "PEP 826",
+              "selector": "[data-ocade=c31]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/latest/python3.15/",
+              "name": "",
+              "type": "",
+              "label": "Download",
+              "selector": "[data-ocade=c32]"
+            },
+            {
+              "tag": "a",
+              "href": "https://peps.python.org/pep-0790/",
+              "name": "",
+              "type": "",
+              "label": "PEP 790",
+              "selector": "[data-ocade=c33]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/latest/python3.14/",
+              "name": "",
+              "type": "",
+              "label": "Download",
+              "selector": "[data-ocade=c34]"
+            },
+            {
+              "tag": "a",
+              "href": "https://peps.python.org/pep-0745/",
+              "name": "",
+              "type": "",
+              "label": "PEP 745",
+              "selector": "[data-ocade=c35]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/latest/python3.13/",
+              "name": "",
+              "type": "",
+              "label": "Download",
+              "selector": "[data-ocade=c36]"
+            },
+            {
+              "tag": "a",
+              "href": "https://peps.python.org/pep-0719/",
+              "name": "",
+              "type": "",
+              "label": "PEP 719",
+              "selector": "[data-ocade=c37]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/latest/python3.12/",
+              "name": "",
+              "type": "",
+              "label": "Download",
+              "selector": "[data-ocade=c38]"
+            },
+            {
+              "tag": "a",
+              "href": "https://peps.python.org/pep-0693/",
+              "name": "",
+              "type": "",
+              "label": "PEP 693",
+              "selector": "[data-ocade=c39]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/latest/python3.11/",
+              "name": "",
+              "type": "",
+              "label": "Download",
+              "selector": "[data-ocade=c40]"
+            },
+            {
+              "tag": "a",
+              "href": "https://peps.python.org/pep-0664/",
+              "name": "",
+              "type": "",
+              "label": "PEP 664",
+              "selector": "[data-ocade=c41]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-31022/",
+              "name": "",
+              "type": "",
+              "label": "3.10.22",
+              "selector": "[data-ocade=c42]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/latest/python3.10/",
+              "name": "",
+              "type": "",
+              "label": "Download",
+              "selector": "[data-ocade=c43]"
+            },
+            {
+              "tag": "a",
+              "href": "https://peps.python.org/pep-0619/",
+              "name": "",
+              "type": "",
+              "label": "PEP 619",
+              "selector": "[data-ocade=c44]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3152/",
+              "name": "",
+              "type": "",
+              "label": "Python 3.15.2",
+              "selector": "[data-ocade=c45]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3152/",
+              "name": "",
+              "type": "",
+              "label": "Download",
+              "selector": "[data-ocade=c46]"
+            },
+            {
+              "tag": "a",
+              "href": "https://docs.python.org/release/3.15.2/whatsnew/changelog.html",
+              "name": "",
+              "type": "",
+              "label": "Release notes",
+              "selector": "[data-ocade=c47]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3151/",
+              "name": "",
+              "type": "",
+              "label": "Python 3.15.1",
+              "selector": "[data-ocade=c48]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3151/",
+              "name": "",
+              "type": "",
+              "label": "Download",
+              "selector": "[data-ocade=c49]"
+            },
+            {
+              "tag": "a",
+              "href": "https://docs.python.org/release/3.15.1/whatsnew/changelog.html",
+              "name": "",
+              "type": "",
+              "label": "Release notes",
+              "selector": "[data-ocade=c50]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3150/",
+              "name": "",
+              "type": "",
+              "label": "Python 3.15.0",
+              "selector": "[data-ocade=c51]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3150/",
+              "name": "",
+              "type": "",
+              "label": "Download",
+              "selector": "[data-ocade=c52]"
+            },
+            {
+              "tag": "a",
+              "href": "https://docs.python.org/release/3.15.0/whatsnew/changelog.html",
+              "name": "",
+              "type": "",
+              "label": "Release notes",
+              "selector": "[data-ocade=c53]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-31410/",
+              "name": "",
+              "type": "",
+              "label": "Python 3.14.10",
+              "selector": "[data-ocade=c54]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-31410/",
+              "name": "",
+              "type": "",
+              "label": "Download",
+              "selector": "[data-ocade=c55]"
+            },
+            {
+              "tag": "a",
+              "href": "https://docs.python.org/release/3.14.10/whatsnew/changelog.html",
+              "name": "",
+              "type": "",
+              "label": "Release notes",
+              "selector": "[data-ocade=c56]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3149/",
+              "name": "",
+              "type": "",
+              "label": "Python 3.14.9",
+              "selector": "[data-ocade=c57]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3149/",
+              "name": "",
+              "type": "",
+              "label": "Download",
+              "selector": "[data-ocade=c58]"
+            },
+            {
+              "tag": "a",
+              "href": "https://docs.python.org/release/3.14.9/whatsnew/changelog.html",
+              "name": "",
+              "type": "",
+              "label": "Release notes",
+              "selector": "[data-ocade=c59]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3148/",
+              "name": "",
+              "type": "",
+              "label": "Python 3.14.8",
+              "selector": "[data-ocade=c60]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3148/",
+              "name": "",
+              "type": "",
+              "label": "Download",
+              "selector": "[data-ocade=c61]"
+            },
+            {
+              "tag": "a",
+              "href": "https://docs.python.org/release/3.14.8/whatsnew/changelog.html",
+              "name": "",
+              "type": "",
+              "label": "Release notes",
+              "selector": "[data-ocade=c62]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3147/",
+              "name": "",
+              "type": "",
+              "label": "Python 3.14.7",
+              "selector": "[data-ocade=c63]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3147/",
+              "name": "",
+              "type": "",
+              "label": "Download",
+              "selector": "[data-ocade=c64]"
+            },
+            {
+              "tag": "a",
+              "href": "https://docs.python.org/release/3.14.7/whatsnew/changelog.html",
+              "name": "",
+              "type": "",
+              "label": "Release notes",
+              "selector": "[data-ocade=c65]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3146/",
+              "name": "",
+              "type": "",
+              "label": "Python 3.14.6",
+              "selector": "[data-ocade=c66]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3146/",
+              "name": "",
+              "type": "",
+              "label": "Download",
+              "selector": "[data-ocade=c67]"
+            },
+            {
+              "tag": "a",
+              "href": "https://docs.python.org/release/3.14.6/whatsnew/changelog.html",
+              "name": "",
+              "type": "",
+              "label": "Release notes",
+              "selector": "[data-ocade=c68]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3145/",
+              "name": "",
+              "type": "",
+              "label": "Python 3.14.5",
+              "selector": "[data-ocade=c69]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3145/",
+              "name": "",
+              "type": "",
+              "label": "Download",
+              "selector": "[data-ocade=c70]"
+            },
+            {
+              "tag": "a",
+              "href": "https://docs.python.org/release/3.14.5/whatsnew/changelog.html",
+              "name": "",
+              "type": "",
+              "label": "Release notes",
+              "selector": "[data-ocade=c71]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3144/",
+              "name": "",
+              "type": "",
+              "label": "Python 3.14.4",
+              "selector": "[data-ocade=c72]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3144/",
+              "name": "",
+              "type": "",
+              "label": "Download",
+              "selector": "[data-ocade=c73]"
+            },
+            {
+              "tag": "a",
+              "href": "https://docs.python.org/release/3.14.4/whatsnew/changelog.html",
+              "name": "",
+              "type": "",
+              "label": "Release notes",
+              "selector": "[data-ocade=c74]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3143/",
+              "name": "",
+              "type": "",
+              "label": "Python 3.14.3",
+              "selector": "[data-ocade=c75]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3143/",
+              "name": "",
+              "type": "",
+              "label": "Download",
+              "selector": "[data-ocade=c76]"
+            },
+            {
+              "tag": "a",
+              "href": "https://docs.python.org/release/3.14.3/whatsnew/changelog.html",
+              "name": "",
+              "type": "",
+              "label": "Release notes",
+              "selector": "[data-ocade=c77]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3142/",
+              "name": "",
+              "type": "",
+              "label": "Python 3.14.2",
+              "selector": "[data-ocade=c78]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3142/",
+              "name": "",
+              "type": "",
+              "label": "Download",
+              "selector": "[data-ocade=c79]"
+            }
+          ],
+          "durationMs": 1048.83,
+          "needsSignIn": false
+        },
+        "maybeChanged": true,
+        "observedAtUtc": "2026-11-01T11:25:30.075Z"
+      }
+    },
+    {
+      "summary": "read",
+      "intent": {
+        "v": 1,
+        "key": "s5",
+        "risk": "read",
+        "target": {
+          "site": "www.python.org"
+        },
+        "arguments": {
+          "page": {
+            "id": "7ed3a7012e4c",
+            "site": "www.python.org"
+          }
+        },
+        "operation": "web.read",
+        "capability": "browser",
+        "deadlineUtc": "2026-11-01T11:35:30.758Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "url": "https://www.python.org/downloads/",
+          "page": {
+            "id": "7ed3a7012e4c",
+            "site": "www.python.org"
+          },
+          "text": "Skip to content\nPython\nPSF\nDocs\nPyPI\nJobs\nCommunity\nDonate\n \nSearch This Site\n GO\nSocialize\nAbout\n \nDownloads\n \nDocumentation\n \nCommunity\n \nSuccess Stories\n \nNews\n \nEvents\nDownload the latest source release\n\nDownload Python 3.15.2\n\nLooking for Python with a different OS? Python for Windows, Linux/Unix, macOS, Android, iOS, other\n\nWant to help test development versions of Python 3.16? Pre-releases, Docker images\n\n Security notice: the emSign root CA has been removed from certifi. Upgrade certifi, pip, uv and sigstore now.   See more\nActive Python releases\n\nFor more information visit the Python Developer's Guide.\n\nPython version Maintenance status   First released End of support Release schedule\n3.16 pre-release Download 2027-10-06 (planned) 2032-10 PEP 826\n3.15 bugfix Download 2026-10-09 2031-10 PEP 790\n3.14 bugfix Download 2025-10-07 2030-10 PEP 745\n3.13 security Download 2024-10-07 2029-10 PEP 719\n3.12 security Download 2023-10-02 2028-10 PEP 693\n3.11 security Download 2022-10-24 2027-10 PEP 664\n3.10 end-of-life, last release was 3.10.22 Download 2021-10-04 2026-10-01 PEP 619\nLooking for a specific release?\n\nPython releases by version number:\n\nRelease version Release date   Click for more\nPython 3.15.2 Oct. 25, 2026  Download Release notes\nPython 3.15.1 Oct. 21, 2026  Download Release notes\nPython 3.15.0 Oct. 9, 2026  Download Release notes\nPython 3.14.10 Oct. 25, 2026  Download Release notes\nPython 3.14.9 Oct. 21, 2026  Download Release notes\nPython 3.14.8 Sept. 30, 2026  Download Release notes\nPython 3.14.7 Aug. 5, 2026  Download Release notes\nPython 3.14.6 June 10, 2026  Download Release notes\nPython 3.14.5 May 10, 2026  Download Release notes\nPython 3.14.4 April 7, 2026  Download Release notes\nPython 3.14.3 Feb. 3, 2026  Download Release notes\nPython 3.14.2 Dec. 5, 2025  Download Release notes\nPython 3.14.1 Dec. 2, 2025  Download Release notes\nPython 3.14.0 Oct. 7, 2025  Download Release notes\nPython 3.13.18 Oct. 25, 2026  Download Release notes\nPython 3.13.17 Oct. 21, 2026  Download Release notes\nPython 3.13.16 Sept. 30, 2026  Download Release notes\nPython 3.13.15 Aug. 5, 2026  Download Release notes\nPython 3.13.14 June 10, 2026  Download Release notes\nPython 3.13.13 April 7, 2026  Download Release notes\nPython 3.13.12 Feb. 3, 2026  Download Release notes\nPython 3.13.11 Dec. 5, 2025  Download Release notes\nPython 3.13.10 Dec. 2, 2025  Download Release notes\nPython 3.13.9 Oct. 14, 2025  Download Release notes\nPython 3.13.8 Oct. 7, 2025  Download Release notes\nPython 3.13.7 Aug. 14, 2025  Download Release notes\nPython 3.13.6 Aug. 6, 2025  Download Release notes\nPython 3.13.5 June 11, 2025  Download Release notes\nPython 3.13.4 June 3, 2025  Download Release notes\nPython 3.13.3 April 8, 2025  Download Release notes\nPython 3.13.2 Feb. 4, 2025  Download Release notes\nPython 3.13.1 Dec. 3, 2024  Download Release notes\nPython 3.13.0 Oct. 7, 2024  Download Release notes\nPython 3.12.16 Oct. 25, 2026  Download Release notes\nPython 3.12.15 Sept. 30, 2026  Download Release notes\nPython 3.12.14 Aug. 12, 2026  Download Release notes\nPython 3.12.13 March 3, 2026  Download Release notes\nPython 3.12.12 Oct. 9, 2025  Download Release notes\nPython 3.12.11 June 3, 2025  Download Release notes\nPython 3.12.10 April 8, 2025  Download Release notes\nPython 3.12.9 Feb. 4, 2025  Download Release notes\nPython 3.12.8 Dec. 3, 2024  Download Release notes\nPython 3.12.7 Oct. 1, 2024  Download Release notes\nPython 3.12.6 Sept. 6, 2024  Download Release notes\nPython 3.12.5 Aug. 6, 2024  Download Release notes\nPython 3.12.4 June 6, 2024  Download Release notes\nPython 3.12.3 April 9, 2024",
+          "title": "Download Python | Python.org",
+          "controls": [
+            {
+              "tag": "a",
+              "href": "/downloads/",
+              "name": "",
+              "type": "",
+              "label": "Skip to content",
+              "selector": "[data-ocade=c0]"
+            },
+            {
+              "tag": "a",
+              "href": "/",
+              "name": "",
+              "type": "",
+              "label": "The Python Programming Language",
+              "selector": "[data-ocade=c1]"
+            },
+            {
+              "tag": "a",
+              "href": "/psf/",
+              "name": "",
+              "type": "",
+              "label": "The Python Software Foundation",
+              "selector": "[data-ocade=c2]"
+            },
+            {
+              "tag": "a",
+              "href": "https://docs.python.org/",
+              "name": "",
+              "type": "",
+              "label": "Python Documentation",
+              "selector": "[data-ocade=c3]"
+            },
+            {
+              "tag": "a",
+              "href": "https://pypi.org/",
+              "name": "",
+              "type": "",
+              "label": "Python Package Index",
+              "selector": "[data-ocade=c4]"
+            },
+            {
+              "tag": "a",
+              "href": "/jobs/",
+              "name": "",
+              "type": "",
+              "label": "Python Job Board",
+              "selector": "[data-ocade=c5]"
+            },
+            {
+              "tag": "a",
+              "href": "/community/",
+              "name": "",
+              "type": "",
+              "label": "Community",
+              "selector": "[data-ocade=c6]"
+            },
+            {
+              "tag": "a",
+              "href": "/",
+              "name": "",
+              "type": "",
+              "label": "",
+              "selector": "[data-ocade=c7]"
+            },
+            {
+              "tag": "a",
+              "href": "https://donate.python.org/",
+              "name": "",
+              "type": "",
+              "label": "Donate",
+              "selector": "[data-ocade=c8]"
+            },
+            {
+              "tag": "input",
+              "name": "q",
+              "type": "search",
+              "label": "Search This Site",
+              "selector": "[data-ocade=c9]"
+            },
+            {
+              "tag": "button",
+              "name": "submit",
+              "type": "submit",
+              "label": "Submit this Search",
+              "selector": "[data-ocade=c10]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/",
+              "name": "",
+              "type": "",
+              "label": "Socialize",
+              "selector": "[data-ocade=c11]"
+            },
+            {
+              "tag": "a",
+              "href": "/about/",
+              "name": "",
+              "type": "",
+              "label": "About",
+              "selector": "[data-ocade=c12]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/",
+              "name": "",
+              "type": "",
+              "label": "Downloads",
+              "selector": "[data-ocade=c13]"
+            },
+            {
+              "tag": "a",
+              "href": "/doc/",
+              "name": "",
+              "type": "",
+              "label": "Documentation",
+              "selector": "[data-ocade=c14]"
+            },
+            {
+              "tag": "a",
+              "href": "/community/",
+              "name": "",
+              "type": "",
+              "label": "Community",
+              "selector": "[data-ocade=c15]"
+            },
+            {
+              "tag": "a",
+              "href": "/success-stories/",
+              "name": "",
+              "type": "",
+              "label": "success-stories",
+              "selector": "[data-ocade=c16]"
+            },
+            {
+              "tag": "a",
+              "href": "/blogs/",
+              "name": "",
+              "type": "",
+              "label": "News from around the Python world",
+              "selector": "[data-ocade=c17]"
+            },
+            {
+              "tag": "a",
+              "href": "/events/",
+              "name": "",
+              "type": "",
+              "label": "Events",
+              "selector": "[data-ocade=c18]"
+            },
+            {
+              "tag": "a",
+              "href": "/ftp/python/3.15.2/Python-3.15.2.tar.xz",
+              "name": "",
+              "type": "",
+              "label": "Download Python 3.15.2",
+              "selector": "[data-ocade=c19]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/windows/",
+              "name": "",
+              "type": "",
+              "label": "Windows",
+              "selector": "[data-ocade=c20]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/source/",
+              "name": "",
+              "type": "",
+              "label": "Linux/Unix",
+              "selector": "[data-ocade=c21]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/macos/",
+              "name": "",
+              "type": "",
+              "label": "macOS",
+              "selector": "[data-ocade=c22]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/android/",
+              "name": "",
+              "type": "",
+              "label": "Android",
+              "selector": "[data-ocade=c23]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/ios/",
+              "name": "",
+              "type": "",
+              "label": "iOS",
+              "selector": "[data-ocade=c24]"
+            },
+            {
+              "tag": "a",
+              "href": "/download/other/",
+              "name": "",
+              "type": "",
+              "label": "other",
+              "selector": "[data-ocade=c25]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/latest/prerelease/",
+              "name": "",
+              "type": "",
+              "label": "Pre-releases",
+              "selector": "[data-ocade=c26]"
+            },
+            {
+              "tag": "a",
+              "href": "https://gitlab.com/python-devs/ci-images",
+              "name": "",
+              "type": "",
+              "label": "Docker images",
+              "selector": "[data-ocade=c27]"
+            },
+            {
+              "tag": "a",
+              "href": "https://discuss.python.org/t/information-for-python-users-regarding-emudhra-emsign-ca-certificate-security-incident/109576",
+              "name": "",
+              "type": "",
+              "label": "See more",
+              "selector": "[data-ocade=c28]"
+            },
+            {
+              "tag": "a",
+              "href": "https://devguide.python.org/versions/#versions",
+              "name": "",
+              "type": "",
+              "label": "For more information visit the Python Developer's Guide",
+              "selector": "[data-ocade=c29]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/latest/python3.16/",
+              "name": "",
+              "type": "",
+              "label": "Download",
+              "selector": "[data-ocade=c30]"
+            },
+            {
+              "tag": "a",
+              "href": "https://peps.python.org/pep-0826/",
+              "name": "",
+              "type": "",
+              "label": "PEP 826",
+              "selector": "[data-ocade=c31]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/latest/python3.15/",
+              "name": "",
+              "type": "",
+              "label": "Download",
+              "selector": "[data-ocade=c32]"
+            },
+            {
+              "tag": "a",
+              "href": "https://peps.python.org/pep-0790/",
+              "name": "",
+              "type": "",
+              "label": "PEP 790",
+              "selector": "[data-ocade=c33]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/latest/python3.14/",
+              "name": "",
+              "type": "",
+              "label": "Download",
+              "selector": "[data-ocade=c34]"
+            },
+            {
+              "tag": "a",
+              "href": "https://peps.python.org/pep-0745/",
+              "name": "",
+              "type": "",
+              "label": "PEP 745",
+              "selector": "[data-ocade=c35]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/latest/python3.13/",
+              "name": "",
+              "type": "",
+              "label": "Download",
+              "selector": "[data-ocade=c36]"
+            },
+            {
+              "tag": "a",
+              "href": "https://peps.python.org/pep-0719/",
+              "name": "",
+              "type": "",
+              "label": "PEP 719",
+              "selector": "[data-ocade=c37]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/latest/python3.12/",
+              "name": "",
+              "type": "",
+              "label": "Download",
+              "selector": "[data-ocade=c38]"
+            },
+            {
+              "tag": "a",
+              "href": "https://peps.python.org/pep-0693/",
+              "name": "",
+              "type": "",
+              "label": "PEP 693",
+              "selector": "[data-ocade=c39]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/latest/python3.11/",
+              "name": "",
+              "type": "",
+              "label": "Download",
+              "selector": "[data-ocade=c40]"
+            },
+            {
+              "tag": "a",
+              "href": "https://peps.python.org/pep-0664/",
+              "name": "",
+              "type": "",
+              "label": "PEP 664",
+              "selector": "[data-ocade=c41]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-31022/",
+              "name": "",
+              "type": "",
+              "label": "3.10.22",
+              "selector": "[data-ocade=c42]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/latest/python3.10/",
+              "name": "",
+              "type": "",
+              "label": "Download",
+              "selector": "[data-ocade=c43]"
+            },
+            {
+              "tag": "a",
+              "href": "https://peps.python.org/pep-0619/",
+              "name": "",
+              "type": "",
+              "label": "PEP 619",
+              "selector": "[data-ocade=c44]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3152/",
+              "name": "",
+              "type": "",
+              "label": "Python 3.15.2",
+              "selector": "[data-ocade=c45]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3152/",
+              "name": "",
+              "type": "",
+              "label": "Download",
+              "selector": "[data-ocade=c46]"
+            },
+            {
+              "tag": "a",
+              "href": "https://docs.python.org/release/3.15.2/whatsnew/changelog.html",
+              "name": "",
+              "type": "",
+              "label": "Release notes",
+              "selector": "[data-ocade=c47]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3151/",
+              "name": "",
+              "type": "",
+              "label": "Python 3.15.1",
+              "selector": "[data-ocade=c48]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3151/",
+              "name": "",
+              "type": "",
+              "label": "Download",
+              "selector": "[data-ocade=c49]"
+            },
+            {
+              "tag": "a",
+              "href": "https://docs.python.org/release/3.15.1/whatsnew/changelog.html",
+              "name": "",
+              "type": "",
+              "label": "Release notes",
+              "selector": "[data-ocade=c50]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3150/",
+              "name": "",
+              "type": "",
+              "label": "Python 3.15.0",
+              "selector": "[data-ocade=c51]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3150/",
+              "name": "",
+              "type": "",
+              "label": "Download",
+              "selector": "[data-ocade=c52]"
+            },
+            {
+              "tag": "a",
+              "href": "https://docs.python.org/release/3.15.0/whatsnew/changelog.html",
+              "name": "",
+              "type": "",
+              "label": "Release notes",
+              "selector": "[data-ocade=c53]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-31410/",
+              "name": "",
+              "type": "",
+              "label": "Python 3.14.10",
+              "selector": "[data-ocade=c54]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-31410/",
+              "name": "",
+              "type": "",
+              "label": "Download",
+              "selector": "[data-ocade=c55]"
+            },
+            {
+              "tag": "a",
+              "href": "https://docs.python.org/release/3.14.10/whatsnew/changelog.html",
+              "name": "",
+              "type": "",
+              "label": "Release notes",
+              "selector": "[data-ocade=c56]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3149/",
+              "name": "",
+              "type": "",
+              "label": "Python 3.14.9",
+              "selector": "[data-ocade=c57]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3149/",
+              "name": "",
+              "type": "",
+              "label": "Download",
+              "selector": "[data-ocade=c58]"
+            },
+            {
+              "tag": "a",
+              "href": "https://docs.python.org/release/3.14.9/whatsnew/changelog.html",
+              "name": "",
+              "type": "",
+              "label": "Release notes",
+              "selector": "[data-ocade=c59]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3148/",
+              "name": "",
+              "type": "",
+              "label": "Python 3.14.8",
+              "selector": "[data-ocade=c60]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3148/",
+              "name": "",
+              "type": "",
+              "label": "Download",
+              "selector": "[data-ocade=c61]"
+            },
+            {
+              "tag": "a",
+              "href": "https://docs.python.org/release/3.14.8/whatsnew/changelog.html",
+              "name": "",
+              "type": "",
+              "label": "Release notes",
+              "selector": "[data-ocade=c62]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3147/",
+              "name": "",
+              "type": "",
+              "label": "Python 3.14.7",
+              "selector": "[data-ocade=c63]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3147/",
+              "name": "",
+              "type": "",
+              "label": "Download",
+              "selector": "[data-ocade=c64]"
+            },
+            {
+              "tag": "a",
+              "href": "https://docs.python.org/release/3.14.7/whatsnew/changelog.html",
+              "name": "",
+              "type": "",
+              "label": "Release notes",
+              "selector": "[data-ocade=c65]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3146/",
+              "name": "",
+              "type": "",
+              "label": "Python 3.14.6",
+              "selector": "[data-ocade=c66]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3146/",
+              "name": "",
+              "type": "",
+              "label": "Download",
+              "selector": "[data-ocade=c67]"
+            },
+            {
+              "tag": "a",
+              "href": "https://docs.python.org/release/3.14.6/whatsnew/changelog.html",
+              "name": "",
+              "type": "",
+              "label": "Release notes",
+              "selector": "[data-ocade=c68]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3145/",
+              "name": "",
+              "type": "",
+              "label": "Python 3.14.5",
+              "selector": "[data-ocade=c69]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3145/",
+              "name": "",
+              "type": "",
+              "label": "Download",
+              "selector": "[data-ocade=c70]"
+            },
+            {
+              "tag": "a",
+              "href": "https://docs.python.org/release/3.14.5/whatsnew/changelog.html",
+              "name": "",
+              "type": "",
+              "label": "Release notes",
+              "selector": "[data-ocade=c71]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3144/",
+              "name": "",
+              "type": "",
+              "label": "Python 3.14.4",
+              "selector": "[data-ocade=c72]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3144/",
+              "name": "",
+              "type": "",
+              "label": "Download",
+              "selector": "[data-ocade=c73]"
+            },
+            {
+              "tag": "a",
+              "href": "https://docs.python.org/release/3.14.4/whatsnew/changelog.html",
+              "name": "",
+              "type": "",
+              "label": "Release notes",
+              "selector": "[data-ocade=c74]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3143/",
+              "name": "",
+              "type": "",
+              "label": "Python 3.14.3",
+              "selector": "[data-ocade=c75]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3143/",
+              "name": "",
+              "type": "",
+              "label": "Download",
+              "selector": "[data-ocade=c76]"
+            },
+            {
+              "tag": "a",
+              "href": "https://docs.python.org/release/3.14.3/whatsnew/changelog.html",
+              "name": "",
+              "type": "",
+              "label": "Release notes",
+              "selector": "[data-ocade=c77]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3142/",
+              "name": "",
+              "type": "",
+              "label": "Python 3.14.2",
+              "selector": "[data-ocade=c78]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3142/",
+              "name": "",
+              "type": "",
+              "label": "Download",
+              "selector": "[data-ocade=c79]"
+            }
+          ],
+          "durationMs": 27.96,
+          "needsSignIn": false
+        },
+        "maybeChanged": false,
+        "observedAtUtc": "2026-11-01T11:25:44.115Z"
+      }
+    },
+    {
+      "summary": "read",
+      "intent": {
+        "v": 1,
+        "key": "s6",
+        "risk": "read",
+        "target": {
+          "site": "www.python.org"
+        },
+        "arguments": {
+          "page": {
+            "id": "7ed3a7012e4c",
+            "site": "www.python.org"
+          }
+        },
+        "operation": "web.read",
+        "capability": "browser",
+        "deadlineUtc": "2026-11-01T11:35:45.097Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "url": "https://www.python.org/downloads/",
+          "page": {
+            "id": "7ed3a7012e4c",
+            "site": "www.python.org"
+          },
+          "text": "Skip to content\nPython\nPSF\nDocs\nPyPI\nJobs\nCommunity\nDonate\n \nSearch This Site\n GO\nSocialize\nAbout\n \nDownloads\n \nDocumentation\n \nCommunity\n \nSuccess Stories\n \nNews\n \nEvents\nDownload the latest source release\n\nDownload Python 3.15.2\n\nLooking for Python with a different OS? Python for Windows, Linux/Unix, macOS, Android, iOS, other\n\nWant to help test development versions of Python 3.16? Pre-releases, Docker images\n\n Security notice: the emSign root CA has been removed from certifi. Upgrade certifi, pip, uv and sigstore now.   See more\nActive Python releases\n\nFor more information visit the Python Developer's Guide.\n\nPython version Maintenance status   First released End of support Release schedule\n3.16 pre-release Download 2027-10-06 (planned) 2032-10 PEP 826\n3.15 bugfix Download 2026-10-09 2031-10 PEP 790\n3.14 bugfix Download 2025-10-07 2030-10 PEP 745\n3.13 security Download 2024-10-07 2029-10 PEP 719\n3.12 security Download 2023-10-02 2028-10 PEP 693\n3.11 security Download 2022-10-24 2027-10 PEP 664\n3.10 end-of-life, last release was 3.10.22 Download 2021-10-04 2026-10-01 PEP 619\nLooking for a specific release?\n\nPython releases by version number:\n\nRelease version Release date   Click for more\nPython 3.15.2 Oct. 25, 2026  Download Release notes\nPython 3.15.1 Oct. 21, 2026  Download Release notes\nPython 3.15.0 Oct. 9, 2026  Download Release notes\nPython 3.14.10 Oct. 25, 2026  Download Release notes\nPython 3.14.9 Oct. 21, 2026  Download Release notes\nPython 3.14.8 Sept. 30, 2026  Download Release notes\nPython 3.14.7 Aug. 5, 2026  Download Release notes\nPython 3.14.6 June 10, 2026  Download Release notes\nPython 3.14.5 May 10, 2026  Download Release notes\nPython 3.14.4 April 7, 2026  Download Release notes\nPython 3.14.3 Feb. 3, 2026  Download Release notes\nPython 3.14.2 Dec. 5, 2025  Download Release notes\nPython 3.14.1 Dec. 2, 2025  Download Release notes\nPython 3.14.0 Oct. 7, 2025  Download Release notes\nPython 3.13.18 Oct. 25, 2026  Download Release notes\nPython 3.13.17 Oct. 21, 2026  Download Release notes\nPython 3.13.16 Sept. 30, 2026  Download Release notes\nPython 3.13.15 Aug. 5, 2026  Download Release notes\nPython 3.13.14 June 10, 2026  Download Release notes\nPython 3.13.13 April 7, 2026  Download Release notes\nPython 3.13.12 Feb. 3, 2026  Download Release notes\nPython 3.13.11 Dec. 5, 2025  Download Release notes\nPython 3.13.10 Dec. 2, 2025  Download Release notes\nPython 3.13.9 Oct. 14, 2025  Download Release notes\nPython 3.13.8 Oct. 7, 2025  Download Release notes\nPython 3.13.7 Aug. 14, 2025  Download Release notes\nPython 3.13.6 Aug. 6, 2025  Download Release notes\nPython 3.13.5 June 11, 2025  Download Release notes\nPython 3.13.4 June 3, 2025  Download Release notes\nPython 3.13.3 April 8, 2025  Download Release notes\nPython 3.13.2 Feb. 4, 2025  Download Release notes\nPython 3.13.1 Dec. 3, 2024  Download Release notes\nPython 3.13.0 Oct. 7, 2024  Download Release notes\nPython 3.12.16 Oct. 25, 2026  Download Release notes\nPython 3.12.15 Sept. 30, 2026  Download Release notes\nPython 3.12.14 Aug. 12, 2026  Download Release notes\nPython 3.12.13 March 3, 2026  Download Release notes\nPython 3.12.12 Oct. 9, 2025  Download Release notes\nPython 3.12.11 June 3, 2025  Download Release notes\nPython 3.12.10 April 8, 2025  Download Release notes\nPython 3.12.9 Feb. 4, 2025  Download Release notes\nPython 3.12.8 Dec. 3, 2024  Download Release notes\nPython 3.12.7 Oct. 1, 2024  Download Release notes\nPython 3.12.6 Sept. 6, 2024  Download Release notes\nPython 3.12.5 Aug. 6, 2024  Download Release notes\nPython 3.12.4 June 6, 2024  Download Release notes\nPython 3.12.3 April 9, 2024",
+          "title": "Download Python | Python.org",
+          "controls": [
+            {
+              "tag": "a",
+              "href": "/downloads/",
+              "name": "",
+              "type": "",
+              "label": "Skip to content",
+              "selector": "[data-ocade=c0]"
+            },
+            {
+              "tag": "a",
+              "href": "/",
+              "name": "",
+              "type": "",
+              "label": "The Python Programming Language",
+              "selector": "[data-ocade=c1]"
+            },
+            {
+              "tag": "a",
+              "href": "/psf/",
+              "name": "",
+              "type": "",
+              "label": "The Python Software Foundation",
+              "selector": "[data-ocade=c2]"
+            },
+            {
+              "tag": "a",
+              "href": "https://docs.python.org/",
+              "name": "",
+              "type": "",
+              "label": "Python Documentation",
+              "selector": "[data-ocade=c3]"
+            },
+            {
+              "tag": "a",
+              "href": "https://pypi.org/",
+              "name": "",
+              "type": "",
+              "label": "Python Package Index",
+              "selector": "[data-ocade=c4]"
+            },
+            {
+              "tag": "a",
+              "href": "/jobs/",
+              "name": "",
+              "type": "",
+              "label": "Python Job Board",
+              "selector": "[data-ocade=c5]"
+            },
+            {
+              "tag": "a",
+              "href": "/community/",
+              "name": "",
+              "type": "",
+              "label": "Community",
+              "selector": "[data-ocade=c6]"
+            },
+            {
+              "tag": "a",
+              "href": "/",
+              "name": "",
+              "type": "",
+              "label": "",
+              "selector": "[data-ocade=c7]"
+            },
+            {
+              "tag": "a",
+              "href": "https://donate.python.org/",
+              "name": "",
+              "type": "",
+              "label": "Donate",
+              "selector": "[data-ocade=c8]"
+            },
+            {
+              "tag": "input",
+              "name": "q",
+              "type": "search",
+              "label": "Search This Site",
+              "selector": "[data-ocade=c9]"
+            },
+            {
+              "tag": "button",
+              "name": "submit",
+              "type": "submit",
+              "label": "Submit this Search",
+              "selector": "[data-ocade=c10]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/",
+              "name": "",
+              "type": "",
+              "label": "Socialize",
+              "selector": "[data-ocade=c11]"
+            },
+            {
+              "tag": "a",
+              "href": "/about/",
+              "name": "",
+              "type": "",
+              "label": "About",
+              "selector": "[data-ocade=c12]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/",
+              "name": "",
+              "type": "",
+              "label": "Downloads",
+              "selector": "[data-ocade=c13]"
+            },
+            {
+              "tag": "a",
+              "href": "/doc/",
+              "name": "",
+              "type": "",
+              "label": "Documentation",
+              "selector": "[data-ocade=c14]"
+            },
+            {
+              "tag": "a",
+              "href": "/community/",
+              "name": "",
+              "type": "",
+              "label": "Community",
+              "selector": "[data-ocade=c15]"
+            },
+            {
+              "tag": "a",
+              "href": "/success-stories/",
+              "name": "",
+              "type": "",
+              "label": "success-stories",
+              "selector": "[data-ocade=c16]"
+            },
+            {
+              "tag": "a",
+              "href": "/blogs/",
+              "name": "",
+              "type": "",
+              "label": "News from around the Python world",
+              "selector": "[data-ocade=c17]"
+            },
+            {
+              "tag": "a",
+              "href": "/events/",
+              "name": "",
+              "type": "",
+              "label": "Events",
+              "selector": "[data-ocade=c18]"
+            },
+            {
+              "tag": "a",
+              "href": "/ftp/python/3.15.2/Python-3.15.2.tar.xz",
+              "name": "",
+              "type": "",
+              "label": "Download Python 3.15.2",
+              "selector": "[data-ocade=c19]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/windows/",
+              "name": "",
+              "type": "",
+              "label": "Windows",
+              "selector": "[data-ocade=c20]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/source/",
+              "name": "",
+              "type": "",
+              "label": "Linux/Unix",
+              "selector": "[data-ocade=c21]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/macos/",
+              "name": "",
+              "type": "",
+              "label": "macOS",
+              "selector": "[data-ocade=c22]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/android/",
+              "name": "",
+              "type": "",
+              "label": "Android",
+              "selector": "[data-ocade=c23]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/ios/",
+              "name": "",
+              "type": "",
+              "label": "iOS",
+              "selector": "[data-ocade=c24]"
+            },
+            {
+              "tag": "a",
+              "href": "/download/other/",
+              "name": "",
+              "type": "",
+              "label": "other",
+              "selector": "[data-ocade=c25]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/latest/prerelease/",
+              "name": "",
+              "type": "",
+              "label": "Pre-releases",
+              "selector": "[data-ocade=c26]"
+            },
+            {
+              "tag": "a",
+              "href": "https://gitlab.com/python-devs/ci-images",
+              "name": "",
+              "type": "",
+              "label": "Docker images",
+              "selector": "[data-ocade=c27]"
+            },
+            {
+              "tag": "a",
+              "href": "https://discuss.python.org/t/information-for-python-users-regarding-emudhra-emsign-ca-certificate-security-incident/109576",
+              "name": "",
+              "type": "",
+              "label": "See more",
+              "selector": "[data-ocade=c28]"
+            },
+            {
+              "tag": "a",
+              "href": "https://devguide.python.org/versions/#versions",
+              "name": "",
+              "type": "",
+              "label": "For more information visit the Python Developer's Guide",
+              "selector": "[data-ocade=c29]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/latest/python3.16/",
+              "name": "",
+              "type": "",
+              "label": "Download",
+              "selector": "[data-ocade=c30]"
+            },
+            {
+              "tag": "a",
+              "href": "https://peps.python.org/pep-0826/",
+              "name": "",
+              "type": "",
+              "label": "PEP 826",
+              "selector": "[data-ocade=c31]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/latest/python3.15/",
+              "name": "",
+              "type": "",
+              "label": "Download",
+              "selector": "[data-ocade=c32]"
+            },
+            {
+              "tag": "a",
+              "href": "https://peps.python.org/pep-0790/",
+              "name": "",
+              "type": "",
+              "label": "PEP 790",
+              "selector": "[data-ocade=c33]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/latest/python3.14/",
+              "name": "",
+              "type": "",
+              "label": "Download",
+              "selector": "[data-ocade=c34]"
+            },
+            {
+              "tag": "a",
+              "href": "https://peps.python.org/pep-0745/",
+              "name": "",
+              "type": "",
+              "label": "PEP 745",
+              "selector": "[data-ocade=c35]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/latest/python3.13/",
+              "name": "",
+              "type": "",
+              "label": "Download",
+              "selector": "[data-ocade=c36]"
+            },
+            {
+              "tag": "a",
+              "href": "https://peps.python.org/pep-0719/",
+              "name": "",
+              "type": "",
+              "label": "PEP 719",
+              "selector": "[data-ocade=c37]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/latest/python3.12/",
+              "name": "",
+              "type": "",
+              "label": "Download",
+              "selector": "[data-ocade=c38]"
+            },
+            {
+              "tag": "a",
+              "href": "https://peps.python.org/pep-0693/",
+              "name": "",
+              "type": "",
+              "label": "PEP 693",
+              "selector": "[data-ocade=c39]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/latest/python3.11/",
+              "name": "",
+              "type": "",
+              "label": "Download",
+              "selector": "[data-ocade=c40]"
+            },
+            {
+              "tag": "a",
+              "href": "https://peps.python.org/pep-0664/",
+              "name": "",
+              "type": "",
+              "label": "PEP 664",
+              "selector": "[data-ocade=c41]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-31022/",
+              "name": "",
+              "type": "",
+              "label": "3.10.22",
+              "selector": "[data-ocade=c42]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/latest/python3.10/",
+              "name": "",
+              "type": "",
+              "label": "Download",
+              "selector": "[data-ocade=c43]"
+            },
+            {
+              "tag": "a",
+              "href": "https://peps.python.org/pep-0619/",
+              "name": "",
+              "type": "",
+              "label": "PEP 619",
+              "selector": "[data-ocade=c44]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3152/",
+              "name": "",
+              "type": "",
+              "label": "Python 3.15.2",
+              "selector": "[data-ocade=c45]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3152/",
+              "name": "",
+              "type": "",
+              "label": "Download",
+              "selector": "[data-ocade=c46]"
+            },
+            {
+              "tag": "a",
+              "href": "https://docs.python.org/release/3.15.2/whatsnew/changelog.html",
+              "name": "",
+              "type": "",
+              "label": "Release notes",
+              "selector": "[data-ocade=c47]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3151/",
+              "name": "",
+              "type": "",
+              "label": "Python 3.15.1",
+              "selector": "[data-ocade=c48]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3151/",
+              "name": "",
+              "type": "",
+              "label": "Download",
+              "selector": "[data-ocade=c49]"
+            },
+            {
+              "tag": "a",
+              "href": "https://docs.python.org/release/3.15.1/whatsnew/changelog.html",
+              "name": "",
+              "type": "",
+              "label": "Release notes",
+              "selector": "[data-ocade=c50]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3150/",
+              "name": "",
+              "type": "",
+              "label": "Python 3.15.0",
+              "selector": "[data-ocade=c51]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3150/",
+              "name": "",
+              "type": "",
+              "label": "Download",
+              "selector": "[data-ocade=c52]"
+            },
+            {
+              "tag": "a",
+              "href": "https://docs.python.org/release/3.15.0/whatsnew/changelog.html",
+              "name": "",
+              "type": "",
+              "label": "Release notes",
+              "selector": "[data-ocade=c53]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-31410/",
+              "name": "",
+              "type": "",
+              "label": "Python 3.14.10",
+              "selector": "[data-ocade=c54]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-31410/",
+              "name": "",
+              "type": "",
+              "label": "Download",
+              "selector": "[data-ocade=c55]"
+            },
+            {
+              "tag": "a",
+              "href": "https://docs.python.org/release/3.14.10/whatsnew/changelog.html",
+              "name": "",
+              "type": "",
+              "label": "Release notes",
+              "selector": "[data-ocade=c56]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3149/",
+              "name": "",
+              "type": "",
+              "label": "Python 3.14.9",
+              "selector": "[data-ocade=c57]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3149/",
+              "name": "",
+              "type": "",
+              "label": "Download",
+              "selector": "[data-ocade=c58]"
+            },
+            {
+              "tag": "a",
+              "href": "https://docs.python.org/release/3.14.9/whatsnew/changelog.html",
+              "name": "",
+              "type": "",
+              "label": "Release notes",
+              "selector": "[data-ocade=c59]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3148/",
+              "name": "",
+              "type": "",
+              "label": "Python 3.14.8",
+              "selector": "[data-ocade=c60]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3148/",
+              "name": "",
+              "type": "",
+              "label": "Download",
+              "selector": "[data-ocade=c61]"
+            },
+            {
+              "tag": "a",
+              "href": "https://docs.python.org/release/3.14.8/whatsnew/changelog.html",
+              "name": "",
+              "type": "",
+              "label": "Release notes",
+              "selector": "[data-ocade=c62]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3147/",
+              "name": "",
+              "type": "",
+              "label": "Python 3.14.7",
+              "selector": "[data-ocade=c63]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3147/",
+              "name": "",
+              "type": "",
+              "label": "Download",
+              "selector": "[data-ocade=c64]"
+            },
+            {
+              "tag": "a",
+              "href": "https://docs.python.org/release/3.14.7/whatsnew/changelog.html",
+              "name": "",
+              "type": "",
+              "label": "Release notes",
+              "selector": "[data-ocade=c65]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3146/",
+              "name": "",
+              "type": "",
+              "label": "Python 3.14.6",
+              "selector": "[data-ocade=c66]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3146/",
+              "name": "",
+              "type": "",
+              "label": "Download",
+              "selector": "[data-ocade=c67]"
+            },
+            {
+              "tag": "a",
+              "href": "https://docs.python.org/release/3.14.6/whatsnew/changelog.html",
+              "name": "",
+              "type": "",
+              "label": "Release notes",
+              "selector": "[data-ocade=c68]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3145/",
+              "name": "",
+              "type": "",
+              "label": "Python 3.14.5",
+              "selector": "[data-ocade=c69]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3145/",
+              "name": "",
+              "type": "",
+              "label": "Download",
+              "selector": "[data-ocade=c70]"
+            },
+            {
+              "tag": "a",
+              "href": "https://docs.python.org/release/3.14.5/whatsnew/changelog.html",
+              "name": "",
+              "type": "",
+              "label": "Release notes",
+              "selector": "[data-ocade=c71]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3144/",
+              "name": "",
+              "type": "",
+              "label": "Python 3.14.4",
+              "selector": "[data-ocade=c72]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3144/",
+              "name": "",
+              "type": "",
+              "label": "Download",
+              "selector": "[data-ocade=c73]"
+            },
+            {
+              "tag": "a",
+              "href": "https://docs.python.org/release/3.14.4/whatsnew/changelog.html",
+              "name": "",
+              "type": "",
+              "label": "Release notes",
+              "selector": "[data-ocade=c74]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3143/",
+              "name": "",
+              "type": "",
+              "label": "Python 3.14.3",
+              "selector": "[data-ocade=c75]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3143/",
+              "name": "",
+              "type": "",
+              "label": "Download",
+              "selector": "[data-ocade=c76]"
+            },
+            {
+              "tag": "a",
+              "href": "https://docs.python.org/release/3.14.3/whatsnew/changelog.html",
+              "name": "",
+              "type": "",
+              "label": "Release notes",
+              "selector": "[data-ocade=c77]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3142/",
+              "name": "",
+              "type": "",
+              "label": "Python 3.14.2",
+              "selector": "[data-ocade=c78]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3142/",
+              "name": "",
+              "type": "",
+              "label": "Download",
+              "selector": "[data-ocade=c79]"
+            }
+          ],
+          "durationMs": 34.16,
+          "needsSignIn": false
+        },
+        "maybeChanged": false,
+        "observedAtUtc": "2026-11-01T11:26:04.579Z"
+      }
+    },
+    {
+      "summary": "read",
+      "intent": {
+        "v": 1,
+        "key": "s7",
+        "risk": "read",
+        "target": {
+          "site": "www.python.org"
+        },
+        "arguments": {
+          "page": {
+            "id": "7ed3a7012e4c",
+            "site": "www.python.org"
+          }
+        },
+        "operation": "web.read",
+        "capability": "browser",
+        "deadlineUtc": "2026-11-01T11:36:05.252Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "url": "https://www.python.org/downloads/",
+          "page": {
+            "id": "7ed3a7012e4c",
+            "site": "www.python.org"
+          },
+          "text": "Skip to content\nPython\nPSF\nDocs\nPyPI\nJobs\nCommunity\nDonate\n \nSearch This Site\n GO\nSocialize\nAbout\n \nDownloads\n \nDocumentation\n \nCommunity\n \nSuccess Stories\n \nNews\n \nEvents\nDownload the latest source release\n\nDownload Python 3.15.2\n\nLooking for Python with a different OS? Python for Windows, Linux/Unix, macOS, Android, iOS, other\n\nWant to help test development versions of Python 3.16? Pre-releases, Docker images\n\n Security notice: the emSign root CA has been removed from certifi. Upgrade certifi, pip, uv and sigstore now.   See more\nActive Python releases\n\nFor more information visit the Python Developer's Guide.\n\nPython version Maintenance status   First released End of support Release schedule\n3.16 pre-release Download 2027-10-06 (planned) 2032-10 PEP 826\n3.15 bugfix Download 2026-10-09 2031-10 PEP 790\n3.14 bugfix Download 2025-10-07 2030-10 PEP 745\n3.13 security Download 2024-10-07 2029-10 PEP 719\n3.12 security Download 2023-10-02 2028-10 PEP 693\n3.11 security Download 2022-10-24 2027-10 PEP 664\n3.10 end-of-life, last release was 3.10.22 Download 2021-10-04 2026-10-01 PEP 619\nLooking for a specific release?\n\nPython releases by version number:\n\nRelease version Release date   Click for more\nPython 3.15.2 Oct. 25, 2026  Download Release notes\nPython 3.15.1 Oct. 21, 2026  Download Release notes\nPython 3.15.0 Oct. 9, 2026  Download Release notes\nPython 3.14.10 Oct. 25, 2026  Download Release notes\nPython 3.14.9 Oct. 21, 2026  Download Release notes\nPython 3.14.8 Sept. 30, 2026  Download Release notes\nPython 3.14.7 Aug. 5, 2026  Download Release notes\nPython 3.14.6 June 10, 2026  Download Release notes\nPython 3.14.5 May 10, 2026  Download Release notes\nPython 3.14.4 April 7, 2026  Download Release notes\nPython 3.14.3 Feb. 3, 2026  Download Release notes\nPython 3.14.2 Dec. 5, 2025  Download Release notes\nPython 3.14.1 Dec. 2, 2025  Download Release notes\nPython 3.14.0 Oct. 7, 2025  Download Release notes\nPython 3.13.18 Oct. 25, 2026  Download Release notes\nPython 3.13.17 Oct. 21, 2026  Download Release notes\nPython 3.13.16 Sept. 30, 2026  Download Release notes\nPython 3.13.15 Aug. 5, 2026  Download Release notes\nPython 3.13.14 June 10, 2026  Download Release notes\nPython 3.13.13 April 7, 2026  Download Release notes\nPython 3.13.12 Feb. 3, 2026  Download Release notes\nPython 3.13.11 Dec. 5, 2025  Download Release notes\nPython 3.13.10 Dec. 2, 2025  Download Release notes\nPython 3.13.9 Oct. 14, 2025  Download Release notes\nPython 3.13.8 Oct. 7, 2025  Download Release notes\nPython 3.13.7 Aug. 14, 2025  Download Release notes\nPython 3.13.6 Aug. 6, 2025  Download Release notes\nPython 3.13.5 June 11, 2025  Download Release notes\nPython 3.13.4 June 3, 2025  Download Release notes\nPython 3.13.3 April 8, 2025  Download Release notes\nPython 3.13.2 Feb. 4, 2025  Download Release notes\nPython 3.13.1 Dec. 3, 2024  Download Release notes\nPython 3.13.0 Oct. 7, 2024  Download Release notes\nPython 3.12.16 Oct. 25, 2026  Download Release notes\nPython 3.12.15 Sept. 30, 2026  Download Release notes\nPython 3.12.14 Aug. 12, 2026  Download Release notes\nPython 3.12.13 March 3, 2026  Download Release notes\nPython 3.12.12 Oct. 9, 2025  Download Release notes\nPython 3.12.11 June 3, 2025  Download Release notes\nPython 3.12.10 April 8, 2025  Download Release notes\nPython 3.12.9 Feb. 4, 2025  Download Release notes\nPython 3.12.8 Dec. 3, 2024  Download Release notes\nPython 3.12.7 Oct. 1, 2024  Download Release notes\nPython 3.12.6 Sept. 6, 2024  Download Release notes\nPython 3.12.5 Aug. 6, 2024  Download Release notes\nPython 3.12.4 June 6, 2024  Download Release notes\nPython 3.12.3 April 9, 2024",
+          "title": "Download Python | Python.org",
+          "controls": [
+            {
+              "tag": "a",
+              "href": "/downloads/",
+              "name": "",
+              "type": "",
+              "label": "Skip to content",
+              "selector": "[data-ocade=c0]"
+            },
+            {
+              "tag": "a",
+              "href": "/",
+              "name": "",
+              "type": "",
+              "label": "The Python Programming Language",
+              "selector": "[data-ocade=c1]"
+            },
+            {
+              "tag": "a",
+              "href": "/psf/",
+              "name": "",
+              "type": "",
+              "label": "The Python Software Foundation",
+              "selector": "[data-ocade=c2]"
+            },
+            {
+              "tag": "a",
+              "href": "https://docs.python.org/",
+              "name": "",
+              "type": "",
+              "label": "Python Documentation",
+              "selector": "[data-ocade=c3]"
+            },
+            {
+              "tag": "a",
+              "href": "https://pypi.org/",
+              "name": "",
+              "type": "",
+              "label": "Python Package Index",
+              "selector": "[data-ocade=c4]"
+            },
+            {
+              "tag": "a",
+              "href": "/jobs/",
+              "name": "",
+              "type": "",
+              "label": "Python Job Board",
+              "selector": "[data-ocade=c5]"
+            },
+            {
+              "tag": "a",
+              "href": "/community/",
+              "name": "",
+              "type": "",
+              "label": "Community",
+              "selector": "[data-ocade=c6]"
+            },
+            {
+              "tag": "a",
+              "href": "/",
+              "name": "",
+              "type": "",
+              "label": "",
+              "selector": "[data-ocade=c7]"
+            },
+            {
+              "tag": "a",
+              "href": "https://donate.python.org/",
+              "name": "",
+              "type": "",
+              "label": "Donate",
+              "selector": "[data-ocade=c8]"
+            },
+            {
+              "tag": "input",
+              "name": "q",
+              "type": "search",
+              "label": "Search This Site",
+              "selector": "[data-ocade=c9]"
+            },
+            {
+              "tag": "button",
+              "name": "submit",
+              "type": "submit",
+              "label": "Submit this Search",
+              "selector": "[data-ocade=c10]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/",
+              "name": "",
+              "type": "",
+              "label": "Socialize",
+              "selector": "[data-ocade=c11]"
+            },
+            {
+              "tag": "a",
+              "href": "/about/",
+              "name": "",
+              "type": "",
+              "label": "About",
+              "selector": "[data-ocade=c12]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/",
+              "name": "",
+              "type": "",
+              "label": "Downloads",
+              "selector": "[data-ocade=c13]"
+            },
+            {
+              "tag": "a",
+              "href": "/doc/",
+              "name": "",
+              "type": "",
+              "label": "Documentation",
+              "selector": "[data-ocade=c14]"
+            },
+            {
+              "tag": "a",
+              "href": "/community/",
+              "name": "",
+              "type": "",
+              "label": "Community",
+              "selector": "[data-ocade=c15]"
+            },
+            {
+              "tag": "a",
+              "href": "/success-stories/",
+              "name": "",
+              "type": "",
+              "label": "success-stories",
+              "selector": "[data-ocade=c16]"
+            },
+            {
+              "tag": "a",
+              "href": "/blogs/",
+              "name": "",
+              "type": "",
+              "label": "News from around the Python world",
+              "selector": "[data-ocade=c17]"
+            },
+            {
+              "tag": "a",
+              "href": "/events/",
+              "name": "",
+              "type": "",
+              "label": "Events",
+              "selector": "[data-ocade=c18]"
+            },
+            {
+              "tag": "a",
+              "href": "/ftp/python/3.15.2/Python-3.15.2.tar.xz",
+              "name": "",
+              "type": "",
+              "label": "Download Python 3.15.2",
+              "selector": "[data-ocade=c19]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/windows/",
+              "name": "",
+              "type": "",
+              "label": "Windows",
+              "selector": "[data-ocade=c20]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/source/",
+              "name": "",
+              "type": "",
+              "label": "Linux/Unix",
+              "selector": "[data-ocade=c21]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/macos/",
+              "name": "",
+              "type": "",
+              "label": "macOS",
+              "selector": "[data-ocade=c22]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/android/",
+              "name": "",
+              "type": "",
+              "label": "Android",
+              "selector": "[data-ocade=c23]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/ios/",
+              "name": "",
+              "type": "",
+              "label": "iOS",
+              "selector": "[data-ocade=c24]"
+            },
+            {
+              "tag": "a",
+              "href": "/download/other/",
+              "name": "",
+              "type": "",
+              "label": "other",
+              "selector": "[data-ocade=c25]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/latest/prerelease/",
+              "name": "",
+              "type": "",
+              "label": "Pre-releases",
+              "selector": "[data-ocade=c26]"
+            },
+            {
+              "tag": "a",
+              "href": "https://gitlab.com/python-devs/ci-images",
+              "name": "",
+              "type": "",
+              "label": "Docker images",
+              "selector": "[data-ocade=c27]"
+            },
+            {
+              "tag": "a",
+              "href": "https://discuss.python.org/t/information-for-python-users-regarding-emudhra-emsign-ca-certificate-security-incident/109576",
+              "name": "",
+              "type": "",
+              "label": "See more",
+              "selector": "[data-ocade=c28]"
+            },
+            {
+              "tag": "a",
+              "href": "https://devguide.python.org/versions/#versions",
+              "name": "",
+              "type": "",
+              "label": "For more information visit the Python Developer's Guide",
+              "selector": "[data-ocade=c29]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/latest/python3.16/",
+              "name": "",
+              "type": "",
+              "label": "Download",
+              "selector": "[data-ocade=c30]"
+            },
+            {
+              "tag": "a",
+              "href": "https://peps.python.org/pep-0826/",
+              "name": "",
+              "type": "",
+              "label": "PEP 826",
+              "selector": "[data-ocade=c31]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/latest/python3.15/",
+              "name": "",
+              "type": "",
+              "label": "Download",
+              "selector": "[data-ocade=c32]"
+            },
+            {
+              "tag": "a",
+              "href": "https://peps.python.org/pep-0790/",
+              "name": "",
+              "type": "",
+              "label": "PEP 790",
+              "selector": "[data-ocade=c33]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/latest/python3.14/",
+              "name": "",
+              "type": "",
+              "label": "Download",
+              "selector": "[data-ocade=c34]"
+            },
+            {
+              "tag": "a",
+              "href": "https://peps.python.org/pep-0745/",
+              "name": "",
+              "type": "",
+              "label": "PEP 745",
+              "selector": "[data-ocade=c35]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/latest/python3.13/",
+              "name": "",
+              "type": "",
+              "label": "Download",
+              "selector": "[data-ocade=c36]"
+            },
+            {
+              "tag": "a",
+              "href": "https://peps.python.org/pep-0719/",
+              "name": "",
+              "type": "",
+              "label": "PEP 719",
+              "selector": "[data-ocade=c37]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/latest/python3.12/",
+              "name": "",
+              "type": "",
+              "label": "Download",
+              "selector": "[data-ocade=c38]"
+            },
+            {
+              "tag": "a",
+              "href": "https://peps.python.org/pep-0693/",
+              "name": "",
+              "type": "",
+              "label": "PEP 693",
+              "selector": "[data-ocade=c39]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/latest/python3.11/",
+              "name": "",
+              "type": "",
+              "label": "Download",
+              "selector": "[data-ocade=c40]"
+            },
+            {
+              "tag": "a",
+              "href": "https://peps.python.org/pep-0664/",
+              "name": "",
+              "type": "",
+              "label": "PEP 664",
+              "selector": "[data-ocade=c41]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-31022/",
+              "name": "",
+              "type": "",
+              "label": "3.10.22",
+              "selector": "[data-ocade=c42]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/latest/python3.10/",
+              "name": "",
+              "type": "",
+              "label": "Download",
+              "selector": "[data-ocade=c43]"
+            },
+            {
+              "tag": "a",
+              "href": "https://peps.python.org/pep-0619/",
+              "name": "",
+              "type": "",
+              "label": "PEP 619",
+              "selector": "[data-ocade=c44]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3152/",
+              "name": "",
+              "type": "",
+              "label": "Python 3.15.2",
+              "selector": "[data-ocade=c45]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3152/",
+              "name": "",
+              "type": "",
+              "label": "Download",
+              "selector": "[data-ocade=c46]"
+            },
+            {
+              "tag": "a",
+              "href": "https://docs.python.org/release/3.15.2/whatsnew/changelog.html",
+              "name": "",
+              "type": "",
+              "label": "Release notes",
+              "selector": "[data-ocade=c47]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3151/",
+              "name": "",
+              "type": "",
+              "label": "Python 3.15.1",
+              "selector": "[data-ocade=c48]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3151/",
+              "name": "",
+              "type": "",
+              "label": "Download",
+              "selector": "[data-ocade=c49]"
+            },
+            {
+              "tag": "a",
+              "href": "https://docs.python.org/release/3.15.1/whatsnew/changelog.html",
+              "name": "",
+              "type": "",
+              "label": "Release notes",
+              "selector": "[data-ocade=c50]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3150/",
+              "name": "",
+              "type": "",
+              "label": "Python 3.15.0",
+              "selector": "[data-ocade=c51]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3150/",
+              "name": "",
+              "type": "",
+              "label": "Download",
+              "selector": "[data-ocade=c52]"
+            },
+            {
+              "tag": "a",
+              "href": "https://docs.python.org/release/3.15.0/whatsnew/changelog.html",
+              "name": "",
+              "type": "",
+              "label": "Release notes",
+              "selector": "[data-ocade=c53]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-31410/",
+              "name": "",
+              "type": "",
+              "label": "Python 3.14.10",
+              "selector": "[data-ocade=c54]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-31410/",
+              "name": "",
+              "type": "",
+              "label": "Download",
+              "selector": "[data-ocade=c55]"
+            },
+            {
+              "tag": "a",
+              "href": "https://docs.python.org/release/3.14.10/whatsnew/changelog.html",
+              "name": "",
+              "type": "",
+              "label": "Release notes",
+              "selector": "[data-ocade=c56]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3149/",
+              "name": "",
+              "type": "",
+              "label": "Python 3.14.9",
+              "selector": "[data-ocade=c57]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3149/",
+              "name": "",
+              "type": "",
+              "label": "Download",
+              "selector": "[data-ocade=c58]"
+            },
+            {
+              "tag": "a",
+              "href": "https://docs.python.org/release/3.14.9/whatsnew/changelog.html",
+              "name": "",
+              "type": "",
+              "label": "Release notes",
+              "selector": "[data-ocade=c59]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3148/",
+              "name": "",
+              "type": "",
+              "label": "Python 3.14.8",
+              "selector": "[data-ocade=c60]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3148/",
+              "name": "",
+              "type": "",
+              "label": "Download",
+              "selector": "[data-ocade=c61]"
+            },
+            {
+              "tag": "a",
+              "href": "https://docs.python.org/release/3.14.8/whatsnew/changelog.html",
+              "name": "",
+              "type": "",
+              "label": "Release notes",
+              "selector": "[data-ocade=c62]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3147/",
+              "name": "",
+              "type": "",
+              "label": "Python 3.14.7",
+              "selector": "[data-ocade=c63]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3147/",
+              "name": "",
+              "type": "",
+              "label": "Download",
+              "selector": "[data-ocade=c64]"
+            },
+            {
+              "tag": "a",
+              "href": "https://docs.python.org/release/3.14.7/whatsnew/changelog.html",
+              "name": "",
+              "type": "",
+              "label": "Release notes",
+              "selector": "[data-ocade=c65]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3146/",
+              "name": "",
+              "type": "",
+              "label": "Python 3.14.6",
+              "selector": "[data-ocade=c66]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3146/",
+              "name": "",
+              "type": "",
+              "label": "Download",
+              "selector": "[data-ocade=c67]"
+            },
+            {
+              "tag": "a",
+              "href": "https://docs.python.org/release/3.14.6/whatsnew/changelog.html",
+              "name": "",
+              "type": "",
+              "label": "Release notes",
+              "selector": "[data-ocade=c68]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3145/",
+              "name": "",
+              "type": "",
+              "label": "Python 3.14.5",
+              "selector": "[data-ocade=c69]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3145/",
+              "name": "",
+              "type": "",
+              "label": "Download",
+              "selector": "[data-ocade=c70]"
+            },
+            {
+              "tag": "a",
+              "href": "https://docs.python.org/release/3.14.5/whatsnew/changelog.html",
+              "name": "",
+              "type": "",
+              "label": "Release notes",
+              "selector": "[data-ocade=c71]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3144/",
+              "name": "",
+              "type": "",
+              "label": "Python 3.14.4",
+              "selector": "[data-ocade=c72]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3144/",
+              "name": "",
+              "type": "",
+              "label": "Download",
+              "selector": "[data-ocade=c73]"
+            },
+            {
+              "tag": "a",
+              "href": "https://docs.python.org/release/3.14.4/whatsnew/changelog.html",
+              "name": "",
+              "type": "",
+              "label": "Release notes",
+              "selector": "[data-ocade=c74]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3143/",
+              "name": "",
+              "type": "",
+              "label": "Python 3.14.3",
+              "selector": "[data-ocade=c75]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3143/",
+              "name": "",
+              "type": "",
+              "label": "Download",
+              "selector": "[data-ocade=c76]"
+            },
+            {
+              "tag": "a",
+              "href": "https://docs.python.org/release/3.14.3/whatsnew/changelog.html",
+              "name": "",
+              "type": "",
+              "label": "Release notes",
+              "selector": "[data-ocade=c77]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3142/",
+              "name": "",
+              "type": "",
+              "label": "Python 3.14.2",
+              "selector": "[data-ocade=c78]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3142/",
+              "name": "",
+              "type": "",
+              "label": "Download",
+              "selector": "[data-ocade=c79]"
+            }
+          ],
+          "durationMs": 31.47,
+          "needsSignIn": false
+        },
+        "maybeChanged": false,
+        "observedAtUtc": "2026-11-01T11:26:18.711Z"
+      }
+    }
+  ],
+  "outputs": []
+}

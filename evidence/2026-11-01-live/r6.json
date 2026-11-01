@@ -1,0 +1,185 @@
+{
+  "objective": "Turn my notes.md into a Word document that keeps its title and headings.",
+  "taskId": "3440b8e3-bab3-4b2b-abcf-e94cff277db2",
+  "status": "completed",
+  "result": "Done, and checked independently.",
+  "blocker": null,
+  "checks": [
+    {
+      "id": "notes_docx_exists",
+      "kind": "file_exists",
+      "params": {
+        "path": "OCADE output/notes.docx"
+      },
+      "description": "Word document created from notes.md",
+      "state": "passed"
+    }
+  ],
+  "timing": {
+    "acceptedAt": "2026-11-01T11:13:50.045262+00:00",
+    "finishedAt": "2026-11-01T11:14:11.04227+00:00",
+    "verifiedAt": "2026-11-01T11:14:11.04227+00:00",
+    "deliveredAt": "2026-11-01T11:14:11.04227+00:00",
+    "totalElapsedMs": 20997,
+    "userWaitMs": 0,
+    "activeExecutionMs": 1931,
+    "modelCalls": 4,
+    "modelMs": 9791,
+    "stepDurationsMs": [
+      906.05,
+      4.12,
+      42.88,
+      977.64
+    ]
+  },
+  "confirmations": [],
+  "decisions": [
+    {
+      "summary": "list",
+      "intent": {
+        "v": 1,
+        "key": "s1",
+        "risk": "read",
+        "arguments": {
+          "path": "."
+        },
+        "operation": "fs.list",
+        "capability": "files",
+        "deadlineUtc": "2026-11-01T11:23:50.330Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "entries": [
+            {
+              "kind": "file",
+              "name": "notes.md",
+              "size": 187
+            }
+          ],
+          "durationMs": 906.05
+        },
+        "maybeChanged": false,
+        "observedAtUtc": "2026-11-01T11:13:57.353Z"
+      }
+    },
+    {
+      "summary": "read text",
+      "intent": {
+        "v": 1,
+        "key": "s1-2",
+        "risk": "read",
+        "arguments": {
+          "path": "notes.md"
+        },
+        "operation": "fs.read_text",
+        "capability": "files",
+        "deadlineUtc": "2026-11-01T11:23:50.330Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "text": "# Q4 Planning\n\n## Goals\n- Launch the mobile app\n- Cut support response time to 4 hours\n\n## Risks\n- Hiring delays\n- Vendor price increase\n\n## Owners\nPriya leads mobile; Tom leads support.\n",
+          "sha256": "804ca0997ac29d5f73617abccb13e8d67d8a77a7112ab0537525509cebc93545",
+          "truncated": false,
+          "durationMs": 4.12
+        },
+        "maybeChanged": false,
+        "observedAtUtc": "2026-11-01T11:13:58.878Z"
+      }
+    },
+    {
+      "summary": "write document",
+      "intent": {
+        "v": 1,
+        "key": "s3",
+        "risk": "reversible_write",
+        "arguments": {
+          "docx": "OCADE output/notes.docx",
+          "title": "Q4 Planning",
+          "sections": [
+            {
+              "heading": "Goals",
+              "paragraphs": [
+                "Launch the mobile app",
+                "Cut support response time to 4 hours"
+              ]
+            },
+            {
+              "heading": "Risks",
+              "paragraphs": [
+                "Hiring delays",
+                "Vendor price increase"
+              ]
+            },
+            {
+              "heading": "Owners",
+              "paragraphs": [
+                "Priya leads mobile; Tom leads support."
+              ]
+            }
+          ]
+        },
+        "operation": "office.write_document",
+        "capability": "files",
+        "deadlineUtc": "2026-11-01T11:23:59.481Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "sha256": {
+            "docx": "ece685657b902b53db02308ba543085fdc54aa8ff42be7bf1c5fbb5e3fcfe98f"
+          },
+          "durationMs": 42.88
+        },
+        "maybeChanged": true,
+        "observedAtUtc": "2026-11-01T11:14:04.140Z"
+      }
+    },
+    {
+      "summary": "Checking the result independently",
+      "intent": {
+        "v": 1,
+        "key": "s4",
+        "risk": "read",
+        "arguments": {
+          "checks": [
+            {
+              "id": "notes_docx_exists",
+              "kind": "file_exists",
+              "params": {
+                "path": "OCADE output/notes.docx"
+              },
+              "description": "Word document created from notes.md"
+            }
+          ]
+        },
+        "operation": "verify.checks",
+        "capability": "files",
+        "deadlineUtc": "2026-11-01T11:24:04.761Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "durationMs": 977.64,
+          "predicates": {
+            "notes_docx_exists": true
+          },
+          "verifierVersion": "checks-verifier/1"
+        },
+        "maybeChanged": false,
+        "observedAtUtc": "2026-11-01T11:14:10.031Z"
+      }
+    }
+  ],
+  "outputs": [
+    {
+      "path": "/tmp/live/r/r6/OCADE output/notes.docx",
+      "bytes": 36734
+    }
+  ]
+}

@@ -49,6 +49,32 @@ The **Elapsed** column is seconds.
 **Platform scope:** these runs were Linux only. Live runs on Windows and macOS are
 BLOCKED, because staging credentials may not go into CI without the owner's approval.
 
+### Batch R (after `3d02722`, then fixes `66c16b2`, `dbc88b6`)
+
+| Run | Problem | Settled | Independent verdict | Elapsed | Model calls |
+|---|---|---|---|---|---|
+| r1 | Download the newest Python source archive | completed | **FAIL**: got 3.13.1 from a remembered URL; the newest is 3.15.2 (defect 6) | — | — |
+| r1b | same, after the "follow seen links" instruction | completed | **FAIL**: Gemini typed the 3.13.1 URL again (defect 7) | — | — |
+| r1c | same, after links carried their address and unseen deep URLs were refused | blocked | **FAIL**: Gemini followed links, but chose the wrong row's "Download" (3.13) and stalled | 107.0 | 13 |
+| r2 | Find the three biggest files | completed | **PASS**: the three files are right and their byte sizes are exact | — | — |
+| r3 | Repair mojibake in a CSV | completed | **PASS**: José Álvarez / Málaga, Zoë Brontë / Köln, François Lefèvre / Besançon | — | — |
+| r4 | `export.sh` fails with a permission error | blocked | **FAIL**: the script could not be read by name and output was rerouted (defect 8) | — | — |
+| r4b | same | completed | **PASS**: the folder permission is fixed and the script is untouched; the export writes today's date | — | — |
+| r5 | App "configuration missing" | completed | **PASS**: `.env` was created from the example; the app connects to `https://api.example.test/v2` | — | — |
+| r6 | `notes.md` to a Word document | completed | **PASS**: the title and three headings are kept | — | — |
+
+## Totals (honest, all attempts on Linux)
+
+| Measure | Result |
+|---|---|
+| All attempts | **15 PASS of 23** (65%) |
+| First attempt on each unseen problem | **12 of 16** (75%) |
+| Latest attempt per problem | **15 of 16** |
+
+The latest-attempt figure counts reruns after fixes, so it is biased upward. The
+≥90% genuine-success target is **not met**. The remaining failure is a dense download
+page that `gemini-3.5-flash-lite` mis-reads.
+
 ## Generic defects found in these runs and fixed (each has a regression test)
 
 1. The planner showed only the newest step in full. In a batch of reads, every other
@@ -64,6 +90,19 @@ BLOCKED, because staging credentials may not go into CI without the owner's appr
 4. Goal checks guessed text on pages the task only reads (`3dbc2ad`).
 5. Requested facts came from model memory instead of the source. The planner now
    requires facts from this task's observations (`3dbc2ad`).
+
+6. The model saw the newest release on the page but typed an older address from
+   memory (`66c16b2`, instruction only; not enough).
+7. Page observations listed link labels but not their addresses, and following a
+   link needed a confirmed click. Links now carry their `href`, and `web.open` of a
+   deep address that the task never saw is refused back to the model (`dbc88b6`).
+8. Scripts, configs and dotfiles could not be read or verified because of a fixed
+   suffix list. Plain text is now detected by content (`66c16b2`). The model also
+   redirected the person's own script output; the instruction now forbids that.
+9. CI on Python 3.12 (the installer's runtime) showed that `shell.run` still hung on a
+   backgrounded child. `Process.wait()` waits for the pipes on 3.12; the worker now
+   polls the exit code (`d414161`). The live runs above used Python 3.13; the shipped
+   3.12 runtime was not used for live runs.
 
 The live harness also had a fix: the companion no longer inherits the harness's server
 keys (`7ec7134`).
