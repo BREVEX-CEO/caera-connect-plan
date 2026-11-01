@@ -79,6 +79,12 @@ jobs:
       - name: Complete disposable database authority tests
         if: success() || failure()
         run: npm run test:jarvis-db
+      - name: Known-vulnerability audit of shipped dependencies (web and companion)
+        if: success() || failure()
+        run: |
+          npm audit --omit=dev
+          python -m pip install pip-audit==2.10.1
+          pip-audit -r device-agent/windows/requirements.txt
 
   companion-cross-platform:
     name: Python MCP / journal / browser · ${{ matrix.os }}
