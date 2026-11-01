@@ -290,8 +290,76 @@ def web_fact(ws: Path, rng: random.Random):
             ["browser", "site:www.python.org"], oracle)
 
 
+def release_pick(ws: Path, rng: random.Random):
+    """Target selection (plan.md 46-51, 65): identical 'Download' links in every row of a release
+    table; only the row's version and date tell the newest one. The planner sees the page, never
+    which row is right."""
+    import ssl
+    import threading
+    from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+    sys.path.insert(0, str(ROOT / "device-agent/windows"))
+    from tests import web_fixture
+
+    product = f"{word(rng).title()}{word(rng).title()}"
+    rows = []
+    for _ in range(rng.randint(4, 7)):
+        version = f"{rng.randint(1, 6)}.{rng.randint(0, 20)}.{rng.randint(0, 9)}"
+        date = f"2026-{rng.randint(1, 10):02d}-{rng.randint(1, 28):02d}"
+        rows.append((version, date, secrets_token(rng)))
+    rng.shuffle(rows)
+    newest = max(rows, key=lambda r: tuple(int(n) for n in r[0].split(".")))
+    table = "".join(f"<tr><td>{product} {v}</td><td>{d}</td><td><a href='/files/{t}.zip' download>Download</a></td></tr>"
+                    for v, d, t in rows)
+    page = (f"<!doctype html><title>{product} releases</title><body><h1>{product} releases</h1>"
+            f"<table><tr><th>Release</th><th>Date</th><th></th></tr>{table}</table></body>").encode()
+
+    class Site(BaseHTTPRequestHandler):
+        def log_message(self, *args):
+            pass
+
+        def do_GET(self):
+            token = self.path.removeprefix("/files/").removesuffix(".zip")
+            body, kind = (page, "text/html") if self.path == "/" else (f"release {token}".encode(), "application/zip")
+            self.send_response(200 if self.path == "/" or any(token == r[2] for r in rows) else 404)
+            self.send_header("content-type", kind)
+            self.end_headers()
+            self.wfile.write(body)
+
+    folder = Path(tempfile_dir())
+    cert, key, pin = web_fixture._certificate(folder)
+    server = ThreadingHTTPServer(("127.0.0.1", 0), Site)
+    context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+    context.load_cert_chain(cert, key)
+    server.socket = context.wrap_socket(server.socket, server_side=True)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    os.environ["OCADE_ALLOW_PRIVATE_WEB"] = "1"
+    wrapper = web_fixture.browser_wrapper(os.environ["OCADE_BROWSER_EXECUTABLE"], pin)
+    os.chmod(Path(wrapper).parent, 0o755)
+    os.environ["OCADE_EVAL_BROWSER"] = wrapper
+    url = f"https://127.0.0.1:{server.server_port}/"
+
+    def oracle(ws: Path):
+        got = [p.read_bytes() for p in ws.rglob("*.zip")]
+        return got == [f"release {newest[2]}".encode()], f"want {newest[:2]}, got {got[:3]}"
+
+    return (f"Download the archive of the newest {product} release from {url} into my folder.",
+            ["browser", "site:127.0.0.1"], oracle)
+
+
+def secrets_token(rng: random.Random) -> str:
+    return "".join(rng.choice("abcdef0123456789") for _ in range(10))
+
+
+def tempfile_dir() -> str:
+    import tempfile
+
+    return tempfile.mkdtemp()
+
+
 GENERATORS = {f.__name__: f for f in (config_repair, crlf_script, dedupe_contacts, totals_workbook, log_cause,
-                                      yaml_to_json, failing_test, biggest_files, port_conflict, markdown_doc, web_fact)}
+                                      yaml_to_json, failing_test, biggest_files, port_conflict, markdown_doc, web_fact,
+                                      release_pick)}
 
 
 def main() -> int:
@@ -325,12 +393,15 @@ def main() -> int:
         for grant in grants:
             command += ["--grant", grant]
         env = dict(os.environ, OCADE_LIVE_EMAIL=f"ocade-eval-{args.seed}-{name}-{int(time.time())}@example.com")
+        if os.environ.get("OCADE_EVAL_BROWSER"):  # a generator's own test browser (trusts its fixture certificate)
+            env["OCADE_BROWSER_EXECUTABLE"] = os.environ.pop("OCADE_EVAL_BROWSER")
         started = time.monotonic()
         subprocess.run([*command, request], cwd=ROOT, env=env, capture_output=True, timeout=1500)
         try:
             ok, detail = oracle(ws)
         except Exception as error:
             ok, detail = False, f"oracle error {type(error).__name__}: {error}"
+        os.environ.pop("OCADE_ALLOW_PRIVATE_WEB", None)  # only the generator that serves a local site sets it
         live = json.loads(report.read_text()) if report.exists() else {}
         timing = live.get("timing") or {}
         results.append({"task": name, "pass": ok, "detail": detail[:300], "settled": live.get("status"),

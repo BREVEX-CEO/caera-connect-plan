@@ -191,6 +191,11 @@ jobs:
           $env:PLAYWRIGHT_BROWSERS_PATH = Join-Path (Get-Location) "playwright-browsers"
           ..\.build-venv\Scripts\pyinstaller --noconfirm --distpath ..\dist2 --workpath ..\build2 ocade-agent.spec
           ..\.build-venv\Scripts\python compare_builds.py "..\dist\OCADE JARVIS" "..\dist2\OCADE JARVIS"
+          iscc /O"Output2" ocade-agent.iss
+          ..\.build-venv\Scripts\python compare_builds.py Output Output2
+      - name: Installer lifecycle - install, diagnose, repair, uninstall; the person's files survive
+        shell: pwsh
+        run: ./device-agent/windows/packaging/test_install.ps1 -Installer "device-agent/windows/packaging/Output/OCADE-JARVIS-Setup-0.1.0.exe"
       - name: Verify expected installer exists
         shell: pwsh
         run: |

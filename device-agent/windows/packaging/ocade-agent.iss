@@ -18,6 +18,8 @@ OutputBaseFilename=OCADE-JARVIS-Setup-{#Version}
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
+; Reproducible installer: file times come from the commit, not from the build machine's clock.
+TimeStampsInUTC=yes
 UninstallDisplayName=OCADE JARVIS
 
 [Files]

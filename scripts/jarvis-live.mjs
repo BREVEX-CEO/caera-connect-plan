@@ -106,7 +106,7 @@ const agentUser = values["agent-user"];
 if (agentUser) spawnSync("chown", ["-R", agentUser, home, resolve(values.workspace)]);
 // Only what a customer's computer would have: no Supabase or provider keys.
 const SAFE_ENV =
-  /^(PATH|LANG|LC_\w+|TZ|DISPLAY|XAUTHORITY|HTTPS?_PROXY|https?_proxy|NO_PROXY|no_proxy|PLAYWRIGHT_BROWSERS_PATH|OCADE_BROWSER_EXECUTABLE)$/;
+  /^(PATH|LANG|LC_\w+|TZ|DISPLAY|XAUTHORITY|HTTPS?_PROXY|https?_proxy|NO_PROXY|no_proxy|PLAYWRIGHT_BROWSERS_PATH|OCADE_BROWSER_EXECUTABLE|OCADE_ALLOW_PRIVATE_WEB)$/;
 const agent = (...args) =>
   new Promise((ok) => {
     const command = ["python3", "-m", "ocade_agent", ...args, "--server", url];
