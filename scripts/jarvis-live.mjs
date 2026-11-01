@@ -11,12 +11,16 @@
  *
  *   SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... OCADE_LIVE_EMAIL=qa+jarvis@... \
  *   node scripts/jarvis-live.mjs --workspace <dir> [--grant screen --grant site:example.com] \
- *     --report <file.json> "<the person's request>"
+ *     [--agent-user <unprivileged OS user>] --report <file.json> "<the person's request>"
+ *
+ * The companion is started as a customer's would be: without this harness's server keys
+ * in its environment, and (with --agent-user) as an ordinary OS user who owns the workspace,
+ * so a model-chosen command cannot read the harness's secrets.
  *
  * The account is a synthetic staging test account; its online-AI consent is set
  * by the operator running this test. Never point this at production.
  */
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { existsSync, mkdtempSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { tmpdir } from "node:os";
@@ -33,6 +37,7 @@ const { values, positionals } = parseArgs({
     rounds: { type: "string", default: "60" },
     // The test operator confirms each external-effect step, as the person would in the app.
     "confirm-effects": { type: "boolean", default: false },
+    "agent-user": { type: "string" },
   },
 });
 const objective = positionals.join(" ").trim();
@@ -97,16 +102,29 @@ const server = createServer(async (req, res) => {
 await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
 const url = `http://127.0.0.1:${server.address().port}`;
 const home = mkdtempSync(join(tmpdir(), "ocade-live-agent-"));
+const agentUser = values["agent-user"];
+if (agentUser) spawnSync("chown", ["-R", agentUser, home, resolve(values.workspace)]);
+// Only what a customer's computer would have: no Supabase or provider keys.
+const SAFE_ENV =
+  /^(PATH|LANG|LC_\w+|TZ|DISPLAY|XAUTHORITY|HTTPS?_PROXY|https?_proxy|NO_PROXY|no_proxy|PLAYWRIGHT_BROWSERS_PATH|OCADE_BROWSER_EXECUTABLE)$/;
 const agent = (...args) =>
   new Promise((ok) => {
-    const child = spawn("python3", ["-m", "ocade_agent", ...args, "--server", url], {
-      cwd: join(root, "device-agent/windows"),
-      env: {
-        ...process.env,
-        OCADE_AGENT_HOME: home,
-        PYTHONPATH: join(root, "device-agent/windows"),
+    const command = ["python3", "-m", "ocade_agent", ...args, "--server", url];
+    const child = spawn(
+      agentUser ? "runuser" : command[0],
+      agentUser ? ["-u", agentUser, "--", ...command] : command.slice(1),
+      {
+        cwd: join(root, "device-agent/windows"),
+        env: {
+          ...Object.fromEntries(
+            Object.entries(process.env).filter(([name]) => SAFE_ENV.test(name)),
+          ),
+          HOME: home,
+          OCADE_AGENT_HOME: home,
+          PYTHONPATH: join(root, "device-agent/windows"),
+        },
       },
-    });
+    );
     let out = "";
     child.stdout.on("data", (d) => (out += d));
     child.stderr.on("data", (d) => (out += d));
@@ -160,8 +178,8 @@ const confirming = (async () => {
     const view = await authority.taskView(admin, user.id, taskId);
     for (const step of view.steps.filter((s) => s.needsConfirmation)) {
       await authority.confirmAction(admin, user.id, step.id);
-      confirmations.push({ step: step.id, summary: step.summary, at: new Date().toISOString() });
-      console.log(`  operator confirmed: ${step.summary}`);
+      confirmations.push({ step: step.id, effect: step.effect, at: new Date().toISOString() });
+      console.log(`  operator confirmed: ${step.effect}`);
     }
     await new Promise((ok) => setTimeout(ok, 1500));
   }

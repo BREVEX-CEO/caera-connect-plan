@@ -376,3 +376,29 @@ test("the person confirms the exact command, not a model-written summary", async
   assert.ok(shown.includes(JSON.stringify(command)), shown);
   assert.match(exactEffect({ operation: "shell.run" }), /do not allow it/);
 });
+
+test("every result of a batch is seen in full; a repeated pair of steps is a stall", async () => {
+  const { history, stalled } = await import("../../src/lib/jarvis/planner.server.ts");
+  const read = (path: string, text: string): Step => ({
+    intent: intent("fs.read_text", path, { path }, deadline),
+    status: "done",
+    receipt: {
+      status: "observed",
+      maybeChanged: false,
+      observedAtUtc: now.toISOString(),
+      evidence: { text },
+    },
+  });
+  const script = `import json\n${"x = 1\n".repeat(400)}from tabulate import tabulate\n`;
+  const shown = history([read("restock.py", script), read("stock.json", "[]")]);
+  assert.ok(
+    shown.includes("from tabulate import tabulate"),
+    "the earlier file of the batch was clipped",
+  );
+  assert.ok(
+    history([read("big.txt", "y".repeat(20_000)), read("a.txt", "z")]).includes("(clipped)"),
+  );
+  const pair = [read("a.py", "a"), read("b.json", "b")];
+  assert.equal(stalled([...pair, ...pair]), null);
+  assert.match(stalled([...pair, ...pair, ...pair]) ?? "", /repeating/);
+});
