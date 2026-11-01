@@ -1,0 +1,107 @@
+{
+  "sourceSha": "b4515dda95df2690682f46cc1b4cd038e8aa6871",
+  "sourceTreeSha": "2aa7ca458ec2dee762c6e80fe7935ed53a0b118e",
+  "run": {
+    "id": 41337661535,
+    "number": 53,
+    "url": "https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41337661535",
+    "conclusion": "success"
+  },
+  "jobs": [
+    {
+      "id": 124940794049,
+      "name": "Planner safety / source formatting · Linux",
+      "conclusion": "success"
+    },
+    {
+      "id": 124940966490,
+      "name": "Portable build / model contracts / ephemeral DB · Linux",
+      "conclusion": "success"
+    },
+    {
+      "id": 124942186499,
+      "name": "Windows unsigned installer / frozen MCP smoke · NOT release-ready",
+      "conclusion": "success"
+    },
+    {
+      "id": 124942186513,
+      "name": "Python MCP / journal / browser · macos-latest",
+      "conclusion": "success"
+    },
+    {
+      "id": 124942186521,
+      "name": "Python MCP / journal / browser · ubuntu-latest",
+      "conclusion": "success"
+    },
+    {
+      "id": 124942186563,
+      "name": "Python MCP / journal / browser · windows-latest",
+      "conclusion": "success"
+    }
+  ],
+  "checks": {
+    "focusedJs": {
+      "pass": 47,
+      "fail": 0
+    },
+    "jsIntegration": {
+      "pass": 53,
+      "fail": 0,
+      "skip": 0
+    },
+    "sandbox": {
+      "pass": 6,
+      "fail": 0
+    },
+    "focusedRealWorkers": {
+      "pass": 3,
+      "fail": 0
+    },
+    "companion": {
+      "linux": {
+        "discovered": 60,
+        "platformSkips": 3
+      },
+      "windows": {
+        "discovered": 60,
+        "platformSkips": 3
+      },
+      "macos": {
+        "discovered": 60,
+        "platformSkips": 2
+      }
+    },
+    "installer": {
+      "frozenFiles": 939,
+      "bundleRebuildDifferences": 0,
+      "installerRebuildDifferences": 0,
+      "lifecycle": "install/diagnose/repair/uninstall PASS"
+    },
+    "logicalRestore": {
+      "sourceSha": "b4515dda95df2690682f46cc1b4cd038e8aa6871",
+      "archiveSha256": "142ce946ff5e8bfcec05b7502a3940eb0c7f066d082cf78ca3e6817b46f4d4d5",
+      "schemaSha256": "7b8a9b777db2f4e439ee05add709f584bf004e4cc0709cd5de558f257c1a8b57",
+      "dataSha256": "903939ff92be045b2cfa15e3f0a889c53acf84b16f7d88cb6098189dafe65a85",
+      "restoreSeconds": 0,
+      "truncatedArchiveRejected": true,
+      "permissionChecks": "PASS",
+      "scope": "disposable PostgreSQL 16 with Supabase platform stubs",
+      "runId": 41337661535,
+      "jobId": 124940966490,
+      "runUrl": "https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41337661535",
+      "jobConclusion": "success",
+      "elapsedTimeResolution": "whole seconds; 0 means under one second on this small synthetic fixture",
+      "limitations": [
+        "Supabase auth/storage platform objects are test stubs",
+        "No hosted backup/PITR, external storage bytes, global role restoration, database-level service configuration or infrastructure failover qualified"
+      ]
+    }
+  },
+  "limitations": [
+    "No consumer-hardware qualification",
+    "No hosted backup/PITR/storage/infrastructure qualification",
+    "No new real-Gemini task accuracy result",
+    "Semantic goal anti-gaming and concurrent original-file edits remain open",
+    "No public-launch or architecture-ready declaration"
+  ]
+}

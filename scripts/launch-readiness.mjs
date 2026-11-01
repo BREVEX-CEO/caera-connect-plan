@@ -9,24 +9,75 @@
  *   node scripts/launch-readiness.mjs [--write]
  */
 import { execSync } from "node:child_process";
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { readFileSync, realpathSync, statSync, writeFileSync } from "node:fs";
+import { isAbsolute, relative } from "node:path";
 
 const STATES = ["PASS", "PARTIAL", "FAIL", "BLOCKED", "UNTESTED"];
 const { milestones } = JSON.parse(readFileSync("evidence/readiness/gates.json", "utf8"));
 const problems = [];
-const conditions = milestones.flatMap((m) => m.conditions.map((c) => ({ ...c, milestone: m.n })));
-for (const c of conditions) {
-  const where = `milestone ${c.milestone} ${c.id}`;
-  if (!STATES.includes(c.status)) problems.push(`${where}: unknown status ${c.status}`);
-  if (c.status === "PASS" && !c.evidence.length) problems.push(`${where}: PASS without evidence`);
-  for (const path of c.evidence) if (!existsSync(path)) problems.push(`${where}: missing ${path}`);
-  if (!["PASS", "UNTESTED"].includes(c.status) && !c.reason) problems.push(`${where}: no reason`);
+if (!Array.isArray(milestones) || milestones.length !== 10) {
+  console.error("Exactly ten readiness milestones are required.");
+  process.exit(1);
 }
+const root = realpathSync(".");
+const numbers = new Set();
+const ids = new Set();
+const conditions = [];
+const isEvidence = (path) => {
+  if (typeof path !== "string" || isAbsolute(path) || path.split(/[\\/]/).includes(".."))
+    return false;
+  try {
+    const target = realpathSync(path);
+    const inside = relative(root, target);
+    return !isAbsolute(inside) && inside !== ".." && !inside.startsWith("../") &&
+      !inside.startsWith("..\\") && statSync(target).isFile();
+  } catch {
+    return false;
+  }
+};
+for (const milestone of milestones) {
+  if (!milestone || !Number.isInteger(milestone.n) || milestone.n < 1 || milestone.n > 10 ||
+      numbers.has(milestone.n)) {
+    problems.push("Milestone numbers must be distinct integers from 1 to 10.");
+    continue;
+  }
+  numbers.add(milestone.n);
+  if (typeof milestone.name !== "string" || !milestone.name.trim())
+    problems.push(`milestone ${milestone.n}: missing name`);
+  if (!Array.isArray(milestone.conditions) || milestone.conditions.length === 0) {
+    problems.push(`milestone ${milestone.n}: mandatory conditions are missing`);
+    continue;
+  }
+  for (const c of milestone.conditions) {
+    const where = `milestone ${milestone.n} ${c?.id ?? "(missing id)"}`;
+    if (!c || typeof c.id !== "string" || !c.id.trim() || ids.has(c.id)) {
+      problems.push(`${where}: missing or duplicate condition id`);
+      continue;
+    }
+    ids.add(c.id);
+    conditions.push({ ...c, milestone: milestone.n });
+    if (typeof c.text !== "string" || !c.text.trim()) problems.push(`${where}: missing criterion`);
+    if (!STATES.includes(c.status)) problems.push(`${where}: unknown status ${c.status}`);
+    if (!Array.isArray(c.evidence)) {
+      problems.push(`${where}: evidence must be an array`);
+      continue;
+    }
+    if (c.status === "PASS" && !c.evidence.length) problems.push(`${where}: PASS without evidence`);
+    for (const path of c.evidence)
+      if (!isEvidence(path)) problems.push(`${where}: invalid or missing evidence file ${path}`);
+    if (!["PASS", "UNTESTED"].includes(c.status) &&
+        (typeof c.reason !== "string" || !c.reason.trim()))
+      problems.push(`${where}: no reason`);
+  }
+}
+if (conditions.length !== 42)
+  problems.push("The frozen readiness contract requires all 42 mandatory conditions.");
 if (problems.length) {
   console.error(problems.join("\n"));
   process.exit(1);
 }
 
+milestones.sort((a, b) => a.n - b.n);
 const earned = milestones.filter((m) => m.conditions.every((c) => c.status === "PASS"));
 const count = (status) => conditions.filter((c) => c.status === status).length;
 const passed = count("PASS");

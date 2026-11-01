@@ -68,3 +68,15 @@ Run 53 Linux job `124940966490` PASS on `b4515dd`: 53/53 JS integration tests, b
 The existing 266 ledger now preserves historical status in its own column and makes the independent review explicit. Unreviewed historical PASS entries are PARTIAL until each clause is requalified. Current verified lower bound: 71/266 (26.7%); remaining 73.3%. This is audit freshness, not evidence of a product regression from Claude's historical 112. The 42-condition commercial score and 84 concepts are separate; neither is silently promoted.
 
 Native and installer jobs for run 53 remain in progress. Wait for them before changing runtime/packaging again. Next packaging investigation: the installer carries an unused Chromium headless-shell payload, while its runtime launches a visible browser. Qualify a real bundled-browser launch and measure payload parity/size before removing anything. No current optimization claim is made.
+
+## Full verifier / restore milestone closed
+
+All six jobs of [run 53](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41337661535) PASS on `b4515dd`. 47 focused JS, 53 JS integration, 6 sandbox, 3 focused real-worker regressions; 60 companion tests discovered per OS (platform exclusions Linux/Windows 3, macOS 2). Frozen 939-file bundle and installer rebuilds are identical; install/repair/uninstall pass. Full machine-readable proof: `codex-safety-b4515dd.json`.
+
+## Readiness integrity and packaging candidate
+
+Run 54 `5dc845f` reproduced seven invalid-score cases; in particular one empty milestone earned 10% despite zero passing conditions. The score validator now requires ten unique milestones, all 42 nonduplicated conditions, real in-repository evidence files and explicit non-PASS reasons. This strengthens score integrity; it does not prove every condition's substantive truth. The file-protection condition is downgraded from PASS to PARTIAL; backup restoration is PARTIAL after the isolated drill. The commercial milestone score remains 20%, with 20/42 passing conditions.
+
+Packaging candidate uses the supported `--no-shell` Chromium install: only the unused headless shell may disappear, and a real same-SDK full-versus-lean file/hash comparison must prove all retained browser files identical. New frozen checks launch the actual bundled browser with empty PATH against a random isolated fixture, both before and after installation. Measurements and results are pending; no size/speed gain is claimed yet. All artifacts remain unsigned/private test builds, never published.
+
+Next: inspect the newest preflight; canonical-format the new readiness script/tests if needed, preserve failures and wait for the full matrix. A real frozen-browser failure must be investigated rather than weakening the fixture. Continue bounded read-only batching, source-write concurrency, semantic acceptance binding and network/SSRF review afterward.

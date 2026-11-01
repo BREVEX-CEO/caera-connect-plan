@@ -23,6 +23,8 @@ on:
       - "CLAUDE.md"
       - "plan.md"
       - "evidence/readiness/**"
+      # Generated report only; authoritative gates.json still triggers full qualification.
+      - "!evidence/readiness/READINESS.md"
       - "scripts/launch-readiness.mjs"
   workflow_dispatch:
 
@@ -74,6 +76,9 @@ jobs:
             test "$status" -eq 2
             test "$output" = "REFUSED: a disposable GitHub Actions PostgreSQL service is required."
           fi
+      - name: Packaging qualification scripts compile
+        if: success() || failure()
+        run: python -m py_compile device-agent/windows/packaging/check_frozen.py device-agent/windows/packaging/compare_browser_payloads.py
       - name: TypeScript safety before the platform matrix
         if: success() || failure()
         run: npm run typecheck
@@ -83,7 +88,7 @@ jobs:
       - name: Formatting evidence for failed remote candidates
         if: failure()
         run: |
-          node --input-type=module -e 'import fs from "node:fs"; import prettier from "prettier"; for (const path of process.argv.slice(1)) console.log("OCADE_FORMAT:" + JSON.stringify({path, content: await prettier.format(fs.readFileSync(path, "utf8"), {...await prettier.resolveConfig(path), filepath:path})}));' src/lib/jarvis/contracts.ts src/lib/jarvis/planner.server.ts tests/security/planner.test.ts tests/security/verification.test.ts tests/jarvis/contracts.test.ts tests/jarvis/e2e.test.ts .github/workflows/jarvis-cloud-validation.yml
+          node --input-type=module -e 'import fs from "node:fs"; import prettier from "prettier"; for (const path of process.argv.slice(1)) console.log("OCADE_FORMAT:" + JSON.stringify({path, content: await prettier.format(fs.readFileSync(path, "utf8"), {...await prettier.resolveConfig(path), filepath:path})}));' src/lib/jarvis/contracts.ts src/lib/jarvis/planner.server.ts tests/security/planner.test.ts tests/security/verification.test.ts tests/security/readiness.test.ts scripts/launch-readiness.mjs tests/jarvis/contracts.test.ts tests/jarvis/e2e.test.ts .github/workflows/jarvis-cloud-validation.yml
 
   contracts-db:
     needs: planner-safety
@@ -152,7 +157,9 @@ jobs:
           python tests/web/surface_audit.py http://127.0.0.1:8787
       - name: Launch readiness is computed only from existing evidence
         if: success() || failure()
-        run: npm run readiness
+        run: |
+          npm run readiness -- --write
+          node --input-type=module -e 'import fs from "node:fs"; console.log("OCADE_READINESS:" + JSON.stringify(fs.readFileSync("evidence/readiness/READINESS.md", "utf8")));'
       - name: Known-vulnerability audit of shipped dependencies (web and companion)
         if: success() || failure()
         run: |
@@ -233,6 +240,14 @@ jobs:
         run: |
           choco install innosetup --yes --no-progress
           "C:\Program Files (x86)\Inno Setup 6" | Out-File -FilePath $env:GITHUB_PATH -Append
+      - name: Measure the original full browser payload from the same pinned SDK
+        shell: pwsh
+        run: |
+          python -m pip install playwright==1.64.1
+          $baseline = Join-Path $env:RUNNER_TEMP "ocade-browser-baseline"
+          "OCADE_BROWSER_BASELINE=$baseline" | Out-File -FilePath $env:GITHUB_ENV -Append
+          $env:PLAYWRIGHT_BROWSERS_PATH = $baseline
+          python -m playwright install chromium
       - name: Build disposable unsigned companion installer
         shell: pwsh
         run: |
@@ -240,7 +255,11 @@ jobs:
           $env:SOURCE_DATE_EPOCH = git log -1 --format=%ct
           "SOURCE_DATE_EPOCH=$env:SOURCE_DATE_EPOCH" | Out-File -FilePath $env:GITHUB_ENV -Append
           ./device-agent/windows/packaging/build.ps1
-      - name: Verify all frozen MCP workers actually start
+      - name: Only the unused headless shell was removed; retained browser files are identical
+        shell: pwsh
+        run: |
+          & ./device-agent/windows/.build-venv/Scripts/python.exe ./device-agent/windows/packaging/compare_browser_payloads.py "$env:OCADE_BROWSER_BASELINE" "device-agent/windows/packaging/playwright-browsers"
+      - name: Verify all frozen MCP workers and the real bundled browser actually start
         shell: pwsh
         run: |
           & ./device-agent/windows/.build-venv/Scripts/python.exe ./device-agent/windows/packaging/check_frozen.py "device-agent/windows/dist/OCADE JARVIS/ocade-agent.exe"
@@ -264,4 +283,5 @@ jobs:
           $installer = "device-agent/windows/packaging/Output/OCADE-JARVIS-Setup-0.1.0.exe"
           if (!(Test-Path $installer)) { throw "Installer missing: $installer" }
           Get-FileHash $installer -Algorithm SHA256 | Select-Object -Property Algorithm,Hash
+          Write-Output ("OCADE_INSTALLER_BYTES:" + (Get-Item -LiteralPath $installer).Length)
       # No publishing, signing, user-PC control, deploy, provider calls or secrets.

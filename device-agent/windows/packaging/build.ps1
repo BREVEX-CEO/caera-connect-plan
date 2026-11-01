@@ -1,7 +1,7 @@
 # Builds the companion installer on Windows from pinned requirements (plan.md §26, P04).
 # Signing happens only when the owner supplies a code-signing certificate thumbprint in
 # OCADE_SIGN_THUMBPRINT; an unsigned build is for disposable test machines only.
-# STATUS: CODED, UNTESTED.
+# Windows Server CI qualification is recorded in evidence; consumer/signing gates remain open.
 $ErrorActionPreference = "Stop"
 Set-Location (Split-Path $PSScriptRoot)
 # Use a package-local Chromium store, never the build user's AppData browser cache.
@@ -9,7 +9,7 @@ Set-Location (Split-Path $PSScriptRoot)
 $env:PLAYWRIGHT_BROWSERS_PATH = Join-Path $PSScriptRoot "playwright-browsers"
 python -m venv .build-venv
 .\.build-venv\Scripts\python -m pip install -r requirements.txt pyinstaller==6.22.3
-.\.build-venv\Scripts\python -m playwright install chromium
+.\.build-venv\Scripts\python -m playwright install --no-shell chromium
 Set-Location packaging
 ..\.build-venv\Scripts\pyinstaller --noconfirm --distpath ..\dist --workpath ..\build ocade-agent.spec
 if ($env:SOURCE_DATE_EPOCH) {

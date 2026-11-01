@@ -7,7 +7,7 @@ $app = Join-Path $env:LOCALAPPDATA "Programs\OCADE JARVIS"
 $docs = Join-Path ([Environment]::GetFolderPath("MyDocuments")) "OCADE JARVIS"
 $run = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run"
 function Check($ok, $what) { if (-not $ok) { throw "FAILED: $what" }; Write-Output "PASS: $what" }
-function Install { Start-Process $Installer -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART" -Wait }
+function Install { Start-Process $Installer -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART" -WindowStyle Hidden -Wait }
 
 Install
 Check (Test-Path (Join-Path $app "ocade-agent.exe")) "companion installed per user, no administrator rights"
@@ -18,6 +18,13 @@ Check (@(Get-ChildItem $menu -Filter *.lnk).Count -ge 3) "Start Menu: pair, star
 $diagnosis = & (Join-Path $app "ocade-agent.exe") diagnose --workspace $docs 2>&1 | Out-String
 Write-Output $diagnosis
 Check ($diagnosis -match "OK\s+worker:office_worker") "the installed companion starts its own workers"
+
+$testPython = Join-Path $PSScriptRoot "..\.build-venv\Scripts\python.exe"
+$checker = Join-Path $PSScriptRoot "check_frozen.py"
+$smoke = & $testPython $checker (Join-Path $app "ocade-agent.exe") 2>&1 | Out-String
+Write-Output $smoke
+Check (($LASTEXITCODE -eq 0) -and ($smoke -match '"bundledBrowserFixture": true')) "the installed bundled browser reads a real isolated fixture"
+
 
 Set-Content -Path (Join-Path $docs "my-notes.txt") -Value "keep me"
 Install  # repair / reinstall over itself

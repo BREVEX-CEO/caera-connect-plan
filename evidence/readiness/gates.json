@@ -293,11 +293,13 @@
         {
           "id": "file_protection",
           "text": "Originals kept; newer edits never overwritten; outputs never replace files",
-          "status": "PASS",
+          "status": "PARTIAL",
           "evidence": [
             "device-agent/windows/tests/test_gateway.py",
-            "device-agent/windows/tests/test_sandbox.py"
-          ]
+            "device-agent/windows/tests/test_sandbox.py",
+            "evidence/2026-11-01-audit/codex-safety-b4515dd.json"
+          ],
+          "reason": "Atomic no-replace output publication, exact snapshot backups and unrelated-file preservation pass run 53. Original-file compare/replace and directory-identity concurrency qualification remain incomplete."
         },
         {
           "id": "rich_verification",
@@ -362,9 +364,12 @@
         {
           "id": "backup_restore",
           "text": "Database backup restored in a drill",
-          "status": "BLOCKED",
-          "evidence": [],
-          "reason": "a restore drill needs the hosted project's backup/restore controls on a disposable copy; not available without owner approval"
+          "status": "PARTIAL",
+          "evidence": [
+            "tests/jarvis/db/restore.sh",
+            "evidence/2026-11-01-audit/codex-restore-b4515dd.json"
+          ],
+          "reason": "Run 53 restores fresh PostgreSQL-16 synthetic application data with matching schema/data/sequence hashes, RLS/privilege checks and corrupt-archive refusal. Hosted/PITR, global role recovery, external storage and infrastructure/incident recovery remain unqualified."
         },
         {
           "id": "diagnostics",

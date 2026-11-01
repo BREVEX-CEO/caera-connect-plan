@@ -27,7 +27,7 @@ test("readiness rejects omitted, duplicated and empty mandatory criteria", async
   try {
     mkdirSync(join(root, "evidence/readiness"), { recursive: true });
     for (const args of [
-      ["init", "-q"],
+      ["init", "-q", "--initial-branch=synthetic-fixture"],
       ["-c", "user.name=Synthetic CI", "-c", "user.email=ci@example.test", "commit", "--allow-empty", "-qm", "synthetic fixture"],
     ]) {
       const git = spawnSync("git", args, { cwd: root, encoding: "utf8" });
