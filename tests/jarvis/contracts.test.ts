@@ -279,7 +279,7 @@ test("a failed independent check returns to the model for bounded repair", async
     ];
     const offeredOnly = await planStep({ ...base, engines: [], steps: [] });
     assert.equal(offeredOnly.kind, "block");
-    // Several local calls in one turn are queued together; an external effect ends the batch.
+    // A mutation ends read batching and must be reconsidered after the observed result.
     reply = [
       { name: "fs_read_text", arguments: { path: "a.txt" } },
       {
@@ -329,7 +329,7 @@ test("a failed independent check returns to the model for bounded repair", async
       assert.equal(batch.intent.operation, "fs.read_text");
       assert.deepEqual(
         batch.more?.map((m) => [m.intent.operation, m.intent.key]),
-        [["office.write_document", "s1-2"]],
+        [],
       );
     }
   } finally {

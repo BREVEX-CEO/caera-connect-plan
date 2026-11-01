@@ -16,7 +16,14 @@
  */
 import { z } from "zod";
 import { OPERATIONS, intent, taskChecks, type Operation, type OutcomeCheck } from "./contracts.ts";
-import { evidenceOf, open, settleChecks, type Decision, type Step } from "./supervisor.ts";
+import {
+  evidenceOf,
+  open,
+  settleChecks,
+  unresolvedEffect,
+  type Decision,
+  type Step,
+} from "./supervisor.ts";
 import {
   sseData,
   type IntelligenceEvent,
@@ -163,7 +170,6 @@ export function unseenAddress(url: unknown, objective: string, steps: Step[]) {
     try {
       const parsed = new URL(value, base);
       if (parsed.protocol !== "https:" || parsed.username || parsed.password) return null;
-      parsed.hash = "";
       return parsed;
     } catch {
       return null;
@@ -171,7 +177,7 @@ export function unseenAddress(url: unknown, objective: string, steps: Step[]) {
   };
   const parsed = address(String(url));
   if (!parsed) throw new Error("the address must be public https without credentials");
-  if (parsed.pathname === "/" && !parsed.search) return;
+  if (parsed.pathname === "/" && !parsed.search && !parsed.hash) return;
 
   // Explicit addresses in the person's request are data, never substring matches.
   const requested =
@@ -267,8 +273,9 @@ export function plannerMessage(code: string): string {
 
 const SYSTEM = [
   "You are the planner of OCADE JARVIS, which carries out a person's outcome on their own computer.",
-  "Choose the next function; add up to four more in the same turn only when none depends on another's result",
-  "(an external effect always runs alone). Prefer, in order: workspace file, document, media and 3D-scene operations, website",
+  "Choose the next function. Only independent read-only observations may share a turn, up to five total.",
+  "Every action that changes state runs alone and needs fresh planning after its result. Prefer, in order:",
+  "workspace file, document, media and 3D-scene operations, website",
   "operations, then app windows through accessibility (ui.inspect before ui.invoke/ui.set_value/ui.send_keys),",
   "and ui.click_point only when nothing else can reach the control. Use only apps and sites in `allowed`.",
   "shell.run runs one command the person reads and confirms: use it when no typed operation fits (diagnosing or",
@@ -631,6 +638,8 @@ export async function planStep(input: {
   onModelCall?: (ms: number) => void;
 }): Promise<Decision> {
   const { steps, now } = input;
+  const unknown = unresolvedEffect(steps);
+  if (unknown) return { kind: "block", reason: unknown };
   const acceptance = taskChecks.safeParse(input.checks);
   if (!acceptance.success)
     return { kind: "block", reason: "The saved outcome checks are invalid. Nothing was run." };
@@ -791,14 +800,14 @@ export async function planStep(input: {
         };
       }
       const first = queued(call.name, call.args, key);
-      // Several calls in one turn run as one batch only while each is offered and stays on
-      // this computer; the first that is not ends the batch (it can be proposed again).
+      // Only independent observations may share a turn. Every mutation gets fresh
+      // planning after the previous result; a prompt cannot prove write dependencies.
       const batch = [];
       for (const [index, next] of more.entries()) {
-        if (first.intent.risk === "external_effect") break;
+        if (first.intent.risk !== "read") break;
         try {
           const action = queued(next.name, next.args, `${key}-${index + 2}`);
-          if (action.intent.risk === "external_effect") break;
+          if (action.intent.risk !== "read") break;
           batch.push({ summary: action.summary, intent: action.intent });
         } catch {
           break;

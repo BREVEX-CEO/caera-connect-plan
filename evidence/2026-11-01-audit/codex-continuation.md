@@ -93,3 +93,12 @@ Next: inspect the newest preflight; canonical-format the new readiness script/te
 - New controlled-browser test must execute exactly once with zero skips. Synthetic provider/DB unit tests are negative safety checks, not real customer acceptance.
 - The core journal/recovery conditions are PARTIAL pending this work. Commercial score therefore falls from 20% to 10% (18/42 conditions PASS), rather than keeping an unsupported historical score. G12/public launch remain NO-GO.
 - Further source risk for the next pass: generic native UI activation/keys/point clicks are currently labelled reversible writes although they can trigger external/destructive effects. Assess fail-closed risk classification and generate protocol updates through the canonical generator; do not hand-edit the generated file.
+
+
+### Cloud reproduction 57 — recovery and exact addresses (2026-11-01 UTC)
+
+- Source `f3fadc4110a116b336612332fcabe390f2b9e345`; [run 41344044167](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41344044167).
+- Focused JavaScript: 68 tests including parent suites, 59 passed / 9 failed. Seven adversarial cases failed plus their two parent suites: unobserved/different SPA routes; read→write, write→read, two writes; unknown write replanning; discarded minimal durable unknown marker. Independent-read batching and unknown-read recovery passed as controls.
+- Required real Chromium/MCP address case ran (not skipped) and failed all three subcases: truncated page address, truncated link/missing fragment, and a misleading prefix for an over-limit link. Real-worker verifier/filesystem controls still passed (3 tests). TypeScript and readiness-contract checks passed. Source formatting failed separately; exact cloud formatting was collected. Dependent full jobs were intentionally gated off, not counted as passing.
+- Candidate fix: preserve hashes and exact bounded observed addresses; explicitly omit over-limit URLs; batch only read-only operations; share an unresolved-effect fence between planner and authority, preserving raw durable unknown status without inventing receipt evidence. Unknown writes return the task to waiting before provider/queue/settlement calls. This is a conservative stop, not a completed effect-resolution experience or a database-level queue invariant. Read-only failures remain recoverable.
+- Readiness stays **NO-GO / 10%** with journal and crash recovery PARTIAL; no customer replay, live Gemini accuracy, hosted deployment, or customer data was used.

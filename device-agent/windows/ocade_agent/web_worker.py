@@ -64,9 +64,11 @@ _CONTROLS = """(token) => {
       label: labels[i],
       selector: `[data-ocade="${token}-${i}"]`,
       ...(row ? { row: flat(row.innerText).slice(0, 120) } : {}),
-      // Where a link goes, so it can be opened as seen (same site: path only, to stay small).
+      // Preserve exact addresses, including SPA fragments; omit oversize values rather than inventing prefixes.
       ...(e.tagName === 'A' && /^https?:/.test(e.href)
-        ? { href: (e.origin === location.origin ? e.pathname + e.search : e.href).slice(0, 160) } : {}),
+        ? ((e.origin === location.origin ? e.pathname + e.search + e.hash : e.href).length <= 2000
+          ? { href: e.origin === location.origin ? e.pathname + e.search + e.hash : e.href }
+          : { hrefOmitted: 'too_long' }) : {}),
     };
   });
 }"""
@@ -185,7 +187,7 @@ async def _observe(page_id: str) -> dict:
     token = entry["token"] = secrets.token_hex(3)
     observed = {
         "page": {"id": page_id, "site": entry["site"]},
-        "url": current.url[:500],
+        **({"url": current.url} if len(current.url) <= 2000 else {"urlOmitted": "too_long"}),
         "title": (await current.title())[:200],
         "controls": await current.evaluate(_CONTROLS, token),
         "text": text[:TEXT_LIMIT],

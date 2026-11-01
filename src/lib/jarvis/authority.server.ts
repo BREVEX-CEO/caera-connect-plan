@@ -23,7 +23,7 @@ import {
   deviceRequest,
   type OutcomeCheck,
 } from "./contracts.ts";
-import type { Decision, Step } from "./supervisor.ts";
+import { unresolvedEffect, type Decision, type Step } from "./supervisor.ts";
 import {
   PlannerUnavailable,
   compileGoal,
@@ -161,11 +161,25 @@ function readTask(admin: Admin, taskId: string) {
 export async function advance(admin: Admin, taskId: string, now = new Date()): Promise<void> {
   const task = await readTask(admin, taskId);
   if (!task || task.status !== "running" || !task.controller) return;
-  const steps: Step[] = task.steps.map((step) => ({
-    intent: actionIntent.parse(step.intent),
-    status: step.status,
-    receipt: step.receipt ? (actionReceipt.safeParse(step.receipt).data ?? null) : null,
-  }));
+  const steps: Step[] = task.steps.map((step) => {
+    const raw = step.receipt;
+    return {
+      intent: actionIntent.parse(step.intent),
+      status: step.status,
+      receipt: raw ? (actionReceipt.safeParse(raw).data ?? null) : null,
+      effectUnknown:
+        typeof raw === "object" && raw !== null && "status" in raw && raw.status === "unknown",
+    };
+  });
+  const unknown = unresolvedEffect(steps);
+  if (unknown) {
+    await call(admin, "jarvis_task_wait", {
+      p_task: taskId,
+      p_controller: task.controller,
+      p_reason: unknown,
+    });
+    return;
+  }
   const checks = task.outcome ?? [];
   let decision: Decision;
   // Every model call of this turn is counted (a refused proposal may cost a second one).

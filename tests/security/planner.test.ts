@@ -41,7 +41,11 @@ test("observed addresses retain their exact origin, path and query", async (t) =
   for (const [name, url, steps] of [
     ["different origin", `https://other.example${path}?arch=arm64`, [source]],
     ["unobserved SPA route", `${origin}/#/items/${suffix}`, [source]],
-    ["different SPA route", `${origin}/#/items/guessed`, [observation({ url: origin, controls: [{ href: `/#/items/${suffix}` }] })]],
+    [
+      "different SPA route",
+      `${origin}/#/items/guessed`,
+      [observation({ url: origin, controls: [{ href: `/#/items/${suffix}` }] })],
+    ],
     ["shorter path", `${origin}/releases/${suffix}`, [source]],
     ["different query", `${origin}${path}?arch=x64`, [source]],
     ["credentials", credentialTarget.href, [source]],
@@ -61,9 +65,11 @@ test("observed addresses retain their exact origin, path and query", async (t) =
   }
   assert.doesNotThrow(() => unseenAddress(target, "", [source]));
   assert.doesNotThrow(() => unseenAddress(`${origin}/`, "", []));
-  assert.doesNotThrow(() => unseenAddress(`${origin}/#/items/${suffix}`, "", [
-    observation({ url: origin, controls: [{ href: `/#/items/${suffix}` }] }),
-  ]));
+  assert.doesNotThrow(() =>
+    unseenAddress(`${origin}/#/items/${suffix}`, "", [
+      observation({ url: origin, controls: [{ href: `/#/items/${suffix}` }] }),
+    ]),
+  );
   assert.doesNotThrow(() => unseenAddress(target, `Inspect ${target}`, []));
   assert.doesNotThrow(() => unseenAddress(target, `Inspect source.example${path}?arch=arm64`, []));
   assert.doesNotThrow(() =>

@@ -11,6 +11,8 @@ export interface Step {
   intent: ActionIntent;
   status: "queued" | "claimed" | "done" | "failed" | "cancelled" | "blocked" | string;
   receipt: ActionReceipt | null;
+  /** A minimal durable STOP/crash record can carry unknown without a full device receipt. */
+  effectUnknown?: boolean;
 }
 
 export type Decision =
@@ -18,12 +20,22 @@ export type Decision =
       kind: "queue";
       summary: string;
       intent: ActionIntent;
-      /** Further actions the model chose in the same turn, run in order before it is asked again. */
+      /** Independent read-only observations chosen in the same turn, run in order. */
       more?: { summary: string; intent: ActionIntent }[];
     }
   | { kind: "wait" }
   | { kind: "settle"; verification: VerificationResult; summary: string }
   | { kind: "block"; reason: string };
+
+/** Unknown writes cannot be resumed or repeated without a separate resolution. */
+export function unresolvedEffect(steps: Step[]): string | null {
+  return steps.some(
+    (step) =>
+      step.intent.risk !== "read" && (step.effectUnknown || step.receipt?.status === "unknown"),
+  )
+    ? "An earlier action may already have changed your computer. Check its result before starting more work. JARVIS will not repeat it."
+    : null;
+}
 
 export const open = (step: Step) =>
   ["queued", "claimed", "needs_confirmation"].includes(step.status);
