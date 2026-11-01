@@ -15,11 +15,20 @@ bundled = sorted(f"ocade_agent.{path.stem}" for path in Path(ROOT, "ocade_agent"
 for worker in ("office_worker", "verify_worker", "windows_worker", "web_worker", "media_worker"):
     assert f"ocade_agent.{worker}" in bundled, f"ocade_agent.{worker} missing from the build"
 
+# The frozen installer must carry its own Playwright Chromium, not depend on
+# the builder's profile or a separately installed browser on a customer PC.
+BROWSERS = Path(SPECPATH, "playwright-browsers")
+if not BROWSERS.is_dir() or not any(BROWSERS.rglob("chrome.exe")):
+    raise RuntimeError("Missing packaged Playwright Chromium; run packaging/build.ps1")
+
 block_cipher = None
 analysis = Analysis(
     [os.path.join(ROOT, "ocade_agent", "__main__.py")],
     pathex=[ROOT],
-    datas=[(os.path.join(ROOT, "ocade_agent", "protocol.json"), "ocade_agent")],
+    datas=[
+        (os.path.join(ROOT, "ocade_agent", "protocol.json"), "ocade_agent"),
+        (str(BROWSERS), "playwright-browsers"),
+    ],
     hiddenimports=bundled
     + collect_submodules("pywinauto")
     + ["win32timezone", "pyautogui", "playwright.async_api"],
