@@ -1,0 +1,860 @@
+{
+  "objective": "Check python.org for the newest stable Python 3 release and save its version number in a short note in my folder.",
+  "taskId": "bd2d7917-4c89-4a15-8444-c49f30c92568",
+  "status": "completed",
+  "result": "Done, and checked independently.",
+  "blocker": null,
+  "checks": [
+    {
+      "id": "python_site_check",
+      "kind": "web_text_contains",
+      "params": {
+        "url": "https://www.python.org",
+        "text": "Python 3"
+      },
+      "description": "Python.org shows Python 3 information",
+      "state": "passed"
+    },
+    {
+      "id": "note_file_exists",
+      "kind": "file_exists",
+      "params": {
+        "path": "OCADE output"
+      },
+      "description": "A note file is created in OCADE output",
+      "state": "passed"
+    }
+  ],
+  "timing": {
+    "acceptedAt": "2026-11-01T14:25:36.360239+00:00",
+    "finishedAt": "2026-11-01T14:26:10.27435+00:00",
+    "verifiedAt": "2026-11-01T14:26:10.27435+00:00",
+    "deliveredAt": "2026-11-01T14:26:10.27435+00:00",
+    "totalElapsedMs": 33914,
+    "userWaitMs": 0,
+    "activeExecutionMs": 4553,
+    "modelCalls": 6,
+    "modelMs": 19012,
+    "stepDurationsMs": [
+      855.65,
+      683.41,
+      1899.12,
+      4.69,
+      1109.74
+    ]
+  },
+  "confirmations": [],
+  "decisions": [
+    {
+      "summary": "list",
+      "intent": {
+        "v": 1,
+        "key": "s1",
+        "risk": "read",
+        "arguments": {
+          "path": "."
+        },
+        "operation": "fs.list",
+        "capability": "files",
+        "deadlineUtc": "2026-11-01T14:35:36.660Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "entries": [],
+          "durationMs": 855.65
+        },
+        "maybeChanged": false,
+        "observedAtUtc": "2026-11-01T14:25:44.285Z"
+      }
+    },
+    {
+      "summary": "read",
+      "intent": {
+        "v": 1,
+        "key": "s2",
+        "risk": "read",
+        "target": {
+          "site": "www.python.org"
+        },
+        "arguments": {
+          "page": {
+            "id": "main",
+            "site": "www.python.org"
+          }
+        },
+        "operation": "web.read",
+        "capability": "browser",
+        "deadlineUtc": "2026-11-01T14:35:44.972Z"
+      },
+      "status": "failed",
+      "receipt": {
+        "status": "not_applied",
+        "evidence": {
+          "durationMs": 683.41
+        },
+        "errorCode": "page_gone",
+        "maybeChanged": false,
+        "observedAtUtc": "2026-11-01T14:25:52.028Z"
+      }
+    },
+    {
+      "summary": "open",
+      "intent": {
+        "v": 1,
+        "key": "s3",
+        "risk": "read",
+        "target": {
+          "site": "www.python.org"
+        },
+        "arguments": {
+          "url": "https://www.python.org"
+        },
+        "operation": "web.open",
+        "capability": "browser",
+        "deadlineUtc": "2026-11-01T14:35:52.659Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "url": "https://www.python.org/",
+          "page": {
+            "id": "d695217573b4",
+            "site": "www.python.org"
+          },
+          "text": "Skip to content\nPython\nPSF\nDocs\nPyPI\nJobs\nCommunity\nDonate\n \nSearch This Site\n GO\nSocialize\nAbout\n \nDownloads\n \nDocumentation\n \nCommunity\n \nSuccess Stories\n \nNews\n \nEvents\n# Write Fibonacci series up to n\n>>> def fib(n):\n...     a, b = 0, 1\n...     while a < n:\n...         print(a, end=' ')\n...         a, b = b, a+b\n...     print()\n...\n>>> fib(1000)\n0 1 1 2 3 5 8 13 21 34 55 89 144 233 377 610 987\n\nFunctions Defined\n\nThe core of extensible programming is defining functions. Python allows mandatory and optional arguments, keyword arguments, and even arbitrary argument lists. More about defining functions\n\n1\n2\n3\n4\n5\n\nPython is a programming language that lets you work quickly\nand integrate systems more effectively. Learn More\n\n Security notice: the emSign root CA has been removed from certifi. Upgrade certifi, pip, uv and sigstore now.   See more\nGet Started\n\nWhether you're new to programming or an experienced developer, it's easy to learn and use Python.\n\nStart with our Beginner’s Guide\n\nDownload\n\nPython source code and installers are available for download for all versions!\n\nLatest: Python 3.15.2\n\nDocs\n\nDocumentation for Python's standard library, along with tutorials and guides, are available online.\n\ndocs.python.org\n\nJobs\n\nLooking for work or have a Python related position that you're trying to hire for? Our relaunched community-run job board is the place to go.\n\njobs.python.org\n\nLatest News\n\nMore news\n\n2026-10-29\nAnnouncing PSF Community Service Award Recipients!\n2026-10-26\nPython 3.15.2, 3.14.10, 3.13.18, 3.12.16 and 3.11.18 are out\n2026-10-22\nMark Your Calendars! PSF Board Office Hours for the Year Ahead\n2026-10-21\nPython 3.15.1, 3.14.9 and 3.13.17 are out\n2026-10-20\nWikis: Relaunched!\nUpcoming Events\n\nMore\n\n2026-11-06\nPyCon ES 2026\n2026-11-07\nPython El Salvador vuelve — Meetup de Reactivación\n2026-11-11\nEdmonton.py: The Edmonton Python User Group\n2026-11-12\nPython Help\n2026-11-12\nPython Leiden User Group\nSuccess Stories\n\nMore\n\nPython programmability on Algorand makes the entire development lifecycle easier and means more affordable and efficient maintenance and upgrades going forward.\n\nUsing Python to build a solution for instant tokenized real estate redemptions by Brian Whippo, Head of Developer Relations, Algorand Foundation\n\n\n\nUse Python for…\n\nMore\n\nWeb Development: Django, Pyramid, Bottle, Tornado, Flask, Litestar, FastAPI\nGUI Development: tkInter, PyGObject, PyQt, PySide, Kivy, wxPython, DearPyGui\nAI and Machine Learning: PyTorch, TensorFlow, scikit-learn, Transformers, Anthropic, LangChain\nScientific and Numeric: SciPy, Pandas, IPython\nSoftware Development: Buildbot, Trac, Roundup\nSyste",
+          "title": "Welcome to Python.org",
+          "controls": [
+            {
+              "tag": "a",
+              "href": "/",
+              "name": "",
+              "type": "",
+              "label": "Skip to content",
+              "selector": "[data-ocade=\"758fd5-0\"]"
+            },
+            {
+              "tag": "a",
+              "href": "/",
+              "name": "",
+              "type": "",
+              "label": "The Python Programming Language",
+              "selector": "[data-ocade=\"758fd5-1\"]"
+            },
+            {
+              "tag": "a",
+              "href": "/psf/",
+              "name": "",
+              "type": "",
+              "label": "The Python Software Foundation",
+              "selector": "[data-ocade=\"758fd5-2\"]"
+            },
+            {
+              "tag": "a",
+              "href": "https://docs.python.org/",
+              "name": "",
+              "type": "",
+              "label": "Python Documentation",
+              "selector": "[data-ocade=\"758fd5-3\"]"
+            },
+            {
+              "tag": "a",
+              "href": "https://pypi.org/",
+              "name": "",
+              "type": "",
+              "label": "Python Package Index",
+              "selector": "[data-ocade=\"758fd5-4\"]"
+            },
+            {
+              "tag": "a",
+              "href": "/jobs/",
+              "name": "",
+              "type": "",
+              "label": "Python Job Board",
+              "selector": "[data-ocade=\"758fd5-5\"]"
+            },
+            {
+              "row": "Community",
+              "tag": "a",
+              "href": "/community/",
+              "name": "",
+              "type": "",
+              "label": "Community",
+              "selector": "[data-ocade=\"758fd5-6\"]"
+            },
+            {
+              "tag": "a",
+              "href": "/",
+              "name": "",
+              "type": "",
+              "label": "",
+              "selector": "[data-ocade=\"758fd5-7\"]"
+            },
+            {
+              "tag": "a",
+              "href": "https://donate.python.org/",
+              "name": "",
+              "type": "",
+              "label": "Donate",
+              "selector": "[data-ocade=\"758fd5-8\"]"
+            },
+            {
+              "tag": "input",
+              "name": "q",
+              "type": "search",
+              "label": "Search This Site",
+              "selector": "[data-ocade=\"758fd5-9\"]"
+            },
+            {
+              "tag": "button",
+              "name": "submit",
+              "type": "submit",
+              "label": "Submit this Search",
+              "selector": "[data-ocade=\"758fd5-10\"]"
+            },
+            {
+              "tag": "a",
+              "href": "/",
+              "name": "",
+              "type": "",
+              "label": "Socialize",
+              "selector": "[data-ocade=\"758fd5-11\"]"
+            },
+            {
+              "row": "About",
+              "tag": "a",
+              "href": "/about/",
+              "name": "",
+              "type": "",
+              "label": "About",
+              "selector": "[data-ocade=\"758fd5-12\"]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/",
+              "name": "",
+              "type": "",
+              "label": "Downloads",
+              "selector": "[data-ocade=\"758fd5-13\"]"
+            },
+            {
+              "tag": "a",
+              "href": "/doc/",
+              "name": "",
+              "type": "",
+              "label": "Documentation",
+              "selector": "[data-ocade=\"758fd5-14\"]"
+            },
+            {
+              "row": "Community",
+              "tag": "a",
+              "href": "/community/",
+              "name": "",
+              "type": "",
+              "label": "Community",
+              "selector": "[data-ocade=\"758fd5-15\"]"
+            },
+            {
+              "tag": "a",
+              "href": "/success-stories/",
+              "name": "",
+              "type": "",
+              "label": "success-stories",
+              "selector": "[data-ocade=\"758fd5-16\"]"
+            },
+            {
+              "tag": "a",
+              "href": "/blogs/",
+              "name": "",
+              "type": "",
+              "label": "News from around the Python world",
+              "selector": "[data-ocade=\"758fd5-17\"]"
+            },
+            {
+              "tag": "a",
+              "href": "/events/",
+              "name": "",
+              "type": "",
+              "label": "Events",
+              "selector": "[data-ocade=\"758fd5-18\"]"
+            },
+            {
+              "tag": "a",
+              "href": "https://docs.python.org/3/tutorial/controlflow.html#defining-functions",
+              "name": "",
+              "type": "",
+              "label": "More about defining functions",
+              "selector": "[data-ocade=\"758fd5-19\"]"
+            },
+            {
+              "tag": "a",
+              "href": "/doc/",
+              "name": "",
+              "type": "",
+              "label": "Learn More",
+              "selector": "[data-ocade=\"758fd5-20\"]"
+            },
+            {
+              "tag": "a",
+              "href": "https://discuss.python.org/t/information-for-python-users-regarding-emudhra-emsign-ca-certificate-security-incident/109576",
+              "name": "",
+              "type": "",
+              "label": "See more",
+              "selector": "[data-ocade=\"758fd5-21\"]"
+            },
+            {
+              "tag": "a",
+              "href": "/about/gettingstarted/",
+              "name": "",
+              "type": "",
+              "label": "Start with our Beginner’s Guide",
+              "selector": "[data-ocade=\"758fd5-22\"]"
+            },
+            {
+              "tag": "a",
+              "href": "/downloads/release/python-3152/",
+              "name": "",
+              "type": "",
+              "label": "Python 3.15.2",
+              "selector": "[data-ocade=\"758fd5-23\"]"
+            },
+            {
+              "tag": "a",
+              "href": "https://docs.python.org/",
+              "name": "",
+              "type": "",
+              "label": "docs.python.org",
+              "selector": "[data-ocade=\"758fd5-24\"]"
+            },
+            {
+              "tag": "a",
+              "href": "https://jobs.python.org/",
+              "name": "",
+              "type": "",
+              "label": "jobs.python.org",
+              "selector": "[data-ocade=\"758fd5-25\"]"
+            },
+            {
+              "tag": "a",
+              "href": "/blogs/",
+              "name": "",
+              "type": "",
+              "label": "More news",
+              "selector": "[data-ocade=\"758fd5-26\"]"
+            },
+            {
+              "tag": "a",
+              "href": "https://pyfound.blogspot.com/2026/10/announcing-psf-community-service-award.html",
+              "name": "",
+              "type": "",
+              "label": "Announcing PSF Community Service Award Recipients!",
+              "selector": "[data-ocade=\"758fd5-27\"]"
+            },
+            {
+              "tag": "a",
+              "href": "https://blog.python.org/2026/10/python-3152-31410-31318-31216-31118/",
+              "name": "",
+              "type": "",
+              "label": "Python 3.15.2, 3.14.10, 3.13.18, 3.12.16 and 3.11.18 are out",
+              "selector": "[data-ocade=\"758fd5-28\"]"
+            },
+            {
+              "tag": "a",
+              "href": "https://pyfound.blogspot.com/2026/10/mark-your-calendars-psf-board-office.html",
+              "name": "",
+              "type": "",
+              "label": "Mark Your Calendars! PSF Board Office Hours for the Year Ahead",
+              "selector": "[data-ocade=\"758fd5-29\"]"
+            },
+            {
+              "tag": "a",
+              "href": "https://blog.python.org/2026/10/python-3151-3149-31317/",
+              "name": "",
+              "type": "",
+              "label": "Python 3.15.1, 3.14.9 and 3.13.17 are out",
+              "selector": "[data-ocade=\"758fd5-30\"]"
+            },
+            {
+              "tag": "a",
+              "href": "https://pyfound.blogspot.com/2026/10/wikis-relaunched.html",
+              "name": "",
+              "type": "",
+              "label": "Wikis: Relaunched!",
+              "selector": "[data-ocade=\"758fd5-31\"]"
+            },
+            {
+              "tag": "a",
+              "href": "/events/calendars/",
+              "name": "",
+              "type": "",
+              "label": "More Events",
+              "selector": "[data-ocade=\"758fd5-32\"]"
+            },
+            {
+              "tag": "a",
+              "href": "/events/python-events/2150/",
+              "name": "",
+              "type": "",
+              "label": "PyCon ES 2026",
+              "selector": "[data-ocade=\"758fd5-33\"]"
+            },
+            {
+              "tag": "a",
+              "href": "/events/python-user-group/2253/",
+              "name": "",
+              "type": "",
+              "label": "Python El Salvador vuelve — Meetup de Reactivación",
+              "selector": "[data-ocade=\"758fd5-34\"]"
+            },
+            {
+              "tag": "a",
+              "href": "/events/python-user-group/2249/",
+              "name": "",
+              "type": "",
+              "label": "Edmonton.py: The Edmonton Python User Group",
+              "selector": "[data-ocade=\"758fd5-35\"]"
+            },
+            {
+              "tag": "a",
+              "href": "/events/python-user-group/2254/",
+              "name": "",
+              "type": "",
+              "label": "Python Help",
+              "selector": "[data-ocade=\"758fd5-36\"]"
+            },
+            {
+              "tag": "a",
+              "href": "/events/python-user-group/2212/",
+              "name": "",
+              "type": "",
+              "label": "Python Leiden User Group",
+              "selector": "[data-ocade=\"758fd5-37\"]"
+            },
+            {
+              "tag": "a",
+              "href": "/success-stories/",
+              "name": "",
+              "type": "",
+              "label": "More Success Stories",
+              "selector": "[data-ocade=\"758fd5-38\"]"
+            },
+            {
+              "tag": "a",
+              "href": "/success-stories/using-python-to-build-a-solution-for-instant-tokenized-real-estate-redemptions/",
+              "name": "",
+              "type": "",
+              "label": "Python programmability on Algorand makes the entire development lifecycle easier",
+              "selector": "[data-ocade=\"758fd5-39\"]"
+            },
+            {
+              "tag": "a",
+              "href": "/success-stories/using-python-to-build-a-solution-for-instant-tokenized-real-estate-redemptions/",
+              "name": "",
+              "type": "",
+              "label": "Using Python to build a solution for instant tokenized real estate redemptions",
+              "selector": "[data-ocade=\"758fd5-40\"]"
+            },
+            {
+              "tag": "a",
+              "href": "/about/apps",
+              "name": "",
+              "type": "",
+              "label": "More Applications",
+              "selector": "[data-ocade=\"758fd5-41\"]"
+            },
+            {
+              "tag": "a",
+              "href": "https://www.djangoproject.com/",
+              "name": "",
+              "type": "",
+              "label": "Django",
+              "selector": "[data-ocade=\"758fd5-42\"]"
+            },
+            {
+              "tag": "a",
+              "href": "https://trypyramid.com/",
+              "name": "",
+              "type": "",
+              "label": "Pyramid",
+              "selector": "[data-ocade=\"758fd5-43\"]"
+            },
+            {
+              "tag": "a",
+              "href": "https://bottlepy.org/",
+              "name": "",
+              "type": "",
+              "label": "Bottle",
+              "selector": "[data-ocade=\"758fd5-44\"]"
+            },
+            {
+              "tag": "a",
+              "href": "https://www.tornadoweb.org/",
+              "name": "",
+              "type": "",
+              "label": "Tornado",
+              "selector": "[data-ocade=\"758fd5-45\"]"
+            },
+            {
+              "tag": "a",
+              "href": "https://flask.palletsprojects.com/",
+              "name": "",
+              "type": "",
+              "label": "Flask",
+              "selector": "[data-ocade=\"758fd5-46\"]"
+            },
+            {
+              "tag": "a",
+              "href": "https://litestar.dev/",
+              "name": "",
+              "type": "",
+              "label": "Litestar",
+              "selector": "[data-ocade=\"758fd5-47\"]"
+            },
+            {
+              "tag": "a",
+              "href": "https://fastapi.tiangolo.com/",
+              "name": "",
+              "type": "",
+              "label": "FastAPI",
+              "selector": "[data-ocade=\"758fd5-48\"]"
+            },
+            {
+              "tag": "a",
+              "href": "https://en.wikipedia.org/wiki/Tkinter",
+              "name": "",
+              "type": "",
+              "label": "tkInter",
+              "selector": "[data-ocade=\"758fd5-49\"]"
+            },
+            {
+              "tag": "a",
+              "href": "https://pygobject.gnome.org/",
+              "name": "",
+              "type": "",
+              "label": "PyGObject",
+              "selector": "[data-ocade=\"758fd5-50\"]"
+            },
+            {
+              "tag": "a",
+              "href": "https://riverbankcomputing.com/software/pyqt/intro",
+              "name": "",
+              "type": "",
+              "label": "PyQt",
+              "selector": "[data-ocade=\"758fd5-51\"]"
+            },
+            {
+              "tag": "a",
+              "href": "https://wiki.qt.io/Qt_for_Python",
+              "name": "",
+              "type": "",
+              "label": "PySide",
+              "selector": "[data-ocade=\"758fd5-52\"]"
+            },
+            {
+              "tag": "a",
+              "href": "https://kivy.org/",
+              "name": "",
+              "type": "",
+              "label": "Kivy",
+              "selector": "[data-ocade=\"758fd5-53\"]"
+            },
+            {
+              "tag": "a",
+              "href": "https://www.wxpython.org/",
+              "name": "",
+              "type": "",
+              "label": "wxPython",
+              "selector": "[data-ocade=\"758fd5-54\"]"
+            },
+            {
+              "tag": "a",
+              "href": "https://dearpygui.readthedocs.io/en/latest/",
+              "name": "",
+              "type": "",
+              "label": "DearPyGui",
+              "selector": "[data-ocade=\"758fd5-55\"]"
+            },
+            {
+              "tag": "a",
+              "href": "https://pytorch.org/",
+              "name": "",
+              "type": "",
+              "label": "PyTorch",
+              "selector": "[data-ocade=\"758fd5-56\"]"
+            },
+            {
+              "tag": "a",
+              "href": "https://www.tensorflow.org/",
+              "name": "",
+              "type": "",
+              "label": "TensorFlow",
+              "selector": "[data-ocade=\"758fd5-57\"]"
+            },
+            {
+              "tag": "a",
+              "href": "https://scikit-learn.org/",
+              "name": "",
+              "type": "",
+              "label": "scikit-learn",
+              "selector": "[data-ocade=\"758fd5-58\"]"
+            },
+            {
+              "tag": "a",
+              "href": "https://huggingface.co/docs/transformers/",
+              "name": "",
+              "type": "",
+              "label": "Transformers",
+              "selector": "[data-ocade=\"758fd5-59\"]"
+            },
+            {
+              "tag": "a",
+              "href": "https://docs.anthropic.com/",
+              "name": "",
+              "type": "",
+              "label": "Anthropic",
+              "selector": "[data-ocade=\"758fd5-60\"]"
+            },
+            {
+              "tag": "a",
+              "href": "https://langchain.com/",
+              "name": "",
+              "type": "",
+              "label": "LangChain",
+              "selector": "[data-ocade=\"758fd5-61\"]"
+            },
+            {
+              "tag": "a",
+              "href": "https://scipy.org/",
+              "name": "",
+              "type": "",
+              "label": "SciPy",
+              "selector": "[data-ocade=\"758fd5-62\"]"
+            },
+            {
+              "tag": "a",
+              "href": "https://pandas.pydata.org/",
+              "name": "",
+              "type": "",
+              "label": "Pandas",
+              "selector": "[data-ocade=\"758fd5-63\"]"
+            },
+            {
+              "tag": "a",
+              "href": "https://ipython.org/",
+              "name": "",
+              "type": "",
+              "label": "IPython",
+              "selector": "[data-ocade=\"758fd5-64\"]"
+            },
+            {
+              "tag": "a",
+              "href": "https://buildbot.net/",
+              "name": "",
+              "type": "",
+              "label": "Buildbot",
+              "selector": "[data-ocade=\"758fd5-65\"]"
+            },
+            {
+              "tag": "a",
+              "href": "https://trac.edgewall.org/",
+              "name": "",
+              "type": "",
+              "label": "Trac",
+              "selector": "[data-ocade=\"758fd5-66\"]"
+            },
+            {
+              "tag": "a",
+              "href": "https://www.roundup-tracker.org/",
+              "name": "",
+              "type": "",
+              "label": "Roundup",
+              "selector": "[data-ocade=\"758fd5-67\"]"
+            },
+            {
+              "tag": "a",
+              "href": "https://docs.ansible.com/",
+              "name": "",
+              "type": "",
+              "label": "Ansible",
+              "selector": "[data-ocade=\"758fd5-68\"]"
+            },
+            {
+              "tag": "a",
+              "href": "https://saltproject.io/",
+              "name": "",
+              "type": "",
+              "label": "Salt",
+              "selector": "[data-ocade=\"758fd5-69\"]"
+            },
+            {
+              "tag": "a",
+              "href": "https://www.openstack.org/",
+              "name": "",
+              "type": "",
+              "label": "OpenStack",
+              "selector": "[data-ocade=\"758fd5-70\"]"
+            },
+            {
+              "tag": "a",
+              "href": "https://xon.sh/",
+              "name": "",
+              "type": "",
+              "label": "xonsh",
+              "selector": "[data-ocade=\"758fd5-71\"]"
+            },
+            {
+              "tag": "a",
+              "href": "/psf/",
+              "name": "",
+              "type": "",
+              "label": "Python Software Foundation",
+              "selector": "[data-ocade=\"758fd5-72\"]"
+            },
+            {
+              "tag": "a",
+              "href": "/psf/",
+              "name": "",
+              "type": "",
+              "label": "Learn more",
+              "selector": "[data-ocade=\"758fd5-73\"]"
+            },
+            {
+              "tag": "a",
+              "href": "/psf/membership/",
+              "name": "",
+              "type": "",
+              "label": "Become a Member",
+              "selector": "[data-ocade=\"758fd5-74\"]"
+            },
+            {
+              "tag": "a",
+              "href": "/psf/donations/",
+              "name": "",
+              "type": "",
+              "label": "Donate to the PSF",
+              "selector": "[data-ocade=\"758fd5-75\"]"
+            },
+            {
+              "row": "About Applications Quotes Getting Started Help",
+              "tag": "a",
+              "href": "/about/",
+              "name": "",
+              "type": "",
+              "label": "About",
+              "selector": "[data-ocade=\"758fd5-76\"]"
+            },
+            {
+              "tag": "a",
+              "href": "/about/apps/",
+              "name": "",
+              "type": "",
+              "label": "Applications",
+              "selector": "[data-ocade=\"758fd5-77\"]"
+            },
+            {
+              "tag": "a",
+              "href": "/about/quotes/",
+              "name": "",
+              "type": "",
+              "label": "Quotes",
+              "selector": "[data-ocade=\"758fd5-78\"]"
+            },
+            {
+              "tag": "a",
+              "href": "/about/gettingstarted/",
+              "name": "",
+              "type": "",
+              "label": "Getting Started",
+              "selector": "[data-ocade=\"758fd5-79\"]"
+            }
+          ],
+          "durationMs": 1899.12,
+          "needsSignIn": false
+        },
+        "maybeChanged": false,
+        "observedAtUtc": "2026-11-01T14:25:58.402Z"
+      }
+    },
+    {
+      "summary": "write text",
+      "intent": {
+        "v": 1,
+        "key": "s4",
+        "risk": "reversible_write",
+        "arguments": {
+          "path": "OCADE output/python_version.txt",
+          "text": "The newest stable Python 3 release version is Python 3.15.2."
+        },
+        "operation": "fs.write_text",
+        "capability": "files",
+        "deadlineUtc": "2026-11-01T14:35:59.175Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "bytes": 60,
+          "sha256": "792eec86bacc6c75d36d241bad25e2172873a4bcd931fe837d87334ff0134804",
+          "matches": true,
+          "durationMs": 4.69
+        },
+        "maybeChanged": true,
+        "observedAtUtc": "2026-11-01T14:26:03.397Z"
+      }
+    },
+    {
+      "summary": "Checking the result independently",
+      "intent": {
+        "v": 1,
+        "key": "s5",
+        "risk": "read",
+        "arguments": {
+          "checks": [
+            {
+              "id": "python_site_check",
+              "kind": "web_text_contains",
+              "params": {
+                "url": "https://www.python.org",
+                "text": "Python 3"
+              },
+              "description": "Python.org shows Python 3 information"
+            },
+            {
+              "id": "note_file_exists",
+              "kind": "file_exists",
+              "params": {
+                "path": "OCADE output"
+              },
+              "description": "A note file is created in OCADE output"
+            }
+          ]
+        },
+        "operation": "verify.checks",
+        "capability": "files",
+        "deadlineUtc": "2026-11-01T14:36:04.037Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "durationMs": 1109.74,
+          "predicates": {
+            "note_file_exists": true,
+            "python_site_check": true
+          },
+          "verifierVersion": "checks-verifier/1"
+        },
+        "maybeChanged": false,
+        "observedAtUtc": "2026-11-01T14:26:09.251Z"
+      }
+    }
+  ],
+  "outputs": [
+    {
+      "path": "/tmp/ocade-eval/12/web_fact/OCADE output/python_version.txt",
+      "bytes": 60
+    }
+  ]
+}

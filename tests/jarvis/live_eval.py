@@ -35,6 +35,24 @@ def word(rng: random.Random) -> str:
     return rng.choice(WORDS)
 
 
+def note_text(ws: Path) -> str:
+    """Everything a person could read as a note: text files, Word documents and PDFs."""
+    from docx import Document
+    from pypdf import PdfReader
+
+    parts = []
+    for path in ws.rglob("*"):
+        if not path.is_file() or "originals" in path.parts:
+            continue
+        if path.suffix in (".txt", ".md"):
+            parts.append(path.read_text(errors="replace"))
+        elif path.suffix == ".docx":
+            parts.append("\n".join(p.text for p in Document(path).paragraphs))
+        elif path.suffix == ".pdf":
+            parts.append("\n".join(page.extract_text() or "" for page in PdfReader(path).pages))
+    return "\n".join(parts)
+
+
 def run_as_user(args: list[str], cwd: Path, timeout: int = 60) -> subprocess.CompletedProcess:
     return subprocess.run(["runuser", "-u", USER, "--", *args], cwd=cwd, capture_output=True, text=True, timeout=timeout)
 
@@ -155,9 +173,8 @@ def log_cause(ws: Path, rng: random.Random):
     (ws / f"{word(rng)}.log").write_text("\n".join(lines) + "\n")
 
     def oracle(ws: Path):
-        notes = [p for p in ws.rglob("*") if p.is_file() and p.suffix in (".txt", ".md") ]
-        text = " ".join(p.read_text(errors="replace").lower() for p in notes)
-        return cause[1] in text and at in text, f"notes {[p.name for p in notes]}"
+        text = note_text(ws).lower()
+        return cause[1] in text and at in text, f"note text {text[:120]!r}"
 
     return f"The {job} job failed last night. Find out why from the log in my folder and write the cause and time in a short note.", [], oracle
 
@@ -212,8 +229,7 @@ def biggest_files(ws: Path, rng: random.Random):
     top = sorted(files, key=lambda p: p.stat().st_size, reverse=True)[:3]
 
     def oracle(ws: Path):
-        notes = [p for p in ws.rglob("*") if p.is_file() and p.suffix in (".txt", ".md")]
-        text = " ".join(p.read_text(errors="replace") for p in notes)
+        text = note_text(ws)
         return all(p.name in text for p in top), f"want {[p.name for p in top]}"
 
     return "My JARVIS folder is getting full. Find the three biggest files and list them with their sizes in a short note.", [], oracle
@@ -267,8 +283,7 @@ def web_fact(ws: Path, rng: random.Random):
         import re
 
         latest = re.search(r"Download Python (\d+\.\d+\.\d+)", page).group(1)
-        notes = [p for p in ws.rglob("*") if p.is_file() and p.suffix in (".txt", ".md")]
-        text = " ".join(p.read_text(errors="replace") for p in notes)
+        text = note_text(ws)
         return latest in text, f"want {latest}, notes {text[:120]!r}"
 
     return ("Check python.org for the newest stable Python 3 release and save its version number in a short note in my folder.",

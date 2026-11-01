@@ -1,0 +1,107 @@
+{
+  "seed": 12,
+  "passed": 8,
+  "total": 11,
+  "commit": "835f4a3",
+  "results": [
+    {
+      "task": "config_repair",
+      "pass": true,
+      "detail": "exit 0, got 'rows=6 total=2444.44', want 'rows=6 total=2444.44'",
+      "settled": "completed",
+      "elapsedMs": 82125,
+      "modelCalls": 11,
+      "wallSeconds": 97.4
+    },
+    {
+      "task": "crlf_script",
+      "pass": false,
+      "detail": "exit 1, archive lists []",
+      "settled": "completed",
+      "elapsedMs": 66720,
+      "modelCalls": 11,
+      "wallSeconds": 81.4
+    },
+    {
+      "task": "dedupe_contacts",
+      "pass": true,
+      "detail": "tundra_contacts.csv",
+      "settled": "completed",
+      "elapsedMs": 24643,
+      "modelCalls": 5,
+      "wallSeconds": 41.4
+    },
+    {
+      "task": "totals_workbook",
+      "pass": false,
+      "detail": "no workbook",
+      "settled": "waiting",
+      "elapsedMs": 31077,
+      "modelCalls": 5,
+      "wallSeconds": 42.3
+    },
+    {
+      "task": "log_cause",
+      "pass": true,
+      "detail": "notes ['note.txt']",
+      "settled": "completed",
+      "elapsedMs": 22894,
+      "modelCalls": 5,
+      "wallSeconds": 41.9
+    },
+    {
+      "task": "yaml_to_json",
+      "pass": true,
+      "detail": "russet.json",
+      "settled": "completed",
+      "elapsedMs": 22990,
+      "modelCalls": 5,
+      "wallSeconds": 33.5
+    },
+    {
+      "task": "failing_test",
+      "pass": true,
+      "detail": "exit 0, tests untouched True",
+      "settled": "completed",
+      "elapsedMs": 34482,
+      "modelCalls": 6,
+      "wallSeconds": 45.6
+    },
+    {
+      "task": "biggest_files",
+      "pass": false,
+      "detail": "want ['birch2.dat', 'nimbus4.bin', 'amber3.mov']",
+      "settled": "completed",
+      "elapsedMs": 54027,
+      "modelCalls": 7,
+      "wallSeconds": 68.1
+    },
+    {
+      "task": "port_conflict",
+      "pass": true,
+      "detail": "Garnet board ready 263",
+      "settled": "completed",
+      "elapsedMs": 52303,
+      "modelCalls": 9,
+      "wallSeconds": 62.6
+    },
+    {
+      "task": "markdown_doc",
+      "pass": true,
+      "detail": "[('Title', 'Juniper Fjord Plan'), ('Heading 1', 'Owners'), ('Normal', '- kestrel delta'), ('Heading 1', 'Goals'), ('Normal', '- sierra ember'), ('Heading 1', 'Timeline')]",
+      "settled": "completed",
+      "elapsedMs": 23447,
+      "modelCalls": 5,
+      "wallSeconds": 34.6
+    },
+    {
+      "task": "web_fact",
+      "pass": true,
+      "detail": "want 3.15.2, notes 'The newest stable Python 3 release version is Python 3.15.2.'",
+      "settled": "completed",
+      "elapsedMs": 33914,
+      "modelCalls": 6,
+      "wallSeconds": 46.4
+    }
+  ]
+}

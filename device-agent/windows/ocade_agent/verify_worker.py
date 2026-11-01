@@ -68,7 +68,7 @@ def _text(path: Path) -> str | None:
         return None
 
 
-def _check(kind: str, params: dict) -> bool | None:
+def _check(kind: str, params: dict, notes: dict) -> bool | None:
     """One typed predicate, read from the real file, page or window. None means unobservable."""
     if kind in ("file_exists", "file_contains", "workbook_cell_equals"):
         try:
@@ -119,7 +119,7 @@ def _check(kind: str, params: dict) -> bool | None:
         if not path.is_file():
             return False
         if kind == "media_quality":
-            return _media_quality(path, params)
+            return _media_quality(path, params, notes)
         from PIL import Image
 
         try:
@@ -165,7 +165,7 @@ def _scene_bound(size: tuple[int, int], text: dict) -> bool:
         return False
 
 
-def _media_quality(path: Path, params: dict) -> bool | None:
+def _media_quality(path: Path, params: dict, notes: dict) -> bool | None:
     """A deliverable video, measured: exact length, size, H.264 + stereo AAC, loudness and
     true peak in broadcast range, no black or silent stretch inside the programme."""
     probe, ffmpeg = shutil.which("ffprobe"), shutil.which("ffmpeg")
@@ -180,6 +180,8 @@ def _media_quality(path: Path, params: dict) -> bool | None:
         return False
     video = next((s for s in facts.get("streams", []) if s.get("codec_type") == "video"), None)
     sound = next((s for s in facts.get("streams", []) if s.get("codec_type") == "audio"), None)
+    notes.update(duration=round(duration, 3), video=(video or {}).get("codec_name"), audio=(sound or {}).get("codec_name"),
+                 channels=(sound or {}).get("channels"), size=[(video or {}).get("width"), (video or {}).get("height")])
     if not video or not sound or video.get("codec_name") != "h264" or sound.get("codec_name") != "aac":
         return False
     if sound.get("channels") != 2 or abs(duration - float(params.get("value", -1))) > 0.05:
@@ -197,6 +199,9 @@ def _media_quality(path: Path, params: dict) -> bool | None:
     black = [(float(a), float(b)) for a, b in re.findall(r"black_start:([0-9.]+) black_end:([0-9.]+)", log)]
     silent = [float(a) for a in re.findall(r"silence_start: (-?[0-9.]+)", log)]
     inside = lambda t: 1.0 < t < duration - 2.0  # noqa: E731 — the opening and the closing fade are allowed
+    notes.update(loudnessLufs=float(integrated[-1]) if integrated else None, peakDbfs=float(peak[-1]) if peak else None,
+                 blackInside=[s for s in black if inside(s[0]) or inside(s[1])][:5],
+                 silentInside=[t for t in silent if inside(t)][:5])
     return (
         bool(integrated) and -20.0 <= float(integrated[-1]) <= -9.0
         and bool(peak) and float(peak[-1]) <= -0.5
@@ -237,8 +242,13 @@ def _window_exists(exe: str, title_part: str | None) -> bool:
 @app.tool()
 def verify_checks(checks: list[dict]) -> dict:
     """Evaluate a task's fixed typed checks against the real state, independently of the actor."""
-    predicates = {c["id"]: _check(c.get("kind", ""), c.get("params") or {}) for c in checks}
-    return {"predicates": predicates, "verifierVersion": "checks-verifier/1"}
+    predicates, measured = {}, {}
+    for check in checks:
+        notes: dict = {}
+        predicates[check["id"]] = _check(check.get("kind", ""), check.get("params") or {}, notes)
+        if notes:
+            measured[check["id"]] = notes  # what was measured, so a failure says which criterion missed
+    return {"predicates": predicates, **({"measured": measured} if measured else {}), "verifierVersion": "checks-verifier/1"}
 
 
 if __name__ == "__main__":
