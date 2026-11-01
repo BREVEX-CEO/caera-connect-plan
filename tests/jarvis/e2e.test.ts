@@ -684,17 +684,21 @@ test(
       assert.equal(permits.succeeded, 5, JSON.stringify(permits)); // goal + 4 steps
       assert.ok(!permits.reserved, JSON.stringify(permits));
 
-      // Elapsed time (M3): server timestamps, device-measured steps, the outage as time waiting on the person.
+      // Elapsed time (M3): server timestamps, device-measured steps; the outage is a pause, not the person's wait.
       const timing = view.timing;
       assert.equal(timing.modelCalls, 6, JSON.stringify(timing)); // 5 charged turns + the refused outage turn
       assert.ok(timing.modelMs > 0, JSON.stringify(timing));
-      assert.ok(timing.userWaitMs > 0, JSON.stringify(timing));
+      assert.ok(timing.pausedMs > 0, JSON.stringify(timing));
+      assert.equal(timing.userWaitMs, 0, JSON.stringify(timing)); // nothing was asked of the person
       assert.ok(
         view.steps.every((s) => typeof s.durationMs === "number"),
         JSON.stringify(view.steps),
       );
       assert.ok(timing.activeExecutionMs !== null && timing.activeExecutionMs > 0);
-      assert.ok(timing.totalElapsedMs! >= timing.activeExecutionMs + timing.userWaitMs - 50);
+      assert.ok(
+        timing.totalElapsedMs! >=
+          timing.activeExecutionMs + timing.pausedMs + timing.userWaitMs - 50,
+      );
       assert.equal(timing.verifiedAt, timing.finishedAt);
       assert.ok(Date.parse(timing.finishedAt!) > Date.parse(timing.acceptedAt));
     } finally {

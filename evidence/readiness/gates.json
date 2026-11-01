@@ -294,9 +294,11 @@
           "text": "Verifier checks semantics for documents, spreadsheets, images, video and code repairs",
           "status": "PARTIAL",
           "evidence": [
-            "device-agent/windows/ocade_agent/verify_worker.py"
+            "device-agent/windows/ocade_agent/verify_worker.py",
+            "device-agent/windows/tests/test_gateway.py",
+            "device-agent/windows/tests/test_media.py"
           ],
-          "reason": "files, cells, media and renders checked; code repairs not re-run by the verifier"
+          "reason": "files, workbook cells, documents, renders, measured media and well-formedness of repaired code/config (file_parses, never executed) are checked; a repaired program is not re-run by the verifier, by design"
         }
       ]
     },
@@ -329,7 +331,7 @@
           "evidence": [
             "tests/web/jarvis_ui_flow.py"
           ],
-          "reason": "sign-in, pairing through Settings > Devices and grants verified on staging through the website; the first task from the website is UNTESTED (shared Gemini quota exhausted)"
+          "reason": "sign-in, pairing through Settings > Devices, grants, the online-agreement dialog, task start, goal compilation and the first device step verified on staging through the website; the task then waited on the busy provider, so a completed first task is not yet verified"
         }
       ]
     },
@@ -362,6 +364,16 @@
             "device-agent/windows/tests/test_agent.py",
             "device-agent/windows/ocade_agent/agent.py"
           ]
+        },
+        {
+          "id": "provider_capacity",
+          "text": "Model provider capacity sustains real use without the planner going busy mid-task",
+          "status": "BLOCKED",
+          "evidence": [
+            "evidence/2026-11-01-eval-s14/README.md",
+            "tests/web/jarvis_ui_flow.py"
+          ],
+          "reason": "the shared staging Gemini project rate-limits after roughly 30-60 calls in a short window; three resumes over 15 minutes stayed busy. Raising capacity is a provider plan/spending decision for the owner; keys are not rotated to evade it"
         }
       ]
     },

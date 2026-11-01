@@ -376,6 +376,7 @@ function Elapsed({ timing, live }: { timing: Timing; live: boolean }) {
   if (!live && timing.activeExecutionMs !== null)
     parts.push(`active ${duration(timing.activeExecutionMs)}`);
   if (timing.userWaitMs > 0) parts.push(`waiting on you ${duration(timing.userWaitMs)}`);
+  if (timing.pausedMs > 0) parts.push(`paused ${duration(timing.pausedMs)}`);
   return (
     <span
       className="shrink-0 text-xs tabular-nums text-muted-foreground"

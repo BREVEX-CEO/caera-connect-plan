@@ -139,7 +139,10 @@ export function taskTiming(task: Pick<TaskState, "status" | "timing" | "steps">)
     verifiedAt: done ? timing.finishedAt : null,
     deliveredAt: done ? timing.finishedAt : null,
     totalElapsedMs: ms(timing.acceptedAt, timing.finishedAt ?? timing.now),
-    userWaitMs: timing.pausedMs + steps.reduce((sum, step) => sum + (step.confirmWaitMs ?? 0), 0),
+    // Waiting on the person is their confirmations; other pauses (Take Over, a busy planner,
+    // an uncertain step to check) are reported as paused, not blamed on the person.
+    userWaitMs: steps.reduce((sum, step) => sum + (step.confirmWaitMs ?? 0), 0),
+    pausedMs: timing.pausedMs,
     activeExecutionMs: measured.length ? Math.round(measured.reduce((a, b) => a + b, 0)) : null,
     modelCalls: timing.modelCalls,
     modelMs: timing.modelMs,
