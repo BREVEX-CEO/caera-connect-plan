@@ -77,6 +77,20 @@ class Shell(unittest.TestCase):
         time.sleep(5)
         self.assertFalse((self.root / "late.txt").exists(), "a child of a timed-out command kept running")
 
+    @unittest.skipIf(WINDOWS, "Start-Process children do not inherit the command's output")
+    def test_a_background_child_holding_the_output_does_not_hang_the_call(self):
+        started = time.monotonic()
+        held, detached = self.run_steps(
+            {"command": "(sleep 4; echo late > late.txt) & echo started", "timeoutSeconds": 60},
+            {"command": "nohup sh -c 'sleep 1; echo kept > kept.txt' >/dev/null 2>&1 & echo started"},
+        )
+        self.assertLess(time.monotonic() - started, 20)
+        self.assertEqual((held["evidence"]["exitCode"], held["evidence"].get("outputHeldOpen")), (0, True))
+        self.assertEqual(detached["evidence"].get("outputHeldOpen"), None)
+        time.sleep(5)
+        self.assertFalse((self.root / "late.txt").exists())  # ended with its command, as reported
+        self.assertTrue((self.root / "kept.txt").exists())  # started detached: left running
+
     def test_stop_mid_command_ends_the_whole_process_tree(self):
         async def go():
             async with Gateway(str(self.root)) as gateway:

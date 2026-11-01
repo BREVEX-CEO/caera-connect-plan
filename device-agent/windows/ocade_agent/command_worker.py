@@ -104,13 +104,22 @@ async def shell_run(command: str, timeoutSeconds: int = 60) -> dict:
     )
     if sys.platform != "win32":
         _running.add(process.pid)  # its own session: group id == pid
+    output = asyncio.ensure_future(process.communicate())
+    held = False
     try:
-        out, err = await asyncio.wait_for(process.communicate(), timeoutSeconds)
-        timed_out = False
-    except asyncio.TimeoutError:
-        _end_tree(process)
-        out, err = await process.communicate()
-        timed_out = True
+        try:
+            await asyncio.wait_for(process.wait(), timeoutSeconds)
+            timed_out = False
+        except asyncio.TimeoutError:
+            timed_out = True
+        if not timed_out:
+            try:  # the command ended; something it started may still hold its output open
+                await asyncio.wait_for(asyncio.shield(output), 2)
+            except asyncio.TimeoutError:
+                held = True
+        if timed_out or held:
+            _end_tree(process)
+        out, err = await output
     finally:
         if process.returncode is None:
             _end_tree(process)  # cancelled by STOP
@@ -118,6 +127,8 @@ async def shell_run(command: str, timeoutSeconds: int = 60) -> dict:
     return {
         "exitCode": None if timed_out else process.returncode,
         "timedOut": timed_out,
+        # Ended with the command: a program left running must be started detached, its output redirected.
+        **({"outputHeldOpen": True} if held else {}),
         "stdout": _bounded(out),
         "stderr": _bounded(err),
         "seconds": round(time.monotonic() - started, 2),

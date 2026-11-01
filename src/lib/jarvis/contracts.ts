@@ -653,7 +653,7 @@ export const OPERATIONS = {
   },
   "shell.run": {
     summary:
-      "Run one command in the workspace folder (PowerShell on Windows, sh elsewhere) to inspect or repair the computer or work with files; the person reads and confirms the exact command first. Returns exit code and output.",
+      "Run one command in the workspace folder (PowerShell on Windows, sh elsewhere) to inspect or repair the computer or work with files; the person reads and confirms the exact command first. Returns exit code and output. A command must end: to leave a program running, start it detached with its output redirected (nohup … >log 2>&1 &, or Start-Process on Windows).",
     role: "shell",
     capability: "computer_control",
     risk: "external_effect",
