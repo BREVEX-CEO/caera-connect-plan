@@ -116,7 +116,9 @@ class Gateway:
         if key.startswith("mcp:"):
             manifest = self.external[key[4:]]
             # Re-checked at every start: a replaced executable is not the approved one.
-            if hashlib.sha256(Path(manifest["command"]).read_bytes()).hexdigest() != manifest["sha256"]:
+            from .catalog import pins_hold  # catalog imports this module
+
+            if not pins_hold(manifest):
                 raise WorkerRejected("pin_mismatch")
             # No workspace, no inherited secrets: only the SDK's minimal environment.
             return StdioServerParameters(

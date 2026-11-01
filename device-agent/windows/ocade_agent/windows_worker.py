@@ -3,8 +3,8 @@
 The action ladder (plan.md §25.1) is enforced by what this worker offers:
 `ui.invoke`/`ui.set_value` use UIA patterns through pywinauto (no pointer);
 `ui.send_keys` types into the leased window only while it is in the foreground;
-`ui.click_point` is PyAutoGUI with its fail-safe kept on, window-relative
-coordinates and an abort when the person is using the mouse.
+`ui.click_point` is PyAutoGUI with its fail-safe kept on and window-relative
+coordinates. No mutation runs while the person is using the keyboard or mouse.
 
 Every mutation first proves the window is still the one leased: same handle,
 same process id, same executable, same process start time, visible and not
@@ -25,11 +25,13 @@ import time
 from mcp.server.mcpserver import MCPServer
 
 from . import discovery
-from .sandbox import Refused, resolve
+from .sandbox import Refused, preview_jpeg, resolve
 
 app = MCPServer("ocade-ui")
 WORKSPACE = os.environ.get("OCADE_WORKSPACE", "")
 WINDOWS = sys.platform == "win32"
+PERSON_QUIET_MS = 1500  # a person's keyboard or mouse input this recent pauses JARVIS's hands
+_own_input = {"at": 0.0}  # monotonic time this worker last sent input of its own
 
 
 def _evidence(fn):
@@ -67,6 +69,23 @@ def _leased(window: dict):
     ):
         raise Refused("window_changed")
     return Application(backend="uia").connect(handle=hwnd).window(handle=hwnd)
+
+
+def _person_quiet() -> None:
+    """Refuse to act while the person is using the keyboard or mouse (their input is newer
+    than ours). UIA patterns send no input; ui.send_keys and ui.click_point record theirs."""
+    import ctypes.wintypes
+
+    class LastInput(ctypes.Structure):
+        _fields_ = [("cbSize", ctypes.wintypes.UINT), ("dwTime", ctypes.wintypes.DWORD)]
+
+    info = LastInput(ctypes.sizeof(LastInput), 0)
+    if not ctypes.windll.user32.GetLastInputInfo(ctypes.byref(info)):
+        raise Refused("input_state_unknown")
+    idle_ms = (ctypes.windll.kernel32.GetTickCount() - info.dwTime) & 0xFFFFFFFF
+    ours_ms = (time.monotonic() - _own_input["at"]) * 1000
+    if idle_ms < PERSON_QUIET_MS and idle_ms + 250 < ours_ms:
+        raise Refused("user_active")
 
 
 def _element(window, element: dict):
@@ -133,14 +152,30 @@ def apps_launch(exe: str, open: str | None = None) -> dict:
 @app.tool()
 @_evidence
 def ui_inspect(window: dict) -> dict:
-    """A bounded list of the window's accessible elements."""
+    """The window's accessible elements, each with its box as window fractions (what
+    ui.click_point takes), and a preview of the window as the screen shows it."""
+    import json
+
+    import win32gui  # type: ignore[import-not-found]
+    from PIL import ImageGrab
+
     target = _leased(window)
+    left, top, right, bottom = win32gui.GetWindowRect(window["hwnd"])
+    width, height = max(1, right - left), max(1, bottom - top)
     elements = []
     for wrapper in target.descendants()[:150]:
         described = _describe(wrapper)
-        if described["name"] or described["automationId"]:
-            elements.append(described)
-    return {"title": target.window_text()[:200], "elements": elements}
+        if not (described["name"] or described["automationId"]):
+            continue
+        box = wrapper.rectangle()
+        if box.width() > 0 and box.height() > 0:
+            described["box"] = [round((box.left - left) / width, 3), round((box.top - top) / height, 3),
+                                round((box.right - left) / width, 3), round((box.bottom - top) / height, 3)]
+        elements.append(described)
+        if len(json.dumps(elements)) > 13_000:  # the gateway refuses evidence over 16 KB
+            break
+    shot = ImageGrab.grab(bbox=(left, top, right, bottom), all_screens=True)
+    return {"title": target.window_text()[:200], "elements": elements, "preview": preview_jpeg(shot, 30_000)}
 
 
 @app.tool()
@@ -148,6 +183,7 @@ def ui_inspect(window: dict) -> dict:
 def ui_invoke(window: dict, element: dict) -> dict:
     """Invoke (or toggle/select) one element through its UIA pattern; no pointer is moved."""
     wrapper = _element(_leased(window), element)
+    _person_quiet()
     if not wrapper.is_enabled():
         raise Refused("element_disabled")
     for pattern in ("invoke", "toggle", "select"):
@@ -166,6 +202,7 @@ def ui_invoke(window: dict, element: dict) -> dict:
 def ui_set_value(window: dict, element: dict, value: str) -> dict:
     """Set an element's value through UIA, then read it back."""
     wrapper = _element(_leased(window), element)
+    _person_quiet()
     try:
         wrapper.iface_value.SetValue(value)
     except Exception:
@@ -176,23 +213,30 @@ def ui_set_value(window: dict, element: dict, value: str) -> dict:
 
 @app.tool()
 @_evidence
-def ui_send_keys(window: dict, keys: str) -> dict:
-    """Type a shortcut or text into the leased window, only while it holds the foreground."""
+def ui_send_keys(window: dict, keys: str, element: dict | None = None) -> dict:
+    """Type a shortcut or text into the leased window (into `element` when given), only while it holds the foreground."""
     import win32gui  # type: ignore[import-not-found]
     from pywinauto.keyboard import send_keys  # type: ignore[import-not-found]
 
     target = _leased(window)
-    target.set_focus()
-    if win32gui.GetForegroundWindow() != window["hwnd"]:
-        raise Refused("focus_lost")
-    send_keys(keys, pause=0.02, with_spaces=True)  # default drops every space in typed text
+    control = _element(target, element) if element is not None else None
+    _person_quiet()
+    try:  # focusing can itself send input (pywinauto taps Alt to take the foreground)
+        target.set_focus()
+        if win32gui.GetForegroundWindow() != window["hwnd"]:
+            raise Refused("focus_lost")
+        if control is not None:
+            control.set_focus()
+        send_keys(keys, pause=0.02, with_spaces=True)  # default drops every space in typed text
+    finally:
+        _own_input["at"] = time.monotonic()
     return {"title": target.window_text()[:200]}
 
 
 @app.tool()
 @_evidence
 def ui_click_point(window: dict, x: float, y: float, expectTitle: str) -> dict:
-    """Last resort: one click at a window-relative point, fail-safe on, aborted if the person is moving the mouse."""
+    """Last resort: one click at a window-relative point, fail-safe on, never while the person is using the PC."""
     import pyautogui  # type: ignore[import-not-found]
     import win32gui  # type: ignore[import-not-found]
 
@@ -200,19 +244,19 @@ def ui_click_point(window: dict, x: float, y: float, expectTitle: str) -> dict:
     target = _leased(window)
     if expectTitle not in target.window_text():
         raise Refused("unexpected_window")
-    target.set_focus()
-    if win32gui.GetForegroundWindow() != window["hwnd"]:
-        raise Refused("focus_lost")
-    left, top, right, bottom = win32gui.GetWindowRect(window["hwnd"])
-    point = (int(left + x * (right - left)), int(top + y * (bottom - top)))
-    width, height = pyautogui.size()
-    if not (0 <= point[0] < width and 0 <= point[1] < height):
-        raise Refused("point_off_screen")
-    first = pyautogui.position()
-    time.sleep(0.2)
-    if pyautogui.position() != first:
-        raise Refused("user_active")
-    pyautogui.click(*point)
+    _person_quiet()
+    try:
+        target.set_focus()
+        if win32gui.GetForegroundWindow() != window["hwnd"]:
+            raise Refused("focus_lost")
+        left, top, right, bottom = win32gui.GetWindowRect(window["hwnd"])
+        point = (int(left + x * (right - left)), int(top + y * (bottom - top)))
+        width, height = pyautogui.size()
+        if not (0 <= point[0] < width and 0 <= point[1] < height):
+            raise Refused("point_off_screen")
+        pyautogui.click(*point)
+    finally:
+        _own_input["at"] = time.monotonic()
     return {"clicked": list(point), "title": target.window_text()[:200]}
 
 

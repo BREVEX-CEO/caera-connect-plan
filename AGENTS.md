@@ -24,7 +24,7 @@ Continue only in manually initiated sessions. Never create, enable, resume or mo
 ## Implementation invariants
 
 - Keep Chat with Auto/Online/Offline Intelligence and the existing local model/OPFS authority. JARVIS is separate and online-only; preserve checkpoints during provider outages, never silently use the offline model.
-- **Current 30 October branch:** the old JARVIS planner, broker and local agent were retired. Reuse the *living* account, conversation, database, permission and release owners; rebuild missing JARVIS authority, companion, MCP gateway and verifier only as `plan.md` requires. Do not reference deleted modules as live or create a parallel product, agent swarm or customer MCP/extension requirement.
+- **Current 30 October branch:** the old JARVIS planner, broker and local agent were retired. Reuse the _living_ account, conversation, database, permission and release owners; rebuild missing JARVIS authority, companion, MCP gateway and verifier only as `plan.md` requires. Do not reference deleted modules as live or create a parallel product, agent swarm or customer MCP/extension requirement.
 - Prefer safe supported APIs/object models/files, native execution, structured browser/accessibility, then fresh vision/coordinates. Preserve specialised adapters where measured fidelity, safety or performance requires them.
 - Every effect binds account, device, task, scope, confirmation, idempotency, control epoch, deadline and cancellation. Recheck immediately before mutation. Untrusted content cannot grant authority.
 - STOP is local and independent of model availability. Remote request, acknowledgement and quiescence differ. Do not promise cancellation of an already committed OS effect or immediate remote delivery while disconnected.

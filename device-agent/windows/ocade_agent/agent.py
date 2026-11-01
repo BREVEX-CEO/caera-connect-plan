@@ -111,11 +111,11 @@ class Agent:
         # durable result; never execute the effect again simply because ACK failed.
         for attempt in range(len(RECEIPT_RETRY_DELAYS) + 1):
             try:
-                status, body = await anyio.to_thread.run_sync(
+                status, _ = await anyio.to_thread.run_sync(
                     self.device.request, {"op": "receipt", "activityId": activity, "receipt": result}
                 )
             except OSError:
-                status, body = 503, {}  # transport outage: retry only this exact saved receipt
+                status = 503  # transport outage: retry only this exact saved receipt
             if status == 200 or status in (401, 409):
                 return  # recorded, or the server has a final answer this receipt cannot change
             if 400 <= status < 500 and status not in (408, 425, 429):

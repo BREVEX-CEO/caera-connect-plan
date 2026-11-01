@@ -577,7 +577,7 @@ export const OPERATIONS = {
   },
   "ui.inspect": {
     summary:
-      "Read the accessibility tree of one open application window: controls, names, values and state.",
+      "Read and see one open application window: its controls with names, values, state and each one's box as window fractions, plus an image of the window.",
     role: "ui_bridge",
     capability: "apps",
     risk: "read",
@@ -602,19 +602,21 @@ export const OPERATIONS = {
     target: (a: { window: { exe: string } }): Target => ({ app: a.window.exe }),
   },
   "ui.send_keys": {
-    summary: "Send keyboard keys to the focused control of an application window.",
+    summary:
+      "Send keyboard keys to an application window: to the given control (focused first), else to whichever control has focus.",
     role: "ui_bridge",
     capability: "apps",
     risk: "reversible_write",
     arguments: z.strictObject({
       window: windowLease,
       keys: z.string().min(1).max(200),
+      element: element.optional(),
     }),
     target: (a: { window: { exe: string } }): Target => ({ app: a.window.exe }),
   },
   "ui.click_point": {
     summary:
-      "Click a screen position inside an application window, only when no accessible control can be reached.",
+      "Click a point (window fractions, for example inside a box ui.inspect reported or a spot seen in its image) when no accessible control can be reached.",
     role: "ui_bridge",
     capability: "computer_control",
     risk: "reversible_write",

@@ -7,7 +7,7 @@ listing or a tool's own description never makes anything trusted.
 
 States are kept apart on purpose:
   registered  a manifest file exists
-  trusted     it validates, its id does not collide, its executable's SHA-256 matches the pin
+  trusted     it validates, its id does not collide, its executable's (and file arguments') SHA-256 match the pins
   installed   the pinned executable exists on this machine
   available   it supports this platform
   active      its worker process is running (owned by the gateway)
@@ -27,7 +27,7 @@ from pathlib import Path
 
 import jsonschema
 
-from .gateway import PROTOCOL, WORKERS, fingerprint
+from .gateway import PROTOCOL, WORKERS
 
 RISKS = ("read", "reversible_write", "external_effect")
 
@@ -43,6 +43,9 @@ MANIFEST_SCHEMA = {
         "command": {"type": "string", "maxLength": 400},
         "args": {"type": "array", "items": {"type": "string", "maxLength": 400}, "maxItems": 20},
         "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        # A script an interpreter runs (`python server.py`) is pinned like the executable.
+        "argSha256": {"type": "object", "maxProperties": 20,
+                      "additionalProperties": {"type": "string", "pattern": "^[0-9a-f]{64}$"}},
         "platforms": {"type": "array", "items": {"enum": ["win32", "linux", "darwin"]}, "minItems": 1},
         "timeoutSeconds": {"type": "number", "minimum": 1, "maximum": 300},
         "tools": {
@@ -74,6 +77,17 @@ def _file_sha256(path: Path) -> str | None:
         return hashlib.sha256(path.read_bytes()).hexdigest()
     except OSError:
         return None
+
+
+def pins_hold(manifest: dict) -> bool:
+    """The executable and every argument that names a file are byte-for-byte the approved ones."""
+    pins = manifest.get("argSha256", {})
+    files = [arg for arg in manifest.get("args", []) if Path(arg).is_file()]
+    return (
+        _file_sha256(Path(manifest["command"])) == manifest["sha256"]
+        and set(pins) == set(files)
+        and all(_file_sha256(Path(arg)) == pins[arg] for arg in files)
+    )
 
 
 def bundled() -> list[dict]:
@@ -112,7 +126,7 @@ def load(home: Path) -> tuple[dict[str, dict], list[dict]]:
         manifest["state"] = (
             "unavailable_platform" if sys.platform not in manifest["platforms"]
             else "not_installed" if not executable.is_file()
-            else "pin_mismatch" if _file_sha256(executable) != manifest["sha256"]
+            else "pin_mismatch" if not pins_hold(manifest)
             else "trusted"
         )
         accepted[manifest["id"]] = manifest

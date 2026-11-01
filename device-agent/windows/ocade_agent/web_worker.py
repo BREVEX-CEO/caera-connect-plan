@@ -19,6 +19,7 @@ external effects the person confirms before they reach here.
 
 from __future__ import annotations
 
+import asyncio
 import functools
 import ipaddress
 import json
@@ -183,6 +184,17 @@ async def _observe(page_id: str) -> dict:
     return observed
 
 
+async def _capture(current) -> bytes:
+    """What the page shows, once it has painted: capturing a page before its first frame
+    (a window that just opened) fails with "Unable to capture screenshot"."""
+    try:
+        painted = current.evaluate("() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))")
+        await asyncio.wait_for(painted, 5)  # a hidden page never paints
+    except Exception:
+        pass  # the capture below reports honestly either way
+    return await current.screenshot(full_page=False)
+
+
 def _bind(new_page, site: str) -> str:
     page_id = secrets.token_hex(6)
     _pages[page_id] = {"page": new_page, "site": site}
@@ -299,7 +311,7 @@ async def web_click(page: dict, selector: str, frame: str | None = None) -> dict
 
     from PIL import Image
 
-    with Image.open(BytesIO(await current.screenshot())) as shot:
+    with Image.open(BytesIO(await _capture(current))) as shot:
         preview = preview_jpeg(shot, 30_000)  # leaves room for the page beside it in one receipt
     return await _observe(page["id"]) | {"popups": popups, "preview": preview}
 
@@ -352,7 +364,7 @@ async def web_screenshot(page: dict, output: str) -> dict:
     """Save what the page shows as a PNG under OCADE output."""
     current = _bound(page)["page"]
     target = output_path(WORKSPACE, output)
-    image = await current.screenshot(full_page=False)
+    image = await _capture(current)
     return {"sha256": write_atomically(target, lambda temporary: temporary.write_bytes(image)), "bytes": len(image)}
 
 

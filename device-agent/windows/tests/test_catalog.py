@@ -4,6 +4,7 @@ import hashlib
 import json
 import os
 import shutil
+import sys
 import tempfile
 import time
 import unittest
@@ -25,10 +26,16 @@ TOOLS = [
 ]
 
 
-def manifest(**overrides):
+def digest(path) -> str:
+    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+
+
+def manifest(script=ECHO, extra=(), **overrides):
+    """An interpreter-run server (`python external_echo.py`), as it runs on every platform."""
     base = {
         "id": "echo", "publisher": "OCADE tests", "version": "1.0.0", "license": "MIT",
-        "command": str(ECHO), "sha256": hashlib.sha256(ECHO.read_bytes()).hexdigest(),
+        "command": sys.executable, "sha256": digest(sys.executable),
+        "args": [str(script), *extra], "argSha256": {str(script): digest(script)},
         "platforms": ["linux", "win32", "darwin"], "tools": TOOLS,
     }
     return base | overrides
@@ -51,11 +58,13 @@ class Catalog(unittest.TestCase):
         self.write("f.json", manifest(id="badschema", tools=[TOOLS[0] | {"inputSchema": {"type": 5}}]))
         self.write("g.json", "not json")
         self.write("h.json", manifest(id="secrets", apiKey="sk-123"))  # unknown field: no secrets in manifests
-        self.write("i.json", manifest(id="elsewhere", platforms=["darwin"]))
+        self.write("i.json", manifest(id="elsewhere", platforms=["win32"] if sys.platform != "win32" else ["darwin"]))
+        self.write("j.json", manifest(id="unpinned_script", argSha256={}))
+        self.write("k.json", manifest(id="wrong_script", argSha256={str(ECHO): "0" * 64}))
         accepted, rejected = catalog.load(self.home)
         self.assertEqual({k: v["state"] for k, v in accepted.items()}, {
             "echo": "trusted", "pinned_wrong": "pin_mismatch", "missing": "not_installed",
-            "elsewhere": "unavailable_platform"})
+            "elsewhere": "unavailable_platform", "unpinned_script": "pin_mismatch", "wrong_script": "pin_mismatch"})
         self.assertEqual(sorted(r["reason"] for r in rejected),
                          ["duplicate_tool", "id_collision", "invalid_manifest", "invalid_manifest", "invalid_manifest"])
         self.assertEqual([d["id"] for d in catalog.describe(accepted)], ["echo"])
@@ -94,15 +103,15 @@ class Catalog(unittest.TestCase):
                          ["risk_mismatch", "invalid_intent", "unknown_tool", "server_not_trusted"])
 
     def test_drifted_tool_list_and_replaced_executable_are_rejected(self):
-        self.write("a.json", manifest(args=["--extra"]))
+        self.write("a.json", manifest(extra=["--extra"]))
         external, _ = catalog.load(self.home)
         [drift], _ = self.call(external, ("mcp.read", {"server": "echo", "tool": "echo", "arguments": {"text": "x"}}))
         self.assertEqual(drift["errorCode"], "worker_rejected")
 
+        # The server script is replaced after approval: the interpreter is unchanged, the script is not.
         copy = Path(tempfile.mkdtemp()) / "echo.py"
         shutil.copy(ECHO, copy)
-        copy.chmod(0o755)
-        self.write("a.json", manifest(command=str(copy), sha256=hashlib.sha256(copy.read_bytes()).hexdigest()))
+        self.write("a.json", manifest(script=copy))
         external, _ = catalog.load(self.home)
         copy.write_text(copy.read_text() + "\n# changed after approval\n")
         [swapped], _ = self.call(external, ("mcp.read", {"server": "echo", "tool": "echo", "arguments": {"text": "x"}}))

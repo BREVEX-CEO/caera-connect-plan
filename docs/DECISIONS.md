@@ -2,7 +2,6 @@
 
 > **30 October 2026 active JARVIS handoff:** [`../plan.md`](../plan.md) is the new-engine P00–P22 implementation contract and dependency/evidence queue. References below to deleted `BLOCKED_TESTS.md`, `TOFIX.md`, old `PLAN.md` and retired runtime files are historical records, not instructions to recreate them. Owner scope, no-`main`/no-deployment and proof requirements remain in force.
 
-
 ## Safe cleanup executed — 29 October 2026
 
 The owner's requested sequence was followed: working checkpoint `a53f5ba4a80dc3b126894bd8c2f1d34cd4c2e12b`, then three parallel KISS/YAGNI/low-coupling DRY-WET reviews, then one proof-based fetch-adapter consolidation. Existing configuration owner is reused; SDK/client lifecycle boundaries remain. All other reviewed live helpers/dependencies are retained. No speculative abstraction, new product module/package or runtime performance claim.

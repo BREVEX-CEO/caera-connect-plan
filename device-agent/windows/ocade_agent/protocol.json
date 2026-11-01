@@ -1640,6 +1640,24 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 200
+          },
+          "element": {
+            "type": "object",
+            "properties": {
+              "automationId": {
+                "type": "string",
+                "maxLength": 200
+              },
+              "name": {
+                "type": "string",
+                "maxLength": 200
+              },
+              "controlType": {
+                "type": "string",
+                "maxLength": 40
+              }
+            },
+            "additionalProperties": false
           }
         },
         "required": [

@@ -80,7 +80,7 @@ class WebLadder(unittest.TestCase):
             (target / name).write_text(json.dumps(data, indent=2, default=str))
 
     def test_web_ladder(self):
-        base, site = self.base, "127.0.0.1"
+        base = self.base
         (self.root / "upload-me.txt").write_text("OCADE upload sample\n")
         results = {}
 

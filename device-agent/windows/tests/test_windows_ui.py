@@ -80,7 +80,6 @@ class WindowsUiLadder(unittest.TestCase):
     def test_ui_ladder(self):
         import win32con  # type: ignore[import-not-found]
         import win32gui  # type: ignore[import-not-found]
-        from pywinauto import Application  # type: ignore[import-not-found]
 
         async def steps():
             out = {}
@@ -97,9 +96,18 @@ class WindowsUiLadder(unittest.TestCase):
                 out["set"] = await run("ui.set_value", {"window": window, "element": box, "value": "Quarterly GREEN"})
                 out["invoke"] = await run("ui.invoke", {"window": window, "element": {"name": "Save", "controlType": "Button"}})
                 out["after_invoke"] = self.note()
-                out["keys"] = await run("ui.send_keys", {"window": window, "keys": "^a{BACKSPACE}typed by keys"})
+                out["keys"] = await run("ui.send_keys", {"window": window, "keys": "^a{BACKSPACE}typed by keys", "element": box})
                 await run("ui.invoke", {"window": window, "element": {"automationId": "saveButton"}})
                 out["after_keys"] = self.note()
+                # The person presses a key: JARVIS's hands pause, then continue once they are quiet.
+                import win32api  # type: ignore[import-not-found]
+
+                time.sleep(1)  # input within 250 ms of JARVIS's own cannot be told apart
+                win32api.keybd_event(win32con.VK_SHIFT, 0, 0, 0)
+                win32api.keybd_event(win32con.VK_SHIFT, 0, win32con.KEYEVENTF_KEYUP, 0)
+                out["person"] = await run("ui.set_value", {"window": window, "element": box, "value": "too soon"})
+                time.sleep(2)
+                out["quiet"] = await run("ui.set_value", {"window": window, "element": box, "value": "after quiet"})
                 out["forged"] = await run("ui.inspect", {"window": window | {"pid": window["pid"] + 4}})
                 out["ambiguous"] = await run("ui.invoke", {"window": window, "element": {}})
 
@@ -108,11 +116,11 @@ class WindowsUiLadder(unittest.TestCase):
                 win32gui.MoveWindow(hwnd, 120, 90, 520, 260, True)
                 time.sleep(0.5)
                 await run("ui.set_value", {"window": window, "element": box, "value": "saved by click"})
-                button = Application(backend="uia").connect(handle=hwnd).window(handle=hwnd).child_window(
-                    auto_id="saveButton").wrapper_object().rectangle()
-                left, top, right, bottom = win32gui.GetWindowRect(hwnd)
-                point = {"x": ((button.left + button.right) / 2 - left) / (right - left),
-                         "y": ((button.top + button.bottom) / 2 - top) / (bottom - top)}
+                # The model's eyes: the box ui.inspect reports for the button, after the move.
+                out["moved"] = await run("ui.inspect", {"window": window})
+                x0, y0, x1, y1 = next(e["box"] for e in out["moved"]["evidence"]["elements"]
+                                      if e["automationId"] == "saveButton")
+                point = {"x": (x0 + x1) / 2, "y": (y0 + y1) / 2}
                 out["wrong_title"] = await run("ui.click_point", {"window": window, **point, "expectTitle": "Other app"})
                 out["click"] = await run("ui.click_point", {"window": window, **point, "expectTitle": "Ledger Note"})
                 time.sleep(0.5)
@@ -138,6 +146,7 @@ class WindowsUiLadder(unittest.TestCase):
         with self.subTest("UIA-004 inspect lists accessible controls"):
             ids = {e["automationId"] for e in out["inspect"]["evidence"]["elements"]}
             self.assertTrue({"noteBox", "saveButton"} <= ids, ids)
+            self.assertTrue(out["inspect"].get("preview"), "the window is seen, not only listed")
         with self.subTest("UIA-005 set value reads back; invoke has the app's real effect"):
             self.assertTrue(out["set"]["evidence"]["matches"], out["set"])
             self.assertEqual(out["invoke"]["status"], "observed", out["invoke"])
@@ -145,9 +154,12 @@ class WindowsUiLadder(unittest.TestCase):
         with self.subTest("UIA-006 keys go to the leased foreground window"):
             self.assertEqual(out["keys"]["status"], "observed", out["keys"])
             self.assertEqual(out["after_keys"], "typed by keys")
+        with self.subTest("UIA-012 a person's keyboard input pauses mutations until they are quiet"):
+            self.assertEqual(out["person"]["errorCode"], "user_active")
+            self.assertTrue(out["quiet"]["evidence"]["matches"], out["quiet"])
         with self.subTest("UIA-007 a forged lease is refused"):
             self.assertEqual(out["forged"]["errorCode"], "window_changed")
-        with self.subTest("UIA-008 a click on an unexpected window is refused; after resize the click lands"):
+        with self.subTest("UIA-008 a click on an unexpected window is refused; after resize a click at the inspected box lands"):
             self.assertEqual(out["wrong_title"]["errorCode"], "unexpected_window")
             self.assertEqual(out["click"]["status"], "observed", out["click"])
             self.assertEqual(out["after_click"], "saved by click")
