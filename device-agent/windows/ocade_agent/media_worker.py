@@ -17,6 +17,7 @@ import re
 import shutil
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 from mcp.server.mcpserver import MCPServer
@@ -250,15 +251,35 @@ def media_analyze(path: str, threshold: float = 0.3) -> dict:
             "shots": shots[:80], "shotCount": len(shots)}
 
 
-def _escape(text: str) -> str:
-    """drawtext treats ':' and '\\' as syntax even inside quotes; quotes become typographic."""
-    return text.replace("\\", "\\\\").replace(":", "\\:").replace("'", "’").replace("%", "\\%")
+def _title_frame(title: dict, width: int, height: int, bar: int, path: Path) -> None:
+    """One title drawn on a transparent full frame with the bundled Pillow, so type never depends
+    on how this computer's ffmpeg was built (drawtext needs libfreetype, often missing)."""
+    from PIL import Image, ImageDraw, ImageFont
 
-
-def _fade(start: float, end: float, fade_in: float, fade_out: float) -> str:
-    """An alpha expression: 0 before start, ramp in, hold, ramp out, 0 after end."""
-    return (f"if(lt(t,{start}),0,if(lt(t,{start + fade_in}),(t-{start})/{max(fade_in, 1e-3)},"
-            f"if(lt(t,{end - fade_out}),1,if(lt(t,{end}),({end}-t)/{max(fade_out, 1e-3)},0))))")
+    size = title.get("size", 64)
+    try:
+        font = ImageFont.truetype(title["font"], size) if title.get("font") else ImageFont.load_default(size)
+    except OSError:
+        try:
+            font = ImageFont.truetype(f"{title['font']}.ttf", size)
+        except OSError:
+            font = ImageFont.load_default(size)  # an installed family name Pillow cannot resolve
+    frame = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(frame)
+    left, top, right, bottom = draw.textbbox((0, 0), title["text"], font=font)
+    text_w, text_h = right - left, bottom - top
+    # Positions are inside the picture, never on a letterbox bar.
+    y = {"top": max(height * 0.12, bar + height * 0.05), "center": (height - text_h) / 2,
+         "lower_third": min(height * 0.74, height - bar - height * 0.06 - text_h),
+         "bottom": min(height * 0.86, height - bar - height * 0.04) - text_h}[title.get("position", "center")]
+    x = (width - text_w) / 2
+    if title.get("box"):
+        pad = size // 2
+        draw.rectangle((x - pad, y - pad, x + text_w + pad, y + text_h + pad), fill=(0, 0, 0, round(255 * title["box"])))
+    colour = title.get("color", "white")
+    draw.text((x - left, y - top + 3), title["text"], font=font, fill=(0, 0, 0, 140))  # soft shadow
+    draw.text((x - left, y - top), title["text"], font=font, fill=colour)
+    frame.save(path)
 
 
 def _atempo(speed: float) -> str:
@@ -377,24 +398,25 @@ def media_render_timeline(
     bar = max(0, round((height - width / letterbox) / 2)) if letterbox else 0
     if bar:
         finish += [f"drawbox=x=0:y=0:w=iw:h={bar}:color=black:t=fill", f"drawbox=x=0:y=ih-{bar}:w=iw:h={bar}:color=black:t=fill"]
-    for title in titles or []:
-        size = title.get("size", 64)
-        # Positions are inside the picture, never on a letterbox bar.
-        y = {"top": f"max(h*0.12,{bar}+h*0.05)", "center": "(h-text_h)/2", "lower_third": f"min(h*0.74,h-{bar}-h*0.06-text_h)",
-             "bottom": f"min(h*0.86,h-{bar}-h*0.04)-text_h"}[title.get("position", "center")]
-        font = f":font='{_escape(title['font'])}'" if title.get("font") else ""
-        colour = title.get("color", "white")
-        finish.append(
-            f"drawtext=text='{_escape(title['text'])}'{font}:fontsize={size}:fontcolor={colour}:"
-            f"alpha='{_fade(title['start'], title['end'], title.get('fadeIn', 0.6), title.get('fadeOut', 0.6))}':"
-            f"x=(w-text_w)/2:y='{y}':shadowcolor=black@0.55:shadowx=0:shadowy=3"
-            + (f":box=1:boxcolor=black@{title['box']}:boxborderw={size // 2}" if title.get("box") else "")
-        )
+    graph.append(f"{label}{','.join(finish)}[boxed]")
+    label, finish = "[boxed]", []
+    frames = Path(tempfile.mkdtemp(prefix="ocade-titles-"))
+    for number, title in enumerate(titles or []):
+        frame = frames / f"title{number}.png"
+        _title_frame(title, width, height, bar, frame)
+        start, end = title["start"], title["end"]
+        fade_in, fade_out = title.get("fadeIn", 0.6), title.get("fadeOut", 0.6)
+        inputs += ["-loop", "1", "-framerate", str(fps), "-t", str(duration), "-i", str(frame)]
+        graph.append(f"[{count}:v]format=rgba,fade=t=in:st={start}:d={max(fade_in, 0.01)}:alpha=1,"
+                     f"fade=t=out:st={max(end - fade_out, start)}:d={max(fade_out, 0.01)}:alpha=1[t{number}]")
+        graph.append(f"{label}[t{number}]overlay=0:0:format=auto:enable='between(t,{start},{end})'[tv{number}]")
+        label = f"[tv{number}]"
+        count += 1
     if fadeIn:
         finish.append(f"fade=t=in:st=0:d={fadeIn}")
     if fadeOut:
         finish.append(f"fade=t=out:st={duration - fadeOut}:d={fadeOut}")
-    graph.append(f"{label}{','.join(finish)},format=yuv420p[vout]")
+    graph.append(f"{label}{','.join(finish + ['format=yuv420p'])}[vout]")
 
     # Sound: clip sound and the planner's layers, music ducked under everything else.
     beds, effects = [], []
@@ -471,7 +493,10 @@ def media_render_timeline(
             print(f"ffmpeg: {run.stderr[-600:]}", file=sys.stderr)  # local diagnostics only
             raise Refused("media_engine_failed")
 
-    digest = write_atomically(target, encode)
+    try:
+        digest = write_atomically(target, encode)
+    finally:
+        shutil.rmtree(frames, ignore_errors=True)
     return {"sha256": digest, "engine": "ffmpeg", "duration": duration, "frames": round(duration * fps),
             "clips": len(clips), "layers": len(audio or []), "titles": len(titles or [])}
 

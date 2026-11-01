@@ -101,6 +101,24 @@ class Media(unittest.TestCase):
         self.assertEqual((self.root / "clip.mp4").read_bytes(), original)
 
     @unittest.skipUnless(HAS_FFMPEG, "needs ffmpeg and ffprobe")
+    def test_titles_are_drawn_without_relying_on_the_local_ffmpeg_build(self):
+        subprocess.run(["ffmpeg", "-v", "error", "-f", "lavfi", "-i", "color=black:size=432x240:rate=24:duration=5",
+                        "-c:v", "libx264", str(self.root / "black.mp4")], check=True)
+        [render] = self.run_all([("media.render_timeline", {
+            "output": "OCADE output/titled.mp4", "duration": 5, "width": 432, "height": 240, "fps": 24,
+            "clips": [{"source": "black.mp4", "in": 0, "out": 5}],
+            "titles": [{"text": "OCADE 42", "start": 1, "end": 3, "size": 40, "fadeIn": 0.2, "fadeOut": 0.2}]})])
+        self.assertEqual(render["status"], "observed", render)
+
+        def brightest(at):
+            frame = subprocess.run(["ffmpeg", "-v", "error", "-ss", str(at), "-i", str(self.root / "OCADE output/titled.mp4"),
+                                    "-frames:v", "1", "-f", "rawvideo", "-pix_fmt", "gray", "-"], capture_output=True).stdout
+            return max(frame)
+
+        self.assertGreater(brightest(2.0), 200)  # the title is on screen inside its window
+        self.assertLess(brightest(4.0), 40)  # and gone after it
+
+    @unittest.skipUnless(HAS_FFMPEG, "needs ffmpeg and ffprobe")
     def test_timeline_edit_is_exact_and_independently_measured(self):
         for name, pattern, tone in (("a.mp4", "testsrc2", "sine=frequency=110:duration=8"),
                                     ("b.mp4", "smptebars", "anoisesrc=d=8:c=brown:a=0.4")):
