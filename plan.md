@@ -24,7 +24,7 @@
 4. Work through the loop in §7 until the package's acceptance holds. Then update §3, §15 and Appendices A–D **in the same commit** as the evidence.
 5. If you are blocked, record why on the board and in Appendix D, then take the next dependency-ready package.
 
-**Current next action: W0 — green the branch head (§16).**
+**Current next action: W0 — confirm the full matrix on the head; then W1 (D6, D4 residual, D7).**
 
 ## 1. What OCADE is
 
@@ -71,7 +71,7 @@ Separate measurements. Never merge them into one percentage.
 | Architecture concepts PASS | **41/84** (48.8%). Unfinished: 43 (42 PARTIAL, 1 FAIL, 0 BLOCKED) | Appendix B, `npm run jarvis:traceability` |
 | Research ideas with a disposition | 236/236 | Appendix C |
 | Commercial readiness | **10/100** (1/10 milestones, 17/42 conditions) | `npm run readiness`, `evidence/readiness/gates.json` |
-| Cloud tests | Last all-green full matrix: [run 64](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41352301838) (`654af50`). Head code `f04228d` is red: [run 70](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41434622666) | Actions |
+| Cloud tests | Last all-green full matrix: [run 64](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41352301838) (`654af50`). Head `b86002c`: [run 74](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41534326454) passes every step that failed in run 70; contracts/companion matrix pending | Actions |
 | Real-task success (real Gemini) | **27/36 (75%)** first attempt, Linux, 1 November. Not re-measured since. | `evidence/2026-11-01-eval-s11`…`s14` |
 | Task time (39 live tasks) | Median 37 s, p95 79.7 s. Model 56% of the time, device execution 6%, unaccounted ~34%. Median 6 model calls. | eval `timing` fields |
 | Open defects | Critical 0 confirmed · High 12 · Medium 5 (one mitigated) · Low 3 | Appendix D |
@@ -381,8 +381,8 @@ Journal ─▶ independent verifier ─▶ settlement · deliverables · timing
 
 | WP | Title | Depends | State | In flight / blocker | Requirements | Concepts | Effort |
 |---|---|---|---|---|---|---|---|
-| W0 | Green baseline and one ledger | — | PARTIAL | Run 71 at e4af84b: 107/107 focused TS and 8/8 Gateway boundary tests pass; formatting passes. Media, browser/verifier and DB failures remain open; media containment candidate in progress | 10, 43, 196, 214–215, 236–238 | 9, 22, 39–41, 44, 82 | 1–2 d |
-| W1 | Safety closure and request-bound contract | W0 | NOT STARTED | — | 13, 21, 32, 35–41, 66–69, 79–80, 171, 193, 210, 216, 220 | 4–5, 7, 21, 38, 50, 52–57, 61 | 4–8 d |
+| W0 | Green baseline and one ledger | — | TESTED | [run 74](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41534326454) at `b86002c`: every step that was red in run 70 passes (planner safety, media containment, Gateway boundary, actor bound-host, rendered verifier, formatting, DB revocation and lock order); contracts/companion matrix result pending | 10, 43, 196, 214–215, 236–238 | 9, 22, 39–41, 44, 82 | 1–2 d |
+| W1 | Safety closure and request-bound contract | W0 | IN PROGRESS | D2, D3 fixed in `b86002c`; D5 resolution flow in `5d8fea8`; next D6 (contract after discovery), D4 residual, D7 | 13, 21, 32, 35–41, 66–69, 79–80, 171, 193, 210, 216, 220 | 4–5, 7, 21, 38, 50, 52–57, 61 | 4–8 d |
 | W2 | Measurement and pickup speed | W1 | NOT STARTED | — | 81–92, 94, 96 | 2, 42–43, 47–48, 51, 70, 78 | 3–6 d |
 | W3 | Capability surface | W2 | NOT STARTED | — | 28–30, 93, 136–137 | 25–27, 37, 69 | 5–9 d |
 | W4 | Accuracy engine and evaluation → E1 | W3 | NOT STARTED | — | 23, 31, 33–34, 46–57, 60, 63, 65, 166, 197–199, 201–202, 204, 207, 219 | 6, 8, 10, 14–20, 23, 49, 60, 77, 83 | 6–12 d |
@@ -1553,11 +1553,11 @@ Severity: CRITICAL = unauthorised action, data loss, secret exposure or wrong-ta
 
 | ID | Severity | Defect | Evidence | Status | Package |
 |---|---|---|---|---|---|
-| D1 | HIGH | Branch head red: planner safety, media nested-source containment, gateway result boundary, actor bound-host prevention, rendered-verifier/URL transport, formatting and DB revocation steps fail | [run 70](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41434622666), `f04228d` | OPEN: opaque-read success receipts used risk-only flags despite existing conservative effect policy; shared Gateway fix passed 8/8 boundary methods and formatting passed in [run 71](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41520511457) at `e4af84b`. Media candidate restricts demuxers/protocols, passive rasters and literal overlay inputs; Run 72 at `6a84bc6`: six of seven containment methods pass; HLS control fails before product dispatch because its .dat extension prevents FFmpeg recognition. Use a genuine .m3u8 fixture, preserving the canary assertions. The new sibling step could not import reportlab; move it after existing fixture installation. Browser/verifier and DB failures are unchanged. Held-claim test also proves receipt/STOP lock-order deadlock. | W0 |
-| D2 | HIGH | Anonymous web verification: hidden page content passes; private/off-origin observations accepted; same URL fetched 13 times | run 68 (`82098c2`), seven-method negative suite | OPEN (repair in progress) | W1 |
-| D3 | HIGH | Dispatch after browser permission was revoked while the claim was held | run 69 (`61b29b1`); migration `20261102061041_enforce_verifier_target_permissions.sql` drafted | OPEN | W1 |
-| D4 | HIGH (risk) | SSRF, DNS-rebinding and redirect-hop enforcement for verifier fetch and actor browser not reviewed | source review; route-only interception may not block redirect hops | OPEN, UNVERIFIED | W1, W11 |
-| D5 | HIGH | Unknown effects only fence the task; no resolution flow for the person | concept 55; run 57/58 | OPEN | W1 |
+| D1 | HIGH | Branch head red: planner safety, media nested-source containment, gateway result boundary, actor bound-host prevention, rendered-verifier/URL transport, formatting and DB revocation steps fail | [run 70](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41434622666), `f04228d` | TESTED: all previously red steps pass in [run 74](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41534326454) (`b86002c`); close when the full matrix is green. Root causes: unconfined FFmpeg/Pillow inputs; risk-only effect flag on success; navigation redirect hops never reach Playwright routes; source-text web verification; held claims not rechecked; receipt locked action before task; kill-restart test changed its own intent (deadline) | W0 |
+| D2 | HIGH | Anonymous web verification: hidden page content passes; private/off-origin observations accepted; same URL fetched 13 times | run 68 (`82098c2`), seven-method negative suite | FIXED in `b86002c` ([run 74](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41534326454) step 19, 7/7): one script-free render per URL, same-origin GET only, checked hops, budgets, painted-text rules | W1 |
+| D3 | HIGH | Dispatch after browser permission was revoked while the claim was held | run 69 (`61b29b1`) | FIXED by migration `20261102214455_fence_revoked_claims_and_receipt_locks.sql` ([run 74](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41534326454) DB job: held-claim revocation and claim/STOP lock-order cases pass) | W1 |
+| D4 | HIGH (risk) | SSRF, DNS-rebinding and redirect-hop enforcement for verifier fetch and actor browser | Playwright routes never see redirect hops (verified experimentally) | PARTIAL: hop-by-hop checks for bound GET navigations (actor) and verifier documents in `b86002c`. Residual: DNS can change between the address check and Playwright's own fetch; a confirmed form POST's redirect is followed by the browser | W1, W11 |
+| D5 | HIGH | Unknown effects only fence the task; no resolution flow for the person | concept 55; run 57/58 | IMPLEMENTED in `5d8fea8`: person answers "it happened / it did not" once (owner only, waiting task), step never redelivered, planner sees the answer; DB + fence tests pass locally; CI pending | W1 |
 | D6 | HIGH | Outcome checks are compiled before anything is observed and are not bound to the request; the model then bends files to match its own guess (3 of 9 eval failures); no guard against edits to unrelated or input files | seeds 11–14 READMEs; requirement 68 | OPEN | W1 |
 | D7 | MEDIUM | Original-file compare-and-replace and directory-identity concurrency window | codex-continuation (run 53 scope note) | OPEN | W1 |
 | D8 | HIGH | Device pickup backs off to 30 s; ~34% of live task time unaccounted | `agent.py` claim loop; eval timing | OPEN | W2 |
@@ -1566,12 +1566,13 @@ Severity: CRITICAL = unauthorised action, data loss, secret exposure or wrong-ta
 | D11 | MEDIUM | Windows web ladder `KeyError 'page'` once; cause unknown | 1 November Windows run | OPEN | W8 |
 | D12 | MEDIUM | CRLF script executable flag fix not verified live | eval s11 `crlf_script` | OPEN | W3 |
 | D13 | MEDIUM | Windows `WinError 32` on fixture profile cleanup; lock owner never identified (quiescence wait added, run 64 green) | run 63 | MITIGATED | W9 |
-| D14 | LOW | Ledger regeneration restores five retracted PASSs; concept 29 incorrectly BLOCKED | Run 70 traceability regression; [run 45](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41331983365) macOS suite passed at `a7cf182` | TESTED in [run 71](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41520511457) at `e4af84b` (107/107 focused TS, including regeneration). Restore PARTIAL for 38/49/55/75/76; correct 29 to PARTIAL; enforce agreement with Appendix B; historical ledgers point here | W0 |
+| D14 | LOW | Ledger regeneration restores five retracted PASSs; concept 29 incorrectly BLOCKED | Run 70 traceability regression; [run 45](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41331983365) | FIXED (`e4af84b`, [run 74](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41534326454)): script, ledger and Appendix B agree (41 PASS) | W0 |
 | D15 | LOW | Stale Dependabot PRs target deleted `/jarvis-runtime` | open PRs #88, #90 | OPEN (needs A3) | W12 |
 | D16 | HIGH (risk) | macOS window previews need Screen Recording permission on consumer Macs; CI runner is pre-authorised, so this path is unverified | `mac_worker.py` preview; Apple privacy model | OPEN, UNVERIFIED | W7 |
 | D17 | HIGH | No typed copy/move/rename/mkdir/trash/set-attributes operations; file management and the executable bit go through confirmed `shell.run` (4 of 9 eval failures) | `src/lib/jarvis/contracts.ts` (35 operations); `crlf_script` in s11–s14 | OPEN | W3 |
 | D18 | HIGH | `shell.run` capped at 600 s and no tracked long-running job: long renders, exports and installs cannot complete or resume | `contracts.ts` `timeoutSeconds` max 600 | OPEN | W3 |
 | D19 | MEDIUM | Documents and workbooks cannot be edited in place; presentations and image editing unsupported; video has no open editable timeline; 3D has no open interchange export | `contracts.ts`; `office_worker.py`, `media_worker.py`, `scene_gl.py` | OPEN | W5 |
 | D20 | LOW | Windows shell is PowerShell only; macOS uses `sh` only | `command_worker.py` | OPEN | W3 |
+| D21 | LOW | Migrations after `20261030` have no rollback file | `supabase/rollback/` | OPEN | W11 |
 
 Closed recently (kept for history): approval arguments clipped at 4000 characters (fixed `43c50ed`, run 64); opaque native/page interactions mislabelled reversible (fixed `43c50ed`); unknown-write replay after resume (fenced `83f3142`, run 58); competing-file overwrite on publication (fixed `897675b`, run 49); installed companion started no worker (fixed `947ceee`); minimized macOS window reported as closed (fixed `a7cf182`).
