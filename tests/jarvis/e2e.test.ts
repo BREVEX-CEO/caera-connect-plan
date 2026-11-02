@@ -136,7 +136,11 @@ before(async () => {
   sql(
     `INSERT INTO auth.users (id, email) VALUES ('${userA}', 'a@example.test'), ('${userB}', 'b@example.test');
      INSERT INTO public.ocade_conversations (id, user_id, title, surface) VALUES
-       ('${conversation}', '${userA}', 'J', 'jarvis'), ('${conversation2}', '${userA}', 'J2', 'jarvis');`,
+       ('${conversation}', '${userA}', 'J', 'jarvis'), ('${conversation2}', '${userA}', 'J2', 'jarvis');
+     -- Synthetic accounts that agreed to online AI; the consent test below withdraws it first.
+     UPDATE public.profiles SET online_ai_consent_at = now(),
+       online_ai_consent_version = '${(await import("../../src/lib/intelligence/online-consent-version.ts")).ONLINE_CONSENT_VERSION}'
+      WHERE id IN ('${userA}', '${userB}');`,
     "postgres",
   );
   spawnSync(
@@ -347,6 +351,8 @@ test(
       view.steps.map((s) => s.status),
       ["done", "done", "done", "done", "done"],
     );
+    // The checks were fixed after a first read-only look, which the planner then reused.
+    assert.equal(view.steps[0].summary, "Looking at your JARVIS folder");
 
     // Independent of JARVIS: the files exist where it said, and the original is untouched.
     const folder = join(workspace, "OCADE output", "finance-first");
@@ -620,6 +626,10 @@ test(
       // No consent: the service refuses with the exact message the page answers by asking;
       // nothing starts, nothing is charged.
       const { JARVIS_CONSENT_NEEDED } = await import("../../src/lib/jarvis/consent-needed.ts");
+      sql(
+        `UPDATE public.profiles SET online_ai_consent_at = NULL WHERE id = '${userA}'`,
+        "postgres",
+      );
       await assert.rejects(
         startTask(admin, userA, { conversationId: conversation2, deviceId, objective }),
         (error: Error) => error.message === JARVIS_CONSENT_NEEDED,
@@ -628,19 +638,39 @@ test(
         `UPDATE public.profiles SET online_ai_consent_at = now(), online_ai_consent_version = '${ONLINE_CONSENT_VERSION}' WHERE id = '${userA}'`,
         "postgres",
       );
-      // A wrong server key is refused by the service door.
+      // The task opens with only a read-only look; no model is asked before it is seen.
+      // A wrong server key is then refused by the service door: the task waits, nothing changed.
       plannerAccess.serviceKey = () => "wrong-key";
-      await assert.rejects(
-        startTask(admin, userA, { conversationId: conversation2, deviceId, objective }),
-        /unavailable/,
-      );
-      plannerAccess.serviceKey = () => serviceKey;
-
       const { taskId } = await startTask(admin, userA, {
         conversationId: conversation2,
         deviceId,
         objective,
       });
+      assert.equal(sent.length, 0, "the checks are not guessed before the folder is seen");
+      const discovered = await agent("run", "--workspace", workspace, "--until-idle");
+      assert.equal(discovered.code, 0, discovered.out);
+      const refused = await taskView(admin, userA, taskId);
+      assert.equal(refused.status, "waiting");
+      assert.match(refused.blocker ?? "", /unavailable/);
+      assert.deepEqual(
+        refused.steps.map((s) => s.status),
+        ["done"],
+      );
+      plannerAccess.serviceKey = () => serviceKey;
+
+      // Provider outage: the task waits with its checkpoint, the permit is released, then it resumes.
+      providerUp = false;
+      await resumeTask(admin, userA, taskId);
+      const waiting = await taskView(admin, userA, taskId);
+      assert.equal(waiting.status, "waiting");
+      assert.match(waiting.blocker ?? "", /busy|unavailable/);
+      providerUp = true;
+      await resumeTask(admin, userA, taskId);
+      assert.match(
+        sent[0].prompt,
+        /status\.txt/,
+        "the checks were compiled from the observed folder",
+      );
       const offered = sent.at(-1)!.tools.map((t) => t.name);
       assert.ok(
         offered.includes("fs_read_text") && offered.includes("office_write_document"),
@@ -652,16 +682,6 @@ test(
         "schemas normalized for the provider",
       );
       assert.match(sent.at(-1)!.prompt, /untrusted data/);
-
-      // Provider outage mid-task: the task waits with its checkpoint, the permit is released, then it resumes.
-      providerUp = false;
-      const first = await agent("run", "--workspace", workspace, "--until-idle");
-      assert.equal(first.code, 0, first.out);
-      const waiting = await taskView(admin, userA, taskId);
-      assert.equal(waiting.status, "waiting");
-      assert.match(waiting.blocker ?? "", /busy|unavailable/);
-      providerUp = true;
-      await resumeTask(admin, userA, taskId);
       const run = await agent("run", "--workspace", workspace, "--until-idle");
       assert.equal(run.code, 0, run.out);
       const view = await taskView(admin, userA, taskId);
@@ -695,7 +715,8 @@ test(
 
       // Elapsed time (M3): server timestamps, device-measured steps; the outage is a pause, not the person's wait.
       const timing = view.timing;
-      assert.equal(timing.modelCalls, 6, JSON.stringify(timing)); // 5 charged turns + the refused outage turn
+      // 5 charged turns + the refused wrong-key and outage turns (both inside the task now).
+      assert.equal(timing.modelCalls, 7, JSON.stringify(timing));
       assert.ok(timing.modelMs > 0, JSON.stringify(timing));
       assert.ok(timing.pausedMs > 0, JSON.stringify(timing));
       assert.equal(timing.userWaitMs, 0, JSON.stringify(timing)); // nothing was asked of the person

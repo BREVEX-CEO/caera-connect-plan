@@ -22,9 +22,11 @@ import {
   actionIntent,
   actionReceipt,
   deviceRequest,
+  intent,
   type OutcomeCheck,
 } from "./contracts.ts";
-import { effectInDoubt, unresolvedEffect, type Decision, type Step } from "./supervisor.ts";
+import { ONLINE_CONSENT_VERSION } from "../intelligence/online-consent-version.ts";
+import { effectInDoubt, open, unresolvedEffect, type Decision, type Step } from "./supervisor.ts";
 import {
   PlannerUnavailable,
   compileGoal,
@@ -34,6 +36,9 @@ import {
 } from "./planner.server.ts";
 
 export type Admin = Pick<SupabaseClient<Database>, "rpc">;
+
+/** The first read-only look whose result the fixed checks are compiled from. */
+const DISCOVERY = "discover";
 
 export class JarvisRefusal extends Error {
   readonly code: string;
@@ -57,6 +62,7 @@ const REFUSALS: Record<string, string> = {
     "Too many computers are waiting to pair from here. Try again in 10 minutes.",
   // Device-facing and race outcomes; never shown to a person.
   stale_controller: "That task changed; this decision is no longer current.",
+  outcome_fixed: "That task's checks were already fixed.",
   actions_open: "That task still has a step in progress.",
   unknown_action: "That step is not this device's.",
   invalid_receipt: "That receipt is not valid.",
@@ -184,7 +190,61 @@ export async function advance(admin: Admin, taskId: string, now = new Date()): P
     });
     return;
   }
-  const checks = task.outcome ?? [];
+  let checks = task.outcome ?? [];
+  if (!checks.length) {
+    // The checks are fixed after a first read-only look at the JARVIS folder, not guessed.
+    const look = steps.find((step) => step.intent.key === DISCOVERY);
+    if (!look) {
+      await call(admin, "jarvis_queue_actions", {
+        p_task: taskId,
+        p_controller: task.controller,
+        p_actions: [
+          {
+            summary: "Looking at your JARVIS folder",
+            action: intent("fs.list", DISCOVERY, { path: "." }, new Date(now.getTime() + 600_000)),
+          },
+        ] as unknown as Json,
+      });
+      return;
+    }
+    if (open(look)) return;
+    let goalMs: number | null = null;
+    try {
+      checks = await compileGoal(
+        task.userId,
+        task.title,
+        task.grants,
+        (ms) => (goalMs = ms),
+        look.status === "done" ? (look.receipt?.evidence as { entries?: [] }) : null,
+      );
+    } catch (error) {
+      if (goalMs !== null) await noteModel(admin, taskId, goalMs);
+      if (!(error instanceof PlannerUnavailable)) throw error;
+      await call(admin, "jarvis_task_wait", {
+        p_task: taskId,
+        p_controller: task.controller,
+        p_reason: `${plannerMessage(error.message)} Your task is saved; resume it later.`,
+      });
+      return;
+    }
+    if (goalMs !== null) await noteModel(admin, taskId, goalMs);
+    try {
+      await call(admin, "jarvis_set_outcome", {
+        p_task: taskId,
+        p_controller: task.controller,
+        p_outcome: checks as unknown as Json,
+        p_plan: checks.map((check) => check.description) as unknown as Json,
+      });
+    } catch (error) {
+      // Lost a race to STOP or to another turn that fixed the checks first.
+      if (
+        error instanceof JarvisRefusal &&
+        ["stale_controller", "outcome_fixed"].includes(error.code)
+      )
+        return;
+      throw error;
+    }
+  }
   let decision: Decision;
   // Every model call of this turn is counted (a refused proposal may cost a second one).
   const modelCalls: number[] = [];
@@ -285,20 +345,16 @@ export async function startTask(
   if (!grants.includes("files")) {
     throw new JarvisRefusal("permission_required", REFUSALS.permission_required);
   }
-  let checks: OutcomeCheck[];
-  let goalMs: number | null = null;
-  try {
-    checks = await compileGoal(userId, objective, grants, (ms) => (goalMs = ms));
-  } catch (error) {
-    if (!(error instanceof PlannerUnavailable)) throw error;
-    if (error.message === "online_not_consented") {
-      throw new JarvisRefusal("online_not_consented", JARVIS_CONSENT_NEEDED);
-    }
-    throw new JarvisRefusal(
-      "planner_unavailable",
-      `${plannerMessage(error.message)} Nothing was started.`,
-    );
+  // Early, inexpensive: the person agreed to online AI (the service checks again).
+  if (
+    !(await call<boolean>(admin, "jarvis_online_consented", {
+      p_user: userId,
+      p_version: ONLINE_CONSENT_VERSION,
+    }))
+  ) {
+    throw new JarvisRefusal("online_not_consented", JARVIS_CONSENT_NEEDED);
   }
+  // Opened without checks: they are fixed after a first read-only look (see `advance`).
   const [opened] = await call<{ task_id: string; status: string; reused: boolean }[]>(
     admin,
     "jarvis_open_task",
@@ -307,14 +363,11 @@ export async function startTask(
       p_conversation: input.conversationId,
       p_device: input.deviceId,
       p_title: objective,
-      p_outcome: checks as unknown as Json,
-      p_plan: checks.map((c) => c.description) as unknown as Json,
+      p_outcome: null as unknown as Json,
+      p_plan: [] as unknown as Json,
     },
   );
-  if (!opened.reused) {
-    if (goalMs !== null) await noteModel(admin, opened.task_id, goalMs);
-    await advance(admin, opened.task_id);
-  }
+  if (!opened.reused) await advance(admin, opened.task_id);
   return { taskId: opened.task_id, reused: opened.reused };
 }
 

@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { createServer } from "node:http";
 import { test } from "node:test";
 import { startTask, type Admin } from "../../src/lib/jarvis/authority.server.ts";
-import { plannerAccess } from "../../src/lib/jarvis/planner.server.ts";
+import { compileGoal, plannerAccess } from "../../src/lib/jarvis/planner.server.ts";
 
 test("task startup preserves complete accepted requests and rejects invalid ones before work", async (t) => {
   let providerCalls = 0;
@@ -65,6 +65,7 @@ test("task startup preserves complete accepted requests and rejects invalid ones
     rpc: async (name: string, args: Record<string, unknown>) => {
       calls.push(name);
       if (name === "jarvis_grants") return { data: ["files"], error: null };
+      if (name === "jarvis_online_consented") return { data: true, error: null };
       assert.equal(name, "jarvis_open_task", "a reused task needs no extra planning or dispatch");
       savedRequest = args.p_title;
       return { data: [{ task_id: "existing", status: "waiting", reused: true }], error: null };
@@ -87,9 +88,13 @@ test("task startup preserves complete accepted requests and rejects invalid ones
       await t.test(name, async () => {
         providerRequest = null;
         savedRequest = null;
+        const before = providerCalls;
         await startTask(admin, "user", { ...base, objective });
-        assert.equal(providerRequest, objective, "the planner must receive the complete request");
         assert.equal(savedRequest, objective, "the journal must retain the same request");
+        assert.equal(providerCalls, before, "no model is asked before the first look");
+        // The checks are compiled later from the saved request, which reaches the model whole.
+        await compileGoal("user", savedRequest as string, ["files"]);
+        assert.equal(providerRequest, objective, "the planner must receive the complete request");
       });
     }
     for (const [name, objective] of [

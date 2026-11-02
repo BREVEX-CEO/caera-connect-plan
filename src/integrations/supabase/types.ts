@@ -1884,6 +1884,10 @@ export type Database = {
         Args: { p_ms: number; p_task: string }
         Returns: undefined
       }
+      jarvis_online_consented: {
+        Args: { p_user: string; p_version: string }
+        Returns: boolean
+      }
       jarvis_open_task: {
         Args: {
           p_conversation: string
@@ -1915,6 +1919,10 @@ export type Database = {
       jarvis_revoke_device: {
         Args: { p_device: string; p_user: string }
         Returns: boolean
+      }
+      jarvis_set_outcome: {
+        Args: { p_controller: string; p_outcome: Json; p_plan: Json; p_task: string }
+        Returns: undefined
       }
       jarvis_settle_task: {
         Args: { p_controller: string; p_summary: string; p_task: string; p_verification: Json }
