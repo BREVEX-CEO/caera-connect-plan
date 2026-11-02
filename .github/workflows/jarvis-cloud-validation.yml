@@ -102,7 +102,7 @@ jobs:
       - name: Actor bound-host request prevention and CDN control (required, no skips)
         if: success() || failure()
         working-directory: device-agent/windows
-        run: xvfb-run -a python -c 'import sys, unittest; suite=unittest.defaultTestLoader.loadTestsFromName("tests.test_web_scope"); result=unittest.TextTestRunner(verbosity=2).run(suite); sys.exit(0 if result.wasSuccessful() and result.testsRun == 4 and not result.skipped else 1)'
+        run: xvfb-run -a python -c 'import sys, unittest; suite=unittest.defaultTestLoader.loadTestsFromName("tests.test_web_scope"); result=unittest.TextTestRunner(verbosity=2).run(suite); sys.exit(0 if result.wasSuccessful() and result.testsRun == 5 and not result.skipped else 1)'
       - name: Rendered verifier and URL transport negative controls (required, no skips)
         if: success() || failure()
         working-directory: device-agent/windows

@@ -28,7 +28,7 @@ import secrets
 import socket
 from contextlib import asynccontextmanager
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import urljoin, urlparse
 
 import anyio
 from mcp.server.mcpserver import MCPServer
@@ -42,6 +42,8 @@ TEXT_LIMIT = 8_000
 EVIDENCE_LIMIT = 15_000  # leaves room for popups beside an observation
 _browser: dict = {}
 _pages: dict[str, dict] = {}  # id -> {"page": Page, "site": host fixed at open}
+_redirects: dict = {}  # Page -> the next hop of a stopped redirect, followed only after it is checked
+MAX_HOPS = 10
 
 
 async def _close_browser() -> None:
@@ -134,13 +136,79 @@ def _public_by_dns(host: str) -> bool:
     return bool(addresses) and not any(_private_address(a.split("%")[0]) for a in addresses)
 
 
+async def _site_of(page) -> str | None:
+    """The host a page is bound to, or its bound opener's for a popup; None for the person's own tabs."""
+    for candidate in (page, await page.opener()):
+        for entry in _pages.values():
+            if candidate is not None and entry["page"] is candidate:
+                return entry["site"]
+    return None
+
+
 async def _guard(route) -> None:
     # Every request, including scripts and frames: no loopback or private literal addresses.
-    url = route.request.url
-    if url.startswith(("data:", "blob:", "about:")) or _allowed_url(url):
-        await route.continue_()
+    request = route.request
+    url = request.url
+    if url.startswith(("data:", "blob:", "about:")):
+        return await route.continue_()
+    if not _allowed_url(url):
+        return await route.abort("blockedbyclient")
+    if not request.is_navigation_request():
+        return await route.continue_()
+    if request.method != "GET":
+        # A confirmed form submission: Chromium does not expose upload bodies to interception,
+        # so it is sent by the browser itself and its landing site is checked afterwards.
+        return await route.continue_()
+    try:
+        frame = request.frame
+    except Exception:
+        frame = None  # a popup's first navigation, before its frame exists
+    if frame is not None and frame.parent_frame is not None:
+        return await route.continue_()  # an iframe loads like any other subresource
+    page = frame.page if frame is not None else None
+    if page is not None:
+        site = await _site_of(page)
+        if site is None:
+            return await route.continue_()  # the person's own tab
+    elif not _pages:
+        return await route.continue_()
     else:
-        await route.abort("blockedbyclient")
+        # Fail closed: only a site JARVIS already has open, and no redirect it could not follow.
+        site = _host(url) if _host(url) in {entry["site"] for entry in _pages.values()} else None
+    # A bound page (or its popup) navigates only on its site. The browser follows redirect hops
+    # without asking this handler, so a hop is stopped here and followed by `_follow` once checked.
+    if _host(url) != site:
+        return await route.abort("blockedbyclient")
+    try:
+        response = await route.fetch(max_redirects=0)
+    except Exception:
+        return await route.abort("failed")
+    location = response.headers.get("location")
+    if 300 <= response.status < 400 and location:
+        if page is None:
+            return await route.abort("blockedbyclient")
+        _redirects[page] = urljoin(url, location)
+        return await route.fulfill(status=204)  # No Content: the page stays put, nothing is committed
+    await route.fulfill(response=response)
+
+
+async def _follow(current, site: str, before: str) -> None:
+    """Follow a stopped redirect hop by hop, each one checked against the page's site."""
+    for _hop in range(MAX_HOPS):
+        if current not in _redirects:
+            return
+        location = _redirects.pop(current)
+        if not urlparse(location).fragment and urlparse(before).fragment:
+            location += "#" + urlparse(before).fragment
+        if _host(location) != site or not _allowed_url(location):
+            raise Refused("redirected_off_site")
+        before = location
+        try:
+            await current.goto(location, wait_until="domcontentloaded", timeout=45_000)
+        except Exception:
+            if current not in _redirects:
+                raise Refused("navigation_failed")
+    raise Refused("too_many_redirects")
 
 
 async def _context():
@@ -156,6 +224,10 @@ async def _context():
         try:
             PROFILE.mkdir(parents=True, exist_ok=True)
             options = {"user_data_dir": str(PROFILE), "headless": False, "accept_downloads": True}
+            if PRIVATE_ALLOWED:
+                # A checked navigation is fulfilled without a remote address, so Chromium would hold
+                # its loopback subresources for a local-network prompt; loopback is already allowed here.
+                options["args"] = ["--disable-features=LocalNetworkAccessChecks"]
             proxy = os.environ.get("HTTPS_PROXY") or os.environ.get("https_proxy")
             if proxy:
                 options["proxy"] = {"server": proxy, "bypass": os.environ.get("NO_PROXY", "")}
@@ -274,17 +346,25 @@ async def web_open(url: str) -> dict:
         context = await _context()
     except Exception:
         raise Refused("browser_unavailable")  # no display, or the browser cannot start here: retrying will not help
-    mark_effect()  # a page/navigation can affect the browser and remote site
+    # Opening is a GET on the bound site; an observed open is still reported as possibly
+    # changing something (gateway), while a refused one never reached another host.
     current = await context.new_page()
+    page_id = _bind(current, site)  # bound before the first request, so its navigation is checked
     try:
-        await current.goto(url, wait_until="domcontentloaded", timeout=45_000)
-    except Exception:
+        try:
+            await current.goto(url, wait_until="domcontentloaded", timeout=45_000)
+        except Exception:
+            if current not in _redirects:
+                raise Refused("navigation_failed")
+        await _follow(current, site, url)
+        if _host(current.url) != site:
+            raise Refused("redirected_off_site")
+    except BaseException:
+        _pages.pop(page_id, None)
+        _redirects.pop(current, None)
         await current.close()
-        raise Refused("navigation_failed")
-    if _host(current.url) != site:
-        await current.close()
-        raise Refused("redirected_off_site")
-    return await _observe(_bind(current, site))
+        raise
+    return await _observe(page_id)
 
 
 @app.tool()
@@ -355,12 +435,15 @@ async def web_click(page: dict, selector: str, frame: str | None = None) -> dict
             pass  # observed below either way
     finally:
         context.remove_listener("page", collect)
+    await _follow(current, entry["site"], current.url)
     popups = []
     for opened in opened_now:
         try:
             await opened.wait_for_load_state("domcontentloaded", timeout=15_000)
+            await _follow(opened, entry["site"], opened.url)
         except Exception:
             pass
+        _redirects.pop(opened, None)
         if _host(opened.url) == entry["site"]:
             popups.append(_bind(opened, entry["site"]))
         else:
@@ -440,6 +523,7 @@ async def web_close(page: dict) -> dict:
     if entry is None:
         raise Refused("page_gone")
     mark_effect()
+    _redirects.pop(entry["page"], None)
     await entry["page"].close()
     return {"closed": True}
 

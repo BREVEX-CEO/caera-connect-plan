@@ -171,6 +171,24 @@ class ActorRequestScope(unittest.TestCase):
         self.assert_no_target_request(trap, before, receipt)
         self.assertNotEqual(receipt["status"], "observed", receipt)
 
+    def test_same_site_redirects_are_followed_hop_by_hop(self):
+        marker = uuid.uuid4().hex
+        final = self.page("<p>" + marker + "</p>")
+        middle = "/" + uuid.uuid4().hex
+        first = "/" + uuid.uuid4().hex
+        self.responses[middle] = (b"", "text/html; charset=utf-8", 302, {"location": final})
+        self.responses[first] = (b"", "text/html; charset=utf-8", 302, {"location": middle})
+
+        async def steps(run):
+            return await run("web.open", {"url": self.base + first})
+
+        receipt = self.run_steps(steps)
+        self.assertEqual(receipt["status"], "observed", receipt)
+        self.assertEqual(receipt["evidence"]["url"], final)
+        self.assertIn(marker, receipt["evidence"]["text"])
+        hops = [request["path"] for request in self.primary_received]
+        self.assertEqual(hops, [first, middle, urlparse(final).path], "each hop is requested exactly once")
+
     def test_link_navigation_cannot_contact_a_host_outside_its_page_binding(self):
         trap = self.trap()
         url = self.page('<a href="' + trap.url + '">Open target</a>')

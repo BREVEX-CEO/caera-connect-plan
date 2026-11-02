@@ -204,19 +204,19 @@ gateway = Gateway(str(workspace), {{"fs_sandbox": "tests.fake_worker", "sys_core
 
 async def go():
     async with gateway:
-        await Agent(StillRunning(), Journal(workspace / "journal.sqlite"), gateway).handle({{"id": "k1", "intent": hung_write()}})
+        await Agent(StillRunning(), Journal(workspace / "journal.sqlite"), gateway).handle({{"id": "k1", "intent": hung_write({due!r})}})
 
 anyio.run(go)
 """
 
 
-def hung_write():
+def hung_write(due):
     spec = PROTOCOL["operations"]["office.write_workbook"]
     return {
         "v": 1, "key": "write", "operation": "office.write_workbook",
         "capability": spec["capability"], "risk": spec["risk"],
         "arguments": {"path": "OCADE output/x.xlsx", "sheets": [{"name": "S", "rows": [[1]]}]},
-        "deadlineUtc": (datetime.now(timezone.utc) + timedelta(minutes=5)).isoformat().replace("+00:00", "Z"),
+        "deadlineUtc": due,
     }
 
 
@@ -227,7 +227,9 @@ class ProcessKillTest(unittest.TestCase):
 
         workspace = Path(tempfile.mkdtemp())
         (workspace / ".fake_mode").write_text("hang")
-        child = subprocess.Popen([sys.executable, "-c", CHILD.format(tests=TESTS, workspace=str(workspace))])
+        # The server hands a restarted companion the identical stored intent, deadline included.
+        due = (datetime.now(timezone.utc) + timedelta(minutes=5)).isoformat().replace("+00:00", "Z")
+        child = subprocess.Popen([sys.executable, "-c", CHILD.format(tests=TESTS, workspace=str(workspace), due=due)])
         journal_path = workspace / "journal.sqlite"
         deadline = time.monotonic() + 30
         while time.monotonic() < deadline and not (journal_path.exists() and Journal(journal_path).get("k1")):
@@ -238,7 +240,7 @@ class ProcessKillTest(unittest.TestCase):
         self.assertEqual(Journal(journal_path).get("k1")[0], "started")
 
         device = FakeDevice()  # the restarted companion is handed the same action again
-        anyio.run(Agent(device, Journal(journal_path), FailingGateway()).handle, {"id": "k1", "intent": hung_write()})
+        anyio.run(Agent(device, Journal(journal_path), FailingGateway()).handle, {"id": "k1", "intent": hung_write(due)})
         sent = device.sent[-1]["receipt"]
         self.assertEqual((sent["status"], sent["maybeChanged"], sent["errorCode"]), ("unknown", True, "interrupted"))
 

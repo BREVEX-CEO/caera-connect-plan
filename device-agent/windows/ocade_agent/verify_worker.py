@@ -18,6 +18,7 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
+from urllib.parse import urljoin, urlsplit
 
 import openpyxl
 import pypdfium2
@@ -140,18 +141,6 @@ def _check(kind: str, params: dict, notes: dict) -> bool | None:
         if kind == "image_size":
             return size == (params.get("width"), params.get("height"))
         return _scene_bound(size, text)
-    if kind == "web_text_contains":
-        # Read anonymously: a page that needs a sign-in cannot be observed this way.
-        import html
-        import urllib.request
-
-        try:
-            with urllib.request.urlopen(params["url"], timeout=20) as response:
-                body = response.read(2_000_000).decode("utf-8", errors="replace")
-        except Exception:
-            return None
-        visible = html.unescape(re.sub(r"<[^>]+>", " ", body))
-        return params.get("text", "\0") in visible
     if kind == "window_exists":
         if sys.platform != "win32":
             return None
@@ -286,16 +275,197 @@ def _window_exists(exe: str, title_part: str | None) -> bool:
     return bool(found)
 
 
+# --- Anonymous rendered web pages -------------------------------------------------------
+# One fresh, script-free observation per URL: only GET requests to the page's own origin for
+# the document, styles, images and fonts; every redirect hop is checked before it is requested.
+WEB_LIMITS = {"response_bytes": 2_000_000, "decoded_bytes": 4_000_000, "request_count": 40}
+WEB_RESOURCES = ("document", "stylesheet", "image", "font")
+MAX_WEB_HOPS = 5
+# Text counts only where it is painted: unsupported painting makes the answer unknown, not true.
+_VISIBLE_TEXT = """(wanted) => {
+  const flat = s => (s || '').replace(/\\s+/g, ' ').trim();
+  wanted = flat(wanted);
+  if (!wanted) return false;
+  const holds = e => flat(e.textContent).includes(wanted);
+  const candidates = [...document.body.querySelectorAll('*')].filter(
+    e => holds(e) && ![...e.children].some(holds));
+  if (!candidates.length && flat(document.body.textContent).includes(wanted)) candidates.push(document.body);
+  const rgba = c => { const m = c.match(/[\\d.]+/g) || []; return m.length < 3 ? null : m.map(Number).concat(m.length < 4 ? [1] : []); };
+  const lum = ([r, g, b]) => [r, g, b].map(v => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; })
+    .reduce((sum, v, i) => sum + v * [0.2126, 0.7152, 0.0722][i], 0);
+  const judge = e => {
+    if (!e.checkVisibility({checkOpacity: true, checkVisibilityCSS: true})) return false;
+    let background = null, opacity = 1;
+    for (let x = e; x; x = x.parentElement) {
+      const style = getComputedStyle(x);
+      if (style.clipPath !== 'none' || style.maskImage !== 'none' || style.filter !== 'none'
+          || style.mixBlendMode !== 'normal' || style.colorScheme.includes('dark')) return null;
+      for (const pseudo of ['::before', '::after'])
+        if (!['none', 'normal'].includes(getComputedStyle(x, pseudo).content)) return null;
+      opacity *= Number(style.opacity);
+      if (!background) {
+        if (style.backgroundImage !== 'none') return null;
+        const fill = rgba(style.backgroundColor);
+        if (fill && fill[3] >= 1) background = fill;
+        else if (fill && fill[3] > 0) return null;
+      }
+    }
+    if (opacity < 0.5) return null;
+    const style = getComputedStyle(e);
+    for (const pseudo of ['::first-letter', '::first-line'])
+      if (getComputedStyle(e, pseudo).color !== style.color) return null;
+    const color = rgba(style.color), fill = rgba(style.webkitTextFillColor);
+    if (!color || !fill || color[3] < 1 || fill[3] < 1 || parseFloat(style.fontSize) < 6) return false;
+    background = background || [255, 255, 255];
+    const [a, b] = [lum(fill), lum(background)].sort((p, q) => q - p);
+    if ((a + 0.05) / (b + 0.05) < 3) return false;
+    e.scrollIntoView({block: 'center', inline: 'center'});
+    const box = e.getBoundingClientRect();
+    if (box.width < 1 || box.height < 1 || box.right <= 0 || box.bottom <= 0) return false;
+    const width = document.documentElement.scrollWidth, height = document.documentElement.scrollHeight;
+    if (box.left + window.scrollX >= width || box.top + window.scrollY >= height) return false;
+    const hit = document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2);
+    return hit && e.contains(hit) ? true : null;
+  };
+  let unknown = false;
+  for (const e of candidates) {
+    const seen = judge(e);
+    if (seen === true) return true;
+    if (seen === null) unknown = true;
+  }
+  return unknown ? null : false;
+}"""
+
+
+def _web_origin(url: str) -> tuple:
+    parts = urlsplit(url)
+    return parts.scheme, (parts.hostname or "").lower(), parts.port or {"http": 80, "https": 443}.get(parts.scheme)
+
+
+def _web_allowed(url: str) -> bool:
+    """https to a public host (http and private hosts only on an owner-flagged test machine)."""
+    import ipaddress
+    import socket
+
+    scheme, host, port = _web_origin(url)
+    if os.environ.get("OCADE_ALLOW_PRIVATE_WEB") == "1":
+        return scheme in ("http", "https") and bool(host)
+    if scheme != "https" or port != 443 or not host or host == "localhost" or host.endswith(".localhost"):
+        return False
+    try:
+        addresses = {info[4][0].split("%")[0] for info in socket.getaddrinfo(host, 443)}
+        return bool(addresses) and all(ipaddress.ip_address(a).is_global for a in addresses)
+    except (OSError, ValueError):
+        return False
+
+
+async def _web_texts(url: str, wanted: list[str]) -> tuple[dict, dict]:
+    """Each wanted text: visibly on the page (True), absent or hidden (False), or unknown (None)."""
+    unknown = {text: None for text in wanted}
+    if not isinstance(url, str) or not _web_allowed(url):
+        return unknown, {"error": "web_url_refused"}
+    executable = os.environ.get("OCADE_BROWSER_EXECUTABLE")
+    if executable and not Path(executable).is_file():
+        return unknown, {"error": "browser_unavailable"}
+    from playwright.async_api import async_playwright
+
+    origin, state = _web_origin(url), {"requests": 0, "hop": None, "stop": None}
+
+    async def guard(route) -> None:
+        request = route.request
+        state["requests"] += 1
+        if state["requests"] > WEB_LIMITS["request_count"]:
+            state["stop"] = state["stop"] or {"error": "web_resource_limit", "resourceLimit": "request_count"}
+            return await route.abort("blockedbyclient")
+        if (request.method != "GET" or request.resource_type not in WEB_RESOURCES
+                or _web_origin(request.url) != origin
+                or (request.resource_type == "document" and request.frame.parent_frame is not None)):
+            state["stop"] = state["stop"] or {"error": "web_request_blocked"}
+            return await route.abort("blockedbyclient")
+        try:
+            response = await route.fetch(max_redirects=0, timeout=20_000)
+            declared = int(response.headers.get("content-length") or 0)
+            body = b"" if declared > WEB_LIMITS["response_bytes"] else await response.body()
+        except Exception:
+            state["stop"] = state["stop"] or {"error": "web_unreachable"}
+            return await route.abort("failed")
+        location = response.headers.get("location")
+        if 300 <= response.status < 400 and location and request.resource_type == "document":
+            state["hop"] = urljoin(request.url, location)  # followed by the caller once checked
+            return await route.abort("blockedbyclient")
+        limit = ("response_bytes" if declared > WEB_LIMITS["response_bytes"]
+                 else "decoded_bytes" if len(body) > WEB_LIMITS["decoded_bytes"] else None)
+        if limit:
+            state["stop"] = state["stop"] or {"error": "web_resource_limit", "resourceLimit": limit}
+            return await route.abort("blockedbyclient")
+        headers = {k: v for k, v in response.headers.items()
+                   if k.lower() not in ("content-encoding", "content-length", "transfer-encoding")}
+        await route.fulfill(status=response.status, headers=headers, body=body)
+
+    async with async_playwright() as playwright:
+        try:
+            browser = await playwright.chromium.launch(
+                executable_path=executable or None,
+                # A fulfilled document has no remote address; owner-flagged loopback is already allowed.
+                args=["--disable-features=LocalNetworkAccessChecks"]
+                if os.environ.get("OCADE_ALLOW_PRIVATE_WEB") == "1" else [],
+            )
+        except Exception:
+            return unknown, {"error": "browser_unavailable"}
+        try:
+            context = await browser.new_context(java_script_enabled=False, service_workers="block",
+                                                accept_downloads=False)
+            await context.route("**/*", guard)
+            target, response = url, None
+            for _hop in range(MAX_WEB_HOPS + 1):
+                state["hop"] = None
+                page = await context.new_page()  # a stopped hop's error page cannot interrupt the next
+                try:
+                    response = await page.goto(target, wait_until="load", timeout=30_000)
+                except Exception:
+                    response = None
+                if state["stop"] or not state["hop"]:
+                    break
+                target = state["hop"]
+                if _web_origin(target) != origin:
+                    return unknown, {"error": "web_redirect_refused"}
+            if state["stop"]:
+                return unknown, state["stop"]
+            if response is None or state["hop"] or not 200 <= response.status < 300:
+                return unknown, {"error": "web_unreachable"}
+            if await page.evaluate("() => !!document.querySelector('script,iframe,frame,object,embed')"):
+                return unknown, {"error": "web_script_dependent"}
+            seen = {text: await page.evaluate(_VISIBLE_TEXT, text) for text in wanted}
+            return seen, ({"error": state["stop"]["error"]} if state["stop"] else {})
+        except Exception:
+            return unknown, {"error": "web_unreachable"}
+        finally:
+            await browser.close()
+
+
 @app.tool()
-def verify_checks(checks: list[dict]) -> dict:
+async def verify_checks(checks: list[dict]) -> dict:
     """Evaluate a task's fixed typed checks against the real state, independently of the actor."""
     ids = [check.get("id") for check in checks]
     if not ids or any(not isinstance(key, str) or not key for key in ids) or len(set(ids)) != len(ids):
         return {"refused": "invalid_checks", "maybeChanged": False}
+    # Same-URL web checks in one call share one fresh observation.
+    pages: dict = {}
+    for check in checks:
+        params = check.get("params") or {}
+        if check.get("kind") == "web_text_contains" and isinstance(params.get("text"), str):
+            pages.setdefault(params.get("url"), []).append(params["text"])
+    observed = {url: await _web_texts(url, wanted) for url, wanted in pages.items()}
     predicates, measured = {}, {}
     for check in checks:
         notes: dict = {}
-        predicates[check["id"]] = _check(check.get("kind", ""), check.get("params") or {}, notes)
+        params = check.get("params") or {}
+        if check.get("kind") == "web_text_contains":
+            seen, facts = observed.get(params.get("url"), ({}, {}))
+            predicates[check["id"]] = seen.get(params.get("text"))
+            notes.update(facts)
+        else:
+            predicates[check["id"]] = _check(check.get("kind", ""), params, notes)
         if notes:
             measured[check["id"]] = notes  # what was measured, so a failure says which criterion missed
     return {"predicates": predicates, **({"measured": measured} if measured else {}), "verifierVersion": "checks-verifier/1"}

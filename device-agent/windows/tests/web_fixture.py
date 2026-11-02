@@ -190,6 +190,8 @@ def serve() -> tuple[ThreadingHTTPServer, str, str]:
     threading.Thread(target=server.serve_forever, daemon=True).start()
     if WINDOWS_CI:
         subprocess.run(["certutil", "-addstore", "-f", "Root", str(folder / "ca.pem")], check=True, capture_output=True)
+    # Checked navigations are fetched by Playwright's Node TLS stack, which trusts only this extra CA.
+    os.environ["NODE_EXTRA_CA_CERTS"] = str(folder / "ca.pem")
     return server, f"https://127.0.0.1:{server.server_port}", pin
 
 
