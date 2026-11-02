@@ -15,10 +15,13 @@ resolved here, once, before any file is opened:
 
 from __future__ import annotations
 
+import functools
 import hashlib
+import inspect
 import os
 import re
 import tempfile
+from contextvars import ContextVar
 from pathlib import Path
 
 OUTPUT_DIR = "OCADE output"
@@ -38,6 +41,82 @@ class Refused(Exception):
     def __init__(self, code: str):
         super().__init__(code)
         self.code = code
+
+
+class _EffectScope:
+    """One call's effects, also visible to its enclosing call, never its siblings."""
+
+    __slots__ = ("parent", "changed")
+
+    def __init__(self, parent: _EffectScope | None):
+        self.parent = parent
+        self.changed = False
+
+
+_effect_scope: ContextVar[_EffectScope | None] = ContextVar("ocade_effect_scope", default=None)
+
+
+def mark_effect() -> None:
+    """Record a possible durable/opaque mutation before an uncertain operation.
+
+    Filesystem writers call this after successful publication. An opaque browser,
+    command or native operation calls it before dispatch, since failure cannot
+    establish that the operation did nothing.
+    """
+    scope = _effect_scope.get()
+    while scope is not None:
+        scope.changed = True
+        scope = scope.parent
+
+
+def _tracked_result(result, scope: _EffectScope):
+    if isinstance(result, dict) and result.get("maybeChanged") is True:
+        mark_effect()  # preserve an explicit legacy admission in enclosing calls
+    # An inner guarded call may have caught its own refusal. Earlier effects in
+    # this enclosing call must still survive when that refusal is returned.
+    if scope.changed and isinstance(result, dict) and "refused" in result:
+        return {**result, "maybeChanged": True}
+    return result
+
+
+def guarded(fn):
+    """Preserve a tool's signature and report whether a refusal followed an effect.
+
+    Each invocation owns a scope. Child calls propagate effects to their parents;
+    concurrent children keep independent refusal flags even when their tasks
+    inherited the same context. Reset also runs on cancellation and unexpected
+    exceptions, which continue through the normal MCP error boundary.
+    """
+    if inspect.iscoroutinefunction(fn):
+        @functools.wraps(fn)
+        async def asynchronous(*args, **kwargs):
+            scope = _EffectScope(_effect_scope.get())
+            token = _effect_scope.set(scope)
+            try:
+                try:
+                    result = await fn(*args, **kwargs)
+                except Refused as refusal:
+                    result = {"refused": refusal.code, "maybeChanged": scope.changed}
+                return _tracked_result(result, scope)
+            finally:
+                _effect_scope.reset(token)
+
+        return asynchronous
+
+    @functools.wraps(fn)
+    def synchronous(*args, **kwargs):
+        scope = _EffectScope(_effect_scope.get())
+        token = _effect_scope.set(scope)
+        try:
+            try:
+                result = fn(*args, **kwargs)
+            except Refused as refusal:
+                result = {"refused": refusal.code, "maybeChanged": scope.changed}
+            return _tracked_result(result, scope)
+        finally:
+            _effect_scope.reset(token)
+
+    return synchronous
 
 
 def resolve(workspace: str | os.PathLike, relative: str) -> Path:
@@ -90,6 +169,7 @@ def write_atomically(target: Path, produce) -> str:
                 os.link(temporary, target)  # Atomic create-if-absent; the temporary link is removed below.
         except FileExistsError:
             raise Refused("output_exists") from None
+        mark_effect()
     finally:
         if os.path.exists(temporary):
             os.remove(temporary)

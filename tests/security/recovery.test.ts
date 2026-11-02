@@ -98,6 +98,18 @@ test("mutations require fresh planning; unknown effects fence resumption", async
       const step: Step = {
         ...uncertain,
         intent: intent("fs.read_text", "read", read.arguments, deadline),
+        status: "failed",
+        // A pure read can fail to observe a result without admitting a change.
+        receipt: { ...uncertain.receipt!, maybeChanged: false },
+      };
+      proposals = [list];
+      assert.equal((await planStep({ ...base, steps: [step] })).kind, "queue");
+    });
+    await t.test("a valid observed write remains recoverable", async () => {
+      const step: Step = {
+        ...uncertain,
+        status: "done",
+        receipt: { ...uncertain.receipt!, status: "observed" },
       };
       proposals = [list];
       assert.equal((await planStep({ ...base, steps: [step] })).kind, "queue");
@@ -139,36 +151,31 @@ test("mutations require fresh planning; unknown effects fence resumption", async
         await advance(admin, "task", now);
         assert.ok(recorded.includes("jarvis_task_wait"), JSON.stringify(recorded));
         assert.ok(!recorded.includes("jarvis_queue_actions"), JSON.stringify(recorded));
+        assert.ok(!recorded.includes("jarvis_settle_task"), JSON.stringify(recorded));
         assert.equal(calls, before);
       },
     );
-    await t.test(
-      "a not-applied mutation admitting a possible effect cannot be repeated",
-      async () => {
-        proposals = [write];
-        const before = calls;
-        const step: Step = {
-          ...uncertain,
-          status: "failed",
-          receipt: { ...uncertain.receipt!, status: "not_applied" },
-        };
-        assert.equal((await planStep({ ...base, steps: [step] })).kind, "block");
-        assert.equal(calls, before);
-      },
-    );
-    await t.test(
-      "a declared read that admits a possible unobserved effect also stops",
-      async () => {
-        proposals = [list];
-        const before = calls;
-        const step: Step = {
-          ...uncertain,
-          intent: intent("fs.read_text", "contradictory-read", read.arguments, deadline),
-        };
-        assert.equal((await planStep({ ...base, steps: [step] })).kind, "block");
-        assert.equal(calls, before);
-      },
-    );
+    await t.test("a not-applied mutation admitting a possible effect cannot be repeated", async () => {
+      proposals = [write];
+      const before = calls;
+      const step: Step = {
+        ...uncertain,
+        status: "failed",
+        receipt: { ...uncertain.receipt!, status: "not_applied" },
+      };
+      assert.equal((await planStep({ ...base, steps: [step] })).kind, "block");
+      assert.equal(calls, before);
+    });
+    await t.test("a declared read that admits a possible unobserved effect also stops", async () => {
+      proposals = [list];
+      const before = calls;
+      const step: Step = {
+        ...uncertain,
+        intent: intent("fs.read_text", "contradictory-read", read.arguments, deadline),
+      };
+      assert.equal((await planStep({ ...base, steps: [step] })).kind, "block");
+      assert.equal(calls, before);
+    });
     for (const raw of [
       { status: "not_applied", maybeChanged: true },
       { status: "observed", maybeChanged: true },
@@ -202,7 +209,59 @@ test("mutations require fresh planning; unknown effects fence resumption", async
         await advance(admin, "task", now);
         assert.ok(recorded.includes("jarvis_task_wait"), JSON.stringify(recorded));
         assert.ok(!recorded.includes("jarvis_queue_actions"), JSON.stringify(recorded));
+        assert.ok(!recorded.includes("jarvis_settle_task"), JSON.stringify(recorded));
         assert.equal(calls, before);
+      });
+    }
+    for (const [description, step] of [
+      [
+        "a pure read without a valid observation",
+        {
+          intent: intent("fs.read_text", "read", read.arguments, deadline),
+          status: "failed",
+          receipt: { status: "unknown", maybeChanged: false },
+        },
+      ],
+      [
+        "a valid observed write",
+        {
+          intent: uncertain.intent,
+          status: "done",
+          receipt: { ...uncertain.receipt!, status: "observed" },
+        },
+      ],
+    ] as const) {
+      await t.test("server can recover " + description, async () => {
+        proposals = [list];
+        const recorded: string[] = [];
+        const admin = {
+          rpc: async (name: string) => {
+            recorded.push(name);
+            return {
+              data:
+                name === "jarvis_task_state"
+                  ? {
+                      id: "task",
+                      userId: "u",
+                      status: "running",
+                      controller: "epoch",
+                      title: base.objective,
+                      outcome: checks,
+                      grants: ["files"],
+                      engines: [],
+                      mcp: [],
+                      steps: [step],
+                    }
+                  : null,
+              error: null,
+            };
+          },
+        } as unknown as Admin;
+        const before = calls;
+        await advance(admin, "task", now);
+        assert.ok(!recorded.includes("jarvis_task_wait"), JSON.stringify(recorded));
+        assert.ok(recorded.includes("jarvis_queue_actions"), JSON.stringify(recorded));
+        assert.equal(calls, before + 1);
       });
     }
   } finally {

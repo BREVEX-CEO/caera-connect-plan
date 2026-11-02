@@ -459,5 +459,179 @@ class Refusals(unittest.TestCase):
         self.assertNotIn("not a protocol frame", str(result))
 
 
+
+class ResultBoundary(unittest.TestCase):
+    """Fake sessions isolate receipt classification after dispatch.
+
+    Real MCP transport, browser, lease and native-app tests remain mandatory;
+    these failures are not evidence that an application itself worked.
+    """
+
+    PURE_READS = (
+        ("fs.list", {}, False),
+        ("fs.read_text", {"path": "input.txt"}, False),
+        ("office.inspect_workbook", {"path": "book.xlsx"}, False),
+        ("system.inspect", {"programs": []}, False),
+    )
+    BROWSER_READS = (
+        ("web.open", {"url": "https://example.com/"}, True),
+        ("web.close", {"page": {"id": "boundary", "site": "example.com"}}, True),
+    )
+    WRITES = (
+        ("fs.write_text", {"path": "OCADE output/boundary.txt", "text": "synthetic"}, True),
+    )
+
+    def setUp(self):
+        workspace = tempfile.TemporaryDirectory()
+        self.addCleanup(workspace.cleanup)
+        self.workspace = workspace.name
+
+    @staticmethod
+    def result(payload, *, structured=False, is_error=False):
+        from types import SimpleNamespace
+
+        return SimpleNamespace(
+            is_error=is_error,
+            structured_content=payload if structured else None,
+            content=[SimpleNamespace(text=json.dumps(payload))],
+        )
+
+    def dispatch(self, operation, arguments, result=None, *, failure=None, start_failure=None):
+        from types import SimpleNamespace
+        from unittest.mock import AsyncMock, patch
+
+        dispatched = []
+
+        async def call_tool(tool, provided, **_kwargs):
+            dispatched.append((tool, provided))
+            if failure is not None:
+                raise failure
+            return result
+
+        gateway = Gateway(self.workspace)
+        session = SimpleNamespace(call_tool=call_tool)
+
+        async def run():
+            async with gateway:
+                with patch.object(
+                    gateway, "_session", AsyncMock(return_value=session, side_effect=start_failure)
+                ), patch.object(gateway, "_discard", AsyncMock()):
+                    return await gateway.run(intent(operation, arguments), gateway.epoch)
+
+        return anyio.run(run), dispatched
+
+    def assert_classification(self, receipt, changed, code):
+        self.assertEqual(
+            (receipt["status"], receipt["maybeChanged"], receipt.get("errorCode")),
+            ("unknown" if changed else "not_applied", changed, code),
+            receipt,
+        )
+
+    def test_scalar_null_and_list_text_are_malformed_receipts(self):
+        values = (None, 7, "text", [], ["entry"], [{"entry": 1}])
+        for operation, arguments, changed in self.PURE_READS[:1] + self.WRITES:
+            for payload in values:
+                with self.subTest(operation=operation, payload=payload):
+                    receipt, dispatched = self.dispatch(operation, arguments, self.result(payload))
+                    self.assertEqual(len(dispatched), 1)
+                    self.assert_classification(receipt, changed, "malformed_result")
+
+    def test_unwrapped_scalar_null_and_list_are_malformed_receipts(self):
+        values = (None, 7, "text", [], ["entry"], [{"entry": 1}])
+        for operation, arguments, changed in self.PURE_READS[:1] + self.WRITES:
+            for payload in values:
+                for structured in (False, True):
+                    with self.subTest(operation=operation, payload=payload, structured=structured):
+                        receipt, dispatched = self.dispatch(
+                            operation, arguments, self.result({"result": payload}, structured=structured)
+                        )
+                        self.assertEqual(len(dispatched), 1)
+                        self.assert_classification(receipt, changed, "malformed_result")
+
+    def test_dispatched_lifecycle_reads_preserve_uncertainty_on_failure(self):
+        cases = (
+            ("worker_lost", None, RuntimeError("transport ended after dispatch")),
+            ("timeout", None, TimeoutError("dispatched call exceeded its bound")),
+            ("tool_error", self.result({"message": "failed"}, is_error=True), None),
+            ("malformed_result", self.result(None), None),
+            ("malformed_result", self.result({"preview": "!"}), None),
+            ("evidence_too_large", self.result({"note": "x" * 16_001}), None),
+        )
+        for operation, arguments, changed in self.PURE_READS + self.BROWSER_READS + self.WRITES:
+            if (operation, arguments, changed) in self.BROWSER_READS:
+                self.assertEqual(PROTOCOL["operations"][operation]["risk"], "read")
+            for case_index, (code, result, failure) in enumerate(cases):
+                with self.subTest(operation=operation, code=code, case=case_index):
+                    receipt, dispatched = self.dispatch(
+                        operation, arguments, result, failure=failure
+                    )
+                    self.assertEqual(len(dispatched), 1, "the failure occurred after tool dispatch")
+                    self.assert_classification(receipt, changed, code)
+
+    def test_worker_start_failure_proves_no_tool_was_dispatched(self):
+        for operation, arguments, _changed in self.PURE_READS + self.BROWSER_READS + self.WRITES:
+            with self.subTest(operation=operation):
+                receipt, dispatched = self.dispatch(
+                    operation, arguments, start_failure=RuntimeError("worker failed before dispatch")
+                )
+                self.assertEqual(dispatched, [])
+                self.assert_classification(receipt, False, "worker_unavailable")
+
+    def test_refusal_flags_distinguish_preflight_and_possible_effects(self):
+        flags = ({}, {"maybeChanged": False}, {"maybeChanged": True},
+                 {"maybeChanged": 0}, {"maybeChanged": 1},
+                 {"maybeChanged": "false"}, {"maybeChanged": None})
+        for operation, arguments, default_changed in self.PURE_READS[:1] + self.BROWSER_READS + self.WRITES:
+            for flag in flags:
+                with self.subTest(operation=operation, flag=flag):
+                    receipt, dispatched = self.dispatch(
+                        operation, arguments, self.result({"refused": "boundary_refusal", **flag})
+                    )
+                    self.assertEqual(len(dispatched), 1)
+                    changed = default_changed if not flag else flag["maybeChanged"] is not False
+                    self.assert_classification(receipt, changed, "boundary_refusal")
+
+    def test_malformed_evidence_cannot_erase_an_explicit_or_invalid_change_admission(self):
+        for marker in (True, 0, 1, "false", None):
+            for content, code in (
+                ({"preview": "!"}, "malformed_result"),
+                ({"note": "x" * 16_001}, "evidence_too_large"),
+                ({"message": "failed"}, "tool_error"),
+            ):
+                with self.subTest(marker=marker, code=code):
+                    receipt, dispatched = self.dispatch(
+                        "fs.list", {}, self.result(
+                            {"maybeChanged": marker, **content}, is_error=code == "tool_error"
+                        )
+                    )
+                    self.assertEqual(len(dispatched), 1)
+                    expected_code = code if marker is True or code == "tool_error" else "malformed_result"
+                    self.assert_classification(receipt, True, expected_code)
+
+    def test_nonboolean_change_marker_cannot_become_an_observed_pure_read(self):
+        for marker in (None, 0, 1, "yes", [], {}):
+            with self.subTest(marker=marker):
+                receipt, dispatched = self.dispatch(
+                    "fs.list", {}, self.result({"entries": [], "maybeChanged": marker})
+                )
+                self.assertEqual(len(dispatched), 1)
+                self.assert_classification(receipt, True, "malformed_result")
+
+    def test_valid_object_observations_remain_usable(self):
+        for operation, arguments, _changed in self.PURE_READS[:1] + self.BROWSER_READS + self.WRITES:
+            for structured, wrapped in ((False, False), (True, False), (False, True), (True, True)):
+                with self.subTest(operation=operation, structured=structured, wrapped=wrapped):
+                    payload = {"observed": "synthetic boundary control", "maybeChanged": True}
+                    receipt, dispatched = self.dispatch(
+                        operation, arguments,
+                        self.result({"result": payload} if wrapped else payload, structured=structured),
+                    )
+                    self.assertEqual(len(dispatched), 1)
+                    self.assertEqual(receipt["status"], "observed", receipt)
+                    self.assertEqual(receipt["evidence"]["observed"], payload["observed"])
+                    self.assertTrue(receipt["maybeChanged"], receipt)
+                    self.assertNotIn("errorCode", receipt)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -20,7 +20,6 @@ external effects the person confirms before they reach here.
 from __future__ import annotations
 
 import asyncio
-import functools
 import ipaddress
 import json
 import re
@@ -34,7 +33,7 @@ from urllib.parse import urlparse
 import anyio
 from mcp.server.mcpserver import MCPServer
 
-from .sandbox import Refused, output_path, preview_jpeg, resolve, write_atomically
+from .sandbox import Refused, guarded as _refusals, mark_effect, output_path, preview_jpeg, resolve, write_atomically
 
 WORKSPACE = os.environ.get("OCADE_WORKSPACE", "")
 PROFILE = Path(os.environ.get("OCADE_AGENT_HOME") or Path.home() / ".ocade-agent") / "browser-profile"
@@ -146,14 +145,17 @@ async def _guard(route) -> None:
 
 async def _context():
     if "context" not in _browser:
+        executable = os.environ.get("OCADE_BROWSER_EXECUTABLE")
+        if executable and not Path(executable).is_file():
+            raise Refused("browser_unavailable")
         from playwright.async_api import async_playwright
 
+        mark_effect()  # startup can create persistent profile state before failing
         playwright = await async_playwright().start()
         _browser["playwright"] = playwright
         try:
             PROFILE.mkdir(parents=True, exist_ok=True)
             options = {"user_data_dir": str(PROFILE), "headless": False, "accept_downloads": True}
-            executable = os.environ.get("OCADE_BROWSER_EXECUTABLE")
             proxy = os.environ.get("HTTPS_PROXY") or os.environ.get("https_proxy")
             if proxy:
                 options["proxy"] = {"server": proxy, "bypass": os.environ.get("NO_PROXY", "")}
@@ -261,17 +263,6 @@ def _bind(new_page, site: str) -> str:
     return page_id
 
 
-def _refusals(fn):
-    @functools.wraps(fn)
-    async def wrapped(**kwargs):
-        try:
-            return await fn(**kwargs)
-        except Refused as refusal:
-            return {"refused": refusal.code}
-
-    return wrapped
-
-
 @app.tool()
 @_refusals
 async def web_open(url: str) -> dict:
@@ -283,6 +274,7 @@ async def web_open(url: str) -> dict:
         context = await _context()
     except Exception:
         raise Refused("browser_unavailable")  # no display, or the browser cannot start here: retrying will not help
+    mark_effect()  # a page/navigation can affect the browser and remote site
     current = await context.new_page()
     try:
         await current.goto(url, wait_until="domcontentloaded", timeout=45_000)
@@ -314,10 +306,12 @@ async def web_fill(page: dict, selector: str, value: str, frame: str | None = No
         # A web app's own text widget listens for real keystrokes, not a set value.
         if any(ord(ch) < 32 for ch in value):
             raise Refused("control_characters")  # Enter or Tab could submit or move on
+        mark_effect()
         await field.focus()
         await field.page.keyboard.press("ControlOrMeta+A")
         await field.page.keyboard.type(value)
     else:
+        mark_effect()
         await field.fill(value, timeout=10_000)
     await field.evaluate("e => e.blur()")  # as a person moving on: the widget commits its value
     # Read back from a form field or an editable element (a web app's own text widget).
@@ -330,6 +324,7 @@ async def web_fill(page: dict, selector: str, value: str, frame: str | None = No
 async def web_select(page: dict, selector: str, option: str, frame: str | None = None) -> dict:
     """Choose one option (by its visible label) in a dropdown, then read the choice back."""
     field = await _one(await _scope(_bound(page), frame), selector)
+    mark_effect()
     await field.select_option(label=option, timeout=10_000)
     chosen = await field.evaluate("e => e.options[e.selectedIndex]?.text ?? ''")
     return {"matches": chosen == option}
@@ -348,15 +343,18 @@ async def web_click(page: dict, selector: str, frame: str | None = None) -> dict
         opened_now.append(new_page)
 
     context.on("page", collect)
-    await target.click(timeout=10_000)
     current = entry["page"]
     try:
-        await current.wait_for_load_state("domcontentloaded", timeout=30_000)
-        # ponytail: fixed 0.5 s window for a popup to appear; a slower one is seen by the next read.
-        await current.wait_for_timeout(500)
-    except Exception:
-        pass  # observed below either way
-    context.remove_listener("page", collect)
+        mark_effect()
+        await target.click(timeout=10_000)
+        try:
+            await current.wait_for_load_state("domcontentloaded", timeout=30_000)
+            # ponytail: fixed 0.5 s window for a popup to appear; a slower one is seen by the next read.
+            await current.wait_for_timeout(500)
+        except Exception:
+            pass  # observed below either way
+    finally:
+        context.remove_listener("page", collect)
     popups = []
     for opened in opened_now:
         try:
@@ -395,6 +393,7 @@ async def web_upload(page: dict, selector: str, path: str) -> dict:
     await field.evaluate(
         "e => e.addEventListener('change', () => { e.dataset.ocadeAttached = JSON.stringify([...e.files].map(f => f.name)) }, {once: true, capture: true})"
     )
+    mark_effect()
     await field.set_input_files(str(source))
     names = json.loads(await field.evaluate("e => e.dataset.ocadeAttached || '[]'"))
     return {"attached": names, "matches": names == [source.name]}
@@ -408,6 +407,7 @@ async def web_download(page: dict, selector: str, output: str) -> dict:
     target = output_path(WORKSPACE, output)
     link = await _one(current, selector)
     async with current.expect_download(timeout=60_000) as pending:
+        mark_effect()  # the request may take effect even if publication later refuses
         await link.click()
     download = await pending.value
     staged = Path(await download.path())
@@ -439,6 +439,7 @@ async def web_close(page: dict) -> dict:
     entry = _pages.pop(page["id"], None)
     if entry is None:
         raise Refused("page_gone")
+    mark_effect()
     await entry["page"].close()
     return {"closed": True}
 

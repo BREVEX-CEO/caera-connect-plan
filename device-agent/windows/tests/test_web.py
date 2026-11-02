@@ -116,7 +116,7 @@ class WebLadder(unittest.TestCase):
             async with lifespan(web_worker.app):
                 with patch.dict(os.environ, {"OCADE_BROWSER_EXECUTABLE": str(self.root / "missing-browser")}):
                     failed = await web_worker.web_open(url=self.base + "/")
-                self.assertEqual(failed, {"refused": "browser_unavailable"})
+                self.assertEqual(failed, {"refused": "browser_unavailable", "maybeChanged": False})
                 self.assertFalse(web_worker._browser, "failed launch must release its started driver immediately")
         with patch.object(web_worker, "PROFILE", self.home / "lifecycle-profile"), patch.object(
             web_worker, "PRIVATE_ALLOWED", True

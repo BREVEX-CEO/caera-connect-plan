@@ -164,12 +164,13 @@ export async function advance(admin: Admin, taskId: string, now = new Date()): P
   if (!task || task.status !== "running" || !task.controller) return;
   const steps: Step[] = task.steps.map((step) => {
     const raw = step.receipt;
+    const receipt = raw ? (actionReceipt.safeParse(raw).data ?? null) : null;
     return {
       intent: actionIntent.parse(step.intent),
       status: step.status,
-      receipt: raw ? (actionReceipt.safeParse(raw).data ?? null) : null,
-      effectUnknown:
-        typeof raw === "object" && raw !== null && "status" in raw && raw.status === "unknown",
+      receipt,
+      // Durable STOP/crash records may be incomplete. Keep their uncertainty for the shared fence.
+      unparsedReceipt: receipt === null ? raw : undefined,
     };
   });
   const unknown = unresolvedEffect(steps);

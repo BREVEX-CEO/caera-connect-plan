@@ -10,8 +10,9 @@ The only code that starts capability workers or calls their tools:
   refused. Tool descriptions are never shown to a model or obeyed.
 - Every call is checked against the protocol (operation, capability, risk,
   arguments, deadline) and the local STOP epoch immediately before dispatch.
-- A transport failure does not prove an action failed: a write whose worker
-  died, timed out or was stopped mid-call is reported `unknown`, `maybeChanged`.
+- A transport failure does not prove an action failed. After dispatch, an opaque
+  operation is `unknown`, `maybeChanged` even when its declared risk is read.
+  Only audited local inspections can establish that a lost response changed nothing.
 """
 
 from __future__ import annotations
@@ -42,6 +43,13 @@ WORKERS = {
     "shell": "ocade_agent.command_worker",
 }
 MAX_CALL_SECONDS = 300
+# These implementations only inspect local paths/data/resources; they neither
+# dispatch to an app nor invoke browser, network, COM or command operations.
+# This is a recovery policy, not permission to execute: protocol grants and risk
+# checks still apply. Unlisted/future operations are conservative by default.
+PURE_READ_OPERATIONS = frozenset({
+    "fs.list", "fs.read_text", "office.inspect_workbook", "system.inspect",
+})
 # Network and browser settings the device owner chose, and the Windows system folders app
 # discovery reads (the SDK's minimal set omits them); never account credentials or tokens.
 PASS_THROUGH = (
@@ -255,6 +263,7 @@ class Gateway:
         key, tool, arguments = target
 
         writes = spec["risk"] != "read"
+        uncertain = writes or intent["operation"] not in PURE_READ_OPERATIONS
         try:
             session = await self._session(key)
         except anyio.get_cancelled_exc_class():
@@ -278,36 +287,55 @@ class Gateway:
             raise
         except TimeoutError:
             await self._discard(key)
-            return timed("unknown" if writes else "not_applied", writes, error="timeout")
+            return timed("unknown" if uncertain else "not_applied", uncertain, error="timeout")
         except Exception:
             await self._discard(key)
-            return timed("unknown" if writes else "not_applied", writes, error="worker_lost")
+            return timed("unknown" if uncertain else "not_applied", uncertain, error="worker_lost")
 
         if key.startswith("mcp:"):
             # An external server's words are untrusted data: bounded text, never an instruction or a status.
             text = "\n".join(getattr(part, "text", "") for part in result.content)[:8_000]
             if result.is_error:
-                return timed("unknown" if writes else "not_applied", writes, {"content": text}, "tool_error")
+                return timed("unknown" if uncertain else "not_applied", uncertain, {"content": text}, "tool_error")
             return timed("observed", writes, {"content": text, "server": key[4:], "tool": tool})
-        if result.is_error:
-            return timed("unknown" if writes else "not_applied", writes, error="tool_error")
         try:
             evidence = result.structured_content or json.loads(result.content[0].text)
+            if not isinstance(evidence, dict):
+                raise ValueError("evidence must be an object")
             if set(evidence) == {"result"}:
                 evidence = evidence["result"]
-        except (ValueError, IndexError, AttributeError):
-            return timed("unknown" if writes else "not_applied", writes, error="malformed_result")
+            if not isinstance(evidence, dict):
+                raise ValueError("evidence must be an object")
+        except (TypeError, ValueError, IndexError, AttributeError):
+            return timed("unknown" if uncertain else "not_applied", uncertain,
+                         error="tool_error" if result.is_error else "malformed_result")
+        # An explicit admission outranks an operation's usual read-only behavior,
+        # including when the remainder of its evidence is unusable.
+        if "maybeChanged" in evidence and evidence["maybeChanged"] is not False:
+            uncertain = True
+        if result.is_error:
+            return timed("unknown" if uncertain else "not_applied", uncertain, error="tool_error")
         if "refused" in evidence:
-            return timed("not_applied", writes, error=str(evidence["refused"])[:60])
+            changed = evidence.get("maybeChanged")
+            # Only an explicit false proves that a bundled writer stopped before
+            # its first effect. Legacy/malformed write refusals remain uncertain.
+            if changed is True or changed is False:
+                maybe_changed = changed
+            else:
+                maybe_changed = uncertain or "maybeChanged" in evidence
+            return timed("unknown" if maybe_changed else "not_applied", maybe_changed,
+                         error=str(evidence["refused"])[:60])
+        if "maybeChanged" in evidence and evidence["maybeChanged"] is not True and evidence["maybeChanged"] is not False:
+            return timed("unknown", True, error="malformed_result")
         # An image for the planner to look at travels beside the evidence, never inside it.
         preview = evidence.pop("preview", None)
         if preview is not None and (
             not isinstance(preview, str) or len(preview) > MAX_PREVIEW or not _BASE64.fullmatch(preview)
         ):
-            return timed("unknown" if writes else "not_applied", writes, error="malformed_result")
+            return timed("unknown" if uncertain else "not_applied", uncertain, error="malformed_result")
         if len(json.dumps(evidence)) > 16_000:
-            return timed("unknown" if writes else "not_applied", writes, error="evidence_too_large")
-        done = timed("observed", writes, evidence)
+            return timed("unknown" if uncertain else "not_applied", uncertain, error="evidence_too_large")
+        done = timed("observed", writes or evidence.get("maybeChanged") is True, evidence)
         # The server stores a receipt in at most 64 KiB: a preview that would not fit is left
         # out (the planner can still ask for one) rather than leave a receipt nobody can record.
         if preview is not None and len(json.dumps(done)) + len(preview) <= MAX_RECEIPT:

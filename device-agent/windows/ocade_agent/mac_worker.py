@@ -26,7 +26,7 @@ from pathlib import Path
 
 from mcp.server.mcpserver import MCPServer
 
-from .sandbox import Refused, preview_jpeg, resolve
+from .sandbox import Refused, guarded, mark_effect, preview_jpeg, resolve
 
 app = MCPServer("ocade-ui")
 WORKSPACE = os.environ.get("OCADE_WORKSPACE", "")
@@ -35,16 +35,15 @@ _own_input = {"at": 0.0}
 
 
 def _evidence(fn):
+    protected = guarded(fn)
+
     @functools.wraps(fn)
     def wrapped(**kwargs):
         import ApplicationServices as AX  # type: ignore[import-not-found]
 
         if not AX.AXIsProcessTrusted():
-            return {"refused": "accessibility_not_granted"}
-        try:
-            return fn(**kwargs)
-        except Refused as refusal:
-            return {"refused": refusal.code}
+            return {"refused": "accessibility_not_granted", "maybeChanged": False}
+        return protected(**kwargs)
 
     return wrapped
 
@@ -205,6 +204,7 @@ def _front(pid: int) -> None:
     running = AppKit.NSRunningApplication.runningApplicationWithProcessIdentifier_(pid)
     if running is None:
         raise Refused("window_gone")
+    mark_effect()
     running.activateWithOptions_(AppKit.NSApplicationActivateIgnoringOtherApps)
     for _ in range(20):
         if AppKit.NSWorkspace.sharedWorkspace().frontmostApplication().processIdentifier() == pid:
@@ -230,6 +230,7 @@ def apps_launch(exe: str, open: str | None = None) -> dict:
         raise Refused("app_not_installed")
     before = {w["hwnd"] for w in open_windows(400)}
     arguments = ["open", "-n", "-a", bundle["path"]] + (["--args", str(resolve(WORKSPACE, open))] if open else [])
+    mark_effect()
     subprocess.run(arguments, check=False, capture_output=True)  # argument list, no shell
     deadline = time.monotonic() + 20
     while time.monotonic() < deadline:
@@ -271,6 +272,7 @@ def ui_invoke(window: dict, element: dict) -> dict:
     target, bounds = _leased(window)
     control = _element(target, element)
     _person_quiet()
+    mark_effect()
     if AX.AXUIElementPerformAction(control, "AXPress") != 0:
         raise Refused("pattern_unsupported")
     return {"pattern": "press", "after": _describe(control, bounds)}
@@ -285,10 +287,12 @@ def ui_set_value(window: dict, element: dict, value: str) -> dict:
     target, bounds = _leased(window)
     control = _element(target, element)
     _person_quiet()
+    mark_effect()
     if AX.AXUIElementSetAttributeValue(control, "AXValue", value) != 0:
         raise Refused("pattern_unsupported")
+    actual = _attribute(control, "AXValue")
     after = _describe(control, bounds)
-    return {"after": after, "matches": after.get("value") == value[:200]}
+    return {"after": after, "matches": actual is not None and str(actual) == value}
 
 
 @app.tool()
@@ -304,11 +308,13 @@ def ui_send_keys(window: dict, keys: str, element: dict | None = None) -> dict:
     try:
         _front(window["pid"])
         if control is not None:
+            mark_effect()
             AX.AXUIElementSetAttributeValue(control, "AXFocused", True)
         for character in keys:
             for down in (True, False):
                 event = Quartz.CGEventCreateKeyboardEvent(None, 0, down)
                 Quartz.CGEventKeyboardSetUnicodeString(event, 1, character)
+                mark_effect()
                 Quartz.CGEventPostToPid(window["pid"], event)
             time.sleep(0.01)
     finally:
@@ -330,6 +336,7 @@ def ui_click_point(window: dict, x: float, y: float, expectTitle: str) -> dict:
     try:
         _front(window["pid"])
         for kind in (Quartz.kCGEventLeftMouseDown, Quartz.kCGEventLeftMouseUp):
+            mark_effect()
             Quartz.CGEventPost(Quartz.kCGHIDEventTap,
                                Quartz.CGEventCreateMouseEvent(None, kind, point, Quartz.kCGMouseButtonLeft))
             time.sleep(0.05)

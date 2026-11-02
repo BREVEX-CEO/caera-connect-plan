@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "c9c140d14ef1222038b013998f9e58c3586ab4a7",
+  "sourceTree": "a5f87fe222fcfabe11346bea1cbe341c9fa46ae7",
+  "run": 41370857508,
+  "url": "https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41370857508",
+  "scope": "Adversarial cloud regression against pre-fix production code; no provider/customer/personal-PC execution",
+  "jobs": [
+    {
+      "id": 125040819560,
+      "name": "Native receipt / COM / process safety · Windows",
+      "status": "completed",
+      "conclusion": "failure"
+    },
+    {
+      "id": 125040819764,
+      "name": "Planner safety / source formatting · Linux",
+      "status": "completed",
+      "conclusion": "failure"
+    },
+    {
+      "id": 125041192136,
+      "name": "Portable build / model contracts / ephemeral DB · Linux",
+      "status": "completed",
+      "conclusion": "skipped"
+    },
+    {
+      "id": 125041192248,
+      "name": "Python MCP / journal / browser · ${{ matrix.os }}",
+      "status": "completed",
+      "conclusion": "skipped"
+    },
+    {
+      "id": 125041192707,
+      "name": "Windows unsigned installer / frozen MCP smoke · NOT release-ready",
+      "status": "completed",
+      "conclusion": "skipped"
+    }
+  ],
+  "observations": {
+    "focusedJavaScript": {
+      "total": 93,
+      "pass": 88,
+      "fail": 5,
+      "failuresIncludeParent": true,
+      "newFailingSubcases": 4
+    },
+    "focusedMcp": {
+      "total": 6,
+      "fail": 2,
+      "documentAlias": "Published DOCX before same destination PDF refusal",
+      "workerPrecondition": "Valid-shaped traversing path reaches worker; not_applied incorrectly retains maybeChanged=true"
+    },
+    "browser": {
+      "total": 3,
+      "fail": 1,
+      "downloadRace": "One actual HTTP request witnessed; independent competing destination survives, but receipt is not_applied instead of unknown"
+    },
+    "windowsSafety": {
+      "total": 4,
+      "fail": 3,
+      "invoke": [
+        "invoke",
+        "toggle",
+        "select"
+      ],
+      "fullValue": "Clipped provider value falsely matches full request",
+      "com": "Fresh thread remains initialized after five calls",
+      "ownedProcessControl": "PASS"
+    }
+  },
+  "fixtureCorrections": {
+    "nativeFake": "Added is_enabled() so deliberately failing provider reaches dispatch",
+    "workerPath": "Valid-shaped OCADE output traversal reaches worker precondition"
+  },
+  "assessment": {
+    "requirementsPass": 70,
+    "requirementsTotal": 266,
+    "architecturePass": 41,
+    "architectureTotal": 84,
+    "commercialReadinessPercent": 10,
+    "decision": "NO-GO"
+  },
+  "authorization": {
+    "implementationBranchOnly": true,
+    "productionDeployed": false,
+    "personalComputerTests": false,
+    "liveProviderCalls": false,
+    "spending": false
+  }
+}

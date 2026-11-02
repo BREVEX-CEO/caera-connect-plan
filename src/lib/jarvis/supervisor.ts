@@ -13,6 +13,8 @@ export interface Step {
   receipt: ActionReceipt | null;
   /** A minimal durable STOP/crash record can carry unknown without a full device receipt. */
   effectUnknown?: boolean;
+  /** Preserve incomplete durable receipts without inventing a validated device observation. */
+  unparsedReceipt?: unknown;
 }
 
 export type Decision =
@@ -27,12 +29,23 @@ export type Decision =
   | { kind: "settle"; verification: VerificationResult; summary: string }
   | { kind: "block"; reason: string };
 
-/** Unknown writes cannot be resumed or repeated without a separate resolution. */
+/** Unobserved possible effects cannot be resumed or repeated without a separate resolution. */
 export function unresolvedEffect(steps: Step[]): string | null {
-  return steps.some(
-    (step) =>
-      step.intent.risk !== "read" && (step.effectUnknown || step.receipt?.status === "unknown"),
-  )
+  return steps.some((step) => {
+    const raw = step.unparsedReceipt;
+    const marker = typeof raw === "object" && raw !== null ? raw : null;
+    // A malformed receipt cannot prove an observation, even if its raw status claims one.
+    const unparsedChange =
+      marker !== null && "maybeChanged" in marker && marker.maybeChanged === true;
+    const unparsedUnknown = marker !== null && "status" in marker && marker.status === "unknown";
+    // A declared read is not proof of no effect when its receipt explicitly admits one.
+    return (
+      unparsedChange ||
+      (step.receipt?.maybeChanged === true && step.receipt.status !== "observed") ||
+      (step.intent.risk !== "read" &&
+        (step.effectUnknown || step.receipt?.status === "unknown" || unparsedUnknown))
+    );
+  })
     ? "An earlier action may already have changed your computer. Check its result before starting more work. JARVIS will not repeat it."
     : null;
 }

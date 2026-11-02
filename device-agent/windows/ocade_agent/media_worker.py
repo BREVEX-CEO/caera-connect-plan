@@ -10,7 +10,6 @@ a refusal the planner sees before anything is written, never a half-finished fil
 
 from __future__ import annotations
 
-import functools
 import json
 import os
 import re
@@ -23,7 +22,7 @@ from pathlib import Path
 from mcp.server.mcpserver import MCPServer
 
 from . import scene_gl
-from .sandbox import Refused, output_path, preview_jpeg, resolve, sha256, write_atomically
+from .sandbox import Refused, guarded as _evidence, output_path, preview_jpeg, resolve, sha256, write_atomically
 
 app = MCPServer("ocade-media")
 WORKSPACE = os.environ.get("OCADE_WORKSPACE", "")
@@ -32,19 +31,6 @@ TRANSITIONS = {
     "smoothleft", "smoothright", "smoothup", "smoothdown", "circleopen", "circleclose", "zoomin",
     "radial", "hlwind", "hrwind", "squeezeh", "squeezev", "distance", "pixelize", "hblur", "fadegrays",
 }
-
-
-def _evidence(fn):
-    """Refusals become `{"refused": code}` so the gateway can report not_applied."""
-
-    @functools.wraps(fn)
-    def wrapped(**kwargs):
-        try:
-            return fn(**kwargs)
-        except Refused as refusal:
-            return {"refused": refusal.code}
-
-    return wrapped
 
 
 def _engine(name: str) -> str:
@@ -507,17 +493,17 @@ def media_render_timeline(
 
 
 @app.tool()
+@_evidence
 async def scene_render(scene: dict, output: str, project: str) -> dict:
     """Render a typed 3D scene to a PNG and save the scene itself as the editable project."""
-    try:
-        return await _scene_render(scene, output, project)
-    except Refused as refusal:
-        return {"refused": refusal.code}
+    return await _scene_render(scene, output, project)
 
 
 async def _scene_render(scene: dict, output: str, project: str) -> dict:
     image_target = output_path(WORKSPACE, output)
     project_target = output_path(WORKSPACE, project)
+    if image_target == project_target:
+        raise Refused("output_path_conflict")
     if image_target.suffix.lower() != ".png":
         raise Refused("png_output_only")
     width, height = scene["render"]["width"], scene["render"]["height"]

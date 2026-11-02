@@ -11,7 +11,6 @@ document and its PDF. What to read, compute and write is the planner's choice.
 
 from __future__ import annotations
 
-import functools
 import hashlib
 import os
 import secrets
@@ -25,23 +24,13 @@ from docx import Document
 from mcp.server.mcpserver import MCPServer
 
 from . import engine
-from .sandbox import OUTPUT_DIR, TEXT_SUFFIXES, Refused, output_path, plain_text, resolve, sha256, write_atomically
+from .sandbox import (
+    OUTPUT_DIR, TEXT_SUFFIXES, Refused, guarded as _evidence, mark_effect,
+    output_path, plain_text, resolve, sha256, write_atomically,
+)
 
 app = MCPServer("ocade-office")
 WORKSPACE = os.environ.get("OCADE_WORKSPACE", "")
-
-
-def _evidence(fn):
-    """Refusals become `{"refused": code}` so the gateway can report not_applied."""
-
-    @functools.wraps(fn)
-    def wrapped(**kwargs):
-        try:
-            return fn(**kwargs)
-        except Refused as refusal:
-            return {"refused": refusal.code}
-
-    return wrapped
 
 
 @app.tool()
@@ -190,6 +179,7 @@ def _rewrite(path: str, expect: str, change) -> dict:
         if sha256(target) != before:
             raise Refused("file_changed")
         os.replace(staged, target)
+        mark_effect()
     finally:
         staged.unlink(missing_ok=True)
     return {"sha256Before": before, "sha256": sha256(target), "original": original.relative_to(root).as_posix(),
@@ -237,6 +227,8 @@ def office_write_document(docx: str, title: str, sections: list[dict], pdf: str 
     """A new editable Word document from headings, paragraphs and tables; optionally its PDF."""
     docx_path = output_path(WORKSPACE, docx)
     pdf_path = output_path(WORKSPACE, pdf) if pdf else None
+    if docx_path == pdf_path:
+        raise Refused("output_path_conflict")
 
     def write(temporary: Path) -> None:
         document = Document()

@@ -40,22 +40,25 @@ class NativeEffectReceipts(unittest.TestCase):
 
     def test_value_readback_compares_the_complete_value_not_a_preview(self):
         from ocade_agent import windows_worker as worker
-        value = uuid.uuid4().hex + "x" * 400
         class Provider:
             current = ""
+            missing = False
             @property
             def iface_value(self): return self
             @property
             def CurrentValue(self): return self.current
-            def SetValue(self, requested): self.current = requested[:200]
-        provider = Provider()
-        with patch.object(worker, "_leased", return_value=object()), patch.object(
-            worker, "_element", return_value=provider
-        ), patch.object(worker, "_person_quiet"), patch.object(
-            worker, "_describe", side_effect=lambda _: {"value": provider.current[:200]}
-        ):
-            result = worker.ui_set_value(window={}, element={}, value=value)
-        self.assertFalse(result["matches"], "a clipped provider result must not prove the full requested value")
+            def SetValue(self, requested): self.current = None if self.missing else requested[:200]
+        for value, missing in ((uuid.uuid4().hex + "x" * 400, False), ("None", True)):
+            with self.subTest(missing=missing):
+                provider = Provider()
+                provider.missing = missing
+                with patch.object(worker, "_leased", return_value=object()), patch.object(
+                    worker, "_element", return_value=provider
+                ), patch.object(worker, "_person_quiet"), patch.object(
+                    worker, "_describe", side_effect=lambda _: {"value": (provider.current or "")[:200]}
+                ):
+                    result = worker.ui_set_value(window={}, element={}, value=value)
+                self.assertFalse(result["matches"], "a preview or missing readback must not prove the full requested value")
 
     def test_worker_call_balances_its_native_com_initialization(self):
         import pythoncom

@@ -25,7 +25,7 @@ import time
 from mcp.server.mcpserver import MCPServer
 
 from . import discovery
-from .sandbox import Refused, preview_jpeg, resolve
+from .sandbox import Refused, guarded, mark_effect, preview_jpeg, resolve
 
 app = MCPServer("ocade-ui")
 WORKSPACE = os.environ.get("OCADE_WORKSPACE", "")
@@ -35,17 +35,26 @@ _own_input = {"at": 0.0}  # monotonic time this worker last sent input of its ow
 
 
 def _evidence(fn):
+    protected = guarded(fn)
+
     @functools.wraps(fn)
     def wrapped(**kwargs):
         if not WINDOWS:
-            return {"refused": "windows_only"}
+            return {"refused": "windows_only", "maybeChanged": False}
         import pythoncom  # type: ignore[import-not-found]
 
-        pythoncom.CoInitialize()  # UI Automation is COM; tools run on worker threads
         try:
-            return fn(**kwargs)
-        except Refused as refusal:
-            return {"refused": refusal.code}
+            pythoncom.CoInitializeEx(pythoncom.COINIT_APARTMENTTHREADED)
+        except pythoncom.com_error as error:
+            if (error.hresult & 0xFFFFFFFF) != 0x80010106:  # RPC_E_CHANGED_MODE
+                raise
+            # Match an existing MTA and balance only this call's extra initialization.
+            pythoncom.CoInitializeEx(pythoncom.COINIT_MULTITHREADED)
+        try:
+            return protected(**kwargs)
+        finally:
+            # S_OK and S_FALSE both add one initialization owned by this call.
+            pythoncom.CoUninitialize()
 
     return wrapped
 
@@ -139,6 +148,7 @@ def apps_launch(exe: str, open: str | None = None) -> dict:
         raise Refused("app_not_installed")
     before = {w["hwnd"] for w in discovery.open_windows(200)}
     arguments = [path] + ([str(resolve(WORKSPACE, open))] if open else [])
+    mark_effect()
     subprocess.Popen(arguments, close_fds=True)  # argument list, no shell
     deadline = time.monotonic() + 20
     while time.monotonic() < deadline:
@@ -182,18 +192,27 @@ def ui_inspect(window: dict) -> dict:
 @_evidence
 def ui_invoke(window: dict, element: dict) -> dict:
     """Invoke (or toggle/select) one element through its UIA pattern; no pointer is moved."""
+    from pywinauto.uia_defines import NoPatternInterfaceError  # type: ignore[import-not-found]
+
     wrapper = _element(_leased(window), element)
     _person_quiet()
     if not wrapper.is_enabled():
         raise Refused("element_disabled")
-    for pattern in ("invoke", "toggle", "select"):
-        method = getattr(wrapper, pattern, None)
-        if method:
-            try:
-                method()
-                return {"pattern": pattern, "after": _describe(wrapper)}
-            except Exception:
-                continue
+    for pattern, interface_name, method_name in (
+        ("invoke", "iface_invoke", "Invoke"),
+        ("toggle", "iface_toggle", "Toggle"),
+        ("select", "iface_selection_item", "Select"),
+    ):
+        try:
+            interface = getattr(wrapper, interface_name)
+        except (NoPatternInterfaceError, AttributeError):
+            continue
+        if interface is None:
+            continue
+        method = getattr(interface, method_name)
+        mark_effect()
+        method()
+        return {"pattern": pattern, "after": _describe(wrapper)}
     raise Refused("pattern_unsupported")
 
 
@@ -201,14 +220,21 @@ def ui_invoke(window: dict, element: dict) -> dict:
 @_evidence
 def ui_set_value(window: dict, element: dict, value: str) -> dict:
     """Set an element's value through UIA, then read it back."""
+    from pywinauto.uia_defines import NoPatternInterfaceError  # type: ignore[import-not-found]
+
     wrapper = _element(_leased(window), element)
     _person_quiet()
     try:
-        wrapper.iface_value.SetValue(value)
-    except Exception:
+        interface = wrapper.iface_value
+    except (NoPatternInterfaceError, AttributeError):
         raise Refused("pattern_unsupported")
+    if interface is None:
+        raise Refused("pattern_unsupported")
+    mark_effect()
+    interface.SetValue(value)
+    actual = interface.CurrentValue
     after = _describe(wrapper)
-    return {"after": after, "matches": after.get("value") == value[:200]}
+    return {"after": after, "matches": actual is not None and str(actual) == value}
 
 
 @app.tool()
@@ -222,6 +248,7 @@ def ui_send_keys(window: dict, keys: str, element: dict | None = None) -> dict:
     control = _element(target, element) if element is not None else None
     _person_quiet()
     try:  # focusing can itself send input (pywinauto taps Alt to take the foreground)
+        mark_effect()
         target.set_focus()
         if win32gui.GetForegroundWindow() != window["hwnd"]:
             raise Refused("focus_lost")
@@ -246,6 +273,7 @@ def ui_click_point(window: dict, x: float, y: float, expectTitle: str) -> dict:
         raise Refused("unexpected_window")
     _person_quiet()
     try:
+        mark_effect()
         target.set_focus()
         if win32gui.GetForegroundWindow() != window["hwnd"]:
             raise Refused("focus_lost")

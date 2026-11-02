@@ -25,6 +25,8 @@ import time
 
 from mcp.server.mcpserver import MCPServer
 
+from .sandbox import Refused, guarded, mark_effect
+
 app = MCPServer("ocade-shell")
 WORKSPACE = os.environ.get("OCADE_WORKSPACE", "")
 OUTPUT_LIMIT = 6_000
@@ -101,13 +103,15 @@ async def _exited(process, seconds: float) -> bool:
 
 
 @app.tool()
+@guarded
 async def shell_run(command: str, timeoutSeconds: int = 60) -> dict:
     """Run one confirmed command in the workspace folder and report exactly what it printed."""
     if not WORKSPACE or not os.path.isdir(WORKSPACE):
-        return {"refused": "no_workspace"}
+        raise Refused("no_workspace")
     started = time.monotonic()
     # Async, so the worker keeps reading its input: STOP (the gateway closing it) ends the
     # worker at once, and the command's process tree with it, instead of after the command.
+    mark_effect()  # process creation can execute a command before the await fails
     process = await asyncio.create_subprocess_exec(
         *_shell(command), cwd=WORKSPACE, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
         start_new_session=sys.platform != "win32",
