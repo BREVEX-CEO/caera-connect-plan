@@ -137,7 +137,7 @@ class NestedMediaScope(unittest.TestCase):
     def test_hls_and_relative_concat_cannot_reveal_outside_canary(self):
         for kind in ("hls", "concat"):
             with self.subTest(kind=kind):
-                source = self.hls(self.canary.as_uri()) if kind == "hls" else self.concat()
+                source = self.hls(str(self.canary)) if kind == "hls" else self.concat()
                 control = subprocess.run([
                     "ffprobe", "-v", "error", "-show_entries", "stream=width,height",
                     "-of", "json", str(self.workspace / source),
@@ -149,7 +149,7 @@ class NestedMediaScope(unittest.TestCase):
                 self.assert_refused(result)
 
     def test_nested_source_cannot_be_copied_into_a_trimmed_deliverable(self):
-        source = self.hls(self.canary.as_uri())
+        source = self.hls(str(self.canary))
         output = self.workspace / "OCADE output/leaked.mp4"
         [result] = self.run_steps([("media.trim", {
             "source": source, "start": 0.25, "end": 1.25, "output": "OCADE output/leaked.mp4",
@@ -160,7 +160,7 @@ class NestedMediaScope(unittest.TestCase):
             self.assertEqual(list(output.parent.glob(".ocade-*")), [])
 
     def test_verifier_does_not_prove_predicates_from_outside_nested_media(self):
-        sources = (self.hls(self.canary.as_uri()), self.concat())
+        sources = (self.hls(str(self.canary)), self.concat())
         checks = []
         for index, source in enumerate(sources):
             checks.extend([
