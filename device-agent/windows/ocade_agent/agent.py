@@ -32,6 +32,11 @@ from .journal import Journal
 VERSION = "0.1.0"
 WATCH_SECONDS = 2.0
 TICK_SECONDS = 0.25
+# While a task runs the server is planning the next step: ask again promptly, never back off.
+ACTIVE_POLL_SECONDS = 0.5
+# An idle device backs off to this. ponytail: 30 s idle pickup; lower it only with the W2
+# server nudge, since each idle device spends ~2,900 of the free 100k daily Worker requests.
+IDLE_POLL_CAP = 30.0
 # Finite network/5xx receipt redelivery; journalled action effects are NEVER re-executed.
 RECEIPT_RETRY_DELAYS = (1.0, 2.0, 4.0, 8.0)
 
@@ -153,10 +158,15 @@ class Agent:
                 idle = 1.0
                 await self.handle(state["action"])
                 continue
-            if until_idle and not (state.get("task") or {}).get("status") == "running":
+            running = (state.get("task") or {}).get("status") == "running"
+            if until_idle and not running:
                 return
+            if running:
+                idle = 1.0
+                await anyio.sleep(ACTIVE_POLL_SECONDS + random.random() / 4)
+                continue
             await anyio.sleep(idle + random.random())
-            idle = min(idle * 2, 30.0)
+            idle = min(idle * 2, IDLE_POLL_CAP)
 
 
 def diagnose(home: Path, server: str | None, workspace: str | None) -> list[dict]:
