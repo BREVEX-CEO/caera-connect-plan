@@ -47,9 +47,7 @@ MAX_CALL_SECONDS = 300
 # dispatch to an app nor invoke browser, network, COM or command operations.
 # This is a recovery policy, not permission to execute: protocol grants and risk
 # checks still apply. Unlisted/future operations are conservative by default.
-PURE_READ_OPERATIONS = frozenset({
-    "fs.list", "fs.read_text", "office.inspect_workbook", "system.inspect",
-})
+PURE_READ_OPERATIONS = frozenset(PROTOCOL.get("pureReads", ()))
 # Network and browser settings the device owner chose, and the Windows system folders app
 # discovery reads (the SDK's minimal set omits them); never account credentials or tokens.
 PASS_THROUGH = (

@@ -239,6 +239,22 @@ export async function advance(admin: Admin, taskId: string, now = new Date()): P
   } catch (error) {
     // Lost a race to STOP or another planner: the database already holds the truth.
     if (error instanceof JarvisRefusal && error.code === "stale_controller") return;
+    if (error instanceof JarvisRefusal && error.code === "permission_required") {
+      // Grants can change while the planner is running. No action was admitted;
+      // keep the saved task resumable after the person restores its permissions.
+      try {
+        await call(admin, "jarvis_task_wait", {
+          p_task: taskId,
+          p_controller: task.controller,
+          p_reason: REFUSALS.permission_required,
+        });
+      } catch (waitError) {
+        if (!(waitError instanceof JarvisRefusal && waitError.code === "stale_controller")) {
+          throw waitError;
+        }
+      }
+      return;
+    }
     throw error;
   }
 }

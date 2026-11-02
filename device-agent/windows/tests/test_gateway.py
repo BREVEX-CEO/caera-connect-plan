@@ -496,7 +496,7 @@ class ResultBoundary(unittest.TestCase):
             content=[SimpleNamespace(text=json.dumps(payload))],
         )
 
-    def dispatch(self, operation, arguments, result=None, *, failure=None, start_failure=None):
+    def dispatch(self, operation, arguments, result=None, *, failure=None, start_failure=None, external=None):
         from types import SimpleNamespace
         from unittest.mock import AsyncMock, patch
 
@@ -508,7 +508,7 @@ class ResultBoundary(unittest.TestCase):
                 raise failure
             return result
 
-        gateway = Gateway(self.workspace)
+        gateway = Gateway(self.workspace, external=external)
         session = SimpleNamespace(call_tool=call_tool)
 
         async def run():
@@ -618,19 +618,42 @@ class ResultBoundary(unittest.TestCase):
                 self.assert_classification(receipt, True, "malformed_result")
 
     def test_valid_object_observations_remain_usable(self):
-        for operation, arguments, _changed in self.PURE_READS[:1] + self.BROWSER_READS + self.WRITES:
-            for structured, wrapped in ((False, False), (True, False), (False, True), (True, True)):
-                with self.subTest(operation=operation, structured=structured, wrapped=wrapped):
-                    payload = {"observed": "synthetic boundary control", "maybeChanged": True}
-                    receipt, dispatched = self.dispatch(
-                        operation, arguments,
-                        self.result({"result": payload} if wrapped else payload, structured=structured),
-                    )
-                    self.assertEqual(len(dispatched), 1)
-                    self.assertEqual(receipt["status"], "observed", receipt)
-                    self.assertEqual(receipt["evidence"]["observed"], payload["observed"])
-                    self.assertTrue(receipt["maybeChanged"], receipt)
-                    self.assertNotIn("errorCode", receipt)
+        verification = (("verify.checks", {"checks": [
+            {"id": "local", "description": "A file exists", "kind": "file_exists",
+             "params": {"path": "input.txt"}}
+        ]}, True),)
+        for operation, arguments, possible in self.PURE_READS + self.BROWSER_READS + self.WRITES + verification:
+            for marker in ({}, {"maybeChanged": False}, {"maybeChanged": True}):
+                for structured, wrapped in ((False, False), (True, False), (False, True), (True, True)):
+                    with self.subTest(operation=operation, marker=marker, structured=structured, wrapped=wrapped):
+                        payload = {"observed": "synthetic boundary control", **marker}
+                        receipt, dispatched = self.dispatch(
+                            operation, arguments,
+                            self.result({"result": payload} if wrapped else payload, structured=structured),
+                        )
+                        self.assertEqual(len(dispatched), 1)
+                        self.assertEqual(receipt["status"], "observed", receipt)
+                        self.assertEqual(receipt["evidence"]["observed"], payload["observed"])
+                        self.assertIs(receipt["maybeChanged"], possible or marker.get("maybeChanged") is True)
+                        self.assertNotIn("errorCode", receipt)
+
+        # This approved-manifest fixture isolates classification; no external
+        # executable or MCP server is started. Its returned text is untrusted.
+        manifest = {"id": "boundary", "state": "trusted", "tools": [{
+            "name": "inspect", "risk": "read",
+            "inputSchema": {"type": "object", "properties": {}, "additionalProperties": False},
+        }]}
+        receipt, dispatched = self.dispatch(
+            "mcp.read", {"server": "boundary", "tool": "inspect", "arguments": {}},
+            self.result({"maybeChanged": False, "observed": "untrusted external text"}),
+            external={"boundary": manifest},
+        )
+        self.assertEqual(dispatched, [("inspect", {})])
+        self.assertEqual(PROTOCOL["operations"]["mcp.read"]["risk"], "read")
+        self.assertEqual((receipt["status"], receipt["maybeChanged"]), ("observed", True))
+        self.assertEqual(receipt["evidence"]["server"], "boundary")
+        self.assertIn("untrusted external text", receipt["evidence"]["content"])
+        self.assertNotIn("errorCode", receipt)
 
 
 if __name__ == "__main__":

@@ -6,6 +6,7 @@ Safety negatives call the lower worker boundary through the real, handshaken MCP
 session; they do not relax the production Gateway/intent URL schema.
 """
 
+import gzip
 import inspect
 import json
 import os
@@ -14,6 +15,7 @@ import tempfile
 import threading
 import unittest
 import uuid
+import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from unittest.mock import patch
@@ -50,13 +52,19 @@ class RenderedWebVerification(unittest.TestCase):
                     result = result(self)
                 status, headers, body = result
                 self.send_response(status)
-                self.send_header("content-type", "text/html; charset=utf-8")
+                content_type = next((value for name, value in headers.items()
+                                     if name.lower() == "content-type"), "text/html; charset=utf-8")
+                self.send_header("content-type", content_type)
                 for name, value in headers.items():
-                    self.send_header(name, value)
-                body = body.encode("utf-8")
+                    if name.lower() != "content-type":
+                        self.send_header(name, value)
+                body = body.encode("utf-8") if isinstance(body, str) else body
                 self.send_header("content-length", str(len(body)))
                 self.end_headers()
-                self.wfile.write(body)
+                try:
+                    self.wfile.write(body)
+                except (BrokenPipeError, ConnectionResetError):
+                    pass  # Expected when the verifier rejects a response budget before its body.
 
             def do_POST(self):
                 owner.received.append((self.server.server_port, "POST", self.path))
@@ -74,6 +82,14 @@ class RenderedWebVerification(unittest.TestCase):
         self.addCleanup(thread.join, 3)
         self.addCleanup(server.shutdown)
         return f"http://127.0.0.1:{server.server_port}"
+
+    def assert_fixture_reachable(self, url, marker):
+        before = len(self.received)
+        opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+        with opener.open(url, timeout=5) as response:
+            self.assertIn(marker, response.read().decode("utf-8"))
+        self.assertTrue(any(request[2] == urlsplit(url).path for request in self.received[before:]),
+                        "the controlled trap must independently demonstrate that it is reachable")
 
     def run_checks(self, checks, private=True, executable=None):
         async def run():
@@ -94,15 +110,14 @@ class RenderedWebVerification(unittest.TestCase):
         return evidence
 
     def test_hidden_source_content_cannot_satisfy_a_rendered_page_check(self):
-        tokens = {key: uuid.uuid4().hex for key in (
-            "script", "style", "template", "hidden", "ancestor", "display", "visibility",
-            "opacity", "parent_opacity", "javascript", "offscreen", "clipped", "visible")}
-        self.routes["/page"] = (200, {}, f"""
+        keys = ("script", "style", "template", "hidden", "ancestor", "display", "visibility",
+                "opacity", "parent_opacity", "javascript", "offscreen", "clipped", "transparent",
+                "text_fill", "contrast", "pseudo", "first_letter", "tiny", "faint", "dark_canvas", "visible")
+        tokens = {key: uuid.uuid4().hex for key in keys}
+        static = f"""
             <!doctype html><html><head><style>
-            .gone {{display:none}} .clip {{clip-path:inset(100%)}}
-            .unused {{ --payload: "{tokens['style']}"; }}
+            .gone {{display:none}} .unused {{ --payload: "{tokens['style']}"; }}
             </style></head><body>
-            <script>window.payload = "{tokens['script']}";</script>
             <template>{tokens['template']}</template>
             <p hidden>{tokens['hidden']}</p>
             <div hidden><p>{tokens['ancestor']}</p></div>
@@ -110,49 +125,76 @@ class RenderedWebVerification(unittest.TestCase):
             <p style="visibility:hidden">{tokens['visibility']}</p>
             <p style="opacity:0">{tokens['opacity']}</p>
             <div style="opacity:0"><p>{tokens['parent_opacity']}</p></div>
-            <p id="javascript">{tokens['javascript']}</p>
-            <p style="position:absolute;left:-10000px">{tokens['offscreen']}</p>
-            <p class="clip">{tokens['clipped']}</p>
-            <p>{tokens['visible']}</p>
-            <script>
-            document.getElementById("javascript").style.display = "none";
-            Element.prototype.checkVisibility = () => true;
-            </script>
-            </body></html>""")
-        proposed = [check(self.base + "/page", token, key) for key, token in tokens.items()]
-        predicates = {}
-        for start in range(0, len(proposed), 10):
-            predicates.update(self.run_checks(proposed[start:start + 10])["predicates"])
+            <p>{tokens['visible']}</p></body></html>"""
+        self.routes["/static"] = (200, {}, static)
+        basic = ("style", "template", "hidden", "ancestor", "display", "visibility", "opacity", "parent_opacity")
+        predicates = self.run_checks(
+            [check(self.base + "/static", tokens[key], key) for key in (*basic, "visible")])["predicates"]
         self.assertIs(predicates.pop("visible"), True, predicates)
         for key, value in predicates.items():
             with self.subTest(hidden=key):
                 self.assertIsNot(value, True, "hidden source text must not become proof")
-        self.assertEqual(len([request for request in self.received if request[2] == "/page"]), 2,
+        self.assertEqual(len([request for request in self.received if request[2] == "/static"]), 1,
                          "same-URL predicates in one call must share one fresh observation")
+        dynamic = (f'<p id="javascript">{tokens["javascript"]}</p><script>'
+                   f'window.payload = "{tokens["script"]}";'
+                   'document.getElementById("javascript").style.display = "none";'
+                   'Element.prototype.checkVisibility = () => true;</script>')
+        self.routes["/dynamic"] = (200, {}, dynamic)
+        for key, value in self.run_checks(
+                [check(self.base + "/dynamic", tokens[key], key)
+                 for key in ("script", "javascript")])["predicates"].items():
+            with self.subTest(dynamic=key):
+                self.assertIsNone(value, "script-dependent pages remain unverified")
+        complex_pages = {
+            "offscreen": '<p style="position:absolute;left:-10000px">{}</p>',
+            "clipped": '<p style="clip-path:inset(100%)">{}</p>',
+            "transparent": '<p style="color:transparent">{}</p>',
+            "text_fill": '<p style="-webkit-text-fill-color:transparent">{}</p>',
+            "contrast": '<p style="color:white;background:white">{}</p>',
+            "tiny": '<p style="font-size:0.1px">{}</p>',
+            "faint": '<p style="color:#fefefe;background:white">{}</p>',
+            "dark_canvas": '<style>:root{{color-scheme:dark}}p{{color:Canvas}}</style><p>{}</p>',
+            "first_letter": '<style>p::first-letter{{color:transparent}}</style><p>{}</p>',
+            "pseudo": '<style>p::after{{content:"";position:absolute;inset:0;background:white}}</style>'
+                      '<p style="position:relative">{}</p>',
+        }
+        for key, body in complex_pages.items():
+            route = "/" + key
+            self.routes[route] = (200, {}, body.format(tokens[key]))
+            with self.subTest(rendering=key):
+                result = self.run_checks([check(self.base + route, tokens[key])])
+                self.assertIsNot(result["predicates"]["required"], True,
+                                 "unsupported or invisible painting must not become proof")
 
     def test_private_or_file_initial_urls_are_not_fetched(self):
         marker = uuid.uuid4().hex
         self.routes["/private"] = (200, {}, "<p>" + marker + "</p>")
-        result = self.run_checks([check(self.base + "/private", marker)], private=False)
-        self.assertIsNone(result["predicates"]["required"])
-        self.assertEqual(self.received, [], "no private request may precede the refusal")
         customer_file = Path(self.folder.name) / (uuid.uuid4().hex + ".html")
         customer_file.write_text("<p>" + marker + "</p>", encoding="utf-8")
-        result = self.run_checks([check(customer_file.as_uri(), marker)])
-        self.assertIsNone(result["predicates"]["required"])
-        self.assertEqual(customer_file.read_text(encoding="utf-8"), "<p>" + marker + "</p>")
+        for url, private in ((self.base + "/private", False), (customer_file.as_uri(), True)):
+            with self.subTest(url=url):
+                before = len(self.received)
+                result = self.run_checks([check(url, marker)], private=private)
+                self.assertIsNone(result["predicates"]["required"])
+                self.assertEqual(self.received[before:], [], "no forbidden URL may be fetched")
+                self.assertEqual(customer_file.read_text(encoding="utf-8"), "<p>" + marker + "</p>")
 
     def test_redirects_are_checked_before_the_destination_receives_a_request(self):
         marker = uuid.uuid4().hex
         trap = self.serve()
         route = "/" + uuid.uuid4().hex
         self.routes[route] = (200, {}, "<p>" + marker + "</p>")
-        for destination in (trap + route, "file:///" + uuid.uuid4().hex + ".html"):
+        customer_file = Path(self.folder.name) / (uuid.uuid4().hex + ".html")
+        customer_file.write_text("<p>" + marker + "</p>", encoding="utf-8")
+        self.assert_fixture_reachable(trap + route, marker)
+        for destination in (trap + route, customer_file.as_uri()):
             with self.subTest(destination=destination):
+                before = len(self.received)
                 self.routes["/redirect"] = (302, {"location": destination}, "")
                 result = self.run_checks([check(self.base + "/redirect", marker)])
                 self.assertIsNone(result["predicates"]["required"])
-                self.assertFalse(any(request[2] == route for request in self.received),
+                self.assertFalse(any(request[2] == route for request in self.received[before:]),
                                  "a private/off-origin redirect must be blocked before its HTTP effect")
 
     def test_same_origin_redirects_and_visible_text_are_observable(self):
@@ -167,16 +209,36 @@ class RenderedWebVerification(unittest.TestCase):
         trap = self.serve()
         route = "/" + uuid.uuid4().hex
         self.routes[route] = (200, {}, "<p>" + marker + "</p>")
-        for resource in (
-            '<link rel="stylesheet" href="' + trap + route + '">',
-            '<script>fetch("' + self.base + route + '", {method:"POST"})</script>',
+        for resource, destination in (
+            ('<link rel="stylesheet" href="' + trap + route + '">', trap + route),
+            ('<iframe src="' + self.base + route + '"></iframe>', self.base + route),
+            ('<script>fetch("' + self.base + route + '", {method:"POST"})</script>', self.base + route),
         ):
             with self.subTest(resource=resource):
+                self.assert_fixture_reachable(destination, marker)
+                before = len(self.received)
                 self.routes["/page"] = (200, {}, "<p>" + marker + "</p>" + resource)
                 result = self.run_checks([check(self.base + "/page", marker)])
                 self.assertIsNone(result["predicates"]["required"])
-                self.assertFalse(any(request[2] == route for request in self.received),
+                self.assertFalse(any(request[2] == route for request in self.received[before:]),
                                  "the verifier must not perform a blocked request")
+
+        oversized = "<p>" + marker + "</p>" + (" " * 2_000_100)
+        decoded = "<p>" + marker + "</p>" + (" " * 5_000_000)
+        links = "".join('<link rel="stylesheet" href="/style-' + str(index) + '">' for index in range(80))
+        for index in range(80):
+            self.routes["/style-" + str(index)] = (200, {"content-type": "text/css"}, "")
+        for label, headers, body, limit in (
+            ("declared", {}, oversized, "response_bytes"),
+            ("decoded", {"content-encoding": "gzip"}, gzip.compress(decoded.encode("utf-8")), "decoded_bytes"),
+            ("requests", {}, "<p>" + marker + "</p>" + links, "request_count"),
+        ):
+            with self.subTest(resource_limit=label):
+                self.routes["/budget"] = (200, headers, body)
+                result = self.run_checks([check(self.base + "/budget", marker)])
+                self.assertIsNone(result["predicates"]["required"])
+                self.assertEqual(result["measured"]["required"]["error"], "web_resource_limit", result)
+                self.assertEqual(result["measured"]["required"]["resourceLimit"], limit, result)
 
     def test_an_unavailable_browser_is_unverified_instead_of_a_source_text_pass(self):
         marker = uuid.uuid4().hex

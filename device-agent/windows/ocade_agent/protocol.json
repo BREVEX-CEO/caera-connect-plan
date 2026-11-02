@@ -5,6 +5,12 @@
     "reversible_write",
     "external_effect"
   ],
+  "pureReads": [
+    "fs.list",
+    "fs.read_text",
+    "office.inspect_workbook",
+    "system.inspect"
+  ],
   "signing": {
     "prefix": "OCADE-JARVIS-1",
     "skewSeconds": 300

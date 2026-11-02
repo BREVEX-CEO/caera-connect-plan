@@ -12,7 +12,22 @@ run -f tests/jarvis/db/supabase-stub.sql 2>/dev/null
 for migration in supabase/migrations/*.sql; do
   run -f "$migration" >/dev/null 2>&1 || { echo "migration failed: $migration"; run -f "$migration"; exit 1; }
 done
+failures=0
 for test in tests/jarvis/db/*.test.sql; do
-  run -f "$test"
-  echo "PASS $test"
+  if run -f "$test"; then
+    echo "PASS $test"
+  else
+    echo "FAIL $test"
+    failures=$((failures + 1))
+  fi
 done
+if python3 tests/jarvis/db/claim-receipt-race.py "$db"; then
+  echo "PASS task/receipt lock-order cases"
+else
+  echo "FAIL task/receipt lock-order cases"
+  failures=$((failures + 1))
+fi
+if [ "$failures" -ne 0 ]; then
+  echo "FAIL: $failures database test group(s)"
+  exit 1
+fi

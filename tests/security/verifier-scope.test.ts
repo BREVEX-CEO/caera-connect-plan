@@ -26,10 +26,17 @@ test("verifier queue rechecks permissions and waits after a stale planner snapsh
     providerCalls += 1;
     const call = { id: "verify", name: "finish", arguments: {} };
     res.writeHead(200, { "content-type": "text/event-stream" });
-    res.end([
-      { type: "tool_call", call },
-      { type: "final", response: { backend: "online", stopReason: "tool_use", toolCalls: [call] } },
-    ].map((frame) => `data: ${JSON.stringify(frame)}\r\n\r\n`).join(""));
+    res.end(
+      [
+        { type: "tool_call", call },
+        {
+          type: "final",
+          response: { backend: "online", stopReason: "tool_use", toolCalls: [call] },
+        },
+      ]
+        .map((frame) => `data: ${JSON.stringify(frame)}\r\n\r\n`)
+        .join(""),
+    );
   });
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
   const saved = { ...plannerAccess };
@@ -37,7 +44,13 @@ test("verifier queue rechecks permissions and waits after a stale planner snapsh
   plannerAccess.serviceUrl = () => `http://127.0.0.1:${port}`;
   plannerAccess.serviceKey = () => "synthetic-verifier-scope-key";
   plannerAccess.acquirePermit = async (_user, key) => ({
-    permit: { id: "p", generationId: key, idempotencyKey: key, surface: "jarvis", source: "server" },
+    permit: {
+      id: "p",
+      generationId: key,
+      idempotencyKey: key,
+      surface: "jarvis",
+      source: "server",
+    },
     release: async () => {},
   });
   try {
@@ -54,40 +67,61 @@ test("verifier queue rechecks permissions and waits after a stale planner snapsh
           rpc: async (name: string, args: Record<string, unknown>) => {
             calls.push({ name, args });
             return {
-              data: name === "jarvis_task_state" ? {
-                id: "task",
-                userId: "synthetic-user",
-                status: "running",
-                controller: "epoch",
-                title: "Check the allowed page and application",
-                outcome: checks,
-                grants: ["files", "browser", "site:allowed.example.test", "apps", "app:editor.exe"],
-                engines: ["browser", "desktop"],
-                mcp: [],
-                steps: [],
-              } : null,
-              error: name === "jarvis_queue_actions" && queueError ? { message: queueError }
-                : name === "jarvis_task_wait" && waitError ? { message: waitError } : null,
+              data:
+                name === "jarvis_task_state"
+                  ? {
+                      id: "task",
+                      userId: "synthetic-user",
+                      status: "running",
+                      controller: "epoch",
+                      title: "Check the allowed page and application",
+                      outcome: checks,
+                      grants: [
+                        "files",
+                        "browser",
+                        "site:allowed.example.test",
+                        "apps",
+                        "app:editor.exe",
+                      ],
+                      engines: ["browser", "desktop"],
+                      mcp: [],
+                      steps: [],
+                    }
+                  : null,
+              error:
+                name === "jarvis_queue_actions" && queueError
+                  ? { message: queueError }
+                  : name === "jarvis_task_wait" && waitError
+                    ? { message: waitError }
+                    : null,
             };
           },
         } as unknown as Admin;
         const before = providerCalls;
         const advancing = () => advance(admin, "task", new Date("2026-11-02T00:00:00Z"));
         if (waitError && waitError !== "stale_controller") {
-          await assert.rejects(advancing, (error: unknown) =>
-            error instanceof JarvisRefusal && error.code === waitError);
+          await assert.rejects(
+            advancing,
+            (error: unknown) => error instanceof JarvisRefusal && error.code === waitError,
+          );
         } else {
           await advancing();
         }
         assert.equal(providerCalls, before + 1);
         const queued = calls.find((call) => call.name === "jarvis_queue_actions");
         assert.ok(queued, JSON.stringify(calls));
-        const actions = queued.args.p_actions as { action: { operation: string; arguments: { checks: unknown } } }[];
+        const actions = queued.args.p_actions as {
+          action: { operation: string; arguments: { checks: unknown } };
+        }[];
         assert.equal(actions.length, 1);
         assert.equal(actions[0].action.operation, "verify.checks");
         assert.deepEqual(actions[0].action.arguments.checks, checks);
         const waits = calls.filter((call) => call.name === "jarvis_task_wait");
-        assert.equal(waits.length, queueError === "permission_required" ? 1 : 0, JSON.stringify(calls));
+        assert.equal(
+          waits.length,
+          queueError === "permission_required" ? 1 : 0,
+          JSON.stringify(calls),
+        );
         if (queueError === "permission_required") {
           assert.equal(waits[0].args.p_task, "task");
           assert.equal(waits[0].args.p_controller, "epoch");
@@ -99,6 +133,8 @@ test("verifier queue rechecks permissions and waits after a stale planner snapsh
   } finally {
     Object.assign(plannerAccess, saved);
     server.closeAllConnections();
-    await new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
+    await new Promise<void>((resolve, reject) =>
+      server.close((error) => (error ? reject(error) : resolve())),
+    );
   }
 });

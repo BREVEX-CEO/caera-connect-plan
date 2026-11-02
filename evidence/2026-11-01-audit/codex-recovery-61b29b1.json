@@ -1,0 +1,147 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "61b29b1afd97bfb87a7537b31fff6662e737c46c",
+  "sourceTree": "d9f4ffb9527567123277cd6c2857fc79863f4548",
+  "run": 41398100115,
+  "url": "https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41398100115",
+  "scope": "Cloud partial qualification and verifier authorization negatives, not a full release or customer workflow pass",
+  "jobs": [
+    {
+      "id": 125123741335,
+      "name": "Verifier permission revocation · disposable PostgreSQL",
+      "status": "completed",
+      "conclusion": "failure"
+    },
+    {
+      "id": 125123741540,
+      "name": "Planner safety / source formatting · Linux",
+      "status": "completed",
+      "conclusion": "failure"
+    },
+    {
+      "id": 125123741566,
+      "name": "Native receipt / COM / process safety · Windows",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 125124329016,
+      "name": "Portable build / model contracts / ephemeral DB · Linux",
+      "status": "completed",
+      "conclusion": "skipped"
+    },
+    {
+      "id": 125124329230,
+      "name": "Windows unsigned installer / frozen MCP smoke · NOT release-ready",
+      "status": "completed",
+      "conclusion": "skipped"
+    },
+    {
+      "id": 125124329808,
+      "name": "Python MCP / journal / browser · ${{ matrix.os }}",
+      "status": "completed",
+      "conclusion": "skipped"
+    }
+  ],
+  "tests": {
+    "focusedJavaScript": {
+      "total": 106,
+      "pass": 102,
+      "fail": 4,
+      "failedSubcases": 3,
+      "parentFailures": 1,
+      "remaining": "Stale permission authority wait/STOP/error cases"
+    },
+    "journal": {
+      "methods": 10,
+      "pass": 10,
+      "scope": "Real SQLite first-receipt races and actual Gateway fake-session STOP barrier"
+    },
+    "effectScopes": {
+      "methods": 9,
+      "pass": 9
+    },
+    "gatewayBoundary": {
+      "methods": 8,
+      "pass": 8
+    },
+    "focusedMcp": {
+      "methods": 6,
+      "pass": 6
+    },
+    "requiredBrowser": {
+      "methods": 3,
+      "pass": 3
+    },
+    "nativeSafety": {
+      "methods": 4,
+      "pass": 4
+    },
+    "verifier": {
+      "methods": 7,
+      "assertionFailures": 20,
+      "scope": "Old source negative controls; file branch/redirect pollution caveats from run68 remain"
+    },
+    "database": {
+      "existingAuthority": "PASS",
+      "completeObjectives": "PASS",
+      "verifierScope": "FAIL: browser revoked after queue still dispatched; later loop cases not reached"
+    }
+  },
+  "generated": {
+    "protocol": {
+      "length": 76687,
+      "sha256": "3603c04791848051f39c1d3bfd9e98c11948c7ff1ae52e423b49f403caf875ce",
+      "pureReads": [
+        "fs.list",
+        "fs.read_text",
+        "office.inspect_workbook",
+        "system.inspect"
+      ],
+      "temporaryOutputRestoredAfterCapture": true
+    },
+    "migration": {
+      "name": "20261102061041_enforce_verifier_target_permissions.sql",
+      "cliVersion": "2.122.0",
+      "scope": "Unlinked runner temporary project; no hosted schema changes"
+    }
+  },
+  "assessment": {
+    "requirements": {
+      "pass": 70,
+      "partial": 159,
+      "fail": 14,
+      "blocked": 5,
+      "untested": 18,
+      "total": 266,
+      "completedPercent": 26.3,
+      "remainingPercent": 73.7
+    },
+    "architecture": {
+      "pass": 41,
+      "partial": 41,
+      "fail": 1,
+      "blocked": 1,
+      "untested": 0,
+      "total": 84,
+      "completedPercent": 48.8,
+      "remainingPercent": 51.2
+    },
+    "commercial": {
+      "percent": 10,
+      "completedMilestones": 1,
+      "totalMilestones": 10,
+      "conditionsPass": 17,
+      "conditionsTotal": 42
+    },
+    "decision": "NO-GO"
+  },
+  "authorization": {
+    "implementationBranchOnly": true,
+    "mainModified": false,
+    "productionDeployed": false,
+    "personalComputerTests": false,
+    "liveProviderCalls": false,
+    "spending": false
+  }
+}
