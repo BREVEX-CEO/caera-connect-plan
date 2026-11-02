@@ -26,7 +26,7 @@ import anyio
 
 from . import catalog, discovery
 from .device import Device
-from .gateway import PROTOCOL, WORKERS, Gateway, receipt
+from .gateway import PROTOCOL, WORKERS, Gateway, effect_possible, receipt
 from .journal import Journal
 
 VERSION = "0.1.0"
@@ -94,20 +94,26 @@ class Agent:
 
         if "receipt" in outcome:
             return outcome["receipt"]
-        writes = intent.get("risk") != "read"
-        return receipt("unknown" if writes else "not_applied", writes, error="stopped")
+        uncertain = effect_possible(intent)
+        return receipt("unknown" if uncertain else "not_applied", uncertain, error="stopped")
 
     async def handle(self, action: dict) -> None:
         activity, intent = action["id"], action["intent"]
+        claimed = self.journal.start(activity, intent)
         held = self.journal.get(activity)
-        if held and held[0] == "finished":
+        matches = self.journal.matches(activity, intent)
+        if not matches:
+            # A repeated id cannot borrow the original action's receipt or
+            # reinterpret its pending effect under a different intent.
+            result = receipt("unknown", True, error="intent_mismatch")
+        elif held and held[0] == "finished":
             result = held[1]  # lost acknowledgement: resend, never re-run
-        elif held and intent.get("risk") != "read":
+        elif not claimed and effect_possible(intent):
             result = receipt("unknown", True, error="interrupted")
         else:
-            self.journal.start(activity, intent)
             result = await self._run_watched(activity, intent)
-        self.journal.finish(activity, result)
+        if matches:
+            result = self.journal.finish(activity, result)
         # A refused receipt used to retry forever (e.g. 413/422). Preserve the
         # durable result; never execute the effect again simply because ACK failed.
         for attempt in range(len(RECEIPT_RETRY_DELAYS) + 1):

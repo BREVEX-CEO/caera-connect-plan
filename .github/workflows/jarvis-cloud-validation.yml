@@ -116,10 +116,26 @@ jobs:
       - name: Source formatting
         if: success() || failure()
         run: npm run format:check
+      - name: Capture actual canonical protocol output for review
+        if: success() || failure()
+        run: |
+          target="device-agent/windows/ocade_agent/protocol.json"
+          cp "$target" "$RUNNER_TEMP/ocade-protocol-before.json"
+          trap 'cp "$RUNNER_TEMP/ocade-protocol-before.json" "$target"' EXIT
+          npm run jarvis:protocol
+          node --input-type=module -e 'import fs from "node:fs"; import crypto from "node:crypto"; const content=fs.readFileSync("device-agent/windows/ocade_agent/protocol.json","utf8"); console.log("OCADE_PROTOCOL_METADATA:"+JSON.stringify({length:content.length,sha256:crypto.createHash("sha256").update(content).digest("hex")})); for(let offset=0;offset<content.length;offset+=12000) console.log("OCADE_PROTOCOL_PART:"+JSON.stringify({offset,content:content.slice(offset,offset+12000)}));'
+      - name: Generate migration filename in an unlinked disposable CLI project
+        if: success() || failure()
+        run: |
+          candidate="$RUNNER_TEMP/ocade-verifier-migration-$GITHUB_RUN_ID"
+          mkdir -p "$candidate"
+          npx --yes supabase@2.122.0 init --workdir "$candidate"
+          npx --yes supabase@2.122.0 migration new enforce_verifier_target_permissions --workdir "$candidate"
+          node --input-type=module -e 'import fs from "node:fs"; import path from "node:path"; const folder=path.join(process.env.RUNNER_TEMP,"ocade-verifier-migration-"+process.env.GITHUB_RUN_ID,"supabase","migrations"); const files=fs.readdirSync(folder); if(files.length!==1||!/^\d{14}_enforce_verifier_target_permissions\.sql$/.test(files[0])) throw new Error("unexpected CLI migration output"); console.log("OCADE_MIGRATION_FILENAME:"+JSON.stringify({name:files[0],scope:"unlinked disposable runner project only"}));'
       - name: Formatting evidence for failed remote candidates
         if: failure()
         run: |
-          node --input-type=module -e 'import fs from "node:fs"; import prettier from "prettier"; for (const path of process.argv.slice(1)) console.log("OCADE_FORMAT:" + JSON.stringify({path, content: await prettier.format(fs.readFileSync(path, "utf8"), {...await prettier.resolveConfig(path), filepath:path})}));' src/lib/jarvis/contracts.ts src/lib/jarvis/planner.server.ts tests/security/planner.test.ts tests/security/verification.test.ts tests/security/readiness.test.ts tests/security/recovery.test.ts tests/security/objective.test.ts tests/security/confirmation.test.ts src/lib/jarvis/authority.server.ts src/lib/jarvis/supervisor.ts scripts/launch-readiness.mjs tests/jarvis/contracts.test.ts tests/jarvis/e2e.test.ts src/lib/jarvis/objective.ts src/lib/jarvis/functions.ts src/jarvis/JarvisWorkspace.tsx src/jarvis/JarvisBubble.tsx src/routes/ocade-jarvis.tsx ToRemove.md evidence/readiness/gates.json .github/workflows/jarvis-cloud-validation.yml
+          node --input-type=module -e 'import fs from "node:fs"; import prettier from "prettier"; for (const path of process.argv.slice(1)) console.log("OCADE_FORMAT:" + JSON.stringify({path, content: await prettier.format(fs.readFileSync(path, "utf8"), {...await prettier.resolveConfig(path), filepath:path})}));' src/lib/jarvis/contracts.ts src/lib/jarvis/planner.server.ts tests/security/planner.test.ts tests/security/verification.test.ts tests/security/readiness.test.ts tests/security/recovery.test.ts tests/security/verifier-scope.test.ts tests/security/objective.test.ts tests/security/confirmation.test.ts src/lib/jarvis/authority.server.ts src/lib/jarvis/supervisor.ts scripts/launch-readiness.mjs tests/jarvis/contracts.test.ts tests/jarvis/e2e.test.ts src/lib/jarvis/objective.ts src/lib/jarvis/functions.ts src/jarvis/JarvisWorkspace.tsx src/jarvis/JarvisBubble.tsx src/routes/ocade-jarvis.tsx ToRemove.md evidence/readiness/gates.json .github/workflows/jarvis-cloud-validation.yml
 
   windows-effects-safety:
     name: Native receipt / COM / process safety · Windows
@@ -136,8 +152,35 @@ jobs:
         working-directory: device-agent/windows
         run: python -c 'import sys, unittest; suite=unittest.defaultTestLoader.loadTestsFromNames(["tests.test_effect_receipts", "tests.test_quiescence"]); result=unittest.TextTestRunner(verbosity=2).run(suite); sys.exit(0 if result.wasSuccessful() and result.testsRun == 4 and not result.skipped else 1)'
 
+  database-safety:
+    name: Verifier permission revocation · disposable PostgreSQL
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: jarvis_disposable_ci_only
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 8
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: "5432"
+      PGUSER: postgres
+      PGPASSWORD: jarvis_disposable_ci_only
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Install disposable database client
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client
+      - name: Replay migrations and test authority, complete requests and verifier revocation
+        run: bash tests/jarvis/db/run.sh
+
   contracts-db:
-    needs: [planner-safety, windows-effects-safety]
+    needs: [planner-safety, windows-effects-safety, database-safety]
     name: Portable build / model contracts / ephemeral DB · Linux
     runs-on: ubuntu-latest
     timeout-minutes: 45

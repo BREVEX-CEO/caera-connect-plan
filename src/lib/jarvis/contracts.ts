@@ -843,6 +843,14 @@ export const OPERATIONS = {
 } as const;
 
 export type Operation = keyof typeof OPERATIONS;
+/** Audited local inspections; all other operations may have effects after dispatch. */
+export const PURE_READ_OPERATIONS = [
+  "fs.list",
+  "fs.read_text",
+  "office.inspect_workbook",
+  "system.inspect",
+] as const satisfies readonly Operation[];
+const pureReadOperations: ReadonlySet<string> = new Set(PURE_READ_OPERATIONS);
 const operationNames = Object.keys(OPERATIONS) as [Operation, ...Operation[]];
 
 /** One queued action, as stored in `jarvis_activity.action` and sent to the device. */
@@ -888,6 +896,11 @@ export const actionIntent = z
     }
   });
 export type ActionIntent = z.infer<typeof actionIntent>;
+
+/** Permissions describe consent; only audited inspection code proves replay is safe. */
+export function effectPossible(action: Pick<ActionIntent, "operation" | "risk">): boolean {
+  return action.risk !== "read" || !pureReadOperations.has(action.operation);
+}
 
 /** Build a registry-consistent intent; the only way the planner makes one. */
 export function intent<O extends Operation>(
@@ -1092,6 +1105,7 @@ export function protocolSchema() {
   return {
     version: PROTOCOL_VERSION,
     risks: RISKS,
+    pureReads: PURE_READ_OPERATIONS,
     signing: { prefix: "OCADE-JARVIS-1", skewSeconds: 300 },
     operations: Object.fromEntries(
       Object.entries(OPERATIONS).map(([name, spec]) => [

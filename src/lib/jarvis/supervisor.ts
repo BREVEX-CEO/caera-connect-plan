@@ -6,6 +6,7 @@
  * sequences here. Policy and independently checked evidence settle the task.
  */
 import type { ActionIntent, ActionReceipt, OutcomeCheck, VerificationResult } from "./contracts.ts";
+import { effectPossible } from "./contracts.ts";
 
 export interface Step {
   intent: ActionIntent;
@@ -42,7 +43,7 @@ export function unresolvedEffect(steps: Step[]): string | null {
     return (
       unparsedChange ||
       (step.receipt?.maybeChanged === true && step.receipt.status !== "observed") ||
-      (step.intent.risk !== "read" &&
+      (effectPossible(step.intent) &&
         (step.effectUnknown || step.receipt?.status === "unknown" || unparsedUnknown))
     );
   })

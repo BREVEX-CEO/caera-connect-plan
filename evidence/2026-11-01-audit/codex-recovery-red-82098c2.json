@@ -1,0 +1,580 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "82098c24d2b2bc3bfc18bd22952699fb4af8ebf2",
+  "sourceTree": "552ba5d1d547d5b65763c927fddc90449e89bebf",
+  "run": 41396810837,
+  "url": "https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41396810837",
+  "scope": "Cloud adversarial controls against old caller/verifier source; no provider/customer/personal-PC tests",
+  "jobs": [
+    {
+      "id": 125119792690,
+      "name": "Native receipt / COM / process safety · Windows",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 125119792941,
+      "name": "Planner safety / source formatting · Linux",
+      "status": "completed",
+      "conclusion": "failure"
+    },
+    {
+      "id": 125120126793,
+      "name": "Portable build / model contracts / ephemeral DB · Linux",
+      "status": "completed",
+      "conclusion": "skipped"
+    },
+    {
+      "id": 125120127441,
+      "name": "Python MCP / journal / browser · ${{ matrix.os }}",
+      "status": "completed",
+      "conclusion": "skipped"
+    },
+    {
+      "id": 125120127865,
+      "name": "Windows unsigned installer / frozen MCP smoke · NOT release-ready",
+      "status": "completed",
+      "conclusion": "skipped"
+    }
+  ],
+  "tests": {
+    "focusedJavaScript": {
+      "total": 100,
+      "pass": 95,
+      "fail": 5,
+      "failedSubcases": 4,
+      "parentFailures": 1,
+      "subject": "Status-only unknown web.open and web.close reach planning/queue instead of a fence"
+    },
+    "journal": {
+      "methods": 10,
+      "assertionFailures": 5,
+      "errors": 5,
+      "subject": "Pending opaque calls replay; stopped calls downgraded; changed intent accepted; stale finish replaces winner"
+    },
+    "verifier": {
+      "methods": 7,
+      "assertionFailures": 20,
+      "subject": "Hidden/source text can pass; private and redirected HTTP probes accepted; repeated observations13 instead of2",
+      "caveats": [
+        "Private initial URL failure prevented subsequent file-URL branch in same method",
+        "File redirect zero-hit assertion saw prior off-origin request; not independent file-exfiltration evidence",
+        "Renderer lifecycle assertions intentionally fail because old verifier never starts browser"
+      ]
+    },
+    "native": {
+      "methods": 4,
+      "pass": 4,
+      "com": {
+        "errors": [],
+        "records": [
+          {
+            "after": [
+              0,
+              1,
+              1
+            ],
+            "before": [
+              0,
+              1,
+              1
+            ],
+            "during": [
+              [
+                0,
+                3,
+                0
+              ],
+              [
+                0,
+                3,
+                0
+              ],
+              [
+                0,
+                3,
+                0
+              ],
+              [
+                0,
+                3,
+                0
+              ],
+              [
+                0,
+                3,
+                0
+              ]
+            ],
+            "events": [
+              {
+                "apartment": [
+                  0,
+                  3,
+                  0
+                ],
+                "call": "initialize",
+                "flags": 2,
+                "returned": "None",
+                "success": true
+              },
+              {
+                "apartment": [
+                  0,
+                  1,
+                  1
+                ],
+                "call": "uninitialize"
+              },
+              {
+                "apartment": [
+                  0,
+                  3,
+                  0
+                ],
+                "call": "initialize",
+                "flags": 2,
+                "returned": "None",
+                "success": true
+              },
+              {
+                "apartment": [
+                  0,
+                  1,
+                  1
+                ],
+                "call": "uninitialize"
+              },
+              {
+                "apartment": [
+                  0,
+                  3,
+                  0
+                ],
+                "call": "initialize",
+                "flags": 2,
+                "returned": "None",
+                "success": true
+              },
+              {
+                "apartment": [
+                  0,
+                  1,
+                  1
+                ],
+                "call": "uninitialize"
+              },
+              {
+                "apartment": [
+                  0,
+                  3,
+                  0
+                ],
+                "call": "initialize",
+                "flags": 2,
+                "returned": "None",
+                "success": true
+              },
+              {
+                "apartment": [
+                  0,
+                  1,
+                  1
+                ],
+                "call": "uninitialize"
+              },
+              {
+                "apartment": [
+                  0,
+                  3,
+                  0
+                ],
+                "call": "initialize",
+                "flags": 2,
+                "returned": "None",
+                "success": true
+              },
+              {
+                "apartment": [
+                  0,
+                  1,
+                  1
+                ],
+                "call": "uninitialize"
+              }
+            ],
+            "initial": [
+              0,
+              1,
+              1
+            ],
+            "mode": "fresh",
+            "outcomes": [
+              {},
+              {
+                "maybeChanged": false,
+                "refused": "probe_precondition"
+              },
+              "raised",
+              {},
+              {}
+            ],
+            "released": [
+              0,
+              1,
+              1
+            ]
+          },
+          {
+            "after": [
+              0,
+              3,
+              0
+            ],
+            "before": [
+              0,
+              3,
+              0
+            ],
+            "during": [
+              [
+                0,
+                3,
+                0
+              ],
+              [
+                0,
+                3,
+                0
+              ],
+              [
+                0,
+                3,
+                0
+              ],
+              [
+                0,
+                3,
+                0
+              ],
+              [
+                0,
+                3,
+                0
+              ]
+            ],
+            "events": [
+              {
+                "apartment": [
+                  0,
+                  3,
+                  0
+                ],
+                "call": "initialize",
+                "flags": 2,
+                "returned": "None",
+                "success": true
+              },
+              {
+                "apartment": [
+                  0,
+                  3,
+                  0
+                ],
+                "call": "uninitialize"
+              },
+              {
+                "apartment": [
+                  0,
+                  3,
+                  0
+                ],
+                "call": "initialize",
+                "flags": 2,
+                "returned": "None",
+                "success": true
+              },
+              {
+                "apartment": [
+                  0,
+                  3,
+                  0
+                ],
+                "call": "uninitialize"
+              },
+              {
+                "apartment": [
+                  0,
+                  3,
+                  0
+                ],
+                "call": "initialize",
+                "flags": 2,
+                "returned": "None",
+                "success": true
+              },
+              {
+                "apartment": [
+                  0,
+                  3,
+                  0
+                ],
+                "call": "uninitialize"
+              },
+              {
+                "apartment": [
+                  0,
+                  3,
+                  0
+                ],
+                "call": "initialize",
+                "flags": 2,
+                "returned": "None",
+                "success": true
+              },
+              {
+                "apartment": [
+                  0,
+                  3,
+                  0
+                ],
+                "call": "uninitialize"
+              },
+              {
+                "apartment": [
+                  0,
+                  3,
+                  0
+                ],
+                "call": "initialize",
+                "flags": 2,
+                "returned": "None",
+                "success": true
+              },
+              {
+                "apartment": [
+                  0,
+                  3,
+                  0
+                ],
+                "call": "uninitialize"
+              }
+            ],
+            "initial": [
+              0,
+              1,
+              1
+            ],
+            "mode": "sta",
+            "outcomes": [
+              {},
+              {
+                "maybeChanged": false,
+                "refused": "probe_precondition"
+              },
+              "raised",
+              {},
+              {}
+            ],
+            "released": [
+              0,
+              1,
+              1
+            ]
+          },
+          {
+            "after": [
+              0,
+              1,
+              0
+            ],
+            "before": [
+              0,
+              1,
+              0
+            ],
+            "during": [
+              [
+                0,
+                1,
+                0
+              ],
+              [
+                0,
+                1,
+                0
+              ],
+              [
+                0,
+                1,
+                0
+              ],
+              [
+                0,
+                1,
+                0
+              ],
+              [
+                0,
+                1,
+                0
+              ]
+            ],
+            "events": [
+              {
+                "call": "initialize",
+                "error": 2147549446,
+                "flags": 2
+              },
+              {
+                "apartment": [
+                  0,
+                  1,
+                  0
+                ],
+                "call": "initialize",
+                "flags": 0,
+                "returned": "None",
+                "success": true
+              },
+              {
+                "apartment": [
+                  0,
+                  1,
+                  0
+                ],
+                "call": "uninitialize"
+              },
+              {
+                "call": "initialize",
+                "error": 2147549446,
+                "flags": 2
+              },
+              {
+                "apartment": [
+                  0,
+                  1,
+                  0
+                ],
+                "call": "initialize",
+                "flags": 0,
+                "returned": "None",
+                "success": true
+              },
+              {
+                "apartment": [
+                  0,
+                  1,
+                  0
+                ],
+                "call": "uninitialize"
+              },
+              {
+                "call": "initialize",
+                "error": 2147549446,
+                "flags": 2
+              },
+              {
+                "apartment": [
+                  0,
+                  1,
+                  0
+                ],
+                "call": "initialize",
+                "flags": 0,
+                "returned": "None",
+                "success": true
+              },
+              {
+                "apartment": [
+                  0,
+                  1,
+                  0
+                ],
+                "call": "uninitialize"
+              },
+              {
+                "call": "initialize",
+                "error": 2147549446,
+                "flags": 2
+              },
+              {
+                "apartment": [
+                  0,
+                  1,
+                  0
+                ],
+                "call": "initialize",
+                "flags": 0,
+                "returned": "None",
+                "success": true
+              },
+              {
+                "apartment": [
+                  0,
+                  1,
+                  0
+                ],
+                "call": "uninitialize"
+              },
+              {
+                "call": "initialize",
+                "error": 2147549446,
+                "flags": 2
+              },
+              {
+                "apartment": [
+                  0,
+                  1,
+                  0
+                ],
+                "call": "initialize",
+                "flags": 0,
+                "returned": "None",
+                "success": true
+              },
+              {
+                "apartment": [
+                  0,
+                  1,
+                  0
+                ],
+                "call": "uninitialize"
+              }
+            ],
+            "initial": [
+              0,
+              1,
+              1
+            ],
+            "mode": "mta",
+            "outcomes": [
+              {},
+              {
+                "maybeChanged": false,
+                "refused": "probe_precondition"
+              },
+              "raised",
+              {},
+              {}
+            ],
+            "released": [
+              0,
+              1,
+              1
+            ]
+          }
+        ]
+      },
+      "interpretation": "15 successful own references balanced by15 releases; fresh implicit MTA, explicit STA and explicit MTA preserved including error/refusal paths"
+    }
+  },
+  "assessment": {
+    "requirementsPass": 70,
+    "requirementsTotal": 266,
+    "architecturePass": 41,
+    "architectureTotal": 84,
+    "commercialReadinessPercent": 10,
+    "decision": "NO-GO"
+  }
+}

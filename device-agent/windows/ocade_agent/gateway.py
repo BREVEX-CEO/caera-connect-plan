@@ -59,6 +59,16 @@ PASS_THROUGH = (
 )
 
 
+def effect_possible(intent: dict) -> bool:
+    """A lost response needs reconciliation unless this is an audited local read.
+
+    Keep journal replay, STOP and live dispatch on the same conservative policy.
+    Unknown operations or malformed risk declarations never qualify as pure.
+    """
+    operation = intent.get("operation")
+    return intent.get("risk") != "read" or not isinstance(operation, str) or operation not in PURE_READ_OPERATIONS
+
+
 def now_utc() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="milliseconds").replace("+00:00", "Z")
 
@@ -263,7 +273,7 @@ class Gateway:
         key, tool, arguments = target
 
         writes = spec["risk"] != "read"
-        uncertain = writes or intent["operation"] not in PURE_READ_OPERATIONS
+        uncertain = effect_possible(intent)
         try:
             session = await self._session(key)
         except anyio.get_cancelled_exc_class():
