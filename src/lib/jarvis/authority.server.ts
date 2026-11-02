@@ -122,6 +122,7 @@ interface TaskState {
     createdAt: string;
     completedAt: string | null;
     confirmedAt: string | null;
+    claimedAt?: string | null;
     resolution: "applied" | "not_applied" | null;
   }[];
 }
@@ -141,23 +142,44 @@ export function taskTiming(task: Pick<TaskState, "status" | "timing" | "steps">)
     return {
       durationMs: typeof measured === "number" ? measured : null,
       confirmWaitMs: ms(step.createdAt, step.confirmedAt),
+      // Queued (or confirmed) until the device picked it up.
+      pickupMs: step.claimedAt ? ms(step.confirmedAt ?? step.createdAt, step.claimedAt) : null,
     };
   });
   const measured = steps.flatMap((step) => (step.durationMs === null ? [] : [step.durationMs]));
   const done = task.status === "completed";
+  const sum = (values: (number | null)[]) => values.reduce<number>((a, b) => a + (b ?? 0), 0);
+  const totalElapsedMs = ms(timing.acceptedAt, timing.finishedAt ?? timing.now);
+  const pickupMs = sum(steps.map((step) => step.pickupMs));
+  const userWaitMs = sum(steps.map((step) => step.confirmWaitMs));
+  const activeExecutionMs = measured.length ? Math.round(sum(measured)) : null;
   return {
     acceptedAt: timing.acceptedAt,
     finishedAt: timing.finishedAt,
     verifiedAt: done ? timing.finishedAt : null,
     deliveredAt: done ? timing.finishedAt : null,
-    totalElapsedMs: ms(timing.acceptedAt, timing.finishedAt ?? timing.now),
+    totalElapsedMs,
     // Waiting on the person is their confirmations; other pauses (Take Over, a busy planner,
     // an uncertain step to check) are reported as paused, not blamed on the person.
-    userWaitMs: steps.reduce((sum, step) => sum + (step.confirmWaitMs ?? 0), 0),
+    userWaitMs,
     pausedMs: timing.pausedMs,
-    activeExecutionMs: measured.length ? Math.round(measured.reduce((a, b) => a + b, 0)) : null,
+    activeExecutionMs,
     modelCalls: timing.modelCalls,
     modelMs: timing.modelMs,
+    pickupMs,
+    // What no phase explains (transport, receipt delivery, server work); the W2 target is ≤10%.
+    unaccountedMs:
+      totalElapsedMs === null
+        ? null
+        : Math.max(
+            0,
+            totalElapsedMs -
+              timing.modelMs -
+              (activeExecutionMs ?? 0) -
+              timing.pausedMs -
+              userWaitMs -
+              pickupMs,
+          ),
     stepDurationsMs: steps.map((step) => step.durationMs),
   };
 }

@@ -203,6 +203,7 @@ export type Database = {
       jarvis_activity: {
         Row: {
           action: Json | null
+          claimed_at: string | null
           completed_at: string | null
           confirmed: boolean
           confirmed_at: string | null
@@ -220,6 +221,7 @@ export type Database = {
         }
         Insert: {
           action?: Json | null
+          claimed_at?: string | null
           completed_at?: string | null
           confirmed?: boolean
           confirmed_at?: string | null
@@ -237,6 +239,7 @@ export type Database = {
         }
         Update: {
           action?: Json | null
+          claimed_at?: string | null
           completed_at?: string | null
           confirmed?: boolean
           confirmed_at?: string | null

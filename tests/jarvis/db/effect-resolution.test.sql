@@ -42,6 +42,8 @@ BEGIN
   PERFORM public.jarvis_queue_actions(v_task.task_id, v_task.controller, '[{"summary":"Look","action":
     {"key":"look","operation":"fs.list","capability":"files","risk":"read","arguments":{}}}]'::jsonb);
   v_read := (public.jarvis_claim_action(v_device) -> 'action' ->> 'id')::uuid;
+  PERFORM pg_temp.resolve_assert((SELECT claimed_at IS NOT NULL FROM public.jarvis_activity WHERE id = v_read),
+                                 'a claim records when the device picked the step up');
   PERFORM public.jarvis_submit_receipt(v_device, v_read, '{"status":"observed","maybeChanged":false,
     "observedAtUtc":"2026-11-02T00:00:00.000Z","evidence":{}}'::jsonb);
 
