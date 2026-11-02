@@ -339,3 +339,34 @@ test("mutations require fresh planning; unknown effects fence resumption", async
     );
   }
 });
+
+test("only the person's answer lifts an unknown-effect fence; the step is never re-run", async () => {
+  const { unresolvedEffect } = await import("../../src/lib/jarvis/supervisor.ts");
+  const written = intent("fs.write_text", "write", { path: output, text: "x" }, deadline);
+  const unknown: Step = {
+    intent: written,
+    status: "blocked",
+    receipt: {
+      status: "unknown",
+      maybeChanged: true,
+      observedAtUtc: now.toISOString(),
+      evidence: {},
+      errorCode: "worker_lost",
+    },
+  };
+  assert.ok(unresolvedEffect([unknown]), "an unobserved write fences the task");
+  for (const resolution of ["applied", "not_applied"] as const) {
+    assert.equal(unresolvedEffect([{ ...unknown, resolution }]), null, resolution);
+  }
+  const observed: Step = {
+    ...unknown,
+    status: "done",
+    receipt: {
+      status: "observed",
+      maybeChanged: true,
+      observedAtUtc: now.toISOString(),
+      evidence: {},
+    },
+  };
+  assert.equal(unresolvedEffect([observed]), null, "an observed effect needs no answer");
+});

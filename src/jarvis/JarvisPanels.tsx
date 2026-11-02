@@ -5,6 +5,7 @@ import { Trash2, X } from "lucide-react";
 import { deleteConversation, listConversations } from "@/lib/ocade.functions";
 import {
   confirmJarvisStep,
+  resolveJarvisStep,
   getJarvisTask,
   listJarvisAccess,
   listJarvisDevices,
@@ -460,6 +461,34 @@ export function TaskPanel({
               >
                 Allow this step
               </button>
+            ) : null}
+            {step.needsAnswer ? (
+              <span className="flex basis-full flex-wrap items-center gap-2 text-xs">
+                <span className="text-muted-foreground">
+                  Nobody saw whether this finished. Check your computer, then tell JARVIS:
+                </span>
+                {(
+                  [
+                    ["applied", "It happened"],
+                    ["not_applied", "It did not happen"],
+                  ] as const
+                ).map(([resolution, label]) => (
+                  <button
+                    key={resolution}
+                    type="button"
+                    onClick={() =>
+                      act(resolveJarvisStep({ data: { activityId: step.id, resolution } }))
+                    }
+                    className="rounded-full border border-border px-3 py-0.5 hover:bg-accent"
+                  >
+                    {label}
+                  </button>
+                ))}
+              </span>
+            ) : step.resolution ? (
+              <span className="basis-full text-xs text-muted-foreground">
+                You said it {step.resolution === "applied" ? "happened" : "did not happen"}.
+              </span>
             ) : null}
           </li>
         ))}

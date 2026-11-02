@@ -210,6 +210,8 @@ export type Database = {
           created_at: string
           device_id: string | null
           id: string
+          resolution: string | null
+          resolved_at: string | null
           result: Json | null
           status: string
           summary: string
@@ -225,6 +227,8 @@ export type Database = {
           created_at?: string
           device_id?: string | null
           id?: string
+          resolution?: string | null
+          resolved_at?: string | null
           result?: Json | null
           status?: string
           summary: string
@@ -240,6 +244,8 @@ export type Database = {
           created_at?: string
           device_id?: string | null
           id?: string
+          resolution?: string | null
+          resolved_at?: string | null
           result?: Json | null
           status?: string
           summary?: string
@@ -1901,6 +1907,10 @@ export type Database = {
       jarvis_queue_actions: {
         Args: { p_actions: Json; p_controller: string; p_task: string }
         Returns: number
+      }
+      jarvis_resolve_effect: {
+        Args: { p_activity: string; p_resolution: string; p_user: string }
+        Returns: boolean
       }
       jarvis_revoke_device: {
         Args: { p_device: string; p_user: string }

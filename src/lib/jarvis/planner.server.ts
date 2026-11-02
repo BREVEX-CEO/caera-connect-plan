@@ -580,6 +580,12 @@ export function history(steps: Step[]): string {
       observed:
         observed.length > limit ? `${observed.slice(0, limit)}… (clipped)` : step.receipt?.evidence,
       error: step.receipt?.errorCode,
+      // The person said whether a step nobody could observe took effect; it is never repeated.
+      ...(step.resolution
+        ? {
+            personSays: step.resolution === "applied" ? "it took effect" : "it did not take effect",
+          }
+        : {}),
       ...(step.receipt?.preview ? { image: `attached as step-${index + 1}.jpg if recent` } : {}),
     });
   });

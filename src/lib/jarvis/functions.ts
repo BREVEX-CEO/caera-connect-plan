@@ -117,6 +117,18 @@ export const confirmJarvisStep = createServerFn({ method: "POST" })
     };
   });
 
+/** The person says whether a step nobody could observe took effect. It is never run again. */
+export const resolveJarvisStep = createServerFn({ method: "POST" })
+  .middleware([requireSession])
+  .validator((i) =>
+    z.object({ activityId: uuid, resolution: z.enum(["applied", "not_applied"]) }).parse(i),
+  )
+  .handler(async ({ data, context }) => {
+    const { admin, resolveEffect } = await authority();
+    await guarded(() => resolveEffect(admin, context.userId, data.activityId, data.resolution));
+    return { resolved: true };
+  });
+
 /** The newest task in one JARVIS conversation, if any (read as the person, under RLS). */
 export const latestJarvisTask = createServerFn({ method: "GET" })
   .middleware([requireSession])

@@ -16,6 +16,8 @@ export interface Step {
   effectUnknown?: boolean;
   /** Preserve incomplete durable receipts without inventing a validated device observation. */
   unparsedReceipt?: unknown;
+  /** The person's answer for a step whose effect was unknown; the step itself never runs again. */
+  resolution?: "applied" | "not_applied" | null;
 }
 
 export type Decision =
@@ -32,23 +34,26 @@ export type Decision =
 
 /** Unobserved possible effects cannot be resumed or repeated without a separate resolution. */
 export function unresolvedEffect(steps: Step[]): string | null {
-  return steps.some((step) => {
-    const raw = step.unparsedReceipt;
-    const marker = typeof raw === "object" && raw !== null ? raw : null;
-    // A malformed receipt cannot prove an observation, even if its raw status claims one.
-    const unparsedChange =
-      marker !== null && "maybeChanged" in marker && marker.maybeChanged === true;
-    const unparsedUnknown = marker !== null && "status" in marker && marker.status === "unknown";
-    // A declared read is not proof of no effect when its receipt explicitly admits one.
-    return (
-      unparsedChange ||
-      (step.receipt?.maybeChanged === true && step.receipt.status !== "observed") ||
-      (effectPossible(step.intent) &&
-        (step.effectUnknown || step.receipt?.status === "unknown" || unparsedUnknown))
-    );
-  })
+  return steps.some((step) => effectInDoubt(step) && !step.resolution)
     ? "An earlier action may already have changed your computer. Check its result before starting more work. JARVIS will not repeat it."
     : null;
+}
+
+/** A finished step that may have changed something nobody observed. */
+export function effectInDoubt(step: Step): boolean {
+  const raw = step.unparsedReceipt;
+  const marker = typeof raw === "object" && raw !== null ? raw : null;
+  // A malformed receipt cannot prove an observation, even if its raw status claims one.
+  const unparsedChange =
+    marker !== null && "maybeChanged" in marker && marker.maybeChanged === true;
+  const unparsedUnknown = marker !== null && "status" in marker && marker.status === "unknown";
+  // A declared read is not proof of no effect when its receipt explicitly admits one.
+  return (
+    unparsedChange ||
+    (step.receipt?.maybeChanged === true && step.receipt.status !== "observed") ||
+    (effectPossible(step.intent) &&
+      (step.effectUnknown || step.receipt?.status === "unknown" || unparsedUnknown))
+  );
 }
 
 export const open = (step: Step) =>

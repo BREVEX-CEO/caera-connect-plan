@@ -24,7 +24,7 @@ import {
   deviceRequest,
   type OutcomeCheck,
 } from "./contracts.ts";
-import { unresolvedEffect, type Decision, type Step } from "./supervisor.ts";
+import { effectInDoubt, unresolvedEffect, type Decision, type Step } from "./supervisor.ts";
 import {
   PlannerUnavailable,
   compileGoal,
@@ -112,6 +112,7 @@ interface TaskState {
     createdAt: string;
     completedAt: string | null;
     confirmedAt: string | null;
+    resolution: "applied" | "not_applied" | null;
   }[];
 }
 
@@ -171,6 +172,7 @@ export async function advance(admin: Admin, taskId: string, now = new Date()): P
       receipt,
       // Durable STOP/crash records may be incomplete. Keep their uncertainty for the shared fence.
       unparsedReceipt: receipt === null ? raw : undefined,
+      resolution: step.resolution,
     };
   });
   const unknown = unresolvedEffect(steps);
@@ -335,6 +337,20 @@ export async function resumeTask(admin: Admin, userId: string, taskId: string) {
   await advance(admin, taskId);
 }
 
+export async function resolveEffect(
+  admin: Admin,
+  userId: string,
+  activityId: string,
+  resolution: "applied" | "not_applied",
+) {
+  const answered = await call<boolean>(admin, "jarvis_resolve_effect", {
+    p_user: userId,
+    p_activity: activityId,
+    p_resolution: resolution,
+  });
+  if (!answered) throw new JarvisRefusal("task_not_found", REFUSALS.task_not_found);
+}
+
 export function confirmAction(admin: Admin, userId: string, activityId: string) {
   return call<boolean>(admin, "jarvis_confirm_action", { p_user: userId, p_activity: activityId });
 }
@@ -350,6 +366,7 @@ export async function taskView(admin: Admin, userId: string, taskId: string) {
     unverified?: string[];
   } | null;
   const timing = taskTiming(task);
+  const open = ["waiting", "taken_over"].includes(task.status);
   return {
     id: task.id,
     status: task.status,
@@ -364,15 +381,36 @@ export async function taskView(admin: Admin, userId: string, taskId: string) {
           ? "failed"
           : "unchecked",
     })),
-    steps: task.steps.map((step, index) => ({
-      id: step.id,
-      durationMs: timing.stepDurationsMs[index],
-      summary: step.summary,
-      status: step.status,
-      needsConfirmation: step.status === "needs_confirmation",
-      // What the person allows is the exact operation and arguments, not a model-written summary.
-      effect: step.status === "needs_confirmation" ? exactEffect(step.intent) : undefined,
-    })),
+    steps: task.steps.map((step, index) => {
+      const receipt = step.receipt ? (actionReceipt.safeParse(step.receipt).data ?? null) : null;
+      const intent = actionIntent.safeParse(step.intent);
+      // The person answers whether a step whose effect nobody observed took effect.
+      const needsAnswer =
+        open &&
+        !step.resolution &&
+        !["queued", "claimed", "needs_confirmation"].includes(step.status) &&
+        (!intent.success ||
+          effectInDoubt({
+            intent: intent.data,
+            status: step.status,
+            receipt,
+            unparsedReceipt: receipt === null ? step.receipt : undefined,
+          }));
+      return {
+        id: step.id,
+        durationMs: timing.stepDurationsMs[index],
+        summary: step.summary,
+        status: step.status,
+        needsConfirmation: step.status === "needs_confirmation",
+        needsAnswer,
+        resolution: step.resolution,
+        // What the person allows or answers about is the exact operation and arguments.
+        effect:
+          step.status === "needs_confirmation" || needsAnswer
+            ? exactEffect(step.intent)
+            : undefined,
+      };
+    }),
     device: task.deviceName,
     timing,
     // Files JARVIS wrote and saw land, named as they are in the computer's JARVIS folder.
