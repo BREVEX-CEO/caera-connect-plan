@@ -7,6 +7,7 @@ actual browser transport reaches the trap. They do not independently prove a def
 network bypass or qualify public DNS/CDN/WebRTC containment.
 """
 
+import importlib.util
 import json
 import os
 import shutil
@@ -27,6 +28,11 @@ import anyio
 
 from ocade_agent.gateway import PROTOCOL, Gateway
 from tests import web_fixture
+
+_spec = importlib.util.spec_from_file_location(
+    "ocade_profile_quiescence", Path(__file__).resolve().parents[1] / "packaging" / "check_frozen.py")
+QUIESCENCE = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(QUIESCENCE)
 
 BROWSER = os.environ.get("OCADE_BROWSER_EXECUTABLE") or shutil.which("chromium")
 READY = bool(BROWSER and (sys.platform == "darwin" or web_fixture.WINDOWS_CI
@@ -142,16 +148,23 @@ class ActorRequestScope(unittest.TestCase):
         return self.base + route
 
     def run_steps(self, steps, home=None):
+        agent_home = home or Path(self.folder.name) / "agent"
+        owners = []
+
         async def run():
-            agent_home = home or Path(self.folder.name) / "agent"
             async with Gateway(self.folder.name, home=str(agent_home)) as gateway:
                 async def call(operation, arguments):
                     return await gateway.run(intent(operation, arguments), gateway.epoch)
-                return await steps(call)
+                result = await steps(call)
+                # Windows: hold the browser profile's owners so cleanup waits for them (D13).
+                owners.extend(QUIESCENCE.profile_processes(agent_home / "browser-profile"))
+                return result
 
         with patch.dict(os.environ, {"OCADE_ALLOW_PRIVATE_WEB": "1",
                                      "OCADE_BROWSER_EXECUTABLE": self.browser}):
-            return anyio.run(run)
+            result = anyio.run(run)
+        QUIESCENCE.wait_for_process_exit(owners, seconds=15)
+        return result
 
     def assert_no_target_request(self, trap, before, receipt):
         observed = trap.observed()[before:]
