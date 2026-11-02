@@ -19,7 +19,8 @@ class RewriteRace(unittest.TestCase):
     def setUp(self):
         folder = tempfile.TemporaryDirectory()
         self.addCleanup(folder.cleanup)
-        self.root = Path(folder.name)
+        # The writer works on real paths (/var is /private/var on macOS; Windows may shorten names).
+        self.root = Path(os.path.realpath(folder.name))
         self.target = self.root / (os.urandom(6).hex() + ".py")
         self.target.write_text("print('old')\n", encoding="utf-8")
         self.read = hashlib.sha256(self.target.read_bytes()).hexdigest()
