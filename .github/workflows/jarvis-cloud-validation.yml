@@ -73,6 +73,10 @@ jobs:
         if: success() || failure()
         working-directory: device-agent/windows
         run: python -c 'import sys, unittest; suite=unittest.defaultTestLoader.loadTestsFromName("tests.test_media_scope"); result=unittest.TextTestRunner(verbosity=2).run(suite); sys.exit(0 if result.wasSuccessful() and result.testsRun == 7 and not result.skipped else 1)'
+      - name: Media sibling regressions (real files and independent measurements, no skips)
+        if: success() || failure()
+        working-directory: device-agent/windows
+        run: python -c 'import sys, unittest; suite=unittest.defaultTestLoader.loadTestsFromNames(["tests.test_media.Media.test_image_facts", "tests.test_media.Media.test_preview_lets_the_planner_see_images_and_video", "tests.test_media.Media.test_video_inspect_trim_and_verify", "tests.test_media.Media.test_titles_are_drawn_without_relying_on_the_local_ffmpeg_build", "tests.test_media.Media.test_timeline_edit_is_exact_and_independently_measured"]); result=unittest.TextTestRunner(verbosity=2).run(suite); sys.exit(0 if result.wasSuccessful() and result.testsRun == 5 and not result.skipped else 1)'
       - name: Gateway result boundary and opaque read uncertainty (required, no skips)
         if: success() || failure()
         working-directory: device-agent/windows

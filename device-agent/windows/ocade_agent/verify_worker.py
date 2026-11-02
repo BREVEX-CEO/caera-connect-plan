@@ -25,7 +25,7 @@ from docx import Document
 from mcp.server.mcpserver import MCPServer
 from pypdf import PdfReader
 
-from .sandbox import Refused, plain_text, resolve
+from .sandbox import MEDIA_INPUT_OPTIONS, PASSIVE_IMAGE_FORMATS, Refused, plain_text, resolve
 
 app = MCPServer("ocade-verifier")
 WORKSPACE = os.environ.get("OCADE_WORKSPACE", "")
@@ -113,8 +113,10 @@ def _check(kind: str, params: dict, notes: dict) -> bool | None:
         probe = shutil.which("ffprobe")
         if not probe:
             return None
-        run = subprocess.run([probe, "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", str(path)],
+        run = subprocess.run([probe, "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", *MEDIA_INPUT_OPTIONS, str(path)],
                              capture_output=True, text=True, timeout=60)
+        if run.returncode != 0:
+            return None
         try:
             return abs(float(run.stdout.strip()) - float(params["value"])) <= 0.25
         except ValueError:
@@ -131,7 +133,7 @@ def _check(kind: str, params: dict, notes: dict) -> bool | None:
         from PIL import Image
 
         try:
-            with Image.open(path) as image:
+            with Image.open(path, formats=PASSIVE_IMAGE_FORMATS) as image:
                 size, text = image.size, dict(getattr(image, "text", {}) or {})
         except Exception:
             return False
@@ -212,8 +214,10 @@ def _media_quality(path: Path, params: dict, notes: dict) -> bool | None:
     probe, ffmpeg = shutil.which("ffprobe"), shutil.which("ffmpeg")
     if not probe or not ffmpeg:
         return None
-    run = subprocess.run([probe, "-v", "error", "-show_format", "-show_streams", "-of", "json", str(path)],
+    run = subprocess.run([probe, "-v", "error", "-show_format", "-show_streams", "-of", "json", *MEDIA_INPUT_OPTIONS, str(path)],
                          capture_output=True, text=True, timeout=60)
+    if run.returncode != 0:
+        return None
     try:
         facts = json.loads(run.stdout)
         duration = float(facts["format"]["duration"])
@@ -230,7 +234,7 @@ def _media_quality(path: Path, params: dict, notes: dict) -> bool | None:
     if video.get("width", 0) < params.get("width", 0) or video.get("height", 0) < params.get("height", 0):
         return False
     log = subprocess.run(
-        [ffmpeg, "-hide_banner", "-nostats", "-i", str(path), "-filter_complex",
+        [ffmpeg, "-hide_banner", "-nostats", *MEDIA_INPUT_OPTIONS, "-i", str(path), "-filter_complex",
          "[0:v]blackdetect=d=1:pix_th=0.06[v];[0:a]ebur128=peak=true,silencedetect=n=-50dB:d=1.5[a]",
          "-map", "[v]", "-map", "[a]", "-f", "null", "-"],
         capture_output=True, text=True, timeout=1800,

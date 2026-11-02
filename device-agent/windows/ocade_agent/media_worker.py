@@ -22,7 +22,7 @@ from pathlib import Path
 from mcp.server.mcpserver import MCPServer
 
 from . import scene_gl
-from .sandbox import Refused, guarded as _evidence, output_path, preview_jpeg, resolve, sha256, write_atomically
+from .sandbox import MEDIA_INPUT_OPTIONS, PASSIVE_IMAGE_FORMATS, Refused, guarded as _evidence, output_path, preview_jpeg, resolve, sha256, write_atomically
 
 app = MCPServer("ocade-media")
 WORKSPACE = os.environ.get("OCADE_WORKSPACE", "")
@@ -42,7 +42,7 @@ def _engine(name: str) -> str:
 
 def _probe(source: Path) -> dict:
     run = subprocess.run(
-        [_engine("ffprobe"), "-v", "error", "-show_format", "-show_streams", "-of", "json", str(source)],
+        [_engine("ffprobe"), "-v", "error", "-show_format", "-show_streams", "-of", "json", *MEDIA_INPUT_OPTIONS, str(source)],
         capture_output=True, timeout=60, text=True,
     )
     if run.returncode != 0:
@@ -60,7 +60,7 @@ def media_inspect(path: str) -> dict:
     try:
         from PIL import Image
 
-        with Image.open(source) as image:
+        with Image.open(source, formats=PASSIVE_IMAGE_FORMATS) as image:
             orientation = image.getexif().get(274, 1)
             width, height = image.size
             if orientation in (5, 6, 7, 8):
@@ -109,7 +109,7 @@ def media_trim(source: str, start: float, end: float, output: str) -> dict:
 
     def cut(temporary: Path) -> None:
         run = subprocess.run(
-            [executable, "-v", "error", "-y", "-ss", str(start), "-to", str(end), "-i", str(origin),
+            [executable, "-v", "error", "-y", "-ss", str(start), "-to", str(end), *MEDIA_INPUT_OPTIONS, "-i", str(origin),
              "-c:v", "libx264", "-c:a", "aac", "-movflags", "+faststart", "-f", "mp4", str(temporary)],
             capture_output=True, timeout=600,
         )
@@ -132,7 +132,7 @@ def media_preview(path: str, at: list[float] | None = None) -> dict:
     if not source.is_file():
         raise Refused("not_a_file")
     try:
-        with Image.open(source) as image:
+        with Image.open(source, formats=PASSIVE_IMAGE_FORMATS) as image:
             image.load()
             return {"kind": "image", "width": image.width, "height": image.height,
                     "preview": preview_jpeg(image)}
@@ -148,7 +148,7 @@ def media_preview(path: str, at: list[float] | None = None) -> dict:
     tiles = []
     for moment in times:
         frame = subprocess.run(
-            [_engine("ffmpeg"), "-v", "error", "-ss", f"{moment}", "-i", str(source), "-frames:v", "1",
+            [_engine("ffmpeg"), "-v", "error", "-ss", f"{moment}", *MEDIA_INPUT_OPTIONS, "-i", str(source), "-frames:v", "1",
              "-vf", "scale=320:-2", "-f", "image2pipe", "-vcodec", "png", "-"],
             capture_output=True, timeout=120,
         ).stdout
@@ -181,7 +181,7 @@ def media_analyze(path: str, threshold: float = 0.3) -> dict:
     if not any(s.get("codec_type") == "video" for s in facts.get("streams", [])):
         raise Refused("no_video_stream")
     run = subprocess.run(
-        [_engine("ffmpeg"), "-v", "error", "-i", str(source), "-an", "-vf",
+        [_engine("ffmpeg"), "-v", "error", *MEDIA_INPUT_OPTIONS, "-i", str(source), "-an", "-vf",
          "fps=4,scale=256:-2,select='gte(scene,0)',signalstats,metadata=print:file=-", "-f", "null", "-"],
         capture_output=True, text=True, timeout=900,
     )
@@ -202,7 +202,7 @@ def media_analyze(path: str, threshold: float = 0.3) -> dict:
     loudness = {}
     if has_audio:
         audio = subprocess.run(
-            [_engine("ffmpeg"), "-v", "error", "-i", str(source), "-vn", "-af",
+            [_engine("ffmpeg"), "-v", "error", *MEDIA_INPUT_OPTIONS, "-i", str(source), "-vn", "-af",
              "asetnsamples=n=12000,astats=metadata=1:reset=1,ametadata=print:key=lavfi.astats.Overall.RMS_level:file=-",
              "-f", "null", "-"],
             capture_output=True, text=True, timeout=900,
@@ -302,7 +302,7 @@ def media_render_timeline(
             raise Refused("clip_out_of_range")
         length = (end - start) / speed
         lengths.append(length)
-        inputs += ["-ss", f"{start}", "-t", f"{end - start}", "-i", str(source)]
+        inputs += ["-ss", f"{start}", "-t", f"{end - start}", *MEDIA_INPUT_OPTIONS, "-i", str(source)]
         grade = clip.get("grade") or {}
         motion = clip.get("motion") or {}
         zoom_from, zoom_to = motion.get("zoomFrom", 1.0), motion.get("zoomTo", 1.0)
@@ -365,7 +365,15 @@ def media_render_timeline(
         image = resolve(WORKSPACE, overlay["image"])
         if not image.is_file():
             raise Refused("not_a_file")
-        inputs += ["-loop", "1", "-framerate", str(fps), "-t", str(duration), "-i", str(image)]
+        from PIL import Image
+
+        try:
+            with Image.open(image, formats=PASSIVE_IMAGE_FORMATS) as raster:
+                raster.verify()
+        except (OSError, ValueError):
+            raise Refused("unsupported_image")
+        inputs += ["-protocol_whitelist", "file", "-f", "image2", "-pattern_type", "none",
+                   "-loop", "1", "-framerate", str(fps), "-t", str(duration), "-i", str(image)]
         start, end = overlay["start"], overlay["end"]
         scale = overlay.get("width", width)
         zoom_to = overlay.get("zoomTo", 1.0)
@@ -395,7 +403,8 @@ def media_render_timeline(
         _title_frame(title, width, height, bar, frame)
         start, end = title["start"], title["end"]
         fade_in, fade_out = title.get("fadeIn", 0.6), title.get("fadeOut", 0.6)
-        inputs += ["-loop", "1", "-framerate", str(fps), "-t", str(duration), "-i", str(frame)]
+        inputs += ["-protocol_whitelist", "file", "-f", "image2", "-pattern_type", "none",
+                   "-loop", "1", "-framerate", str(fps), "-t", str(duration), "-i", str(frame)]
         graph.append(f"[{count}:v]format=rgba,fade=t=in:st={start}:d={max(fade_in, 0.01)}:alpha=1,"
                      f"fade=t=out:st={max(end - fade_out, start)}:d={max(fade_out, 0.01)}:alpha=1[t{number}]")
         graph.append(f"{label}[t{number}]overlay=0:0:format=auto:enable='between(t,{start},{end})'[tv{number}]")
@@ -421,7 +430,7 @@ def media_render_timeline(
             source = resolve(WORKSPACE, layer["source"])
             if not source.is_file():
                 raise Refused("not_a_file")
-            inputs += ["-ss", str(layer.get("in", 0.0)), "-t", str(length), "-i", str(source)]
+            inputs += ["-ss", str(layer.get("in", 0.0)), "-t", str(length), *MEDIA_INPUT_OPTIONS, "-i", str(source)]
             head = f"[{count}:a]aresample=48000,aformat=channel_layouts=stereo"
             count += 1
         else:

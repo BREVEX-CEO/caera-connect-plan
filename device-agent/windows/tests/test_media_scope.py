@@ -144,7 +144,7 @@ class NestedMediaScope(unittest.TestCase):
                 ], check=True, capture_output=True, text=True, timeout=15)
                 self.assertTrue(any(stream.get("width") == 160
                                     for stream in json.loads(control.stdout)["streams"]),
-                                "the real unconfined engine control must read the outside canary")
+                                f"the real unconfined engine control must read the outside canary: {control.stderr}")
                 [result] = self.run_steps([("media.inspect", {"path": source})])
                 self.assert_refused(result)
 

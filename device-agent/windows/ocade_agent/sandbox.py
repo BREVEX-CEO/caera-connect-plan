@@ -24,6 +24,15 @@ import tempfile
 from contextvars import ContextVar
 from pathlib import Path
 
+# Decoder policy only; actors and verifiers still perform their own observations.
+# Exclude playlists, nested manifests and image sequences from media autodetection.
+# MOV external track loading remains disabled (FFmpeg's enable_drefs default).
+MEDIA_INPUT_OPTIONS = (
+    "-protocol_whitelist", "file",
+    "-format_whitelist", "mov,matroska,webm,avi,wav,mp3,flac,ogg,mpegts,mpeg,aac",
+)
+PASSIVE_IMAGE_FORMATS = ("PNG", "JPEG", "TIFF", "WEBP", "BMP", "GIF", "ICO", "PPM")
+
 OUTPUT_DIR = "OCADE output"
 # Plain-text files JARVIS may CREATE. Nothing Windows runs on a double click.
 TEXT_SUFFIXES = (".txt", ".csv", ".tsv", ".md", ".json", ".xml", ".html", ".yaml", ".yml", ".ini", ".log",
