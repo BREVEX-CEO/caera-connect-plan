@@ -1,0 +1,159 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "654af50c5ebce7affc872227abfdb826f63ea5f6",
+  "sourceTree": "5e7bbada7246f088c76a0f391d7c8a145796dad4",
+  "run": 41352301838,
+  "url": "https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41352301838",
+  "jobs": [
+    {
+      "id": 124984949554,
+      "name": "Planner safety / source formatting · Linux",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 124985178075,
+      "name": "Portable build / model contracts / ephemeral DB · Linux",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 124986164525,
+      "name": "Windows unsigned installer / frozen MCP smoke · NOT release-ready",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 124986164546,
+      "name": "Python MCP / journal / browser · windows-latest",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 124986164599,
+      "name": "Python MCP / journal / browser · ubuntu-latest",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 124986164646,
+      "name": "Python MCP / journal / browser · macos-latest",
+      "status": "completed",
+      "conclusion": "success"
+    }
+  ],
+  "scope": "Cloud synthetic qualification; no live provider/customer or consumer-hardware claim",
+  "tests": {
+    "focusedJavaScript": {
+      "total": 89,
+      "pass": 89
+    },
+    "integrationJavaScript": {
+      "total": 95,
+      "pass": 95
+    },
+    "sandbox": 6,
+    "focusedMcp": 4,
+    "requiredBrowser": 2,
+    "builtHandoff": {
+      "pass": 4,
+      "fail": 0
+    },
+    "companion": {
+      "linux": {
+        "discovered": 64,
+        "skipped": 4
+      },
+      "windows": {
+        "discovered": 64,
+        "skipped": 3
+      },
+      "macos": {
+        "discovered": 64,
+        "skipped": 3
+      }
+    },
+    "unexpectedSkips": 0,
+    "nativeWindowsFileHolder": "PASS: live process/file lock prevents premature cleanup; exit signaling then deletion succeeds"
+  },
+  "packaging": {
+    "bundleFiles": 649,
+    "bundleBytes": 672136288,
+    "installedFiles": 651,
+    "installedBytes": 676799332,
+    "installerBytes": 221551373,
+    "installerSha256": "430C8C93B3D0DE1BAFD9B8403EB7978976F88A048F74DB14D9BC491B9E61402A",
+    "bundleRebuildDifferences": 0,
+    "installerRebuildDifferences": 0,
+    "preinstall": {
+      "trackedProcesses": 12,
+      "allExited": true,
+      "processWaitSeconds": 0,
+      "sharingRetries": 0,
+      "fixtureRemoved": true
+    },
+    "installed": {
+      "trackedProcesses": 13,
+      "allExited": true,
+      "processWaitSeconds": 0,
+      "sharingRetries": 0,
+      "fixtureRemoved": true
+    },
+    "strictWorkerStderr": "PASS",
+    "installRepairUninstall": "PASS; unrelated synthetic user files preserved",
+    "originalRun63LockOwner": "Not captured; this run does not identify it"
+  },
+  "assessment": {
+    "requirements": {
+      "pass": 70,
+      "partial": 159,
+      "fail": 14,
+      "blocked": 5,
+      "untested": 18,
+      "total": 266
+    },
+    "architecture": {
+      "pass": 41,
+      "partial": 41,
+      "fail": 1,
+      "blocked": 1,
+      "untested": 0,
+      "total": 84
+    },
+    "readiness": {
+      "percent": 10,
+      "pass": 17,
+      "partial": 17,
+      "fail": 2,
+      "blocked": 5,
+      "untested": 1,
+      "total": 42
+    },
+    "decision": "NO-GO"
+  },
+  "remaining": [
+    "Authenticated approval/dialog and complete customer pipeline qualification",
+    "Semantic acceptance/anti-gaming, file/directory races, verifier web transport",
+    "Independent effect resolution, dependencies/updater/provider recovery/hardware/beta",
+    "Next tests audit partial effects hidden by refusal status and native invoke/readback/COM behavior"
+  ],
+  "authorization": {
+    "implementationBranchOnly": true,
+    "mainModified": false,
+    "productionDeployed": false,
+    "hostedSchemaChanges": false,
+    "personalComputerTests": false,
+    "liveProviderCalls": false,
+    "spending": false
+  },
+  "restore": {
+    "sourceSha": "654af50c5ebce7affc872227abfdb826f63ea5f6",
+    "archiveSha256": "1918f3a4641dbc8c84e46b0e41841da7b5158100cbf737c431f987fe0812ee25",
+    "schemaSha256": "875ace27c909fed0b047e77a61623e2d561565fc196d6664cd839541b410e656",
+    "dataSha256": "f4243ecd47bfbda41f3878cc60b410101cf3c03dd1e4bfaacdefe076842009a1",
+    "restoreSeconds": 0,
+    "truncatedArchiveRejected": true,
+    "permissionChecks": "PASS",
+    "scope": "disposable PostgreSQL 16 with Supabase platform stubs"
+  }
+}

@@ -67,6 +67,29 @@ class Journey(unittest.TestCase):
     """Generic primitives on real files: read a workbook, write a computed one and a report,
     then the separate verifier re-reads what was saved. The steps are a test's, not a product route."""
 
+    def test_document_destinations_must_be_distinct_before_any_publication(self):
+        """A valid-shaped duplicate destination must not leave a hidden partial DOCX."""
+        import uuid
+        output = "OCADE output/" + uuid.uuid4().hex + ".docx"
+        async def run():
+            async with Gateway(str(self.root)) as gateway:
+                return await gateway.run(intent("office.write_document", {
+                    "docx": output, "pdf": output, "title": "Synthetic alias check",
+                    "sections": [{"heading": "A new document", "paragraphs": ["independent fixture"]}],
+                }), gateway.epoch)
+        receipt = anyio.run(run)
+        self.assertFalse((self.root / output).exists(), "preflight must reject aliased outputs before publishing")
+        self.assertEqual(receipt["status"], "not_applied", receipt)
+        self.assertFalse(receipt["maybeChanged"], receipt)
+
+    def test_a_refusal_before_writing_cannot_claim_a_possible_effect(self):
+        async def run():
+            async with Gateway(str(self.root)) as gateway:
+                return await gateway.run(intent("fs.write_text", {"path": "../outside.txt", "text": "synthetic"}), gateway.epoch)
+        receipt = anyio.run(run)
+        self.assertEqual(receipt["status"], "not_applied", receipt)
+        self.assertFalse(receipt["maybeChanged"], receipt)
+
     def test_verifier_preserves_workbook_scalar_types(self):
         """A boolean or text cell cannot prove a requested numeric result."""
         import uuid

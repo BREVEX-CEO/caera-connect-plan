@@ -123,6 +123,44 @@ class WebLadder(unittest.TestCase):
         ), patch.object(web_worker, "WORKSPACE", str(self.root)):
             anyio.run(run)
 
+    def test_download_refusal_after_the_click_preserves_effect_uncertainty(self):
+        """The server records a real click; a racing customer file must survive it."""
+        import uuid
+        from unittest.mock import patch
+        from urllib.parse import urlparse
+
+        nonce = uuid.uuid4().hex
+        route, download_route = "/" + nonce, "/" + nonce + ".pdf"
+        output = "OCADE output/" + nonce + ".pdf"
+        destination = self.root / output
+        customer_bytes = nonce.encode()
+        received = []
+        original = web_fixture.Handler.do_GET
+        def respond(handler):
+            if urlparse(handler.path).path == download_route:
+                received.append(handler.path)
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                destination.write_bytes(customer_bytes)
+                return handler._send(web_fixture._pdf(), "application/pdf", extra={
+                    "content-disposition": "attachment; filename=" + nonce + ".pdf"})
+            return original(handler)
+        web_fixture.PAGES[route] = '<a href="' + download_route + '" download>Download ' + nonce + '</a>'
+        async def steps(run, gateway):
+            opened = await run("web.open", {"url": self.base + route})
+            self.assertEqual(opened["status"], "observed", opened)
+            link = next(control for control in opened["evidence"]["controls"] if control.get("href") == download_route)
+            return await run("web.download", {"page": opened["evidence"]["page"], "selector": link["selector"], "output": output})
+        try:
+            with patch.object(web_fixture.Handler, "do_GET", respond):
+                receipt = self.run_steps(steps)
+            self.assertEqual(len(received), 1, "the real network effect must be independently witnessed")
+            self.assertEqual(destination.read_bytes(), customer_bytes, "the racing customer file must survive")
+            self.assertEqual(receipt["status"], "unknown", receipt)
+            self.assertTrue(receipt["maybeChanged"], receipt)
+        finally:
+            web_fixture.PAGES.pop(route, None)
+
+
     def test_web_ladder(self):
         base = self.base
         (self.root / "upload-me.txt").write_text("OCADE upload sample\n")
