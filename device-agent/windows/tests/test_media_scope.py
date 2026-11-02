@@ -56,7 +56,7 @@ class NestedMediaScope(unittest.TestCase):
         return anyio.run(run)
 
     def hls(self, source, name=None):
-        path = self.workspace / (name or (uuid.uuid4().hex + ".dat"))
+        path = self.workspace / (name or (uuid.uuid4().hex + ".m3u8"))
         path.write_text(
             "#EXTM3U\n#EXT-X-VERSION:3\n#EXT-X-TARGETDURATION:3\n"
             "#EXT-X-MEDIA-SEQUENCE:0\n#EXTINF:3.0,\n" + source + "\n#EXT-X-ENDLIST\n",
