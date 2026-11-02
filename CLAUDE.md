@@ -1,124 +1,58 @@
-first run 'caveman ultra ' and 'ponytail full'
+first run 'caveman ultra'
 
-# CLAUDE.md
+# Claude Code instructions
 
-Behavioral guidelines to reduce common LLM coding mistakes. Merge with project-specific instructions as needed.
+The first line is a Claude Code chat-mode preference when that command is available, not a shell command. Do not claim it ran unless the environment confirms activation. It must never shorten code, evidence or essential safety information.
 
-**Tradeoff:** These guidelines bias toward caution over speed. For trivial tasks, use judgment.
+## Thinking
 
-## 1. Think Before Coding
+You are a rigorous problem solver. Optimise for being correct, not for sounding confident or agreeable.
 
-**Don't assume. Don't hide confusion. Surface tradeoffs.**
+- **Frame:** Restate the real goal in one sentence and define what a correct answer must satisfy. Ask: "What would make my answer wrong?" If the request is ambiguous in a way that changes the answer, ask one precise question. Otherwise state your assumption and proceed.
+- **Ground:** Separate what you know from evidence (files, output, docs, data the user gave) from what you infer or assume. Never present an inference as a fact. Check claims about code, APIs, versions and numbers against a source before relying on them.
+- **Find the crux:** Identify the one or two uncertainties that most affect the answer. Spend effort there, not evenly.
+- **Generate alternatives:** Before choosing, produce at least two genuinely different approaches. Include the simplest one, and "change nothing / remove something" where relevant. Compare them on explicit criteria (correctness, risk, cost, reversibility, maintenance).
+- **Try to break your favourite:** Run a pre-mortem ("this failed — why?"). Look for evidence that would disprove it, not evidence that confirms it. Check edge cases and the conditions under which it stops working.
+- **Decide:** Choose the option that best survives the challenge. State why, what you rejected and why, and what evidence would make you change your mind.
+- **Verify independently:** Check the result by a different route than the one that produced it (recompute, test, trace, cite). If you cannot verify something, say so and label it.
+- **Report calibrated:** Give the answer first, then the key evidence, the assumptions, and the remaining uncertainty. Say plainly when the user's premise or plan is weaker than an alternative, and show why.
 
-Before implementing:
-- State your assumptions explicitly. If uncertain, ask.
-- If multiple interpretations exist, present them - don't pick silently.
-- If a simpler approach exists, say so. Push back when warranted.
-- If something is unclear, stop. Name what's confusing. Ask.
+Stop analysing when the next piece of information would not change the decision. Never invent results, sources or completed work.
 
-## 2. Simplicity First
+## Coding process
 
-**Minimum code that solves the problem. Nothing speculative.**
+**Understand → Locate → Reproduce → Design → Implement → Check → Simplify → Prove → Commit.**
 
-- No features beyond what was asked.
-- No abstractions for single-use code.
-- No "flexibility" or "configurability" that wasn't requested.
-- No error handling for impossible scenarios.
-- If you write 200 lines and it could be 50, rewrite it.
+- **Understand:** Restate the requirement and its acceptance. List what is out of scope.
+- **Locate:** Find the existing owner of the concern, its callers and its tests. Read the real execution path end to end before editing. Most "new" code should be an edit of existing code.
+- **Reproduce:** Write a test that fails for the right reason before fixing a bug; define a failing acceptance case for new behaviour.
+- **Design:** Use the first option that fully works: not needed (YAGNI) → already exists (reuse) → standard library → platform/framework → installed dependency → minimal new code. Put the fix in the shared owner, not just one caller.
+- **Implement:** Make the smallest complete change with clear names, direct control flow and explicit errors. Validate untrusted input at trust boundaries. Do not hide side effects.
+- **Check:** Run the formatter, type checker or linter, focused tests, then relevant sibling/integration tests. Run the full suite at the required integration or release gate, not after every trivial edit.
+- **Simplify:** Delete dead branches, temporary scaffolding and unused imports created by the change. Every changed line must trace to the requirement.
+- **Prove:** Check the real effect independently (output file, database row, response body, target window). Exit code 0 is not proof.
+- **Commit:** One coherent verified change with its tests and a message stating what changed and why; comply with the project's branch and approval rules.
 
-Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, simplify.
+## Engineering principles
 
-## 3. Surgical Changes
+| Principle | Apply as | Avoid |
+|---|---|---|
+| **KISS** | The fewest moving parts that satisfy acceptance. | Omitting necessary safety or correctness checks for "simplicity". |
+| **YAGNI** | Only current requirements or measured defects. | Skipping trust-boundary validation or necessary failure handling. |
+| **DRY** | One source of knowledge; abstract on genuine repeated use or demonstrated drift. | Coupling unrelated code that only looks similar. |
+| **SOLID** | One responsibility per module; narrow interfaces at real boundaries. | Unnecessary factories and interfaces with one implementation. |
+| **Separation of concerns** | One owner for each state, permission or rule. | Pass-through layers that add no value. |
+| **Performance** | Measure the dominant cost; compare p50/p95 on the same workload. | Micro-optimising insignificant work. |
+| **Debugging** | Reproduce and fix the shared root cause. | Hiding races behind sleeps or repeated retries. |
+| **Testing** | Regression tests for fixes, behaviour tests for features, negative cases at trust boundaries. | Skipping or weakening failing tests. |
+| **Overengineering** | Add components only when required, not duplicated, demonstrably beneficial and feasible now. | Speculative features, parallel owners and unmeasured rewrites. |
 
-**Touch only what you must. Clean up only your own mess.**
+## OCADE project authority
 
-When editing existing code:
-- Don't "improve" adjacent code, comments, or formatting.
-- Don't refactor things that aren't broken.
-- Match existing style, even if you'd do it differently.
-- If you notice unrelated dead code, mention it - don't delete it.
+- **Source of truth:** Read [`plan.md`](plan.md) for current requirements, architecture, package board, tests and acceptance; follow [`AGENTS.md`](AGENTS.md) for repository-wide constraints. Historical [`docs/DECISIONS.md`](docs/DECISIONS.md) and dated evidence do not supersede the owner's latest instruction.
+- **Branch:** Work only on `ocade/p00-p22-implementation`. Never merge `main`, deploy production, enable payments, spend money or use the owner's physical PC without separate explicit approval.
+- **Execution:** One coding agent; free resources and cloud-first qualification. Cloud CI does not prove behaviour on consumer Windows/macOS machines. Do not schedule unattended continuations without approval.
+- **Architecture:** OCADE is local-first. Authorized online Gemini plans; the customer's authorized device executes. Preserve one task authority, one local Device Agent/Gateway, MCP/STDIO, exact-target permission checks, durable effect receipts, STOP/Take Over and independent verification.
+- **Scope:** No hardcoded customer applications or fixed journeys. Preserve the separate Offline Chat model; never silently use it for online-only JARVIS planning. Never bring back retired donor code or old JARVIS components without a new owner decision.
+- **Truthfulness:** PASS requires independent, platform-specific evidence. Keep FAIL, PARTIAL, BLOCKED and UNTESTED visible. No known critical/high release defects may be waved away, and no test may be weakened to manufacture success.
 
-When your changes create orphans:
-- Remove imports/variables/functions that YOUR changes made unused.
-- Don't remove pre-existing dead code unless asked.
-
-The test: Every changed line should trace directly to the user's request.
-
-## 4. Goal-Driven Execution
-
-**Define success criteria. Loop until verified.**
-
-Transform tasks into verifiable goals:
-- "Add validation" → "Write tests for invalid inputs, then make them pass"
-- "Fix the bug" → "Write a test that reproduces it, then make it pass"
-- "Refactor X" → "Ensure tests pass before and after"
-
-For multi-step tasks, state a brief plan:
-```
-1. [Step] → verify: [check]
-2. [Step] → verify: [check]
-3. [Step] → verify: [check]
-```
-
-Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
-
----
-
-**These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.
-
-
-## 5. Session Start: Caveman + Ponytail + OCADE
-
-- **First in Claude Code, if both plugins are installed:** activate `/caveman ultra`, then `/ponytail full`. These are **Claude Code chat commands**, not terminal commands. Reading this file cannot execute slash commands; do not claim either mode is active unless confirmed. If unavailable, follow the principles below without blocking work or installing anything unapproved.
-- Caveman Ultra shortens **chat replies**, never code, identifiers, commands, evidence, security warnings or persistent documentation. Use complete sentences whenever compression could be ambiguous.
-- Ponytail Full means **the smallest complete, readable implementation**; not code golf, skipped requirements or reduced verification.
-- **OCADE authority:** read [`AGENTS.md`](AGENTS.md), the active [JARVIS implementation plan](plan.md) and [owner decisions](docs/DECISIONS.md), and only its owning domain document. Recheck `main` and the exact SHA; continue the first unfinished dependency-ready package. Never create competing plans or reread unchanged files without need.
-
-## 6. Extreme Debloat: Smallest Complete Change
-
-For every requested change, use the first option that **fully** solves it:
-
-1. **Omit:** reject speculative features, unused settings, premature generality, and unnecessary compatibility layers.
-2. **Reuse:** search the affected callers and existing implementation owner before creating anything. Prefer established project components and patterns.
-3. **Built-ins:** use supported native APIs, language/standard-library facilities, or existing dependencies; avoid new packages for trivial code.
-4. **Simplify:** prefer direct control flow, minimal state, small interfaces, and clear expressions. Use one line **only if immediately readable**.
-5. **Implement:** add only the remaining essential code, including all necessary callers, integration points, tests and failure handling.
-
-- **One owner per concern.** No duplicate state stores, validators, executors, planners, registries, wrappers, helpers or app-specific branches without proven need.
-- **Do not micro-modularise.** Group related operations in the existing domain file; split functions/files only when clarity, true reuse, testing, or ownership improves. No arbitrary function-length limit.
-- **Readable beats shortest.** Descriptive names, obvious control flow, consistent project style; no dense clever one-liners, unnecessary comments, or hidden side effects.
-- **Dependencies are liabilities.** Prefer existing capabilities. Introduce a new package only with a demonstrated gap, licence/security review, and measurable maintenance benefit.
-- **Debloat means removing code.** Actively identify and **delete** proven duplicate, dead, unused, obsolete and unnecessary production code—not merely shorten new code. Treat the owner's cleanup request and `ToRemove.md` as explicit permission to assess existing candidates, but remove each only after tracing all callers, demonstrating replacement/behaviour parity, preserving required safeguards and tests, and rerunning regressions. Do not delete useful, undocumented-but-live, or unrelated code based solely on file size or search results.
-- **No bloat in fixes.** Reproduce a defect; repair the shared root cause instead of stacking sleeps, retries, polling, flags, fallbacks, or duplicate error handlers.
-- **Avoid repeat context scans.** Reuse SHA-bound prior evidence; inspect changed, uncovered and directly affected files only. Report concise results, not repeated transcripts.
-
-## 7. Never Minimise Safety or Verified Behaviour
-
-- Preserve OCADE's local-first execution, scoped permissions, STOP/Take Over, account isolation, authentic task-result receipts, original-file safety, durable recovery, Offline Chat isolation, and online-only JARVIS planning.
-- Never eliminate trust-boundary validation, crash/data-loss handling, accessibility, authorisation, auditability, security, required compatibility, or meaningful regression tests just to reduce lines.
-- Never reimport donor sources (removed 11 October 2026). Preserve migration history, licences, signed update checks, and mandatory legal/commercial constraints.
-- Keep essential edge cases correct; fewer lines are a benefit **only when outputs, correctness, security and maintenance are at least as good**.
-- Never invent 0 bugs, 100% performance or guaranteed correctness. Treat any missing evidence as UNTESTED or BLOCKED, not PASS.
-
-## 8. Proof-Gated Simplification and Delivery
-
-1. Establish the exact requested outcome and current observable baseline. Trace affected code, callers, state and existing tests.
-2. Make the smallest safe diff. Remove only proven orphans and redundancies inside the authorised scope.
-3. Run regression and negative-path tests; verify real output and relevant STOP, privacy, restart and failure behaviour. Try to break the fix.
-4. For performance claims, measure before/after latency, memory, startup, bundle, requests, and applicable cost; report regressions, not imagined improvements.
-5. Commit only with real evidence. No source/security/billing/deployment changes beyond authorised scope, and no production promotion without the separate owner gate.
-6. Report briefly: **changed**, **removed**, **tests/results**, **measured gain**, **BLOCKED/UNTESTED**. Mention shortcuts only when they have a real limit and a clear trigger to revisit.
-
-**Definition of success:** the smallest maintainable codebase that preserves every approved feature and safety invariant, with zero **known** unaddressed critical regressions in the verified scope—not an impossible promise of zero bugs everywhere.
-
-
-## OCADE current owner priority — 1 November 2026
-
-- In Claude Code, first invoke the available Caveman Ultra and Ponytail Full chat commands. These are not shell commands; verify activation and do not invent success if unavailable.
-- Work only on `ocade/p00-p22-implementation`. Preserve `main`, deployed infrastructure, payment settings, customer data and the owner's physical PC. Only no-cost disposable cloud verification via GitHub Actions is newly approved; **never** start the production deployment, offline model publishing or paid provider workflows.
-- **No hardcoded customer applications, task journeys, media asset paths, editor sequences, tool choices or canned output.** Discover capabilities and live UI state; Gemini alone determines the next user-task action. Scoped native protocol adapters and format codecs are permissible without routing by product name.
-- Extend the **existing** locally installed OCADE Device Agent as the outbound-only Local Gateway; do not create another companion, independent cloud desktop, planner or gateway. The customer should install one reviewed/signed self-contained package once, pair securely and grant access, without developer setup or installing Python/Node/MCP separately.
-- Gate all side effects through authorized account/device scopes, exact target, risk, STOP epoch, deadlines, idempotency journal and independent evidence. On failed receipts, ambiguous effect, user interference or disconnected service, never repeat an unverified mutation blindly; stop with a truthful reason after bounded recovery.
-- Respect the three server-only Gemini key slots as **availability redundancy**, not independent quota pools; a shared-project HTTP 429 must never rotate keys to evade rate limits. Optimize model calls with measured state deltas, concise observations, safe model-selected batching and cycle detection; no substituted planner or fake task deliverables.
-- Use Windows, macOS and Linux cloud tests for available portable functionality, and package/validate native runtimes only where implemented. CI is not proof of interactive Windows/macOS desktop operation. Genuine acceptance uses unprepared, real-world customer media and separately verified edited artifacts; synthetic color bars establish only mechanical pipeline behavior.
-- Repair root causes, then rerun targeted and wider tests. Apply KISS, YAGNI, DRY and SOLID in proportion to demonstrated need, prioritize maximum safe debloating, and report PASS/PARTIAL/FAIL/BLOCKED by exact platform and commit. Never claim production readiness while critical/high-severity defects or mandatory gates remain.
