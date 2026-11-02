@@ -177,7 +177,8 @@ async def _guard(route) -> None:
         site = _host(url) if _host(url) in {entry["site"] for entry in _pages.values()} else None
     # A bound page (or its popup) navigates only on its site. The browser follows redirect hops
     # without asking this handler, so a hop is stopped here and followed by `_follow` once checked.
-    if _host(url) != site:
+    # Resolved again right before the request: a site whose name now points somewhere private is refused.
+    if _host(url) != site or not await anyio.to_thread.run_sync(_public_by_dns, site):
         return await route.abort("blockedbyclient")
     try:
         response = await route.fetch(max_redirects=0)

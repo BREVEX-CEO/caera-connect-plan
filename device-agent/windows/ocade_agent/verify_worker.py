@@ -20,6 +20,7 @@ import sys
 from pathlib import Path
 from urllib.parse import urljoin, urlsplit
 
+import anyio
 import openpyxl
 import pypdfium2
 from docx import Document
@@ -379,7 +380,9 @@ async def _web_texts(url: str, wanted: list[str]) -> tuple[dict, dict]:
             return await route.abort("blockedbyclient")
         if (request.method != "GET" or request.resource_type not in WEB_RESOURCES
                 or _web_origin(request.url) != origin
-                or (request.resource_type == "document" and request.frame.parent_frame is not None)):
+                or (request.resource_type == "document" and request.frame.parent_frame is not None)
+                # Resolved again for every request: a name that now points somewhere private is refused.
+                or not await anyio.to_thread.run_sync(_web_allowed, request.url)):
             state["stop"] = state["stop"] or {"error": "web_request_blocked"}
             return await route.abort("blockedbyclient")
         try:
