@@ -155,27 +155,33 @@ test("mutations require fresh planning; unknown effects fence resumption", async
         assert.equal(calls, before);
       },
     );
-    await t.test("a not-applied mutation admitting a possible effect cannot be repeated", async () => {
-      proposals = [write];
-      const before = calls;
-      const step: Step = {
-        ...uncertain,
-        status: "failed",
-        receipt: { ...uncertain.receipt!, status: "not_applied" },
-      };
-      assert.equal((await planStep({ ...base, steps: [step] })).kind, "block");
-      assert.equal(calls, before);
-    });
-    await t.test("a declared read that admits a possible unobserved effect also stops", async () => {
-      proposals = [list];
-      const before = calls;
-      const step: Step = {
-        ...uncertain,
-        intent: intent("fs.read_text", "contradictory-read", read.arguments, deadline),
-      };
-      assert.equal((await planStep({ ...base, steps: [step] })).kind, "block");
-      assert.equal(calls, before);
-    });
+    await t.test(
+      "a not-applied mutation admitting a possible effect cannot be repeated",
+      async () => {
+        proposals = [write];
+        const before = calls;
+        const step: Step = {
+          ...uncertain,
+          status: "failed",
+          receipt: { ...uncertain.receipt!, status: "not_applied" },
+        };
+        assert.equal((await planStep({ ...base, steps: [step] })).kind, "block");
+        assert.equal(calls, before);
+      },
+    );
+    await t.test(
+      "a declared read that admits a possible unobserved effect also stops",
+      async () => {
+        proposals = [list];
+        const before = calls;
+        const step: Step = {
+          ...uncertain,
+          intent: intent("fs.read_text", "contradictory-read", read.arguments, deadline),
+        };
+        assert.equal((await planStep({ ...base, steps: [step] })).kind, "block");
+        assert.equal(calls, before);
+      },
+    );
     for (const raw of [
       { status: "not_applied", maybeChanged: true },
       { status: "observed", maybeChanged: true },
@@ -199,6 +205,67 @@ test("mutations require fresh planning; unknown effects fence resumption", async
                       engines: [],
                       mcp: [],
                       steps: [{ intent: uncertain.intent, status: "failed", receipt: raw }],
+                    }
+                  : null,
+              error: null,
+            };
+          },
+        } as unknown as Admin;
+        const before = calls;
+        await advance(admin, "task", now);
+        assert.ok(recorded.includes("jarvis_task_wait"), JSON.stringify(recorded));
+        assert.ok(!recorded.includes("jarvis_queue_actions"), JSON.stringify(recorded));
+        assert.ok(!recorded.includes("jarvis_settle_task"), JSON.stringify(recorded));
+        assert.equal(calls, before);
+      });
+    }
+    for (const opaque of [
+      intent("web.open", "interrupted-open", { url: "https://example.com/" }, deadline),
+      intent(
+        "web.close",
+        "interrupted-close",
+        { page: { id: "interrupted", site: "example.com" } },
+        deadline,
+      ),
+    ]) {
+      await t.test("planner fences status-only interrupted " + opaque.operation, async () => {
+        proposals = [list];
+        const before = calls;
+        const step: Step = {
+          intent: opaque,
+          status: "cancelled",
+          receipt: null,
+          unparsedReceipt: { status: "unknown" },
+        };
+        assert.equal((await planStep({ ...base, steps: [step] })).kind, "block");
+        assert.equal(calls, before);
+      });
+      await t.test("server fences status-only interrupted " + opaque.operation, async () => {
+        proposals = [list];
+        const recorded: string[] = [];
+        const admin = {
+          rpc: async (name: string) => {
+            recorded.push(name);
+            return {
+              data:
+                name === "jarvis_task_state"
+                  ? {
+                      id: "task",
+                      userId: "u",
+                      status: "running",
+                      controller: "epoch",
+                      title: base.objective,
+                      outcome: checks,
+                      grants: ["files"],
+                      engines: [],
+                      mcp: [],
+                      steps: [
+                        {
+                          intent: opaque,
+                          status: "cancelled",
+                          receipt: { status: "unknown" },
+                        },
+                      ],
                     }
                   : null,
               error: null,

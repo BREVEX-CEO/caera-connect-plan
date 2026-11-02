@@ -287,7 +287,7 @@ def verify_checks(checks: list[dict]) -> dict:
     """Evaluate a task's fixed typed checks against the real state, independently of the actor."""
     ids = [check.get("id") for check in checks]
     if not ids or any(not isinstance(key, str) or not key for key in ids) or len(set(ids)) != len(ids):
-        return {"refused": "invalid_checks"}
+        return {"refused": "invalid_checks", "maybeChanged": False}
     predicates, measured = {}, {}
     for check in checks:
         notes: dict = {}

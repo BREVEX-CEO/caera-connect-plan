@@ -1,0 +1,90 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "bf8e5ba01bcc69800d474e2595d9e88f38006d8b",
+  "sourceTree": "f26da8d5ed211c5ae85621544c32a7a9215327e4",
+  "run": 41371985099,
+  "url": "https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41371985099",
+  "scope": "Focused cloud qualification; heavy build/matrix gated off",
+  "jobs": [
+    {
+      "id": 125044203452,
+      "name": "Planner safety / source formatting · Linux",
+      "status": "completed",
+      "conclusion": "failure"
+    },
+    {
+      "id": 125044203805,
+      "name": "Native receipt / COM / process safety · Windows",
+      "status": "completed",
+      "conclusion": "failure"
+    },
+    {
+      "id": 125044557937,
+      "name": "Portable build / model contracts / ephemeral DB · Linux",
+      "status": "completed",
+      "conclusion": "skipped"
+    },
+    {
+      "id": 125044558740,
+      "name": "Python MCP / journal / browser · ${{ matrix.os }}",
+      "status": "completed",
+      "conclusion": "skipped"
+    },
+    {
+      "id": 125044559282,
+      "name": "Windows unsigned installer / frozen MCP smoke · NOT release-ready",
+      "status": "completed",
+      "conclusion": "skipped"
+    }
+  ],
+  "tests": {
+    "focusedJavaScript": {
+      "total": 96,
+      "pass": 96,
+      "fail": 0
+    },
+    "sandbox": 6,
+    "effectScopes": {
+      "total": 9,
+      "pass": 9
+    },
+    "gatewayBoundary": {
+      "total": 8,
+      "pass": 8
+    },
+    "focusedMcp": {
+      "total": 6,
+      "pass": 5,
+      "fail": 1,
+      "remaining": "Legacy invalid_checks refusal omits maybeChanged=false before checks"
+    },
+    "requiredBrowser": {
+      "total": 3,
+      "pass": 3
+    },
+    "nativeSafety": {
+      "total": 4,
+      "pass": 3,
+      "fail": 1,
+      "passed": [
+        "single-dispatch",
+        "complete and missing readback",
+        "owned process/file holder"
+      ],
+      "remaining": "COM probe HRESULT alone is ambiguous; refine type/qualifier and count successful init/uninit refs"
+    }
+  },
+  "formatting": {
+    "failedPath": "tests/security/recovery.test.ts",
+    "canonicalOutputCaptured": true
+  },
+  "correction": "Prior HRESULT-only COM red does not establish a leaked explicit initialization: Windows can report implicit MTA. Original source lacked balancing but leaked-ref measurement remains unqualified.",
+  "assessment": {
+    "requirementsPass": 70,
+    "requirementsTotal": 266,
+    "architecturePass": 41,
+    "architectureTotal": 84,
+    "commercialReadinessPercent": 10,
+    "decision": "NO-GO"
+  }
+}

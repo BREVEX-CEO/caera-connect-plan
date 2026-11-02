@@ -1,0 +1,272 @@
+"""Interrupted actions retain their durable identity and effect uncertainty."""
+
+import json
+import tempfile
+import unittest
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
+from unittest.mock import patch
+
+import anyio
+
+from ocade_agent import agent as agent_module
+from ocade_agent.agent import Agent
+from ocade_agent.gateway import PROTOCOL, Gateway, receipt
+from ocade_agent.journal import Journal
+
+
+def action_intent(operation, arguments):
+    spec = PROTOCOL["operations"][operation]
+    return {
+        "v": PROTOCOL["version"], "key": "recovery-action", "operation": operation,
+        "capability": spec["capability"], "risk": spec["risk"], "arguments": arguments,
+        "deadlineUtc": (datetime.now(timezone.utc) + timedelta(minutes=5)).isoformat().replace("+00:00", "Z"),
+    }
+
+
+class ReceiptDevice:
+    def __init__(self, home):
+        self.home = home
+        self.sent = []
+
+    def request(self, payload):
+        self.sent.append(payload)
+        return 200, {}
+
+
+class MustNotRun:
+    epoch = 0
+
+    async def run(self, intent, epoch):
+        raise AssertionError("a pending opaque action or changed identity must never execute again")
+
+
+class LocalReadGateway:
+    epoch = 0
+
+    def __init__(self):
+        self.calls = []
+
+    async def run(self, intent, epoch):
+        self.calls.append(intent)
+        return receipt("observed", False, {"entries": []})
+
+
+class JournalRecoveryTest(unittest.TestCase):
+    def test_reopened_started_browser_read_is_unknown_and_never_replayed(self):
+        for operation, arguments in (
+            ("web.open", {"url": "https://example.com/"}),
+            ("web.close", {"page": {"id": "page1", "site": "example.com"}}),
+        ):
+            with self.subTest(operation=operation), tempfile.TemporaryDirectory() as directory:
+                home = Path(directory)
+                path = home / "journal.sqlite"
+                intent = action_intent(operation, arguments)
+                journal = Journal(path)
+                journal.start("pending", intent)
+                journal.db.close()
+                journal = Journal(path)  # a new companion only has the durable started row
+                device = ReceiptDevice(home)
+                agent = Agent(device, journal, MustNotRun())
+                action = {"id": "pending", "intent": intent}
+                anyio.run(agent.handle, action)
+                result = device.sent[-1]["receipt"]
+                self.assertEqual((result["status"], result["maybeChanged"], result["errorCode"]),
+                                 ("unknown", True, "interrupted"))
+                self.assertEqual(journal.get("pending"), ("finished", result))
+                anyio.run(agent.handle, action)
+                self.assertEqual(device.sent[-1]["receipt"], result, "redelivery resends the exact saved receipt")
+                journal.db.close()
+
+    def test_losing_atomic_journal_claim_never_dispatches_the_same_opaque_action(self):
+        with tempfile.TemporaryDirectory() as directory:
+            home = Path(directory)
+            path = home / "journal.sqlite"
+            winner = Journal(path)
+
+            class ContendedJournal(Journal):
+                def start(self, activity, intent):
+                    winner.start(activity, intent)  # another companion won before our insert
+                    return super().start(activity, intent)
+
+            contender = ContendedJournal(path)
+            intent = action_intent("web.open", {"url": "https://example.com/"})
+            device = ReceiptDevice(home)
+            anyio.run(Agent(device, contender, MustNotRun()).handle, {"id": "raced", "intent": intent})
+            result = device.sent[-1]["receipt"]
+            self.assertEqual((result["status"], result["maybeChanged"], result["errorCode"]),
+                             ("unknown", True, "interrupted"))
+            self.assertEqual(winner.get("raced"), ("finished", result))
+            contender.db.close()
+            winner.db.close()
+
+    def test_interrupted_local_read_remains_recoverable(self):
+        with tempfile.TemporaryDirectory() as directory:
+            home = Path(directory)
+            journal = Journal(home / "journal.sqlite")
+            intent = action_intent("fs.list", {"path": "."})
+            journal.start("local-read", intent)
+            gateway = LocalReadGateway()
+            device = ReceiptDevice(home)
+            anyio.run(Agent(device, journal, gateway).handle, {"id": "local-read", "intent": intent})
+            self.assertEqual(gateway.calls, [intent])
+            self.assertEqual(device.sent[-1]["receipt"]["status"], "observed")
+            self.assertEqual(journal.get("local-read")[0], "finished")
+            journal.db.close()
+
+    def test_started_action_cannot_change_to_a_pure_read_under_same_id(self):
+        with tempfile.TemporaryDirectory() as directory:
+            home = Path(directory)
+            journal = Journal(home / "journal.sqlite")
+            original = action_intent("web.open", {"url": "https://example.com/"})
+            journal.start("same-id", original)
+            changed = action_intent("fs.list", {"path": "."})
+            device = ReceiptDevice(home)
+            anyio.run(Agent(device, journal, MustNotRun()).handle, {"id": "same-id", "intent": changed})
+            result = device.sent[-1]["receipt"]
+            self.assertEqual((result["status"], result["maybeChanged"], result["errorCode"]),
+                             ("unknown", True, "intent_mismatch"))
+            saved = journal.db.execute("SELECT intent FROM actions WHERE activity = ?", ("same-id",)).fetchone()[0]
+            self.assertEqual(json.loads(saved), original, "a repeated id never replaces its durable intent")
+            self.assertEqual(journal.get("same-id"), ("started", None), "mismatch does not settle the original action")
+            journal.db.close()
+
+    def test_finished_action_mismatch_never_relabels_or_overwrites_saved_receipt(self):
+        with tempfile.TemporaryDirectory() as directory:
+            home = Path(directory)
+            journal = Journal(home / "journal.sqlite")
+            original = action_intent("web.open", {"url": "https://example.com/"})
+            journal.start("finished", original)
+            saved = receipt("observed", True, {"page": {"id": "opened"}})
+            journal.finish("finished", saved)
+            changed = dict(original, arguments={"url": "https://example.org/"})
+            device = ReceiptDevice(home)
+            anyio.run(Agent(device, journal, MustNotRun()).handle, {"id": "finished", "intent": changed})
+            result = device.sent[-1]["receipt"]
+            self.assertEqual((result["status"], result["maybeChanged"], result["errorCode"]),
+                             ("unknown", True, "intent_mismatch"))
+            self.assertEqual(journal.get("finished"), ("finished", saved))
+            journal.db.close()
+
+    def test_same_intent_with_reordered_object_keys_resends_saved_receipt(self):
+        with tempfile.TemporaryDirectory() as directory:
+            home = Path(directory)
+            journal = Journal(home / "journal.sqlite")
+            original = action_intent("web.open", {"url": "https://example.com/"})
+            journal.start("finished", original)
+            saved = receipt("observed", True, {"page": {"id": "opened"}})
+            journal.finish("finished", saved)
+            reordered = dict(reversed(list(original.items())))
+            device = ReceiptDevice(home)
+            anyio.run(Agent(device, journal, MustNotRun()).handle, {"id": "finished", "intent": reordered})
+            self.assertEqual(device.sent[-1]["receipt"], saved)
+            journal.db.close()
+
+
+class DurableReceiptRaceTest(unittest.TestCase):
+    def test_stale_unknown_finish_cannot_replace_observed_winner(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "journal.sqlite"
+            winner, contender = Journal(path), Journal(path)
+            intent = action_intent("apps.launch", {"exe": "example.exe"})
+            winner.start("raced", intent)
+            self.assertEqual(contender.get("raced"), ("started", None))
+            observed = receipt("observed", True, {"window": {"hwnd": 42}})
+            first = winner.finish("raced", observed)
+            late = contender.finish("raced", receipt("unknown", True, error="interrupted"))
+            self.assertEqual(winner.get("raced"), ("finished", observed))
+            self.assertEqual(contender.get("raced"), ("finished", observed))
+            self.assertEqual(first, observed)
+            self.assertEqual(late, observed, "the losing finisher returns the exact durable winner")
+            winner.db.close()
+            contender.db.close()
+
+    def test_first_unknown_winner_is_retained_for_reconciliation(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "journal.sqlite"
+            winner, contender = Journal(path), Journal(path)
+            intent = action_intent("web.open", {"url": "https://example.com/"})
+            winner.start("raced", intent)
+            unknown = receipt("unknown", True, error="stopped")
+            first = winner.finish("raced", unknown)
+            late = contender.finish("raced", receipt("observed", True, {"page": {"id": "late"}}))
+            self.assertEqual(winner.get("raced"), ("finished", unknown))
+            self.assertEqual(first, unknown)
+            self.assertEqual(late, unknown)
+            winner.db.close()
+            contender.db.close()
+
+    def test_agent_sends_durable_winner_after_reading_stale_started_state(self):
+        with tempfile.TemporaryDirectory() as directory:
+            home = Path(directory)
+            path = home / "journal.sqlite"
+            winner = Journal(path)
+            intent = action_intent("apps.launch", {"exe": "example.exe"})
+            winner.start("raced", intent)
+            observed = receipt("observed", True, {"window": {"hwnd": 42}})
+
+            class StaleReadJournal(Journal):
+                def get(self, activity):
+                    held = super().get(activity)
+                    if held == ("started", None):
+                        winner.finish(activity, observed)  # completion races our stale started read
+                    return held
+
+            contender = StaleReadJournal(path)
+            device = ReceiptDevice(home)
+            anyio.run(Agent(device, contender, MustNotRun()).handle, {"id": "raced", "intent": intent})
+            self.assertEqual(device.sent[-1]["receipt"], observed)
+            self.assertEqual(winner.get("raced"), ("finished", observed))
+            winner.db.close()
+            contender.db.close()
+
+
+class DispatchedStopTest(unittest.TestCase):
+    def test_stop_journals_opaque_read_uncertainty_and_preserves_pure_read_control(self):
+        for operation, arguments, expected in (
+            ("web.open", {"url": "https://example.com/"}, ("unknown", True)),
+            ("web.close", {"page": {"id": "page1", "site": "example.com"}}, ("unknown", True)),
+            ("fs.list", {"path": "."}, ("not_applied", False)),
+        ):
+            with self.subTest(operation=operation), tempfile.TemporaryDirectory() as directory:
+                home = Path(directory)
+                journal = Journal(home / "journal.sqlite")
+                device = ReceiptDevice(home)
+                stop_flag = home / "STOP"
+
+                async def run():
+                    dispatched = anyio.Event()
+
+                    class BlockedSession:
+                        async def call_tool(self, tool, arguments, **kwargs):
+                            dispatched.set()
+                            await anyio.sleep_forever()
+
+                    class SessionGateway(Gateway):
+                        async def _session(self, key):
+                            return BlockedSession()
+
+                    gateway = SessionGateway(str(home))
+                    async with gateway:
+                        with anyio.fail_after(3):
+                            async with anyio.create_task_group() as group:
+                                action = {"id": "stopped", "intent": action_intent(operation, arguments)}
+                                group.start_soon(Agent(device, journal, gateway, stop_flag).handle, action)
+                                await dispatched.wait()
+                                self.assertEqual(journal.get("stopped"), ("started", None))
+                                stop_flag.touch()
+                        self.assertGreater(gateway.epoch, 0)
+                    return device.sent[-1]["receipt"]
+
+                with patch.object(agent_module, "TICK_SECONDS", 0.01), patch.object(
+                    agent_module, "WATCH_SECONDS", 60.0
+                ):
+                    result = anyio.run(run)
+                self.assertEqual((result["status"], result["maybeChanged"]), expected)
+                self.assertEqual(result["errorCode"], "stopped")
+                self.assertEqual(journal.get("stopped"), ("finished", result))
+                journal.db.close()
+
+
+if __name__ == "__main__":
+    unittest.main()

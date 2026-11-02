@@ -70,6 +70,10 @@ jobs:
         if: success() || failure()
         working-directory: device-agent/windows
         run: python -c 'import sys, unittest; suite=unittest.defaultTestLoader.loadTestsFromName("tests.test_gateway.ResultBoundary"); result=unittest.TextTestRunner(verbosity=2).run(suite); sys.exit(0 if result.wasSuccessful() and result.testsRun == 8 and not result.skipped else 1)'
+      - name: Durable intent identity and interrupted read recovery (required, no skips)
+        if: success() || failure()
+        working-directory: device-agent/windows
+        run: python -c 'import sys, unittest; suite=unittest.defaultTestLoader.loadTestsFromName("tests.test_agent_recovery"); result=unittest.TextTestRunner(verbosity=2).run(suite); sys.exit(0 if result.wasSuccessful() and result.testsRun == 10 and not result.skipped else 1)'
       - name: Verifier collisions and unrelated-file preservation (real MCP workers)
         if: success() || failure()
         working-directory: device-agent/windows
@@ -84,6 +88,10 @@ jobs:
         if: success() || failure()
         working-directory: device-agent/windows
         run: xvfb-run -a python -c 'import sys, unittest; suite=unittest.defaultTestLoader.loadTestsFromNames(["tests.test_web.WebLadder.test_observed_addresses_are_exact_including_fragments_or_explicitly_omitted", "tests.test_web.WebLadder.test_mcp_lifespan_closes_browser_and_failed_startup", "tests.test_web.WebLadder.test_download_refusal_after_the_click_preserves_effect_uncertainty"]); result=unittest.TextTestRunner(verbosity=2).run(suite); sys.exit(0 if result.wasSuccessful() and result.testsRun == 3 and not result.skipped else 1)'
+      - name: Rendered verifier and URL transport negative controls (required, no skips)
+        if: success() || failure()
+        working-directory: device-agent/windows
+        run: xvfb-run -a python -c 'import sys, unittest; suite=unittest.defaultTestLoader.loadTestsFromName("tests.test_verify_web"); result=unittest.TextTestRunner(verbosity=2).run(suite); sys.exit(0 if result.wasSuccessful() and result.testsRun == 7 and not result.skipped else 1)'
       - name: Restore script syntax and refusal outside disposable CI
         if: success() || failure()
         run: |
