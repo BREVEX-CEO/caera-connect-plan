@@ -8,9 +8,10 @@ import { test } from "node:test";
 
 test("architecture regeneration preserves the current independent ledger", () => {
   const markdown = readFileSync("evidence/2026-11-01-live/architecture-ledger.md", "utf8");
-  const expected = [...markdown.matchAll(/^\| (\d+) \| [^|]+ \| (\w+) \|/gm)].map(
-    (match) => ({ n: Number(match[1]), status: match[2] }),
-  );
+  const expected = [...markdown.matchAll(/^\| (\d+) \| [^|]+ \| (\w+) \|/gm)].map((match) => ({
+    n: Number(match[1]),
+    status: match[2],
+  }));
   assert.equal(expected.length, 84);
   assert.deepEqual(
     expected.map((row) => row.n),

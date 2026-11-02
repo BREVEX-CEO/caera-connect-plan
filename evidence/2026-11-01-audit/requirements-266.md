@@ -1,3 +1,5 @@
+> Historical evidence. The only live engineering ledger is [plan.md](../../plan.md).
+
 # 266-requirement traceability and independent re-audit
 
 The requirement text comes from the first 266 numbered entries in `plan.md`. **Current review** is the independently assessed state; **historical** preserves Claude's `df705de` classification. A historical PASS that has not been independently requalified is PARTIAL, not silently inherited as technical completion. Missing code mapping is explicit.

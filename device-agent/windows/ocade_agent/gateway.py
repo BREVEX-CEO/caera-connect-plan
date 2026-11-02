@@ -270,7 +270,6 @@ class Gateway:
             return timed("not_applied", False, error=target)
         key, tool, arguments = target
 
-        writes = spec["risk"] != "read"
         uncertain = effect_possible(intent)
         try:
             session = await self._session(key)
@@ -305,7 +304,7 @@ class Gateway:
             text = "\n".join(getattr(part, "text", "") for part in result.content)[:8_000]
             if result.is_error:
                 return timed("unknown" if uncertain else "not_applied", uncertain, {"content": text}, "tool_error")
-            return timed("observed", writes, {"content": text, "server": key[4:], "tool": tool})
+            return timed("observed", uncertain, {"content": text, "server": key[4:], "tool": tool})
         try:
             evidence = result.structured_content or json.loads(result.content[0].text)
             if not isinstance(evidence, dict):
@@ -343,7 +342,7 @@ class Gateway:
             return timed("unknown" if uncertain else "not_applied", uncertain, error="malformed_result")
         if len(json.dumps(evidence)) > 16_000:
             return timed("unknown" if uncertain else "not_applied", uncertain, error="evidence_too_large")
-        done = timed("observed", writes or evidence.get("maybeChanged") is True, evidence)
+        done = timed("observed", uncertain, evidence)
         # The server stores a receipt in at most 64 KiB: a preview that would not fit is left
         # out (the planner can still ask for one) rather than leave a receipt nobody can record.
         if preview is not None and len(json.dumps(done)) + len(preview) <= MAX_RECEIPT:

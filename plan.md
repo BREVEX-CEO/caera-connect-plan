@@ -68,7 +68,7 @@ Separate measurements. Never merge them into one percentage.
 | Metric | Value (2 Nov 2026) | Source |
 |---|---|---|
 | Requirements PASS | **70/266** (26.3%). Unfinished: 196 (159 PARTIAL, 14 FAIL, 5 BLOCKED, 18 UNTESTED) | Appendix A |
-| Architecture concepts PASS | **41/84** (48.8%). Unfinished: 43 (41 PARTIAL, 1 FAIL, 1 BLOCKED) | Appendix B, `npm run jarvis:traceability` |
+| Architecture concepts PASS | **41/84** (48.8%). Unfinished: 43 (42 PARTIAL, 1 FAIL, 0 BLOCKED) | Appendix B, `npm run jarvis:traceability` |
 | Research ideas with a disposition | 236/236 | Appendix C |
 | Commercial readiness | **10/100** (1/10 milestones, 17/42 conditions) | `npm run readiness`, `evidence/readiness/gates.json` |
 | Cloud tests | Last all-green full matrix: [run 64](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41352301838) (`654af50`). Head code `f04228d` is red: [run 70](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41434622666) | Actions |
@@ -381,7 +381,7 @@ Journal ─▶ independent verifier ─▶ settlement · deliverables · timing
 
 | WP | Title | Depends | State | In flight / blocker | Requirements | Concepts | Effort |
 |---|---|---|---|---|---|---|---|
-| W0 | Green baseline and one ledger | — | NOT STARTED | — | 10, 43, 196, 214–215, 236–238 | 9, 22, 39–41, 44, 82 | 1–2 d |
+| W0 | Green baseline and one ledger | — | PARTIAL | Run 70 failures inspected; ledger and opaque-read receipt fixes prepared for cloud verification; media, browser/verifier and DB failures remain open | 10, 43, 196, 214–215, 236–238 | 9, 22, 39–41, 44, 82 | 1–2 d |
 | W1 | Safety closure and request-bound contract | W0 | NOT STARTED | — | 13, 21, 32, 35–41, 66–69, 79–80, 171, 193, 210, 216, 220 | 4–5, 7, 21, 38, 50, 52–57, 61 | 4–8 d |
 | W2 | Measurement and pickup speed | W1 | NOT STARTED | — | 81–92, 94, 96 | 2, 42–43, 47–48, 51, 70, 78 | 3–6 d |
 | W3 | Capability surface | W2 | NOT STARTED | — | 28–30, 93, 136–137 | 25–27, 37, 69 | 5–9 d |
@@ -1368,7 +1368,7 @@ Status source: `scripts/jarvis-traceability.mjs` / `evidence/2026-11-01-live/arc
 | 26 | **Native OS and File-Format Operations** | PASS | W3 | Offer generic filesystem, document format, OS inspection and project-file operations through typed sandboxed tools. | File integrity and ownership preserved, paths constrained to scope. |
 | 27 | **Scoped Script and Command Execution** | PASS | W3 | Use allowlisted or reviewed bounded commands with quotas and argument schemas, never unrestricted model-generated shell. | Injection, path traversal and forbidden executable requests fail closed. |
 | 28 | **Windows UI Automation — pywinauto / UIA / Win32** | PARTIAL | W6 | Use live accessibility trees and exact PID/HWND/process-start identity for native controls, with optional lower-level Win32 only when justified. | Wrong-window, duplicate-title and focus-swap regression tests pass. |
-| 29 | **macOS Accessibility — pyobjc / ApplicationServices** | BLOCKED | W7 | Provide a native AX bridge behind the same interface when macOS is a supported target; do not call Linux tests macOS proof. | OS-specific entitlement and real device tests gate macOS claims. |
+| 29 | **macOS Accessibility — pyobjc / ApplicationServices** | PARTIAL | W7 | Provide a native AX bridge behind the same interface when macOS is a supported target; do not call Linux tests macOS proof. | OS-specific entitlement and real device tests gate macOS claims. |
 | 30 | **Browser DOM / CDP / Playwright Automation** | PASS | W8 | Bind to the precise authorized browser, profile, tab and origin; prefer semantic DOM/ARIA and official APIs. | Unexpected navigation, lost tab and login challenges pause safely. |
 | 31 | **Authenticated Browser Profile and Session Binding** | PARTIAL | W8 | Use permitted existing sessions without exporting passwords/cookies; revoke tool authority when profile identity changes. | Cross-profile execution and token extraction are rejected. |
 | 32 | **Structured Accessibility-Tree Interaction** | PARTIAL | W6, W7 | Inspect semantic controls, roles, state and geometry freshly before invoking action; avoid stale element IDs. | Changed UI tree triggers rediscovery rather than blind click. |
@@ -1553,7 +1553,7 @@ Severity: CRITICAL = unauthorised action, data loss, secret exposure or wrong-ta
 
 | ID | Severity | Defect | Evidence | Status | Package |
 |---|---|---|---|---|---|
-| D1 | HIGH | Branch head red: planner safety, media nested-source containment, gateway result boundary, actor bound-host prevention, rendered-verifier/URL transport, formatting and DB revocation steps fail | [run 70](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41434622666), `f04228d` | OPEN | W0 |
+| D1 | HIGH | Branch head red: planner safety, media nested-source containment, gateway result boundary, actor bound-host prevention, rendered-verifier/URL transport, formatting and DB revocation steps fail | [run 70](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41434622666), `f04228d` | OPEN: opaque-read success receipts used risk-only flags despite existing conservative effect policy; shared Gateway fix and captured formatter output prepared, cloud verification pending. Held-claim test also proves receipt/STOP lock-order deadlock. | W0 |
 | D2 | HIGH | Anonymous web verification: hidden page content passes; private/off-origin observations accepted; same URL fetched 13 times | run 68 (`82098c2`), seven-method negative suite | OPEN (repair in progress) | W1 |
 | D3 | HIGH | Dispatch after browser permission was revoked while the claim was held | run 69 (`61b29b1`); migration `20261102061041_enforce_verifier_target_permissions.sql` drafted | OPEN | W1 |
 | D4 | HIGH (risk) | SSRF, DNS-rebinding and redirect-hop enforcement for verifier fetch and actor browser not reviewed | source review; route-only interception may not block redirect hops | OPEN, UNVERIFIED | W1, W11 |
@@ -1566,7 +1566,7 @@ Severity: CRITICAL = unauthorised action, data loss, secret exposure or wrong-ta
 | D11 | MEDIUM | Windows web ladder `KeyError 'page'` once; cause unknown | 1 November Windows run | OPEN | W8 |
 | D12 | MEDIUM | CRLF script executable flag fix not verified live | eval s11 `crlf_script` | OPEN | W3 |
 | D13 | MEDIUM | Windows `WinError 32` on fixture profile cleanup; lock owner never identified (quiescence wait added, run 64 green) | run 63 | MITIGATED | W9 |
-| D14 | LOW | Ledgers disagree: concept 29 recorded BLOCKED although MAC-001…012 pass (run 45); five status files | `scripts/jarvis-traceability.mjs` entry 29 | OPEN | W0 |
+| D14 | LOW | Ledger regeneration restores five retracted PASSs; concept 29 incorrectly BLOCKED | Run 70 traceability regression; [run 45](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41331983365) macOS suite passed at `a7cf182` | IMPLEMENTED, cloud verification pending: restore PARTIAL for 38/49/55/75/76; correct 29 to PARTIAL; enforce agreement with Appendix B; historical ledgers point here | W0 |
 | D15 | LOW | Stale Dependabot PRs target deleted `/jarvis-runtime` | open PRs #88, #90 | OPEN (needs A3) | W12 |
 | D16 | HIGH (risk) | macOS window previews need Screen Recording permission on consumer Macs; CI runner is pre-authorised, so this path is unverified | `mac_worker.py` preview; Apple privacy model | OPEN, UNVERIFIED | W7 |
 | D17 | HIGH | No typed copy/move/rename/mkdir/trash/set-attributes operations; file management and the executable bit go through confirmed `shell.run` (4 of 9 eval failures) | `src/lib/jarvis/contracts.ts` (35 operations); `crlf_script` in s11–s14 | OPEN | W3 |

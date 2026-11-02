@@ -1,3 +1,5 @@
+> Historical evidence. The only live engineering ledger is [plan.md](../../plan.md).
+
 # Codex implementation checkpoint
 
 Work only on `ocade/p00-p22-implementation`. No deployment, main merge, spending, provider calls, or personal-PC/product execution occurred.

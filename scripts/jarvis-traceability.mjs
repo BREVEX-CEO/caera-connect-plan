@@ -32,6 +32,7 @@ const O = {
   media: "device-agent/windows/ocade_agent/media_worker.py + scene_gl.py",
   web: "device-agent/windows/ocade_agent/web_worker.py",
   windows: "device-agent/windows/ocade_agent/windows_worker.py",
+  mac: "device-agent/windows/ocade_agent/mac_worker.py",
   verify: "device-agent/windows/ocade_agent/verify_worker.py",
   packaging: "device-agent/windows/packaging/",
   guard: "scripts/jarvis-no-hardcoded-journeys.mjs",
@@ -50,6 +51,7 @@ const T = {
   guard: "npm run jarvis:no-hardcoded",
   windowsUi: "device-agent/windows/tests/test_windows_ui.py (GitHub windows-latest runner)",
   shell: "device-agent/windows/tests/test_shell.py (Linux, macOS and Windows runners)",
+  mac: "device-agent/windows/tests/test_mac_ui.py (GitHub macOS runner)",
   live: "live Gemini runs (evidence/2026-11-01-live)",
   staging: "staging checks and real UI run (evidence/2026-10-31-architecture)",
 };
@@ -167,7 +169,13 @@ const C = {
     ["windowsUi"],
     `UIA inspect/set_value/invoke/send_keys/click_point ${RUNNER}`,
   ],
-  29: ["BLOCKED", "L0", [], [], "macOS is not an offered platform; no AX bridge exists"],
+  29: [
+    "PARTIAL",
+    "L2",
+    ["mac"],
+    ["mac"],
+    "Run 45 (a7cf182) passed the macOS cloud suite; consumer permissions and real-device qualification remain untested",
+  ],
   30: ["PASS", "L2", ["web"], ["web"], ""],
   31: [
     "PARTIAL",
@@ -218,7 +226,13 @@ const C = {
     ["unit"],
     "engine-gated choice; no runtime fallback between mechanisms",
   ],
-  38: ["PASS", "L2", ["sandbox"], ["sandbox"], ""],
+  38: [
+    "PARTIAL",
+    "L2",
+    ["sandbox", "office"],
+    ["sandbox", "gateway"],
+    "Original-file and directory-identity concurrency guarantees remain incomplete (D7)",
+  ],
   39: ["PASS", "L2", ["gateway", "catalog"], ["gateway", "catalog"], ""],
   40: ["PASS", "L2", ["gateway"], ["gateway", "agent"], ""],
   41: ["PASS", "L2", ["gateway", "packaging"], ["gateway", "frozen"], ""],
@@ -247,7 +261,13 @@ const C = {
     ["gateway", "e2e"],
     "per-action and model durations recorded; no p50/p95 from real runs",
   ],
-  49: ["PASS", "L1", ["planner", "authority", "migration"], ["unit", "db"], ""],
+  49: [
+    "PARTIAL",
+    "L1",
+    ["planner", "authority", "migration"],
+    ["unit", "db"],
+    "Guarded step lists require E1 accuracy qualification (W4)",
+  ],
   50: [
     "PARTIAL",
     "L2",
@@ -265,7 +285,13 @@ const C = {
   52: ["PASS", "L2", ["migration", "agent"], ["db", "agent"], ""],
   53: ["PASS", "L2", ["agent"], ["agent"], ""],
   54: ["PASS", "L2", ["migration"], ["db", "e2e"], ""],
-  55: ["PASS", "L2", ["agent", "migration"], ["agent", "db"], ""],
+  55: [
+    "PARTIAL",
+    "L2",
+    ["agent", "migration"],
+    ["agent", "db"],
+    "Unknown writes are fenced; independent durable effect resolution remains incomplete (D5)",
+  ],
   56: ["PASS", "L2", ["agent", "migration"], ["agent", "e2e"], ""],
   57: ["PASS", "L2", ["migration", "agent", "gateway"], ["e2e", "agent", "gateway"], ""],
   58: [
@@ -327,8 +353,20 @@ const C = {
   ],
   73: ["PASS", "L2", ["packaging", "gateway"], ["frozen"], ""],
   74: ["PASS", "L2", ["gateway", "agent"], ["gateway", "agent"], ""],
-  75: ["PASS", "L2", ["verify"], ["gateway", "media"], ""],
-  76: ["PASS", "L2", ["verify"], ["gateway", "media"], ""],
+  75: [
+    "PARTIAL",
+    "L2",
+    ["verify"],
+    ["gateway", "media"],
+    "Rendered web verification and professional deliverable checks remain incomplete (D2, W5)",
+  ],
+  76: [
+    "PARTIAL",
+    "L2",
+    ["verify"],
+    ["gateway", "media"],
+    "Output integrity and format coverage require W5 qualification",
+  ],
   77: ["PASS", "L1", ["planner"], ["unit"], ""],
   78: [
     "PARTIAL",
@@ -365,10 +403,11 @@ const C = {
 const STATES = ["PASS", "PARTIAL", "FAIL", "BLOCKED", "UNTESTED"];
 
 const rows = [
-  ...readFileSync("plan.md", "utf8").matchAll(/^\| (\d{1,2}) \| \*\*(.+?)\*\* \|/gm),
+  ...readFileSync("plan.md", "utf8").matchAll(/^\| (\d{1,2}) \| \*\*(.+?)\*\* \| (\w+) \|/gm),
 ].map((m) => ({
   n: Number(m[1]),
   title: m[2],
+  status: m[3],
 }));
 const problems = [];
 if (rows.length !== 84) problems.push(`${rows.length} concepts in plan.md, expected 84`);
@@ -380,6 +419,8 @@ for (let n = 1; n <= 84; n += 1) {
   else {
     const [status, , owners, tests, reason] = entry;
     if (!STATES.includes(status)) problems.push(`${n}: unknown status ${status}`);
+    if (rows.find((row) => row.n === n)?.status !== status)
+      problems.push(`${n}: evidence status disagrees with plan.md`);
     if (status === "PASS" && !tests.length) problems.push(`${n}: PASS without a test`);
     if (status !== "PASS" && !reason) problems.push(`${n}: ${status} without a reason`);
     for (const key of owners) if (!O[key]) problems.push(`${n}: unknown owner ${key}`);
