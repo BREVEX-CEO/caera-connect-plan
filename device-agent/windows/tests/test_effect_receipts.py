@@ -17,6 +17,7 @@ class NativeEffectReceipts(unittest.TestCase):
         from ocade_agent import windows_worker as worker
         calls = []
         class Provider:
+            def is_enabled(self): return True
             @property
             def iface_invoke(self): return self
             @property

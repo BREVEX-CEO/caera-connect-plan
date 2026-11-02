@@ -85,7 +85,7 @@ class Journey(unittest.TestCase):
     def test_a_refusal_before_writing_cannot_claim_a_possible_effect(self):
         async def run():
             async with Gateway(str(self.root)) as gateway:
-                return await gateway.run(intent("fs.write_text", {"path": "../outside.txt", "text": "synthetic"}), gateway.epoch)
+                return await gateway.run(intent("fs.write_text", {"path": "OCADE output/../outside.txt", "text": "synthetic"}), gateway.epoch)
         receipt = anyio.run(run)
         self.assertEqual(receipt["status"], "not_applied", receipt)
         self.assertFalse(receipt["maybeChanged"], receipt)

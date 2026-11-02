@@ -105,7 +105,6 @@ jobs:
         run: |
           node --input-type=module -e 'import fs from "node:fs"; import prettier from "prettier"; for (const path of process.argv.slice(1)) console.log("OCADE_FORMAT:" + JSON.stringify({path, content: await prettier.format(fs.readFileSync(path, "utf8"), {...await prettier.resolveConfig(path), filepath:path})}));' src/lib/jarvis/contracts.ts src/lib/jarvis/planner.server.ts tests/security/planner.test.ts tests/security/verification.test.ts tests/security/readiness.test.ts tests/security/recovery.test.ts tests/security/objective.test.ts tests/security/confirmation.test.ts src/lib/jarvis/authority.server.ts src/lib/jarvis/supervisor.ts scripts/launch-readiness.mjs tests/jarvis/contracts.test.ts tests/jarvis/e2e.test.ts src/lib/jarvis/objective.ts src/lib/jarvis/functions.ts src/jarvis/JarvisWorkspace.tsx src/jarvis/JarvisBubble.tsx src/routes/ocade-jarvis.tsx ToRemove.md evidence/readiness/gates.json .github/workflows/jarvis-cloud-validation.yml
 
-
   windows-effects-safety:
     name: Native receipt / COM / process safety · Windows
     runs-on: windows-latest

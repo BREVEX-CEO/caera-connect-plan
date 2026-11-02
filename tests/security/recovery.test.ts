@@ -142,31 +142,62 @@ test("mutations require fresh planning; unknown effects fence resumption", async
         assert.equal(calls, before);
       },
     );
-    await t.test("a not-applied mutation admitting a possible effect cannot be repeated", async () => {
-      proposals = [write];
-      const before = calls;
-      const step: Step = { ...uncertain, status: "failed", receipt: { ...uncertain.receipt!, status: "not_applied" } };
-      assert.equal((await planStep({ ...base, steps: [step] })).kind, "block");
-      assert.equal(calls, before);
-    });
-    await t.test("a declared read that admits a possible unobserved effect also stops", async () => {
-      proposals = [list];
-      const before = calls;
-      const step: Step = { ...uncertain, intent: intent("fs.read_text", "contradictory-read", read.arguments, deadline) };
-      assert.equal((await planStep({ ...base, steps: [step] })).kind, "block");
-      assert.equal(calls, before);
-    });
-    for (const raw of [{ status: "not_applied", maybeChanged: true }, { status: "observed", maybeChanged: true }]) {
+    await t.test(
+      "a not-applied mutation admitting a possible effect cannot be repeated",
+      async () => {
+        proposals = [write];
+        const before = calls;
+        const step: Step = {
+          ...uncertain,
+          status: "failed",
+          receipt: { ...uncertain.receipt!, status: "not_applied" },
+        };
+        assert.equal((await planStep({ ...base, steps: [step] })).kind, "block");
+        assert.equal(calls, before);
+      },
+    );
+    await t.test(
+      "a declared read that admits a possible unobserved effect also stops",
+      async () => {
+        proposals = [list];
+        const before = calls;
+        const step: Step = {
+          ...uncertain,
+          intent: intent("fs.read_text", "contradictory-read", read.arguments, deadline),
+        };
+        assert.equal((await planStep({ ...base, steps: [step] })).kind, "block");
+        assert.equal(calls, before);
+      },
+    );
+    for (const raw of [
+      { status: "not_applied", maybeChanged: true },
+      { status: "observed", maybeChanged: true },
+    ]) {
       await t.test("incomplete durable effect information survives " + raw.status, async () => {
         const recorded: string[] = [];
-        const admin = { rpc: async (name: string) => {
-          recorded.push(name);
-          return { data: name === "jarvis_task_state" ? {
-            id: "task", userId: "u", status: "running", controller: "epoch", title: base.objective,
-            outcome: checks, grants: ["files"], engines: [], mcp: [],
-            steps: [{ intent: uncertain.intent, status: "failed", receipt: raw }],
-          } : null, error: null };
-        } } as unknown as Admin;
+        const admin = {
+          rpc: async (name: string) => {
+            recorded.push(name);
+            return {
+              data:
+                name === "jarvis_task_state"
+                  ? {
+                      id: "task",
+                      userId: "u",
+                      status: "running",
+                      controller: "epoch",
+                      title: base.objective,
+                      outcome: checks,
+                      grants: ["files"],
+                      engines: [],
+                      mcp: [],
+                      steps: [{ intent: uncertain.intent, status: "failed", receipt: raw }],
+                    }
+                  : null,
+              error: null,
+            };
+          },
+        } as unknown as Admin;
         const before = calls;
         await advance(admin, "task", now);
         assert.ok(recorded.includes("jarvis_task_wait"), JSON.stringify(recorded));
@@ -174,7 +205,6 @@ test("mutations require fresh planning; unknown effects fence resumption", async
         assert.equal(calls, before);
       });
     }
-
   } finally {
     Object.assign(plannerAccess, saved);
     server.closeAllConnections();
