@@ -172,16 +172,35 @@ def _rewrite(path: str, expect: str, change) -> dict:
     write_atomically(original, lambda temporary: temporary.write_bytes(data))
     handle, temporary = tempfile.mkstemp(dir=target.parent, prefix=".ocade-", suffix=target.suffix)
     staged = Path(temporary)
+    aside = staged.with_name(staged.name + ".was")
     try:
         with os.fdopen(handle, "wb") as stream:
             stream.write(text.encode("utf-8"))
         shutil.copymode(target, staged)
-        if sha256(target) != before:
+        if resolve(WORKSPACE, path) != target:
+            raise Refused("file_changed")  # a folder on the way was swapped since it was resolved
+        # Compare-and-swap without a silent-overwrite window: move the version that is there now
+        # aside (atomic), and go on only if it is still the version that was read.
+        try:
+            os.rename(target, aside)
+        except OSError:
+            raise Refused("file_in_use")  # e.g. held open by an editor on Windows: nothing changed
+        if sha256(aside) != before:
+            os.rename(aside, target)
             raise Refused("file_changed")
-        os.replace(staged, target)
         mark_effect()
+        try:
+            os.link(staged, target) if os.name == "posix" else os.rename(staged, target)
+        except FileExistsError:
+            raise Refused("file_changed_during_write")  # a new file appeared there: both are kept
+        # A save through a handle opened before the move lands in the aside copy: keep it, say so.
+        if sha256(aside) != before:
+            os.replace(aside, target)
+            raise Refused("file_changed_during_write")
     finally:
         staged.unlink(missing_ok=True)
+        if aside.exists():  # never leave the person without their file
+            aside.unlink() if target.exists() else os.rename(aside, target)
     return {"sha256Before": before, "sha256": sha256(target), "original": original.relative_to(root).as_posix(),
             "matches": target.read_bytes().decode("utf-8") == text}
 
