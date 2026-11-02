@@ -61,6 +61,8 @@ BEGIN
   EXCEPTION WHEN insufficient_privilege THEN
     IF SQLERRM NOT LIKE '%fixed once they are set%' THEN RAISE; END IF;
   END;
+  PERFORM pg_temp.outcome_assert(public.jarvis_task_state(v_task.task_id) ? 'deviceSeenAt',
+                                 'the task view carries when its computer was last in contact');
   PERFORM pg_temp.outcome_assert(
     public.jarvis_queue_actions(v_task.task_id, v_task.controller, v_write) = 1,
     'work that changes things is queued only after the checks are fixed');

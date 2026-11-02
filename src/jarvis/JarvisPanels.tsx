@@ -438,6 +438,12 @@ export function TaskPanel({
         ) : null}
       </div>
       {task.blocker ? <p className="mt-1 text-muted-foreground">{task.blocker}</p> : null}
+      {task.deviceOffline ? (
+        <p className="mt-1 text-muted-foreground">
+          {task.device ?? "Your computer"} is not reachable. JARVIS continues when it reconnects;
+          nothing new starts until then.
+        </p>
+      ) : null}
       <ol className="mt-2 space-y-1">
         {task.steps.map((step) => (
           <li key={step.id} className="flex flex-wrap items-center gap-2">

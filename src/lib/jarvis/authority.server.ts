@@ -37,6 +37,9 @@ import {
 
 export type Admin = Pick<SupabaseClient<Database>, "rpc">;
 
+/** A computer that polls at least every 30 s and has been silent this long is unreachable. */
+const DEVICE_SILENCE_MS = 90_000;
+
 /** The first read-only look whose result the fixed checks are compiled from. */
 const DISCOVERY = "discover";
 
@@ -98,6 +101,7 @@ interface TaskState {
   checkpoint: Record<string, unknown> | null;
   conversationId: string;
   deviceName: string | null;
+  deviceSeenAt: string | null;
   grants: string[];
   mcp: McpServer[];
   engines: string[] | null;
@@ -465,6 +469,11 @@ export async function taskView(admin: Admin, userId: string, taskId: string) {
       };
     }),
     device: task.deviceName,
+    // An outage is said plainly: the step in hand stays put and nothing new starts until contact.
+    deviceOffline:
+      task.status === "running" &&
+      (!task.deviceSeenAt ||
+        Date.parse(task.timing.now) - Date.parse(task.deviceSeenAt) > DEVICE_SILENCE_MS),
     timing,
     // Files JARVIS wrote and saw land, named as they are in the computer's JARVIS folder.
     artifacts: task.steps.flatMap((step) => {
