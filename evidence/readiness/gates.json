@@ -99,13 +99,17 @@
         {
           "id": "journal_idempotency",
           "text": "Journal, idempotency and lost-ACK reconciliation never repeat an effect",
-          "status": "PARTIAL",
+          "status": "PASS",
           "evidence": [
             "device-agent/windows/tests/test_agent.py",
+            "device-agent/windows/tests/test_agent_recovery.py",
+            "device-agent/windows/tests/test_rewrite_race.py",
             "tests/security/recovery.test.ts",
-            "evidence/2026-11-01-audit/codex-recovery-83f3142.json"
-          ],
-          "reason": "Run 57 reproduced new-action replay after resume and discarded minimal unknown markers; run 58 fences both in planner/authority before provider/queue calls. An independent durable effect-resolution workflow and comprehensive recovery qualification are still incomplete."
+            "tests/jarvis/db/effect-resolution.test.sql",
+            "tests/jarvis/db/held-claim-revocation.test.sql",
+            "tests/jarvis/db/claim-receipt-race.py",
+            "evidence/2026-11-02-recovery/recovery-qualification.json"
+          ]
         },
         {
           "id": "stop",
@@ -129,13 +133,17 @@
         {
           "id": "crash_recovery",
           "text": "Companion killed mid-write and restarted: the write is reported unknown/interrupted and never re-run",
-          "status": "PARTIAL",
+          "status": "PASS",
           "evidence": [
             "device-agent/windows/tests/test_agent.py",
+            "device-agent/windows/tests/test_agent_recovery.py",
+            "device-agent/windows/tests/test_rewrite_race.py",
             "tests/security/recovery.test.ts",
-            "evidence/2026-11-01-audit/codex-recovery-83f3142.json"
-          ],
-          "reason": "Run 57 reproduced new-action replay after resume and discarded minimal unknown markers; run 58 fences both in planner/authority before provider/queue calls. An independent durable effect-resolution workflow and comprehensive recovery qualification are still incomplete."
+            "tests/jarvis/db/effect-resolution.test.sql",
+            "tests/jarvis/db/held-claim-revocation.test.sql",
+            "tests/jarvis/db/claim-receipt-race.py",
+            "evidence/2026-11-02-recovery/recovery-qualification.json"
+          ]
         }
       ]
     },

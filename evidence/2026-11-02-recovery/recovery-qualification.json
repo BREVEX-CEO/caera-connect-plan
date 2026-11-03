@@ -1,0 +1,20 @@
+{
+  "scope": "Cloud recovery qualification for readiness milestone 2 (journal_idempotency, crash_recovery). GitHub-hosted Linux, Windows Server and macOS runners plus disposable PostgreSQL 16; scripted model. Not consumer hardware (milestone 9) and not real-model accuracy (milestone 5).",
+  "source": "5796bb8c7e1bc0e8a88cd98b96db4415cbcfea88",
+  "run": "https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41547638177",
+  "cases": [
+    {"case": "Companion killed mid-write and restarted: reported unknown/interrupted, never re-run", "test": "device-agent/windows/tests/test_agent.py ProcessKillTest", "platforms": ["linux", "windows", "macos"]},
+    {"case": "Lost acknowledgement: the exact saved receipt is resent, the effect never re-executed", "test": "device-agent/windows/tests/test_agent.py", "platforms": ["linux", "windows", "macos"]},
+    {"case": "A restarted companion keeps durable intent identity; an interrupted read is recovered", "test": "device-agent/windows/tests/test_agent_recovery.py (10 cases)", "platforms": ["linux", "windows", "macos"]},
+    {"case": "An unknown write fences resumption; no new action is queued or provider called", "test": "tests/security/recovery.test.ts", "platforms": ["linux"]},
+    {"case": "The person resolves an unknown effect once (owner only, waiting task); the step is never redelivered; the planner sees the answer", "test": "tests/jarvis/db/effect-resolution.test.sql; tests/security/recovery.test.ts", "platforms": ["postgresql-16"]},
+    {"case": "A held claim whose permission is revoked is fenced; a late receipt is kept without reviving the action", "test": "tests/jarvis/db/held-claim-revocation.test.sql; tests/jarvis/db/claim-receipt-race.py", "platforms": ["postgresql-16"]},
+    {"case": "Claim/STOP and a concurrent receipt never deadlock (task-before-action lock order)", "test": "tests/jarvis/db/claim-receipt-race.py (claim, stop)", "platforms": ["postgresql-16"]},
+    {"case": "STOP while a step runs: in-flight work cancelled and its effect accounted for", "test": "tests/jarvis/e2e.test.ts", "platforms": ["linux"]},
+    {"case": "An in-place repair never silently replaces a version saved meanwhile", "test": "device-agent/windows/tests/test_rewrite_race.py", "platforms": ["linux", "windows", "macos"]}
+  ],
+  "limits": [
+    "The person, not an automatic probe, decides whether an unobserved effect happened.",
+    "Consumer Windows 10/11 and macOS hardware remain untested (milestone 9)."
+  ]
+}

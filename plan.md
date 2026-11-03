@@ -24,7 +24,7 @@
 4. Work through the loop in §7 until the package's acceptance holds. Then update §3, §15 and Appendices A–D **in the same commit** as the evidence.
 5. If you are blocked, record why on the board and in Appendix D, then take the next dependency-ready package.
 
-**Current next action: W0 — confirm the full matrix on the head; then W1 (D6, D4 residual, D7).**
+**Current next action: W2 — nudge, timing suite and pickup targets (§16).**
 
 ## 1. What OCADE is
 
@@ -67,14 +67,14 @@ Separate measurements. Never merge them into one percentage.
 
 | Metric | Value (2 Nov 2026) | Source |
 |---|---|---|
-| Requirements PASS | **70/266** (26.3%). Unfinished: 196 (159 PARTIAL, 14 FAIL, 5 BLOCKED, 18 UNTESTED) | Appendix A |
-| Architecture concepts PASS | **41/84** (48.8%). Unfinished: 43 (42 PARTIAL, 1 FAIL, 0 BLOCKED) | Appendix B, `npm run jarvis:traceability` |
+| Requirements PASS | **76/266** (28.6%). Unfinished: 190 (153 PARTIAL, 14 FAIL, 5 BLOCKED, 18 UNTESTED) | Appendix A |
+| Architecture concepts PASS | **43/84** (51.2%). Unfinished: 41 (40 PARTIAL, 1 FAIL) | Appendix B, `npm run jarvis:traceability` |
 | Research ideas with a disposition | 236/236 | Appendix C |
-| Commercial readiness | **10/100** (1/10 milestones, 17/42 conditions) | `npm run readiness`, `evidence/readiness/gates.json` |
-| Cloud tests | Last all-green full matrix: [run 64](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41352301838) (`654af50`). [run 74](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41534326454) (`b86002c`): 7/8 jobs green; the Windows companion HLS control fixture failed and is fixed for the next run | Actions |
+| Commercial readiness | **20/100** (2/10 milestones, 19/42 conditions); M2 earned at `5796bb8` | `npm run readiness`, `evidence/readiness/gates.json`, `evidence/2026-11-02-recovery/` |
+| Cloud tests | Full matrix green: [run 78](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41547638177) (`5796bb8`), all 8 jobs (Linux, Windows, macOS companion; DB; contracts/e2e; Windows installer smoke) | Actions |
 | Real-task success (real Gemini) | **27/36 (75%)** first attempt, Linux, 1 November. Not re-measured since. | `evidence/2026-11-01-eval-s11`…`s14` |
 | Task time (39 live tasks) | Median 37 s, p95 79.7 s. Model 56% of the time, device execution 6%, unaccounted ~34%. Median 6 model calls. | eval `timing` fields |
-| Open defects | Critical 0 confirmed · High 12 · Medium 5 (one mitigated) · Low 3 | Appendix D |
+| Open defects | Critical 0 confirmed · High 6 open (D8 partial, D9, D10, D16, D17, D18) + 1 mitigated (D4) · Medium 3 open + 1 mitigated · Low 3 | Appendix D |
 
 ---
 
@@ -381,9 +381,9 @@ Journal ─▶ independent verifier ─▶ settlement · deliverables · timing
 
 | WP | Title | Depends | State | In flight / blocker | Requirements | Concepts | Effort |
 |---|---|---|---|---|---|---|---|
-| W0 | Green baseline and one ledger | — | TESTED | [run 74](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41534326454) at `b86002c`: 7 of 8 jobs green, including the Linux and macOS companion suites and the Windows installer smoke. Only the Windows companion HLS *control* failed: Windows FFmpeg would not open the playlist's `file:` URI, so the fixture did not prove the leak path there. The fixture now uses a plain absolute path. Awaiting the next full matrix | 10, 43, 196, 214–215, 236–238 | 9, 22, 39–41, 44, 82 | 1–2 d |
-| W1 | Safety closure and request-bound contract | W0 | IMPLEMENTED | D2, D3 (`b86002c`); D5 (`3938351`) and D6 (`faa52d6`) pass in [run 75](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41538401941) contracts job (DB, e2e); D7 race-safe repair, D4 rebinding recheck, outage visibility committed after; full matrix pending | 13, 21, 32, 35–41, 66–69, 79–80, 171, 193, 210, 216, 220 | 4–5, 7, 21, 38, 50, 52–57, 61 | 4–8 d |
-| W2 | Measurement and pickup speed | W1 | IN PROGRESS | D8 active-task polling (no backoff); nudge, phase timing and timing suite next | 81–92, 94, 96 | 2, 42–43, 47–48, 51, 70, 78 | 3–6 d |
+| W0 | Green baseline and one ledger | — | DONE | [run 78](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41547638177) all green at `5796bb8`; ledgers agree (41→43 concepts after W1) | 10, 43, 196, 214–215, 236–238 | 9, 22, 39–41, 44, 82 | 1–2 d |
+| W1 | Safety closure and request-bound contract | W0 | DONE | [run 78](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41547638177): D2, D3, D5, D6, D7 fixed; D4 mitigated (residual → W11); outage visible; M2 recovery qualification `evidence/2026-11-02-recovery/` | 13, 21, 32, 35–41, 66–69, 79–80, 171, 193, 210, 216, 220 | 4–5, 7, 21, 38, 50, 52–57, 61 | 4–8 d |
+| W2 | Measurement and pickup speed | W1 | IN PROGRESS | D8 active-task polling and per-step pickup/unaccounted timing in [run 78](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41547638177); next: Realtime nudge (idle p95 ≤3 s), ≥30-task synthetic timing suite, worker prewarm, large-payload handles | 81–92, 94, 96 | 2, 42–43, 47–48, 51, 70, 78 | 3–6 d |
 | W3 | Capability surface | W2 | NOT STARTED | — | 28–30, 93, 136–137 | 25–27, 37, 69 | 5–9 d |
 | W4 | Accuracy engine and evaluation → E1 | W3 | NOT STARTED | — | 23, 31, 33–34, 46–57, 60, 63, 65, 166, 197–199, 201–202, 204, 207, 219 | 6, 8, 10, 14–20, 23, 49, 60, 77, 83 | 6–12 d |
 | W5 | Professional deliverables and visual fallback → E2 | W4 | NOT STARTED | — | 61, 70–75, 77, 211 | 36, 74–76 | 7–12 d |
@@ -1000,7 +1000,7 @@ Earlier plan texts are in git history at `0e1bdcb`, `16654be` and `ef5cd6b`.
 
 ## Appendix A — The 266 requirements (verbatim) with status and destination
 
-Format: `STATUS` · **destination** — original text. Status source: independent re-audit at `f04228d` (`evidence/2026-11-01-audit/requirements-266.md`, current-review column); it is the conservative lower bound. **S** = standing rule verified at every release gate. **RPC** = needs real-PC validation. **COM** = commercial phase. **W14** = optional Linux; never counted as PASS without evidence and never blocking Windows/macOS release.
+Format: `STATUS` · **destination** — original text. Status source: independent re-audit at `f04228d`, plus W1 promotions of 36, 39, 41, 80, 171 and 216 with [run 78](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41547638177) and `evidence/2026-11-02-recovery/` (`evidence/2026-11-01-audit/requirements-266.md`, current-review column); it is the conservative lower bound. **S** = standing rule verified at every release gate. **RPC** = needs real-PC validation. **COM** = commercial phase. **W14** = optional Linux; never counted as PASS without evidence and never blocking Windows/macOS release.
 
 Original preamble (1 November 2026): this owner checklist complements the 84 concepts; it does not authorise merging into main, production deployment, payments, certificate acquisition, spending, irreversible changes, or exposing secrets. Preconfigured staging credentials may be used for authorised staging tests with least privilege and strict non-disclosure.
 
@@ -1046,12 +1046,12 @@ Original preamble (1 November 2026): this owner checklist complements the 84 con
 33. `PARTIAL` · **W4** — Add a bounded receding-horizon planner: plan enough to act effectively, execute, observe the result, then replan only when necessary.
 34. `PARTIAL` · **W4** — Separate **planning, action execution, result observation, and verification** into explicit interfaces and states.
 35. `PARTIAL` · **W1** — Give every action a unique identifier, task identifier, target identity, permission context, deadline, and observable outcome.
-36. `PARTIAL` · **W1** — Prevent duplicate side effects after retries, server restarts, timeout responses, disconnections, or acknowledgement failures.
+36. `PASS` · **W1** — Prevent duplicate side effects after retries, server restarts, timeout responses, disconnections, or acknowledgement failures.
 37. `PARTIAL` · **W1** — Preserve receipts distinguishing **executed, verified, refused, failed, cancelled, and outcome unknown**. Never infer success from a dispatched command.
 38. `PARTIAL` · **W1** — Improve persistent journaling, recovery checkpoints, durable action reconciliation, and crash-safe resumption.
-39. `PARTIAL` · **W1** — Do not automatically repeat destructive or externally visible operations when the previous effect is uncertain.
+39. `PASS` · **W1** — Do not automatically repeat destructive or externally visible operations when the previous effect is uncertain.
 40. `PARTIAL` · **W1** — Implement reliable ownership fences so STOP, Take Over, revocation, sign-out, device removal, and task cancellation prevent new unauthorized actions.
-41. `PARTIAL` · **W1** — Ensure an in-flight operation either stops safely or reports honestly what may already have changed.
+41. `PASS` · **W1** — Ensure an in-flight operation either stops safely or reports honestly what may already have changed.
 42. `PASS` · **S** — Keep the Gateway modular. Do not introduce one microservice per tool or turn the 84 architectural concepts into 84 separate services.
 43. `PASS` · **W0** — Establish stable typed contracts between planner, task authority, Gateway, workers, verifier, and user interface.
 44. `PARTIAL` · **W9** — Add version negotiation and compatibility checking between the website/backend, Device Agent, Gateway, and bundled workers.
@@ -1096,7 +1096,7 @@ Original preamble (1 November 2026): this owner checklist complements the 84 con
 77. `PARTIAL` · **W5** — Where full automatic verification is impossible, report what was proven, what remains uncertain, and what requires human review.
 78. `PARTIAL` · **W11** — Record evidence references with each important action while protecting customer data and excluding secrets.
 79. `PASS` · **W1** — Keep the verifier isolated from the planner's unverifiable claims and hidden test answer keys.
-80. `PARTIAL` · **W1** — Build regression tests specifically reproducing the false-positive verification and unauthorized source-editing failures already observed.
+80. `PASS` · **W1** — Build regression tests specifically reproducing the false-positive verification and unauthorized source-editing failures already observed.
 
 #### Execution speed and efficiency
 
@@ -1208,7 +1208,7 @@ Original preamble (1 November 2026): this owner checklist complements the 84 con
 168. `UNTESTED` · **W11** — Enforce TLS, secure headers, safe cookies, CSRF protection, input validation, and appropriate Content Security Policy.
 169. `PARTIAL` · **W11** — Test for XSS, SQL injection, SSRF, path traversal, command injection, unsafe deserialization, insecure direct-object references, and privilege escalation.
 170. `PARTIAL` · **W11** — Threat-model malicious websites, prompt injection in customer files, untrusted MCP tools, malicious downloads, compromised worker processes, and stolen device credentials.
-171. `PARTIAL` · **W1** — Protect local file access through explicit grants, scope enforcement, race-safe writes, version checks, backup behavior, and non-destructive defaults.
+171. `PASS` · **W1** — Protect local file access through explicit grants, scope enforcement, race-safe writes, version checks, backup behavior, and non-destructive defaults.
 172. `PARTIAL` · **W11** — Verify database backups through actual restoration drills. Test infrastructure recovery, incident handling, and user-visible service failure behavior.
 173. `PASS` · **W11** — Profile real load and scale only as evidence requires. Avoid premature multi-region complexity or unnecessary infrastructure expenses.
 
@@ -1265,7 +1265,7 @@ Original preamble (1 November 2026): this owner checklist complements the 84 con
 
 214. `PARTIAL` · **W0** — Implement a measurable **0–100% Commercial Launch Readiness Score**, divided into ten independently verifiable milestones, each worth 10 percentage points.
 215. `PARTIAL` · **W0** — **10% — Repository and architecture baseline:** source integrity, contracts, test inventory, dependency audit, security invariants, and reproducible builds verified.
-216. `PARTIAL` · **W1** — **20% — Core Gateway and device authority:** pairing, permissions, worker execution, journaling, STOP, takeover, and recovery independently verified.
+216. `PASS` · **W1** — **20% — Core Gateway and device authority:** pairing, permissions, worker execution, journaling, STOP, takeover, and recovery independently verified.
 217. `FAIL` · **W9** — **30% — Installer and dependency readiness:** bundled prerequisites, clean installation, dependency diagnosis, safe authorized repair, upgrade and uninstall tested.
 218. `PARTIAL` · **W13** — **40% — Computer and browser control:** generic target discovery, accurate execution, wrong-target protection, browser handling, and supported OS adapters verified.
 219. `FAIL` · **W4** — **50% — Gemini intelligence and grounding:** unfamiliar-task planning, correct target selection, observed-source reasoning, adaptive execution, and loop prevention verified.
@@ -1324,7 +1324,7 @@ Original preamble (1 November 2026): this owner checklist complements the 84 con
 
 ## Appendix B — The 84 architecture concepts (verbatim) with status and destination
 
-Status source: `scripts/jarvis-traceability.mjs` / `evidence/2026-11-01-live/architecture-ledger.md` at `f04228d`. That script reads the concept rows below, so keep the row shape `| n | **title** | …`. Correction pending in W0 (D14): concept 29 is recorded BLOCKED, but run 45 shows MAC-001…012 passing on the macOS runner, which supports PARTIAL.
+Status source: `scripts/jarvis-traceability.mjs` / `evidence/2026-11-01-live/architecture-ledger.md` at `f04228d`. That script reads the concept rows below, so keep the row shape `| n | **title** | …`. Concept 29 is PARTIAL from run 45 (D14 fixed); concepts 38 and 55 became PASS with W1 ([run 78](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41547638177)).
 
 #### Foundation, authority and architecture
 
@@ -1377,7 +1377,7 @@ Status source: `scripts/jarvis-traceability.mjs` / `evidence/2026-11-01-live/arc
 | 35 | **Foreground, Background and Minimized-Window State Handling** | PARTIAL | W6, W7 | Differentiate API-capable background work from GUI operations requiring a visible foreground; restore only with consent. | No claim of universal hidden-window clicking or cursor-free execution. |
 | 36 | **Visual Anchors / OpenCV as Last-Resort Fallback** | PARTIAL | W5 | Use bounded vision matching with confidence, fresh screenshots and explicit target checks only where semantic interfaces fail. | Low-confidence target, resize drift or unexpected overlay blocks effect. |
 | 37 | **Dynamic Universal Application Fallback Hierarchy** | PARTIAL | W3 | Select execution mechanism by current capability quality, privacy, fidelity and target state, independent of application names. | A missing native path falls back safely without fixed app-specific script. |
-| 38 | **Approved Filesystem Sandbox** | PARTIAL | W1 | Create per-task bounded input, intermediate and output roots, preserving originals, ACLs and provenance. | Symlink traversal, overwrites and cross-account file access are blocked. |
+| 38 | **Approved Filesystem Sandbox** | PASS | W1 | Create per-task bounded input, intermediate and output roots, preserving originals, ACLs and provenance. | Symlink traversal, overwrites and cross-account file access are blocked. |
 
 #### MCP, STDIO and tool-runtime wiring
 
@@ -1404,7 +1404,7 @@ Status source: `scripts/jarvis-traceability.mjs` / `evidence/2026-11-01-live/arc
 | 52 | **Task UUIDs and Idempotency Keys** | PASS | W1 | Assign task/action attempt and effect IDs stable across retries, reconnects and server callbacks. | Replayed requests do not duplicate irreversible effects. |
 | 53 | **Transactional Side-Effect Journal** | PASS | W1 | Write intent and preconditions before action, then evidence/acknowledgment and final classification after action. | Crash between commit and ACK remains UNKNOWN until reconciled. |
 | 54 | **Execution, Effect and Verification State Separation** | PASS | W1 | Represent requested/authorized/dispatched/observed/verified independently in durable state. | An RPC 200, saved path or LLM text never directly settles PASS. |
-| 55 | **Lost-Confirmation / Unknown-Effect Reconciliation** | PARTIAL | W1 | Check external state and idempotency journal before any repeat after timeout/disconnect. | Unknown POST/send/delete is never blindly retried. |
+| 55 | **Lost-Confirmation / Unknown-Effect Reconciliation** | PASS | W1 | Check external state and idempotency journal before any repeat after timeout/disconnect. | Unknown POST/send/delete is never blindly retried. |
 | 56 | **Durable Checkpoints and Crash Recovery** | PASS | W1 | Persist outcome, consent, exact target, open actions, completed receipts and current epoch. | Process restart reconstructs task without replaying completed operations. |
 | 57 | **Local STOP / Pause / Take Over / Resume** | PASS | W1 | Local kill fence blocks new effects immediately; remote STOP has separate acknowledgment and reconciliation states. | STOP works when cloud/model unavailable; in-flight effects reported truthfully. |
 | 58 | **Live User Interference Detection** | PARTIAL | W6, W7 | Detect human focus/file/tab edits and suspend conflicting UI operations without blocking independent safe work. | Take-over never overwrites newer user changes. |
@@ -1553,19 +1553,19 @@ Severity: CRITICAL = unauthorised action, data loss, secret exposure or wrong-ta
 
 | ID | Severity | Defect | Evidence | Status | Package |
 |---|---|---|---|---|---|
-| D1 | HIGH | Branch head red: planner safety, media nested-source containment, gateway result boundary, actor bound-host prevention, rendered-verifier/URL transport, formatting and DB revocation steps fail | [run 70](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41434622666), `f04228d` | TESTED: all previously red steps pass in [run 74](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41534326454) (`b86002c`); close when the full matrix is green. Root causes: unconfined FFmpeg/Pillow inputs; risk-only effect flag on success; navigation redirect hops never reach Playwright routes; source-text web verification; held claims not rechecked; receipt locked action before task; kill-restart test changed its own intent (deadline) | W0 |
+| D1 | HIGH | Branch head red: planner safety, media nested-source containment, gateway result boundary, actor bound-host prevention, rendered-verifier/URL transport, formatting and DB revocation steps fail | [run 70](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41434622666), `f04228d` | CLOSED: full matrix green in [run 78](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41547638177) (`5796bb8`) | W0 |
 | D2 | HIGH | Anonymous web verification: hidden page content passes; private/off-origin observations accepted; same URL fetched 13 times | run 68 (`82098c2`), seven-method negative suite | FIXED in `b86002c` ([run 74](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41534326454) step 19, 7/7): one script-free render per URL, same-origin GET only, checked hops, budgets, painted-text rules | W1 |
 | D3 | HIGH | Dispatch after browser permission was revoked while the claim was held | run 69 (`61b29b1`) | FIXED by migration `20261102214455_fence_revoked_claims_and_receipt_locks.sql` ([run 74](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41534326454) DB job: held-claim revocation and claim/STOP lock-order cases pass) | W1 |
-| D4 | HIGH (risk) | SSRF, DNS-rebinding and redirect-hop enforcement for verifier fetch and actor browser | Playwright routes never see redirect hops (verified experimentally) | PARTIAL→narrowed: hop-by-hop checks for bound GET navigations (actor) and verifier documents (`b86002c`); every checked request re-resolves its name first (`2e9ba47`, rebinding regression). Residual: Node's own resolution inside the same fetch; a confirmed form POST's redirect is followed by the browser | W1, W11 |
-| D5 | HIGH | Unknown effects only fence the task; no resolution flow for the person | concept 55; run 57/58 | IMPLEMENTED in `5d8fea8`: person answers "it happened / it did not" once (owner only, waiting task), step never redelivered, planner sees the answer; DB + fence tests pass locally; CI pending | W1 |
-| D6 | HIGH | Outcome checks are compiled before anything is observed and are not bound to the request; the model then bends files to match its own guess (3 of 9 eval failures); no guard against edits to unrelated or input files | seeds 11–14 READMEs; requirement 68 | IMPLEMENTED in `faa52d6`: read-only discovery first, checks fixed once from request + listing, request/listing/output-bound check paths, refusal of changes to a check's input unless the request names it. Local tests pass; CI pending. Residual: a request that names an input only as a source can still authorise changing it | W1 |
-| D7 | MEDIUM | Original-file compare-and-replace and directory-identity concurrency window | codex-continuation (run 53 scope note) | FIXED in `2392efa` (local): path re-resolved before the swap; current version moved aside and compared; non-overwriting publication; late saves via open handles win and are reported; deterministic race tests fail on the old writer. CI pending | W1 |
-| D8 | HIGH | Device pickup backs off to 30 s; ~34% of live task time unaccounted | `agent.py` claim loop; eval timing | PARTIAL (`fix(w2)` after `056d8dd`): no backoff while a task runs (0.5 s polls, ≈80 requests per 40 s task). Idle cap stays 30 s (≈2,900 of the free 100k daily Worker requests per idle device); idle p95 ≤3 s needs the W2 nudge; timing suite pending | W2 |
+| D4 | HIGH (risk) | SSRF, DNS-rebinding and redirect-hop enforcement for verifier fetch and actor browser | Playwright routes never see redirect hops (verified experimentally) | MITIGATED (`b86002c`, `2e9ba47`; green in [run 78](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41547638177)): hop-by-hop navigation checks and request-time re-resolution. Residual (Node's own resolution inside one fetch; a confirmed form POST redirect) moves to the W11 security review | W1, W11 |
+| D5 | HIGH | Unknown effects only fence the task; no resolution flow for the person | concept 55; run 57/58 | FIXED: person-resolution flow (`3938351`), green in [run 78](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41547638177) | W1 |
+| D6 | HIGH | Outcome checks are compiled before anything is observed and are not bound to the request; the model then bends files to match its own guess (3 of 9 eval failures); no guard against edits to unrelated or input files | seeds 11–14 READMEs; requirement 68 | FIXED (`faa52d6`, green in [run 78](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41547638177)): checks fixed after a first look; bound to request/listing/output; gaming guard with randomised regression. Residual tracked under W4: a request naming an input only as a source can still authorise changing it | W1 |
+| D7 | MEDIUM | Original-file compare-and-replace and directory-identity concurrency window | codex-continuation (run 53 scope note) | FIXED (`2392efa`, race fixture `11d1939`), green on Linux, Windows and macOS in [run 78](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41547638177) | W1 |
+| D8 | HIGH | Device pickup backs off to 30 s; ~34% of live task time unaccounted | `agent.py` claim loop; eval timing | PARTIAL: no backoff while a task runs and pickup/unaccounted time measured per step (green in [run 78](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41547638177)); idle p95 ≤3 s needs the nudge; timing suite pending | W2 |
 | D9 | HIGH | First-attempt real-task success 75% (< 90%): invented facts, dense-table row choice (r1c), checks bent to guesses | `evidence/2026-11-01-eval-s11` … `s14` | OPEN | W4 |
 | D10 | HIGH | Planner “busy” after ~30–60 calls on the shared free project | `evidence/2026-11-01-eval-s14/README.md` | OPEN | W4 (pacing) |
 | D11 | MEDIUM | Windows web ladder `KeyError 'page'` once; cause unknown | 1 November Windows run | OPEN | W8 |
 | D12 | MEDIUM | CRLF script executable flag fix not verified live | eval s11 `crlf_script` | OPEN | W3 |
-| D13 | MEDIUM | Windows `WinError 32` on fixture profile cleanup; lock owner never identified (quiescence wait added, run 64 green) | run 63 | MITIGATED | W9 |
+| D13 | MEDIUM | Windows `WinError 32` on fixture profile cleanup; lock owner never identified (quiescence wait added, run 64 green) | run 63 | MITIGATED: recurred in run 77 (web-scope cleanup); test runs now wait for the profile's owning processes (`5796bb8`, green in [run 78](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41547638177)); the lingering Chromium helper itself is not yet explained | W9 |
 | D14 | LOW | Ledger regeneration restores five retracted PASSs; concept 29 incorrectly BLOCKED | Run 70 traceability regression; [run 45](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41331983365) | FIXED (`e4af84b`, [run 74](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41534326454)): script, ledger and Appendix B agree (41 PASS) | W0 |
 | D15 | LOW | Stale Dependabot PRs target deleted `/jarvis-runtime` | open PRs #88, #90 | OPEN (needs A3) | W12 |
 | D16 | HIGH (risk) | macOS window previews need Screen Recording permission on consumer Macs; CI runner is pre-authorised, so this path is unverified | `mac_worker.py` preview; Apple privacy model | OPEN, UNVERIFIED | W7 |
