@@ -1,6 +1,7 @@
 """`shell`: one command the person confirmed, run in the workspace folder (plan.md §1, P10).
 
-PowerShell on Windows (`pwsh` when installed, else Windows PowerShell), `/bin/sh` elsewhere.
+PowerShell (`pwsh` when installed, else Windows PowerShell) or cmd on Windows; sh, bash or zsh
+elsewhere (`jobs.shell_argv`). Long work runs as a tracked job (`jobs.py`) instead.
 The risk is `external_effect`, so the server holds every command until the person has
 read and confirmed it; nothing here decides whether a command is safe. What this
 worker guarantees is containment of the run itself:
@@ -17,7 +18,6 @@ from __future__ import annotations
 import asyncio
 import atexit
 import os
-import shutil
 import signal
 import subprocess
 import sys
@@ -25,6 +25,7 @@ import time
 
 from mcp.server.mcpserver import MCPServer
 
+from . import jobs
 from .sandbox import Refused, guarded, mark_effect
 
 app = MCPServer("ocade-shell")
@@ -35,11 +36,7 @@ _running: set[int] = set()  # process groups of commands still running (POSIX)
 _job: list = []  # the Windows job object, held for this process's life
 
 
-def _shell(command: str) -> list[str]:
-    if sys.platform == "win32":
-        exe = shutil.which("pwsh") or shutil.which("powershell") or "powershell.exe"
-        return [exe, "-NoProfile", "-NonInteractive", "-NoLogo", "-Command", command]
-    return ["/bin/sh", "-c", command]
+HOME = os.environ.get("OCADE_AGENT_HOME", "")
 
 
 def _contain_children() -> None:
@@ -54,7 +51,9 @@ def _contain_children() -> None:
 
         job = win32job.CreateJobObject(None, "")
         limits = win32job.QueryInformationJobObject(job, win32job.JobObjectExtendedLimitInformation)
-        limits["BasicLimitInformation"]["LimitFlags"] = win32job.JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
+        # Commands die with the worker; only a tracked job asks to break away (it has its own deadline).
+        limits["BasicLimitInformation"]["LimitFlags"] = (win32job.JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
+                                                         | win32job.JOB_OBJECT_LIMIT_BREAKAWAY_OK)
         win32job.SetInformationJobObject(job, win32job.JobObjectExtendedLimitInformation, limits)
         win32job.AssignProcessToJobObject(job, win32api.GetCurrentProcess())
         _job.append(job)
@@ -104,16 +103,20 @@ async def _exited(process, seconds: float) -> bool:
 
 @app.tool()
 @guarded
-async def shell_run(command: str, timeoutSeconds: int = 60) -> dict:
+async def shell_run(command: str, timeoutSeconds: int = 60, shell: str | None = None) -> dict:
     """Run one confirmed command in the workspace folder and report exactly what it printed."""
     if not WORKSPACE or not os.path.isdir(WORKSPACE):
         raise Refused("no_workspace")
+    try:
+        argv = jobs.shell_argv(command, shell)
+    except LookupError as error:
+        raise Refused(str(error)) from None
     started = time.monotonic()
     # Async, so the worker keeps reading its input: STOP (the gateway closing it) ends the
     # worker at once, and the command's process tree with it, instead of after the command.
     mark_effect()  # process creation can execute a command before the await fails
     process = await asyncio.create_subprocess_exec(
-        *_shell(command), cwd=WORKSPACE, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+        *argv, cwd=WORKSPACE, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
         start_new_session=sys.platform != "win32",
         creationflags=subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0,
     )
@@ -144,6 +147,43 @@ async def shell_run(command: str, timeoutSeconds: int = 60) -> dict:
         "stderr": _bounded(err),
         "seconds": round(time.monotonic() - started, 2),
     }
+
+
+@app.tool()
+@guarded
+def job_start(command: str, timeoutSeconds: int = 3600, shell: str | None = None) -> dict:
+    """Start one confirmed long-running command (a render, export or install) as a tracked job."""
+    if not WORKSPACE or not os.path.isdir(WORKSPACE) or not HOME:
+        raise Refused("no_workspace")
+    try:
+        jobs.shell_argv(command, shell)
+    except LookupError as error:
+        raise Refused(str(error)) from None
+    mark_effect()  # the command may run even if what follows fails
+    return jobs.start(HOME, WORKSPACE, command, shell, timeoutSeconds)
+
+
+@app.tool()
+@guarded
+def job_status(jobId: str) -> dict:
+    """Whether a job is running, finished (with its exit code), timed out, cancelled or lost,
+    and the end of what it printed."""
+    try:
+        return jobs.status(HOME, jobId)
+    except LookupError as error:
+        raise Refused(str(error)) from None
+
+
+@app.tool()
+@guarded
+def job_cancel(jobId: str) -> dict:
+    """End a job and everything it started."""
+    try:
+        jobs.status(HOME, jobId)
+    except LookupError as error:
+        raise Refused(str(error)) from None
+    mark_effect()
+    return jobs.cancel(HOME, jobId)
 
 
 if __name__ == "__main__":

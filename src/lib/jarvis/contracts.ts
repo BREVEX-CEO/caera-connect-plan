@@ -30,6 +30,12 @@ const workspacePath = z
   .max(260)
   .refine((path) => !/\p{Cc}/u.test(path), "control characters");
 
+/** The shell a command is written for; each computer offers its own (the device refuses others). */
+const shell = z
+  .enum(["powershell", "cmd", "sh", "bash", "zsh"])
+  .describe("powershell (default) or cmd on Windows; sh (default), bash or zsh on macOS/Linux");
+const jobId = z.string().regex(/^[0-9a-f]{16}$/);
+
 /**
  * Where a new deliverable goes: always a NEW file under the workspace's `OCADE output/`
  * folder (the device's sandbox enforces the same rule and never overwrites a file).
@@ -479,9 +485,34 @@ export const OPERATIONS = {
       expectSha256: z.string().regex(/^[0-9a-f]{64}$/),
     }),
   },
+  "fs.manage": {
+    summary:
+      "Organise workspace files without a command: copy (to a new file under 'OCADE output/'), move or rename a file or folder (never replacing anything, so it can be moved back), mkdir (create a folder), trash (to the Recycle Bin/Trash, restorable), or set_attributes (executable on macOS/Linux, read-only). Kept originals cannot be moved or trashed.",
+    role: "fs_sandbox",
+    capability: "files",
+    risk: "reversible_write",
+    arguments: z
+      .strictObject({
+        action: z.enum(["copy", "move", "mkdir", "trash", "set_attributes"]),
+        path: workspacePath,
+        to: workspacePath.optional().describe("copy and move: the new path"),
+        executable: z.boolean().optional(),
+        readOnly: z.boolean().optional(),
+      })
+      .refine((a) => !["copy", "move"].includes(a.action) || a.to, "copy and move need `to`")
+      .refine(
+        (a) => a.action !== "copy" || a.to?.startsWith("OCADE output/"),
+        "a copy goes under OCADE output/",
+      )
+      .refine(
+        (a) =>
+          a.action !== "set_attributes" || a.executable !== undefined || a.readOnly !== undefined,
+        "set_attributes changes executable or readOnly",
+      ),
+  },
   "media.inspect": {
     summary:
-      "Technical facts of an image, audio or video file: dimensions, duration, codecs and streams.",
+      "Technical facts of an image, audio or video file (png, jpg, mp4, mov, wav, mp3…): dimensions, duration, codecs and streams.",
     role: "media_engine",
     capability: "files",
     risk: "read",
@@ -502,7 +533,7 @@ export const OPERATIONS = {
   },
   "media.preview": {
     summary:
-      "Look at an image, photo, 3D render, screenshot or video: returns a picture (a frame contact sheet for video) that you see on your next turn.",
+      "Look at an image, photo, chart, 3D render, screenshot or video (png, jpg, gif, webp, mp4, mov…): returns a picture (a frame contact sheet for video) that you see on your next turn.",
     role: "media_engine",
     // Sending what a file looks like to the online planner is the person's choice.
     capability: "screen",
@@ -622,6 +653,17 @@ export const OPERATIONS = {
         .default([]),
     }),
   },
+  "system.diagnose": {
+    summary:
+      "Read-only facts for diagnosing a problem on this computer: running processes, services, recent crash/error events, environment variable names and PATH entries (never values), or which program opens a file extension (Windows). Optional filter keeps matching lines.",
+    role: "sys_core",
+    capability: "apps",
+    risk: "read",
+    arguments: z.strictObject({
+      topic: z.enum(["processes", "services", "crashes", "environment", "associations"]),
+      filter: z.string().min(1).max(80).optional(),
+    }),
+  },
   "apps.list": {
     summary: "List the desktop applications installed and the windows open on the computer.",
     engine: "desktop",
@@ -699,15 +741,45 @@ export const OPERATIONS = {
   },
   "shell.run": {
     summary:
-      "Run one command in the workspace folder (PowerShell on Windows, sh elsewhere) to inspect or repair the computer or work with files; the person reads and confirms the exact command first. Returns exit code and output. A command must end: to leave a program running, start it detached with its output redirected (nohup … >log 2>&1 &, or Start-Process on Windows).",
+      "Run one command in the workspace folder to inspect or repair the computer; the person reads and confirms the exact command first. Returns exit code and output within 10 minutes; use job.start for anything longer. Prefer the typed fs.* operations for copying, moving, folders, Trash and attributes.",
     role: "shell",
     capability: "computer_control",
     risk: "external_effect",
     arguments: z.strictObject({
       command: z.string().min(1).max(4000),
       timeoutSeconds: z.int().min(1).max(600).default(60),
+      shell: shell.optional(),
     }),
     seconds: 620,
+  },
+  "job.start": {
+    summary:
+      "Start one long-running command (a render, export, build or install) as a tracked job that may run for hours; the person confirms the exact command first. Returns a jobId to follow with job.status.",
+    role: "shell",
+    capability: "computer_control",
+    risk: "external_effect",
+    arguments: z.strictObject({
+      command: z.string().min(1).max(4000),
+      timeoutSeconds: z.int().min(10).max(21_600).default(3600),
+      shell: shell.optional(),
+    }),
+    seconds: 30,
+  },
+  "job.status": {
+    summary:
+      "Whether a job is running, finished (with its exit code), timed_out, cancelled or lost, how long it has run, and the end of its output.",
+    role: "shell",
+    capability: "computer_control",
+    risk: "read",
+    arguments: z.strictObject({ jobId: jobId }),
+  },
+  "job.cancel": {
+    summary: "End a running job and everything it started.",
+    role: "shell",
+    capability: "computer_control",
+    risk: "external_effect",
+    arguments: z.strictObject({ jobId: jobId }),
+    seconds: 30,
   },
   "web.open": {
     summary:
@@ -849,6 +921,7 @@ export const PURE_READ_OPERATIONS = [
   "fs.read_text",
   "office.inspect_workbook",
   "system.inspect",
+  "job.status",
 ] as const satisfies readonly Operation[];
 const pureReadOperations: ReadonlySet<string> = new Set(PURE_READ_OPERATIONS);
 const operationNames = Object.keys(OPERATIONS) as [Operation, ...Operation[]];

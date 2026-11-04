@@ -83,6 +83,19 @@ def fs_edit_text(path: str, edits: list[dict], expectSha256: str) -> dict:
 
 
 @app.tool()
+def fs_manage(action: str, path: str, to: str | None = None, executable: bool | None = None,
+              readOnly: bool | None = None) -> dict:
+    """Manage."""
+    return {}
+
+
+@app.tool()
+def system_diagnose(topic: str, filter: str | None = None) -> dict:
+    """Diagnose."""
+    return {}
+
+
+@app.tool()
 def office_write_document(docx: str, title: str, sections: list[dict], pdf: str | None = None) -> dict:
     """Document."""
     return {}

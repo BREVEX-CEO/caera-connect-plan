@@ -168,6 +168,9 @@ test("capability shortlist: descriptor vectors, bounded, continuity, paraphrase-
     ["media.render_timeline", "media.analyze", "media.preview"].every((o) => film.includes(o)),
     String(film),
   );
+  // Organising files reaches the typed file operations, not a shell command.
+  const organise = pick("Sort the photos in this folder into one folder per year");
+  assert.ok(organise.includes("fs.manage"), String(organise));
   // An application nobody listed still reaches the generic desktop capabilities.
   const app = pick("In the Zorblax Pro window, press the Export button");
   assert.ok(app.includes("ui.invoke") && app.includes("apps.list"), String(app));
@@ -185,6 +188,45 @@ test("capability shortlist: descriptor vectors, bounded, continuity, paraphrase-
   assert.equal(rankBySimilarity("convert currency", tools, (t) => t.text)[0].item.id, "a");
   tools[1].text = "convert currency quickly with live rates";
   assert.equal(rankBySimilarity("convert currency live", tools, (t) => t.text)[0].item.id, "b");
+});
+
+test("mechanism fallback: a failed route is followed by a fresh look, then the next route", async () => {
+  const { fallbackRoute, observedSinceFailure, shortlistOperations, offeredOperations } =
+    await import("../../src/lib/jarvis/planner.server.ts");
+  const step = (operation: string, status: string, receipt: unknown = null) =>
+    ({ intent: { operation, risk: "read" }, status, receipt }) as never;
+  const failed = [
+    step("ui.inspect", "done"),
+    step("ui.invoke", "failed", {
+      status: "not_applied",
+      errorCode: "element_not_found",
+      evidence: {},
+    }),
+  ];
+  assert.deepEqual(fallbackRoute(failed), {
+    observe: "ui.inspect",
+    next: ["ui.send_keys", "ui.click_point"],
+  });
+  assert.throws(() => observedSinceFailure(failed, "ui.send_keys"), /look again with ui.inspect/);
+  assert.doesNotThrow(() =>
+    observedSinceFailure([...failed, step("ui.inspect", "done")], "ui.click_point"),
+  );
+  // Another mechanism is not held back by a failure on a window.
+  assert.doesNotThrow(() => observedSinceFailure(failed, "fs.write_text"));
+  const all = offeredOperations(["files", "browser", "apps", "screen", "computer_control"], null);
+  const offered = shortlistOperations(all, {
+    objective: "Write a report",
+    checks: [],
+    steps: failed,
+  });
+  assert.ok(offered.includes("ui.inspect") && offered.includes("ui.click_point"), String(offered));
+  // A command that ran out of time is offered again as a tracked job.
+  const slow = [step("shell.run", "done", { status: "observed", evidence: { timedOut: true } })];
+  assert.deepEqual(fallbackRoute(slow)?.next, ["job.start"]);
+  assert.equal(
+    fallbackRoute([step("fs.list", "done", { status: "observed", evidence: {} })]),
+    null,
+  );
 });
 
 test("a failed independent check returns to the model for bounded repair", async () => {

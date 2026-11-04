@@ -26,7 +26,7 @@ from pathlib import Path
 import anyio
 from websockets.asyncio.client import connect as websocket
 
-from . import catalog, discovery
+from . import catalog, discovery, jobs
 from .device import Device
 from .gateway import PROTOCOL, WORKERS, Gateway, effect_possible, receipt
 from .journal import Journal
@@ -259,6 +259,7 @@ class Agent:
         woke = False
         while True:
             if self.stopped_here():
+                await anyio.to_thread.run_sync(jobs.cancel_all, str(self.device.home))
                 raise LocalStop()
             if state is None:
                 try:
@@ -276,7 +277,12 @@ class Agent:
                 if not state.get("action"):
                     state = None  # no next step in the answer: ask
                 continue
-            running = (state.get("task") or {}).get("status") == "running"
+            status = (state.get("task") or {}).get("status")
+            if "task" in state and status not in ("running", "waiting"):
+                # The server answered that nothing is running (STOP, Take Over, finished): a job
+                # outliving its task would be work nobody follows. An outage cancels nothing.
+                await anyio.to_thread.run_sync(jobs.cancel_all, str(self.device.home))
+            running = status == "running"
             state = None
             if until_idle and not running:
                 return
@@ -368,7 +374,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     home = default_home()
     if args.command == "worker":  # the packaged executable hosting one capability worker
-        if args.module not in set(WORKERS.values()):
+        if args.module not in set(WORKERS.values()) | {"ocade_agent.job_runner"}:
             return 2
         runpy.run_module(args.module, run_name="__main__")
         return 0

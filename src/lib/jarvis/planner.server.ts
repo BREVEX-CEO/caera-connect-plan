@@ -143,18 +143,46 @@ export function shortlistOperations(
       (check) => `${check.description} ${check.kind ?? ""} ${check.params?.path ?? ""}`,
     ),
     last ? `${last.intent.operation} ${last.receipt?.errorCode ?? ""}` : "",
+    // The kinds of file at hand (a .png in the folder calls for the image tools), not their names.
+    ...new Set(
+      wanted.steps.flatMap((step) =>
+        step.intent.operation === "fs.list"
+          ? (
+              (step.receipt?.evidence as { entries?: { name?: unknown }[] } | undefined)?.entries ??
+              []
+            )
+              .map((entry) => /\.([a-z0-9]{1,5})$/i.exec(String(entry.name))?.[1]?.toLowerCase())
+              .filter((suffix): suffix is string => Boolean(suffix))
+          : [],
+      ),
+    ),
   ].join(" ");
-  // Continuity: once an operation was used, its whole role stays offered (a page opened
-  // with web.open is clicked with web.click), then the rest ranked by similarity.
-  const roles = new Set(
-    wanted.steps.map((step) => OPERATIONS[step.intent.operation as Operation]?.role),
-  );
-  const used = usable.filter((name) => roles.has(OPERATIONS[name].role));
-  const ranked = rankBySimilarity(
+  // Continuity: an operation already used stays offered, and so does a failed route's fallback.
+  const route = fallbackRoute(wanted.steps);
+  const fallback = route ? [route.observe, ...route.next].filter(Boolean) : [];
+  const usedOperations = new Set(wanted.steps.map((step) => step.intent.operation));
+  const used = [
+    ...usable.filter((name) => fallback.includes(name)),
+    ...usable.filter((name) => usedOperations.has(name) && !fallback.includes(name)),
+  ];
+  const scored = rankBySimilarity(
     query,
     usable,
     (name) => `${name.replace(/[._]/g, " ")} ${OPERATIONS[name].summary}`,
-  )
+  );
+  // Role affinity: an unmatched sibling of a used or matched operation (a page opened with
+  // web.open is clicked with web.click; a video request that matched the timeline editor
+  // still needs the preview) comes before unrelated operations, after every matched one.
+  const roles = new Set(
+    [...used, ...scored.filter(({ score }) => score > 0).map(({ item }) => item)].map(
+      (name) => OPERATIONS[name as Operation].role,
+    ),
+  );
+  const ranked = [
+    ...scored.filter(({ score }) => score > 0),
+    ...scored.filter(({ score, item }) => score <= 0 && roles.has(OPERATIONS[item].role)),
+    ...scored.filter(({ score, item }) => score <= 0 && !roles.has(OPERATIONS[item].role)),
+  ]
     .map(({ item }) => item)
     .filter((name) => !used.includes(name));
   return [...used, ...ranked].slice(0, Math.max(MAX_OPERATIONS, used.length));
@@ -227,6 +255,59 @@ export function observedSinceTakeOver(steps: Step[]) {
   if (!looked) {
     throw new Error(
       "the person took over the computer since your last observation: observe the current state again first",
+    );
+  }
+}
+
+/**
+ * Automatic mechanism fallback (concept 37): when a route fails, the next allowed route on
+ * the same target, always after a fresh look at it. Generic by mechanism, never by app.
+ */
+const OBSERVE_AGAIN: Record<string, Operation | undefined> = {
+  ui_bridge: "ui.inspect",
+  web_automation: "web.read",
+};
+const NEXT_ROUTE: Partial<Record<Operation, Operation[]>> = {
+  "ui.invoke": ["ui.send_keys", "ui.click_point"],
+  "ui.set_value": ["ui.send_keys", "ui.click_point"],
+  "ui.send_keys": ["ui.click_point"],
+  "shell.run": ["job.start"],
+};
+
+const mechanismFailed = (step: Step) =>
+  ["failed", "blocked"].includes(step.status) ||
+  Boolean(step.receipt?.errorCode) ||
+  (step.receipt?.evidence as { timedOut?: unknown } | undefined)?.timedOut === true;
+
+/** What to offer after the newest step's mechanism failed: a fresh look, then the next routes. */
+export function fallbackRoute(steps: Step[]) {
+  const last = steps.at(-1);
+  if (!last || !mechanismFailed(last)) return null;
+  const operation = last.intent.operation as Operation;
+  const role = OPERATIONS[operation]?.role;
+  if (!role) return null;
+  return { observe: OBSERVE_AGAIN[role], next: NEXT_ROUTE[operation] ?? [] };
+}
+
+/** After a failed step on a window or page, nothing changes it again before a fresh look. */
+export function observedSinceFailure(steps: Step[], operation: Operation) {
+  const role = OPERATIONS[operation].role;
+  const observe = OBSERVE_AGAIN[role];
+  if (!observe) return;
+  let failed = -1;
+  steps.forEach((step, index) => {
+    if (OPERATIONS[step.intent.operation as Operation]?.role === role && mechanismFailed(step))
+      failed = index;
+  });
+  if (failed < 0) return;
+  const looked = steps
+    .slice(failed + 1)
+    .some((step) => step.intent.operation === observe && step.status === "done");
+  if (!looked) {
+    const next = NEXT_ROUTE[steps[failed].intent.operation as Operation] ?? [];
+    throw new Error(
+      `${steps[failed].intent.operation} did not work: look again with ${observe} first` +
+        (next.length ? `, then try ${next.join(" or ")}` : ""),
     );
   }
 }
@@ -592,6 +673,7 @@ export function history(steps: Step[]): string {
       return OLDER_OBSERVATION;
     })
     .reverse();
+  const route = fallbackRoute(steps);
   const lines = steps.map((step, index) => {
     const observed = JSON.stringify(step.receipt?.evidence ?? null);
     const limit = limits[index];
@@ -603,6 +685,16 @@ export function history(steps: Step[]): string {
       observed:
         observed.length > limit ? `${observed.slice(0, limit)}… (clipped)` : step.receipt?.evidence,
       error: step.receipt?.errorCode,
+      ...(index === steps.length - 1 && route && (route.observe || route.next.length)
+        ? {
+            nextRoute: [
+              route.observe && `look again with ${route.observe}`,
+              route.next.length && `then try ${route.next.join(" or ")}`,
+            ]
+              .filter(Boolean)
+              .join(", "),
+          }
+        : {}),
       // The person said whether a step nobody could observe took effect; it is never repeated.
       ...(step.resolution
         ? {
@@ -760,6 +852,7 @@ export async function planStep(input: {
       unseenAddress((args as { url?: unknown })?.url, input.objective, steps);
     if (OPERATIONS[operation].risk !== "read") {
       observedSinceTakeOver(steps);
+      observedSinceFailure(steps, operation);
       // Never make a check pass by changing what it reads: only a new output or a file the
       // request itself names may be changed when a check reads it.
       const changed = Object.values(args as Record<string, unknown>).filter(

@@ -9,7 +9,8 @@
     "fs.list",
     "fs.read_text",
     "office.inspect_workbook",
-    "system.inspect"
+    "system.inspect",
+    "job.status"
   ],
   "signing": {
     "prefix": "OCADE-JARVIS-1",
@@ -157,6 +158,49 @@
           "path",
           "edits",
           "expectSha256"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "fs.manage": {
+      "role": "fs_sandbox",
+      "capability": "files",
+      "risk": "reversible_write",
+      "arguments": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": [
+              "copy",
+              "move",
+              "mkdir",
+              "trash",
+              "set_attributes"
+            ]
+          },
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 260
+          },
+          "to": {
+            "description": "copy and move: the new path",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 260
+          },
+          "executable": {
+            "type": "boolean"
+          },
+          "readOnly": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "action",
+          "path"
         ],
         "additionalProperties": false
       }
@@ -1519,6 +1563,36 @@
         "additionalProperties": false
       }
     },
+    "system.diagnose": {
+      "role": "sys_core",
+      "capability": "apps",
+      "risk": "read",
+      "arguments": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "topic": {
+            "type": "string",
+            "enum": [
+              "processes",
+              "services",
+              "crashes",
+              "environment",
+              "associations"
+            ]
+          },
+          "filter": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          }
+        },
+        "required": [
+          "topic"
+        ],
+        "additionalProperties": false
+      }
+    },
     "apps.list": {
       "role": "ui_bridge",
       "capability": "apps",
@@ -1883,10 +1957,98 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 600
+          },
+          "shell": {
+            "type": "string",
+            "enum": [
+              "powershell",
+              "cmd",
+              "sh",
+              "bash",
+              "zsh"
+            ],
+            "description": "powershell (default) or cmd on Windows; sh (default), bash or zsh on macOS/Linux"
           }
         },
         "required": [
           "command"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "job.start": {
+      "role": "shell",
+      "capability": "computer_control",
+      "risk": "external_effect",
+      "seconds": 30,
+      "arguments": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "command": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4000
+          },
+          "timeoutSeconds": {
+            "default": 3600,
+            "type": "integer",
+            "minimum": 10,
+            "maximum": 21600
+          },
+          "shell": {
+            "type": "string",
+            "enum": [
+              "powershell",
+              "cmd",
+              "sh",
+              "bash",
+              "zsh"
+            ],
+            "description": "powershell (default) or cmd on Windows; sh (default), bash or zsh on macOS/Linux"
+          }
+        },
+        "required": [
+          "command"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "job.status": {
+      "role": "shell",
+      "capability": "computer_control",
+      "risk": "read",
+      "arguments": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "jobId": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{16}$"
+          }
+        },
+        "required": [
+          "jobId"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "job.cancel": {
+      "role": "shell",
+      "capability": "computer_control",
+      "risk": "external_effect",
+      "seconds": 30,
+      "arguments": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "jobId": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{16}$"
+          }
+        },
+        "required": [
+          "jobId"
         ],
         "additionalProperties": false
       }
