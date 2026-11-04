@@ -849,7 +849,7 @@ export const OPERATIONS = {
   },
   "shell.run": {
     summary:
-      "Run one command in the workspace folder to inspect or repair the computer; the person reads and confirms the exact command first. Returns exit code and output within 10 minutes; use job.start for anything longer. Prefer the typed fs.* operations for copying, moving, folders, Trash and attributes.",
+      "Run one command in the workspace folder to inspect or repair the computer; the person reads and confirms the exact command first. Returns exit code and output within 10 minutes; use job.start for long work that ends. A command must end: to leave a program running, start it detached with its output redirected (nohup … >log 2>&1 &, or Start-Process on Windows). Prefer fs.manage for copying, moving, folders, Trash and attributes.",
     role: "shell",
     capability: "computer_control",
     risk: "external_effect",
@@ -1160,6 +1160,7 @@ export const outcomeCheck = z.object({
       "script_runnable",
       "workbook_formula",
       "document_headings",
+      "local_service_answers",
     ])
     .optional()
     .describe(
@@ -1172,7 +1173,9 @@ export const outcomeCheck = z.object({
         "scene_render {path}: a .png rendered from a valid saved 3D scene project; script_runnable {path}: a " +
         "script starts directly on macOS/Linux (#! line, Unix line endings, executable, parses; nothing is run); " +
         "workbook_formula {path,sheet,cell,value?}: the cell holds a formula, and its saved result is value; " +
-        "document_headings {path,headings}: each text is a Title/Heading of the Word document or a slide title of the .pptx",
+        "document_headings {path,headings}: each text is a Title/Heading of the Word document or a slide title of the .pptx; " +
+        "local_service_answers {port,text?}: a program on this computer answers http://127.0.0.1:port/ with status 200 " +
+        "(and the text, when given)",
     ),
   params: z
     .strictObject({
@@ -1189,6 +1192,7 @@ export const outcomeCheck = z.object({
       width: z.int().min(1).max(16384).optional(),
       height: z.int().min(1).max(16384).optional(),
       headings: z.array(z.string().min(1).max(200)).min(1).max(20).optional(),
+      port: z.int().min(1024).max(65535).optional(),
     })
     .optional(),
 });
@@ -1213,6 +1217,7 @@ export const taskChecks = z
       script_runnable: ["path"],
       workbook_formula: ["path", "sheet", "cell"],
       document_headings: ["path", "headings"],
+      local_service_answers: ["port"],
       image_size: ["path", "width", "height"],
       scene_render: ["path"],
     } as const;

@@ -135,6 +135,9 @@ BEGIN
   PERFORM pg_temp.verifier_assert(NOT public.jarvis_action_allowed(v_user, v_device, v_action || jsonb_build_object(
     'arguments', jsonb_build_object('checks', '[{"id":"x","kind":"script_runs","params":{"path":"run.sh"}}]'::jsonb))),
     'an unknown predicate is still refused');
+  PERFORM pg_temp.verifier_assert(NOT public.jarvis_action_allowed(v_user, v_device, v_action || jsonb_build_object(
+    'arguments', jsonb_build_object('checks', '[{"id":"p","kind":"local_service_answers","params":{"port":8080}}]'::jsonb))),
+    'a loopback service check needs the computer-control grant');
 END;
 $$;
 

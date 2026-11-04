@@ -101,6 +101,31 @@ class VerifierKinds(unittest.TestCase):
         self.assertTrue(evidence["predicates"][heading["id"]])
         self.assertFalse(evidence["predicates"][bold["id"]])
 
+    def test_a_local_service_must_answer_on_its_port(self):
+        import threading
+        from http.server import BaseHTTPRequestHandler, HTTPServer
+
+        class Page(BaseHTTPRequestHandler):
+            def do_GET(self):
+                self.send_response(200)
+                self.end_headers()
+                self.wfile.write(b"<h1>Team board</h1>")
+
+            def log_message(self, *args):
+                pass
+
+        server = HTTPServer(("127.0.0.1", 0), Page)
+        threading.Thread(target=server.serve_forever, daemon=True).start()
+        port = server.server_address[1]
+        try:
+            up, wrong_text, closed = check("local_service_answers", port=port, text="team BOARD"), \
+                check("local_service_answers", port=port, text="Inventory"), \
+                check("local_service_answers", port=1025 if port != 1025 else 1026)
+            evidence = self.verify(up, wrong_text, closed)
+        finally:
+            server.shutdown()
+        self.assertEqual([evidence["predicates"][c["id"]] for c in (up, wrong_text, closed)], [True, False, False])
+
     def test_shell_scripts_parse_without_running(self):
         marker = self.root / "ran"
         (self.root / "ok.sh").write_text(f"echo hi > '{marker}'\n")

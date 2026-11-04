@@ -167,6 +167,8 @@ def _check(kind: str, params: dict, notes: dict) -> bool | None:
         if kind == "image_size":
             return size == (params.get("width"), params.get("height"))
         return _scene_bound(size, text)
+    if kind == "local_service_answers":
+        return _local_service(params.get("port"), params.get("text"), notes)
     if kind == "window_exists":
         if sys.platform != "win32":
             return None
@@ -283,6 +285,33 @@ def _document_headings(path: Path, params: dict) -> bool:
     found = [" ".join(t.split()).casefold() for t in titles]
     wanted = [" ".join(str(h).split()).casefold() for h in params.get("headings") or []]
     return bool(wanted) and all(any(w in f for f in found) for w in wanted)
+
+
+def _local_service(port, text, notes: dict) -> bool:
+    """A program on this computer answers http://127.0.0.1:port/ with 200 (and the text): one
+    GET, loopback only, no proxy, no redirects followed, bounded read."""
+    import urllib.error
+    import urllib.request
+
+    if not isinstance(port, int) or not 1024 <= port <= 65535:
+        return False
+
+    class NoRedirect(urllib.request.HTTPRedirectHandler):
+        def redirect_request(self, *args, **kwargs):
+            return None
+
+    opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), NoRedirect)
+    try:
+        with opener.open(f"http://127.0.0.1:{port}/", timeout=5) as response:
+            status, body = response.status, response.read(200_000).decode("utf-8", "replace")
+    except urllib.error.HTTPError as error:
+        status, body = error.code, ""
+    except OSError as error:
+        notes["error"] = f"nothing answers on port {port} ({type(error).__name__})"
+        return False
+    notes["status"] = status
+    wanted = " ".join(str(text or "").split()).casefold()
+    return status == 200 and wanted in " ".join(body.split()).casefold()
 
 
 def _scene_bound(size: tuple[int, int], text: dict) -> bool:
