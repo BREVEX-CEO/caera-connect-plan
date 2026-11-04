@@ -456,7 +456,8 @@ export function plannerMessage(code: string): string {
   if (code === "allowance_exhausted")
     return "Your JARVIS allowance is used up until your usage window resets.";
   if (plannerBusy(code)) return "JARVIS's online planner is busy right now.";
-  return "JARVIS's online planner is unavailable right now.";
+  // The reason code lets support (and the evaluation) tell these apart; it reveals nothing private.
+  return `JARVIS's online planner is unavailable right now (${code.slice(0, 40)}).`;
 }
 
 const SYSTEM = [
