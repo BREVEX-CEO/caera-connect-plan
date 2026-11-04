@@ -352,6 +352,18 @@ def diagnose(home: Path, server: str | None, workspace: str | None) -> list[dict
                     check(f"worker:{module.rsplit('.', 1)[1]}", False, f"did not start ({type(error).__name__})")
 
     anyio.run(workers)
+    if sys.platform == "darwin":  # the two permissions only the person can grant, in System Settings
+        import ApplicationServices
+        import Quartz
+
+        trusted = bool(ApplicationServices.AXIsProcessTrusted())
+        check("mac:accessibility", trusted, "granted" if trusted else
+              "not granted: System Settings > Privacy & Security > Accessibility, turn on OCADE JARVIS")
+        preflight = getattr(Quartz, "CGPreflightScreenCaptureAccess", None)
+        seeing = bool(preflight()) if preflight else True
+        check("mac:screen_recording", seeing, "granted" if seeing else
+              "not granted (app windows cannot be seen, only controlled): System Settings > Privacy & "
+              "Security > Screen Recording, turn on OCADE JARVIS")
     check("stop", not (home / "STOP").exists(),
           "no local STOP" if not (home / "STOP").exists() else "STOP is set on this computer; run starts JARVIS again")
     return checks

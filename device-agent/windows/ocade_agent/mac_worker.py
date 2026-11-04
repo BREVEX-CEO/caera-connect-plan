@@ -124,9 +124,21 @@ def _point(value) -> tuple[float, float] | None:
     return None
 
 
+def _screen_capture_allowed() -> bool:
+    """Whether macOS lets this process see other apps' windows (Screen Recording permission).
+    Without it a capture shows only the desktop, so no image is offered or matched."""
+    import Quartz  # type: ignore[import-not-found]
+
+    preflight = getattr(Quartz, "CGPreflightScreenCaptureAccess", None)
+    return bool(preflight()) if preflight else True  # before macOS 10.15 there is no such permission
+
+
 def _leased(window: dict):
     """(AX window element, CG bounds) for an exact, still-valid lease, or a refusal."""
     import ApplicationServices as AX  # type: ignore[import-not-found]
+
+    if not AX.AXIsProcessTrusted():
+        raise Refused("accessibility_permission_needed")  # granted once, or revoked since: never guessed
 
     now = next((w for w in open_windows(400) if w["hwnd"] == window["hwnd"]), None)
     if now is None:
@@ -259,10 +271,13 @@ def ui_inspect(window: dict) -> dict:
         if len(elements) >= 150 or len(json.dumps(elements)) > 13_000:
             break
     x, y, width, height = bounds
+    title = str(_attribute(target, "AXTitle") or "")[:200]
+    if not _screen_capture_allowed():
+        # Controls still work through Accessibility; only the picture needs Screen Recording.
+        return {"title": title, "elements": elements, "previewUnavailable": "screen_recording_permission_needed"}
     shot = ImageGrab.grab(bbox=(x, y, x + width, y + height))
     _seen[json.dumps(window, sort_keys=True)] = shot  # what a later ui.click_point is checked against
-    return {"title": str(_attribute(target, "AXTitle") or "")[:200], "elements": elements,
-            "preview": preview_jpeg(shot, 30_000)}
+    return {"title": title, "elements": elements, "preview": preview_jpeg(shot, 30_000)}
 
 
 @app.tool()
@@ -339,6 +354,8 @@ def ui_click_point(window: dict, x: float, y: float, expectTitle: str) -> dict:
     target, (left, top, width, height) = _leased(window)
     if expectTitle not in str(_attribute(target, "AXTitle") or ""):
         raise Refused("unexpected_window")
+    if not _screen_capture_allowed():
+        raise Refused("screen_recording_permission_needed")  # no picture to ground a point in
     seen = _seen.get(json.dumps(window, sort_keys=True))
     if seen is None:
         raise Refused("inspect_first")  # a point is only grounded in an image of this window

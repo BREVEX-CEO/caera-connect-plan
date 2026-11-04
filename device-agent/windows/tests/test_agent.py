@@ -1,3 +1,4 @@
+import sys
 import tempfile
 import time
 import unittest
@@ -184,6 +185,8 @@ class DiagnoseTest(unittest.TestCase):
         self.assertEqual(len(workers), len(set(agent_module.WORKERS.values())))
         self.assertTrue(all(c["ok"] for c in workers), workers)
         self.assertFalse((home / "device-key.bin").exists(), "diagnosing never creates or reads the key")
+        if sys.platform == "darwin":  # the two macOS permissions are named, granted or not (D16)
+            self.assertTrue({"mac:accessibility", "mac:screen_recording"} <= set(checks))
 
 
 CHILD = """
