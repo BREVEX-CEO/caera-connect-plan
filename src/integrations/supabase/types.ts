@@ -287,6 +287,7 @@ export type Database = {
           last_request_ms: number
           last_seen_at: string | null
           name: string
+          nudge_topic: string
           platform: string | null
           protocol_version: number
           public_key: string | null
@@ -308,6 +309,7 @@ export type Database = {
           last_request_ms?: number
           last_seen_at?: string | null
           name?: string
+          nudge_topic?: string
           platform?: string | null
           protocol_version?: number
           public_key?: string | null
@@ -329,6 +331,7 @@ export type Database = {
           last_request_ms?: number
           last_seen_at?: string | null
           name?: string
+          nudge_topic?: string
           platform?: string | null
           protocol_version?: number
           public_key?: string | null
@@ -1868,6 +1871,10 @@ export type Database = {
       jarvis_device_seen: {
         Args: { p_device: string; p_timestamp_ms: number }
         Returns: boolean
+      }
+      jarvis_device_topic: {
+        Args: { p_device: string }
+        Returns: string
       }
       jarvis_enroll_device: {
         Args: {
