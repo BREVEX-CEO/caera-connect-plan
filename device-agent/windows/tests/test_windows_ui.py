@@ -136,6 +136,10 @@ class WindowsUiLadder(unittest.TestCase):
                 out["click"] = await run("ui.click_point", {"window": window, **point, "expectTitle": "Ledger Note"})
                 time.sleep(0.5)
                 out["after_click"] = self.note()
+                # Resized again since the image the point came from: the click is refused, nothing done.
+                win32gui.MoveWindow(hwnd, 120, 90, 600, 300, True)
+                time.sleep(0.5)
+                out["stale"] = await run("ui.click_point", {"window": window, **point, "expectTitle": "Ledger Note"})
 
                 win32gui.ShowWindow(hwnd, win32con.SW_MINIMIZE)
                 time.sleep(0.5)
@@ -173,6 +177,10 @@ class WindowsUiLadder(unittest.TestCase):
         with self.subTest("UIA-008 a click on an unexpected window is refused; after resize a click at the inspected box lands"):
             self.assertEqual(out["wrong_title"]["errorCode"], "unexpected_window")
             self.assertEqual(out["click"]["status"], "observed", out["click"])
+            self.assertGreaterEqual(out["click"]["evidence"]["confidence"], 0.9)
+        with self.subTest("UIA-013 a click grounded in a stale image of a resized window is refused, nothing clicked"):
+            self.assertEqual((out["stale"]["status"], out["stale"]["maybeChanged"], out["stale"]["errorCode"]),
+                             ("not_applied", False, "window_resized"))
             self.assertEqual(out["after_click"], "saved by click")
         with self.subTest("UIA-009 a minimized window is not acted on"):
             self.assertEqual(out["minimized"]["errorCode"], "window_minimized")

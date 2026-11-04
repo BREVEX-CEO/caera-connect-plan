@@ -28,6 +28,7 @@ from mcp.server.mcpserver import MCPServer
 
 from .sandbox import Refused, guarded, mark_effect, preview_jpeg, resolve
 
+_seen: dict = {}  # the last image ui.inspect captured of each leased window
 app = MCPServer("ocade-ui")
 WORKSPACE = os.environ.get("OCADE_WORKSPACE", "")
 PERSON_QUIET_SECONDS = 1.5
@@ -259,6 +260,7 @@ def ui_inspect(window: dict) -> dict:
             break
     x, y, width, height = bounds
     shot = ImageGrab.grab(bbox=(x, y, x + width, y + height))
+    _seen[json.dumps(window, sort_keys=True)] = shot  # what a later ui.click_point is checked against
     return {"title": str(_attribute(target, "AXTitle") or "")[:200], "elements": elements,
             "preview": preview_jpeg(shot, 30_000)}
 
@@ -328,9 +330,22 @@ def ui_click_point(window: dict, x: float, y: float, expectTitle: str) -> dict:
     """Last resort: one click at a window-relative point, never while the person is using the Mac."""
     import Quartz  # type: ignore[import-not-found]
 
+    import json
+
+    from PIL import ImageGrab
+
+    from . import vision
+
     target, (left, top, width, height) = _leased(window)
     if expectTitle not in str(_attribute(target, "AXTitle") or ""):
         raise Refused("unexpected_window")
+    seen = _seen.get(json.dumps(window, sort_keys=True))
+    if seen is None:
+        raise Refused("inspect_first")  # a point is only grounded in an image of this window
+    checked = vision.match(seen, ImageGrab.grab(bbox=(left, top, left + width, top + height)), x, y)
+    if "reason" in checked:
+        raise Refused(checked["reason"])  # nothing was clicked: look again with ui.inspect
+    x, y = checked["x"], checked["y"]
     _person_quiet()
     point = (left + x * width, top + y * height)
     try:
@@ -342,7 +357,8 @@ def ui_click_point(window: dict, x: float, y: float, expectTitle: str) -> dict:
             time.sleep(0.05)
     finally:
         _own_input["at"] = time.monotonic()
-    return {"clicked": [round(point[0]), round(point[1])], "title": str(_attribute(target, "AXTitle") or "")[:200]}
+    return {"clicked": [round(point[0]), round(point[1])], "title": str(_attribute(target, "AXTitle") or "")[:200],
+            "confidence": checked["confidence"]}
 
 
 if __name__ == "__main__":

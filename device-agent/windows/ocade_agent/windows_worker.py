@@ -27,6 +27,7 @@ from mcp.server.mcpserver import MCPServer
 from . import discovery
 from .sandbox import Refused, guarded, mark_effect, preview_jpeg, resolve
 
+_seen: dict = {}  # the last image ui.inspect captured of each leased window
 app = MCPServer("ocade-ui")
 WORKSPACE = os.environ.get("OCADE_WORKSPACE", "")
 WINDOWS = sys.platform == "win32"
@@ -185,6 +186,7 @@ def ui_inspect(window: dict) -> dict:
         if len(json.dumps(elements)) > 13_000:  # the gateway refuses evidence over 16 KB
             break
     shot = ImageGrab.grab(bbox=(left, top, right, bottom), all_screens=True)
+    _seen[json.dumps(window, sort_keys=True)] = shot  # what a later ui.click_point is checked against
     return {"title": target.window_text()[:200], "elements": elements, "preview": preview_jpeg(shot, 30_000)}
 
 
@@ -267,10 +269,24 @@ def ui_click_point(window: dict, x: float, y: float, expectTitle: str) -> dict:
     import pyautogui  # type: ignore[import-not-found]
     import win32gui  # type: ignore[import-not-found]
 
+    import json
+
+    from PIL import ImageGrab
+
+    from . import vision
+
     pyautogui.FAILSAFE = True  # a corner flick always stops it
     target = _leased(window)
     if expectTitle not in target.window_text():
         raise Refused("unexpected_window")
+    seen = _seen.get(json.dumps(window, sort_keys=True))
+    if seen is None:
+        raise Refused("inspect_first")  # a point is only grounded in an image of this window
+    left, top, right, bottom = win32gui.GetWindowRect(window["hwnd"])
+    checked = vision.match(seen, ImageGrab.grab(bbox=(left, top, right, bottom), all_screens=True), x, y)
+    if "reason" in checked:
+        raise Refused(checked["reason"])  # nothing was clicked: look again with ui.inspect
+    x, y = checked["x"], checked["y"]
     _person_quiet()
     try:
         mark_effect()
@@ -285,7 +301,7 @@ def ui_click_point(window: dict, x: float, y: float, expectTitle: str) -> dict:
         pyautogui.click(*point)
     finally:
         _own_input["at"] = time.monotonic()
-    return {"clicked": list(point), "title": target.window_text()[:200]}
+    return {"clicked": list(point), "title": target.window_text()[:200], "confidence": checked["confidence"]}
 
 
 if __name__ == "__main__":

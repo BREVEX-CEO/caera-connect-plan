@@ -834,7 +834,7 @@ export const OPERATIONS = {
   },
   "ui.click_point": {
     summary:
-      "Click a point (window fractions, for example inside a box ui.inspect reported or a spot seen in its image) when no accessible control can be reached.",
+      "Click a point (window fractions, for example inside a box ui.inspect reported or a spot seen in its image) when no accessible control can be reached. The spot is matched against the last ui.inspect image first: a small shift is followed; a resized window or a changed spot is refused without clicking (inspect again).",
     engine: "desktop",
     role: "ui_bridge",
     capability: "computer_control",
