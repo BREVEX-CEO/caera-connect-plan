@@ -1,0 +1,71 @@
+{
+  "id": 41841842687,
+  "windows_tests": 160,
+  "url": "https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41841842687",
+  "windows_failures": 2,
+  "conclusion": "failure",
+  "windows_skips": 3,
+  "run": 96,
+  "status": "completed",
+  "commit": "bb7d556ba2987fc3c1cf96e72151d085d4d3c22c",
+  "failing_tests": [
+    {
+      "expected_exit": 3,
+      "actual_exit": 1,
+      "name": "test_a_repaired_program_is_rerun_in_a_throwaway_copy"
+    },
+    {
+      "actual": [
+        "unknown",
+        "tool_error"
+      ],
+      "expected": [
+        "not_applied",
+        "window_not_responding"
+      ],
+      "name": "WindowsUiLadder.test_ui_ladder / UIA-014"
+    }
+  ],
+  "jobs": [
+    {
+      "id": 126615537918,
+      "name": "Permission revocation / receipt locks · disposable PostgreSQL",
+      "conclusion": "success"
+    },
+    {
+      "id": 126615538376,
+      "name": "Planner safety / source formatting · Linux",
+      "conclusion": "success"
+    },
+    {
+      "id": 126615538619,
+      "name": "Native receipt / COM / process safety · Windows",
+      "conclusion": "success"
+    },
+    {
+      "id": 126617200393,
+      "name": "Portable build / model contracts / ephemeral DB · Linux",
+      "conclusion": "success"
+    },
+    {
+      "id": 126620199420,
+      "name": "Windows unsigned installer / frozen MCP smoke · NOT release-ready",
+      "conclusion": "success"
+    },
+    {
+      "id": 126620199528,
+      "name": "Python MCP / journal / browser · ubuntu-latest",
+      "conclusion": "success"
+    },
+    {
+      "id": 126620199556,
+      "name": "Python MCP / journal / browser · windows-latest",
+      "conclusion": "failure"
+    },
+    {
+      "id": 126620199599,
+      "name": "Python MCP / journal / browser · macos-latest",
+      "conclusion": "success"
+    }
+  ]
+}
