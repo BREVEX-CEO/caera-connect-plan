@@ -42,7 +42,7 @@ permissions:
 
 concurrency:
   group: jarvis-cloud-${{ github.ref }}-${{ inputs.candidate_sha || 'branch' }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   planner-safety:
@@ -89,7 +89,13 @@ jobs:
         run: python -m pip install -r device-agent/windows/requirements.txt
       - name: Install the real media engine for containment controls
         if: success() || failure()
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+        run: |
+          if ! command -v ffmpeg >/dev/null || ! command -v ffprobe >/dev/null; then
+            sudo apt-get -o Acquire::Retries=1 -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20 update -qq
+            sudo apt-get -o Acquire::Retries=1 -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20 install -y -qq ffmpeg
+          fi
+          ffmpeg -version
+          ffprobe -version
       - name: Media nested-source containment (required, no skips)
         if: success() || failure()
         working-directory: device-agent/windows
@@ -330,7 +336,13 @@ jobs:
           python -c 'from playwright.sync_api import sync_playwright; p=sync_playwright().start(); print("OCADE_BROWSER_EXECUTABLE=" + p.chromium.executable_path); p.stop()' >> "$GITHUB_ENV"
       - name: Install test-runner engines (ffmpeg, LibreOffice) on Linux
         if: runner.os == 'Linux'
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg libreoffice-calc libreoffice-writer
+        run: |
+          if ! command -v ffmpeg >/dev/null || ! command -v ffprobe >/dev/null; then
+            sudo apt-get -o Acquire::Retries=1 -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20 update -qq
+            sudo apt-get -o Acquire::Retries=1 -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20 install -y -qq ffmpeg
+          fi
+          ffmpeg -version
+          ffprobe -version libreoffice-calc libreoffice-writer
       - name: Install test-runner engines (ffmpeg, LibreOffice) on Windows
         if: runner.os == 'Windows'
         shell: pwsh
