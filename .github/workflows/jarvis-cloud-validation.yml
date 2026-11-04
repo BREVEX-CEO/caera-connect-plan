@@ -106,7 +106,7 @@ jobs:
       - name: Rendered verifier and URL transport negative controls (required, no skips)
         if: success() || failure()
         working-directory: device-agent/windows
-        run: xvfb-run -a python -c 'import sys, unittest; suite=unittest.defaultTestLoader.loadTestsFromName("tests.test_verify_web"); result=unittest.TextTestRunner(verbosity=2).run(suite); sys.exit(0 if result.wasSuccessful() and result.testsRun == 7 and not result.skipped else 1)'
+        run: xvfb-run -a python -c 'import sys, unittest; suite=unittest.defaultTestLoader.loadTestsFromName("tests.test_verify_web"); result=unittest.TextTestRunner(verbosity=2).run(suite); sys.exit(0 if result.wasSuccessful() and result.testsRun == 8 and not result.skipped else 1)'
       - name: Restore script syntax and refusal outside disposable CI
         if: success() || failure()
         run: |
