@@ -362,6 +362,19 @@ export function observedSinceTakeOver(steps: Step[]) {
   }
 }
 
+/** Commands a command_succeeds check would re-run that no confirmed, done shell.run in this task ran. */
+export function commandsNotYetRun(checks: OutcomeCheck[], steps: Step[]) {
+  const ran = new Set(
+    steps
+      .filter((step) => step.intent.operation === "shell.run" && step.status === "done")
+      .map((step) => String(step.intent.arguments.command)),
+  );
+  return checks
+    .filter((check) => check.kind === "command_succeeds")
+    .map((check) => String(check.params?.command ?? ""))
+    .filter((command) => !ran.has(command));
+}
+
 /**
  * Automatic mechanism fallback (concept 37): when a route fails, the next allowed route on
  * the same target, always after a fresh look at it. Generic by mechanism, never by app.
@@ -1040,6 +1053,13 @@ export async function planStep(input: {
       };
     }
     if (call.name === "finish") {
+      // A repaired program is re-run by the verifier only with a command the person already
+      // read and allowed in this task: verifying never runs anything new.
+      const unconfirmed = commandsNotYetRun(checks, steps);
+      if (unconfirmed.length) {
+        refusal = `OCADE refused finish: run ${unconfirmed.map((c) => JSON.stringify(c)).join(", ")} with shell.run first, so the person can confirm the exact command the verifier will re-run.`;
+        continue;
+      }
       return {
         kind: "queue",
         summary: "Checking the result independently",

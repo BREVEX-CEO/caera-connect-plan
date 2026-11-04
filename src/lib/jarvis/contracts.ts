@@ -1161,6 +1161,7 @@ export const outcomeCheck = z.object({
       "workbook_formula",
       "document_headings",
       "local_service_answers",
+      "command_succeeds",
     ])
     .optional()
     .describe(
@@ -1175,7 +1176,9 @@ export const outcomeCheck = z.object({
         "workbook_formula {path,sheet,cell,value?}: the cell holds a formula, and its saved result is value; " +
         "document_headings {path,headings}: each text is a Title/Heading of the Word document or a slide title of the .pptx; " +
         "local_service_answers {port,text?}: a program on this computer answers http://127.0.0.1:port/ with status 200 " +
-        "(and the text, when given)",
+        "(and the text, when given); command_succeeds {command,text?}: a repaired script or program, re-run by the " +
+        "verifier in a throwaway copy of the folder, exits 0 (and prints the text): only a command the person " +
+        "confirmed with shell.run in this task",
     ),
   params: z
     .strictObject({
@@ -1193,6 +1196,7 @@ export const outcomeCheck = z.object({
       height: z.int().min(1).max(16384).optional(),
       headings: z.array(z.string().min(1).max(200)).min(1).max(20).optional(),
       port: z.int().min(1024).max(65535).optional(),
+      command: z.string().min(1).max(4000).optional(),
     })
     .optional(),
 });
@@ -1218,6 +1222,7 @@ export const taskChecks = z
       workbook_formula: ["path", "sheet", "cell"],
       document_headings: ["path", "headings"],
       local_service_answers: ["port"],
+      command_succeeds: ["command"],
       image_size: ["path", "width", "height"],
       scene_render: ["path"],
     } as const;

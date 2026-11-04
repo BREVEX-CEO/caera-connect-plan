@@ -229,6 +229,33 @@ test("mechanism fallback: a failed route is followed by a fresh look, then the n
   );
 });
 
+test("a repaired program is re-run only with a command the person already confirmed", async () => {
+  const { commandsNotYetRun } = await import("../../src/lib/jarvis/planner.server.ts");
+  const checks = [
+    {
+      id: "runs",
+      description: "Runs",
+      kind: "command_succeeds",
+      params: { command: "./backup.sh" },
+    },
+    { id: "out", description: "Out", kind: "file_exists", params: { path: "OCADE output/a.txt" } },
+  ] as never;
+  const ran = (command: string, status: string) =>
+    ({
+      intent: { operation: "shell.run", arguments: { command } },
+      status,
+      receipt: null,
+    }) as never;
+  assert.deepEqual(commandsNotYetRun(checks, []), ["./backup.sh"]);
+  assert.deepEqual(commandsNotYetRun(checks, [ran("./backup.sh", "needs_confirmation")]), [
+    "./backup.sh",
+  ]);
+  assert.deepEqual(commandsNotYetRun(checks, [ran("./backup.sh --force", "done")]), [
+    "./backup.sh",
+  ]);
+  assert.deepEqual(commandsNotYetRun(checks, [ran("./backup.sh", "done")]), []);
+});
+
 test("a failed independent check returns to the model for bounded repair", async () => {
   const { createServer } = await import("node:http");
   const { planStep, plannerAccess } = await import("../../src/lib/jarvis/planner.server.ts");

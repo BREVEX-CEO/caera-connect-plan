@@ -126,6 +126,20 @@ class VerifierKinds(unittest.TestCase):
             server.shutdown()
         self.assertEqual([evidence["predicates"][c["id"]] for c in (up, wrong_text, closed)], [True, False, False])
 
+    def test_a_repaired_program_is_rerun_in_a_throwaway_copy(self):
+        import sys
+
+        python = f'"{sys.executable}"' if sys.platform != "win32" else f'& "{sys.executable}"'
+        (self.root / "tool.py").write_text("open('made.txt', 'w').write('x'); print('total 42')\n")
+        (self.root / "broken.py").write_text("raise SystemExit(3)\n")
+        ok = check("command_succeeds", command=f"{python} tool.py", text="TOTAL 42")
+        wrong_text = check("command_succeeds", command=f"{python} tool.py", text="total 41")
+        failing = check("command_succeeds", command=f"{python} broken.py")
+        evidence = self.verify(ok, wrong_text, failing)
+        self.assertEqual([evidence["predicates"][c["id"]] for c in (ok, wrong_text, failing)], [True, False, False])
+        self.assertEqual(evidence["measured"][failing["id"]]["exitCode"], 3)
+        self.assertFalse((self.root / "made.txt").exists(), "verifying changed the person's folder")
+
     def test_shell_scripts_parse_without_running(self):
         marker = self.root / "ran"
         (self.root / "ok.sh").write_text(f"echo hi > '{marker}'\n")

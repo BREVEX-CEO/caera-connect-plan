@@ -167,6 +167,8 @@ def _check(kind: str, params: dict, notes: dict) -> bool | None:
         if kind == "image_size":
             return size == (params.get("width"), params.get("height"))
         return _scene_bound(size, text)
+    if kind == "command_succeeds":
+        return _command_succeeds(params.get("command"), params.get("text"), notes)
     if kind == "local_service_answers":
         return _local_service(params.get("port"), params.get("text"), notes)
     if kind == "window_exists":
@@ -285,6 +287,51 @@ def _document_headings(path: Path, params: dict) -> bool:
     found = [" ".join(t.split()).casefold() for t in titles]
     wanted = [" ".join(str(h).split()).casefold() for h in params.get("headings") or []]
     return bool(wanted) and all(any(w in f for f in found) for w in wanted)
+
+
+COPY_LIMIT = 300_000_000  # bytes of workspace copied for a re-run; larger folders are unobservable
+
+
+def _command_succeeds(command, text, notes: dict) -> bool | None:
+    """Re-run a repaired script or program, as the person confirmed it earlier in the task, in a
+    throwaway copy of the workspace: the person's folder is never changed by verifying. Passes
+    when it exits 0 within two minutes (and prints the text, when given)."""
+    import signal
+    import tempfile
+
+    if not isinstance(command, str) or not command.strip():
+        return False
+    root = Path(os.path.realpath(WORKSPACE))
+    size = sum(p.stat().st_size for p in root.rglob("*") if p.is_file() and not p.is_symlink())
+    if size > COPY_LIMIT:
+        notes["error"] = "workspace too large to copy for a re-run"
+        return None
+    with tempfile.TemporaryDirectory(prefix="ocade-verify-") as scratch:
+        copy = Path(scratch) / "workspace"
+        shutil.copytree(root, copy, symlinks=True)  # links are copied as links, never followed
+        if sys.platform == "win32":
+            exe = shutil.which("pwsh") or shutil.which("powershell") or "powershell.exe"
+            argv = [exe, "-NoProfile", "-NonInteractive", "-NoLogo", "-Command", command]
+        else:
+            argv = ["/bin/sh", "-c", command]
+        process = subprocess.Popen(argv, cwd=copy, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
+                                   stderr=subprocess.STDOUT, start_new_session=sys.platform != "win32",
+                                   creationflags=subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0)
+        try:
+            output, _ = process.communicate(timeout=120)
+        except subprocess.TimeoutExpired:
+            if sys.platform == "win32":
+                subprocess.run(["taskkill", "/T", "/F", "/PID", str(process.pid)], capture_output=True)
+            else:
+                os.killpg(process.pid, signal.SIGKILL)
+            process.communicate()
+            notes["error"] = "did not finish within 120 s"
+            return False
+    printed = output.decode("utf-8", "replace")
+    notes["exitCode"] = process.returncode
+    notes["outputTail"] = printed[-300:]
+    wanted = " ".join(str(text or "").split()).casefold()
+    return process.returncode == 0 and wanted in " ".join(printed.split()).casefold()
 
 
 def _local_service(port, text, notes: dict) -> bool:
