@@ -62,7 +62,7 @@ jobs:
       - name: Create the companion identity without sudo or Docker privileges
         run: |
           sudo useradd --create-home --shell /usr/sbin/nologin ocadelive
-          chmod -R o+rX "$GITHUB_WORKSPACE"
+          chmod o+rx "$HOME" "$RUNNER_WORKSPACE" "$GITHUB_WORKSPACE"
           id ocadelive
           test "$(id -nG ocadelive)" = ocadelive
       - name: Run paced E1 against staging (server credential in this step only)

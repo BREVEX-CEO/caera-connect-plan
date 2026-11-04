@@ -11,6 +11,7 @@ on:
       - "src/jarvis/**"
       - "src/routes/ocade-jarvis.tsx"
       - "src/lib/intelligence/**"
+      - "src/integrations/supabase/**"
       - "src/routes/api/jarvis.device.ts"
       - "device-agent/**"
       - "tests/jarvis/**"

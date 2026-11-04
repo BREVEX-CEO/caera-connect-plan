@@ -57,6 +57,7 @@ function isNewSupabaseApiKey(value: string): boolean {
 }
 
 export function createSupabaseFetch(supabaseKey: string): typeof fetch {
+  const apiKey = supabaseKey.trim();
   return (input, init) => {
     const headers = new Headers(
       typeof Request !== "undefined" && input instanceof Request ? input.headers : undefined,
@@ -68,13 +69,16 @@ export function createSupabaseFetch(supabaseKey: string): typeof fetch {
 
     // New Supabase API keys are opaque strings, not bearer JWTs.
     if (
-      isNewSupabaseApiKey(supabaseKey) &&
-      headers.get("Authorization") === `Bearer ${supabaseKey}`
+      isNewSupabaseApiKey(apiKey) &&
+      headers
+        .get("Authorization")
+        ?.match(/^Bearer\s+(.+)$/i)?.[1]
+        .trim() === apiKey
     ) {
       headers.delete("Authorization");
     }
 
-    headers.set("apikey", supabaseKey);
+    headers.set("apikey", apiKey);
     return fetch(input, { ...init, headers });
   };
 }

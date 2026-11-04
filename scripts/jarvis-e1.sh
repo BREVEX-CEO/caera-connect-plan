@@ -12,19 +12,27 @@ case "${E1_SEED:-all}" in
   22|23|24) seeds=("$E1_SEED") ;;
   *) echo "REFUSED: E1 seeds are 22, 23 and 24." >&2; exit 2 ;;
 esac
-python3 - <<'PY'
-import os
-import urllib.error
-import urllib.request
-request = urllib.request.Request(os.environ["SUPABASE_URL"] + "/auth/v1/admin/users?page=1&per_page=1",
-                                 headers={"apikey": os.environ["SUPABASE_SERVICE_ROLE_KEY"],
-                                          "Authorization": "Bearer " + os.environ["SUPABASE_SERVICE_ROLE_KEY"]})
-try:
-    with urllib.request.urlopen(request, timeout=30) as response:
-        assert response.status == 200
-except Exception:
-    raise SystemExit("Staging credential check failed; no credential value was logged.") from None
-PY
+node --input-type=module - <<'JS'
+import { resolve } from "node:path";
+import { createJiti } from "jiti";
+try {
+  // Use the same fetch/header bridge as the actual server, with a bounded read.
+  const jiti = createJiti(import.meta.url, { alias: { "@": resolve("src") } });
+  const { createSupabaseFetch } = await jiti.import("@/integrations/supabase/configuration");
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const response = await createSupabaseFetch(key)(process.env.SUPABASE_URL + "/auth/v1/admin/users?page=1&per_page=1", {
+    headers: { Authorization: `Bearer ${key}` }, signal: AbortSignal.timeout(30_000),
+  });
+  await response.body?.cancel();
+  if (!response.ok) throw { status: response.status, name: "HTTPError" };
+  console.log("Staging admin credential verified; no credential value was logged.");
+} catch (error) {
+  const status = Number.isInteger(error?.status) ? error.status : "unavailable";
+  const kind = ["HTTPError", "TimeoutError", "TypeError"].includes(error?.name) ? error.name : "client";
+  console.error(`Staging credential check failed (HTTP ${status}; ${kind}); no credential value was logged.`);
+  process.exit(1);
+}
+JS
 out="evidence/$(date -u +%Y-%m-%d)-e1-actions-${GITHUB_RUN_ID:?}"
 mkdir -p "$out"
 git rev-parse HEAD > "$out/commit.txt"
@@ -36,8 +44,9 @@ finish() {
 import os
 import sys
 from pathlib import Path
-secret = os.environ["SUPABASE_SERVICE_ROLE_KEY"].encode()
-if any(secret in path.read_bytes() for path in Path(sys.argv[1]).rglob("*") if path.is_file()):
+raw = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
+secrets = {raw.encode(), raw.strip().encode()} - {b""}
+if any(any(secret in path.read_bytes() for secret in secrets) for path in Path(sys.argv[1]).rglob("*") if path.is_file()):
     raise SystemExit("REFUSED: evidence contains a server credential; upload disabled.")
 PY
   then

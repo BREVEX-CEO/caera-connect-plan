@@ -62,3 +62,24 @@ New bookkeeping acceptance was submitted first as tests-only commit
 `da66f72e23b67d626ed746a83e9215c10fd5bec0` in
 [run 103](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41852581140).
 Verification of the implementation remains pending.
+
+## First Actions attempt
+
+Run [41855114927](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41855114927)
+at `6bfa9a5` completed runner setup and verified that `ocadelive` has only its own
+group. It stopped at the admin credential preflight before generating any task;
+there is no new task-success denominator. The preflight's generic failure did
+not distinguish a header/transport problem from a rejected credential.
+
+The preflight had separately built Python HTTP headers, including a bearer value
+for opaque keys. The server already has a shared fetch bridge for this case.
+The replacement uses that bridge, a 30-second timeout, and reports only a numeric
+HTTP status and an allowlisted error category. Secret values and HTTP bodies are
+never logged. Surrounding whitespace on copied opaque keys has its own failing
+synthetic regression: normalization must not turn an API key into a bearer JWT
+or remove a different caller's JWT. This is not evidence that the owner's key is
+wrong; its validity remains unverified until the corrected preflight runs.
+
+The 74-second recursive permission walk is removed: the runner's ordinary source
+and package permissions already permit reads, so only parent traversal is made
+explicit. Artifact scanning covers both raw and trimmed credential forms.
