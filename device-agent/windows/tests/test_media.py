@@ -166,6 +166,24 @@ class Media(unittest.TestCase):
         self.assertTrue(analyze["evidence"]["hasAudio"] and shots and shots[0]["soundDb"] is not None, analyze)
         self.assertEqual(render["status"], "observed", render)
         self.assertEqual(render["evidence"]["frames"], 240)
+        # The same edit as an editable OpenTimelineIO project beside the film.
+        project = self.root / render["evidence"]["project"]["path"]
+        self.assertEqual(project.name, "edit.otio")
+        timeline = json.loads(project.read_text())
+        video = timeline["tracks"]["children"][0]
+        self.assertEqual([c["media_references"]["DEFAULT_MEDIA"]["target_url"] for c in video["children"]],
+                         ["../a.mp4", "../b.mp4", "../a.mp4", "../b.mp4"])
+        self.assertEqual([m["name"] for m in video["markers"]], ["Test: 100% \\ it's 'quoted'", "TOP"])
+        try:
+            import opentimelineio as otio  # test-only: the real library re-opens the project
+        except ImportError:
+            otio = None
+        if otio is not None:
+            opened = otio.adapters.read_from_file(str(project))
+            shots = [round(c.trimmed_range().duration.to_seconds(), 2) for c in opened.video_tracks()[0].find_clips()]
+            self.assertEqual(shots, [5.5, 1.5, 1.0, 2.0])
+            self.assertTrue(all(Path(project.parent, c.media_reference.target_url).resolve().is_file()
+                                for c in opened.video_tracks()[0].find_clips()))
         self.assertEqual((bad_range["status"], bad_range["errorCode"]), ("not_applied", "clip_out_of_range"))
         # The shared contract now refuses an output outside 'OCADE output/' before any worker runs;
         # the sandbox's own write_outside_output refusal stays as the second layer (test_sandbox).

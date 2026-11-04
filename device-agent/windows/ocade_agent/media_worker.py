@@ -562,12 +562,78 @@ def media_render_timeline(
             print(f"ffmpeg: {run.stderr[-600:]}", file=sys.stderr)  # local diagnostics only
             raise Refused("media_engine_failed")
 
+    project = output_path(WORKSPACE, str(Path(output).with_suffix(".otio")))  # refused before rendering if taken
     try:
         digest = write_atomically(target, encode)
     finally:
         shutil.rmtree(frames, ignore_errors=True)
+    timeline = _otio(Path(output).stem, clips, titles or [], audio or [], fps, duration, project)
+    project_sha = write_atomically(project, lambda temporary: temporary.write_text(json.dumps(timeline, indent=1)))
     return {"sha256": digest, "engine": "ffmpeg", "duration": duration, "frames": round(duration * fps),
-            "clips": len(clips), "layers": len(audio or []), "titles": len(titles or [])}
+            "clips": len(clips), "layers": len(audio or []), "titles": len(titles or []),
+            "project": {"path": project.relative_to(Path(os.path.realpath(WORKSPACE))).as_posix(), "sha256": project_sha}}
+
+
+def _otio(name: str, clips: list[dict], titles: list[dict], audio: list[dict], fps: int, duration: float,
+          project: Path) -> dict:
+    """The same edit as an OpenTimelineIO timeline (OTIO JSON), so it re-opens as an editable
+    project in editors that import OTIO. Media are referenced relative to the .otio file;
+    grades, camera moves and generated sounds stay in the MP4 only (named in metadata)."""
+
+    def time(seconds: float) -> dict:
+        return {"OTIO_SCHEMA": "RationalTime.1", "rate": float(fps), "value": round(seconds * fps, 3)}
+
+    def span(start: float, length: float) -> dict:
+        return {"OTIO_SCHEMA": "TimeRange.1", "start_time": time(start), "duration": time(length)}
+
+    def item(schema: str, label: str, source_range: dict, **extra) -> dict:
+        return {"OTIO_SCHEMA": schema, "metadata": extra.pop("metadata", {}), "name": label,
+                "source_range": source_range, "effects": extra.pop("effects", []), "markers": [], "enabled": True,
+                **extra}
+
+    def media(source: str) -> dict:
+        path = Path(os.path.realpath(Path(WORKSPACE) / source))
+        return {"DEFAULT_MEDIA": {"OTIO_SCHEMA": "ExternalReference.1", "metadata": {}, "name": path.name,
+                                  "available_range": None, "available_image_bounds": None,
+                                  "target_url": Path(os.path.relpath(path, project.parent)).as_posix()}}
+
+    def clip(label: str, source: str, start: float, length: float, effects=None, metadata=None) -> dict:
+        return item("Clip.2", label, span(start, length), media_references=media(source),
+                    active_media_reference_key="DEFAULT_MEDIA", effects=effects or [], metadata=metadata or {})
+
+    def gap(length: float) -> dict:
+        return item("Gap.1", "", span(0, length))
+
+    def track(label: str, kind: str, children: list[dict], markers=None) -> dict:
+        return {"OTIO_SCHEMA": "Track.1", "metadata": {}, "name": label, "source_range": None, "effects": [],
+                "markers": markers or [], "enabled": True, "children": children, "kind": kind}
+
+    video = []
+    for n, spec in enumerate(clips, 1):
+        speed = float(spec.get("speed") or 1)
+        warp = [{"OTIO_SCHEMA": "LinearTimeWarp.1", "metadata": {}, "name": "", "effect_name": "LinearTimeWarp",
+                 "time_scalar": speed}] if speed != 1 else []
+        kept = {key: spec[key] for key in ("grade", "motion", "transition") if spec.get(key)}
+        video.append(clip(f"shot {n}", spec["source"], float(spec["in"]), float(spec["out"]) - float(spec["in"]),
+                          warp, {"ocade": kept} if kept else {}))
+    markers = [{"OTIO_SCHEMA": "Marker.2", "metadata": {"ocade": {k: v for k, v in title.items() if k != "text"}},
+                "name": title["text"], "color": "YELLOW", "comment": "title",
+                "marked_range": span(float(title["start"]), float(title["end"]) - float(title["start"]))}
+               for title in titles]
+    sound, at = [], 0.0
+    for n, layer in enumerate(sorted((a for a in audio if a.get("source")), key=lambda a: float(a["start"])), 1):
+        start = max(float(layer["start"]), at)
+        if start > at:
+            sound.append(gap(start - at))
+        sound.append(clip(f"{layer.get('role') or 'sound'} {n}", layer["source"], float(layer.get("in") or 0),
+                          float(layer["duration"])))
+        at = start + float(layer["duration"])
+    tracks = [track("Video", "Video", video, markers)] + ([track("Audio", "Audio", sound)] if sound else [])
+    return {"OTIO_SCHEMA": "Timeline.1", "metadata": {"ocade": {"duration": duration, "fps": fps,
+                                                              "synthesised": [a for a in audio if a.get("synth")]}},
+            "name": name, "global_start_time": None,
+            "tracks": {"OTIO_SCHEMA": "Stack.1", "metadata": {}, "name": "tracks", "source_range": None,
+                       "effects": [], "markers": [], "enabled": True, "children": tracks}}
 
 
 @app.tool()

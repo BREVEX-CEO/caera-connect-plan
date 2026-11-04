@@ -288,8 +288,8 @@ jobs:
           python-version: "3.12"
       - name: Install locked companion dependencies on test runner only
         run: python -m pip install -r device-agent/windows/requirements.txt
-      - name: Install test-only PDF fixture builder (never shipped to customers)
-        run: python -m pip install reportlab==4.5.1
+      - name: Install test-only PDF fixture builder and timeline reader (never shipped to customers)
+        run: python -m pip install reportlab==4.5.1 opentimelineio==0.17.0
       - name: Install test-only Chromium
         run: python -m playwright install chromium
       - name: Expose the installed Playwright browser executable to fixture tests
