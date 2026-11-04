@@ -197,6 +197,9 @@ class WebLadder(unittest.TestCase):
             out["big"] = await run("web.read", {"page": (await run("web.open", {"url": base + "/big"}))["evidence"]["page"]})
             app = (await run("web.open", {"url": base + "/app"}))["evidence"]
             hidden = next(c for c in app["controls"] if c["type"] == "file")
+            out["picker"] = await run("web.click", {"page": app["page"], "selector": "text=Open file"})
+            # The click observed the page again, so its selectors are the current ones.
+            hidden = next(c for c in out["picker"]["evidence"]["controls"] if c["type"] == "file")
             out["app"] = await run("web.upload", {"page": app["page"], "selector": hidden["selector"], "path": "upload-me.txt"})
             out["app-read"] = await run("web.read", {"page": app["page"]})
             editable = next(c for c in out["app-read"]["evidence"]["controls"] if c["tag"] == "span")
@@ -252,6 +255,9 @@ class WebLadder(unittest.TestCase):
         with self.subTest("WEB-002 read matches an independent fetch"):
             insecure = __import__("ssl")._create_unverified_context()  # the fixture's own throwaway cert
             html = urllib.request.urlopen(self.base + "/", context=insecure).read().decode()
+            # A control that opens the file picker is reported, not left waiting for a person.
+            self.assertEqual(results["picker"]["status"], "observed", results["picker"])
+            self.assertIn("web.upload", results["picker"]["evidence"]["filePicker"])
             [table] = results["table"]["evidence"]["tables"]  # rows keep their cells, links and headers
             self.assertEqual(table["headers"], ["Version", "Date", "Status"])
             self.assertEqual(table["rows"][0]["cells"][:3], ["6.19.6", "2026-01-13", "stable"])
@@ -288,6 +294,7 @@ class WebLadder(unittest.TestCase):
             self.assertEqual(results["big"]["status"], "observed")
             self.assertTrue(results["big"]["evidence"]["controls"])
         with self.subTest("WEB-006b a web app that hides and clears its file input still reports the file"):
+            self.assertEqual(results["app"]["status"], "observed", results["app"])
             self.assertTrue(results["app"]["evidence"]["matches"])
             self.assertIn("Opened upload-me.txt", results["app-read"]["evidence"]["text"])
         with self.subTest("WEB-003b an app's editable text widget is listed and filled"):

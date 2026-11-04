@@ -457,6 +457,13 @@ async def web_click(page: dict, selector: str, frame: str | None = None) -> dict
 
     context.on("page", collect)
     current = entry["page"]
+    choosers: list = []
+    # A control that opens the computer's file picker: no dialog appears (it would wait for a
+    # person); the planner is told to choose the file with web.upload instead.
+    def chosen(chooser) -> None:
+        choosers.append(chooser)
+
+    current.on("filechooser", chosen)
     try:
         mark_effect()
         await target.click(timeout=10_000)
@@ -468,6 +475,7 @@ async def web_click(page: dict, selector: str, frame: str | None = None) -> dict
             pass  # observed below either way
     finally:
         context.remove_listener("page", collect)
+        current.remove_listener("filechooser", chosen)
     await _follow(current, entry["site"], current.url)
     popups = []
     for opened in opened_now:
@@ -491,7 +499,13 @@ async def web_click(page: dict, selector: str, frame: str | None = None) -> dict
 
     with Image.open(BytesIO(await _capture(current))) as shot:
         preview = preview_jpeg(shot, 30_000)  # leaves room for the page beside it in one receipt
-    return await _observe(page["id"]) | {"popups": popups, "preview": preview}
+    for chooser in choosers:  # close the picker unanswered, as a person pressing Cancel would
+        try:
+            await chooser.set_files([])
+        except Exception:
+            pass
+    picker = {"filePicker": "opened: choose the file with web.upload on that input"} if choosers else {}
+    return await _observe(page["id"]) | {"popups": popups, "preview": preview} | picker
 
 
 @app.tool()

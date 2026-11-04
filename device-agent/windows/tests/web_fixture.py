@@ -37,7 +37,8 @@ from reportlab.pdfgen import canvas
 RECEIVED: dict[str, list] = {"forms": [], "uploads": []}
 
 PAGES = {
-    "/app": """<h1>Editor</h1><input type="file" id="pick" style="display:none"
+    "/app": """<h1>Editor</h1><button onclick="document.getElementById('pick').click()">Open file</button>
+<input type="file" id="pick" style="display:none"
 onchange="document.getElementById('opened').textContent = 'Opened ' + this.files[0].name; this.value = ''"><p id="opened"></p>
 <span contenteditable="true" inputmode="numeric" onkeydown="this.dataset.typed = 1"
 onblur="document.getElementById('committed').textContent = this.dataset.typed ? 'End ' + this.innerText : 'not typed'">20</span>
