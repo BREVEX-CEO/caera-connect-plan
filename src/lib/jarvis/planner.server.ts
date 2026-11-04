@@ -676,6 +676,16 @@ export function requestNamed(path: string, objective: string): boolean {
 const OUTPUT_FOLDER = "OCADE output/";
 
 /**
+ * The request asks for a named file itself to change ("fix config.yaml", "rename the
+ * scans"), not only to use it as a source ("summarise notes.txt"). Generic change verbs only.
+ */
+const CHANGE_WORDS =
+  /\b(fix|fixes|fixing|repair|correct|change|edit|update|modify|rename|rewrite|replace|clean|convert|tidy|organi[sz]e|sort|move|delete|remove|make\s+\S+\s+(run|work|executable))\b/i;
+export function requestChanges(path: string, objective: string): boolean {
+  return requestNamed(path, objective) && CHANGE_WORDS.test(objective);
+}
+
+/**
  * The fixed checks, compiled after a first read-only look at the JARVIS folder. A check may
  * read only a new output, a file the request names, or something that look actually saw.
  */
@@ -967,7 +977,7 @@ export async function planStep(input: {
           path &&
           changed.includes(path) &&
           !path.startsWith(OUTPUT_FOLDER) &&
-          !requestNamed(path, input.objective)
+          !requestChanges(path, input.objective)
         )
           throw new Error(
             `${path} is what check ${check.id} reads; produce the requested result instead of changing it`,

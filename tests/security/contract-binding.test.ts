@@ -107,6 +107,12 @@ test("changing the file a check reads to make it pass is refused", async (t) => 
   assert.notEqual(refused.kind, "queue", JSON.stringify(refused));
   assert.match(state.prompts.at(-1)!, /what check summary_source reads/);
 
+  // Naming the file only as a source does not authorise changing it (the D6 residual).
+  state.next.push(bend, bend);
+  const source = await planStep({ ...base, objective: `Summarise ${input} into a text file` });
+  assert.notEqual(source.kind, "queue", JSON.stringify(source));
+  assert.match(state.prompts.at(-1)!, /what check summary_source reads/);
+
   // The person asked for that very file to change: the same write is allowed.
   state.next.push(bend);
   const allowed = await planStep({
