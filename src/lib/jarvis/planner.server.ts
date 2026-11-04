@@ -201,7 +201,9 @@ export function shortlistOperations(
     ...wanted.checks.map(
       (check) => `${check.description} ${check.kind ?? ""} ${check.params?.path ?? ""}`,
     ),
-    last ? `${last.intent.operation} ${last.receipt?.errorCode ?? ""}` : "",
+    // The last error informs the next choice; the last operation itself is already kept
+    // (continuity) and would only pull its own kind ahead of what is still missing.
+    last?.receipt?.errorCode ?? "",
     // An address in the request means a website is involved, whatever the site.
     /https?:\/\/|\bwww\.|\b[a-z0-9-]+\.(com|org|net|io|gov|edu|co|uk|de|fr|au|app|dev|info)\b/i.test(
       wanted.objective,
