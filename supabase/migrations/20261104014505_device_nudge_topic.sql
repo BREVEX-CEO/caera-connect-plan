@@ -50,16 +50,14 @@ END;
 $$;
 REVOKE ALL ON FUNCTION public.jarvis_nudge_device() FROM PUBLIC, anon, authenticated;
 
-DROP TRIGGER IF EXISTS jarvis_step_queued_nudges_device ON public.jarvis_activity;
-CREATE TRIGGER jarvis_step_queued_nudges_device
+CREATE OR REPLACE TRIGGER jarvis_step_queued_nudges_device
   AFTER INSERT OR UPDATE OF status ON public.jarvis_activity
   FOR EACH ROW WHEN (NEW.status = 'queued')
   EXECUTE FUNCTION public.jarvis_nudge_device();
 
 -- Running again, stopped, taken over, paused: the device rechecks at once (faster STOP too).
 -- Completion follows the device's last receipt, so it has nothing to tell an idle device.
-DROP TRIGGER IF EXISTS jarvis_task_state_nudges_device ON public.jarvis_tasks;
-CREATE TRIGGER jarvis_task_state_nudges_device
+CREATE OR REPLACE TRIGGER jarvis_task_state_nudges_device
   AFTER UPDATE OF status ON public.jarvis_tasks
   FOR EACH ROW WHEN (OLD.status IS DISTINCT FROM NEW.status AND NEW.status <> 'completed')
   EXECUTE FUNCTION public.jarvis_nudge_device();
