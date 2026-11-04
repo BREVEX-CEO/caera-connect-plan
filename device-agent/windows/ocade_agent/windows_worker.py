@@ -88,6 +88,7 @@ def _leased(window: dict):
         win32gui.SendMessageTimeout(hwnd, 0, 0, 0, 0x0002 | 0x0020, 1000)
     except win32gui.error as error:
         if error.winerror in (0, 1460):  # generic failure or ERROR_TIMEOUT
+            # its app is busy or frozen: acting now would queue blindly
             raise Refused("window_not_responding") from None
         raise Refused("window_probe_failed") from None
     return Application(backend="uia").connect(handle=hwnd).window(handle=hwnd)
