@@ -62,8 +62,27 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install the locked runtime and test-only builder on the disposable runner
+        # Intel cryptography currently builds from source. Statically link its
+        # OpenSSL so freezing cannot substitute Python's older libssl basename.
+        env:
+          OPENSSL_STATIC: "1"
         run: |
+          if [[ "${{ matrix.os }}" == macos-15-intel ]]; then
+            export OPENSSL_DIR="$(brew --prefix openssl@3)"
+            export PIP_NO_CACHE_DIR=1
+            test -f "$OPENSSL_DIR/lib/libssl.a"
+            test -f "$OPENSSL_DIR/lib/libcrypto.a"
+          fi
           python -m pip install -r device-agent/windows/requirements.txt pyinstaller==6.22.3
+          python - <<'PY'
+          import re
+          import subprocess
+          from cryptography.hazmat.bindings import _rust
+          dependencies = subprocess.check_output(["/usr/bin/otool", "-L", _rust.__file__], text=True)
+          if re.search(r"lib(?:ssl|crypto)\.[^\s/]*\.dylib", dependencies):
+              raise RuntimeError("cryptography must carry its own static OpenSSL in this component build")
+          print("OCADE_MAC_CRYPTOGRAPHY:static-openssl")
+          PY
           python -m playwright install --no-shell chromium
           python - <<'PY'
           import os
