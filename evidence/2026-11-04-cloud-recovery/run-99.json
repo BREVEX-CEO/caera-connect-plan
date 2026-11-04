@@ -1,0 +1,72 @@
+{
+  "run": 99,
+  "testedCommitProof": "Each companion checkout log reports this exact SHA; workflow_dispatch head identifies the branch definition, not the candidate.",
+  "workflowHead": "3b39e367531f99dadd55eac8f250b9b0d5e418bf",
+  "companion": [
+    {
+      "skipped": 7,
+      "seconds": 370.752,
+      "platform": "Linux",
+      "tests": 162
+    },
+    {
+      "skipped": 3,
+      "seconds": 454.187,
+      "platform": "Windows",
+      "tests": 162
+    },
+    {
+      "skipped": 6,
+      "seconds": 548.414,
+      "platform": "macOS",
+      "tests": 162
+    }
+  ],
+  "conclusion": "success",
+  "testedCommit": "2d98e0d24f4f90f735d9ab5dda7c73883e4d0703",
+  "jobs": [
+    {
+      "conclusion": "success",
+      "id": 126638127518,
+      "name": "Planner safety / source formatting · Linux"
+    },
+    {
+      "conclusion": "success",
+      "id": 126638128059,
+      "name": "Native receipt / COM / process safety · Windows"
+    },
+    {
+      "conclusion": "success",
+      "id": 126638128134,
+      "name": "Permission revocation / receipt locks · disposable PostgreSQL"
+    },
+    {
+      "conclusion": "success",
+      "id": 126640940036,
+      "name": "Portable build / model contracts / ephemeral DB · Linux"
+    },
+    {
+      "conclusion": "success",
+      "id": 126644446571,
+      "name": "Windows unsigned installer / frozen MCP smoke · NOT release-ready"
+    },
+    {
+      "conclusion": "success",
+      "id": 126644446584,
+      "name": "Python MCP / journal / browser · ubuntu-latest"
+    },
+    {
+      "conclusion": "success",
+      "id": 126644446700,
+      "name": "Python MCP / journal / browser · macos-latest"
+    },
+    {
+      "conclusion": "success",
+      "id": 126644446819,
+      "name": "Python MCP / journal / browser · windows-latest"
+    }
+  ],
+  "id": 41848478811,
+  "url": "https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41848478811",
+  "status": "completed"
+}

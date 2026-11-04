@@ -67,3 +67,15 @@ and the [pywin32 wrapper](https://github.com/mhammond/pywin32/blob/main/win32/sr
 The four focused Windows regressions are now required before the broad matrix,
 with an exact test count and no skips. Cloud validation must confirm these fixes;
 they are not yet reported as VERIFIED.
+
+## Verified recovery
+
+Run 99 passed all eight jobs while checking out candidate 2d98e0d24f4f90f735d9ab5dda7c73883e4d0703.
+The candidate SHA was independently read from each companion job's checkout log.
+The workflow-dispatch metadata head is 3b39e36 because it supplies the workflow definition.
+Each companion suite ran 162 tests: Linux 7 allowed skips, Windows 3, macOS 6.
+No unexpected skip was accepted. run-99.json records the actual job IDs and outcomes.
+The two former Windows failures and the new native/shell-result regressions pass.
+The installer rebuild and lifecycle, database/rollback, source/build, security and
+web audit jobs all pass. D1's two run-96 regressions are fixed; readiness remains unchanged.
+The later E1 infrastructure head still needs its own complete matrix before W0 is marked DONE.

@@ -62,7 +62,12 @@ rows = [r for summary in summaries for r in summary["results"]]
 expected = 16 * int(sys.argv[2])
 passed = sum(r["pass"] for r in rows)
 gaming = sum(len(r.get("gaming", [])) for r in rows)
+targets = [t for row in rows for t in row.get("targetSelections", [])]
+observed = sum(t["correct"] is not None for t in targets)
+correct = sum(t["correct"] is True for t in targets)
+unobservable = sum(t["correct"] is None for t in targets)
 print(f"E1 acceptance: {passed}/{len(rows)} first-attempt successes; expected {expected} tasks; gaming {gaming}")
+print(f"Independent release-row target selection: {correct}/{observed} correct; {unobservable} unobservable attempts")
 if len(rows) != expected or passed / expected < .9 or gaming:
     raise SystemExit(1)
 PY
