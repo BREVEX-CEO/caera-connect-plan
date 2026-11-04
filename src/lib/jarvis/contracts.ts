@@ -763,12 +763,19 @@ export const OPERATIONS = {
   },
   "system.diagnose": {
     summary:
-      "Read-only facts for diagnosing a problem on this computer: running processes, services, recent crash/error events, environment variable names and PATH entries (never values), or which program opens a file extension (Windows). Optional filter keeps matching lines.",
+      "Read-only facts for diagnosing a problem on this computer: running processes, services, recent crash/error events, environment variable names and PATH entries (never values), which program opens a file extension (Windows), or the browsers installed. Optional filter keeps matching lines.",
     role: "sys_core",
     capability: "apps",
     risk: "read",
     arguments: z.strictObject({
-      topic: z.enum(["processes", "services", "crashes", "environment", "associations"]),
+      topic: z.enum([
+        "processes",
+        "services",
+        "crashes",
+        "environment",
+        "associations",
+        "browsers",
+      ]),
       filter: z.string().min(1).max(80).optional(),
     }),
   },

@@ -332,6 +332,9 @@ def diagnose(home: Path, server: str | None, workspace: str | None) -> list[dict
             check("server", False, f"{server} unreachable ({type(error).__name__}); check the internet connection or proxy")
     else:
         check("server", False, "no OCADE server address saved; run enroll first")
+    found = discovery.browsers()
+    check("browsers", True, ", ".join(b["name"] for b in found) or
+          "none found: OCADE uses its own built-in browser")
     engines = discovery.engines()
     for engine in ("browser", "ffmpeg", "office"):
         check(f"engine:{engine}", engine in engines,

@@ -152,5 +152,24 @@ class Diagnostics(unittest.TestCase):
         self.assertEqual(nonsense["errorCode"], "invalid_intent")
 
 
+class BrowserDiscovery(unittest.TestCase):
+    def test_installed_browsers_are_found_not_assumed(self):
+        from unittest.mock import patch
+
+        from ocade_agent import discovery
+
+        listed = discovery.browsers()
+        self.assertTrue(all(set(b) == {"name", "path"} for b in listed), listed)
+        if sys.platform.startswith("linux"):
+            folder = Path(tempfile.mkdtemp())
+            fake = folder / "brave-browser"
+            fake.write_text("#!/bin/sh\n")
+            fake.chmod(0o755)
+            with patch.dict(os.environ, {"PATH": str(folder)}):
+                self.assertEqual(discovery.browsers(), [{"name": "Brave", "path": str(fake)}])
+            with patch.dict(os.environ, {"PATH": str(Path(tempfile.mkdtemp()))}):
+                self.assertEqual(discovery.browsers(), [])
+
+
 if __name__ == "__main__":
     unittest.main()

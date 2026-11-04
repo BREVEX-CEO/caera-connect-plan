@@ -258,10 +258,16 @@ async def _context():
             if executable:
                 context = await playwright.chromium.launch_persistent_context(executable_path=executable, **options)
             else:
-                try:
-                    context = await playwright.chromium.launch_persistent_context(channel="msedge", **options)
-                except Exception:
-                    context = await playwright.chromium.launch_persistent_context(**options)
+                context = None
+                # Edge ships with Windows; then an installed Chrome; then Playwright's own Chromium.
+                for channel in ("msedge", "chrome", None):
+                    try:
+                        context = await playwright.chromium.launch_persistent_context(
+                            **({"channel": channel} if channel else {}), **options)
+                        break
+                    except Exception:
+                        if channel is None:
+                            raise
             _browser["context"] = context
             await context.route("**/*", _guard)
         except BaseException:

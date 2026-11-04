@@ -529,6 +529,10 @@ def system_diagnose(topic: str, filter: str | None = None) -> dict:
             raise Refused("diagnostic_unavailable")
         lines = [line for line in text.splitlines() if line.strip() and keep(line)]
         return {"topic": topic, "lines": lines[:120]}
+    if topic == "browsers":
+        from . import discovery
+
+        return {"topic": topic, "browsers": discovery.browsers()}
     if topic == "environment":
         path = [entry for entry in os.environ.get("PATH", "").split(os.pathsep) if entry]
         return {"topic": topic, "names": sorted(name for name in os.environ if keep(name))[:200], "path": path[:80]}

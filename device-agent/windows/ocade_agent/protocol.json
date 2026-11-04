@@ -1892,7 +1892,8 @@
               "services",
               "crashes",
               "environment",
-              "associations"
+              "associations",
+              "browsers"
             ]
           },
           "filter": {

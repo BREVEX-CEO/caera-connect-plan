@@ -107,6 +107,36 @@ def app_path(exe: str) -> str | None:
     return shutil.which(exe)
 
 
+# Where each family of browser installs itself; whatever is actually present is reported.
+_BROWSERS = {
+    "win32": {"Edge": "msedge.exe", "Chrome": "chrome.exe", "Firefox": "firefox.exe", "Brave": "brave.exe"},
+    "darwin": {"Safari": "/Applications/Safari.app", "Chrome": "/Applications/Google Chrome.app",
+               "Edge": "/Applications/Microsoft Edge.app", "Firefox": "/Applications/Firefox.app",
+               "Brave": "/Applications/Brave Browser.app", "Chromium": "/Applications/Chromium.app"},
+    "linux": {"Chrome": "google-chrome", "Chromium": "chromium", "Chromium browser": "chromium-browser",
+              "Edge": "microsoft-edge", "Firefox": "firefox", "Brave": "brave-browser"},
+}
+
+
+def browsers() -> list[dict]:
+    """The browsers installed on this computer (name and where), found, never assumed. OCADE
+    still works in its own dedicated profile; this tells the person and the planner what exists."""
+    import shutil
+
+    found = []
+    platform = "linux" if sys.platform.startswith("linux") else sys.platform
+    for name, where in _BROWSERS.get(platform, {}).items():
+        if platform == "win32":
+            path = app_path(where)
+        elif platform == "darwin":
+            path = where if Path(where).is_dir() else None
+        else:
+            path = shutil.which(where)
+        if path and (platform == "darwin" or Path(path).is_file()):
+            found.append({"name": name, "path": str(path)[:300]})
+    return found
+
+
 def open_windows(limit: int = 60) -> list[dict]:
     """Visible top-level windows: {exe, pid, hwnd, started, title}."""
     if sys.platform != "win32":
