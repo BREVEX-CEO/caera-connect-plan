@@ -51,9 +51,7 @@ def _contain_children() -> None:
 
         job = win32job.CreateJobObject(None, "")
         limits = win32job.QueryInformationJobObject(job, win32job.JobObjectExtendedLimitInformation)
-        # Commands die with the worker; only a tracked job asks to break away (it has its own deadline).
-        limits["BasicLimitInformation"]["LimitFlags"] = (win32job.JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
-                                                         | win32job.JOB_OBJECT_LIMIT_BREAKAWAY_OK)
+        limits["BasicLimitInformation"]["LimitFlags"] = win32job.JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
         win32job.SetInformationJobObject(job, win32job.JobObjectExtendedLimitInformation, limits)
         win32job.AssignProcessToJobObject(job, win32api.GetCurrentProcess())
         _job.append(job)

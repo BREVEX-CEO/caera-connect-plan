@@ -35,10 +35,14 @@ class Jobs(unittest.TestCase):
         self.root = Path(tempfile.mkdtemp())
         self.home = Path(tempfile.mkdtemp())
 
-    def call(self, *intents):
+    def call(self, *intents, then=None):
+        """Run intents through one gateway; `then` runs while that gateway (the companion) lives."""
         async def go():
             async with Gateway(str(self.root), home=str(self.home)) as gateway:
-                return [await gateway.run(i, gateway.epoch) for i in intents]
+                results = [await gateway.run(i, gateway.epoch) for i in intents]
+                if then:
+                    results.append(await anyio.to_thread.run_sync(then, *results))
+                return results
 
         return anyio.run(go)
 
@@ -50,74 +54,97 @@ class Jobs(unittest.TestCase):
                 return now
             time.sleep(0.2)
 
-    def test_a_job_outlives_the_call_and_the_agent_and_reports_how_it_ended(self):
-        [started] = self.call(intent("job.start", {
-            "command": py("import time; print('rendering'); time.sleep(3); print('done')")}))
+    def test_a_job_outlives_the_call_and_reports_how_it_ended(self):
+        code = "import time; print('rendering'); time.sleep(3); print('done')"
+        started, finished = self.call(
+            intent("job.start", {"command": py(code)}),
+            then=lambda started: self.wait_for(started["evidence"]["jobId"], ("finished",)),
+        )
         self.assertEqual(started["status"], "observed", started)
-        job = started["evidence"]["jobId"]
-        # The gateway and its workers are gone (as after an agent restart); a new one reattaches.
-        [running] = self.call(intent("job.status", {"jobId": job}))
-        self.assertEqual(running["evidence"]["state"], "running", running)
-        finished = self.wait_for(job, ("finished",))
         self.assertEqual((finished["state"], finished["exitCode"]), ("finished", 0), finished)
         self.assertIn("done", finished["outputTail"])
 
-    def test_deadline_cancel_and_stop_end_the_whole_tree(self):
+    def test_after_an_agent_restart_a_job_is_reattached_or_reported_lost(self):
+        [started] = self.call(intent("job.start", {"command": py("import time; time.sleep(4)")}))
+        job = started["evidence"]["jobId"]
+        # The gateway and its workers are gone, as after an agent restart.
+        [after] = self.call(intent("job.status", {"jobId": job}))
+        if sys.platform == "win32":  # ended with the companion's job object: never a silent orphan
+            self.assertEqual(after["evidence"]["state"], "lost", after)
+        else:
+            self.assertEqual(after["evidence"]["state"], "running", after)
+            self.assertEqual(self.wait_for(job, ("finished",))["exitCode"], 0)
+
+    def test_cancel_and_stop_end_the_whole_tree(self):
         child = self.root / "child.pid"
         spawn = ("import subprocess,sys,time; p=subprocess.Popen([sys.executable,'-c','import time; time.sleep(120)']);"
                  f" open(r'{child}','w').write(str(p.pid)); time.sleep(120)")
-        timed, cancelled, stopped = self.call(
-            intent("job.start", {"command": py("import time; time.sleep(120)"), "timeoutSeconds": 10}),
+        home = str(self.home)
+
+        def while_running(cancelled, stopped):
+            deadline = time.monotonic() + 20
+            while not child.exists() and time.monotonic() < deadline:
+                time.sleep(0.1)
+            grandchild = int(child.read_text())
+            ended = jobs.cancel(home, cancelled["evidence"]["jobId"])
+            time.sleep(1)
+            return ended, alive(grandchild), jobs.cancel_all(home), jobs.status(home, stopped["evidence"]["jobId"])
+
+        cancelled, stopped, (ended, grandchild_alive, by_stop, after_stop) = self.call(
             intent("job.start", {"command": py(spawn)}),
             intent("job.start", {"command": py("import time; time.sleep(120)")}),
+            then=while_running,
         )
-        ids = [r["evidence"]["jobId"] for r in (timed, cancelled, stopped)]
-        deadline = time.monotonic() + 20
-        while not child.exists() and time.monotonic() < deadline:
-            time.sleep(0.1)
-        grandchild = int(child.read_text())
-        [ended] = self.call(intent("job.cancel", {"jobId": ids[1]}))
-        self.assertEqual(ended["evidence"]["state"], "cancelled", ended)
-        time.sleep(1)
-        self.assertFalse(alive(grandchild), "a process the job started outlived its cancel")
-        self.assertEqual(jobs.cancel_all(str(self.home)), [j for j in sorted(ids) if j in (ids[0], ids[2])])
-        self.assertEqual(jobs.status(str(self.home), ids[2])["state"], "cancelled")
-        self.assertIn(jobs.status(str(self.home), ids[0])["state"], ("cancelled", "timed_out"))
+        self.assertEqual(ended["state"], "cancelled", ended)
+        self.assertFalse(grandchild_alive, "a process the job started outlived its cancel")
+        self.assertEqual(by_stop, [stopped["evidence"]["jobId"]])
+        self.assertEqual(after_stop["state"], "cancelled")
 
     def test_the_deadline_ends_a_job(self):
-        [started] = self.call(intent("job.start", {"command": py("import time; time.sleep(120)"),
-                                                   "timeoutSeconds": 10}))
-        ended = self.wait_for(started["evidence"]["jobId"], ("timed_out",), seconds=40)
+        started, ended = self.call(
+            intent("job.start", {"command": py("import time; time.sleep(120)"), "timeoutSeconds": 10}),
+            then=lambda started: self.wait_for(started["evidence"]["jobId"], ("timed_out",), seconds=40),
+        )
         self.assertEqual(ended["state"], "timed_out", ended)
 
     def test_a_job_whose_runner_vanished_is_lost_and_can_still_be_ended(self):
-        [started] = self.call(intent("job.start", {"command": py("import time; time.sleep(120)")}))
-        job = started["evidence"]["jobId"]
-        pids = json.loads((jobs.folder(self.home) / job / "runner.json").read_text())
-        if sys.platform == "win32":  # only the runner, not its command
-            import subprocess
+        home = str(self.home)
 
-            subprocess.run(["taskkill", "/F", "/PID", str(pids["runner"])], capture_output=True)
-        else:
-            os.kill(pids["runner"], signal.SIGKILL)
-        time.sleep(0.5)
-        self.assertEqual(jobs.status(str(self.home), job)["state"], "lost")
-        self.assertEqual(jobs.cancel(str(self.home), job)["state"], "cancelled")
-        time.sleep(0.5)
-        self.assertFalse(alive(pids["command"]))
+        def runner_killed(started):
+            job = started["evidence"]["jobId"]
+            pids = json.loads((jobs.folder(home) / job / "runner.json").read_text())
+            if sys.platform == "win32":  # only the runner, not its command
+                import subprocess
+
+                subprocess.run(["taskkill", "/F", "/PID", str(pids["runner"])], capture_output=True)
+            else:
+                os.kill(pids["runner"], signal.SIGKILL)
+            time.sleep(0.5)
+            lost = jobs.status(home, job)["state"]
+            ended = jobs.cancel(home, job)["state"]
+            time.sleep(0.5)
+            return lost, ended, alive(pids["command"])
+
+        _, (lost, ended, command_alive) = self.call(
+            intent("job.start", {"command": py("import time; time.sleep(120)")}), then=runner_killed)
+        self.assertEqual((lost, ended, command_alive), ("lost", "cancelled", False))
 
     def test_shell_choice_and_unknown_jobs(self):
         other = "cmd" if sys.platform == "win32" else "bash"
         missing = "zsh" if sys.platform == "win32" else "cmd"
-        chosen, refused, unknown = self.call(
+        chosen, refused, unknown, started = self.call(
             intent("shell.run", {"command": "echo picked", "shell": other}),
             intent("shell.run", {"command": "echo picked", "shell": missing}),
             intent("job.status", {"jobId": "0123456789abcdef"}),
+            intent("job.start", {"command": py("import time; time.sleep(120)")}),
         )
         self.assertEqual(chosen["status"], "observed", chosen)
         self.assertIn("picked", chosen["evidence"]["stdout"])
         self.assertEqual(refused["errorCode"], "shell_unavailable")
         self.assertEqual(unknown["errorCode"], "unknown_job")
+        [cancelled] = self.call(intent("job.cancel", {"jobId": started["evidence"]["jobId"]}))
+        self.assertEqual(cancelled["status"], "observed", cancelled)
+        self.assertEqual(cancelled["evidence"]["state"], "cancelled")
 
 
 class StopEndsJobs(unittest.TestCase):

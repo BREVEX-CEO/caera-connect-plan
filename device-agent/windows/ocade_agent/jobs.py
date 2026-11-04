@@ -1,7 +1,8 @@
 """Long-running commands as tracked jobs (W3, D18): renders, exports, installs.
 
-A job is one confirmed command started detached from the shell worker, so it can outlive a
-600 s call and an agent restart. Each job has a folder under the agent's home:
+A job is one confirmed command started apart from the shell worker's call, so it can outlive
+a 600 s call; on macOS and Linux it also outlives an agent restart (on Windows it ends with
+the companion and then reads "lost"). Each job has a folder under the agent's home:
 
     spec.json    what to run, where, until when (written before it starts)
     output.log   everything it printed
@@ -116,11 +117,10 @@ def start(home: str, workspace: str, command: str, shell: str | None, seconds: i
     here.mkdir(parents=True)
     _write(here / "spec.json", {"argv": argv, "cwd": workspace, "deadline": time.time() + seconds,
                                 "started": time.time()})
-    flags = 0
-    if sys.platform == "win32":
-        # Detached, and out of the shell worker's kill-on-close job so an agent restart does not end it.
-        flags = (subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.DETACHED_PROCESS | subprocess.CREATE_NO_WINDOW
-                 | 0x01000000)  # CREATE_BREAKAWAY_FROM_JOB
+    # POSIX: its own session, so it outlives the worker and an agent restart. Windows: it stays in
+    # the shell worker's kill-on-close job object (breaking away is refused inside nested jobs),
+    # so it ends with the companion and reads "lost" after a restart: never a silent orphan.
+    flags = subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
     runner = subprocess.Popen(
         runner_command(), cwd=workspace, env={**os.environ, "OCADE_JOB": str(here),
              "PYTHONPATH": os.pathsep.join(filter(None, (PACKAGE_ROOT, os.environ.get("PYTHONPATH"))))},
