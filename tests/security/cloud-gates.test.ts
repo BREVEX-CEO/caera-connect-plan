@@ -16,3 +16,13 @@ test("Linux gate refuses an unsupported mode before running any tests", () => {
   assert.equal(result.status, 2);
   assert.match(result.stderr, /Usage:/);
 });
+
+test("evaluation preserves actual target choices and partial checkpoints", () => {
+  const result = spawnSync(
+    "python3",
+    ["-m", "unittest", "discover", "-s", "tests/jarvis", "-p", "test_eval_audit.py", "-v"],
+    { encoding: "utf8" },
+  );
+  assert.ifError(result.error);
+  assert.equal(result.status, 0, result.stderr);
+});

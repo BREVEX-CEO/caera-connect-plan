@@ -44,3 +44,21 @@ are stored under the run-specific evidence path with the tested commit recorded.
 
 The workflow and its shell syntax/refusal regressions still require cloud
 validation. No requirement, concept or readiness gate is promoted here.
+
+## Hidden target accuracy and interruption handling
+
+The release-table generator retains its expected archive name inside the
+harness. After a task, each actual browser download's suggested filename is
+compared against that hidden label. All choices remain in order: a wrong choice
+followed by a correct one records one wrong and one correct selection. Missing
+receipts are explicitly unobservable; non-target families do not inflate this
+denominator. This measures browser release-row selection only, not every kind of
+desktop or file target.
+
+Every completed task now atomically checkpoints the summary, with only the
+completed-task denominator. An interrupted run keeps the preceding valid
+checkpoint and raw task reports. Live and oracle-selfcheck modes are distinct.
+New bookkeeping acceptance was submitted first as tests-only commit
+`da66f72e23b67d626ed746a83e9215c10fd5bec0` in
+[run 103](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41852581140).
+Verification of the implementation remains pending.

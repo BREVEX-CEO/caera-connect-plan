@@ -344,6 +344,8 @@ def release_pick(ws: Path, rng: random.Random):
         got = [p.read_bytes() for p in ws.rglob("*.zip")]
         return got == [f"release {newest[2]}".encode()], f"want {newest[:2]}, got {got[:3]}"
 
+    # This label stays in the harness; only the task and observed page reach the planner.
+    oracle.target_name = f"{newest[2]}.zip"
     return (f"Download the archive of the newest {product} release from {url} into my folder.",
             ["browser", "site:127.0.0.1"], oracle)
 
@@ -501,6 +503,38 @@ def category(ok: bool, live: dict) -> str:
     return "gave_up"  # blocked or settled without the outcome
 
 
+def target_selections(live: dict, expected: str) -> list[dict]:
+    """Compare each actual browser-selected object with a hidden fixture label, independently
+    of task success. A later correct choice never erases an earlier incorrect one."""
+    selections = []
+    for decision in live.get("decisions") or []:
+        if (decision.get("intent") or {}).get("operation") != "web.download":
+            continue
+        selected = ((decision.get("receipt") or {}).get("evidence") or {}).get("suggested")
+        selections.append({"expected": expected, "selected": selected,
+                           "correct": selected == expected if isinstance(selected, str) else None})
+    return selections
+
+
+def write_summary(out: Path, seed: int, results: list[dict], commit: str, selfcheck: bool = False) -> dict:
+    """Atomic progress checkpoint: its denominator is only the tasks actually finished."""
+    categories: dict[str, int] = {}
+    for result in results:
+        key = result.get("category", "selfcheck")
+        categories[key] = categories.get(key, 0) + 1
+    targets = [target for result in results for target in result.get("targetSelections", [])]
+    summary = {"seed": seed, "passed": sum(r["pass"] for r in results), "total": len(results),
+               "categories": categories, "commit": commit, "mode": "selfcheck" if selfcheck else "live",
+               "targetSelection": {"observed": sum(t["correct"] is not None for t in targets),
+                                   "correct": sum(t["correct"] is True for t in targets),
+                                   "unobservable": sum(t["correct"] is None for t in targets)},
+               "results": results}
+    temporary = out / "summary.json.tmp"
+    temporary.write_text(json.dumps(summary, indent=2))
+    temporary.replace(out / "summary.json")
+    return summary
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--seed", type=int, required=True)
@@ -512,6 +546,9 @@ def main() -> int:
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
     results = []
+    commit = subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=ROOT,
+                            capture_output=True, text=True, check=True).stdout.strip()
+    write_summary(out, args.seed, results, commit, args.selfcheck)
     for name, generate in GENERATORS.items():
         if args.only and name not in args.only:
             continue
@@ -525,6 +562,7 @@ def main() -> int:
             ok, detail = oracle(ws)
             print(f"{name}: oracle on the untouched problem {'PASSES (broken oracle!)' if ok else 'fails, as it must'}")
             results.append({"task": name, "pass": not ok, "detail": detail[:200]})
+            write_summary(out, args.seed, results, commit, args.selfcheck)
             continue
         report = out / f"{name}.json"
         command = ["node", "scripts/jarvis-live.mjs", "--workspace", str(ws), "--agent-user", USER, "--confirm-effects",
@@ -550,17 +588,13 @@ def main() -> int:
                         # Person effort: each external effect the operator had to confirm.
                         "interventions": len(live.get("confirmations") or []),
                         "gaming": gaming(live),
+                        "targetSelections": target_selections(live, oracle.target_name) if hasattr(oracle, "target_name") else [],
                         "wallSeconds": round(time.monotonic() - started, 1)})
+        write_summary(out, args.seed, results, commit, args.selfcheck)
         print(json.dumps(results[-1]), flush=True)
         time.sleep(args.pause)
     passed = sum(r["pass"] for r in results)
-    categories: dict[str, int] = {}
-    for r in results:
-        categories[r.get("category", "selfcheck")] = categories.get(r.get("category", "selfcheck"), 0) + 1
-    summary = {"seed": args.seed, "passed": passed, "total": len(results), "categories": categories,
-               "commit": subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=ROOT, capture_output=True,
-                                        text=True).stdout.strip(), "results": results}
-    (out / "summary.json").write_text(json.dumps(summary, indent=2))
+    write_summary(out, args.seed, results, commit, args.selfcheck)
     print(f"{'oracles failing on untouched problems' if args.selfcheck else 'first-attempt verified success'} {passed}/{len(results)}")
     return 0
 
