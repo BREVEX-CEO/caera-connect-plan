@@ -37,6 +37,22 @@ class Shell(unittest.TestCase):
 
         return anyio.run(go)
 
+    def test_native_exit_codes_and_later_shell_results_are_preserved(self):
+        (self.root / "fail.py").write_text("raise SystemExit(3)\n")
+        (self.root / "ok.py").write_text("print('native success')\n")
+        python = f'& "{sys.executable}"' if WINDOWS else f'"{sys.executable}"'
+        shell_error = "Write-Error 'shell failure'" if WINDOWS else "false"
+        shell_success = "Write-Output 'shell success'" if WINDOWS else "echo 'shell success'"
+        native, error, success = self.run_steps(
+            {"command": f"{python} fail.py"},
+            {"command": f"{python} ok.py; {shell_error}"},
+            {"command": f"{python} fail.py; {shell_success}"},
+        )
+        self.assertEqual(native["evidence"]["exitCode"], 3, native)
+        self.assertNotEqual(error["evidence"]["exitCode"], 0, error)
+        self.assertEqual(success["evidence"]["exitCode"], 0, success)
+        self.assertIn("shell success", success["evidence"]["stdout"])
+
     def test_commands_run_in_the_workspace_and_report_honestly(self):
         os.environ["OCADE_TEST_SECRET"] = "do-not-leak"
         try:

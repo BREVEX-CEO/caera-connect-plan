@@ -27,6 +27,7 @@ from docx import Document
 from mcp.server.mcpserver import MCPServer
 from pypdf import PdfReader
 
+from .jobs import shell_argv
 from .sandbox import MEDIA_INPUT_OPTIONS, PASSIVE_IMAGE_FORMATS, Refused, plain_text, resolve
 
 app = MCPServer("ocade-verifier")
@@ -309,11 +310,7 @@ def _command_succeeds(command, text, notes: dict) -> bool | None:
     with tempfile.TemporaryDirectory(prefix="ocade-verify-") as scratch:
         copy = Path(scratch) / "workspace"
         shutil.copytree(root, copy, symlinks=True)  # links are copied as links, never followed
-        if sys.platform == "win32":
-            exe = shutil.which("pwsh") or shutil.which("powershell") or "powershell.exe"
-            argv = [exe, "-NoProfile", "-NonInteractive", "-NoLogo", "-Command", command]
-        else:
-            argv = ["/bin/sh", "-c", command]
+        argv = shell_argv(command, None)
         process = subprocess.Popen(argv, cwd=copy, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
                                    stderr=subprocess.STDOUT, start_new_session=sys.platform != "win32",
                                    creationflags=subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0)

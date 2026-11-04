@@ -193,6 +193,7 @@ class WindowsUiLadder(unittest.TestCase):
             self.assertGreaterEqual(out["click"]["evidence"]["confidence"], 0.9)
         with self.subTest("UIA-014 a window that stopped responding is refused, nothing attempted"):
             self.assertEqual((out["hung"]["status"], out["hung"]["errorCode"]), ("not_applied", "window_not_responding"))
+            self.assertFalse(out["hung"]["maybeChanged"], out["hung"])
         with self.subTest("UIA-013 a click grounded in a stale image of a resized window is refused, nothing clicked"):
             self.assertEqual((out["stale"]["status"], out["stale"]["maybeChanged"], out["stale"]["errorCode"]),
                              ("not_applied", False, "window_resized"))

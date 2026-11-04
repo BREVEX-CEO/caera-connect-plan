@@ -78,14 +78,18 @@ def _leased(window: dict):
         or abs(now["started"] - window["started"]) > 1
     ):
         raise Refused("window_changed")
-    import ctypes
-
-    if ctypes.windll.user32.IsHungAppWindow(hwnd):
-        raise Refused("window_not_responding")  # its app is busy or frozen: acting now would queue blindly
     if _elevated(window["pid"]) and not _elevated(os.getpid()):
         # Windows silently drops input and many UIA calls from a lower integrity level (UIPI):
         # an action could report success while nothing happened. Refused, never attempted.
         raise Refused("window_elevated")
+    try:
+        # WM_NULL has no application effect. A bounded round trip tests the actual
+        # message loop; IsHungAppWindow can miss a suspended thread waiting for input.
+        win32gui.SendMessageTimeout(hwnd, 0, 0, 0, 0x0002 | 0x0020, 1000)
+    except win32gui.error as error:
+        if error.winerror in (0, 1460):  # generic failure or ERROR_TIMEOUT
+            raise Refused("window_not_responding") from None
+        raise Refused("window_probe_failed") from None
     return Application(backend="uia").connect(handle=hwnd).window(handle=hwnd)
 
 

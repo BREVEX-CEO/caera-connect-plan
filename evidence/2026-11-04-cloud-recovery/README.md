@@ -42,3 +42,28 @@ never read back from GitHub. E1 remains unmeasured until its isolated server run
 
 Readiness remains 20/100: 2/10 milestones, 19/42 conditions. Requirements remain
 79/266 PASS; concepts remain 45/84 PASS. Fix verification is pending.
+
+## Candidate fixes (verification pending)
+
+PowerShell's documented `-Command` behavior normalizes a nonzero native process
+status to 1. The shared `jobs.shell_argv` now preserves that status when the last
+command failed, while a later PowerShell error still fails and a later successful
+command still succeeds. The verifier reuses only shell argument construction;
+its file reading, scratch workspace and result predicates remain independent.
+New gateway tests cover native exit 3 and both later-shell-result cases. The
+existing verifier regression still requires exactly exit 3.
+
+`IsHungAppWindow` did not detect the suspended fixture in run 96. Before UIA
+connects, the lease now requires a bounded `WM_NULL` round trip through
+`SendMessageTimeout` (`SMTO_ABORTIFHUNG | SMTO_ERRORONEXIT`, 1000 ms). A timeout
+refuses the action; another probe failure also refuses it. The existing real
+UIA-014 assertion is retained and additionally requires `maybeChanged == false`.
+
+Sources: [PowerShell command exit status](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_pwsh),
+[IsHungAppWindow](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-ishungappwindow),
+[SendMessageTimeoutW](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-sendmessagetimeoutw),
+and the [pywin32 wrapper](https://github.com/mhammond/pywin32/blob/main/win32/src/win32gui.i).
+
+The four focused Windows regressions are now required before the broad matrix,
+with an exact test count and no skips. Cloud validation must confirm these fixes;
+they are not yet reported as VERIFIED.

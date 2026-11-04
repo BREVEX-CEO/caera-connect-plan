@@ -175,6 +175,9 @@ jobs:
       - name: Native bridge dispatch/readback, COM balance and owned process exit (required, no skips)
         working-directory: device-agent/windows
         run: python -c 'import sys, unittest; suite=unittest.defaultTestLoader.loadTestsFromNames(["tests.test_effect_receipts", "tests.test_quiescence"]); result=unittest.TextTestRunner(verbosity=2).run(suite); sys.exit(0 if result.wasSuccessful() and result.testsRun == 4 and not result.skipped else 1)'
+      - name: Native exit status, independent rerun and suspended-window regressions
+        working-directory: device-agent/windows
+        run: python -c 'import sys, unittest; suite=unittest.defaultTestLoader.loadTestsFromNames(["tests.test_shell.Shell.test_native_exit_codes_and_later_shell_results_are_preserved", "tests.test_verify_kinds.VerifierKinds.test_a_repaired_program_is_rerun_in_a_throwaway_copy", "tests.test_verify_kinds.VerifierKinds.test_a_native_success_cannot_mask_a_later_shell_error", "tests.test_windows_ui.WindowsUiLadder.test_ui_ladder"]); result=unittest.TextTestRunner(verbosity=2).run(suite); sys.exit(0 if result.wasSuccessful() and result.testsRun == 4 and not result.skipped else 1)'
 
   database-safety:
     name: Permission revocation / receipt locks · disposable PostgreSQL

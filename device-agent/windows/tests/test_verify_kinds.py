@@ -140,6 +140,15 @@ class VerifierKinds(unittest.TestCase):
         self.assertEqual(evidence["measured"][failing["id"]]["exitCode"], 3)
         self.assertFalse((self.root / "made.txt").exists(), "verifying changed the person's folder")
 
+    def test_a_native_success_cannot_mask_a_later_shell_error(self):
+        python = f'& "{sys.executable}"' if sys.platform == "win32" else f'"{sys.executable}"'
+        (self.root / "ok.py").write_text("print('native success')\n")
+        error = "Write-Error 'shell failure'" if sys.platform == "win32" else "false"
+        failed = check("command_succeeds", command=f"{python} ok.py; {error}")
+        evidence = self.verify(failed)
+        self.assertFalse(evidence["predicates"][failed["id"]], evidence)
+        self.assertNotEqual(evidence["measured"][failed["id"]]["exitCode"], 0)
+
     def test_shell_scripts_parse_without_running(self):
         marker = self.root / "ran"
         (self.root / "ok.sh").write_text(f"echo hi > '{marker}'\n")

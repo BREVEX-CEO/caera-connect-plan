@@ -38,7 +38,10 @@ def shell_argv(command: str, shell: str | None) -> list[str]:
         raise LookupError("shell_unavailable")
     if chosen == "powershell":
         exe = shutil.which("pwsh") or shutil.which("powershell") or "powershell.exe"
-        return [exe, "-NoProfile", "-NonInteractive", "-NoLogo", "-Command", command]
+        # -Command otherwise converts every nonzero native exit code to 1. Test $?
+        # first: blindly exiting $LASTEXITCODE would hide a later PowerShell error.
+        script = command + "\nif ($?) { exit 0 } elseif ($LASTEXITCODE) { exit $LASTEXITCODE } else { exit 1 }"
+        return [exe, "-NoProfile", "-NonInteractive", "-NoLogo", "-Command", script]
     if chosen == "cmd":
         return [os.environ.get("COMSPEC") or "cmd.exe", "/d", "/s", "/c", command]
     if chosen == "sh":
