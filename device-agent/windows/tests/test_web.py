@@ -53,6 +53,23 @@ class BrowserUnavailable(unittest.TestCase):
             result = anyio.run(go)
         self.assertEqual((result["status"], result["errorCode"]), ("not_applied", "browser_unavailable"))
 
+    def test_a_browser_that_fails_to_launch_changed_nothing(self):
+        """No browser installed where Playwright looks: refused as not applied, never an unknown effect
+        that would hold the task for the person (eval s21 web_fact)."""
+        from unittest.mock import patch
+
+        async def go():
+            async with Gateway(tempfile.mkdtemp(), home=tempfile.mkdtemp()) as gateway:
+                return await gateway.run(intent("web.open", {"url": "https://example.com/"}), gateway.epoch)
+
+        environment = {"PLAYWRIGHT_BROWSERS_PATH": tempfile.mkdtemp()}
+        with patch.dict(os.environ, environment), patch.dict(os.environ, {"OCADE_BROWSER_EXECUTABLE": ""}):
+            result = anyio.run(go)
+        if result["status"] == "observed":
+            return  # an installed Edge or Chrome started instead (Windows, macOS runners): nothing to check
+        self.assertEqual((result["status"], result["maybeChanged"], result["errorCode"]),
+                         ("not_applied", False, "browser_unavailable"))
+
 
 @unittest.skipUnless(READY, "needs a display and a Chromium executable")
 class WebLadder(unittest.TestCase):

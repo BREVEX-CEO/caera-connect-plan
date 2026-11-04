@@ -219,7 +219,8 @@ async def _context():
             raise Refused("browser_unavailable")
         from playwright.async_api import async_playwright
 
-        mark_effect()  # startup can create persistent profile state before failing
+        # A launch that fails leaves at most the companion's own browser profile behind: no page
+        # was requested from any site, so nothing the person or a site sees can have changed.
         playwright = await async_playwright().start()
         _browser["playwright"] = playwright
         try:
