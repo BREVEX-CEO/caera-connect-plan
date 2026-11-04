@@ -1,0 +1,275 @@
+{
+  "objective": "russet_contacts.csv has the same people in it more than once. Give me a clean list with each person only once.",
+  "taskId": "723db749-e799-4c00-bb42-f984ecd57d37",
+  "status": "completed",
+  "result": "Done, and checked independently.",
+  "blocker": null,
+  "checks": [
+    {
+      "id": "clean_file_exists",
+      "kind": "file_exists",
+      "params": {
+        "path": "OCADE output/clean_russet_contacts.csv"
+      },
+      "description": "Clean russet contacts file exists in OCADE output",
+      "state": "passed"
+    },
+    {
+      "id": "clean_file_parses",
+      "kind": "file_parses",
+      "params": {
+        "path": "OCADE output/clean_russet_contacts.csv"
+      },
+      "description": "Clean russet contacts file parses successfully",
+      "state": "passed"
+    }
+  ],
+  "outcome": [
+    {
+      "id": "clean_file_exists",
+      "kind": "file_exists",
+      "params": {
+        "path": "OCADE output/clean_russet_contacts.csv"
+      },
+      "description": "Clean russet contacts file exists in OCADE output"
+    },
+    {
+      "id": "clean_file_parses",
+      "kind": "file_parses",
+      "params": {
+        "path": "OCADE output/clean_russet_contacts.csv"
+      },
+      "description": "Clean russet contacts file parses successfully"
+    }
+  ],
+  "timing": {
+    "acceptedAt": "2026-11-04T13:30:32.73483+00:00",
+    "finishedAt": "2026-11-04T13:31:08.153422+00:00",
+    "verifiedAt": "2026-11-04T13:31:08.153422+00:00",
+    "deliveredAt": "2026-11-04T13:31:08.153422+00:00",
+    "totalElapsedMs": 35419,
+    "userWaitMs": 0,
+    "pausedMs": 0,
+    "activeExecutionMs": 26,
+    "modelCalls": 4,
+    "modelMs": 24944,
+    "pickupMs": 1651,
+    "unaccountedMs": 8798,
+    "stepDurationsMs": [
+      7.43,
+      4.69,
+      5.13,
+      8.66
+    ],
+    "stepPickupMs": [
+      932,
+      225,
+      254,
+      240
+    ]
+  },
+  "rpc": {
+    "jarvis_enroll_device": {
+      "calls": 1,
+      "ms": 247
+    },
+    "jarvis_approve_device": {
+      "calls": 1,
+      "ms": 232
+    },
+    "jarvis_device_key": {
+      "calls": 1,
+      "ms": 243
+    },
+    "jarvis_device_seen": {
+      "calls": 12,
+      "ms": 3569
+    },
+    "jarvis_device_inventory": {
+      "calls": 1,
+      "ms": 238
+    },
+    "jarvis_device_topic": {
+      "calls": 1,
+      "ms": 235
+    },
+    "jarvis_claim_action": {
+      "calls": 11,
+      "ms": 2761
+    },
+    "jarvis_grants": {
+      "calls": 1,
+      "ms": 223
+    },
+    "jarvis_online_consented": {
+      "calls": 1,
+      "ms": 243
+    },
+    "jarvis_open_task": {
+      "calls": 1,
+      "ms": 236
+    },
+    "jarvis_task_state": {
+      "calls": 56,
+      "ms": 15373
+    },
+    "jarvis_queue_actions": {
+      "calls": 4,
+      "ms": 1303
+    },
+    "jarvis_submit_receipt": {
+      "calls": 4,
+      "ms": 861
+    },
+    "jarvis_note_model": {
+      "calls": 4,
+      "ms": 894
+    },
+    "jarvis_set_outcome": {
+      "calls": 1,
+      "ms": 198
+    },
+    "jarvis_settle_task": {
+      "calls": 1,
+      "ms": 223
+    }
+  },
+  "confirmations": [],
+  "decisions": [
+    {
+      "summary": "Looking at your JARVIS folder",
+      "intent": {
+        "v": 1,
+        "key": "discover",
+        "risk": "read",
+        "arguments": {
+          "path": "."
+        },
+        "operation": "fs.list",
+        "capability": "files",
+        "deadlineUtc": "2026-11-04T13:40:32.827Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "entries": [
+            {
+              "kind": "file",
+              "name": "russet_contacts.csv",
+              "size": 505,
+              "executable": false
+            }
+          ],
+          "durationMs": 7.43
+        },
+        "maybeChanged": false,
+        "observedAtUtc": "2026-11-04T13:30:34.228Z"
+      }
+    },
+    {
+      "summary": "read text",
+      "intent": {
+        "v": 1,
+        "key": "s2",
+        "risk": "read",
+        "arguments": {
+          "path": "russet_contacts.csv"
+        },
+        "operation": "fs.read_text",
+        "capability": "files",
+        "deadlineUtc": "2026-11-04T13:40:34.675Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "text": "name,email\r\nMargaret Hamilton,margaret.hamilton@amber.test\r\nAlan Turing,alan.turing@nimbus.test\r\n margaret Hamilton , margaret.hamilton@amber.test\r\nAda Lovelace,ada.lovelace@prairie.test\r\nKatherine Johnson,katherine.johnson@sierra.test\r\n katherine Johnson , katherine.johnson@sierra.test\r\n ada Lovelace , ada.lovelace@prairie.test\r\nGrace Hopper,grace.hopper@delta.test\r\n katherine Johnson ,KATHERINE.JOHNSON@SIERRA.TEST\r\n grace Hopper ,GRACE.HOPPER@DELTA.TEST\r\nEdsger Dijkstra,edsger.dijkstra@fjord.test\r\n",
+          "sha256": "994d9ab5908361ac4bf4887ca7293392780d4668d004d8d970d6f34aa9729337",
+          "truncated": false,
+          "durationMs": 4.69
+        },
+        "maybeChanged": false,
+        "observedAtUtc": "2026-11-04T13:30:51.974Z"
+      }
+    },
+    {
+      "summary": "write text",
+      "intent": {
+        "v": 1,
+        "key": "s3",
+        "risk": "reversible_write",
+        "arguments": {
+          "path": "OCADE output/clean_russet_contacts.csv",
+          "text": "name,email\nMargaret Hamilton,margaret.hamilton@amber.test\nAlan Turing,alan.turing@nimbus.test\nAda Lovelace,ada.lovelace@prairie.test\nKatherine Johnson,katherine.johnson@sierra.test\nGrace Hopper,grace.hopper@delta.test\nEdsger Dijkstra,edsger.dijkstra@fjord.test\n"
+        },
+        "operation": "fs.write_text",
+        "capability": "files",
+        "deadlineUtc": "2026-11-04T13:40:53.255Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "bytes": 261,
+          "sha256": "a979ce7752c4b4570841975511488512cec9c6fb4ec546906702a1e45e7f030c",
+          "matches": true,
+          "durationMs": 5.13
+        },
+        "maybeChanged": true,
+        "observedAtUtc": "2026-11-04T13:31:00.001Z"
+      }
+    },
+    {
+      "summary": "Checking the result independently",
+      "intent": {
+        "v": 1,
+        "key": "s4",
+        "risk": "read",
+        "arguments": {
+          "checks": [
+            {
+              "id": "clean_file_exists",
+              "kind": "file_exists",
+              "params": {
+                "path": "OCADE output/clean_russet_contacts.csv"
+              },
+              "description": "Clean russet contacts file exists in OCADE output"
+            },
+            {
+              "id": "clean_file_parses",
+              "kind": "file_parses",
+              "params": {
+                "path": "OCADE output/clean_russet_contacts.csv"
+              },
+              "description": "Clean russet contacts file parses successfully"
+            }
+          ]
+        },
+        "operation": "verify.checks",
+        "capability": "files",
+        "deadlineUtc": "2026-11-04T13:41:00.961Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "durationMs": 8.66,
+          "predicates": {
+            "clean_file_exists": true,
+            "clean_file_parses": true
+          },
+          "verifierVersion": "checks-verifier/1"
+        },
+        "maybeChanged": true,
+        "observedAtUtc": "2026-11-04T13:31:06.745Z"
+      }
+    }
+  ],
+  "outputs": [
+    {
+      "path": "/tmp/ocade-eval/22/dedupe_contacts/OCADE output/clean_russet_contacts.csv",
+      "bytes": 261
+    }
+  ]
+}

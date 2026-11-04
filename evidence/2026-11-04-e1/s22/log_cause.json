@@ -1,0 +1,130 @@
+{
+  "objective": "The ember-sync job failed last night. Find out why from the log in my folder and write the cause and time in a short note.",
+  "taskId": "14430020-1e08-4b5b-b806-4d0c863c0b47",
+  "status": "waiting",
+  "result": null,
+  "blocker": "JARVIS's online planner is unavailable right now (invalid_goal). Your task is saved; resume it later.",
+  "checks": [],
+  "outcome": null,
+  "timing": {
+    "acceptedAt": "2026-11-04T13:36:08.315619+00:00",
+    "finishedAt": null,
+    "verifiedAt": null,
+    "deliveredAt": null,
+    "totalElapsedMs": 69012,
+    "userWaitMs": 0,
+    "pausedMs": 62335,
+    "activeExecutionMs": 5,
+    "modelCalls": 1,
+    "modelMs": 3517,
+    "pickupMs": 920,
+    "unaccountedMs": 2235,
+    "stepDurationsMs": [
+      4.73
+    ],
+    "stepPickupMs": [
+      920
+    ]
+  },
+  "rpc": {
+    "jarvis_enroll_device": {
+      "calls": 1,
+      "ms": 252
+    },
+    "jarvis_approve_device": {
+      "calls": 1,
+      "ms": 215
+    },
+    "jarvis_device_key": {
+      "calls": 1,
+      "ms": 247
+    },
+    "jarvis_device_seen": {
+      "calls": 6,
+      "ms": 1366
+    },
+    "jarvis_device_inventory": {
+      "calls": 1,
+      "ms": 582
+    },
+    "jarvis_device_topic": {
+      "calls": 1,
+      "ms": 230
+    },
+    "jarvis_claim_action": {
+      "calls": 5,
+      "ms": 1903
+    },
+    "jarvis_grants": {
+      "calls": 1,
+      "ms": 213
+    },
+    "jarvis_online_consented": {
+      "calls": 1,
+      "ms": 229
+    },
+    "jarvis_open_task": {
+      "calls": 1,
+      "ms": 217
+    },
+    "jarvis_task_state": {
+      "calls": 15,
+      "ms": 4568
+    },
+    "jarvis_queue_actions": {
+      "calls": 1,
+      "ms": 232
+    },
+    "jarvis_submit_receipt": {
+      "calls": 1,
+      "ms": 213
+    },
+    "jarvis_note_model": {
+      "calls": 1,
+      "ms": 228
+    },
+    "jarvis_task_wait": {
+      "calls": 1,
+      "ms": 233
+    },
+    "jarvis_resume_due": {
+      "calls": 1,
+      "ms": 237
+    }
+  },
+  "confirmations": [],
+  "decisions": [
+    {
+      "summary": "Looking at your JARVIS folder",
+      "intent": {
+        "v": 1,
+        "key": "discover",
+        "risk": "read",
+        "arguments": {
+          "path": "."
+        },
+        "operation": "fs.list",
+        "capability": "files",
+        "deadlineUtc": "2026-11-04T13:46:08.412Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "entries": [
+            {
+              "kind": "file",
+              "name": "delta.log",
+              "size": 2283,
+              "executable": false
+            }
+          ],
+          "durationMs": 4.73
+        },
+        "maybeChanged": false,
+        "observedAtUtc": "2026-11-04T13:36:09.805Z"
+      }
+    }
+  ],
+  "outputs": []
+}
