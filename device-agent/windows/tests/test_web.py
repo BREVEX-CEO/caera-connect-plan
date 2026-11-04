@@ -262,6 +262,10 @@ class WebLadder(unittest.TestCase):
             # A site's permission request is reported and left for the person; never answered.
             self.assertEqual(sorted(results["ask"]["evidence"]["permissionPrompts"]), ["geolocation", "notifications"])
             self.assertNotIn("permissionPrompts", results["002"]["evidence"])
+            # Every observation names the other open tabs, so the planner can switch by page id.
+            self.assertNotIn("otherTabs", results["002"]["evidence"])
+            self.assertEqual(results["table"]["evidence"]["otherTabs"],
+                             [{"page": results["001"]["evidence"]["page"], "title": "/"}])
             [table] = results["table"]["evidence"]["tables"]  # rows keep their cells, links and headers
             self.assertEqual(table["headers"], ["Version", "Date", "Status"])
             self.assertEqual(table["rows"][0]["cells"][:3], ["6.19.6", "2026-01-13", "stable"])

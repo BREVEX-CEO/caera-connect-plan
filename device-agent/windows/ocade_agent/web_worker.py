@@ -370,6 +370,11 @@ async def _observe(page_id: str) -> dict:
     waiting = await current.evaluate(_WAITING)
     if waiting:
         observed["permissionPrompts"] = waiting  # the person allows or blocks these in the window
+    # The other tabs OCADE has open (popups included): switching is acting with that page id.
+    others = [(other_id, e) for other_id, e in _pages.items() if other_id != page_id and not e["page"].is_closed()]
+    if others:
+        observed["otherTabs"] = [{"page": {"id": other_id, "site": e["site"]}, "title": (await e["page"].title())[:80]}
+                                 for other_id, e in others[-10:]]
     # The gateway refuses evidence over 16 KB: give up page text first, then the last controls.
     excess = len(json.dumps(observed)) - EVIDENCE_LIMIT
     if excess > 0:
