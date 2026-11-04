@@ -24,7 +24,7 @@
 4. Work through the loop in §7 until the package's acceptance holds. Then update §3, §15 and Appendices A–D **in the same commit** as the evidence.
 5. If you are blocked, record why on the board and in Appendix D, then take the next dependency-ready package.
 
-**Current next action: W2 — nudge, timing suite and pickup targets (§16).**
+**Current next action: W4 — E1 (≥40 paced live tasks) and the remaining accuracy levers; W5 deliverables in parallel. W2 is blocked only on measuring unaccounted time in the production topology (A1(b)).**
 
 ## 1. What OCADE is
 
@@ -67,14 +67,14 @@ Separate measurements. Never merge them into one percentage.
 
 | Metric | Value (2 Nov 2026) | Source |
 |---|---|---|
-| Requirements PASS | **76/266** (28.6%). Unfinished: 190 (153 PARTIAL, 14 FAIL, 5 BLOCKED, 18 UNTESTED) | Appendix A |
-| Architecture concepts PASS | **43/84** (51.2%). Unfinished: 41 (40 PARTIAL, 1 FAIL) | Appendix B, `npm run jarvis:traceability` |
+| Requirements PASS | **79/266** (29.7%). Unfinished: 187 (151 PARTIAL, 13 FAIL, 5 BLOCKED, 18 UNTESTED) | Appendix A |
+| Architecture concepts PASS | **45/84** (53.6%). Unfinished: 39 (38 PARTIAL, 1 FAIL) | Appendix B, `npm run jarvis:traceability` |
 | Research ideas with a disposition | 236/236 | Appendix C |
 | Commercial readiness | **20/100** (2/10 milestones, 19/42 conditions); M2 earned at `5796bb8` | `npm run readiness`, `evidence/readiness/gates.json`, `evidence/2026-11-02-recovery/` |
-| Cloud tests | Full matrix green: [run 78](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41547638177) (`5796bb8`), all 8 jobs (Linux, Windows, macOS companion; DB; contracts/e2e; Windows installer smoke) | Actions |
+| Cloud tests | Full matrix green: [run 85](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41806336402) (`f70d31a`), all 8 jobs (Linux, Windows, macOS companion; DB; contracts/e2e; Windows installer smoke) | Actions |
 | Real-task success (real Gemini) | **27/36 (75%)** first attempt, Linux, 1 November. Not re-measured since. | `evidence/2026-11-01-eval-s11`…`s14` |
 | Task time (39 live tasks) | Median 37 s, p95 79.7 s. Model 56% of the time, device execution 6%, unaccounted ~34%. Median 6 model calls. | eval `timing` fields |
-| Open defects | Critical 0 confirmed · High 6 open (D8 partial, D9, D10, D16, D17, D18) + 1 mitigated (D4) · Medium 3 open + 1 mitigated · Low 3 | Appendix D |
+| Open defects | Critical 0 confirmed · High 3 open (D8 partial, D9, D16) + 2 mitigated (D4, D10) · Medium 2 open (D11, D19 partial) + 1 mitigated · Low 2 | Appendix D |
 
 ---
 
@@ -383,10 +383,10 @@ Journal ─▶ independent verifier ─▶ settlement · deliverables · timing
 |---|---|---|---|---|---|---|---|
 | W0 | Green baseline and one ledger | — | DONE | [run 78](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41547638177) all green at `5796bb8`; ledgers agree (41→43 concepts after W1) | 10, 43, 196, 214–215, 236–238 | 9, 22, 39–41, 44, 82 | 1–2 d |
 | W1 | Safety closure and request-bound contract | W0 | DONE | [run 78](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41547638177): D2, D3, D5, D6, D7 fixed; D4 mitigated (residual → W11); outage visible; M2 recovery qualification `evidence/2026-11-02-recovery/` | 13, 21, 32, 35–41, 66–69, 79–80, 171, 193, 210, 216, 220 | 4–5, 7, 21, 38, 50, 52–57, 61 | 4–8 d |
-| W2 | Measurement and pickup speed | W1 | IN PROGRESS | D8 active-task polling and per-step pickup/unaccounted timing in [run 78](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41547638177); next: Realtime nudge (idle p95 ≤3 s), ≥30-task synthetic timing suite, worker prewarm, large-payload handles | 81–92, 94, 96 | 2, 42–43, 47–48, 51, 70, 78 | 3–6 d |
-| W3 | Capability surface | W2 | NOT STARTED | — | 28–30, 93, 136–137 | 25–27, 37, 69 | 5–9 d |
-| W4 | Accuracy engine and evaluation → E1 | W3 | NOT STARTED | — | 23, 31, 33–34, 46–57, 60, 63, 65, 166, 197–199, 201–202, 204, 207, 219 | 6, 8, 10, 14–20, 23, 49, 60, 77, 83 | 6–12 d |
-| W5 | Professional deliverables and visual fallback → E2 | W4 | NOT STARTED | — | 61, 70–75, 77, 211 | 36, 74–76 | 7–12 d |
+| W2 | Measurement and pickup speed | W1 | BLOCKED (code complete) | Nudge, receipt-carried next step, prewarm, key cache green in [run 82](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41797737703)/[run 85](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41806336402). Met: idle pickup p95 502 ms (30 synthetic tasks) and 0.5–0.8 s live on staging Realtime; claim while running p95 53 ms (synthetic), ~0.2 s live. NOT met: unaccounted ≤10% — live 35% (8.5 of 24 s) from this container ~210 ms per database round trip; the production topology (Worker beside the database) is unmeasured: needs A1(b). Large payloads already bounded (16 KB evidence, 60 KB receipt; files by path + sha256) | 81–92, 94, 96 | 2, 42–43, 47–48, 51, 70, 78 | 3–6 d |
+| W3 | Capability surface | W2 | DONE (code) | [run 85](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41806336402) green on all three OSes: `fs.manage` (D17), `job.*` (D18), shell choice (D20), `system.diagnose`, mechanism fallback (concept 37). Live: `crlf_script` and `config_repair` pass first attempt (eval s21, D12) | 28–30, 93, 136–137 | 25–27, 37, 69 | 5–9 d |
+| W4 | Accuracy engine and evaluation → E1 | W3 | IN PROGRESS | Shortlist recall measured (tuning 98.6%, held-out 94.1% < 98%); busy planner resumes itself (D10); D6 residual closed; failure categories, gaming audit and 4 new generators in the live harness; E1 (≥40 tasks) pending | 23, 31, 33–34, 46–57, 60, 63, 65, 166, 197–199, 201–202, 204, 207, 219 | 6, 8, 10, 14–20, 23, 49, 60, 77, 83 | 6–12 d |
+| W5 | Professional deliverables and visual fallback → E2 | W4 | IN PROGRESS | In-place .docx/.xlsx edits with originals kept (D19 part); verifier `script_runnable`, `workbook_formula`, `document_headings`, shell parse | 61, 70–75, 77, 211 | 36, 74–76 | 7–12 d |
 | W6 | Windows 10/11 | W5 | NOT STARTED | — | 58–59, 122–130 | 11–12, 28, 32–35, 58–59 | 5–9 d |
 | W7 | macOS | W5 | NOT STARTED | — | 131–132 | 11–12, 29, 32–33, 35, 58–59 | 6–10 d |
 | W8 | Browser and web → E3 | W5 | NOT STARTED | E3 needs A1 | 62, 76, 139–145 | 30–31, 33 | 3–6 d |
@@ -460,7 +460,7 @@ Each package follows the same shape: **Problem → Evidence → Outcome → Cons
 - **Approach:**
   - Timestamps for each phase (§18).
   - Claim without backoff while a task is active.
-  - Content-free Supabase Realtime broadcast nudge, with polling capped at 10 s when idle.
+  - Content-free Supabase Realtime broadcast nudge. Decision (4 Nov, budget): with the nudge connected an idle device polls every 60 s as a safety net, without it it backs off to 30 s; a 10 s cap would let only ~11 idle devices share the free 100k daily Worker requests (8,640 each). Idle device budget: ≤1,440 requests/day with the nudge, ≤2,880 without.
   - Return the next dispatched action in the receipt response.
   - Pass payloads over 256 KB as workspace file handles plus sha256.
   - Start the fs/office/shell/system/verify workers with the gateway.
@@ -1000,7 +1000,7 @@ Earlier plan texts are in git history at `0e1bdcb`, `16654be` and `ef5cd6b`.
 
 ## Appendix A — The 266 requirements (verbatim) with status and destination
 
-Format: `STATUS` · **destination** — original text. Status source: independent re-audit at `f04228d`, plus W1 promotions of 36, 39, 41, 80, 171 and 216 with [run 78](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41547638177) and `evidence/2026-11-02-recovery/` (`evidence/2026-11-01-audit/requirements-266.md`, current-review column); it is the conservative lower bound. **S** = standing rule verified at every release gate. **RPC** = needs real-PC validation. **COM** = commercial phase. **W14** = optional Linux; never counted as PASS without evidence and never blocking Windows/macOS release.
+Format: `STATUS` · **destination** — original text. Status source: independent re-audit at `f04228d`, plus W1 promotions of 36, 39, 41, 80, 171 and 216 with [run 78](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41547638177) and `evidence/2026-11-02-recovery/`, and W2/W3 promotions of 30 (mechanism fallback), 94 (live round-trip profile before and after each change) and 137 (shell, engine and diagnostic limits refused before running) with [run 85](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41806336402) (`evidence/2026-11-01-audit/requirements-266.md`, current-review column); it is the conservative lower bound. **S** = standing rule verified at every release gate. **RPC** = needs real-PC validation. **COM** = commercial phase. **W14** = optional Linux; never counted as PASS without evidence and never blocking Windows/macOS release.
 
 Original preamble (1 November 2026): this owner checklist complements the 84 concepts; it does not authorise merging into main, production deployment, payments, certificate acquisition, spending, irreversible changes, or exposing secrets. Preconfigured staging credentials may be used for authorised staging tests with least privilege and strict non-disclosure.
 
@@ -1040,7 +1040,7 @@ Original preamble (1 November 2026): this owner checklist complements the 84 con
 27. `PASS` · **S** — Do not replace genuine execution with fake receipts, simulated task completions, generated success messages, or pre-created deliverables.
 28. `PARTIAL` · **W3** — Preserve the intended execution preference: native APIs and object models → supported scripts and CLI → native file/project operations → browser DOM/CDP → Playwright → OS accessibility → vision/coordinates when needed.
 29. `PARTIAL` · **W3** — Choose the fastest reliable mechanism for each step based on actual capabilities, permissions, cost, observability, and failure risk.
-30. `FAIL` · **W3** — Add automatic **mechanism fallback** where safe. If DOM interaction fails, inspect available alternatives rather than blindly repeating the same action.
+30. `PASS` · **W3** — Add automatic **mechanism fallback** where safe. If DOM interaction fails, inspect available alternatives rather than blindly repeating the same action.
 31. `PARTIAL` · **W4** — Improve the supervisor so it maintains objective, target state, milestones, permissions, available capabilities, current observations, completed actions, unresolved uncertainty, and remaining work.
 32. `PARTIAL` · **W1** — Store durable task state independently of Gemini's conversational context so interruptions and context truncation do not destroy progress.
 33. `PARTIAL` · **W4** — Add a bounded receding-horizon planner: plan enough to act effectively, execute, observe the result, then replan only when necessary.
@@ -1113,7 +1113,7 @@ Original preamble (1 November 2026): this owner checklist complements the 84 con
 91. `PARTIAL` · **W2** — Optimize prompt and context composition without hiding critical observations, permissions, error information, or verification requirements.
 92. `PARTIAL` · **W2** — Parallelize independent safe work only when process, file, window, and browser-target isolation can be guaranteed.
 93. `PASS` · **W3** — Prefer native file operations and direct APIs over simulated clicking whenever equivalent verified results are possible.
-94. `PARTIAL` · **W2** — Profile actual slow paths before optimizing. Benchmark every optimization against the previous implementation.
+94. `PASS` · **W2** — Profile actual slow paths before optimizing. Benchmark every optimization against the previous implementation.
 95. `PASS` · **S** — Never remove security checks or independent verification merely to make a benchmark faster.
 96. `PARTIAL` · **W2** — Measure median, p95 and p99 latency, model calls per task, retries, token usage, resource consumption, and completed verified outcomes.
 
@@ -1165,7 +1165,7 @@ Original preamble (1 November 2026): this owner checklist complements the 84 con
 134. `PARTIAL` · **W14** — Implement or verify Linux desktop control for explicitly supported X11 and Wayland configurations. Respect compositor and desktop security limitations.
 135. `UNTESTED` · **W14** — Handle Linux desktop portals, user-session permissions, packaging differences, executable paths, shared libraries, and distribution compatibility.
 136. `PASS` · **W3** — Provide platform-specific implementations behind shared capability contracts rather than contaminating the planner with OS-specific hardcoded journeys.
-137. `PARTIAL` · **W3** — If an operation genuinely cannot work on a supported platform, detect the limitation before execution and report it accurately.
+137. `PASS` · **W3** — If an operation genuinely cannot work on a supported platform, detect the limitation before execution and report it accurately.
 138. `PARTIAL` · **W13** — Do not mark any operating system fully supported until native installation, pairing, execution, STOP, recovery, and independent task verification pass on representative hardware.
 
 #### Browser and application control
@@ -1324,7 +1324,7 @@ Original preamble (1 November 2026): this owner checklist complements the 84 con
 
 ## Appendix B — The 84 architecture concepts (verbatim) with status and destination
 
-Status source: `scripts/jarvis-traceability.mjs` / `evidence/2026-11-01-live/architecture-ledger.md` at `f04228d`. That script reads the concept rows below, so keep the row shape `| n | **title** | …`. Concept 29 is PARTIAL from run 45 (D14 fixed); concepts 38 and 55 became PASS with W1 ([run 78](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41547638177)).
+Status source: `scripts/jarvis-traceability.mjs` / `evidence/2026-11-01-live/architecture-ledger.md` at `f04228d`. That script reads the concept rows below, so keep the row shape `| n | **title** | …`. Concept 29 is PARTIAL from run 45 (D14 fixed); concepts 38 and 55 became PASS with W1 ([run 78](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41547638177)); concepts 25 and 37 with W3 ([run 85](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41806336402): failed routes are followed by a fresh look and the next route, with the reason, and the verifier rechecks the effect).
 
 #### Foundation, authority and architecture
 
@@ -1364,7 +1364,7 @@ Status source: `scripts/jarvis-traceability.mjs` / `evidence/2026-11-01-live/arc
 
 | # | Required concept | Status | Destination | Build and wire into OCADE | Mandatory proof |
 |---:|---|---|---|---|---|
-| 25 | **Native-First Execution Hierarchy** | PARTIAL | W3 | Dispatch fastest safe supported API/object model first; then bounded scripts, formats, DOM/CDP/Playwright, accessibility and vision last. | Fallback transitions include reason and independently recheck effect. |
+| 25 | **Native-First Execution Hierarchy** | PASS | W3 | Dispatch fastest safe supported API/object model first; then bounded scripts, formats, DOM/CDP/Playwright, accessibility and vision last. | Fallback transitions include reason and independently recheck effect. |
 | 26 | **Native OS and File-Format Operations** | PASS | W3 | Offer generic filesystem, document format, OS inspection and project-file operations through typed sandboxed tools. | File integrity and ownership preserved, paths constrained to scope. |
 | 27 | **Scoped Script and Command Execution** | PASS | W3 | Use allowlisted or reviewed bounded commands with quotas and argument schemas, never unrestricted model-generated shell. | Injection, path traversal and forbidden executable requests fail closed. |
 | 28 | **Windows UI Automation — pywinauto / UIA / Win32** | PARTIAL | W6 | Use live accessibility trees and exact PID/HWND/process-start identity for native controls, with optional lower-level Win32 only when justified. | Wrong-window, duplicate-title and focus-swap regression tests pass. |
@@ -1376,7 +1376,7 @@ Status source: `scripts/jarvis-traceability.mjs` / `evidence/2026-11-01-live/arc
 | 34 | **Window Resize, DPI and Multi-Monitor Resilience** | PARTIAL | W6 | Requery accessibility state, transforms and visual anchors after display changes; never presume persistent coordinates. | DPI/display movement trials do not select wrong target. |
 | 35 | **Foreground, Background and Minimized-Window State Handling** | PARTIAL | W6, W7 | Differentiate API-capable background work from GUI operations requiring a visible foreground; restore only with consent. | No claim of universal hidden-window clicking or cursor-free execution. |
 | 36 | **Visual Anchors / OpenCV as Last-Resort Fallback** | PARTIAL | W5 | Use bounded vision matching with confidence, fresh screenshots and explicit target checks only where semantic interfaces fail. | Low-confidence target, resize drift or unexpected overlay blocks effect. |
-| 37 | **Dynamic Universal Application Fallback Hierarchy** | PARTIAL | W3 | Select execution mechanism by current capability quality, privacy, fidelity and target state, independent of application names. | A missing native path falls back safely without fixed app-specific script. |
+| 37 | **Dynamic Universal Application Fallback Hierarchy** | PASS | W3 | Select execution mechanism by current capability quality, privacy, fidelity and target state, independent of application names. | A missing native path falls back safely without fixed app-specific script. |
 | 38 | **Approved Filesystem Sandbox** | PASS | W1 | Create per-task bounded input, intermediate and output roots, preserving originals, ACLs and provenance. | Symlink traversal, overwrites and cross-account file access are blocked. |
 
 #### MCP, STDIO and tool-runtime wiring
@@ -1558,21 +1558,21 @@ Severity: CRITICAL = unauthorised action, data loss, secret exposure or wrong-ta
 | D3 | HIGH | Dispatch after browser permission was revoked while the claim was held | run 69 (`61b29b1`) | FIXED by migration `20261102214455_fence_revoked_claims_and_receipt_locks.sql` ([run 74](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41534326454) DB job: held-claim revocation and claim/STOP lock-order cases pass) | W1 |
 | D4 | HIGH (risk) | SSRF, DNS-rebinding and redirect-hop enforcement for verifier fetch and actor browser | Playwright routes never see redirect hops (verified experimentally) | MITIGATED (`b86002c`, `2e9ba47`; green in [run 78](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41547638177)): hop-by-hop navigation checks and request-time re-resolution. Residual (Node's own resolution inside one fetch; a confirmed form POST redirect) moves to the W11 security review | W1, W11 |
 | D5 | HIGH | Unknown effects only fence the task; no resolution flow for the person | concept 55; run 57/58 | FIXED: person-resolution flow (`3938351`), green in [run 78](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41547638177) | W1 |
-| D6 | HIGH | Outcome checks are compiled before anything is observed and are not bound to the request; the model then bends files to match its own guess (3 of 9 eval failures); no guard against edits to unrelated or input files | seeds 11–14 READMEs; requirement 68 | FIXED (`faa52d6`, green in [run 78](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41547638177)): checks fixed after a first look; bound to request/listing/output; gaming guard with randomised regression. Residual tracked under W4: a request naming an input only as a source can still authorise changing it | W1 |
+| D6 | HIGH | Outcome checks are compiled before anything is observed and are not bound to the request; the model then bends files to match its own guess (3 of 9 eval failures); no guard against edits to unrelated or input files | seeds 11–14 READMEs; requirement 68 | FIXED (`faa52d6`, green in [run 78](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41547638177)): checks fixed after a first look; bound to request/listing/output; gaming guard with randomised regression. Residual closed (`742df24`): changing a check-read file also needs the request to ask for a change, not merely name it | W1 |
 | D7 | MEDIUM | Original-file compare-and-replace and directory-identity concurrency window | codex-continuation (run 53 scope note) | FIXED (`2392efa`, race fixture `11d1939`), green on Linux, Windows and macOS in [run 78](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41547638177) | W1 |
-| D8 | HIGH | Device pickup backs off to 30 s; ~34% of live task time unaccounted | `agent.py` claim loop; eval timing | PARTIAL: no backoff while a task runs and pickup/unaccounted time measured per step (green in [run 78](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41547638177)); idle p95 ≤3 s needs the nudge; timing suite pending | W2 |
+| D8 | HIGH | Device pickup backs off to 30 s; ~34% of live task time unaccounted | `agent.py` claim loop; eval timing | PARTIAL: pickup fixed (Realtime nudge; idle p95 502 ms synthetic, 0.5–0.8 s live; [run 82](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41797737703)). Unaccounted time live 35%: server database round trips (~210 ms each from this container; key lookups cut 12→1). Remaining: measure in the production topology (A1(b)); fold the replay check into claim/receipt if still above 10% | W2 |
 | D9 | HIGH | First-attempt real-task success 75% (< 90%): invented facts, dense-table row choice (r1c), checks bent to guesses | `evidence/2026-11-01-eval-s11` … `s14` | OPEN | W4 |
-| D10 | HIGH | Planner “busy” after ~30–60 calls on the shared free project | `evidence/2026-11-01-eval-s14/README.md` | OPEN | W4 (pacing) |
+| D10 | HIGH | Planner “busy” after ~30–60 calls on the shared free project | `evidence/2026-11-01-eval-s14/README.md` | MITIGATED (`0aa8c3b`): a busy wait records the provider's retry time and the device's next request resumes the task by itself; other waits are never auto-resumed. Daily free quota itself is unchanged (owner decision for paid capacity) | W4 (pacing) |
 | D11 | MEDIUM | Windows web ladder `KeyError 'page'` once; cause unknown | 1 November Windows run | OPEN | W8 |
-| D12 | MEDIUM | CRLF script executable flag fix not verified live | eval s11 `crlf_script` | OPEN | W3 |
+| D12 | MEDIUM | CRLF script executable flag fix not verified live | eval s11 `crlf_script` | FIXED: passes first attempt live (eval s21, `6e7c8cc`) with typed `fs.manage` | W3 |
 | D13 | MEDIUM | Windows `WinError 32` on fixture profile cleanup; lock owner never identified (quiescence wait added, run 64 green) | run 63 | MITIGATED: recurred in run 77 (web-scope cleanup); test runs now wait for the profile's owning processes (`5796bb8`, green in [run 78](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41547638177)); the lingering Chromium helper itself is not yet explained | W9 |
 | D14 | LOW | Ledger regeneration restores five retracted PASSs; concept 29 incorrectly BLOCKED | Run 70 traceability regression; [run 45](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41331983365) | FIXED (`e4af84b`, [run 74](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41534326454)): script, ledger and Appendix B agree (41 PASS) | W0 |
 | D15 | LOW | Stale Dependabot PRs target deleted `/jarvis-runtime` | open PRs #88, #90 | OPEN (needs A3) | W12 |
 | D16 | HIGH (risk) | macOS window previews need Screen Recording permission on consumer Macs; CI runner is pre-authorised, so this path is unverified | `mac_worker.py` preview; Apple privacy model | OPEN, UNVERIFIED | W7 |
-| D17 | HIGH | No typed copy/move/rename/mkdir/trash/set-attributes operations; file management and the executable bit go through confirmed `shell.run` (4 of 9 eval failures) | `src/lib/jarvis/contracts.ts` (35 operations); `crlf_script` in s11–s14 | OPEN | W3 |
-| D18 | HIGH | `shell.run` capped at 600 s and no tracked long-running job: long renders, exports and installs cannot complete or resume | `contracts.ts` `timeoutSeconds` max 600 | OPEN | W3 |
-| D19 | MEDIUM | Documents and workbooks cannot be edited in place; presentations and image editing unsupported; video has no open editable timeline; 3D has no open interchange export | `contracts.ts`; `office_worker.py`, `media_worker.py`, `scene_gl.py` | OPEN | W5 |
-| D20 | LOW | Windows shell is PowerShell only; macOS uses `sh` only | `command_worker.py` | OPEN | W3 |
+| D17 | HIGH | No typed copy/move/rename/mkdir/trash/set-attributes operations; file management and the executable bit go through confirmed `shell.run` (4 of 9 eval failures) | `src/lib/jarvis/contracts.ts` (35 operations); `crlf_script` in s11–s14 | FIXED: `fs.manage` copy/move/mkdir/trash/set_attributes ([run 85](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41806336402), three OSes) | W3 |
+| D18 | HIGH | `shell.run` capped at 600 s and no tracked long-running job: long renders, exports and installs cannot complete or resume | `contracts.ts` `timeoutSeconds` max 600 | FIXED: `job.start/status/cancel` up to 6 h, deadline/cancel/STOP end the tree; macOS/Linux jobs survive an agent restart, Windows jobs read `lost` after one ([run 85](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41806336402)) | W3 |
+| D19 | MEDIUM | Documents and workbooks cannot be edited in place; presentations and image editing unsupported; video has no open editable timeline; 3D has no open interchange export | `contracts.ts`; `office_worker.py`, `media_worker.py`, `scene_gl.py` | PARTIAL: in-place .docx/.xlsx edits (`d80ad29`); presentations, image editing, editable video timeline and 3D interchange still open | W5 |
+| D20 | LOW | Windows shell is PowerShell only; macOS uses `sh` only | `command_worker.py` | FIXED: powershell/cmd or sh/bash/zsh ([run 85](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41806336402)) | W3 |
 | D21 | LOW | Migrations after `20261030` have no rollback file | `supabase/rollback/` | OPEN | W11 |
 
 Closed recently (kept for history): approval arguments clipped at 4000 characters (fixed `43c50ed`, run 64); opaque native/page interactions mislabelled reversible (fixed `43c50ed`); unknown-write replay after resume (fenced `83f3142`, run 58); competing-file overwrite on publication (fixed `897675b`, run 49); installed companion started no worker (fixed `947ceee`); minimized macOS window reported as closed (fixed `a7cf182`).

@@ -355,7 +355,7 @@
   {
     "n": 25,
     "title": "Native-First Execution Hierarchy",
-    "status": "PARTIAL",
+    "status": "PASS",
     "level": "L1",
     "owners": [
       "src/lib/jarvis/planner.server.ts"
@@ -363,7 +363,7 @@
     "tests": [
       "tests/jarvis/contracts.test.ts"
     ],
-    "reason": "preference order in the model instructions; no automatic mechanism fallback"
+    "reason": ""
   },
   {
     "n": 26,
@@ -414,11 +414,15 @@
   {
     "n": 29,
     "title": "macOS Accessibility — pyobjc / ApplicationServices",
-    "status": "BLOCKED",
-    "level": "L0",
-    "owners": [],
-    "tests": [],
-    "reason": "macOS is not an offered platform; no AX bridge exists"
+    "status": "PARTIAL",
+    "level": "L2",
+    "owners": [
+      "device-agent/windows/ocade_agent/mac_worker.py"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_mac_ui.py (GitHub macOS runner)"
+    ],
+    "reason": "Run 45 (a7cf182) passed the macOS cloud suite; consumer permissions and real-device qualification remain untested"
   },
   {
     "n": 30,
@@ -519,7 +523,7 @@
   {
     "n": 37,
     "title": "Dynamic Universal Application Fallback Hierarchy",
-    "status": "PARTIAL",
+    "status": "PASS",
     "level": "L1",
     "owners": [
       "src/lib/jarvis/planner.server.ts",
@@ -528,7 +532,7 @@
     "tests": [
       "tests/jarvis/contracts.test.ts"
     ],
-    "reason": "engine-gated choice; no runtime fallback between mechanisms"
+    "reason": ""
   },
   {
     "n": 38,
@@ -536,10 +540,12 @@
     "status": "PASS",
     "level": "L2",
     "owners": [
-      "device-agent/windows/ocade_agent/sandbox.py"
+      "device-agent/windows/ocade_agent/sandbox.py",
+      "device-agent/windows/ocade_agent/office_worker.py"
     ],
     "tests": [
-      "device-agent/windows/tests/test_sandbox.py"
+      "device-agent/windows/tests/test_sandbox.py",
+      "device-agent/windows/tests/test_gateway.py"
     ],
     "reason": ""
   },
@@ -689,7 +695,7 @@
   {
     "n": 49,
     "title": "Deterministic Safe Multi-Action Batching",
-    "status": "PASS",
+    "status": "PARTIAL",
     "level": "L1",
     "owners": [
       "src/lib/jarvis/planner.server.ts",
@@ -700,7 +706,7 @@
       "tests/jarvis/contracts.test.ts",
       "tests/jarvis/db/authority.test.sql"
     ],
-    "reason": ""
+    "reason": "Guarded step lists require E1 accuracy qualification (W4)"
   },
   {
     "n": 50,
@@ -1066,7 +1072,7 @@
   {
     "n": 75,
     "title": "Independent Professional Deliverable Verification",
-    "status": "PASS",
+    "status": "PARTIAL",
     "level": "L2",
     "owners": [
       "device-agent/windows/ocade_agent/verify_worker.py"
@@ -1075,12 +1081,12 @@
       "device-agent/windows/tests/test_gateway.py",
       "device-agent/windows/tests/test_media.py"
     ],
-    "reason": ""
+    "reason": "Rendered web verification and professional deliverable checks remain incomplete (D2, W5)"
   },
   {
     "n": 76,
     "title": "Postcondition and Output-Integrity Checks",
-    "status": "PASS",
+    "status": "PARTIAL",
     "level": "L2",
     "owners": [
       "device-agent/windows/ocade_agent/verify_worker.py"
@@ -1089,7 +1095,7 @@
       "device-agent/windows/tests/test_gateway.py",
       "device-agent/windows/tests/test_media.py"
     ],
-    "reason": ""
+    "reason": "Output integrity and format coverage require W5 qualification"
   },
   {
     "n": 77,
