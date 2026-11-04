@@ -74,7 +74,7 @@ Separate measurements. Never merge them into one percentage.
 | Cloud tests | Full matrix green: [run 85](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41806336402) (`f70d31a`), all 8 jobs (Linux, Windows, macOS companion; DB; contracts/e2e; Windows installer smoke) | Actions |
 | Real-task success (real Gemini) | **27/36 (75%)** first attempt, Linux, 1 November. Not re-measured since. | `evidence/2026-11-01-eval-s11`…`s14` |
 | Task time (39 live tasks) | Median 37 s, p95 79.7 s. Model 56% of the time, device execution 6%, unaccounted ~34%. Median 6 model calls. | eval `timing` fields |
-| Open defects | Critical 0 confirmed · High 3 open (D8 partial, D9, D16) + 2 mitigated (D4, D10) · Medium 2 open (D11, D19 partial) + 1 mitigated · Low 2 | Appendix D |
+| Open defects | Critical 0 confirmed · High 3 open (D8 partial, D9, D16) + 2 mitigated (D4, D10) · Medium 2 open (D11, D19 partial) + 1 mitigated · Low 1 (D15) | Appendix D |
 
 ---
 
@@ -1573,6 +1573,6 @@ Severity: CRITICAL = unauthorised action, data loss, secret exposure or wrong-ta
 | D18 | HIGH | `shell.run` capped at 600 s and no tracked long-running job: long renders, exports and installs cannot complete or resume | `contracts.ts` `timeoutSeconds` max 600 | FIXED: `job.start/status/cancel` up to 6 h, deadline/cancel/STOP end the tree; macOS/Linux jobs survive an agent restart, Windows jobs read `lost` after one ([run 85](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41806336402)) | W3 |
 | D19 | MEDIUM | Documents and workbooks cannot be edited in place; presentations and image editing unsupported; video has no open editable timeline; 3D has no open interchange export | `contracts.ts`; `office_worker.py`, `media_worker.py`, `scene_gl.py` | PARTIAL: in-place .docx/.xlsx/.pptx edits, new decks, `image.edit`, OTIO timeline beside every film (`d80ad29`…`9fcdac0`); 3D interchange (glTF) still open | W5 |
 | D20 | LOW | Windows shell is PowerShell only; macOS uses `sh` only | `command_worker.py` | FIXED: powershell/cmd or sh/bash/zsh ([run 85](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41806336402)) | W3 |
-| D21 | LOW | Migrations after `20261030` have no rollback file | `supabase/rollback/` | OPEN | W11 |
+| D21 | LOW | Migrations after `20261030` have no rollback file | `supabase/rollback/` | FIXED: rollbacks for all 12 migrations after 20261030, each proven to restore the exact shape before its migration (function bodies, columns, triggers) and re-apply cleanly (`tests/jarvis/db/rollback-roundtrip.sh`, in `test:jarvis-db`) | W11 |
 
 Closed recently (kept for history): approval arguments clipped at 4000 characters (fixed `43c50ed`, run 64); opaque native/page interactions mislabelled reversible (fixed `43c50ed`); unknown-write replay after resume (fenced `83f3142`, run 58); competing-file overwrite on publication (fixed `897675b`, run 49); installed companion started no worker (fixed `947ceee`); minimized macOS window reported as closed (fixed `a7cf182`).

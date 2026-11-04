@@ -27,6 +27,12 @@ else
   echo "FAIL task/receipt lock-order cases"
   failures=$((failures + 1))
 fi
+if bash tests/jarvis/db/rollback-roundtrip.sh; then
+  :
+else
+  echo "FAIL migration rollbacks"
+  failures=$((failures + 1))
+fi
 if [ "$failures" -ne 0 ]; then
   echo "FAIL: $failures database test group(s)"
   exit 1
