@@ -186,7 +186,23 @@ before(async () => {
     const offered = new Set((body.tools as { name: string }[]).map((t) => t.name));
     const outputs = fixtureOutputs(prompt);
     let call: { name: string; args: Record<string, unknown> };
-    if (offered.has("set_goal")) {
+    const timed = /timing check (\d+)/.exec(prompt);
+    if (timed) {
+      // The timing suite's one-file task: what is measured is everything around the model.
+      const path = `OCADE output/timing-${timed[1]}.txt`;
+      call = offered.has("set_goal")
+        ? {
+            name: "set_goal",
+            args: {
+              checks: [
+                { id: "note", description: "Note exists", kind: "file_exists", params: { path } },
+              ],
+            },
+          }
+        : !prompt.includes('"operation":"fs.write_text"')
+          ? { name: "fs_write_text", args: { path, text: `timing ${timed[1]}` } }
+          : { name: "finish", args: {} };
+    } else if (offered.has("set_goal")) {
       call = {
         name: "set_goal",
         args: {
@@ -734,6 +750,122 @@ test(
     } finally {
       Object.assign(plannerAccess, saved);
       service.close();
+    }
+  },
+);
+
+/**
+ * W2 timing suite: 30 synthetic tasks through the real authority, database, companion and
+ * workers, with the model scripted, so what is measured is pickup and the time no phase
+ * explains. A Phoenix-protocol fake stands in for Supabase Realtime and relays exactly what
+ * the database asked `realtime.send` to broadcast; the hosted service is measured live.
+ */
+test(
+  "timing suite: idle pickup by nudge, next step in the receipt answer",
+  { skip: !ready },
+  async () => {
+    const { WebSocketServer } = await import("ws");
+    const deviceId = sql(`SELECT id FROM public.jarvis_devices WHERE user_id = '${userA}'`);
+    sql("DELETE FROM realtime.sent", "postgres");
+    const realtime = new WebSocketServer({ host: "127.0.0.1", port: 0 });
+    const topics = new Map<import("ws").WebSocket, string>();
+    realtime.on("connection", (socket) => {
+      socket.on("message", (raw) => {
+        const message = JSON.parse(String(raw));
+        if (message.event === "phx_join") topics.set(socket, message.topic);
+        socket.send(
+          JSON.stringify({
+            ref: message.ref,
+            topic: message.topic,
+            event: "phx_reply",
+            payload: { status: "ok" },
+          }),
+        );
+      });
+    });
+    const relay = setInterval(() => {
+      const sent = sql(
+        "WITH d AS (DELETE FROM realtime.sent RETURNING topic) SELECT string_agg(DISTINCT topic, ' ') FROM d",
+        "postgres",
+      );
+      for (const topic of sent.split(" ").filter(Boolean))
+        for (const [socket, joined] of topics)
+          if (joined === `realtime:${topic}`)
+            socket.send(
+              JSON.stringify({
+                ref: null,
+                topic: joined,
+                event: "broadcast",
+                payload: { event: "nudge", payload: {} },
+              }),
+            );
+    }, 50);
+    await new Promise<void>((resolve) => realtime.once("listening", () => resolve()));
+    const address = realtime.address();
+    const saved = { url: process.env.SUPABASE_URL, key: process.env.SUPABASE_PUBLISHABLE_KEY };
+    process.env.SUPABASE_URL = `http://127.0.0.1:${typeof address === "object" ? address.port : 0}`;
+    process.env.SUPABASE_PUBLISHABLE_KEY = "test-publishable";
+    const running = agent("run", "--workspace", workspace);
+    try {
+      const subscribed = Date.now() + 30_000;
+      while (topics.size === 0) {
+        assert.ok(Date.now() < subscribed, "the companion never subscribed to its nudge topic");
+        await new Promise((r) => setTimeout(r, 50));
+      }
+      const tasks = [];
+      for (let n = 1; n <= 30; n++) {
+        await new Promise((r) => setTimeout(r, 500 + Math.random() * 1000)); // the device goes idle
+        const { taskId } = await startTask(admin, userA, {
+          conversationId: conversation2,
+          deviceId,
+          objective: `Write a short note for timing check ${n}`,
+        });
+        const deadline = Date.now() + 30_000;
+        let view = await taskView(admin, userA, taskId);
+        while (view.status === "running") {
+          assert.ok(
+            Date.now() < deadline,
+            `timing task ${n} did not finish: ${JSON.stringify(view)}`,
+          );
+          await new Promise((r) => setTimeout(r, 50));
+          view = await taskView(admin, userA, taskId);
+        }
+        assert.equal(view.status, "completed", JSON.stringify(view.steps));
+        assert.ok(existsSync(join(workspace, "OCADE output", `timing-${n}.txt`)));
+        tasks.push(view.timing);
+      }
+      const pct = (values: number[], p: number) =>
+        [...values].sort((a, b) => a - b)[Math.ceil((p / 100) * values.length) - 1];
+      const idle = tasks.map((t) => t.stepPickupMs[0] as number);
+      const active = tasks.flatMap((t) => t.stepPickupMs.slice(1) as number[]);
+      const total = tasks.map((t) => t.totalElapsedMs as number);
+      const unaccounted = tasks.map((t) => t.unaccountedMs as number);
+      const summary = {
+        tasks: tasks.length,
+        evidence: "Linux container; scripted provider; local PostgreSQL; Realtime protocol fake",
+        idlePickupMs: { p50: pct(idle, 50), p95: pct(idle, 95) },
+        activePickupMs: { p50: pct(active, 50), p95: pct(active, 95), n: active.length },
+        totalMs: { p50: pct(total, 50), p95: pct(total, 95) },
+        unaccountedMs: { p50: pct(unaccounted, 50), p95: pct(unaccounted, 95) },
+      };
+      if (process.env.OCADE_TIMING_OUT)
+        writeFileSync(process.env.OCADE_TIMING_OUT, JSON.stringify(summary, null, 2));
+      console.log(`OCADE_TIMING:${JSON.stringify(summary)}`);
+      // The plan §18 pickup targets this environment can measure.
+      assert.ok(summary.idlePickupMs.p95 <= 3000, JSON.stringify(summary));
+      assert.ok(summary.activePickupMs.p95 <= 1500, JSON.stringify(summary));
+    } finally {
+      await agent("stop");
+      await running;
+      clearInterval(relay);
+      realtime.close();
+      for (const [name, value] of [
+        ["SUPABASE_URL", saved.url],
+        ["SUPABASE_PUBLISHABLE_KEY", saved.key],
+      ] as const) {
+        if (value === undefined) delete process.env[name];
+        else process.env[name] = value;
+      }
     }
   },
 );

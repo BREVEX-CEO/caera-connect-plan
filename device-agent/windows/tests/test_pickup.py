@@ -40,7 +40,7 @@ class Pickup(unittest.TestCase):
                 patch.object(agent_module.discovery, "installed_apps", lambda: []), \
                 patch.object(agent_module.discovery, "engines", lambda: []):
             from types import SimpleNamespace
-            runner = Agent(device, Journal(home / "journal.sqlite"), SimpleNamespace(external={}))
+            runner = Agent(device, Journal(home / "journal.sqlite"), SimpleNamespace(external={}, prewarm=lambda: None))
             runner.stop_flag = home / "STOP"
             try:
                 anyio.run(runner.run, until_idle)

@@ -11,7 +11,7 @@
  *
  *   SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... OCADE_LIVE_EMAIL=qa+jarvis@... \
  *   node scripts/jarvis-live.mjs --workspace <dir> [--grant screen --grant site:example.com] \
- *     [--agent-user <unprivileged OS user>] --report <file.json> "<the person's request>"
+ *     [--agent-user <unprivileged OS user>] [--minutes 15] --report <file.json> "<the person's request>"
  *
  * The companion is started as a customer's would be: without this harness's server keys
  * in its environment, and (with --agent-user) as an ordinary OS user who owns the workspace,
@@ -34,7 +34,8 @@ const { values, positionals } = parseArgs({
     workspace: { type: "string" },
     report: { type: "string", default: "jarvis-live-report.json" },
     grant: { type: "string", multiple: true, default: [] },
-    rounds: { type: "string", default: "60" },
+    // How long the task may take before the harness stops waiting for it.
+    minutes: { type: "string", default: "15" },
     // The test operator confirms each external-effect step, as the person would in the app.
     "confirm-effects": { type: "boolean", default: false },
     "agent-user": { type: "string" },
@@ -164,6 +165,10 @@ const grants = [
 ];
 must(await admin.from("jarvis_permissions").insert(grants));
 
+// The companion runs as a customer's does: already started and idle when the task arrives, so
+// the first step's pickup is the real idle pickup (the nudge, or polling without Realtime).
+const companion = agent("run", "--workspace", resolve(values.workspace));
+await new Promise((ok) => setTimeout(ok, 5000));
 const { taskId } = await authority.startTask(admin, user.id, {
   conversationId: conversation,
   deviceId,
@@ -184,17 +189,20 @@ const confirming = (async () => {
     await new Promise((ok) => setTimeout(ok, 1500));
   }
 })();
-for (let round = 0; round < Number(values.rounds); round += 1) {
+const deadline = Date.now() + Number(values.minutes) * 60_000;
+let shown = "";
+while (Date.now() < deadline) {
   const view = await authority.taskView(admin, user.id, taskId);
-  console.log(
-    `[${view.status}] ${view.steps.at(-1)?.summary ?? "planning"} (${view.steps.length} steps)`,
-  );
-  if (!["running"].includes(view.status)) break;
-  const run = await agent("run", "--workspace", resolve(values.workspace), "--until-idle");
-  if (run.code !== 0) console.error(run.out.slice(-600));
+  const line = `[${view.status}] ${view.steps.at(-1)?.summary ?? "planning"} (${view.steps.length} steps)`;
+  if (line !== shown) console.log((shown = line));
+  if (view.status !== "running") break;
+  await new Promise((ok) => setTimeout(ok, 1000));
 }
 running = false;
 await confirming;
+await agent("stop");
+const ended = await companion;
+if (ended.code !== 0) console.error(ended.out.slice(-600));
 const view = await authority.taskView(admin, user.id, taskId);
 const state = must(await admin.rpc("jarvis_task_state", { p_task: taskId }));
 const outputs = (dir) =>

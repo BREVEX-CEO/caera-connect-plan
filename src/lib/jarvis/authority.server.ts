@@ -181,6 +181,8 @@ export function taskTiming(task: Pick<TaskState, "status" | "timing" | "steps">)
               pickupMs,
           ),
     stepDurationsMs: steps.map((step) => step.durationMs),
+    // The first step's pickup is the idle pickup; later ones are claims while the task runs.
+    stepPickupMs: steps.map((step) => step.pickupMs),
   };
 }
 
@@ -192,6 +194,19 @@ function readTask(admin: Admin, taskId: string) {
  * One bounded planning turn. Only a running task with a live controller can be
  * advanced; a STOP in between makes the queue or settle call fail closed.
  */
+/**
+ * Where an idle companion listens for "work is waiting" (W2). The broadcast is content-free and
+ * public on a random per-device topic; the device answers it only with its usual signed claim.
+ * Null when Realtime is not configured: the device then polls.
+ */
+async function nudgeChannel(admin: Admin, deviceId: string) {
+  const base = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_PUBLISHABLE_KEY;
+  const topic = await call<string | null>(admin, "jarvis_device_topic", { p_device: deviceId });
+  if (!base || !key || !topic) return null;
+  return { url: `${base.replace(/^http/, "ws")}/realtime/v1/websocket`, key, topic };
+}
+
 export async function advance(admin: Admin, taskId: string, now = new Date()): Promise<void> {
   const task = await readTask(admin, taskId);
   if (!task || task.status !== "running" || !task.controller) return;
@@ -665,7 +680,10 @@ export async function handleDeviceRequest(
         p_mcp: parsed.mcp as unknown as Json,
         p_engines: parsed.engines as unknown as Json,
       });
-      return { status: 200, body: { inventory: "recorded" } };
+      return {
+        status: 200,
+        body: { inventory: "recorded", nudge: await nudgeChannel(admin, deviceId) },
+      };
     }
     if (parsed.op === "receipt") {
       const [recorded] = await call<{ outcome: string; task_id: string }[]>(
@@ -678,7 +696,11 @@ export async function handleDeviceRequest(
         },
       );
       await advance(admin, recorded.task_id);
-      return { status: 200, body: { receipt: recorded.outcome } };
+      // The next step rides on this answer, saving the device a round trip (W2).
+      const next = await call<Record<string, unknown>>(admin, "jarvis_claim_action", {
+        p_device: deviceId,
+      });
+      return { status: 200, body: { receipt: recorded.outcome, ...next } };
     }
     return { status: 200, body: await call(admin, "jarvis_claim_action", { p_device: deviceId }) };
   } catch (error) {

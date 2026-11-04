@@ -181,6 +181,21 @@ class Gateway:
             worker["closed"].set()
             worker["started"].set()
 
+    def _start(self, key: str) -> dict:
+        # Registered before it starts, so STOP or shutdown can always end it.
+        worker = {"scope": anyio.CancelScope(), "started": anyio.Event(), "closed": anyio.Event()}
+        self._workers[key] = worker
+        self._group.start_soon(self._hold, key, worker)
+        return worker
+
+    def prewarm(self) -> None:
+        """Start the workers nearly every task uses (files, documents, commands, verification)
+        in the background, so the first step does not wait ~0.8 s for each to start."""
+        for role in ("fs_sandbox", "shell", "verifier"):
+            key = self.modules.get(role)
+            if key and key not in self._workers:
+                self._start(key)
+
     async def _session(self, key: str) -> ClientSession:
         worker = self._workers.get(key)
         if worker is None:
@@ -188,10 +203,7 @@ class Gateway:
                 active = [k for k in self._workers if k.startswith("mcp:")]
                 if len(active) >= self.max_external:
                     await self._discard(active[0])  # least recently started
-            # Registered before it starts, so STOP or shutdown can always end it.
-            worker = {"scope": anyio.CancelScope(), "started": anyio.Event(), "closed": anyio.Event()}
-            self._workers[key] = worker
-            self._group.start_soon(self._hold, key, worker)
+            worker = self._start(key)
         await worker["started"].wait()
         if "session" not in worker:
             await self._discard(key)

@@ -20,9 +20,11 @@ import platform
 import random
 import runpy
 import sys
+import time
 from pathlib import Path
 
 import anyio
+from websockets.asyncio.client import connect as websocket
 
 from . import catalog, discovery
 from .device import Device
@@ -34,9 +36,15 @@ WATCH_SECONDS = 2.0
 TICK_SECONDS = 0.25
 # While a task runs the server is planning the next step: ask again promptly, never back off.
 ACTIVE_POLL_SECONDS = 0.5
-# An idle device backs off to this. ponytail: 30 s idle pickup; lower it only with the W2
-# server nudge, since each idle device spends ~2,900 of the free 100k daily Worker requests.
+# An idle device without the nudge backs off to this: ~2,900 of the free 100k daily Worker
+# requests per idle device. With the nudge connected, polling is only a lost-nudge safety net.
 IDLE_POLL_CAP = 30.0
+NUDGED_IDLE_POLL = 60.0
+NUDGED_ACTIVE_POLL = 2.0
+# A nudge whose claim finds nothing costs a token and one that finds work refunds one, so a
+# forged flood can cost no more claims than polling (10 at once, then one per 30 s).
+NUDGE_BURST, NUDGE_REFILL_SECONDS = 10.0, 30.0
+PHOENIX_HEARTBEAT_SECONDS = 25.0
 # Finite network/5xx receipt redelivery; journalled action effects are NEVER re-executed.
 RECEIPT_RETRY_DELAYS = (1.0, 2.0, 4.0, 8.0)
 
@@ -50,15 +58,92 @@ class LocalStop(Exception):
     pass
 
 
+class Nudge:
+    """The server's content-free "look now" on a Realtime topic (W2). It carries nothing and
+    authorises nothing: the only answer is the usual signed claim, so a forged, replayed or
+    lost nudge changes timing only, and the token bucket caps what a flood can cost."""
+
+    def __init__(self) -> None:
+        self.event = anyio.Event()
+        self.connected = False
+        self.tokens, self.refilled = NUDGE_BURST, time.monotonic()
+
+    def _refill(self) -> None:
+        now = time.monotonic()
+        self.tokens = min(NUDGE_BURST, self.tokens + (now - self.refilled) / NUDGE_REFILL_SECONDS)
+        self.refilled = now
+
+    def fire(self) -> None:
+        self._refill()
+        if self.tokens >= 1:
+            self.event.set()
+
+    def spent(self, useful: bool) -> None:
+        """A nudge woke the device: a claim that found work refunds a token (late or merged
+        nudges around real work then cost nothing), one that found nothing costs one."""
+        self._refill()
+        self.tokens = min(NUDGE_BURST, self.tokens + (1 if useful else -1))
+
+    def absorb(self) -> None:
+        """A request is about to read the server's state: earlier nudges are answered by it."""
+        self.event = anyio.Event()
+
+    async def wait(self, seconds: float) -> bool:
+        """Sleep up to `seconds`; True when a nudge ended the wait early."""
+        with anyio.move_on_after(seconds):
+            await self.event.wait()
+        nudged, self.event = self.event.is_set(), anyio.Event()
+        return nudged
+
+    async def listen(self, channel: dict) -> None:
+        topic = f"realtime:{channel['topic']}"
+        delay = 1.0
+        while True:
+            try:
+                async with websocket(f"{channel['url']}?apikey={channel['key']}&vsn=1.0.0",
+                                              open_timeout=15, max_size=65536) as socket:
+                    await socket.send(json.dumps({"topic": topic, "event": "phx_join", "ref": "join", "payload": {
+                        "config": {"broadcast": {"self": False}, "presence": {"key": ""}, "private": False}}}))
+                    beat = time.monotonic()
+                    while True:
+                        with anyio.move_on_after(max(0.0, beat + PHOENIX_HEARTBEAT_SECONDS - time.monotonic())):
+                            message = json.loads(await socket.recv())
+                            if message.get("ref") == "join":
+                                if (message.get("payload") or {}).get("status") != "ok":
+                                    raise ConnectionError("nudge_join_refused")
+                                self.connected, delay = True, 1.0
+                                self.fire()  # whatever was missed while disconnected: one claim finds it
+                            elif message.get("topic") == topic and message.get("event") == "broadcast":
+                                self.fire()  # the content is never read
+                            continue
+                        await socket.send(json.dumps({"topic": "phoenix", "event": "heartbeat", "payload": {}, "ref": "hb"}))
+                        beat = time.monotonic()
+            except Exception:  # noqa: BLE001 - any failure means "poll until reconnected"
+                pass
+            finally:
+                self.connected = False
+            await anyio.sleep(delay)
+            delay = min(delay * 2, 60.0)
+
+
 class Agent:
     def __init__(self, device: Device, journal: Journal, gateway: Gateway, stop_flag: Path | None = None):
         self.device, self.journal, self.gateway = device, journal, gateway
         self.stop_flag = stop_flag or device.home / "STOP"
+        self.nudge: Nudge | None = None
+
+    async def pause(self, seconds: float) -> bool:
+        if self.nudge is None:
+            await anyio.sleep(seconds)
+            return False
+        return await self.nudge.wait(seconds)
 
     def stopped_here(self) -> bool:
         return self.stop_flag.exists()
 
     async def claim(self) -> dict:
+        if self.nudge is not None:
+            self.nudge.absorb()
         status, body = await anyio.to_thread.run_sync(self.device.request, {"op": "claim"})
         if status != 200:
             raise ConnectionError(body.get("error", str(status)))
@@ -78,11 +163,11 @@ class Agent:
             async def watch() -> None:
                 waited = 0.0
                 while True:
-                    await anyio.sleep(TICK_SECONDS)
+                    nudged = await self.pause(TICK_SECONDS)
                     waited += TICK_SECONDS
                     if self.stopped_here():  # local STOP: no network needed
                         break
-                    if waited < WATCH_SECONDS:
+                    if waited < WATCH_SECONDS and not nudged:
                         continue
                     waited = 0.0
                     try:
@@ -91,6 +176,8 @@ class Agent:
                         continue  # offline: keep the already-authorized step, decide nothing new
                     if (state.get("action") or {}).get("id") != activity:
                         break
+                    if nudged and self.nudge is not None:
+                        self.nudge.spent(useful=False)
                 self.gateway.stop()
                 group.cancel_scope.cancel()
 
@@ -102,7 +189,9 @@ class Agent:
         uncertain = effect_possible(intent)
         return receipt("unknown" if uncertain else "not_applied", uncertain, error="stopped")
 
-    async def handle(self, action: dict) -> None:
+    async def handle(self, action: dict) -> dict:
+        """Run one action and deliver its receipt; returns the server's answer, which may
+        already carry the next step."""
         activity, intent = action["id"], action["intent"]
         claimed = self.journal.start(activity, intent)
         held = self.journal.get(activity)
@@ -122,14 +211,18 @@ class Agent:
         # A refused receipt used to retry forever (e.g. 413/422). Preserve the
         # durable result; never execute the effect again simply because ACK failed.
         for attempt in range(len(RECEIPT_RETRY_DELAYS) + 1):
+            if self.nudge is not None:
+                self.nudge.absorb()  # the answer carries the server's state after this receipt
             try:
-                status, _ = await anyio.to_thread.run_sync(
+                status, answer = await anyio.to_thread.run_sync(
                     self.device.request, {"op": "receipt", "activityId": activity, "receipt": result}
                 )
             except OSError:
-                status = 503  # transport outage: retry only this exact saved receipt
-            if status == 200 or status in (401, 409):
-                return  # recorded, or the server has a final answer this receipt cannot change
+                status, answer = 503, {}  # transport outage: retry only this exact saved receipt
+            if status == 200:
+                return answer
+            if status in (401, 409):
+                return {}  # the server has a final answer this receipt cannot change
             if 400 <= status < 500 and status not in (408, 425, 429):
                 raise ConnectionError(f"receipt_rejected_{status}")  # permanent: repair before resending
             if attempt == len(RECEIPT_RETRY_DELAYS):
@@ -137,35 +230,62 @@ class Agent:
             await anyio.sleep(RECEIPT_RETRY_DELAYS[attempt])
 
     async def run(self, until_idle: bool = False) -> None:
+        self.gateway.prewarm()
         # What the person can choose from: installed apps and approved external MCP servers.
         apps = await anyio.to_thread.run_sync(discovery.installed_apps)
-        await anyio.to_thread.run_sync(
+        _, answer = await anyio.to_thread.run_sync(
             self.device.request,
             {"op": "inventory", "apps": apps, "mcp": catalog.describe(self.gateway.external),
              "engines": await anyio.to_thread.run_sync(discovery.engines)},
         )
+        channel = (answer or {}).get("nudge")
+        if not channel:
+            return await self._loop(until_idle)
+        self.nudge = Nudge()
+        failure: BaseException | None = None
+        async with anyio.create_task_group() as group:
+            group.start_soon(self.nudge.listen, channel)
+            try:
+                await self._loop(until_idle)
+            except BaseException as error:  # re-raised as itself, not wrapped in a group
+                failure = error
+            group.cancel_scope.cancel()
+        if failure is not None:
+            raise failure
+
+    async def _loop(self, until_idle: bool) -> None:
         idle = 1.0
+        state: dict | None = None
+        woke = False
         while True:
             if self.stopped_here():
                 raise LocalStop()
-            try:
-                state = await self.claim()
-            except ConnectionError as error:
-                if str(error) in ("signature_invalid", "update_required"):
-                    raise
-                state = {}
+            if state is None:
+                try:
+                    state = await self.claim()
+                except ConnectionError as error:
+                    if str(error) in ("signature_invalid", "update_required"):
+                        raise
+                    state = {}
+                if woke and self.nudge is not None:
+                    self.nudge.spent(useful=bool(state.get("action")))
+            woke = False
             if state.get("action"):
                 idle = 1.0
-                await self.handle(state["action"])
+                state = await self.handle(state["action"])
+                if not state.get("action"):
+                    state = None  # no next step in the answer: ask
                 continue
             running = (state.get("task") or {}).get("status") == "running"
+            state = None
             if until_idle and not running:
                 return
+            nudged = self.nudge is not None and self.nudge.connected
             if running:
                 idle = 1.0
-                await anyio.sleep(ACTIVE_POLL_SECONDS + random.random() / 4)
+                woke = await self.pause((NUDGED_ACTIVE_POLL if nudged else ACTIVE_POLL_SECONDS) + random.random() / 4)
                 continue
-            await anyio.sleep(idle + random.random())
+            woke = await self.pause(NUDGED_IDLE_POLL if nudged else idle + random.random())
             idle = min(idle * 2, IDLE_POLL_CAP)
 
 

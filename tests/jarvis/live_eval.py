@@ -389,7 +389,7 @@ def main() -> int:
             continue
         report = out / f"{name}.json"
         command = ["node", "scripts/jarvis-live.mjs", "--workspace", str(ws), "--agent-user", USER, "--confirm-effects",
-                   "--rounds", "40", "--report", str(report)]
+                   "--minutes", "15", "--report", str(report)]
         for grant in grants:
             command += ["--grant", grant]
         env = dict(os.environ, OCADE_LIVE_EMAIL=f"ocade-eval-{args.seed}-{name}-{int(time.time())}@example.com")

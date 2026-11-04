@@ -80,3 +80,11 @@ GRANT ALL ON ALL TABLES IN SCHEMA storage TO service_role;
 GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA storage TO anon, authenticated, service_role;
 
 CREATE PUBLICATION supabase_realtime;
+
+-- Realtime broadcast: the hosted function sends to subscribers; here it records what was sent.
+CREATE SCHEMA realtime;
+CREATE TABLE realtime.sent (topic text, event text, payload jsonb, private boolean,
+  at timestamptz DEFAULT clock_timestamp());
+CREATE FUNCTION realtime.send(payload jsonb, event text, topic text, private boolean DEFAULT true)
+RETURNS void LANGUAGE sql AS $$ INSERT INTO realtime.sent (topic, event, payload, private)
+  VALUES (topic, event, payload, private) $$;

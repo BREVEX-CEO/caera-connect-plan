@@ -62,6 +62,24 @@ class PackagingContract(unittest.TestCase):
         self.assertIsInstance(result["evidence"]["durationMs"], (int, float))
         self.assertGreaterEqual(result["evidence"]["durationMs"], 0)
 
+    def test_prewarmed_workers_spare_the_first_step_its_start_up(self):
+        """Started with the gateway (W2): the first file step does not pay worker start-up."""
+        root = Path(tempfile.mkdtemp())
+
+        async def first_step(prewarm):
+            async with Gateway(str(root)) as gateway:
+                if prewarm:
+                    gateway.prewarm()
+                    await gateway._workers["ocade_agent.office_worker"]["started"].wait()
+                result = await gateway.run(intent("fs.list", {"path": "."}), gateway.epoch)
+                return result["evidence"]["durationMs"], sorted(gateway._workers)
+
+        cold, _ = anyio.run(first_step, False)
+        warm, started = anyio.run(first_step, True)
+        self.assertIn("ocade_agent.verify_worker", started)
+        self.assertIn("ocade_agent.command_worker", started)
+        self.assertLess(warm, cold / 2, (warm, cold))
+
 
 class Journey(unittest.TestCase):
     """Generic primitives on real files: read a workbook, write a computed one and a report,

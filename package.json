@@ -70,7 +70,8 @@
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.56.1",
     "vite": "^8.1.6",
-    "wrangler": "4.145.0"
+    "wrangler": "4.145.0",
+    "ws": "8.21.0"
   },
   "overrides": {
     "seroval": "1.6.12",
