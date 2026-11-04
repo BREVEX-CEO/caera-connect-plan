@@ -124,6 +124,17 @@ BEGIN
   PERFORM pg_temp.verifier_assert(v_claim -> 'action' -> 'intent' = v_action,
                                  'unrelated revoked targets do not block file-only verification');
   PERFORM public.jarvis_stop_task(v_user, v_task.task_id);
+
+  -- The read-only script, formula and heading predicates stay inside the workspace too.
+  PERFORM pg_temp.verifier_assert(public.jarvis_action_allowed(v_user, v_device, v_action || jsonb_build_object(
+    'arguments', jsonb_build_object('checks', '[
+      {"id":"s","kind":"script_runnable","description":"Runs","params":{"path":"run.sh"}},
+      {"id":"f","kind":"workbook_formula","description":"Formula","params":{"path":"a.xlsx","sheet":"S","cell":"B2"}},
+      {"id":"h","kind":"document_headings","description":"Headings","params":{"path":"a.docx","headings":["Summary"]}}
+    ]'::jsonb))), 'script, formula and heading checks need only file permission');
+  PERFORM pg_temp.verifier_assert(NOT public.jarvis_action_allowed(v_user, v_device, v_action || jsonb_build_object(
+    'arguments', jsonb_build_object('checks', '[{"id":"x","kind":"script_runs","params":{"path":"run.sh"}}]'::jsonb))),
+    'an unknown predicate is still refused');
 END;
 $$;
 

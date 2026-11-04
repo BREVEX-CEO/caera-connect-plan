@@ -2552,7 +2552,7 @@
                   "maxLength": 200
                 },
                 "kind": {
-                  "description": "params — file_exists {path}: a file with content or a folder with something in it; file_contains {path,text}: the words appear (letter case and spacing ignored); file_parses {path}: a JSON, Python, XML, TOML, INI or CSV file is well-formed for its format (nothing is run); workbook_cell_equals {path,sheet,cell,value}; web_text_contains {url,text}; window_exists {exe,text?}; media_duration {path,value}; media_quality {path,value,width,height}: playable H.264/AAC stereo of exactly value seconds, at least width x height, broadcast loudness, no long black or silent gap; image_size {path,width,height}; scene_render {path}: a .png rendered from a valid saved 3D scene project",
+                  "description": "params — file_exists {path}: a file with content or a folder with something in it; file_contains {path,text}: the words appear (letter case and spacing ignored); file_parses {path}: a JSON, Python, XML, TOML, INI or CSV file is well-formed for its format (nothing is run); workbook_cell_equals {path,sheet,cell,value}; web_text_contains {url,text}; window_exists {exe,text?}; media_duration {path,value}; media_quality {path,value,width,height}: playable H.264/AAC stereo of exactly value seconds, at least width x height, broadcast loudness, no long black or silent gap; image_size {path,width,height}; scene_render {path}: a .png rendered from a valid saved 3D scene project; script_runnable {path}: a script starts directly on macOS/Linux (#! line, Unix line endings, executable, parses; nothing is run); workbook_formula {path,sheet,cell,value?}: the cell holds a formula, and its saved result is value; document_headings {path,headings}: each text is a Title or Heading of the Word document",
                   "type": "string",
                   "enum": [
                     "file_exists",
@@ -2564,7 +2564,10 @@
                     "media_duration",
                     "media_quality",
                     "image_size",
-                    "scene_render"
+                    "scene_render",
+                    "script_runnable",
+                    "workbook_formula",
+                    "document_headings"
                   ]
                 },
                 "params": {
@@ -2617,6 +2620,16 @@
                       "type": "integer",
                       "minimum": 1,
                       "maximum": 16384
+                    },
+                    "headings": {
+                      "minItems": 1,
+                      "maxItems": 20,
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 200
+                      }
                     }
                   },
                   "additionalProperties": false

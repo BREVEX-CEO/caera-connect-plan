@@ -107,6 +107,18 @@ def _check(kind: str, params: dict, notes: dict) -> bool | None:
         if type(expected) in (int, float):
             return type(value) in (int, float) and abs(value - expected) < TOLERANCE
         return isinstance(expected, str) and isinstance(value, str) and value == expected
+    if kind in ("script_runnable", "workbook_formula", "document_headings"):
+        try:
+            path = resolve(WORKSPACE, params["path"])
+        except (Refused, KeyError):
+            return False
+        if not path.is_file():
+            return False
+        if kind == "script_runnable":
+            return _script_runnable(path, notes)
+        if kind == "workbook_formula":
+            return _workbook_formula(path, params, notes)
+        return _document_headings(path, params)
     if kind == "media_duration":
         try:
             path = resolve(WORKSPACE, params["path"])
@@ -169,6 +181,8 @@ def _parses(path: Path, notes: dict) -> bool | None:
         ".cfg": lambda t: configparser.ConfigParser().read_string(t),
         ".csv": lambda t: [len(row) for row in csv.reader(t.splitlines())],
     }
+    if suffix in (".sh", ".bash"):
+        return _shell_parses(path, notes)
     if suffix not in parsers:
         return None
     try:
@@ -180,6 +194,74 @@ def _parses(path: Path, notes: dict) -> bool | None:
         notes["error"] = "rows have different numbers of fields"
         return False
     return True
+
+
+def _shell_parses(path: Path, notes: dict) -> bool | None:
+    """`sh -n`: the shell reads the script without running any of it."""
+    shell = shutil.which("sh")
+    if not shell or sys.platform == "win32":
+        return None
+    run = subprocess.run([shell, "-n", str(path)], capture_output=True, text=True, timeout=30,
+                         stdin=subprocess.DEVNULL)
+    if run.returncode != 0:
+        notes["error"] = run.stderr.strip()[:200]
+    return run.returncode == 0
+
+
+def _script_runnable(path: Path, notes: dict) -> bool | None:
+    """A script can be started directly: on macOS/Linux a #! line, Unix line endings, the
+    executable bit and a script its interpreter accepts. Read only: nothing is run."""
+    data = path.read_bytes()[:2_000_000]
+    if sys.platform == "win32":
+        return None  # Windows starts scripts by file type, not by these properties
+    problems = []
+    if not data.startswith(b"#!"):
+        problems.append("no #! line")
+    if b"\r\n" in data:
+        problems.append("Windows line endings")
+    if not os.stat(path).st_mode & 0o100:
+        problems.append("not executable")
+    interpreter = data.split(b"\n", 1)[0].decode("utf-8", "replace")
+    if not problems and "python" in interpreter:
+        try:
+            compile(data.decode("utf-8", "replace"), path.name, "exec", dont_inherit=True)  # compiled, never run
+        except (SyntaxError, ValueError) as error:
+            problems.append(f"does not compile ({type(error).__name__})")
+    if not problems and interpreter.rstrip().endswith(("sh", "bash")) and _shell_parses(path, notes) is False:
+        problems.append("shell syntax error")
+    if problems:
+        notes["error"] = ", ".join(problems)
+    return not problems
+
+
+def _workbook_formula(path: Path, params: dict, notes: dict) -> bool:
+    """The cell holds a formula (the workbook stays editable), and its saved result is the value."""
+    try:
+        formula = openpyxl.load_workbook(path)[params["sheet"]][params["cell"]].value
+        result = openpyxl.load_workbook(path, data_only=True)[params["sheet"]][params["cell"]].value
+    except Exception:
+        return False
+    if not (isinstance(formula, str) and formula.startswith("=")):
+        notes["error"] = "a typed-in value, not a formula"
+        return False
+    expected = params.get("value")
+    if expected is None:
+        return True
+    if type(expected) in (int, float):
+        return type(result) in (int, float) and abs(result - expected) < TOLERANCE
+    return isinstance(result, str) and result == expected
+
+
+def _document_headings(path: Path, params: dict) -> bool:
+    """Each named heading is a real heading (Title or Heading style) of the Word document."""
+    try:
+        document = Document(io.BytesIO(path.read_bytes()))
+    except Exception:
+        return False
+    found = [" ".join(p.text.split()).casefold() for p in document.paragraphs
+             if p.style is not None and (p.style.name or "").lower().startswith(("heading", "title"))]
+    wanted = [" ".join(str(h).split()).casefold() for h in params.get("headings") or []]
+    return bool(wanted) and all(any(w in f for f in found) for w in wanted)
 
 
 def _scene_bound(size: tuple[int, int], text: dict) -> bool:

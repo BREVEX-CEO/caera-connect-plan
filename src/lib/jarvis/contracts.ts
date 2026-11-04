@@ -1049,6 +1049,9 @@ export const outcomeCheck = z.object({
       "media_quality",
       "image_size",
       "scene_render",
+      "script_runnable",
+      "workbook_formula",
+      "document_headings",
     ])
     .optional()
     .describe(
@@ -1058,7 +1061,10 @@ export const outcomeCheck = z.object({
         "web_text_contains {url,text}; window_exists {exe,text?}; media_duration {path,value}; " +
         "media_quality {path,value,width,height}: playable H.264/AAC stereo of exactly value seconds, at least " +
         "width x height, broadcast loudness, no long black or silent gap; image_size {path,width,height}; " +
-        "scene_render {path}: a .png rendered from a valid saved 3D scene project",
+        "scene_render {path}: a .png rendered from a valid saved 3D scene project; script_runnable {path}: a " +
+        "script starts directly on macOS/Linux (#! line, Unix line endings, executable, parses; nothing is run); " +
+        "workbook_formula {path,sheet,cell,value?}: the cell holds a formula, and its saved result is value; " +
+        "document_headings {path,headings}: each text is a Title or Heading of the Word document",
     ),
   params: z
     .strictObject({
@@ -1074,6 +1080,7 @@ export const outcomeCheck = z.object({
       exe: exe.optional(),
       width: z.int().min(1).max(16384).optional(),
       height: z.int().min(1).max(16384).optional(),
+      headings: z.array(z.string().min(1).max(200)).min(1).max(20).optional(),
     })
     .optional(),
 });
@@ -1095,6 +1102,9 @@ export const taskChecks = z
       window_exists: ["exe"],
       media_duration: ["path", "value"],
       media_quality: ["path", "value", "width", "height"],
+      script_runnable: ["path"],
+      workbook_formula: ["path", "sheet", "cell"],
+      document_headings: ["path", "headings"],
       image_size: ["path", "width", "height"],
       scene_render: ["path"],
     } as const;

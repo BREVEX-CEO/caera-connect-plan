@@ -362,6 +362,25 @@ GENERATORS = {f.__name__: f for f in (config_repair, crlf_script, dedupe_contact
                                       release_pick)}
 
 
+def category(ok: bool, live: dict) -> str:
+    """Why a task did not pass, from what the authority recorded (plan §23.7): every failure
+    gets exactly one category, so each can be owned by a package."""
+    if ok:
+        return "pass"
+    status, blocker = live.get("status"), (live.get("blocker") or "").lower()
+    if not live:
+        return "harness"  # the run produced no report: not the product's verdict
+    if "busy" in blocker or "unavailable" in blocker:
+        return "planner_capacity"
+    if status == "completed":
+        return "verified_but_wrong"  # its own checks passed, the hidden oracle did not: weak checks
+    if status == "running":
+        return "not_finished"
+    if any(d.get("receipt", {}) and d["receipt"].get("errorCode") for d in live.get("decisions") or []):
+        return "tool_refused_or_failed"
+    return "gave_up"  # blocked or settled without the outcome
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--seed", type=int, required=True)
@@ -404,13 +423,20 @@ def main() -> int:
         os.environ.pop("OCADE_ALLOW_PRIVATE_WEB", None)  # only the generator that serves a local site sets it
         live = json.loads(report.read_text()) if report.exists() else {}
         timing = live.get("timing") or {}
-        results.append({"task": name, "pass": ok, "detail": detail[:300], "settled": live.get("status"),
+        results.append({"task": name, "pass": ok, "category": category(ok, live), "detail": detail[:300],
+                        "settled": live.get("status"), "blocker": (live.get("blocker") or "")[:200],
                         "elapsedMs": timing.get("totalElapsedMs"), "modelCalls": timing.get("modelCalls"),
+                        "unaccountedMs": timing.get("unaccountedMs"), "pickupMs": timing.get("stepPickupMs"),
+                        # Person effort: each external effect the operator had to confirm.
+                        "interventions": len(live.get("confirmations") or []),
                         "wallSeconds": round(time.monotonic() - started, 1)})
         print(json.dumps(results[-1]), flush=True)
         time.sleep(args.pause)
     passed = sum(r["pass"] for r in results)
-    summary = {"seed": args.seed, "passed": passed, "total": len(results),
+    categories: dict[str, int] = {}
+    for r in results:
+        categories[r.get("category", "selfcheck")] = categories.get(r.get("category", "selfcheck"), 0) + 1
+    summary = {"seed": args.seed, "passed": passed, "total": len(results), "categories": categories,
                "commit": subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=ROOT, capture_output=True,
                                         text=True).stdout.strip(), "results": results}
     (out / "summary.json").write_text(json.dumps(summary, indent=2))
