@@ -121,3 +121,18 @@ test("changing the file a check reads to make it pass is refused", async (t) => 
   });
   assert.equal(allowed.kind, "queue", JSON.stringify(allowed));
 });
+
+test("one rejected goal is answered with the reason and asked once more", async (t) => {
+  const state = await provider(t);
+  const goal = (checks: unknown) => ({ name: "set_goal", arguments: { checks } });
+  const output: OutcomeCheck = { ...readsInput, params: { path: "OCADE output/s.txt", text: "x" } };
+  state.next.push(goal([{ ...output, params: { path: "OCADE output/s.txt" } }]), goal([output]));
+  assert.deepEqual(await compileGoal("u", "Write a short note", ["files"]), [output]);
+  const second = JSON.parse(state.prompts.at(-1)!);
+  assert.match(second.previousAnswerRejected, /text/, "the model is told what was wrong");
+  state.next.push(goal([readsInput]), goal([readsInput]));
+  await assert.rejects(compileGoal("u", "Write a short note", ["files"]), (error: Error) =>
+    /invalid_goal_scope/.test(error.message),
+  );
+  assert.match(JSON.parse(state.prompts.at(-1)!).previousAnswerRejected, /summary_source/);
+});
