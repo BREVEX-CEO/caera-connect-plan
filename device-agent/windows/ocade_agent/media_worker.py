@@ -167,6 +167,75 @@ def media_preview(path: str, at: list[float] | None = None) -> dict:
             "preview": preview_jpeg(sheet)}
 
 
+_IMAGE_SAVE = {".png": "PNG", ".jpg": "JPEG", ".jpeg": "JPEG", ".webp": "WEBP", ".tif": "TIFF", ".tiff": "TIFF",
+               ".bmp": "BMP", ".gif": "GIF"}
+
+
+@app.tool()
+@_evidence
+def image_edit(source: str, output: str, steps: list[dict]) -> dict:
+    """A new edited copy of an image (the source is never changed): resize, crop, rotate, flip,
+    grayscale, brightness, contrast, saturation, sharpen, blur or text, applied in order."""
+    from PIL import Image, ImageDraw, ImageEnhance, ImageFilter, ImageFont, ImageOps
+
+    origin = resolve(WORKSPACE, source)
+    target = output_path(WORKSPACE, output)
+    kind = _IMAGE_SAVE.get(target.suffix.lower())
+    if not origin.is_file():
+        raise Refused("not_a_file")
+    before = sha256(origin)
+    if kind is None:
+        raise Refused("unsupported_file_type")
+    try:
+        with Image.open(origin, formats=PASSIVE_IMAGE_FORMATS) as opened:
+            image = ImageOps.exif_transpose(opened)
+            image.load()
+    except (OSError, ValueError):
+        raise Refused("not_an_image") from None
+    for step in steps:
+        op = step.get("op")
+        if op == "resize":
+            width, height = int(step["width"]), int(step.get("height") or 0)
+            if not height:  # keep the proportions
+                height = max(1, round(image.height * width / image.width))
+            image = image.resize((width, height), Image.Resampling.LANCZOS)
+        elif op == "crop":
+            box = [int(step[k]) for k in ("left", "top", "right", "bottom")]
+            if not (0 <= box[0] < box[2] <= image.width and 0 <= box[1] < box[3] <= image.height):
+                raise Refused("crop_outside_image")
+            image = image.crop(box)
+        elif op == "rotate":
+            image = image.rotate(-float(step["degrees"]), expand=True)  # clockwise, as people say it
+        elif op == "flip":
+            image = ImageOps.mirror(image) if step.get("direction") != "vertical" else ImageOps.flip(image)
+        elif op == "grayscale":
+            image = ImageOps.grayscale(image)
+        elif op in ("brightness", "contrast", "saturation"):
+            enhancer = {"brightness": ImageEnhance.Brightness, "contrast": ImageEnhance.Contrast,
+                        "saturation": ImageEnhance.Color}[op]
+            image = enhancer(image.convert("RGB") if image.mode not in ("RGB", "RGBA", "L") else image).enhance(
+                float(step["factor"]))
+        elif op == "sharpen":
+            image = image.filter(ImageFilter.SHARPEN)
+        elif op == "blur":
+            image = image.filter(ImageFilter.GaussianBlur(float(step.get("radius", 2))))
+        elif op == "text":
+            image = image.convert("RGBA")
+            draw = ImageDraw.Draw(image)
+            size = int(step.get("size") or max(12, image.height // 20))
+            font = ImageFont.load_default(size)
+            draw.text((int(step.get("x", 10)), int(step.get("y", 10))), str(step["text"]), font=font,
+                      fill=str(step.get("color") or "white"))
+        else:
+            raise Refused("unknown_step")
+    if kind == "JPEG" and image.mode not in ("RGB", "L"):
+        image = image.convert("RGB")
+
+    digest = write_atomically(target, lambda temporary: image.save(temporary, format=kind))
+    return {"sha256": digest, "width": image.width, "height": image.height, "format": kind,
+            "sourceUnchanged": sha256(origin) == before}
+
+
 @app.tool()
 @_evidence
 def media_analyze(path: str, threshold: float = 0.3) -> dict:

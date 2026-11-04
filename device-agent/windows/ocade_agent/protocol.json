@@ -294,6 +294,141 @@
         "additionalProperties": false
       }
     },
+    "image.edit": {
+      "role": "media_engine",
+      "capability": "files",
+      "risk": "reversible_write",
+      "arguments": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "source": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 260
+          },
+          "output": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 260,
+            "pattern": "^OCADE output\\/",
+            "description": "The edited image (.png, .jpg, .webp, .tif, .bmp or .gif): a new path that starts with 'OCADE output/', e.g. 'OCADE output/result.ext'"
+          },
+          "steps": {
+            "minItems": 1,
+            "maxItems": 20,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "op": {
+                  "type": "string",
+                  "enum": [
+                    "resize",
+                    "crop",
+                    "rotate",
+                    "flip",
+                    "grayscale",
+                    "brightness",
+                    "contrast",
+                    "saturation",
+                    "sharpen",
+                    "blur",
+                    "text"
+                  ]
+                },
+                "width": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 16384
+                },
+                "height": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 16384
+                },
+                "left": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "top": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "right": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 9007199254740991
+                },
+                "bottom": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 9007199254740991
+                },
+                "degrees": {
+                  "type": "number",
+                  "minimum": -360,
+                  "maximum": 360
+                },
+                "direction": {
+                  "type": "string",
+                  "enum": [
+                    "horizontal",
+                    "vertical"
+                  ]
+                },
+                "factor": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 5
+                },
+                "radius": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 50
+                },
+                "text": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200
+                },
+                "x": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "y": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "size": {
+                  "type": "integer",
+                  "minimum": 6,
+                  "maximum": 500
+                },
+                "color": {
+                  "type": "string",
+                  "pattern": "^(#[0-9a-fA-F]{6}|[a-z]{3,20})$"
+                }
+              },
+              "required": [
+                "op"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "source",
+          "output",
+          "steps"
+        ],
+        "additionalProperties": false
+      }
+    },
     "media.analyze": {
       "role": "media_engine",
       "capability": "files",

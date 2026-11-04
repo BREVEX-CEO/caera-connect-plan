@@ -142,6 +142,8 @@ const RANKING_WORDS: Partial<Record<Operation, string>> = {
   "media.inspect": "video audio image length duration format resolution codec how long",
   "media.trim": "cut trim shorten clip seconds start end",
   "media.preview": "look see view picture image chart photo screenshot frame describe",
+  "image.edit":
+    "edit photo picture image resize crop rotate brighten darken black white grayscale watermark caption sharpen blur",
   "media.analyze": "footage shots scenes motion brightness loudness best moments advert film edit",
   "media.render_timeline": "edit film video advert montage music sound titles transitions export",
   "scene.render": "3d model render design car object scene image",

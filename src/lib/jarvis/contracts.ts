@@ -547,6 +547,55 @@ export const OPERATIONS = {
         .describe("Video only: the seconds to show; default nine evenly spaced frames"),
     }),
   },
+  "image.edit": {
+    summary:
+      "Edit a photo or picture into a NEW image under 'OCADE output/' (the original is never changed): steps applied in order — resize {width,height?}, crop {left,top,right,bottom} in pixels, rotate {degrees} clockwise, flip {direction}, grayscale, brightness/contrast/saturation {factor, 1 = unchanged}, sharpen, blur {radius}, text {text,x,y,size?,color?}.",
+    role: "media_engine",
+    capability: "files",
+    risk: "reversible_write",
+    arguments: z.strictObject({
+      source: workspacePath,
+      output: outputPath("The edited image (.png, .jpg, .webp, .tif, .bmp or .gif)"),
+      steps: z
+        .array(
+          z.strictObject({
+            op: z.enum([
+              "resize",
+              "crop",
+              "rotate",
+              "flip",
+              "grayscale",
+              "brightness",
+              "contrast",
+              "saturation",
+              "sharpen",
+              "blur",
+              "text",
+            ]),
+            width: z.int().min(1).max(16384).optional(),
+            height: z.int().min(1).max(16384).optional(),
+            left: z.int().min(0).optional(),
+            top: z.int().min(0).optional(),
+            right: z.int().min(1).optional(),
+            bottom: z.int().min(1).optional(),
+            degrees: z.number().min(-360).max(360).optional(),
+            direction: z.enum(["horizontal", "vertical"]).optional(),
+            factor: z.number().min(0).max(5).optional(),
+            radius: z.number().min(0).max(50).optional(),
+            text: z.string().min(1).max(200).optional(),
+            x: z.int().min(0).optional(),
+            y: z.int().min(0).optional(),
+            size: z.int().min(6).max(500).optional(),
+            color: z
+              .string()
+              .regex(/^(#[0-9a-fA-F]{6}|[a-z]{3,20})$/)
+              .optional(),
+          }),
+        )
+        .min(1)
+        .max(20),
+    }),
+  },
   "media.analyze": {
     summary:
       "Split a video into shots and measure brightness, colour, motion and loudness for each shot.",
