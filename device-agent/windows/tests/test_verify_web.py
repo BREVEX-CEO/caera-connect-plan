@@ -109,6 +109,63 @@ class RenderedWebVerification(unittest.TestCase):
         self.assertIn("predicates", evidence)
         return evidence
 
+    def test_a_check_goes_through_the_computers_proxy(self):
+        """Behind a proxy (as on many company networks) the verifier must use it like the actor
+        does, or every web check is unobservable (eval s21 web_fact)."""
+        import socket
+        import socketserver
+
+        seen = []
+
+        class Proxy(socketserver.StreamRequestHandler):
+            def handle(self):  # a minimal proxy: CONNECT tunnels and absolute-URI GETs, loopback only
+                line = self.rfile.readline().decode()
+                method, target = (line.split(" ") + ["", ""])[:2]
+                while self.rfile.readline() not in (b"\r\n", b"\n", b""):
+                    pass
+                host, port = (target.split(":") if method == "CONNECT"
+                              else (urlsplit(target).hostname, str(urlsplit(target).port or 80)))
+                if host != "127.0.0.1":
+                    return  # the browser's own background traffic is not part of this test
+                seen.append(target)
+                with socket.create_connection((host, int(port)), timeout=10) as upstream:
+                    if method == "CONNECT":
+                        self.wfile.write(b"HTTP/1.1 200 Connection established\r\n\r\n")
+                    else:
+                        path = urlsplit(target).path or "/"
+                        upstream.sendall(f"GET {path} HTTP/1.0\r\nHost: {host}:{port}\r\n\r\n".encode())
+
+                    def pump(source, sink):
+                        try:
+                            while chunk := source.recv(65536):
+                                sink.sendall(chunk)
+                        except OSError:
+                            pass
+                        finally:
+                            try:
+                                sink.shutdown(socket.SHUT_WR)
+                            except OSError:
+                                pass
+
+                    back = threading.Thread(target=pump, args=(upstream, self.connection), daemon=True)
+                    back.start()
+                    pump(self.connection, upstream)
+                    back.join(10)
+
+        proxy = socketserver.ThreadingTCPServer(("127.0.0.1", 0), Proxy)
+        threading.Thread(target=proxy.serve_forever, daemon=True).start()
+        self.addCleanup(proxy.server_close)
+        self.addCleanup(proxy.shutdown)
+        token = uuid.uuid4().hex
+        self.routes["/proxied"] = (200, {}, f"<!doctype html><p>{token}</p>")
+        with patch.dict(os.environ, {"HTTPS_PROXY": f"http://127.0.0.1:{proxy.server_address[1]}",
+                                     "HTTP_PROXY": f"http://127.0.0.1:{proxy.server_address[1]}",
+                                     "NO_PROXY": "<-loopback>"}):
+            evidence = self.run_checks([check(self.base + "/proxied", token)])
+        predicates = evidence["predicates"]
+        self.assertIs(predicates["required"], True, (evidence.get("measured"), seen))
+        self.assertTrue(seen, "the check went through the proxy")
+
     def test_hidden_source_content_cannot_satisfy_a_rendered_page_check(self):
         keys = ("script", "style", "template", "hidden", "ancestor", "display", "visibility",
                 "opacity", "parent_opacity", "javascript", "offscreen", "clipped", "transparent",

@@ -539,11 +539,17 @@ async def _web_texts(url: str, wanted: list[str]) -> tuple[dict, dict]:
 
     async with async_playwright() as playwright:
         try:
+            proxy = os.environ.get("HTTPS_PROXY") or os.environ.get("https_proxy")
             browser = await playwright.chromium.launch(
                 executable_path=executable or None,
                 # A fulfilled document has no remote address; owner-flagged loopback is already allowed.
-                args=["--disable-features=LocalNetworkAccessChecks"]
-                if os.environ.get("OCADE_ALLOW_PRIVATE_WEB") == "1" else [],
+                # A verifier reads one page: none of the browser's own update or sync traffic.
+                args=["--disable-background-networking", "--disable-component-update"]
+                + (["--disable-features=LocalNetworkAccessChecks"]
+                   if os.environ.get("OCADE_ALLOW_PRIVATE_WEB") == "1" else []),
+                # The computer's own proxy, exactly as the actor's browser uses it: without it a
+                # check behind a proxy can never reach the site and stays unobservable.
+                **({"proxy": {"server": proxy, "bypass": os.environ.get("NO_PROXY", "")}} if proxy else {}),
             )
         except Exception:
             return unknown, {"error": "browser_unavailable"}
