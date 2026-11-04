@@ -48,6 +48,11 @@ onblur="document.getElementById('committed').textContent = this.dataset.typed ? 
 <a href="/pages/1">Next</a> <a href="/pages/2">Next</a>""",
     "/pages/1": "<h1>Page one</h1><p>Invoice INV-7 is overdue by 12 days.</p><a href='/pages/2'>Next</a>",
     "/pages/2": "<h1>Page two</h1><p>Invoice INV-9 was paid on 2026-10-01.</p>",
+    "/release-table": """<h1>Releases</h1><table><caption>All releases</caption>
+<tr><th>Version</th><th>Date</th><th>Status</th></tr>
+<tr><td>6.19.6</td><td>2026-01-13</td><td>stable</td><td><a href="/pages/1">notes</a></td></tr>
+<tr><td>6.20.0rc1</td><td>2026-02-02</td><td>pre-release</td><td><a href="/pages/2">notes</a></td></tr>
+<tr style="display:none"><td>9.9.9</td><td>2099-01-01</td><td>hidden</td></tr></table>""",
     "/releases": "<h1>Releases</h1><table>" + "".join(
         f"<tr><td>Build {v}</td><td>{d}</td><td><a href='/pages/{n}'>Download</a></td></tr>"
         for n, (v, d) in enumerate([("7.2.0", "2026-03-01"), ("8.0.1", "2026-09-12"), ("7.9.4", "2026-06-30")], 1)

@@ -190,6 +190,7 @@ class WebLadder(unittest.TestCase):
             page = opened["evidence"]["page"]
             out["013"] = await run("web.screenshot", {"page": page, "output": "OCADE output/web/001-home.png"})
             out["002"] = await run("web.read", {"page": page})
+            out["table"] = await run("web.open", {"url": base + "/release-table"})
             out["007"] = await run("web.click", {"page": page, "selector": "text=Page one"})
             home = (await run("web.open", {"url": base + "/"}))["evidence"]
             second_next = [c for c in home["controls"] if c["label"] == "Next"][1]
@@ -251,6 +252,11 @@ class WebLadder(unittest.TestCase):
         with self.subTest("WEB-002 read matches an independent fetch"):
             insecure = __import__("ssl")._create_unverified_context()  # the fixture's own throwaway cert
             html = urllib.request.urlopen(self.base + "/", context=insecure).read().decode()
+            [table] = results["table"]["evidence"]["tables"]  # rows keep their cells, links and headers
+            self.assertEqual(table["headers"], ["Version", "Date", "Status"])
+            self.assertEqual(table["rows"][0]["cells"][:3], ["6.19.6", "2026-01-13", "stable"])
+            self.assertTrue(table["rows"][1]["link"].endswith("/pages/2"))
+            self.assertEqual(table["totalRows"], 2, "a hidden row is not read as data")
             text = results["002"]["evidence"]["text"]
             for expected in ("OCADE fixture home", "Quarterly status is GREEN.", "Section A"):
                 self.assertIn(expected, text)

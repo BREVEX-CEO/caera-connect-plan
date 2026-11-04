@@ -77,6 +77,28 @@ app = MCPServer("ocade-web", lifespan=_lifespan)
 # (refused as selector_not_found) instead of silently naming whatever now has that number.
 # A label that repeats on the page ("Download" in every row) also carries its row's text.
 # File inputs are listed even when a web app hides them.
+# Visible tables as rows of cells with their headers and each row's first link: a dense table
+# read as flat text loses which value belongs to which row (eval r1c, D9).
+_TABLES = """() => {
+  const visible = (e) => !!(e.offsetWidth || e.offsetHeight || e.getClientRects().length);
+  const cell = (c) => (c.innerText || '').replace(/\\s+/g, ' ').trim().slice(0, 80);
+  return [...document.querySelectorAll('table')].filter(visible).slice(0, 3).map((table) => {
+    const rows = [...table.rows].filter(visible);
+    const head = rows.length && [...rows[0].cells].every((c) => c.tagName === 'TH') ? rows.shift() : null;
+    const headers = head ? [...head.cells].map(cell).slice(0, 8)
+      : [...table.querySelectorAll('thead th')].map(cell).slice(0, 8);
+    return {
+      caption: table.caption ? cell(table.caption) : null,
+      headers,
+      rows: rows.slice(0, 25).map((row) => {
+        const link = row.querySelector('a[href]');
+        return { cells: [...row.cells].slice(0, 8).map(cell), ...(link ? { link: link.href.slice(0, 300) } : {}) };
+      }),
+      totalRows: rows.length,
+    };
+  });
+}"""
+
 _CONTROLS = """(token) => {
   document.querySelectorAll('[data-ocade]').forEach(e => e.removeAttribute('data-ocade'));
   const flat = s => (s || '').replace(/\\s+/g, ' ').trim();
@@ -299,6 +321,7 @@ async def _observe(page_id: str) -> dict:
         **({"url": current.url} if len(current.url) <= 2000 else {"urlOmitted": "too_long"}),
         "title": (await current.title())[:200],
         "controls": await current.evaluate(_CONTROLS, token),
+        "tables": await current.evaluate(_TABLES),
         "text": text[:TEXT_LIMIT],
         # A sign-in or challenge is the person's to complete in the OCADE browser window.
         "needsSignIn": await current.locator("input[type=password]:visible").count() > 0,
@@ -309,6 +332,8 @@ async def _observe(page_id: str) -> dict:
         observed["text"] = observed["text"][: max(0, len(observed["text"]) - excess)]
     while len(json.dumps(observed)) > EVIDENCE_LIMIT and observed["controls"]:
         observed["controls"].pop()
+    while len(json.dumps(observed)) > EVIDENCE_LIMIT and any(t["rows"] for t in observed["tables"]):
+        max(observed["tables"], key=lambda t: len(t["rows"]))["rows"].pop()  # say how many there were
     return observed
 
 
