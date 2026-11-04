@@ -203,6 +203,15 @@ async def main(executable: str, path: str) -> None:
                             result = {"module": module, "tools": len((await session.list_tools()).tools)}
                             if module.endswith("media_worker"):
                                 result["inspect"] = facts(await session.call_tool("media_inspect", {"path": "a.png"}))["kind"]
+                            if module.endswith("office_worker"):
+                                # Libraries that read their own bundled templates or platform backends.
+                                facts(await session.call_tool("office_write_document", {
+                                    "docx": "OCADE output/frozen.docx", "title": "Frozen", "sections": []}))
+                                result["deck"] = facts(await session.call_tool("office_write_presentation", {
+                                    "path": "OCADE output/frozen.pptx", "slides": [{"title": "Frozen"}]}))["slides"]
+                                facts(await session.call_tool("fs_manage", {"action": "mkdir", "path": "frozen-folder"}))
+                                result["trash"] = "trashed" in facts(await session.call_tool(
+                                    "fs_manage", {"action": "trash", "path": "frozen-folder"}))
                             if module.endswith("web_worker"):
                                 url = f"http://127.0.0.1:{server.server_address[1]}/{nonce}"
                                 page = facts(await session.call_tool("web_open", {"url": url}))

@@ -6,7 +6,7 @@
 import os
 from pathlib import Path
 
-from PyInstaller.utils.hooks import collect_submodules
+from PyInstaller.utils.hooks import collect_data_files, collect_submodules
 
 # Every companion module, listed from disk: collect_submodules("ocade_agent") runs in a child
 # process that cannot see this source tree and silently returned nothing (no workers shipped).
@@ -28,10 +28,14 @@ analysis = Analysis(
     datas=[
         (os.path.join(ROOT, "ocade_agent", "protocol.json"), "ocade_agent"),
         (str(BROWSERS), "playwright-browsers"),
-    ],
+    ]
+    # The Word and PowerPoint libraries build new files from their own bundled templates.
+    + collect_data_files("docx")
+    + collect_data_files("pptx"),
     hiddenimports=bundled
     + collect_submodules("pywinauto")
-    + ["win32timezone", "pyautogui", "playwright.async_api"],
+    + collect_submodules("send2trash")
+    + ["win32timezone", "pyautogui", "playwright.async_api", "pptx"],
     excludes=["tkinter"],
 )
 pyz = PYZ(analysis.pure, cipher=block_cipher)

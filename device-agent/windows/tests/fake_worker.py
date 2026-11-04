@@ -90,6 +90,12 @@ def fs_manage(action: str, path: str, to: str | None = None, executable: bool | 
 
 
 @app.tool()
+def office_write_presentation(path: str, slides: list[dict]) -> dict:
+    """Deck."""
+    return {}
+
+
+@app.tool()
 def office_edit_document(path: str, edits: list[dict], expectSha256: str) -> dict:
     """Edit document."""
     return {}

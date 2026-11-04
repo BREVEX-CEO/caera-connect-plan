@@ -101,5 +101,49 @@ class OfficeEdits(unittest.TestCase):
         self.assertEqual(sha256(self.root / "chart.xlsx"), digest)
 
 
+class Presentations(unittest.TestCase):
+    """A new deck, its text read back, an in-place edit and the verifier's independent read."""
+
+    def test_write_read_edit_and_verify_a_deck(self):
+        from PIL import Image
+        from pptx import Presentation
+
+        root = Path(tempfile.mkdtemp())
+        Image.new("RGB", (64, 64), "navy").save(root / "logo.png")
+
+        async def go(*intents):
+            async with Gateway(str(root)) as gateway:
+                return [await gateway.run(i, gateway.epoch) for i in intents]
+
+        written, read = anyio.run(go,
+            intent("office.write_presentation", {"path": "OCADE output/pitch.pptx", "slides": [
+                {"title": "Northwind pitch", "subtitle": "Q4 2026"},
+                {"title": "Growth", "bullets": ["Revenue up 12%", "Two new markets"], "image": "logo.png",
+                 "notes": "Mention the pilot"}]}),
+            intent("fs.read_text", {"path": "OCADE output/pitch.pptx"}))
+        self.assertEqual((written["status"], written["evidence"]["slides"]), ("observed", 2), written)
+        self.assertIn("Revenue up 12%", read["evidence"]["text"])
+        self.assertIn("Mention the pilot", read["evidence"]["text"])
+        # The person's own deck: copy it out of OCADE output first, as they would have it.
+        (root / "deck.pptx").write_bytes((root / "OCADE output" / "pitch.pptx").read_bytes())
+        digest = sha256(root / "deck.pptx")
+        edited, verified = anyio.run(go,
+            intent("office.edit_document", {"path": "deck.pptx", "expectSha256": digest,
+                                            "edits": [{"find": "Revenue up 12%", "replace": "Revenue up 15%"}]}),
+            intent("verify.checks", {"checks": [
+                {"id": "says", "kind": "file_contains", "description": "d", "params": {"path": "deck.pptx", "text": "revenue up 15%"}},
+                {"id": "titles", "kind": "document_headings", "description": "d",
+                 "params": {"path": "deck.pptx", "headings": ["Growth", "Northwind pitch"]}},
+                {"id": "bullet", "kind": "document_headings", "description": "d",
+                 "params": {"path": "deck.pptx", "headings": ["Two new markets"]}}]}))
+        self.assertEqual(edited["status"], "observed", edited)
+        self.assertTrue(edited["evidence"]["matches"])
+        self.assertEqual(sha256(root / edited["evidence"]["original"]), digest)
+        self.assertEqual(verified["evidence"]["predicates"], {"says": True, "titles": True, "bullet": False})
+        slides = Presentation(str(root / "deck.pptx")).slides
+        self.assertEqual(len(slides[1].shapes), len(Presentation(str(root / "OCADE output" / "pitch.pptx")).slides[1].shapes),
+                         "the picture and every shape are kept")
+
+
 if __name__ == "__main__":
     unittest.main()

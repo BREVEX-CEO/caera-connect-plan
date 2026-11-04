@@ -4,6 +4,8 @@ jsonschema==4.26.0
 cryptography==50.0.1
 openpyxl==3.1.5
 python-docx==1.2.0
+# PowerPoint read, write and in-place edit (W5, D19); MIT, with XlsxWriter (BSD-2-Clause).
+python-pptx==1.0.2
 pypdf==6.21.4
 # Deletion goes to the Recycle Bin or Trash (W3, D17); BSD-3-Clause.
 Send2Trash==1.8.3

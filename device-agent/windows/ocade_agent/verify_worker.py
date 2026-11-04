@@ -65,6 +65,19 @@ def _text(path: Path) -> str | None:
             return "\n".join(str(v) for ws in book.worksheets for r in ws.iter_rows(values_only=True) for v in r if v is not None)
         if suffix == ".pdf":
             return "\n".join(page.extract_text() or "" for page in PdfReader(path).pages)
+        if suffix == ".pptx":
+            from pptx import Presentation
+
+            texts = []
+            for slide in Presentation(io.BytesIO(path.read_bytes())).slides:
+                for shape in slide.shapes:
+                    if shape.has_text_frame:
+                        texts.append(shape.text_frame.text)
+                    if getattr(shape, "has_table", False) and shape.has_table:
+                        texts += [cell.text for row in shape.table.rows for cell in row.cells]
+                if slide.has_notes_slide:
+                    texts.append(slide.notes_slide.notes_text_frame.text)
+            return "\n".join(texts)
         return plain_text(path)
     except Exception:
         return None
@@ -253,13 +266,21 @@ def _workbook_formula(path: Path, params: dict, notes: dict) -> bool:
 
 
 def _document_headings(path: Path, params: dict) -> bool:
-    """Each named heading is a real heading (Title or Heading style) of the Word document."""
+    """Each named heading is a real heading: a Title/Heading paragraph of a Word document, or a
+    slide title of a PowerPoint deck."""
     try:
-        document = Document(io.BytesIO(path.read_bytes()))
+        if path.suffix.lower() == ".pptx":
+            from pptx import Presentation
+
+            slides = Presentation(io.BytesIO(path.read_bytes())).slides
+            titles = [s.shapes.title.text for s in slides if s.shapes.title is not None]
+        else:
+            document = Document(io.BytesIO(path.read_bytes()))
+            titles = [p.text for p in document.paragraphs
+                      if p.style is not None and (p.style.name or "").lower().startswith(("heading", "title"))]
     except Exception:
         return False
-    found = [" ".join(p.text.split()).casefold() for p in document.paragraphs
-             if p.style is not None and (p.style.name or "").lower().startswith(("heading", "title"))]
+    found = [" ".join(t.split()).casefold() for t in titles]
     wanted = [" ".join(str(h).split()).casefold() for h in params.get("headings") or []]
     return bool(wanted) and all(any(w in f for f in found) for w in wanted)
 

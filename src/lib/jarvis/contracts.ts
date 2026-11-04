@@ -689,9 +689,31 @@ export const OPERATIONS = {
         .max(10),
     }),
   },
+  "office.write_presentation": {
+    summary:
+      "Write a new editable PowerPoint deck (.pptx): slides with a title, bullets, an optional workspace picture and speaker notes (a first slide without bullets is a title slide with an optional subtitle).",
+    role: "sys_core",
+    capability: "files",
+    risk: "reversible_write",
+    arguments: z.strictObject({
+      path: outputPath("The deck, .pptx"),
+      slides: z
+        .array(
+          z.strictObject({
+            title: z.string().min(1).max(200),
+            subtitle: z.string().max(300).optional(),
+            bullets: z.array(z.string().min(1).max(500)).max(12).optional(),
+            image: workspacePath.optional(),
+            notes: z.string().max(3000).optional(),
+          }),
+        )
+        .min(1)
+        .max(60),
+    }),
+  },
   "office.edit_document": {
     summary:
-      "Change exact passages of an existing Word document (.docx) in place, keeping its styles, tables and layout, after the person confirms (each `find` must occur exactly once). Needs the sha256 fs.read_text returned; the original is kept under 'OCADE output/originals/'.",
+      "Change exact passages of an existing Word document (.docx) or PowerPoint deck (.pptx) in place, keeping its styles, tables and layout, after the person confirms (each `find` must occur exactly once). Needs the sha256 fs.read_text returned; the original is kept under 'OCADE output/originals/'.",
     role: "sys_core",
     capability: "files",
     risk: "external_effect",
@@ -1150,7 +1172,7 @@ export const outcomeCheck = z.object({
         "scene_render {path}: a .png rendered from a valid saved 3D scene project; script_runnable {path}: a " +
         "script starts directly on macOS/Linux (#! line, Unix line endings, executable, parses; nothing is run); " +
         "workbook_formula {path,sheet,cell,value?}: the cell holds a formula, and its saved result is value; " +
-        "document_headings {path,headings}: each text is a Title or Heading of the Word document",
+        "document_headings {path,headings}: each text is a Title/Heading of the Word document or a slide title of the .pptx",
     ),
   params: z
     .strictObject({

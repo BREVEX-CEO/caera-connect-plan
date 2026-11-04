@@ -1677,6 +1677,70 @@
         "additionalProperties": false
       }
     },
+    "office.write_presentation": {
+      "role": "sys_core",
+      "capability": "files",
+      "risk": "reversible_write",
+      "arguments": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 260,
+            "pattern": "^OCADE output\\/",
+            "description": "The deck, .pptx: a new path that starts with 'OCADE output/', e.g. 'OCADE output/result.ext'"
+          },
+          "slides": {
+            "minItems": 1,
+            "maxItems": 60,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "title": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200
+                },
+                "subtitle": {
+                  "type": "string",
+                  "maxLength": 300
+                },
+                "bullets": {
+                  "maxItems": 12,
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 500
+                  }
+                },
+                "image": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 260
+                },
+                "notes": {
+                  "type": "string",
+                  "maxLength": 3000
+                }
+              },
+              "required": [
+                "title"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "path",
+          "slides"
+        ],
+        "additionalProperties": false
+      }
+    },
     "office.edit_document": {
       "role": "sys_core",
       "capability": "files",
@@ -2802,7 +2866,7 @@
                   "maxLength": 200
                 },
                 "kind": {
-                  "description": "params — file_exists {path}: a file with content or a folder with something in it; file_contains {path,text}: the words appear (letter case and spacing ignored); file_parses {path}: a JSON, Python, XML, TOML, INI or CSV file is well-formed for its format (nothing is run); workbook_cell_equals {path,sheet,cell,value}; web_text_contains {url,text}; window_exists {exe,text?}; media_duration {path,value}; media_quality {path,value,width,height}: playable H.264/AAC stereo of exactly value seconds, at least width x height, broadcast loudness, no long black or silent gap; image_size {path,width,height}; scene_render {path}: a .png rendered from a valid saved 3D scene project; script_runnable {path}: a script starts directly on macOS/Linux (#! line, Unix line endings, executable, parses; nothing is run); workbook_formula {path,sheet,cell,value?}: the cell holds a formula, and its saved result is value; document_headings {path,headings}: each text is a Title or Heading of the Word document",
+                  "description": "params — file_exists {path}: a file with content or a folder with something in it; file_contains {path,text}: the words appear (letter case and spacing ignored); file_parses {path}: a JSON, Python, XML, TOML, INI or CSV file is well-formed for its format (nothing is run); workbook_cell_equals {path,sheet,cell,value}; web_text_contains {url,text}; window_exists {exe,text?}; media_duration {path,value}; media_quality {path,value,width,height}: playable H.264/AAC stereo of exactly value seconds, at least width x height, broadcast loudness, no long black or silent gap; image_size {path,width,height}; scene_render {path}: a .png rendered from a valid saved 3D scene project; script_runnable {path}: a script starts directly on macOS/Linux (#! line, Unix line endings, executable, parses; nothing is run); workbook_formula {path,sheet,cell,value?}: the cell holds a formula, and its saved result is value; document_headings {path,headings}: each text is a Title/Heading of the Word document or a slide title of the .pptx",
                   "type": "string",
                   "enum": [
                     "file_exists",

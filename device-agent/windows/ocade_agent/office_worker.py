@@ -97,6 +97,9 @@ def fs_read_text(path: str) -> dict:
             for sheet in book.worksheets
         )
         book.close()
+    elif suffix == ".pptx":
+        text = "\n".join(f"[slide {n}]\n" + "\n".join(_slide_texts(slide))
+                         for n, slide in enumerate(_presentation(source.read_bytes()).slides, 1))
     elif suffix == ".pdf":
         from pypdf import PdfReader
 
@@ -175,7 +178,7 @@ def _swap(path: str, expect: str, produce, office: bool) -> tuple[dict, Path, ob
         data = stream.read(limit + 1)
     if len(data) > limit:
         raise Refused("file_too_large")
-    is_office = target.suffix.lower() in (".docx", ".xlsx")
+    is_office = target.suffix.lower() in (".docx", ".xlsx", ".pptx")
     if is_office != office or target.suffix.lower() == ".pdf":
         raise Refused("unsupported_file_type")
     root = Path(os.path.realpath(WORKSPACE))
@@ -251,11 +254,17 @@ def office_edit_document(path: str, edits: list[dict], expectSha256: str) -> dic
     exactly once across its paragraphs and table cells); styles, tables and everything else stay
     as they were; only if it is still the version that was read; the original is kept."""
 
+    deck = resolve(WORKSPACE, path).suffix.lower() == ".pptx"
+
     def produce(data: bytes, staged: Path) -> None:
-        document = Document(io.BytesIO(data))
-        paragraphs = list(document.paragraphs) + [
-            paragraph for table in document.tables for row in table.rows for cell in row.cells
-            for paragraph in cell.paragraphs]
+        if deck:
+            document = _presentation(data)
+            paragraphs = [p for slide in document.slides for p in _slide_paragraphs(slide)]
+        else:
+            document = Document(io.BytesIO(data))
+            paragraphs = list(document.paragraphs) + [
+                paragraph for table in document.tables for row in table.rows for cell in row.cells
+                for paragraph in cell.paragraphs]
         for edit in edits:
             found = sum(paragraph.text.count(edit["find"]) for paragraph in paragraphs)
             if found != 1:
@@ -264,7 +273,9 @@ def office_edit_document(path: str, edits: list[dict], expectSha256: str) -> dic
         document.save(staged)
 
     evidence, target, _ = _swap(path, expectSha256, produce, office=True)
-    text = "\n".join(p.text for p in Document(str(target)).paragraphs)
+    text = "\n".join(
+        [t for slide in _presentation(target.read_bytes()).slides for t in _slide_texts(slide)] if deck
+        else [p.text for p in Document(str(target)).paragraphs])
     evidence["matches"] = all(edit["replace"] in text or not edit["replace"] for edit in edits) and all(
         edit["find"] not in text or edit["find"] in edit["replace"] for edit in edits)
     return evidence
@@ -542,6 +553,66 @@ def _file_version(path: str) -> dict:
         return {"fileVersion": f"{ms >> 16}.{ms & 0xFFFF}.{ls >> 16}.{ls & 0xFFFF}"}
     except Exception:
         return {}
+
+
+def _presentation(data: bytes):
+    from pptx import Presentation
+
+    return Presentation(io.BytesIO(data))
+
+
+def _slide_paragraphs(slide) -> list:
+    """Every text paragraph on a slide: text boxes, placeholders, table cells and the notes."""
+    found = []
+    for shape in slide.shapes:
+        if shape.has_text_frame:
+            found += shape.text_frame.paragraphs
+        if getattr(shape, "has_table", False) and shape.has_table:
+            found += [p for row in shape.table.rows for cell in row.cells for p in cell.text_frame.paragraphs]
+    if slide.has_notes_slide:
+        found += slide.notes_slide.notes_text_frame.paragraphs
+    return found
+
+
+def _slide_texts(slide) -> list[str]:
+    return [p.text for p in _slide_paragraphs(slide) if p.text.strip()]
+
+
+@app.tool()
+@_evidence
+def office_write_presentation(path: str, slides: list[dict]) -> dict:
+    """A new editable PowerPoint deck: a title (and optional subtitle) slide, then slides with a
+    title, bullets, an optional workspace picture and speaker notes."""
+    from pptx import Presentation
+    from pptx.util import Inches
+
+    target = output_path(WORKSPACE, path)
+    if target.suffix.lower() != ".pptx":
+        raise Refused("unsupported_file_type")
+    pictures = {n: resolve(WORKSPACE, s["image"]) for n, s in enumerate(slides) if s.get("image")}
+    if any(not p.is_file() for p in pictures.values()):
+        raise Refused("not_a_file")
+
+    def write(temporary: Path) -> None:
+        deck = Presentation()
+        for n, spec in enumerate(slides):
+            layout = deck.slide_layouts[0 if n == 0 and not spec.get("bullets") else 1]
+            slide = deck.slides.add_slide(layout)
+            slide.shapes.title.text = spec["title"]
+            body = slide.placeholders[1] if len(slide.placeholders) > 1 else None
+            if body is not None:
+                lines = spec.get("bullets") or ([spec["subtitle"]] if spec.get("subtitle") else [])
+                body.text_frame.text = lines[0] if lines else ""
+                for line in lines[1:]:
+                    body.text_frame.add_paragraph().text = line
+            if n in pictures:
+                slide.shapes.add_picture(str(pictures[n]), Inches(5.5), Inches(2), width=Inches(4))
+            if spec.get("notes"):
+                slide.notes_slide.notes_text_frame.text = spec["notes"]
+        deck.save(temporary)
+
+    digest = write_atomically(target, write)
+    return {"sha256": digest, "slides": len(_presentation(target.read_bytes()).slides)}
 
 
 @app.tool()
