@@ -214,7 +214,8 @@ while (Date.now() < deadline) {
   const view = await authority.taskView(admin, user.id, taskId);
   const line = `[${view.status}] ${view.steps.at(-1)?.summary ?? "planning"} (${view.steps.length} steps)`;
   if (line !== shown) console.log((shown = line));
-  if (view.status !== "running") break;
+  // A task waiting only for a busy planner resumes by itself (D10): keep following it.
+  if (view.status !== "running" && !/tries again by itself/.test(view.blocker ?? "")) break;
   await new Promise((ok) => setTimeout(ok, 1000));
 }
 running = false;
