@@ -12,6 +12,7 @@ document and its PDF. What to read, compute and write is the planner's choice.
 from __future__ import annotations
 
 import hashlib
+import io
 import os
 import secrets
 import shutil
@@ -144,15 +145,38 @@ def fs_edit_text(path: str, edits: list[dict], expectSha256: str) -> dict:
 
 
 def _rewrite(path: str, expect: str, change) -> dict:
-    """The one in-place writer: same version as read, original kept, mode kept, atomic swap."""
+    """In-place text edit: same version as read, original kept (see `_swap`)."""
+
+    def produce(data: bytes, staged: Path) -> str:
+        if b"\0" in data:
+            raise Refused("unsupported_file_type")
+        try:
+            current = data.decode("utf-8")
+        except UnicodeDecodeError:
+            current = None  # not UTF-8: only a whole replacement can change it
+        text = change(current)
+        staged.write_bytes(text.encode("utf-8"))
+        return text
+
+    evidence, target, text = _swap(path, expect, produce, office=False)
+    evidence["matches"] = target.read_bytes().decode("utf-8") == text
+    return evidence
+
+
+def _swap(path: str, expect: str, produce, office: bool) -> tuple[dict, Path, object]:
+    """The one in-place writer: same version as read, original kept, mode kept, atomic swap.
+    `produce(data, staged_path)` writes the new content; office files (docx/xlsx) only when
+    `office`, plain text otherwise."""
     target = resolve(WORKSPACE, path)
     if not target.is_file():
         raise Refused("not_a_file")
+    limit = 50_000_000 if office else 2_000_000
     with target.open("rb") as stream:
-        data = stream.read(2_000_001)
-    if len(data) > 2_000_000:
+        data = stream.read(limit + 1)
+    if len(data) > limit:
         raise Refused("file_too_large")
-    if target.suffix.lower() in (".docx", ".xlsx", ".pdf") or b"\0" in data:
+    is_office = target.suffix.lower() in (".docx", ".xlsx")
+    if is_office != office or target.suffix.lower() == ".pdf":
         raise Refused("unsupported_file_type")
     root = Path(os.path.realpath(WORKSPACE))
     output_root = root / OUTPUT_DIR
@@ -162,20 +186,15 @@ def _rewrite(path: str, expect: str, change) -> dict:
     before = hashlib.sha256(data).hexdigest()
     if before != expect:
         raise Refused("file_changed")  # someone changed it since it was read: read it again
-    try:
-        current = data.decode("utf-8")
-    except UnicodeDecodeError:
-        current = None  # not UTF-8: only a whole replacement can change it
-    text = change(current)
-    stamp = f"{time.strftime('%Y%m%dT%H%M%SZ', time.gmtime())}-{secrets.token_hex(8)}"
-    original = output_path(WORKSPACE, f"{OUTPUT_DIR}/originals/{relative.as_posix()}.{stamp}{target.suffix}")
-    write_atomically(original, lambda temporary: temporary.write_bytes(data))
     handle, temporary = tempfile.mkstemp(dir=target.parent, prefix=".ocade-", suffix=target.suffix)
+    os.close(handle)
     staged = Path(temporary)
     aside = staged.with_name(staged.name + ".was")
     try:
-        with os.fdopen(handle, "wb") as stream:
-            stream.write(text.encode("utf-8"))
+        result = produce(data, staged)
+        stamp = f"{time.strftime('%Y%m%dT%H%M%SZ', time.gmtime())}-{secrets.token_hex(8)}"
+        original = output_path(WORKSPACE, f"{OUTPUT_DIR}/originals/{relative.as_posix()}.{stamp}{target.suffix}")
+        write_atomically(original, lambda temporary: temporary.write_bytes(data))
         shutil.copymode(target, staged)
         if resolve(WORKSPACE, path) != target:
             raise Refused("file_changed")  # a folder on the way was swapped since it was resolved
@@ -201,8 +220,87 @@ def _rewrite(path: str, expect: str, change) -> dict:
         staged.unlink(missing_ok=True)
         if aside.exists():  # never leave the person without their file
             aside.unlink() if target.exists() else os.rename(aside, target)
-    return {"sha256Before": before, "sha256": sha256(target), "original": original.relative_to(root).as_posix(),
-            "matches": target.read_bytes().decode("utf-8") == text}
+    evidence = {"sha256Before": before, "sha256": sha256(target), "original": original.relative_to(root).as_posix()}
+    return evidence, target, result
+
+
+def _replace_in_paragraph(paragraph, find: str, replace: str) -> None:
+    """Replace one passage inside a paragraph, keeping the formatting of the runs around it:
+    the new text takes the formatting of the first run the passage started in."""
+    runs = paragraph.runs
+    text = "".join(run.text for run in runs)
+    if text.count(find) != 1:
+        raise Refused("find_spans_a_link_or_field")  # the passage is not plain runs: leave it
+    start = text.index(find)
+    end, position, inserted = start + len(find), 0, False
+    for run in runs:
+        run_start, run_end = position, position + len(run.text)
+        position = run_end
+        if run_end <= start or run_start >= end:
+            continue
+        before = run.text[:max(0, start - run_start)]
+        after = run.text[end - run_start:] if end < run_end else ""
+        run.text = before + ("" if inserted else replace) + after
+        inserted = True
+
+
+@app.tool()
+@_evidence
+def office_edit_document(path: str, edits: list[dict], expectSha256: str) -> dict:
+    """Change exact passages of an existing Word document in place (each `find` must occur
+    exactly once across its paragraphs and table cells); styles, tables and everything else stay
+    as they were; only if it is still the version that was read; the original is kept."""
+
+    def produce(data: bytes, staged: Path) -> None:
+        document = Document(io.BytesIO(data))
+        paragraphs = list(document.paragraphs) + [
+            paragraph for table in document.tables for row in table.rows for cell in row.cells
+            for paragraph in cell.paragraphs]
+        for edit in edits:
+            found = sum(paragraph.text.count(edit["find"]) for paragraph in paragraphs)
+            if found != 1:
+                raise Refused("find_not_unique" if found else "find_not_found")
+            _replace_in_paragraph(next(p for p in paragraphs if edit["find"] in p.text), edit["find"], edit["replace"])
+        document.save(staged)
+
+    evidence, target, _ = _swap(path, expectSha256, produce, office=True)
+    text = "\n".join(p.text for p in Document(str(target)).paragraphs)
+    evidence["matches"] = all(edit["replace"] in text or not edit["replace"] for edit in edits) and all(
+        edit["find"] not in text or edit["find"] in edit["replace"] for edit in edits)
+    return evidence
+
+
+# Parts openpyxl would drop on saving: such a workbook is refused rather than quietly damaged.
+_UNPRESERVED = ("xl/drawings/", "xl/charts/", "xl/pivotTables/", "xl/vbaProject.bin", "xl/media/")
+
+
+@app.tool()
+@_evidence
+def office_edit_workbook(path: str, cells: list[dict], expectSha256: str) -> dict:
+    """Set cells of an existing workbook in place (a value, or a formula starting with '='),
+    then recalculate with a real engine; only if it is still the version that was read; the
+    original is kept. Workbooks with charts, pictures, pivot tables or macros are refused."""
+    import zipfile
+
+    used = {}
+
+    def produce(data: bytes, staged: Path) -> None:
+        with zipfile.ZipFile(io.BytesIO(data)) as package:
+            if any(name.startswith(_UNPRESERVED) for name in package.namelist()):
+                raise Refused("workbook_features_not_preserved")
+        book = openpyxl.load_workbook(io.BytesIO(data))
+        for change in cells:
+            if change["sheet"] not in book.sheetnames:
+                raise Refused("no_such_sheet")
+            book[change["sheet"]][change["cell"]] = change["value"]
+        book.save(staged)
+        used["engine"] = engine.recalculate(staged)
+
+    evidence, target, _ = _swap(path, expectSha256, produce, office=True)
+    book = openpyxl.load_workbook(target)
+    evidence["matches"] = all(book[c["sheet"]][c["cell"]].value == c["value"] for c in cells)
+    evidence["engine"] = used["engine"]
+    return evidence
 
 
 def _organisable(path: str) -> Path:

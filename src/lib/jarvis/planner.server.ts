@@ -148,6 +148,9 @@ const RANKING_WORDS: Partial<Record<Operation, string>> = {
   "office.inspect_workbook": "spreadsheet excel workbook sheet cells table reconcile compare",
   "office.write_document": "word document report docx pdf summary letter editable",
   "office.write_workbook": "spreadsheet excel workbook table totals differences reconcile",
+  "office.edit_document": "edit change update correct existing word document docx in place wording",
+  "office.edit_workbook":
+    "edit change update correct existing spreadsheet excel cell value formula in place",
   "system.inspect":
     "installed version program available computer architecture disk space dependency missing",
   "system.diagnose":

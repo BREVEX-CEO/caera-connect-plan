@@ -1542,6 +1542,121 @@
         "additionalProperties": false
       }
     },
+    "office.edit_document": {
+      "role": "sys_core",
+      "capability": "files",
+      "risk": "external_effect",
+      "arguments": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 260
+          },
+          "edits": {
+            "minItems": 1,
+            "maxItems": 20,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "find": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 2000
+                },
+                "replace": {
+                  "type": "string",
+                  "maxLength": 5000
+                }
+              },
+              "required": [
+                "find",
+                "replace"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "expectSha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        },
+        "required": [
+          "path",
+          "edits",
+          "expectSha256"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "office.edit_workbook": {
+      "role": "sys_core",
+      "capability": "files",
+      "risk": "external_effect",
+      "arguments": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 260
+          },
+          "cells": {
+            "minItems": 1,
+            "maxItems": 200,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "sheet": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 31
+                },
+                "cell": {
+                  "type": "string",
+                  "pattern": "^[A-Z]{1,3}[0-9]{1,7}$"
+                },
+                "value": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "maxLength": 1000
+                    },
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "sheet",
+                "cell",
+                "value"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "expectSha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        },
+        "required": [
+          "path",
+          "cells",
+          "expectSha256"
+        ],
+        "additionalProperties": false
+      }
+    },
     "system.inspect": {
       "role": "sys_core",
       "capability": "apps",

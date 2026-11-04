@@ -640,6 +640,43 @@ export const OPERATIONS = {
         .max(10),
     }),
   },
+  "office.edit_document": {
+    summary:
+      "Change exact passages of an existing Word document (.docx) in place, keeping its styles, tables and layout, after the person confirms (each `find` must occur exactly once). Needs the sha256 fs.read_text returned; the original is kept under 'OCADE output/originals/'.",
+    role: "sys_core",
+    capability: "files",
+    risk: "external_effect",
+    arguments: z.strictObject({
+      path: workspacePath,
+      edits: z
+        .array(z.strictObject({ find: z.string().min(1).max(2000), replace: z.string().max(5000) }))
+        .min(1)
+        .max(20),
+      expectSha256: z.string().regex(/^[0-9a-f]{64}$/),
+    }),
+  },
+  "office.edit_workbook": {
+    summary:
+      "Set cells of an existing spreadsheet (.xlsx) in place (a value, or a formula starting with =), recalculated by a real engine, after the person confirms. Needs the sha256 fs.read_text returned; the original is kept; workbooks with charts, pictures, pivot tables or macros are refused.",
+    engine: "office",
+    role: "sys_core",
+    capability: "files",
+    risk: "external_effect",
+    arguments: z.strictObject({
+      path: workspacePath,
+      cells: z
+        .array(
+          z.strictObject({
+            sheet: z.string().min(1).max(31),
+            cell: z.string().regex(/^[A-Z]{1,3}[0-9]{1,7}$/),
+            value: z.union([z.string().max(1000), z.number(), z.null()]),
+          }),
+        )
+        .min(1)
+        .max(200),
+      expectSha256: z.string().regex(/^[0-9a-f]{64}$/),
+    }),
+  },
   "system.inspect": {
     summary:
       "Facts about this computer before installing or repairing anything: OS, version, CPU architecture, free disk space in the workspace, and where each named program (for example python, node, ffmpeg, winget, brew) resolves, without running it.",
