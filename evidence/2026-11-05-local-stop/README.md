@@ -28,5 +28,8 @@ pending. No task deadline or evaluation timeout is extended.
 
 M2, requirements 88/216 and concept 57 may be restored only after the repaired
 control path passes the required Linux, Windows and macOS qualification. The
-coherent repair is included with this assessment. D22/D23 remain open
-until that proof is recorded and the coherent repair is committed.
+coherent repair was published at 04ff4a99; run 41904905940 tests that repair.
+D22 is CRITICAL under the plan's unauthorized-action definition: the regression
+produced a real post-STOP file. It remains open pending full qualification;
+the earlier HIGH classification understated that definition. D23 also needs
+full qualification and a live busy-family retest. No zero-critical claim is made.

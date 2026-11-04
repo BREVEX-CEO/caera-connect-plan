@@ -1,0 +1,142 @@
+{
+  "objective": "Collect every order reference (like ABC-1234) from a.txt, b.docx and c.csv into one new list file.",
+  "taskId": "2774ef9e-55d7-49a5-a5c2-572bc493c340",
+  "status": "waiting",
+  "result": null,
+  "blocker": "JARVIS's online planner is busy right now. JARVIS tries again by itself shortly; nothing is lost.",
+  "checks": [],
+  "outcome": null,
+  "timing": {
+    "acceptedAt": "2026-11-04T20:44:09.62548+00:00",
+    "finishedAt": null,
+    "verifiedAt": null,
+    "deliveredAt": null,
+    "totalElapsedMs": 915188,
+    "userWaitMs": 0,
+    "pausedMs": 910871,
+    "activeExecutionMs": 3,
+    "modelCalls": 1,
+    "modelMs": 1128,
+    "pickupMs": 813,
+    "unaccountedMs": 2373,
+    "stepDurationsMs": [
+      3.46
+    ],
+    "stepPickupMs": [
+      813
+    ]
+  },
+  "rpc": {
+    "jarvis_enroll_device": {
+      "calls": 1,
+      "ms": 239
+    },
+    "jarvis_approve_device": {
+      "calls": 1,
+      "ms": 372
+    },
+    "jarvis_device_key": {
+      "calls": 3,
+      "ms": 471
+    },
+    "jarvis_device_seen": {
+      "calls": 20,
+      "ms": 4541
+    },
+    "jarvis_device_inventory": {
+      "calls": 1,
+      "ms": 254
+    },
+    "jarvis_device_topic": {
+      "calls": 1,
+      "ms": 199
+    },
+    "jarvis_claim_action": {
+      "calls": 19,
+      "ms": 4156
+    },
+    "jarvis_grants": {
+      "calls": 1,
+      "ms": 340
+    },
+    "jarvis_online_consented": {
+      "calls": 1,
+      "ms": 388
+    },
+    "jarvis_open_task": {
+      "calls": 1,
+      "ms": 178
+    },
+    "jarvis_task_state": {
+      "calls": 1302,
+      "ms": 237532
+    },
+    "jarvis_queue_actions": {
+      "calls": 1,
+      "ms": 378
+    },
+    "jarvis_submit_receipt": {
+      "calls": 1,
+      "ms": 298
+    },
+    "jarvis_note_model": {
+      "calls": 1,
+      "ms": 212
+    },
+    "jarvis_task_wait_until": {
+      "calls": 1,
+      "ms": 171
+    },
+    "jarvis_resume_due": {
+      "calls": 15,
+      "ms": 3065
+    }
+  },
+  "confirmations": [],
+  "decisions": [
+    {
+      "summary": "Looking at your JARVIS folder",
+      "intent": {
+        "v": 1,
+        "key": "discover",
+        "risk": "read",
+        "arguments": {
+          "path": "."
+        },
+        "operation": "fs.list",
+        "capability": "files",
+        "deadlineUtc": "2026-11-04T20:54:09.698Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "entries": [
+            {
+              "kind": "file",
+              "name": "a.txt",
+              "size": 48,
+              "executable": false
+            },
+            {
+              "kind": "file",
+              "name": "b.docx",
+              "size": 36621,
+              "executable": false
+            },
+            {
+              "kind": "file",
+              "name": "c.csv",
+              "size": 25,
+              "executable": false
+            }
+          ],
+          "durationMs": 3.46
+        },
+        "maybeChanged": false,
+        "observedAtUtc": "2026-11-04T20:44:11.084Z"
+      }
+    }
+  ],
+  "outputs": []
+}

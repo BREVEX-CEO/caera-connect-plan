@@ -1,0 +1,672 @@
+{
+  "objective": "My JARVIS folder is getting full. Find the three biggest files and list them with their sizes in a short note.",
+  "taskId": "981c523f-36eb-405a-8e19-56858fde030a",
+  "status": "completed",
+  "result": "Done, and checked independently.",
+  "blocker": null,
+  "checks": [
+    {
+      "id": "note_exists",
+      "kind": "file_exists",
+      "params": {
+        "path": "OCADE output/note.txt"
+      },
+      "description": "A note listing the three biggest files and their sizes exists.",
+      "state": "passed"
+    },
+    {
+      "id": "note_content",
+      "kind": "file_contains",
+      "params": {
+        "path": "OCADE output/note.txt",
+        "text": "size"
+      },
+      "description": "The note contains size or file information.",
+      "state": "passed"
+    }
+  ],
+  "outcome": [
+    {
+      "id": "note_exists",
+      "kind": "file_exists",
+      "params": {
+        "path": "OCADE output/note.txt"
+      },
+      "description": "A note listing the three biggest files and their sizes exists."
+    },
+    {
+      "id": "note_content",
+      "kind": "file_contains",
+      "params": {
+        "path": "OCADE output/note.txt",
+        "text": "size"
+      },
+      "description": "The note contains size or file information."
+    }
+  ],
+  "timing": {
+    "acceptedAt": "2026-11-04T16:21:11.195089+00:00",
+    "finishedAt": "2026-11-04T16:29:30.442944+00:00",
+    "verifiedAt": "2026-11-04T16:29:30.442944+00:00",
+    "deliveredAt": "2026-11-04T16:29:30.442944+00:00",
+    "totalElapsedMs": 499247,
+    "userWaitMs": 0,
+    "pausedMs": 61420,
+    "activeExecutionMs": 40,
+    "modelCalls": 12,
+    "modelMs": 410389,
+    "pickupMs": 12486,
+    "unaccountedMs": 14912,
+    "stepDurationsMs": [
+      3.23,
+      2.82,
+      2.84,
+      2.14,
+      2.13,
+      2.19,
+      1.82,
+      2.92,
+      2.66,
+      2.41,
+      2.67,
+      2.54,
+      2.68,
+      3.63,
+      3.36
+    ],
+    "stepPickupMs": [
+      578,
+      325,
+      350,
+      1280,
+      1877,
+      2663,
+      3446,
+      188,
+      353,
+      164,
+      360,
+      407,
+      178,
+      159,
+      158
+    ]
+  },
+  "rpc": {
+    "jarvis_enroll_device": {
+      "calls": 1,
+      "ms": 180
+    },
+    "jarvis_approve_device": {
+      "calls": 1,
+      "ms": 167
+    },
+    "jarvis_device_key": {
+      "calls": 2,
+      "ms": 573
+    },
+    "jarvis_device_seen": {
+      "calls": 32,
+      "ms": 6798
+    },
+    "jarvis_device_inventory": {
+      "calls": 1,
+      "ms": 155
+    },
+    "jarvis_device_topic": {
+      "calls": 1,
+      "ms": 153
+    },
+    "jarvis_claim_action": {
+      "calls": 32,
+      "ms": 6389
+    },
+    "jarvis_grants": {
+      "calls": 1,
+      "ms": 144
+    },
+    "jarvis_online_consented": {
+      "calls": 1,
+      "ms": 151
+    },
+    "jarvis_open_task": {
+      "calls": 1,
+      "ms": 343
+    },
+    "jarvis_task_state": {
+      "calls": 729,
+      "ms": 147885
+    },
+    "jarvis_queue_actions": {
+      "calls": 11,
+      "ms": 3268
+    },
+    "jarvis_submit_receipt": {
+      "calls": 15,
+      "ms": 2687
+    },
+    "jarvis_note_model": {
+      "calls": 12,
+      "ms": 2702
+    },
+    "jarvis_set_outcome": {
+      "calls": 1,
+      "ms": 363
+    },
+    "jarvis_task_wait_until": {
+      "calls": 1,
+      "ms": 178
+    },
+    "jarvis_resume_due": {
+      "calls": 2,
+      "ms": 293
+    },
+    "jarvis_settle_task": {
+      "calls": 1,
+      "ms": 210
+    }
+  },
+  "confirmations": [],
+  "decisions": [
+    {
+      "summary": "Looking at your JARVIS folder",
+      "intent": {
+        "v": 1,
+        "key": "discover",
+        "risk": "read",
+        "arguments": {
+          "path": "."
+        },
+        "operation": "fs.list",
+        "capability": "files",
+        "deadlineUtc": "2026-11-04T16:31:11.256Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "entries": [
+            {
+              "kind": "folder",
+              "name": "birch",
+              "size": 4096
+            },
+            {
+              "kind": "folder",
+              "name": "cobalt",
+              "size": 4096
+            },
+            {
+              "kind": "folder",
+              "name": "ember",
+              "size": 4096
+            },
+            {
+              "kind": "folder",
+              "name": "garnet",
+              "size": 4096
+            },
+            {
+              "kind": "folder",
+              "name": "prairie",
+              "size": 4096
+            },
+            {
+              "kind": "folder",
+              "name": "quartz",
+              "size": 4096
+            }
+          ],
+          "durationMs": 3.23
+        },
+        "maybeChanged": false,
+        "observedAtUtc": "2026-11-04T16:21:12.160Z"
+      }
+    },
+    {
+      "summary": "list",
+      "intent": {
+        "v": 1,
+        "key": "s2",
+        "risk": "read",
+        "arguments": {
+          "path": "birch"
+        },
+        "operation": "fs.list",
+        "capability": "files",
+        "deadlineUtc": "2026-11-04T16:31:12.466Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "entries": [
+            {
+              "kind": "folder",
+              "name": "harbor",
+              "size": 4096
+            }
+          ],
+          "durationMs": 2.82
+        },
+        "maybeChanged": false,
+        "observedAtUtc": "2026-11-04T16:22:47.831Z"
+      }
+    },
+    {
+      "summary": "list",
+      "intent": {
+        "v": 1,
+        "key": "s3",
+        "risk": "read",
+        "arguments": {
+          "path": "cobalt"
+        },
+        "operation": "fs.list",
+        "capability": "files",
+        "deadlineUtc": "2026-11-04T16:32:48.640Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "entries": [
+            {
+              "kind": "folder",
+              "name": "tundra",
+              "size": 4096
+            }
+          ],
+          "durationMs": 2.84
+        },
+        "maybeChanged": false,
+        "observedAtUtc": "2026-11-04T16:23:12.061Z"
+      }
+    },
+    {
+      "summary": "list",
+      "intent": {
+        "v": 1,
+        "key": "s3-2",
+        "risk": "read",
+        "arguments": {
+          "path": "ember"
+        },
+        "operation": "fs.list",
+        "capability": "files",
+        "deadlineUtc": "2026-11-04T16:32:48.640Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "entries": [
+            {
+              "kind": "folder",
+              "name": "sierra",
+              "size": 4096
+            }
+          ],
+          "durationMs": 2.14
+        },
+        "maybeChanged": false,
+        "observedAtUtc": "2026-11-04T16:23:12.970Z"
+      }
+    },
+    {
+      "summary": "list",
+      "intent": {
+        "v": 1,
+        "key": "s3-3",
+        "risk": "read",
+        "arguments": {
+          "path": "garnet"
+        },
+        "operation": "fs.list",
+        "capability": "files",
+        "deadlineUtc": "2026-11-04T16:32:48.640Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "entries": [
+            {
+              "kind": "folder",
+              "name": "lumen",
+              "size": 4096
+            }
+          ],
+          "durationMs": 2.13
+        },
+        "maybeChanged": false,
+        "observedAtUtc": "2026-11-04T16:23:13.568Z"
+      }
+    },
+    {
+      "summary": "list",
+      "intent": {
+        "v": 1,
+        "key": "s3-4",
+        "risk": "read",
+        "arguments": {
+          "path": "prairie"
+        },
+        "operation": "fs.list",
+        "capability": "files",
+        "deadlineUtc": "2026-11-04T16:32:48.640Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "entries": [
+            {
+              "kind": "folder",
+              "name": "fjord",
+              "size": 4096
+            }
+          ],
+          "durationMs": 2.19
+        },
+        "maybeChanged": false,
+        "observedAtUtc": "2026-11-04T16:23:14.356Z"
+      }
+    },
+    {
+      "summary": "list",
+      "intent": {
+        "v": 1,
+        "key": "s3-5",
+        "risk": "read",
+        "arguments": {
+          "path": "quartz"
+        },
+        "operation": "fs.list",
+        "capability": "files",
+        "deadlineUtc": "2026-11-04T16:32:48.640Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "entries": [
+            {
+              "kind": "folder",
+              "name": "meadow",
+              "size": 4096
+            }
+          ],
+          "durationMs": 1.82
+        },
+        "maybeChanged": false,
+        "observedAtUtc": "2026-11-04T16:23:15.139Z"
+      }
+    },
+    {
+      "summary": "list",
+      "intent": {
+        "v": 1,
+        "key": "s8",
+        "risk": "read",
+        "arguments": {
+          "path": "birch/harbor"
+        },
+        "operation": "fs.list",
+        "capability": "files",
+        "deadlineUtc": "2026-11-04T16:33:15.422Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "entries": [
+            {
+              "kind": "file",
+              "name": "birch1.bin",
+              "size": 8118000,
+              "executable": false
+            }
+          ],
+          "durationMs": 2.92
+        },
+        "maybeChanged": false,
+        "observedAtUtc": "2026-11-04T16:24:07.123Z"
+      }
+    },
+    {
+      "summary": "list",
+      "intent": {
+        "v": 1,
+        "key": "s9",
+        "risk": "read",
+        "arguments": {
+          "path": "cobalt/tundra"
+        },
+        "operation": "fs.list",
+        "capability": "files",
+        "deadlineUtc": "2026-11-04T16:34:07.759Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "entries": [
+            {
+              "kind": "file",
+              "name": "kestrel0.mov",
+              "size": 4677000,
+              "executable": false
+            }
+          ],
+          "durationMs": 2.66
+        },
+        "maybeChanged": false,
+        "observedAtUtc": "2026-11-04T16:24:51.051Z"
+      }
+    },
+    {
+      "summary": "list",
+      "intent": {
+        "v": 1,
+        "key": "s10",
+        "risk": "read",
+        "arguments": {
+          "path": "ember/sierra"
+        },
+        "operation": "fs.list",
+        "capability": "files",
+        "deadlineUtc": "2026-11-04T16:34:51.709Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "entries": [
+            {
+              "kind": "file",
+              "name": "nimbus2.mov",
+              "size": 2124000,
+              "executable": false
+            }
+          ],
+          "durationMs": 2.41
+        },
+        "maybeChanged": false,
+        "observedAtUtc": "2026-11-04T16:25:05.788Z"
+      }
+    },
+    {
+      "summary": "list",
+      "intent": {
+        "v": 1,
+        "key": "s11",
+        "risk": "read",
+        "arguments": {
+          "path": "garnet/lumen"
+        },
+        "operation": "fs.list",
+        "capability": "files",
+        "deadlineUtc": "2026-11-04T16:35:06.386Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "entries": [
+            {
+              "kind": "file",
+              "name": "birch4.tmp",
+              "size": 1236000,
+              "executable": false
+            }
+          ],
+          "durationMs": 2.67
+        },
+        "maybeChanged": false,
+        "observedAtUtc": "2026-11-04T16:25:45.786Z"
+      }
+    },
+    {
+      "summary": "list",
+      "intent": {
+        "v": 1,
+        "key": "s12",
+        "risk": "read",
+        "arguments": {
+          "path": "prairie/fjord"
+        },
+        "operation": "fs.list",
+        "capability": "files",
+        "deadlineUtc": "2026-11-04T16:35:46.962Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "entries": [
+            {
+              "kind": "file",
+              "name": "onyx3.dat",
+              "size": 8747000,
+              "executable": false
+            }
+          ],
+          "durationMs": 2.54
+        },
+        "maybeChanged": false,
+        "observedAtUtc": "2026-11-04T16:26:09.330Z"
+      }
+    },
+    {
+      "summary": "list",
+      "intent": {
+        "v": 1,
+        "key": "s13",
+        "risk": "read",
+        "arguments": {
+          "path": "quartz/meadow"
+        },
+        "operation": "fs.list",
+        "capability": "files",
+        "deadlineUtc": "2026-11-04T16:38:31.513Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "entries": [
+            {
+              "kind": "file",
+              "name": "kestrel5.dat",
+              "size": 5935000,
+              "executable": false
+            }
+          ],
+          "durationMs": 2.68
+        },
+        "maybeChanged": false,
+        "observedAtUtc": "2026-11-04T16:28:48.889Z"
+      }
+    },
+    {
+      "summary": "write text",
+      "intent": {
+        "v": 1,
+        "key": "s14",
+        "risk": "reversible_write",
+        "arguments": {
+          "path": "OCADE output/note.txt",
+          "text": "Here are the three biggest files in the JARVIS folder and their sizes:\n\n1. prairie/fjord/onyx3.dat - 8,747,000 bytes\n2. birch/harbor/birch1.bin - 8,118,000 bytes\n3. quartz/meadow/kestrel5.dat - 5,935,000 bytes\n"
+        },
+        "operation": "fs.write_text",
+        "capability": "files",
+        "deadlineUtc": "2026-11-04T16:38:49.477Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "bytes": 210,
+          "sha256": "d35deac82bfb763b7d3500f3e4a03cf21f539c501a3c782362c1db71db8ff470",
+          "matches": true,
+          "durationMs": 3.63
+        },
+        "maybeChanged": true,
+        "observedAtUtc": "2026-11-04T16:29:11.007Z"
+      }
+    },
+    {
+      "summary": "Checking the result independently",
+      "intent": {
+        "v": 1,
+        "key": "s15",
+        "risk": "read",
+        "arguments": {
+          "checks": [
+            {
+              "id": "note_exists",
+              "kind": "file_exists",
+              "params": {
+                "path": "OCADE output/note.txt"
+              },
+              "description": "A note listing the three biggest files and their sizes exists."
+            },
+            {
+              "id": "note_content",
+              "kind": "file_contains",
+              "params": {
+                "path": "OCADE output/note.txt",
+                "text": "size"
+              },
+              "description": "The note contains size or file information."
+            }
+          ]
+        },
+        "operation": "verify.checks",
+        "capability": "files",
+        "deadlineUtc": "2026-11-04T16:39:11.981Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "durationMs": 3.36,
+          "predicates": {
+            "note_exists": true,
+            "note_content": true
+          },
+          "verifierVersion": "checks-verifier/1"
+        },
+        "maybeChanged": true,
+        "observedAtUtc": "2026-11-04T16:29:29.605Z"
+      }
+    }
+  ],
+  "outputs": [
+    {
+      "path": "/tmp/ocade-eval/22/biggest_files/OCADE output/note.txt",
+      "bytes": 210
+    }
+  ]
+}

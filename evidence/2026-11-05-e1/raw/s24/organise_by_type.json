@@ -1,0 +1,129 @@
+{
+  "objective": "Tidy up garnet_downloads: put the files into one folder per file type inside it. Keep every file.",
+  "taskId": "c6ff4ab8-8771-4325-80a4-b1016cafb351",
+  "status": "waiting",
+  "result": null,
+  "blocker": "JARVIS's online planner is busy right now. JARVIS tries again by itself shortly; nothing is lost.",
+  "checks": [],
+  "outcome": null,
+  "timing": {
+    "acceptedAt": "2026-11-04T20:09:37.115974+00:00",
+    "finishedAt": null,
+    "verifiedAt": null,
+    "deliveredAt": null,
+    "totalElapsedMs": 914880,
+    "userWaitMs": 0,
+    "pausedMs": 910243,
+    "activeExecutionMs": 3,
+    "modelCalls": 1,
+    "modelMs": 1533,
+    "pickupMs": 608,
+    "unaccountedMs": 2493,
+    "stepDurationsMs": [
+      3.3
+    ],
+    "stepPickupMs": [
+      608
+    ]
+  },
+  "rpc": {
+    "jarvis_enroll_device": {
+      "calls": 1,
+      "ms": 210
+    },
+    "jarvis_approve_device": {
+      "calls": 1,
+      "ms": 339
+    },
+    "jarvis_device_key": {
+      "calls": 3,
+      "ms": 436
+    },
+    "jarvis_device_seen": {
+      "calls": 20,
+      "ms": 4650
+    },
+    "jarvis_device_inventory": {
+      "calls": 1,
+      "ms": 148
+    },
+    "jarvis_device_topic": {
+      "calls": 1,
+      "ms": 355
+    },
+    "jarvis_claim_action": {
+      "calls": 19,
+      "ms": 4129
+    },
+    "jarvis_grants": {
+      "calls": 1,
+      "ms": 139
+    },
+    "jarvis_online_consented": {
+      "calls": 1,
+      "ms": 190
+    },
+    "jarvis_open_task": {
+      "calls": 1,
+      "ms": 364
+    },
+    "jarvis_task_state": {
+      "calls": 1307,
+      "ms": 231469
+    },
+    "jarvis_queue_actions": {
+      "calls": 1,
+      "ms": 395
+    },
+    "jarvis_submit_receipt": {
+      "calls": 1,
+      "ms": 338
+    },
+    "jarvis_note_model": {
+      "calls": 1,
+      "ms": 359
+    },
+    "jarvis_task_wait_until": {
+      "calls": 1,
+      "ms": 169
+    },
+    "jarvis_resume_due": {
+      "calls": 15,
+      "ms": 2562
+    }
+  },
+  "confirmations": [],
+  "decisions": [
+    {
+      "summary": "Looking at your JARVIS folder",
+      "intent": {
+        "v": 1,
+        "key": "discover",
+        "risk": "read",
+        "arguments": {
+          "path": "."
+        },
+        "operation": "fs.list",
+        "capability": "files",
+        "deadlineUtc": "2026-11-04T20:19:37.198Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "entries": [
+            {
+              "kind": "folder",
+              "name": "garnet_downloads",
+              "size": 4096
+            }
+          ],
+          "durationMs": 3.3
+        },
+        "maybeChanged": false,
+        "observedAtUtc": "2026-11-04T20:09:38.340Z"
+      }
+    }
+  ],
+  "outputs": []
+}

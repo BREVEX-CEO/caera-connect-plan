@@ -1,0 +1,123 @@
+{
+  "objective": "Download the archive of the newest SierraAmber release from https://127.0.0.1:33547/ into my folder.",
+  "taskId": "9ea39478-b8a7-4f4b-8b32-277c8980d4f7",
+  "status": "waiting",
+  "result": null,
+  "blocker": "JARVIS's online planner is unavailable right now (invalid_goal). Your task is saved; resume it later.",
+  "checks": [],
+  "outcome": null,
+  "timing": {
+    "acceptedAt": "2026-11-04T18:25:51.987911+00:00",
+    "finishedAt": null,
+    "verifiedAt": null,
+    "deliveredAt": null,
+    "totalElapsedMs": 121474,
+    "userWaitMs": 0,
+    "pausedMs": 61840,
+    "activeExecutionMs": 3,
+    "modelCalls": 1,
+    "modelMs": 38980,
+    "pickupMs": 422,
+    "unaccountedMs": 20229,
+    "stepDurationsMs": [
+      3.09
+    ],
+    "stepPickupMs": [
+      422
+    ]
+  },
+  "rpc": {
+    "jarvis_enroll_device": {
+      "calls": 1,
+      "ms": 180
+    },
+    "jarvis_approve_device": {
+      "calls": 1,
+      "ms": 163
+    },
+    "jarvis_device_key": {
+      "calls": 1,
+      "ms": 347
+    },
+    "jarvis_device_seen": {
+      "calls": 6,
+      "ms": 888
+    },
+    "jarvis_device_inventory": {
+      "calls": 1,
+      "ms": 161
+    },
+    "jarvis_device_topic": {
+      "calls": 1,
+      "ms": 145
+    },
+    "jarvis_claim_action": {
+      "calls": 5,
+      "ms": 957
+    },
+    "jarvis_grants": {
+      "calls": 1,
+      "ms": 149
+    },
+    "jarvis_online_consented": {
+      "calls": 1,
+      "ms": 144
+    },
+    "jarvis_open_task": {
+      "calls": 1,
+      "ms": 161
+    },
+    "jarvis_task_state": {
+      "calls": 92,
+      "ms": 16291
+    },
+    "jarvis_queue_actions": {
+      "calls": 1,
+      "ms": 177
+    },
+    "jarvis_submit_receipt": {
+      "calls": 1,
+      "ms": 175
+    },
+    "jarvis_note_model": {
+      "calls": 1,
+      "ms": 146
+    },
+    "jarvis_task_wait": {
+      "calls": 1,
+      "ms": 158
+    },
+    "jarvis_resume_due": {
+      "calls": 1,
+      "ms": 145
+    }
+  },
+  "confirmations": [],
+  "decisions": [
+    {
+      "summary": "Looking at your JARVIS folder",
+      "intent": {
+        "v": 1,
+        "key": "discover",
+        "risk": "read",
+        "arguments": {
+          "path": "."
+        },
+        "operation": "fs.list",
+        "capability": "files",
+        "deadlineUtc": "2026-11-04T18:35:52.058Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "entries": [],
+          "durationMs": 3.09
+        },
+        "maybeChanged": false,
+        "observedAtUtc": "2026-11-04T18:25:52.805Z"
+      }
+    }
+  ],
+  "outputs": []
+}

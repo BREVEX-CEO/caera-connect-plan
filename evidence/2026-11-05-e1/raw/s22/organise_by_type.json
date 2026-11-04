@@ -1,0 +1,370 @@
+{
+  "objective": "Tidy up tundra_downloads: put the files into one folder per file type inside it. Keep every file.",
+  "taskId": "db03f1f6-04c5-41a9-8fe2-c4bc35f1cd50",
+  "status": "waiting",
+  "result": null,
+  "blocker": "JARVIS's online planner is busy right now. JARVIS tries again by itself shortly; nothing is lost.",
+  "checks": [
+    {
+      "id": "tundra_downloads_sorted",
+      "kind": "file_exists",
+      "params": {
+        "path": "tundra_downloads"
+      },
+      "description": "tundra_downloads folder exists and contains files sorted into type subfolders",
+      "state": "unchecked"
+    }
+  ],
+  "outcome": [
+    {
+      "id": "tundra_downloads_sorted",
+      "kind": "file_exists",
+      "params": {
+        "path": "tundra_downloads"
+      },
+      "description": "tundra_downloads folder exists and contains files sorted into type subfolders"
+    }
+  ],
+  "timing": {
+    "acceptedAt": "2026-11-04T17:00:20.495742+00:00",
+    "finishedAt": null,
+    "verifiedAt": null,
+    "deliveredAt": null,
+    "totalElapsedMs": 903625,
+    "userWaitMs": 0,
+    "pausedMs": 579049,
+    "activeExecutionMs": 21,
+    "modelCalls": 9,
+    "modelMs": 306820,
+    "pickupMs": 2304,
+    "unaccountedMs": 15431,
+    "stepDurationsMs": [
+      3.4,
+      2.95,
+      3.09,
+      2.79,
+      2.82,
+      2.9,
+      3.14
+    ],
+    "stepPickupMs": [
+      775,
+      198,
+      284,
+      244,
+      491,
+      143,
+      169
+    ]
+  },
+  "rpc": {
+    "jarvis_enroll_device": {
+      "calls": 1,
+      "ms": 365
+    },
+    "jarvis_approve_device": {
+      "calls": 1,
+      "ms": 380
+    },
+    "jarvis_device_key": {
+      "calls": 2,
+      "ms": 705
+    },
+    "jarvis_device_seen": {
+      "calls": 19,
+      "ms": 4392
+    },
+    "jarvis_device_inventory": {
+      "calls": 1,
+      "ms": 344
+    },
+    "jarvis_device_topic": {
+      "calls": 1,
+      "ms": 146
+    },
+    "jarvis_claim_action": {
+      "calls": 19,
+      "ms": 4082
+    },
+    "jarvis_grants": {
+      "calls": 1,
+      "ms": 153
+    },
+    "jarvis_online_consented": {
+      "calls": 1,
+      "ms": 358
+    },
+    "jarvis_open_task": {
+      "calls": 1,
+      "ms": 345
+    },
+    "jarvis_task_state": {
+      "calls": 1300,
+      "ms": 250999
+    },
+    "jarvis_queue_actions": {
+      "calls": 7,
+      "ms": 1686
+    },
+    "jarvis_submit_receipt": {
+      "calls": 7,
+      "ms": 1837
+    },
+    "jarvis_note_model": {
+      "calls": 9,
+      "ms": 1912
+    },
+    "jarvis_set_outcome": {
+      "calls": 1,
+      "ms": 356
+    },
+    "jarvis_task_wait_until": {
+      "calls": 2,
+      "ms": 320
+    },
+    "jarvis_resume_due": {
+      "calls": 2,
+      "ms": 341
+    }
+  },
+  "confirmations": [],
+  "decisions": [
+    {
+      "summary": "Looking at your JARVIS folder",
+      "intent": {
+        "v": 1,
+        "key": "discover",
+        "risk": "read",
+        "arguments": {
+          "path": "."
+        },
+        "operation": "fs.list",
+        "capability": "files",
+        "deadlineUtc": "2026-11-04T17:10:20.555Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "entries": [
+            {
+              "kind": "folder",
+              "name": "tundra_downloads",
+              "size": 4096
+            }
+          ],
+          "durationMs": 3.4
+        },
+        "maybeChanged": false,
+        "observedAtUtc": "2026-11-04T17:00:21.837Z"
+      }
+    },
+    {
+      "summary": "list",
+      "intent": {
+        "v": 1,
+        "key": "s2",
+        "risk": "read",
+        "arguments": {
+          "path": "tundra_downloads"
+        },
+        "operation": "fs.list",
+        "capability": "files",
+        "deadlineUtc": "2026-11-04T17:10:22.594Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "entries": [
+            {
+              "kind": "file",
+              "name": "fjord-2.pdf",
+              "size": 18,
+              "executable": false
+            },
+            {
+              "kind": "file",
+              "name": "harbor-6.txt",
+              "size": 13,
+              "executable": false
+            },
+            {
+              "kind": "file",
+              "name": "indigo-4.csv",
+              "size": 16,
+              "executable": false
+            },
+            {
+              "kind": "file",
+              "name": "indigo-7.jpg",
+              "size": 13,
+              "executable": false
+            },
+            {
+              "kind": "file",
+              "name": "juniper-5.txt",
+              "size": 13,
+              "executable": false
+            },
+            {
+              "kind": "file",
+              "name": "meadow-1.csv",
+              "size": 16,
+              "executable": false
+            },
+            {
+              "kind": "file",
+              "name": "prairie-3.txt",
+              "size": 13,
+              "executable": false
+            },
+            {
+              "kind": "file",
+              "name": "quartz-0.jpg",
+              "size": 13,
+              "executable": false
+            }
+          ],
+          "durationMs": 2.95
+        },
+        "maybeChanged": false,
+        "observedAtUtc": "2026-11-04T17:01:24.512Z"
+      }
+    },
+    {
+      "summary": "manage",
+      "intent": {
+        "v": 1,
+        "key": "s3",
+        "risk": "reversible_write",
+        "arguments": {
+          "path": "tundra_downloads/pdf",
+          "action": "mkdir"
+        },
+        "operation": "fs.manage",
+        "capability": "files",
+        "deadlineUtc": "2026-11-04T17:11:25.365Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "path": "tundra_downloads/pdf",
+          "created": true,
+          "durationMs": 3.09
+        },
+        "maybeChanged": true,
+        "observedAtUtc": "2026-11-04T17:01:46.415Z"
+      }
+    },
+    {
+      "summary": "manage",
+      "intent": {
+        "v": 1,
+        "key": "s4",
+        "risk": "reversible_write",
+        "arguments": {
+          "path": "tundra_downloads/txt",
+          "action": "mkdir"
+        },
+        "operation": "fs.manage",
+        "capability": "files",
+        "deadlineUtc": "2026-11-04T17:11:47.495Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "path": "tundra_downloads/txt",
+          "created": true,
+          "durationMs": 2.79
+        },
+        "maybeChanged": true,
+        "observedAtUtc": "2026-11-04T17:02:14.133Z"
+      }
+    },
+    {
+      "summary": "manage",
+      "intent": {
+        "v": 1,
+        "key": "s5",
+        "risk": "reversible_write",
+        "arguments": {
+          "path": "tundra_downloads/csv",
+          "action": "mkdir"
+        },
+        "operation": "fs.manage",
+        "capability": "files",
+        "deadlineUtc": "2026-11-04T17:12:15.016Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "path": "tundra_downloads/csv",
+          "created": true,
+          "durationMs": 2.82
+        },
+        "maybeChanged": true,
+        "observedAtUtc": "2026-11-04T17:02:33.749Z"
+      }
+    },
+    {
+      "summary": "manage",
+      "intent": {
+        "v": 1,
+        "key": "s6",
+        "risk": "reversible_write",
+        "arguments": {
+          "path": "tundra_downloads/jpg",
+          "action": "mkdir"
+        },
+        "operation": "fs.manage",
+        "capability": "files",
+        "deadlineUtc": "2026-11-04T17:12:34.445Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "path": "tundra_downloads/jpg",
+          "created": true,
+          "durationMs": 2.9
+        },
+        "maybeChanged": true,
+        "observedAtUtc": "2026-11-04T17:02:52.856Z"
+      }
+    },
+    {
+      "summary": "manage",
+      "intent": {
+        "v": 1,
+        "key": "s7",
+        "risk": "reversible_write",
+        "arguments": {
+          "to": "tundra_downloads/pdf/fjord-2.pdf",
+          "path": "tundra_downloads/fjord-2.pdf",
+          "action": "move"
+        },
+        "operation": "fs.manage",
+        "capability": "files",
+        "deadlineUtc": "2026-11-04T17:12:53.673Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "to": "tundra_downloads/pdf/fjord-2.pdf",
+          "from": "tundra_downloads/fjord-2.pdf",
+          "sha256": "51e3544c06b1197bab40dfd0a87c2f23f0af6fc2c96bd37892d2a68e6cf4fc87",
+          "matches": true,
+          "durationMs": 3.14
+        },
+        "maybeChanged": true,
+        "observedAtUtc": "2026-11-04T17:03:09.908Z"
+      }
+    }
+  ],
+  "outputs": []
+}

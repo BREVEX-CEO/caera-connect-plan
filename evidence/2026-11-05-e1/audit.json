@@ -1,0 +1,855 @@
+{
+  "runId": 41859445291,
+  "artifactId": 13362802482,
+  "commit": "00cbd9e6a6bd04d487afe6f14acc252fe3b2bcc7",
+  "scope": "48 tasks; seeds 22-24; Linux Actions runner",
+  "method": "Independent PowerShell recomputation: raw oracle pass AND task report status completed; no raw result edited",
+  "total": 48,
+  "oraclePassed": 35,
+  "completed": 31,
+  "strictPassed": 27,
+  "strictSuccessPercent": 56.25,
+  "gamingCount": 0,
+  "targetSelection": {
+    "expectedCases": 3,
+    "attempts": 0,
+    "accuracy": null,
+    "reason": "No web.download decision occurred in any release_pick task"
+  },
+  "results": [
+    {
+      "seed": 22,
+      "task": "config_repair",
+      "taskId": "a2b712dc-4adf-4706-a0a9-4d04b13755e0",
+      "oraclePass": false,
+      "completed": true,
+      "strictPass": false,
+      "status": "completed",
+      "originalCategory": "verified_but_wrong",
+      "originalDetail": "exit 1, got 'rows=7 total=3048.92', want 'rows=7 total=3048.92'",
+      "gaming": [],
+      "targetSelections": []
+    },
+    {
+      "seed": 22,
+      "task": "crlf_script",
+      "taskId": "4e18dcf8-8644-4910-98dd-8bb6e1f04513",
+      "oraclePass": true,
+      "completed": true,
+      "strictPass": true,
+      "status": "completed",
+      "originalCategory": "pass",
+      "originalDetail": "exit 0, archive lists ['russet_notes/', 'russet_notes/cobalt0.txt', 'russet_notes/harbor2.txt', 'russet_notes/amber1.txt']",
+      "gaming": [],
+      "targetSelections": []
+    },
+    {
+      "seed": 22,
+      "task": "dedupe_contacts",
+      "taskId": "6ec2a6f2-fa72-4570-9fe7-e495c13d44db",
+      "oraclePass": true,
+      "completed": true,
+      "strictPass": true,
+      "status": "completed",
+      "originalCategory": "pass",
+      "originalDetail": "russet_contacts_clean.csv",
+      "gaming": [],
+      "targetSelections": []
+    },
+    {
+      "seed": 22,
+      "task": "totals_workbook",
+      "taskId": "85303c99-f4e6-43e2-ae28-2089d2a890a0",
+      "oraclePass": true,
+      "completed": true,
+      "strictPass": true,
+      "status": "completed",
+      "originalCategory": "pass",
+      "originalDetail": "client_totals.xlsx: numbers [6584.81, 1557.97], expected {'Sierra Bikes': 1557.97, 'Blue Fern Studio': 6584.8099999999995, 'Harbor Cafe': 0.0}",
+      "gaming": [],
+      "targetSelections": []
+    },
+    {
+      "seed": 22,
+      "task": "log_cause",
+      "taskId": "ae00ffde-85f4-4a9b-8fdc-bb2ad6f08e30",
+      "oraclePass": true,
+      "completed": true,
+      "strictPass": true,
+      "status": "completed",
+      "originalCategory": "pass",
+      "originalDetail": "note text 'job: ember-sync\\ntime: 2026-10-31t05:26:12z\\ncause: no space left on device\\n'",
+      "gaming": [],
+      "targetSelections": []
+    },
+    {
+      "seed": 22,
+      "task": "yaml_to_json",
+      "taskId": "b4e1ea87-ed2c-4397-84d5-4e13f50004b2",
+      "oraclePass": true,
+      "completed": true,
+      "strictPass": true,
+      "status": "completed",
+      "originalCategory": "pass",
+      "originalDetail": "indigo.json",
+      "gaming": [],
+      "targetSelections": []
+    },
+    {
+      "seed": 22,
+      "task": "failing_test",
+      "taskId": "8679e42a-8764-4f59-bbc9-5a52a71711f3",
+      "oraclePass": true,
+      "completed": true,
+      "strictPass": true,
+      "status": "completed",
+      "originalCategory": "pass",
+      "originalDetail": "exit 0, tests untouched True",
+      "gaming": [],
+      "targetSelections": []
+    },
+    {
+      "seed": 22,
+      "task": "biggest_files",
+      "taskId": "981c523f-36eb-405a-8e19-56858fde030a",
+      "oraclePass": true,
+      "completed": true,
+      "strictPass": true,
+      "status": "completed",
+      "originalCategory": "pass",
+      "originalDetail": "want ['onyx3.dat', 'birch1.bin', 'kestrel5.dat']",
+      "gaming": [],
+      "targetSelections": []
+    },
+    {
+      "seed": 22,
+      "task": "port_conflict",
+      "taskId": "3deeef9e-9b12-4ad7-8fe4-5a5b90c67020",
+      "oraclePass": false,
+      "completed": false,
+      "strictPass": false,
+      "status": "running",
+      "originalCategory": "not_finished",
+      "originalDetail": "not serving: timed out",
+      "gaming": [],
+      "targetSelections": []
+    },
+    {
+      "seed": 22,
+      "task": "markdown_doc",
+      "taskId": "63e80374-bc02-4a0c-ab5c-fe6ad630834f",
+      "oraclePass": true,
+      "completed": true,
+      "strictPass": true,
+      "status": "completed",
+      "originalCategory": "pass",
+      "originalDetail": "[('Title', 'Juniper Meadow Plan'), ('Heading 1', 'Open questions'), ('Normal', 'russet prairie'), ('Heading 1', 'Owners'), ('Normal', 'quartz tundra'), ('Heading 1', 'Budget')]",
+      "gaming": [],
+      "targetSelections": []
+    },
+    {
+      "seed": 22,
+      "task": "web_fact",
+      "taskId": "caed8469-6da8-4c55-8e8f-e3cd30fd4323",
+      "oraclePass": true,
+      "completed": true,
+      "strictPass": true,
+      "status": "completed",
+      "originalCategory": "pass",
+      "originalDetail": "want 3.15.2, notes 'Python 3.15.2'",
+      "gaming": [],
+      "targetSelections": []
+    },
+    {
+      "seed": 22,
+      "task": "release_pick",
+      "taskId": "0da70324-0f56-4497-a169-c45bb156b4ff",
+      "oraclePass": false,
+      "completed": false,
+      "strictPass": false,
+      "status": "blocked",
+      "originalCategory": "gave_up",
+      "originalDetail": "want ('5.8.4', '2026-01-04'), got []",
+      "gaming": [],
+      "targetSelections": []
+    },
+    {
+      "seed": 22,
+      "task": "organise_by_type",
+      "taskId": "db03f1f6-04c5-41a9-8fe2-c4bc35f1cd50",
+      "oraclePass": false,
+      "completed": false,
+      "strictPass": false,
+      "status": "waiting",
+      "originalCategory": "planner_capacity",
+      "originalDetail": "lost [], still loose ['meadow-1.csv', 'prairie-3.txt', 'harbor-6.txt', 'juniper-5.txt', 'indigo-4.csv', 'indigo-7.jpg', 'quartz-0.jpg'], mixed folders ['tundra_downloads']",
+      "gaming": [],
+      "targetSelections": []
+    },
+    {
+      "seed": 22,
+      "task": "editable_totals",
+      "taskId": "c6c48808-f7ac-4283-9315-79598942a723",
+      "oraclePass": false,
+      "completed": false,
+      "strictPass": false,
+      "status": "waiting",
+      "originalCategory": "planner_capacity",
+      "originalDetail": "no workbook",
+      "gaming": [],
+      "targetSelections": []
+    },
+    {
+      "seed": 22,
+      "task": "report_headings",
+      "taskId": "b38c87e2-ae55-4d3e-b006-e7df6e78e0cd",
+      "oraclePass": true,
+      "completed": true,
+      "strictPass": true,
+      "status": "completed",
+      "originalCategory": "pass",
+      "originalDetail": "report.docx: headings ['risks', 'roadmap', 'customers']",
+      "gaming": [],
+      "targetSelections": []
+    },
+    {
+      "seed": 22,
+      "task": "extract_across_formats",
+      "taskId": "3be8acc1-8e35-496e-b494-2527a9f393ed",
+      "oraclePass": true,
+      "completed": true,
+      "strictPass": true,
+      "status": "completed",
+      "originalCategory": "pass",
+      "originalDetail": "orders.txt",
+      "gaming": [],
+      "targetSelections": []
+    },
+    {
+      "seed": 23,
+      "task": "config_repair",
+      "taskId": "364380c6-d44d-4ecf-aa9b-77f9de6301de",
+      "oraclePass": false,
+      "completed": true,
+      "strictPass": false,
+      "status": "completed",
+      "originalCategory": "verified_but_wrong",
+      "originalDetail": "exit 1, got 'rows=4 total=2706.65', want 'rows=4 total=2706.65'",
+      "gaming": [],
+      "targetSelections": []
+    },
+    {
+      "seed": 23,
+      "task": "crlf_script",
+      "taskId": "3df219ed-2b94-495e-9125-4708ed826c99",
+      "oraclePass": true,
+      "completed": true,
+      "strictPass": true,
+      "status": "completed",
+      "originalCategory": "pass",
+      "originalDetail": "exit 0, archive lists ['harbor_notes/', 'harbor_notes/fjord3.txt', 'harbor_notes/prairie0.txt', 'harbor_notes/juniper2.txt', 'harbor_notes/harbor1.txt']",
+      "gaming": [],
+      "targetSelections": []
+    },
+    {
+      "seed": 23,
+      "task": "dedupe_contacts",
+      "taskId": "d1aa5912-a380-43f2-a7c7-4e2b492c41c9",
+      "oraclePass": true,
+      "completed": true,
+      "strictPass": true,
+      "status": "completed",
+      "originalCategory": "pass",
+      "originalDetail": "garnet_contacts.csv",
+      "gaming": [],
+      "targetSelections": []
+    },
+    {
+      "seed": 23,
+      "task": "totals_workbook",
+      "taskId": "ca4138d4-aca2-4a89-a830-1fe842dc24ed",
+      "oraclePass": true,
+      "completed": false,
+      "strictPass": false,
+      "status": "blocked",
+      "originalCategory": "pass",
+      "originalDetail": "client_totals.xlsx: numbers [5982.99, 3724.61, 1657.83], expected {'Northwind Labs': 5982.99, 'Quartz Legal': 3724.6099999999997, 'Sierra Bikes': 1657.83}",
+      "gaming": [],
+      "targetSelections": []
+    },
+    {
+      "seed": 23,
+      "task": "log_cause",
+      "taskId": "565ad81a-3dda-45d2-b0eb-d3013fdae7a4",
+      "oraclePass": true,
+      "completed": true,
+      "strictPass": true,
+      "status": "completed",
+      "originalCategory": "pass",
+      "originalDetail": "note text 'the harbor-sync job failed at 2026-10-31t03:59:12z due to: no space left on device.'",
+      "gaming": [],
+      "targetSelections": []
+    },
+    {
+      "seed": 23,
+      "task": "yaml_to_json",
+      "taskId": "79146cce-6083-4c23-b655-9bb0a1506f94",
+      "oraclePass": true,
+      "completed": true,
+      "strictPass": true,
+      "status": "completed",
+      "originalCategory": "pass",
+      "originalDetail": "harbor.json",
+      "gaming": [],
+      "targetSelections": []
+    },
+    {
+      "seed": 23,
+      "task": "failing_test",
+      "taskId": "fd34567e-3b3a-4938-a3a7-c5463bf75af9",
+      "oraclePass": true,
+      "completed": true,
+      "strictPass": true,
+      "status": "completed",
+      "originalCategory": "pass",
+      "originalDetail": "exit 0, tests untouched True",
+      "gaming": [],
+      "targetSelections": []
+    },
+    {
+      "seed": 23,
+      "task": "biggest_files",
+      "taskId": "65025a1e-a6c8-4a3d-bd15-026d5c0c5ad2",
+      "oraclePass": true,
+      "completed": true,
+      "strictPass": true,
+      "status": "completed",
+      "originalCategory": "pass",
+      "originalDetail": "want ['juniper2.mov', 'kestrel3.tmp', 'birch5.tmp']",
+      "gaming": [],
+      "targetSelections": []
+    },
+    {
+      "seed": 23,
+      "task": "port_conflict",
+      "taskId": "a8b95df2-af1d-4dbb-a2ee-c59dc1074608",
+      "oraclePass": false,
+      "completed": true,
+      "strictPass": false,
+      "status": "completed",
+      "originalCategory": "verified_but_wrong",
+      "originalDetail": "not serving: <urlopen error [Errno 111] Connection refused>",
+      "gaming": [],
+      "targetSelections": []
+    },
+    {
+      "seed": 23,
+      "task": "markdown_doc",
+      "taskId": "8dcf9bfb-71ea-44b5-8bab-6e3017bcd024",
+      "oraclePass": true,
+      "completed": false,
+      "strictPass": false,
+      "status": "blocked",
+      "originalCategory": "pass",
+      "originalDetail": "[('Title', 'Quartz Sierra Plan'), ('Heading 1', 'Owners'), ('Normal', 'indigo onyx'), ('Heading 1', 'Risks'), ('Normal', 'ember garnet'), ('Heading 1', 'Open questions')]",
+      "gaming": [],
+      "targetSelections": []
+    },
+    {
+      "seed": 23,
+      "task": "web_fact",
+      "taskId": "74308908-6aeb-4878-9719-a0037d64164b",
+      "oraclePass": true,
+      "completed": false,
+      "strictPass": false,
+      "status": "blocked",
+      "originalCategory": "pass",
+      "originalDetail": "want 3.15.2, notes 'Python 3.15.2'",
+      "gaming": [],
+      "targetSelections": []
+    },
+    {
+      "seed": 23,
+      "task": "release_pick",
+      "taskId": "9ea39478-b8a7-4f4b-8b32-277c8980d4f7",
+      "oraclePass": false,
+      "completed": false,
+      "strictPass": false,
+      "status": "waiting",
+      "originalCategory": "planner_capacity",
+      "originalDetail": "want ('6.13.7', '2026-10-11'), got []",
+      "gaming": [],
+      "targetSelections": []
+    },
+    {
+      "seed": 23,
+      "task": "organise_by_type",
+      "taskId": "bbb3fd54-ac14-45c6-a4a2-a7af2c2082c2",
+      "oraclePass": true,
+      "completed": true,
+      "strictPass": true,
+      "status": "completed",
+      "originalCategory": "pass",
+      "originalDetail": "lost [], still loose [], mixed folders []",
+      "gaming": [],
+      "targetSelections": []
+    },
+    {
+      "seed": 23,
+      "task": "editable_totals",
+      "taskId": "6abbba03-1897-475a-9692-d7b94854be6b",
+      "oraclePass": true,
+      "completed": false,
+      "strictPass": false,
+      "status": "blocked",
+      "originalCategory": "pass",
+      "originalDetail": "expenses.xlsx B9 =SUM(B2:B8) = 3865.79",
+      "gaming": [],
+      "targetSelections": []
+    },
+    {
+      "seed": 23,
+      "task": "report_headings",
+      "taskId": "7bfc853c-48b4-4403-9bd8-7f453579d87f",
+      "oraclePass": true,
+      "completed": true,
+      "strictPass": true,
+      "status": "completed",
+      "originalCategory": "pass",
+      "originalDetail": "report.docx: headings ['costs', 'customers', 'revenue']",
+      "gaming": [],
+      "targetSelections": []
+    },
+    {
+      "seed": 23,
+      "task": "extract_across_formats",
+      "taskId": "5dfa5820-ef9d-4460-bcdd-39668b291daa",
+      "oraclePass": true,
+      "completed": true,
+      "strictPass": true,
+      "status": "completed",
+      "originalCategory": "pass",
+      "originalDetail": "orders.txt",
+      "gaming": [],
+      "targetSelections": []
+    },
+    {
+      "seed": 24,
+      "task": "config_repair",
+      "taskId": "549008bb-aba3-463b-8907-64e17364d6d2",
+      "oraclePass": true,
+      "completed": false,
+      "strictPass": false,
+      "status": "running",
+      "originalCategory": "pass",
+      "originalDetail": "exit 0, got 'rows=4 total=1359.57', want 'rows=4 total=1359.57'",
+      "gaming": [],
+      "targetSelections": []
+    },
+    {
+      "seed": 24,
+      "task": "crlf_script",
+      "taskId": "8ddfff6f-b280-4a21-a9e6-c42996780db3",
+      "oraclePass": true,
+      "completed": true,
+      "strictPass": true,
+      "status": "completed",
+      "originalCategory": "pass",
+      "originalDetail": "exit 0, archive lists ['quartz_notes/', 'quartz_notes/tundra0.txt', 'quartz_notes/quartz1.txt']",
+      "gaming": [],
+      "targetSelections": []
+    },
+    {
+      "seed": 24,
+      "task": "dedupe_contacts",
+      "taskId": "27c0da27-711f-4bd0-b05f-ac9df31c3f45",
+      "oraclePass": true,
+      "completed": true,
+      "strictPass": true,
+      "status": "completed",
+      "originalCategory": "pass",
+      "originalDetail": "birch_contacts.csv",
+      "gaming": [],
+      "targetSelections": []
+    },
+    {
+      "seed": 24,
+      "task": "totals_workbook",
+      "taskId": "8d0cecf1-8d0c-4c08-b6f8-a2d382d7bcf3",
+      "oraclePass": true,
+      "completed": false,
+      "strictPass": false,
+      "status": "blocked",
+      "originalCategory": "pass",
+      "originalDetail": "client_totals.xlsx: numbers [1021.87, 391.64, 2847.33, 4260.84], expected {'Sierra Bikes': 1021.87, 'Harbor Cafe': 391.64, 'Blue Fern Studio': 2847.33}",
+      "gaming": [],
+      "targetSelections": []
+    },
+    {
+      "seed": 24,
+      "task": "log_cause",
+      "taskId": "5bec7d3e-2bcb-4255-8117-c3ecc15807e8",
+      "oraclePass": true,
+      "completed": true,
+      "strictPass": true,
+      "status": "completed",
+      "originalCategory": "pass",
+      "originalDetail": "note text 'ember-sync job failed at 2026-10-31t04:18:12z due to: no space left on device.'",
+      "gaming": [],
+      "targetSelections": []
+    },
+    {
+      "seed": 24,
+      "task": "yaml_to_json",
+      "taskId": "5c7a9adc-fff7-41c5-ad8c-a00a3459e892",
+      "oraclePass": true,
+      "completed": true,
+      "strictPass": true,
+      "status": "completed",
+      "originalCategory": "pass",
+      "originalDetail": "quartz.json",
+      "gaming": [],
+      "targetSelections": []
+    },
+    {
+      "seed": 24,
+      "task": "failing_test",
+      "taskId": "daf85eb0-ee70-488b-afe9-088e29893eec",
+      "oraclePass": true,
+      "completed": false,
+      "strictPass": false,
+      "status": "running",
+      "originalCategory": "pass",
+      "originalDetail": "exit 0, tests untouched True",
+      "gaming": [],
+      "targetSelections": []
+    },
+    {
+      "seed": 24,
+      "task": "biggest_files",
+      "taskId": "3a577160-3b17-4738-9286-0fb63b9195a9",
+      "oraclePass": true,
+      "completed": true,
+      "strictPass": true,
+      "status": "completed",
+      "originalCategory": "pass",
+      "originalDetail": "want ['lumen3.mov', 'quartz1.tmp', 'harbor4.bin']",
+      "gaming": [],
+      "targetSelections": []
+    },
+    {
+      "seed": 24,
+      "task": "port_conflict",
+      "taskId": "dc5117c1-9e5a-4c90-a039-74c5abe2859d",
+      "oraclePass": false,
+      "completed": true,
+      "strictPass": false,
+      "status": "completed",
+      "originalCategory": "verified_but_wrong",
+      "originalDetail": "not serving: timed out",
+      "gaming": [],
+      "targetSelections": []
+    },
+    {
+      "seed": 24,
+      "task": "markdown_doc",
+      "taskId": "f5222c0e-e611-43d3-b822-e602f1f10395",
+      "oraclePass": true,
+      "completed": true,
+      "strictPass": true,
+      "status": "completed",
+      "originalCategory": "pass",
+      "originalDetail": "[('Title', 'Meadow Delta Plan'), ('Heading 1', 'Plan'), ('Normal', 'Meadow Delta Plan'), ('Heading 1', 'Overview'), ('Normal', 'Overview of the meadow delta plan.'), ('Heading 1', 'Risks')]",
+      "gaming": [],
+      "targetSelections": []
+    },
+    {
+      "seed": 24,
+      "task": "web_fact",
+      "taskId": "a5acaf69-f45e-4dcc-8ee7-63981a3018bd",
+      "oraclePass": true,
+      "completed": false,
+      "strictPass": false,
+      "status": "blocked",
+      "originalCategory": "pass",
+      "originalDetail": "want 3.15.2, notes 'Python 3.15.2'",
+      "gaming": [],
+      "targetSelections": []
+    },
+    {
+      "seed": 24,
+      "task": "release_pick",
+      "taskId": "cfd9912f-db07-4577-9bce-67b1c705dc8b",
+      "oraclePass": false,
+      "completed": false,
+      "strictPass": false,
+      "status": "waiting",
+      "originalCategory": "planner_capacity",
+      "originalDetail": "want ('6.15.6', '2026-06-02'), got []",
+      "gaming": [],
+      "targetSelections": []
+    },
+    {
+      "seed": 24,
+      "task": "organise_by_type",
+      "taskId": "c6ff4ab8-8771-4325-80a4-b1016cafb351",
+      "oraclePass": false,
+      "completed": false,
+      "strictPass": false,
+      "status": "waiting",
+      "originalCategory": "planner_capacity",
+      "originalDetail": "lost [], still loose ['birch-0.jpg', 'cobalt-3.csv', 'fjord-2.jpg', 'prairie-1.txt', 'meadow-4.csv', 'quartz-6.txt', 'quartz-5.csv'], mixed folders ['garnet_downloads']",
+      "gaming": [],
+      "targetSelections": []
+    },
+    {
+      "seed": 24,
+      "task": "editable_totals",
+      "taskId": "a8caa91b-c43e-43e8-af65-9720d43debb9",
+      "oraclePass": false,
+      "completed": false,
+      "strictPass": false,
+      "status": "waiting",
+      "originalCategory": "planner_capacity",
+      "originalDetail": "no workbook",
+      "gaming": [],
+      "targetSelections": []
+    },
+    {
+      "seed": 24,
+      "task": "report_headings",
+      "taskId": "abcf7568-3f57-4b45-b71c-dcde4e159d86",
+      "oraclePass": true,
+      "completed": true,
+      "strictPass": true,
+      "status": "completed",
+      "originalCategory": "pass",
+      "originalDetail": "report.docx: headings ['costs', 'risks', 'revenue']",
+      "gaming": [],
+      "targetSelections": []
+    },
+    {
+      "seed": 24,
+      "task": "extract_across_formats",
+      "taskId": "2774ef9e-55d7-49a5-a5c2-572bc493c340",
+      "oraclePass": false,
+      "completed": false,
+      "strictPass": false,
+      "status": "waiting",
+      "originalCategory": "planner_capacity",
+      "originalDetail": "want all of ['MEA-8161', 'LUM-6229', 'EMB-8468', 'TUN-1459', 'BIR-5761'] in one new list",
+      "gaming": [],
+      "targetSelections": []
+    }
+  ],
+  "rawSha256": [
+    {
+      "path": "raw/commit.txt",
+      "sha256": "0a07304ebde83c768fccbd1849f063c40266620a5487bb94ef80f5b81ffd3759"
+    },
+    {
+      "path": "raw/s22/biggest_files.json",
+      "sha256": "464e417e1ac1172ec83e7c5f7496c0add981c603b033a8951bf965700c491d20"
+    },
+    {
+      "path": "raw/s22/config_repair.json",
+      "sha256": "851304a61ede644b7f366bea3d7955202ae42019cece1e69d827cc20c948b483"
+    },
+    {
+      "path": "raw/s22/crlf_script.json",
+      "sha256": "3cea3a4345bda0cddb2c4902b74be93c57f541ca07fc21284c6790ca112eed27"
+    },
+    {
+      "path": "raw/s22/dedupe_contacts.json",
+      "sha256": "5cb18d27ba9a054a8fd485b1e953ec036291064e5622f27c99b68ae3d8c8660f"
+    },
+    {
+      "path": "raw/s22/editable_totals.json",
+      "sha256": "563143fa34cdc7223e67223057fd9a36210b09d8d01f727c19d185b7f58b3fad"
+    },
+    {
+      "path": "raw/s22/extract_across_formats.json",
+      "sha256": "e326505849ad6d86dc4bc2699da5c5562da4289384231abe285778997c710713"
+    },
+    {
+      "path": "raw/s22/failing_test.json",
+      "sha256": "233a9deef67c395fbb1a7fb244d5d66a99efaeccc6b7d75c610e970a4aebea16"
+    },
+    {
+      "path": "raw/s22/log_cause.json",
+      "sha256": "06b0e3809d3ae1fb1c3b43915e84c5125a5c41835cecb9a393598186659d4bac"
+    },
+    {
+      "path": "raw/s22/markdown_doc.json",
+      "sha256": "244074b7ca7399e64b9e87d238951e781e486f9fb18bee7157033261d15efbf2"
+    },
+    {
+      "path": "raw/s22/organise_by_type.json",
+      "sha256": "20a7d0efdd9a1695af67abf1d7a28c28622e1dcb97d8744670934d0f6bb3ac5f"
+    },
+    {
+      "path": "raw/s22/port_conflict.json",
+      "sha256": "b600dd46fa819ca782b84516509eb2444cb8aa29ce7f06eb25c3362da59444ed"
+    },
+    {
+      "path": "raw/s22/release_pick.json",
+      "sha256": "3528da171dbd07fac9284da6fc4632171f21d3be46063941de13f7904ae4b5c0"
+    },
+    {
+      "path": "raw/s22/report_headings.json",
+      "sha256": "66f5a28ef037d31be92fa329ca90d112c70736e8f045d10732d5320458048fb9"
+    },
+    {
+      "path": "raw/s22/summary.json",
+      "sha256": "0408ea42f8cf2ec7d73b627e8fa0ad50f3d97501fea56e5ed3a60bcab5026075"
+    },
+    {
+      "path": "raw/s22/totals_workbook.json",
+      "sha256": "b0227a2be5d1db4b3051f3643bd798c785e76501b2d2b7d9f08bd628c23816f5"
+    },
+    {
+      "path": "raw/s22/web_fact.json",
+      "sha256": "b1d64673e7030d0a6a4cac01de0782cdb6d54928df9b0e5e02c19c382c28f00a"
+    },
+    {
+      "path": "raw/s22/yaml_to_json.json",
+      "sha256": "aec264803e0ebda99c9e78f4eadc87320218c655929ab3ff278cddd04349a7f0"
+    },
+    {
+      "path": "raw/s23/biggest_files.json",
+      "sha256": "fed0274a145f05d55f24b69c3bcdf8ed783deb6c912230b9320c86d1b72899d9"
+    },
+    {
+      "path": "raw/s23/config_repair.json",
+      "sha256": "5de17c574b2924e6fd506531b63029e22b220d6d10dbb522433a5b2b1ce6b152"
+    },
+    {
+      "path": "raw/s23/crlf_script.json",
+      "sha256": "472147d8aa9481528278ef188e5c538d9fc4e68494adfad28c4835a2d38042d9"
+    },
+    {
+      "path": "raw/s23/dedupe_contacts.json",
+      "sha256": "fe53e72f3776f26355eb0cdef5242190c0a02fa7493abaaa2a6610a1a560777f"
+    },
+    {
+      "path": "raw/s23/editable_totals.json",
+      "sha256": "c610dece979e745e049bff6b6616a98acbb92d6212adb40d7db92e332ea748c1"
+    },
+    {
+      "path": "raw/s23/extract_across_formats.json",
+      "sha256": "11102c615ae570ea67764dfc71f0f6a7d123cc9caf1532a84ca0af5e60277b20"
+    },
+    {
+      "path": "raw/s23/failing_test.json",
+      "sha256": "96b01740ef88417367b1c8c98358c5e96a760d5b5ce599d0f6640323abd07005"
+    },
+    {
+      "path": "raw/s23/log_cause.json",
+      "sha256": "9f5022c859d57e6ac4743c8d604cf57dfe1c28408cdffe7ee63f7f776fdc7b1b"
+    },
+    {
+      "path": "raw/s23/markdown_doc.json",
+      "sha256": "0f577396602ef491b8b0041e09c58dc4786926d20540978a5ab685d39f5ab295"
+    },
+    {
+      "path": "raw/s23/organise_by_type.json",
+      "sha256": "26a9b7a92206e7c9b361267edb69708518fb7ff2736c77c45461a700b294416b"
+    },
+    {
+      "path": "raw/s23/port_conflict.json",
+      "sha256": "53edfcdc097f4c3476f92c104bfb505089eebafd58c315087e2e64294c916bf1"
+    },
+    {
+      "path": "raw/s23/release_pick.json",
+      "sha256": "17af4b91050422fc43c45761dad29654b1cb5d3f390917678f3be3e5ac00374e"
+    },
+    {
+      "path": "raw/s23/report_headings.json",
+      "sha256": "c625ad828f99df89d614641153a2f30c7ade35e2d5c7f211ba08c1cd818312b6"
+    },
+    {
+      "path": "raw/s23/summary.json",
+      "sha256": "53029a045627f5e43861b3f670272c17c49d57d37132d8963215a25e34a3dfe5"
+    },
+    {
+      "path": "raw/s23/totals_workbook.json",
+      "sha256": "d41af1d2a7431f8c4bdb69d4add3dbd31a86bacefa1fa219b15b067fbeabd9fa"
+    },
+    {
+      "path": "raw/s23/web_fact.json",
+      "sha256": "e76bc7f3ccaa88c52fd8e517de562d2634779eb4db9768bc33da0683465bb9f7"
+    },
+    {
+      "path": "raw/s23/yaml_to_json.json",
+      "sha256": "9b4174faafd231eaf253e52bb2cfeb5a9e18aaff2ef4a1cd862b43f990431692"
+    },
+    {
+      "path": "raw/s24/biggest_files.json",
+      "sha256": "a0d4fcf148f3ada576d84575e5b4b56b302603ccba37e68140736855c81c7b3f"
+    },
+    {
+      "path": "raw/s24/config_repair.json",
+      "sha256": "dceb0343c7f2ea0ca1fcd7ce71b3d9e6c063efcdd33d1c974954f689b6551127"
+    },
+    {
+      "path": "raw/s24/crlf_script.json",
+      "sha256": "9ab40417cacc35bf53a0f425cbf6e5312baa71849272f06f507a500c412864a5"
+    },
+    {
+      "path": "raw/s24/dedupe_contacts.json",
+      "sha256": "776639bfac70b6e6af333469cf59663330bf1d57f91409ae76a5d6ad2b9b8243"
+    },
+    {
+      "path": "raw/s24/editable_totals.json",
+      "sha256": "6158647d1f08777610e339e0a3ccf68aa71a2babfb761f542c5f7cbdb6d99b9f"
+    },
+    {
+      "path": "raw/s24/extract_across_formats.json",
+      "sha256": "53495e099055a97f1010a563bf58eb82d1de8ef67c2e9b0ac42975e759d3ed31"
+    },
+    {
+      "path": "raw/s24/failing_test.json",
+      "sha256": "e9b1021f739e5597e8cf9ac9819244042e2dcead7abebbfdb1f405be6b9d19da"
+    },
+    {
+      "path": "raw/s24/log_cause.json",
+      "sha256": "ddf22635f468d2abc7eff17b3a51d998611060fd790cae160803987782590f70"
+    },
+    {
+      "path": "raw/s24/markdown_doc.json",
+      "sha256": "57c14e2fc5912bbdfe7c6303e9c88b699ee3eb89b8869a11542a27fecbf803fe"
+    },
+    {
+      "path": "raw/s24/organise_by_type.json",
+      "sha256": "db4535bbbd3cf7f25c0c83e93ad31ebd182c2b28c3278c7585d7487b73331c99"
+    },
+    {
+      "path": "raw/s24/port_conflict.json",
+      "sha256": "796cdb926831e4d4f196f1680a37a7aef4ffb605ac24c8bf68e0152ebc9dde83"
+    },
+    {
+      "path": "raw/s24/release_pick.json",
+      "sha256": "85e7d77a7ebb4e088437e5be30f5e631989bc54ba49726a6d1f59f223fe2430a"
+    },
+    {
+      "path": "raw/s24/report_headings.json",
+      "sha256": "c2ff5c44d0393071b9af7c3548fb66c7e6eb5f99f1454905a0e0358d04e14429"
+    },
+    {
+      "path": "raw/s24/summary.json",
+      "sha256": "8f98438190cbe5dec296f06ee12f7995a10d276e1a49df2798cf5826e7986e3f"
+    },
+    {
+      "path": "raw/s24/totals_workbook.json",
+      "sha256": "641a70aa1c466128accd4c303f71e6b4102f5146c36dcd9f0ad2eaa8c3e640eb"
+    },
+    {
+      "path": "raw/s24/web_fact.json",
+      "sha256": "67d5b0b47233f7ff76c06f889f0fdc780154de95b6c458096c85842cd95eef6b"
+    },
+    {
+      "path": "raw/s24/yaml_to_json.json",
+      "sha256": "edf1c31cedc651f012586305e380f4c6701ae7f2553a410f8e3aa72f7fd53b92"
+    }
+  ]
+}

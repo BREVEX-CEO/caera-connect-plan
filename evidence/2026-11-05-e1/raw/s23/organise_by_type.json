@@ -1,0 +1,986 @@
+{
+  "objective": "Tidy up tundra_downloads: put the files into one folder per file type inside it. Keep every file.",
+  "taskId": "bbb3fd54-ac14-45c6-a4a2-a7af2c2082c2",
+  "status": "completed",
+  "result": "Done, and checked independently.",
+  "blocker": null,
+  "checks": [
+    {
+      "id": "tundra_downloads_exists",
+      "kind": "file_exists",
+      "params": {
+        "path": "tundra_downloads"
+      },
+      "description": "tundra_downloads folder exists and contains the sorted files in subfolders",
+      "state": "passed"
+    }
+  ],
+  "outcome": [
+    {
+      "id": "tundra_downloads_exists",
+      "kind": "file_exists",
+      "params": {
+        "path": "tundra_downloads"
+      },
+      "description": "tundra_downloads folder exists and contains the sorted files in subfolders"
+    }
+  ],
+  "timing": {
+    "acceptedAt": "2026-11-04T18:28:47.096553+00:00",
+    "finishedAt": "2026-11-04T18:36:05.936104+00:00",
+    "verifiedAt": "2026-11-04T18:36:05.936104+00:00",
+    "deliveredAt": "2026-11-04T18:36:05.936104+00:00",
+    "totalElapsedMs": 438840,
+    "userWaitMs": 0,
+    "pausedMs": 0,
+    "activeExecutionMs": 66,
+    "modelCalls": 22,
+    "modelMs": 398926,
+    "pickupMs": 4689,
+    "unaccountedMs": 35159,
+    "stepDurationsMs": [
+      3.35,
+      2.79,
+      3.05,
+      2.66,
+      2.76,
+      2.78,
+      3.67,
+      3.03,
+      2.73,
+      3.25,
+      2.76,
+      3.26,
+      3.11,
+      3.22,
+      3.08,
+      2.38,
+      3.08,
+      2.84,
+      2.6,
+      3.15,
+      2.72,
+      3.32
+    ],
+    "stepPickupMs": [
+      401,
+      160,
+      155,
+      183,
+      520,
+      192,
+      164,
+      256,
+      148,
+      297,
+      179,
+      188,
+      150,
+      168,
+      182,
+      161,
+      146,
+      160,
+      135,
+      363,
+      189,
+      192
+    ]
+  },
+  "rpc": {
+    "jarvis_enroll_device": {
+      "calls": 1,
+      "ms": 363
+    },
+    "jarvis_approve_device": {
+      "calls": 1,
+      "ms": 349
+    },
+    "jarvis_device_key": {
+      "calls": 2,
+      "ms": 487
+    },
+    "jarvis_device_seen": {
+      "calls": 48,
+      "ms": 8806
+    },
+    "jarvis_device_inventory": {
+      "calls": 1,
+      "ms": 375
+    },
+    "jarvis_device_topic": {
+      "calls": 1,
+      "ms": 175
+    },
+    "jarvis_claim_action": {
+      "calls": 47,
+      "ms": 8288
+    },
+    "jarvis_grants": {
+      "calls": 1,
+      "ms": 153
+    },
+    "jarvis_online_consented": {
+      "calls": 1,
+      "ms": 153
+    },
+    "jarvis_open_task": {
+      "calls": 1,
+      "ms": 154
+    },
+    "jarvis_task_state": {
+      "calls": 654,
+      "ms": 126807
+    },
+    "jarvis_queue_actions": {
+      "calls": 22,
+      "ms": 5665
+    },
+    "jarvis_submit_receipt": {
+      "calls": 22,
+      "ms": 3944
+    },
+    "jarvis_note_model": {
+      "calls": 22,
+      "ms": 4538
+    },
+    "jarvis_set_outcome": {
+      "calls": 1,
+      "ms": 157
+    },
+    "jarvis_settle_task": {
+      "calls": 1,
+      "ms": 295
+    }
+  },
+  "confirmations": [],
+  "decisions": [
+    {
+      "summary": "Looking at your JARVIS folder",
+      "intent": {
+        "v": 1,
+        "key": "discover",
+        "risk": "read",
+        "arguments": {
+          "path": "."
+        },
+        "operation": "fs.list",
+        "capability": "files",
+        "deadlineUtc": "2026-11-04T18:38:47.158Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "entries": [
+            {
+              "kind": "folder",
+              "name": "tundra_downloads",
+              "size": 4096
+            }
+          ],
+          "durationMs": 3.35
+        },
+        "maybeChanged": false,
+        "observedAtUtc": "2026-11-04T18:28:47.867Z"
+      }
+    },
+    {
+      "summary": "list",
+      "intent": {
+        "v": 1,
+        "key": "s2",
+        "risk": "read",
+        "arguments": {
+          "path": "tundra_downloads"
+        },
+        "operation": "fs.list",
+        "capability": "files",
+        "deadlineUtc": "2026-11-04T18:38:48.206Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "entries": [
+            {
+              "kind": "file",
+              "name": "amber-7.txt",
+              "size": 13,
+              "executable": false
+            },
+            {
+              "kind": "file",
+              "name": "ember-8.pdf",
+              "size": 18,
+              "executable": false
+            },
+            {
+              "kind": "file",
+              "name": "fjord-0.pdf",
+              "size": 18,
+              "executable": false
+            },
+            {
+              "kind": "file",
+              "name": "fjord-10.txt",
+              "size": 13,
+              "executable": false
+            },
+            {
+              "kind": "file",
+              "name": "harbor-3.pdf",
+              "size": 18,
+              "executable": false
+            },
+            {
+              "kind": "file",
+              "name": "juniper-1.csv",
+              "size": 16,
+              "executable": false
+            },
+            {
+              "kind": "file",
+              "name": "juniper-5.txt",
+              "size": 13,
+              "executable": false
+            },
+            {
+              "kind": "file",
+              "name": "juniper-9.pdf",
+              "size": 18,
+              "executable": false
+            },
+            {
+              "kind": "file",
+              "name": "kestrel-6.jpg",
+              "size": 13,
+              "executable": false
+            },
+            {
+              "kind": "file",
+              "name": "lumen-2.pdf",
+              "size": 18,
+              "executable": false
+            },
+            {
+              "kind": "file",
+              "name": "onyx-4.csv",
+              "size": 16,
+              "executable": false
+            }
+          ],
+          "durationMs": 2.79
+        },
+        "maybeChanged": false,
+        "observedAtUtc": "2026-11-04T18:29:23.873Z"
+      }
+    },
+    {
+      "summary": "manage",
+      "intent": {
+        "v": 1,
+        "key": "s3",
+        "risk": "reversible_write",
+        "arguments": {
+          "path": "tundra_downloads/txt",
+          "action": "mkdir"
+        },
+        "operation": "fs.manage",
+        "capability": "files",
+        "deadlineUtc": "2026-11-04T18:39:24.502Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "path": "tundra_downloads/txt",
+          "created": true,
+          "durationMs": 3.05
+        },
+        "maybeChanged": true,
+        "observedAtUtc": "2026-11-04T18:29:43.991Z"
+      }
+    },
+    {
+      "summary": "manage",
+      "intent": {
+        "v": 1,
+        "key": "s4",
+        "risk": "reversible_write",
+        "arguments": {
+          "path": "tundra_downloads/pdf",
+          "action": "mkdir"
+        },
+        "operation": "fs.manage",
+        "capability": "files",
+        "deadlineUtc": "2026-11-04T18:39:44.613Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "path": "tundra_downloads/pdf",
+          "created": true,
+          "durationMs": 2.66
+        },
+        "maybeChanged": true,
+        "observedAtUtc": "2026-11-04T18:30:02.944Z"
+      }
+    },
+    {
+      "summary": "manage",
+      "intent": {
+        "v": 1,
+        "key": "s5",
+        "risk": "reversible_write",
+        "arguments": {
+          "path": "tundra_downloads/csv",
+          "action": "mkdir"
+        },
+        "operation": "fs.manage",
+        "capability": "files",
+        "deadlineUtc": "2026-11-04T18:40:03.618Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "path": "tundra_downloads/csv",
+          "created": true,
+          "durationMs": 2.76
+        },
+        "maybeChanged": true,
+        "observedAtUtc": "2026-11-04T18:30:25.897Z"
+      }
+    },
+    {
+      "summary": "manage",
+      "intent": {
+        "v": 1,
+        "key": "s6",
+        "risk": "reversible_write",
+        "arguments": {
+          "path": "tundra_downloads/jpg",
+          "action": "mkdir"
+        },
+        "operation": "fs.manage",
+        "capability": "files",
+        "deadlineUtc": "2026-11-04T18:40:26.928Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "path": "tundra_downloads/jpg",
+          "created": true,
+          "durationMs": 2.78
+        },
+        "maybeChanged": true,
+        "observedAtUtc": "2026-11-04T18:30:44.251Z"
+      }
+    },
+    {
+      "summary": "manage",
+      "intent": {
+        "v": 1,
+        "key": "s7",
+        "risk": "reversible_write",
+        "arguments": {
+          "to": "tundra_downloads/txt/amber-7.txt",
+          "path": "tundra_downloads/amber-7.txt",
+          "action": "move"
+        },
+        "operation": "fs.manage",
+        "capability": "files",
+        "deadlineUtc": "2026-11-04T18:40:45.126Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "to": "tundra_downloads/txt/amber-7.txt",
+          "from": "tundra_downloads/amber-7.txt",
+          "sha256": "f2b552dcefbbab31014a024988e730bdfc9b6e71679ef1208834f47077bc51e6",
+          "matches": true,
+          "durationMs": 3.67
+        },
+        "maybeChanged": true,
+        "observedAtUtc": "2026-11-04T18:30:58.727Z"
+      }
+    },
+    {
+      "summary": "manage",
+      "intent": {
+        "v": 1,
+        "key": "s8",
+        "risk": "reversible_write",
+        "arguments": {
+          "to": "tundra_downloads/pdf/ember-8.pdf",
+          "path": "tundra_downloads/ember-8.pdf",
+          "action": "move"
+        },
+        "operation": "fs.manage",
+        "capability": "files",
+        "deadlineUtc": "2026-11-04T18:40:59.386Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "to": "tundra_downloads/pdf/ember-8.pdf",
+          "from": "tundra_downloads/ember-8.pdf",
+          "sha256": "6e4e9a6f6b8f1bc12b972485a4a393b7db40df2fab2d5d937a31501241f01aa3",
+          "matches": true,
+          "durationMs": 3.03
+        },
+        "maybeChanged": true,
+        "observedAtUtc": "2026-11-04T18:31:14.481Z"
+      }
+    },
+    {
+      "summary": "manage",
+      "intent": {
+        "v": 1,
+        "key": "s9",
+        "risk": "reversible_write",
+        "arguments": {
+          "to": "tundra_downloads/pdf/fjord-0.pdf",
+          "path": "tundra_downloads/fjord-0.pdf",
+          "action": "move"
+        },
+        "operation": "fs.manage",
+        "capability": "files",
+        "deadlineUtc": "2026-11-04T18:41:15.131Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "to": "tundra_downloads/pdf/fjord-0.pdf",
+          "from": "tundra_downloads/fjord-0.pdf",
+          "sha256": "b0ee658e0562d688c85cccf63c033995182a9b55c4bea0b40ebf702841373f8f",
+          "matches": true,
+          "durationMs": 2.73
+        },
+        "maybeChanged": true,
+        "observedAtUtc": "2026-11-04T18:31:27.117Z"
+      }
+    },
+    {
+      "summary": "manage",
+      "intent": {
+        "v": 1,
+        "key": "s10",
+        "risk": "reversible_write",
+        "arguments": {
+          "to": "tundra_downloads/txt/fjord-10.txt",
+          "path": "tundra_downloads/fjord-10.txt",
+          "action": "move"
+        },
+        "operation": "fs.manage",
+        "capability": "files",
+        "deadlineUtc": "2026-11-04T18:41:27.724Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "to": "tundra_downloads/txt/fjord-10.txt",
+          "from": "tundra_downloads/fjord-10.txt",
+          "sha256": "836f95341e0b1ef5a964204ff087c93d29b30c305bbb824f357a068cc7480b72",
+          "matches": true,
+          "durationMs": 3.25
+        },
+        "maybeChanged": true,
+        "observedAtUtc": "2026-11-04T18:31:45.830Z"
+      }
+    },
+    {
+      "summary": "list",
+      "intent": {
+        "v": 1,
+        "key": "s11",
+        "risk": "read",
+        "arguments": {
+          "path": "tundra_downloads"
+        },
+        "operation": "fs.list",
+        "capability": "files",
+        "deadlineUtc": "2026-11-04T18:41:46.477Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "entries": [
+            {
+              "kind": "folder",
+              "name": "csv",
+              "size": 4096
+            },
+            {
+              "kind": "file",
+              "name": "harbor-3.pdf",
+              "size": 18,
+              "executable": false
+            },
+            {
+              "kind": "folder",
+              "name": "jpg",
+              "size": 4096
+            },
+            {
+              "kind": "file",
+              "name": "juniper-1.csv",
+              "size": 16,
+              "executable": false
+            },
+            {
+              "kind": "file",
+              "name": "juniper-5.txt",
+              "size": 13,
+              "executable": false
+            },
+            {
+              "kind": "file",
+              "name": "juniper-9.pdf",
+              "size": 18,
+              "executable": false
+            },
+            {
+              "kind": "file",
+              "name": "kestrel-6.jpg",
+              "size": 13,
+              "executable": false
+            },
+            {
+              "kind": "file",
+              "name": "lumen-2.pdf",
+              "size": 18,
+              "executable": false
+            },
+            {
+              "kind": "file",
+              "name": "onyx-4.csv",
+              "size": 16,
+              "executable": false
+            },
+            {
+              "kind": "folder",
+              "name": "pdf",
+              "size": 4096
+            },
+            {
+              "kind": "folder",
+              "name": "txt",
+              "size": 4096
+            }
+          ],
+          "durationMs": 2.76
+        },
+        "maybeChanged": false,
+        "observedAtUtc": "2026-11-04T18:32:01.045Z"
+      }
+    },
+    {
+      "summary": "manage",
+      "intent": {
+        "v": 1,
+        "key": "s12",
+        "risk": "reversible_write",
+        "arguments": {
+          "to": "tundra_downloads/pdf/harbor-3.pdf",
+          "path": "tundra_downloads/harbor-3.pdf",
+          "action": "move"
+        },
+        "operation": "fs.manage",
+        "capability": "files",
+        "deadlineUtc": "2026-11-04T18:42:01.738Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "to": "tundra_downloads/pdf/harbor-3.pdf",
+          "from": "tundra_downloads/harbor-3.pdf",
+          "sha256": "ca2423f5bd3a0c6937004ff4b05a13b7f5ab4a35ac6d4cd3b00e79e1cf4efc13",
+          "matches": true,
+          "durationMs": 3.26
+        },
+        "maybeChanged": true,
+        "observedAtUtc": "2026-11-04T18:32:24.646Z"
+      }
+    },
+    {
+      "summary": "manage",
+      "intent": {
+        "v": 1,
+        "key": "s13",
+        "risk": "reversible_write",
+        "arguments": {
+          "to": "tundra_downloads/csv/juniper-1.csv",
+          "path": "tundra_downloads/juniper-1.csv",
+          "action": "move"
+        },
+        "operation": "fs.manage",
+        "capability": "files",
+        "deadlineUtc": "2026-11-04T18:42:25.473Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "to": "tundra_downloads/csv/juniper-1.csv",
+          "from": "tundra_downloads/juniper-1.csv",
+          "sha256": "e366ea2f373ebf5f07144f632a4da5af2fe1bda95f0eca8fdffca9eeca244d1f",
+          "matches": true,
+          "durationMs": 3.11
+        },
+        "maybeChanged": true,
+        "observedAtUtc": "2026-11-04T18:32:45.147Z"
+      }
+    },
+    {
+      "summary": "manage",
+      "intent": {
+        "v": 1,
+        "key": "s14",
+        "risk": "reversible_write",
+        "arguments": {
+          "to": "tundra_downloads/txt/juniper-5.txt",
+          "path": "tundra_downloads/juniper-5.txt",
+          "action": "move"
+        },
+        "operation": "fs.manage",
+        "capability": "files",
+        "deadlineUtc": "2026-11-04T18:42:45.944Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "to": "tundra_downloads/txt/juniper-5.txt",
+          "from": "tundra_downloads/juniper-5.txt",
+          "sha256": "2be7bf832c942c4204afc8963ee4d2a7860b9c9a965241f36fa27d564f46f126",
+          "matches": true,
+          "durationMs": 3.22
+        },
+        "maybeChanged": true,
+        "observedAtUtc": "2026-11-04T18:32:56.401Z"
+      }
+    },
+    {
+      "summary": "manage",
+      "intent": {
+        "v": 1,
+        "key": "s15",
+        "risk": "reversible_write",
+        "arguments": {
+          "to": "tundra_downloads/pdf/juniper-9.pdf",
+          "path": "tundra_downloads/juniper-9.pdf",
+          "action": "move"
+        },
+        "operation": "fs.manage",
+        "capability": "files",
+        "deadlineUtc": "2026-11-04T18:42:56.984Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "to": "tundra_downloads/pdf/juniper-9.pdf",
+          "from": "tundra_downloads/juniper-9.pdf",
+          "sha256": "90e5539d39bd80e97292bfb02a8d91e0d3e4adadd4c22929d888e42590b5f6fb",
+          "matches": true,
+          "durationMs": 3.08
+        },
+        "maybeChanged": true,
+        "observedAtUtc": "2026-11-04T18:34:07.602Z"
+      }
+    },
+    {
+      "summary": "list",
+      "intent": {
+        "v": 1,
+        "key": "s16",
+        "risk": "read",
+        "arguments": {
+          "path": "tundra_downloads"
+        },
+        "operation": "fs.list",
+        "capability": "files",
+        "deadlineUtc": "2026-11-04T18:44:08.558Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "entries": [
+            {
+              "kind": "folder",
+              "name": "csv",
+              "size": 4096
+            },
+            {
+              "kind": "folder",
+              "name": "jpg",
+              "size": 4096
+            },
+            {
+              "kind": "file",
+              "name": "kestrel-6.jpg",
+              "size": 13,
+              "executable": false
+            },
+            {
+              "kind": "file",
+              "name": "lumen-2.pdf",
+              "size": 18,
+              "executable": false
+            },
+            {
+              "kind": "file",
+              "name": "onyx-4.csv",
+              "size": 16,
+              "executable": false
+            },
+            {
+              "kind": "folder",
+              "name": "pdf",
+              "size": 4096
+            },
+            {
+              "kind": "folder",
+              "name": "txt",
+              "size": 4096
+            }
+          ],
+          "durationMs": 2.38
+        },
+        "maybeChanged": false,
+        "observedAtUtc": "2026-11-04T18:34:14.018Z"
+      }
+    },
+    {
+      "summary": "manage",
+      "intent": {
+        "v": 1,
+        "key": "s17",
+        "risk": "reversible_write",
+        "arguments": {
+          "to": "tundra_downloads/jpg/kestrel-6.jpg",
+          "path": "tundra_downloads/kestrel-6.jpg",
+          "action": "move"
+        },
+        "operation": "fs.manage",
+        "capability": "files",
+        "deadlineUtc": "2026-11-04T18:44:14.705Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "to": "tundra_downloads/jpg/kestrel-6.jpg",
+          "from": "tundra_downloads/kestrel-6.jpg",
+          "sha256": "fafd383becc635a08021d0769a2167f517ce32a8bb6eace02cfeb82fa159688e",
+          "matches": true,
+          "durationMs": 3.08
+        },
+        "maybeChanged": true,
+        "observedAtUtc": "2026-11-04T18:34:24.691Z"
+      }
+    },
+    {
+      "summary": "manage",
+      "intent": {
+        "v": 1,
+        "key": "s18",
+        "risk": "reversible_write",
+        "arguments": {
+          "to": "tundra_downloads/pdf/lumen-2.pdf",
+          "path": "tundra_downloads/lumen-2.pdf",
+          "action": "move"
+        },
+        "operation": "fs.manage",
+        "capability": "files",
+        "deadlineUtc": "2026-11-04T18:44:25.322Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "to": "tundra_downloads/pdf/lumen-2.pdf",
+          "from": "tundra_downloads/lumen-2.pdf",
+          "sha256": "71f1d35048b68cbb264677156ef3787fccc1dfe4c993ccac5de60147f572a840",
+          "matches": true,
+          "durationMs": 2.84
+        },
+        "maybeChanged": true,
+        "observedAtUtc": "2026-11-04T18:34:36.693Z"
+      }
+    },
+    {
+      "summary": "list",
+      "intent": {
+        "v": 1,
+        "key": "s19",
+        "risk": "read",
+        "arguments": {
+          "path": "tundra_downloads"
+        },
+        "operation": "fs.list",
+        "capability": "files",
+        "deadlineUtc": "2026-11-04T18:44:37.289Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "entries": [
+            {
+              "kind": "folder",
+              "name": "csv",
+              "size": 4096
+            },
+            {
+              "kind": "folder",
+              "name": "jpg",
+              "size": 4096
+            },
+            {
+              "kind": "file",
+              "name": "onyx-4.csv",
+              "size": 16,
+              "executable": false
+            },
+            {
+              "kind": "folder",
+              "name": "pdf",
+              "size": 4096
+            },
+            {
+              "kind": "folder",
+              "name": "txt",
+              "size": 4096
+            }
+          ],
+          "durationMs": 2.6
+        },
+        "maybeChanged": false,
+        "observedAtUtc": "2026-11-04T18:34:51.171Z"
+      }
+    },
+    {
+      "summary": "manage",
+      "intent": {
+        "v": 1,
+        "key": "s20",
+        "risk": "reversible_write",
+        "arguments": {
+          "to": "tundra_downloads/csv/onyx-4.csv",
+          "path": "tundra_downloads/onyx-4.csv",
+          "action": "move"
+        },
+        "operation": "fs.manage",
+        "capability": "files",
+        "deadlineUtc": "2026-11-04T18:44:51.765Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "to": "tundra_downloads/csv/onyx-4.csv",
+          "from": "tundra_downloads/onyx-4.csv",
+          "sha256": "634c4c1265ac88a75a654ecc61fb887468e3101af666bd5b9495a08ba58b3c32",
+          "matches": true,
+          "durationMs": 3.15
+        },
+        "maybeChanged": true,
+        "observedAtUtc": "2026-11-04T18:35:11.637Z"
+      }
+    },
+    {
+      "summary": "list",
+      "intent": {
+        "v": 1,
+        "key": "s21",
+        "risk": "read",
+        "arguments": {
+          "path": "tundra_downloads"
+        },
+        "operation": "fs.list",
+        "capability": "files",
+        "deadlineUtc": "2026-11-04T18:45:12.983Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "entries": [
+            {
+              "kind": "folder",
+              "name": "csv",
+              "size": 4096
+            },
+            {
+              "kind": "folder",
+              "name": "jpg",
+              "size": 4096
+            },
+            {
+              "kind": "folder",
+              "name": "pdf",
+              "size": 4096
+            },
+            {
+              "kind": "folder",
+              "name": "txt",
+              "size": 4096
+            }
+          ],
+          "durationMs": 2.72
+        },
+        "maybeChanged": false,
+        "observedAtUtc": "2026-11-04T18:35:43.690Z"
+      }
+    },
+    {
+      "summary": "Checking the result independently",
+      "intent": {
+        "v": 1,
+        "key": "s22",
+        "risk": "read",
+        "arguments": {
+          "checks": [
+            {
+              "id": "tundra_downloads_exists",
+              "kind": "file_exists",
+              "params": {
+                "path": "tundra_downloads"
+              },
+              "description": "tundra_downloads folder exists and contains the sorted files in subfolders"
+            }
+          ]
+        },
+        "operation": "verify.checks",
+        "capability": "files",
+        "deadlineUtc": "2026-11-04T18:45:44.384Z"
+      },
+      "status": "done",
+      "receipt": {
+        "status": "observed",
+        "evidence": {
+          "durationMs": 3.32,
+          "predicates": {
+            "tundra_downloads_exists": true
+          },
+          "verifierVersion": "checks-verifier/1"
+        },
+        "maybeChanged": true,
+        "observedAtUtc": "2026-11-04T18:36:04.887Z"
+      }
+    }
+  ],
+  "outputs": []
+}
