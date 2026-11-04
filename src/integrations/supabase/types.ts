@@ -471,6 +471,7 @@ export type Database = {
           paused_at: string | null
           plan: Json
           result: string | null
+          retry_at: string | null
           schedule_occurrence: string | null
           status: string
           title: string
@@ -498,6 +499,7 @@ export type Database = {
           paused_at?: string | null
           plan?: Json
           result?: string | null
+          retry_at?: string | null
           schedule_occurrence?: string | null
           status?: string
           title: string
@@ -525,6 +527,7 @@ export type Database = {
           paused_at?: string | null
           plan?: Json
           result?: string | null
+          retry_at?: string | null
           schedule_occurrence?: string | null
           status?: string
           title?: string
@@ -1828,6 +1831,10 @@ export type Database = {
         Args: { p_controller: string; p_reason: string; p_task: string }
         Returns: undefined
       }
+      jarvis_task_wait_until: {
+        Args: { p_controller: string; p_reason: string; p_retry_at: string; p_task: string }
+        Returns: undefined
+      }
       jarvis_tell: {
         Args: { p_task: string; p_text: string }
         Returns: undefined
@@ -1925,6 +1932,10 @@ export type Database = {
       jarvis_resolve_effect: {
         Args: { p_activity: string; p_resolution: string; p_user: string }
         Returns: boolean
+      }
+      jarvis_resume_due: {
+        Args: { p_device: string }
+        Returns: string
       }
       jarvis_revoke_device: {
         Args: { p_device: string; p_user: string }

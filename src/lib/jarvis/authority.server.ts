@@ -31,6 +31,7 @@ import {
   PlannerUnavailable,
   compileGoal,
   planStep,
+  plannerBusy,
   plannerMessage,
   type McpServer,
 } from "./planner.server.ts";
@@ -261,11 +262,7 @@ export async function advance(admin: Admin, taskId: string, now = new Date()): P
     } catch (error) {
       if (goalMs !== null) await noteModel(admin, taskId, goalMs);
       if (!(error instanceof PlannerUnavailable)) throw error;
-      await call(admin, "jarvis_task_wait", {
-        p_task: taskId,
-        p_controller: task.controller,
-        p_reason: `${plannerMessage(error.message)} Your task is saved; resume it later.`,
-      });
+      await plannerWait(admin, taskId, task.controller, error);
       return;
     }
     if (goalMs !== null) await noteModel(admin, taskId, goalMs);
@@ -306,11 +303,7 @@ export async function advance(admin: Admin, taskId: string, now = new Date()): P
   } catch (error) {
     if (!(error instanceof PlannerUnavailable)) throw error;
     for (const ms of modelCalls) await noteModel(admin, taskId, ms);
-    await call(admin, "jarvis_task_wait", {
-      p_task: taskId,
-      p_controller: task.controller,
-      p_reason: `${plannerMessage(error.message)} Your task is saved; resume it later.`,
-    });
+    await plannerWait(admin, taskId, task.controller, error);
     return;
   }
   // Model time is recorded alongside the decision rather than before it: one round trip less.
@@ -363,6 +356,36 @@ export async function advance(admin: Admin, taskId: string, now = new Date()): P
   } finally {
     await noted;
   }
+}
+
+/** Between 30 s and 15 min: the provider's own Retry-After when it gave one. */
+const BUSY_RETRY_MS = { min: 30_000, max: 900_000 } as const;
+
+/**
+ * The planner could not answer: the task waits. When it was only busy (free capacity), it
+ * tries again by itself once the retry time passes (D10); anything else waits for the person.
+ */
+async function plannerWait(
+  admin: Admin,
+  taskId: string,
+  controller: string,
+  error: PlannerUnavailable,
+) {
+  if (plannerBusy(error.message)) {
+    const wait = Math.min(Math.max(error.retryAfterMs ?? 0, BUSY_RETRY_MS.min), BUSY_RETRY_MS.max);
+    await call(admin, "jarvis_task_wait_until", {
+      p_task: taskId,
+      p_controller: controller,
+      p_reason: `${plannerMessage(error.message)} JARVIS tries again by itself shortly; nothing is lost.`,
+      p_retry_at: new Date(Date.now() + wait).toISOString(),
+    });
+    return;
+  }
+  await call(admin, "jarvis_task_wait", {
+    p_task: taskId,
+    p_controller: controller,
+    p_reason: `${plannerMessage(error.message)} Your task is saved; resume it later.`,
+  });
 }
 
 const noteModel = (admin: Admin, taskId: string, elapsed: number) =>
@@ -724,7 +747,18 @@ export async function handleDeviceRequest(
       });
       return { status: 200, body: { receipt: recorded.outcome, ...next } };
     }
-    return { status: 200, body: await call(admin, "jarvis_claim_action", { p_device: deviceId }) };
+    let state = await call<{ task?: { status?: string } | null }>(admin, "jarvis_claim_action", {
+      p_device: deviceId,
+    });
+    if (state.task?.status === "waiting") {
+      // A task that waited only for a busy planner and is now due runs again (D10).
+      const due = await call<string | null>(admin, "jarvis_resume_due", { p_device: deviceId });
+      if (due) {
+        await advance(admin, due);
+        state = await call(admin, "jarvis_claim_action", { p_device: deviceId });
+      }
+    }
+    return { status: 200, body: state };
   } catch (error) {
     if (error instanceof JarvisRefusal) {
       return refuse(error.code === "device_unavailable" ? 401 : 409, error.code);

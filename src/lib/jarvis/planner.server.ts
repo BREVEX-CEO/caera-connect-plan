@@ -424,7 +424,20 @@ const STATE_BUDGET = 24_000;
 const NEWEST_OBSERVATION = 16_000;
 const OLDER_OBSERVATION = 300;
 
-export class PlannerUnavailable extends Error {}
+export class PlannerUnavailable extends Error {
+  /** When the provider said trying again is worthwhile (its Retry-After), in ms. */
+  readonly retryAfterMs?: number;
+  constructor(message: string, retryAfterMs?: number) {
+    super(message);
+    this.retryAfterMs = retryAfterMs;
+  }
+}
+
+/** The planner was only busy (capacity, not consent, allowance or configuration). */
+export const plannerBusy = (code: string) =>
+  ["rate_limited", "provider_rate_limited", "provider_unavailable", "online_unavailable"].includes(
+    code,
+  );
 
 /** What a person can do about each reason the planner could not answer. */
 export function plannerMessage(code: string): string {
@@ -434,16 +447,7 @@ export function plannerMessage(code: string): string {
     return "The requested outcome needs website or app access that is not allowed on this computer.";
   if (code === "allowance_exhausted")
     return "Your JARVIS allowance is used up until your usage window resets.";
-  if (
-    [
-      "rate_limited",
-      "provider_rate_limited",
-      "provider_unavailable",
-      "online_unavailable",
-    ].includes(code)
-  ) {
-    return "JARVIS's online planner is busy right now.";
-  }
+  if (plannerBusy(code)) return "JARVIS's online planner is busy right now.";
   return "JARVIS's online planner is unavailable right now.";
 }
 
@@ -605,10 +609,14 @@ async function callPlanner(input: {
     }).catch(() => null);
     if (!response?.ok || !response.body) {
       // Refused before any output (consent, key, quota, outage): nothing is charged.
-      const body = (await response?.json().catch(() => null)) as { error?: string } | null;
+      const body = (await response?.json().catch(() => null)) as {
+        error?: string;
+        retryAfterSeconds?: unknown;
+      } | null;
       await release().catch(() => undefined);
       throw new PlannerUnavailable(
         body?.error ?? (response ? `planner_http_${response.status}` : "planner_unreachable"),
+        typeof body?.retryAfterSeconds === "number" ? body.retryAfterSeconds * 1000 : undefined,
       );
     }
     // Read the whole stream so the service settles the permit; keep its function calls in order.

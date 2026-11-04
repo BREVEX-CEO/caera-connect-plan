@@ -681,8 +681,16 @@ test(
       const waiting = await taskView(admin, userA, taskId);
       assert.equal(waiting.status, "waiting");
       assert.match(waiting.blocker ?? "", /busy|unavailable/);
+      assert.match(waiting.blocker ?? "", /tries again by itself/);
+      // Busy is not the person's problem: once the retry time passes, the device's next request
+      // for work resumes the task by itself (D10).
       providerUp = true;
-      await resumeTask(admin, userA, taskId);
+      sql(
+        `UPDATE public.jarvis_tasks SET retry_at = now() - interval '1 second' WHERE id = '${taskId}'`,
+        "postgres",
+      );
+      const resumed = await agent("run", "--workspace", workspace, "--until-idle");
+      assert.equal(resumed.code, 0, resumed.out);
       assert.match(
         sent[0].prompt,
         /status\.txt/,
