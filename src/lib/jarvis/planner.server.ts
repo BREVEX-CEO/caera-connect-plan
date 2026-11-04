@@ -127,10 +127,61 @@ export function rankBySimilarity<T>(query: string, items: T[], text: (item: T) =
 }
 
 /**
+ * Words people use for what each operation is for, so a request in everyday language ranks
+ * the right tools (the model sees only the summaries). Generic vocabulary of the capability,
+ * never an application, site or file name.
+ */
+const RANKING_WORDS: Partial<Record<Operation, string>> = {
+  "fs.list": "folder files what is there contents",
+  "fs.read_text": "read open look inside text contents log notes find out why extract recover",
+  "fs.write_text": "save note text file csv json write down answer result list",
+  "fs.edit_text": "fix typo change line setting config correct repair edit",
+  "fs.replace_text": "rewrite whole file repair script config",
+  "fs.manage":
+    "organise sort move rename folder delete remove trash duplicate copy executable permission read-only tidy archive",
+  "media.inspect": "video audio image length duration format resolution codec how long",
+  "media.trim": "cut trim shorten clip seconds start end",
+  "media.preview": "look see view picture image chart photo screenshot frame describe",
+  "media.analyze": "footage shots scenes motion brightness loudness best moments advert film edit",
+  "media.render_timeline": "edit film video advert montage music sound titles transitions export",
+  "scene.render": "3d model render design car object scene image",
+  "office.inspect_workbook": "spreadsheet excel workbook sheet cells table reconcile compare",
+  "office.write_document": "word document report docx pdf summary letter editable",
+  "office.write_workbook": "spreadsheet excel workbook table totals differences reconcile",
+  "system.inspect":
+    "installed version program available computer architecture disk space dependency missing",
+  "system.diagnose":
+    "why start crash error fails process running port service slow event log problem diagnose",
+  "apps.list": "application app program window open installed unknown",
+  "apps.launch": "open start launch application app program",
+  "ui.inspect":
+    "window app program button menu popup dialog setting control screen what shows canvas tool",
+  "ui.invoke": "press click button menu close popup dialog activate",
+  "ui.set_value": "type enter field value setting zoom text box change",
+  "ui.send_keys": "keyboard shortcut keys press ctrl save type",
+  "ui.click_point": "click spot canvas unlabeled icon picture position",
+  "shell.run": "command powershell terminal run install test suite script services cmd zsh",
+  "job.start": "long hour render export build install background wait restart",
+  "job.status": "progress watch finished still running job check",
+  "job.cancel": "stop cancel abort render job earlier",
+  "web.open": "website site web page online portal shop form login link url",
+  "web.read": "website page read find information hours prices compare tabs text",
+  "web.fill": "form fill details enter website field sign",
+  "web.select": "choose option dropdown website form",
+  "web.click": "click button link website page submit",
+  "web.upload": "upload attach send file portal website",
+  "web.screenshot": "screenshot capture page picture website",
+  "web.close": "close tab page website",
+  "web.download": "download save invoice file website portal",
+};
+
+/**
  * The operations shown to the model this turn: those already used in this task
  * (continuity), then the most similar to what is still wanted — the outcome, its
  * unfinished checks and the latest observation — up to MAX_OPERATIONS.
  */
+const ESSENTIAL: string[] = ["fs.list", "fs.read_text"];
+
 export function shortlistOperations(
   usable: Operation[],
   wanted: { objective: string; checks: OutcomeCheck[]; steps: Step[] },
@@ -143,6 +194,12 @@ export function shortlistOperations(
       (check) => `${check.description} ${check.kind ?? ""} ${check.params?.path ?? ""}`,
     ),
     last ? `${last.intent.operation} ${last.receipt?.errorCode ?? ""}` : "",
+    // An address in the request means a website is involved, whatever the site.
+    /https?:\/\/|\bwww\.|\b[a-z0-9-]+\.(com|org|net|io|gov|edu|co|uk|de|fr|au|app|dev|info)\b/i.test(
+      wanted.objective,
+    )
+      ? "website"
+      : "",
     // The kinds of file at hand (a .png in the folder calls for the image tools), not their names.
     ...new Set(
       wanted.steps.flatMap((step) =>
@@ -159,32 +216,70 @@ export function shortlistOperations(
   ].join(" ");
   // Continuity: an operation already used stays offered, and so does a failed route's fallback.
   const route = fallbackRoute(wanted.steps);
-  const fallback = route ? [route.observe, ...route.next].filter(Boolean) : [];
+  const fallback = route
+    ? [route.observe, ...route.next].filter((name): name is Operation => Boolean(name))
+    : [];
   const usedOperations = new Set(wanted.steps.map((step) => step.intent.operation));
+  // Looking at the folder and reading a file underlie almost every task: always offered.
+  const pinned = new Set<string>([...fallback, ...usedOperations, ...ESSENTIAL]);
   const used = [
     ...usable.filter((name) => fallback.includes(name)),
-    ...usable.filter((name) => usedOperations.has(name) && !fallback.includes(name)),
+    ...usable.filter((name) => pinned.has(name) && !fallback.includes(name)),
   ];
   const scored = rankBySimilarity(
     query,
     usable,
-    (name) => `${name.replace(/[._]/g, " ")} ${OPERATIONS[name].summary}`,
+    (name) =>
+      `${name.replace(/[._]/g, " ")} ${OPERATIONS[name].summary} ${RANKING_WORDS[name] ?? ""}`,
   );
-  // Role affinity: an unmatched sibling of a used or matched operation (a page opened with
-  // web.open is clicked with web.click; a video request that matched the timeline editor
-  // still needs the preview) comes before unrelated operations, after every matched one.
-  const roles = new Set(
-    [...used, ...scored.filter(({ score }) => score > 0).map(({ item }) => item)].map(
-      (name) => OPERATIONS[name as Operation].role,
-    ),
+  // Whole capabilities, best match first: a request that needs one tool of a kind usually
+  // needs its siblings (web.open then web.read; job.start then job.status; ui.inspect then
+  // ui.invoke). Roles are ranked by their best-matching operation; within a role, matching
+  // operations come first. Unmatched roles follow in catalogue order.
+  const best = new Map<string, number>();
+  for (const { item, score } of scored) {
+    const role = OPERATIONS[item].role;
+    best.set(role, Math.max(best.get(role) ?? 0, score));
+  }
+  // Continuity: the kind of tool this task is already using comes first and whole (a page
+  // opened with web.open is then clicked with web.click).
+  const continuing = new Set(
+    [...usedOperations]
+      .filter((name) => !ESSENTIAL.includes(name)) // looking and reading are every task's
+      .map((name) => OPERATIONS[name as Operation]?.role)
+      .filter(Boolean),
   );
-  const ranked = [
-    ...scored.filter(({ score }) => score > 0),
-    ...scored.filter(({ score, item }) => score <= 0 && roles.has(OPERATIONS[item].role)),
-    ...scored.filter(({ score, item }) => score <= 0 && !roles.has(OPERATIONS[item].role)),
-  ]
+  // The rest of a kind already in use first; then the strongest matches, whatever their kind;
+  // then whole capabilities by best match.
+  const siblings = scored
     .map(({ item }) => item)
-    .filter((name) => !used.includes(name));
+    .filter((name) => !used.includes(name) && continuing.has(OPERATIONS[name].role));
+  const free = scored
+    .map(({ item }) => item)
+    .filter((name) => !used.includes(name) && !siblings.includes(name));
+  const lead = [
+    ...siblings,
+    ...free.slice(0, Math.ceil((MAX_OPERATIONS - used.length - siblings.length) / 2)),
+  ];
+  const byRole = [...scored]
+    .sort(
+      (a, b) =>
+        (best.get(OPERATIONS[b.item].role) ?? 0) - (best.get(OPERATIONS[a.item].role) ?? 0) ||
+        b.score - a.score,
+    )
+    .map(({ item }) => item)
+    .filter((name) => !used.includes(name) && !lead.includes(name));
+  // At most four from one capability before the next gets its turn: a large one (the
+  // browser, the desktop) cannot crowd out a second capability the request also needs.
+  const taken = new Map<string, number>();
+  const first: Operation[] = [];
+  const later: Operation[] = [];
+  for (const name of byRole) {
+    const role = OPERATIONS[name].role;
+    taken.set(role, (taken.get(role) ?? 0) + 1);
+    (taken.get(role)! <= 4 ? first : later).push(name);
+  }
+  const ranked = [...lead, ...first, ...later];
   return [...used, ...ranked].slice(0, Math.max(MAX_OPERATIONS, used.length));
 }
 
