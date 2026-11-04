@@ -141,6 +141,19 @@ class WindowsUiLadder(unittest.TestCase):
                 time.sleep(0.5)
                 out["stale"] = await run("ui.click_point", {"window": window, **point, "expectTitle": "Ledger Note"})
 
+                # The app stops responding (its process suspended): nothing is attempted on it.
+                import ctypes
+
+                handle = ctypes.windll.kernel32.OpenProcess(0x0800, False, window["pid"])  # PROCESS_SUSPEND_RESUME
+                ctypes.windll.ntdll.NtSuspendProcess(handle)
+                try:
+                    time.sleep(6)  # Windows calls a window hung after 5 s without messages
+                    out["hung"] = await run("ui.set_value", {"window": window, "element": box, "value": "x"})
+                finally:
+                    ctypes.windll.ntdll.NtResumeProcess(handle)
+                    ctypes.windll.kernel32.CloseHandle(handle)
+                time.sleep(1)
+
                 win32gui.ShowWindow(hwnd, win32con.SW_MINIMIZE)
                 time.sleep(0.5)
                 out["minimized"] = await run("ui.set_value", {"window": window, "element": box, "value": "x"})
@@ -178,6 +191,8 @@ class WindowsUiLadder(unittest.TestCase):
             self.assertEqual(out["wrong_title"]["errorCode"], "unexpected_window")
             self.assertEqual(out["click"]["status"], "observed", out["click"])
             self.assertGreaterEqual(out["click"]["evidence"]["confidence"], 0.9)
+        with self.subTest("UIA-014 a window that stopped responding is refused, nothing attempted"):
+            self.assertEqual((out["hung"]["status"], out["hung"]["errorCode"]), ("not_applied", "window_not_responding"))
         with self.subTest("UIA-013 a click grounded in a stale image of a resized window is refused, nothing clicked"):
             self.assertEqual((out["stale"]["status"], out["stale"]["maybeChanged"], out["stale"]["errorCode"]),
                              ("not_applied", False, "window_resized"))

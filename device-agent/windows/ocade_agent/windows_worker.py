@@ -78,7 +78,30 @@ def _leased(window: dict):
         or abs(now["started"] - window["started"]) > 1
     ):
         raise Refused("window_changed")
+    import ctypes
+
+    if ctypes.windll.user32.IsHungAppWindow(hwnd):
+        raise Refused("window_not_responding")  # its app is busy or frozen: acting now would queue blindly
+    if _elevated(window["pid"]) and not _elevated(os.getpid()):
+        # Windows silently drops input and many UIA calls from a lower integrity level (UIPI):
+        # an action could report success while nothing happened. Refused, never attempted.
+        raise Refused("window_elevated")
     return Application(backend="uia").connect(handle=hwnd).window(handle=hwnd)
+
+
+def _elevated(pid: int) -> bool:
+    """Whether a process runs elevated (administrator). One this process may not even query
+    is treated as elevated: that is what blocks it."""
+    import win32api  # type: ignore[import-not-found]
+    import win32con  # type: ignore[import-not-found]
+    import win32security  # type: ignore[import-not-found]
+
+    try:
+        handle = win32api.OpenProcess(0x1000, False, pid)  # PROCESS_QUERY_LIMITED_INFORMATION
+        token = win32security.OpenProcessToken(handle, win32con.TOKEN_QUERY)
+        return bool(win32security.GetTokenInformation(token, win32security.TokenElevation))
+    except Exception:
+        return True
 
 
 def _person_quiet() -> None:
@@ -305,4 +328,10 @@ def ui_click_point(window: dict, x: float, y: float, expectTitle: str) -> dict:
 
 
 if __name__ == "__main__":
+    if WINDOWS:
+        import ctypes
+
+        # Per-monitor DPI awareness v2: window rectangles, screenshots and clicks all use real
+        # pixels on every monitor, whatever its scaling (125%, 150%, mixed setups).
+        ctypes.windll.user32.SetProcessDpiAwarenessContext(ctypes.c_void_p(-4))
     app.run("stdio")
