@@ -114,6 +114,34 @@ class JournalRecoveryTest(unittest.TestCase):
             self.assertEqual(journal.get("local-read")[0], "finished")
             journal.db.close()
 
+        # A socket timeout during a claim is an outage, not a reason to kill the
+        # companion. Exercise the real signed client and the polling loop.
+        from contextlib import nullcontext
+        from types import SimpleNamespace
+        from ocade_agent.device import Device
+
+        class LoopFinished(Exception):
+            pass
+
+        with tempfile.TemporaryDirectory() as directory:
+            home = Path(directory)
+            device = Device(home, "https://authority.example")
+            journal = Journal(home / "journal.sqlite")
+            runner = Agent(device, journal, MustNotRun())
+            def response(status):
+                return nullcontext(SimpleNamespace(status=200, read=lambda: json.dumps({"task": {"status": status}}).encode()))
+            replies = [TimeoutError("fixture socket timeout"), response("running"), response("completed")]
+            with patch("urllib.request.urlopen", side_effect=replies) as network:
+                async def pause(seconds):
+                    if network.call_count == 3:
+                        raise LoopFinished()
+                    await anyio.sleep(0)
+                runner.pause = pause
+                with self.assertRaises(LoopFinished):
+                    anyio.run(runner._loop, False)
+                self.assertEqual(network.call_count, 3, "the companion stopped polling after a transient outage")
+            journal.db.close()
+
     def test_started_action_cannot_change_to_a_pure_read_under_same_id(self):
         with tempfile.TemporaryDirectory() as directory:
             home = Path(directory)
@@ -266,6 +294,39 @@ class DispatchedStopTest(unittest.TestCase):
                 self.assertEqual(result["errorCode"], "stopped")
                 self.assertEqual(journal.get("stopped"), ("finished", result))
                 journal.db.close()
+
+        # STOP can arrive while the network claim is in flight. Even a hot
+        # worker must not start the action returned after that local STOP.
+        with tempfile.TemporaryDirectory() as directory:
+            home = Path(directory)
+            journal = Journal(home / "journal.sqlite")
+            flag = home / "STOP"
+            dispatched = []
+            operation = action_intent("fs.write_text", {"path": "OCADE output/after-stop.txt", "text": "must not be written"})
+            class StopDuringClaim(ReceiptDevice):
+                def request(self, payload):
+                    self.sent.append(payload)
+                    if payload["op"] == "claim":
+                        flag.touch()
+                        return 200, {"task": {"status": "running"}, "action": {"id": "after-stop", "intent": operation}}
+                    return 200, {"task": {"status": "completed"}}
+            class TrackedGateway(Gateway):
+                async def run(self, intent, epoch):
+                    dispatched.append(intent)
+                    return await super().run(intent, epoch)
+            async def run():
+                async with TrackedGateway(str(home), home=str(home)) as gateway:
+                    await gateway._session(agent_module.WORKERS["fs_sandbox"])
+                    with self.assertRaises(agent_module.LocalStop):
+                        await Agent(StopDuringClaim(home), journal, gateway, flag)._loop(True)
+            anyio.run(run)
+            print("OCADE_LOCAL_STOP_CLAIM:" + json.dumps({"dispatches": len(dispatched),
+                  "outputCreated": (home / "OCADE output/after-stop.txt").exists(),
+                  "journalStarted": journal.get("after-stop") is not None}))
+            self.assertEqual(dispatched, [], "an action started after local STOP during the claim")
+            self.assertFalse((home / "OCADE output/after-stop.txt").exists(), "the actual worker wrote after local STOP")
+            self.assertIsNone(journal.get("after-stop"))
+            journal.db.close()
 
 
 if __name__ == "__main__":

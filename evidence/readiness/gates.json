@@ -114,11 +114,13 @@
         {
           "id": "stop",
           "text": "STOP fences dispatch and ends in-flight process trees on every OS",
-          "status": "PASS",
+          "status": "PARTIAL",
           "evidence": [
             "device-agent/windows/tests/test_shell.py",
-            "tests/jarvis/e2e.test.ts"
-          ]
+            "tests/jarvis/e2e.test.ts",
+            "evidence/2026-11-05-local-stop/README.md"
+          ],
+          "reason": "Run 41900561913 reproduces an actual write after local STOP during an in-flight claim. The repair passes Linux preflight; full Windows/macOS qualification and publication are pending (D22)."
         },
         {
           "id": "takeover",

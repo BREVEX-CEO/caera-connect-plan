@@ -7,7 +7,7 @@ import { join } from "node:path";
 import { test } from "node:test";
 
 test("architecture regeneration preserves the current independent ledger", () => {
-  const markdown = readFileSync("evidence/2026-11-01-live/architecture-ledger.md", "utf8");
+  const markdown = readFileSync("evidence/2026-11-05-local-stop/architecture-ledger.md", "utf8");
   const expected = [...markdown.matchAll(/^\| (\d+) \| [^|]+ \| (\w+) \|/gm)].map((match) => ({
     n: Number(match[1]),
     status: match[2],

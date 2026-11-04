@@ -43,6 +43,7 @@ const T = {
   db: "tests/jarvis/db/authority.test.sql",
   gateway: "device-agent/windows/tests/test_gateway.py",
   agent: "device-agent/windows/tests/test_agent.py",
+  recovery: "device-agent/windows/tests/test_agent_recovery.py",
   sandbox: "device-agent/windows/tests/test_sandbox.py",
   catalog: "device-agent/windows/tests/test_catalog.py",
   web: "device-agent/windows/tests/test_web.py",
@@ -269,7 +270,13 @@ const C = {
   54: ["PASS", "L2", ["migration"], ["db", "e2e"], ""],
   55: ["PASS", "L2", ["agent", "migration"], ["agent", "db"], ""],
   56: ["PASS", "L2", ["agent", "migration"], ["agent", "e2e"], ""],
-  57: ["PASS", "L2", ["migration", "agent", "gateway"], ["e2e", "agent", "gateway"], ""],
+  57: [
+    "PARTIAL",
+    "L2",
+    ["migration", "agent", "gateway"],
+    ["e2e", "agent", "gateway", "recovery"],
+    "D22: local STOP during an in-flight claim can dispatch a new action; repaired Linux regression passes, full platform proof pending (evidence/2026-11-05-local-stop/)",
+  ],
   58: [
     "PARTIAL",
     "L2",

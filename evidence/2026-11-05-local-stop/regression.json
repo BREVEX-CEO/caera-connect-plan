@@ -1,0 +1,17 @@
+{
+  "fixedLinuxCandidate": "23efef02eb9aeb3daefe556614932c19a9e814c7",
+  "testedCommit": "b454ea08a9aa0c1d274f0ec36289a6a3b199d7ce",
+  "localStopClaim": {
+    "outputCreated": true,
+    "dispatches": 1,
+    "journalStarted": true
+  },
+  "transportError": "TimeoutError: fixture socket timeout",
+  "runId": 41900561913,
+  "failures": 1,
+  "jobId": 126821515464,
+  "fullQualification": "pending",
+  "fixedLinuxRunId": 41900570544,
+  "errors": 1,
+  "testMethods": 10
+}

@@ -120,11 +120,23 @@ class Device:
         try:
             # A receipt's answer waits for the next planning turn (a model call): give it the
             # proxy's full 100 s, so a slow turn is not mistaken for a lost receipt and resent.
-            limit = timeout or (100 if payload["op"] == "receipt" else 30)
-            with urllib.request.urlopen(request, timeout=limit) as response:
-                return response.status, json.loads(response.read() or b"{}")
-        except urllib.error.HTTPError as error:
-            return error.code, json.loads(error.read() or b"{}")
+            # A claim resuming a busy planner now owns the same bounded planning turn.
+            limit = timeout or (100 if payload["op"] in ("receipt", "claim") else 30)
+            try:
+                with urllib.request.urlopen(request, timeout=limit) as response:
+                    status, data = response.status, response.read()
+            except urllib.error.HTTPError as error:
+                with error:
+                    status, data = error.code, error.read()
+        except OSError:
+            raise ConnectionError("device_transport_unavailable") from None
+        try:
+            answer = json.loads(data or b"{}")
+        except (ValueError, UnicodeError):
+            raise ConnectionError("device_response_unreadable") from None
+        if not isinstance(answer, dict):
+            raise ConnectionError("device_response_unreadable")
+        return status, answer
 
     def enroll(self, name: str, platform: str, version: str) -> dict:
         status, body = self.request({"op": "enroll", "publicKey": self.public_key, "name": name,

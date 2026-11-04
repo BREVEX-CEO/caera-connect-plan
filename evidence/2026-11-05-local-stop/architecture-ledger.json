@@ -1,0 +1,1208 @@
+[
+  {
+    "n": 1,
+    "title": "OD-AVGHHC — Outcome-Driven Adaptive Verifier-Gated Hierarchical Hybrid Control",
+    "status": "PARTIAL",
+    "level": "L4",
+    "owners": [
+      "src/lib/jarvis/authority.server.ts",
+      "src/lib/jarvis/planner.server.ts",
+      "device-agent/windows/ocade_agent/gateway.py",
+      "device-agent/windows/ocade_agent/verify_worker.py"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts",
+      "staging checks and real UI run (evidence/2026-10-31-architecture)"
+    ],
+    "reason": "full loop proven in live Gemini runs (evidence/2026-10-31-browser) on Linux (text, vision, browser video PASS); browser photo editing not completed; Windows native control untested"
+  },
+  {
+    "n": 2,
+    "title": "Architecture C — Unified Hybrid Control",
+    "status": "PARTIAL",
+    "level": "L2",
+    "owners": [
+      "src/lib/jarvis/authority.server.ts",
+      "device-agent/windows/ocade_agent/agent.py + device.py + journal.py"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts"
+    ],
+    "reason": "task and activity ids link every hop; no separate traceId"
+  },
+  {
+    "n": 3,
+    "title": "Five Primary Architectural Components",
+    "status": "PASS",
+    "level": "L2",
+    "owners": [
+      "src/lib/jarvis/supervisor.ts",
+      "device-agent/windows/ocade_agent/catalog.py",
+      "device-agent/windows/ocade_agent/gateway.py",
+      "device-agent/windows/ocade_agent/agent.py + device.py + journal.py",
+      "device-agent/windows/ocade_agent/verify_worker.py"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts",
+      "device-agent/windows/tests/test_gateway.py"
+    ],
+    "reason": ""
+  },
+  {
+    "n": 4,
+    "title": "Single-Dispatcher Architecture",
+    "status": "PASS",
+    "level": "L2",
+    "owners": [
+      "supabase/migrations/20261030120000_jarvis_task_authority.sql",
+      "src/lib/jarvis/authority.server.ts"
+    ],
+    "tests": [
+      "tests/jarvis/db/authority.test.sql",
+      "tests/jarvis/e2e.test.ts"
+    ],
+    "reason": ""
+  },
+  {
+    "n": 5,
+    "title": "Supervisor–Pilot / Actor–Critic Separation",
+    "status": "PASS",
+    "level": "L2",
+    "owners": [
+      "src/lib/jarvis/planner.server.ts",
+      "src/lib/jarvis/contracts.ts",
+      "supabase/migrations/20261030120000_jarvis_task_authority.sql",
+      "device-agent/windows/ocade_agent/verify_worker.py"
+    ],
+    "tests": [
+      "tests/jarvis/contracts.test.ts",
+      "tests/jarvis/db/authority.test.sql",
+      "tests/jarvis/e2e.test.ts"
+    ],
+    "reason": ""
+  },
+  {
+    "n": 6,
+    "title": "Hierarchical Control and Context Isolation",
+    "status": "PARTIAL",
+    "level": "L1",
+    "owners": [
+      "src/lib/jarvis/planner.server.ts"
+    ],
+    "tests": [
+      "tests/jarvis/contracts.test.ts"
+    ],
+    "reason": "goal checks and per-turn tool shortlist; no explicit milestone layer"
+  },
+  {
+    "n": 7,
+    "title": "Separation of State",
+    "status": "PASS",
+    "level": "L2",
+    "owners": [
+      "supabase/migrations/20261030120000_jarvis_task_authority.sql",
+      "src/lib/jarvis/supervisor.ts"
+    ],
+    "tests": [
+      "tests/jarvis/db/authority.test.sql",
+      "tests/jarvis/e2e.test.ts"
+    ],
+    "reason": ""
+  },
+  {
+    "n": 8,
+    "title": "Outcome and Target-State Definition",
+    "status": "PARTIAL",
+    "level": "L4",
+    "owners": [
+      "src/lib/jarvis/planner.server.ts",
+      "src/lib/jarvis/contracts.ts"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts",
+      "staging checks and real UI run (evidence/2026-10-31-architecture)"
+    ],
+    "reason": "Gemini compiles typed checks before any step in live Gemini runs (evidence/2026-10-31-browser); for photo edits it chose existence-only checks"
+  },
+  {
+    "n": 9,
+    "title": "Zero Hardcoded Application or Customer-Task Journeys",
+    "status": "PASS",
+    "level": "L1",
+    "owners": [
+      "scripts/jarvis-no-hardcoded-journeys.mjs",
+      "src/lib/jarvis/planner.server.ts"
+    ],
+    "tests": [
+      "npm run jarvis:no-hardcoded",
+      "tests/jarvis/contracts.test.ts",
+      "tests/jarvis/e2e.test.ts"
+    ],
+    "reason": ""
+  },
+  {
+    "n": 10,
+    "title": "Capability-First Tool Selection",
+    "status": "PASS",
+    "level": "L1",
+    "owners": [
+      "src/lib/jarvis/planner.server.ts",
+      "device-agent/windows/ocade_agent/discovery.py"
+    ],
+    "tests": [
+      "tests/jarvis/contracts.test.ts"
+    ],
+    "reason": ""
+  },
+  {
+    "n": 11,
+    "title": "Environment Discovery and Systemic Introspection",
+    "status": "PARTIAL",
+    "level": "L2",
+    "owners": [
+      "device-agent/windows/ocade_agent/discovery.py",
+      "device-agent/windows/ocade_agent/catalog.py"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_agent.py",
+      "device-agent/windows/tests/test_windows_ui.py (GitHub windows-latest runner)"
+    ],
+    "reason": "installed apps (App Paths, Start Menu) and windows on a cloud Windows Server runner only; a customer Windows 10/11 desktop is UNTESTED"
+  },
+  {
+    "n": 12,
+    "title": "Dynamic Application and Interface Discovery",
+    "status": "PARTIAL",
+    "level": "L2",
+    "owners": [
+      "device-agent/windows/ocade_agent/discovery.py",
+      "device-agent/windows/ocade_agent/windows_worker.py"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_windows_ui.py (GitHub windows-latest runner)"
+    ],
+    "reason": "an app compiled under a random name at test time is discovered and launched on a cloud Windows Server runner only; a customer Windows 10/11 desktop is UNTESTED"
+  },
+  {
+    "n": 13,
+    "title": "Dynamic Capability Registry and Typed Schemas",
+    "status": "PASS",
+    "level": "L2",
+    "owners": [
+      "device-agent/windows/ocade_agent/catalog.py",
+      "src/lib/jarvis/contracts.ts"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_catalog.py",
+      "device-agent/windows/tests/test_gateway.py"
+    ],
+    "reason": ""
+  },
+  {
+    "n": 14,
+    "title": "MCP Toolbox Router",
+    "status": "PASS",
+    "level": "L1",
+    "owners": [
+      "src/lib/jarvis/planner.server.ts"
+    ],
+    "tests": [
+      "tests/jarvis/contracts.test.ts"
+    ],
+    "reason": ""
+  },
+  {
+    "n": 15,
+    "title": "Semantic Token Gatekeeper",
+    "status": "PASS",
+    "level": "L1",
+    "owners": [
+      "src/lib/jarvis/planner.server.ts"
+    ],
+    "tests": [
+      "tests/jarvis/contracts.test.ts"
+    ],
+    "reason": ""
+  },
+  {
+    "n": 16,
+    "title": "Vectorized Domain Blueprints",
+    "status": "PARTIAL",
+    "level": "L1",
+    "owners": [
+      "src/lib/jarvis/planner.server.ts"
+    ],
+    "tests": [
+      "tests/jarvis/contracts.test.ts"
+    ],
+    "reason": "TF-IDF vectors over descriptors; learned embeddings blocked (no approved embedding model)"
+  },
+  {
+    "n": 17,
+    "title": "Receding-Horizon Vector Selector",
+    "status": "PASS",
+    "level": "L1",
+    "owners": [
+      "src/lib/jarvis/planner.server.ts"
+    ],
+    "tests": [
+      "tests/jarvis/contracts.test.ts"
+    ],
+    "reason": ""
+  },
+  {
+    "n": 18,
+    "title": "Macroscopic Planning for Unknown Task Horizons",
+    "status": "PARTIAL",
+    "level": "L2",
+    "owners": [
+      "src/lib/jarvis/planner.server.ts",
+      "supabase/migrations/20261030120000_jarvis_task_authority.sql"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts"
+    ],
+    "reason": "step and time budgets, durable state; no milestone construct"
+  },
+  {
+    "n": 19,
+    "title": "Bounded Receding-Horizon Planning",
+    "status": "PASS",
+    "level": "L1",
+    "owners": [
+      "src/lib/jarvis/planner.server.ts"
+    ],
+    "tests": [
+      "tests/jarvis/contracts.test.ts",
+      "tests/jarvis/e2e.test.ts"
+    ],
+    "reason": ""
+  },
+  {
+    "n": 20,
+    "title": "Real-Time Observe–Act–Verify–Adapt Loop",
+    "status": "PARTIAL",
+    "level": "L4",
+    "owners": [
+      "src/lib/jarvis/planner.server.ts",
+      "device-agent/windows/ocade_agent/gateway.py"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts",
+      "staging checks and real UI run (evidence/2026-10-31-architecture)"
+    ],
+    "reason": "adapts live in live Gemini runs (evidence/2026-10-31-browser) (refused selector corrected, verifier-driven repair); stalled on a canvas editor's menus"
+  },
+  {
+    "n": 21,
+    "title": "Dynamic State Pivot and Self-Correction",
+    "status": "PARTIAL",
+    "level": "L2",
+    "owners": [
+      "supabase/migrations/20261030120000_jarvis_task_authority.sql",
+      "src/lib/jarvis/authority.server.ts"
+    ],
+    "tests": [
+      "tests/jarvis/db/authority.test.sql",
+      "tests/jarvis/e2e.test.ts"
+    ],
+    "reason": "resume issues a new controller; no target refresh after takeover"
+  },
+  {
+    "n": 22,
+    "title": "Tool Namespace Isolation",
+    "status": "PASS",
+    "level": "L2",
+    "owners": [
+      "device-agent/windows/ocade_agent/catalog.py",
+      "device-agent/windows/ocade_agent/gateway.py"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_catalog.py",
+      "tests/jarvis/contracts.test.ts"
+    ],
+    "reason": ""
+  },
+  {
+    "n": 23,
+    "title": "Large Tool Catalog Filtering",
+    "status": "PASS",
+    "level": "L1",
+    "owners": [
+      "src/lib/jarvis/planner.server.ts"
+    ],
+    "tests": [
+      "tests/jarvis/contracts.test.ts"
+    ],
+    "reason": ""
+  },
+  {
+    "n": 24,
+    "title": "Live Capability and Dependency Preflight",
+    "status": "PASS",
+    "level": "L1",
+    "owners": [
+      "device-agent/windows/ocade_agent/discovery.py",
+      "src/lib/jarvis/planner.server.ts",
+      "device-agent/windows/ocade_agent/media_worker.py + scene_gl.py"
+    ],
+    "tests": [
+      "tests/jarvis/contracts.test.ts",
+      "device-agent/windows/tests/test_media.py"
+    ],
+    "reason": ""
+  },
+  {
+    "n": 25,
+    "title": "Native-First Execution Hierarchy",
+    "status": "PASS",
+    "level": "L1",
+    "owners": [
+      "src/lib/jarvis/planner.server.ts"
+    ],
+    "tests": [
+      "tests/jarvis/contracts.test.ts"
+    ],
+    "reason": ""
+  },
+  {
+    "n": 26,
+    "title": "Native OS and File-Format Operations",
+    "status": "PASS",
+    "level": "L2",
+    "owners": [
+      "device-agent/windows/ocade_agent/office_worker.py",
+      "device-agent/windows/ocade_agent/sandbox.py",
+      "device-agent/windows/ocade_agent/media_worker.py + scene_gl.py"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_sandbox.py",
+      "device-agent/windows/tests/test_gateway.py",
+      "device-agent/windows/tests/test_media.py"
+    ],
+    "reason": ""
+  },
+  {
+    "n": 27,
+    "title": "Scoped Script and Command Execution",
+    "status": "PASS",
+    "level": "L2",
+    "owners": [
+      "device-agent/windows/ocade_agent/media_worker.py + scene_gl.py",
+      "device-agent/windows/ocade_agent/office_worker.py",
+      "device-agent/windows/ocade_agent/sandbox.py"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_media.py",
+      "device-agent/windows/tests/test_sandbox.py"
+    ],
+    "reason": ""
+  },
+  {
+    "n": 28,
+    "title": "Windows UI Automation — pywinauto / UIA / Win32",
+    "status": "PARTIAL",
+    "level": "L2",
+    "owners": [
+      "device-agent/windows/ocade_agent/windows_worker.py"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_windows_ui.py (GitHub windows-latest runner)"
+    ],
+    "reason": "UIA inspect/set_value/invoke/send_keys/click_point on a cloud Windows Server runner only; a customer Windows 10/11 desktop is UNTESTED"
+  },
+  {
+    "n": 29,
+    "title": "macOS Accessibility — pyobjc / ApplicationServices",
+    "status": "PARTIAL",
+    "level": "L2",
+    "owners": [
+      "device-agent/windows/ocade_agent/mac_worker.py"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_mac_ui.py (GitHub macOS runner)"
+    ],
+    "reason": "Run 45 (a7cf182) passed the macOS cloud suite; consumer permissions and real-device qualification remain untested"
+  },
+  {
+    "n": 30,
+    "title": "Browser DOM / CDP / Playwright Automation",
+    "status": "PASS",
+    "level": "L2",
+    "owners": [
+      "device-agent/windows/ocade_agent/web_worker.py"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_web.py"
+    ],
+    "reason": ""
+  },
+  {
+    "n": 31,
+    "title": "Authenticated Browser Profile and Session Binding",
+    "status": "PARTIAL",
+    "level": "L2",
+    "owners": [
+      "device-agent/windows/ocade_agent/web_worker.py"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_web.py"
+    ],
+    "reason": "dedicated OCADE profile only; existing signed-in sessions not used"
+  },
+  {
+    "n": 32,
+    "title": "Structured Accessibility-Tree Interaction",
+    "status": "PARTIAL",
+    "level": "L2",
+    "owners": [
+      "device-agent/windows/ocade_agent/windows_worker.py"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_windows_ui.py (GitHub windows-latest runner)"
+    ],
+    "reason": "accessible controls with names, ids and boxes on a cloud Windows Server runner only; a customer Windows 10/11 desktop is UNTESTED"
+  },
+  {
+    "n": 33,
+    "title": "Exact PID / HWND / Document / Tab Targeting",
+    "status": "PARTIAL",
+    "level": "L2",
+    "owners": [
+      "device-agent/windows/ocade_agent/web_worker.py",
+      "device-agent/windows/ocade_agent/windows_worker.py",
+      "src/lib/jarvis/contracts.ts"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_web.py",
+      "tests/jarvis/contracts.test.ts",
+      "device-agent/windows/tests/test_windows_ui.py (GitHub windows-latest runner)"
+    ],
+    "reason": "page/site binding tested; forged/closed window leases refused on a cloud Windows Server runner only; a customer Windows 10/11 desktop is UNTESTED"
+  },
+  {
+    "n": 34,
+    "title": "Window Resize, DPI and Multi-Monitor Resilience",
+    "status": "PARTIAL",
+    "level": "L2",
+    "owners": [
+      "device-agent/windows/ocade_agent/windows_worker.py"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_windows_ui.py (GitHub windows-latest runner)"
+    ],
+    "reason": "resize and move then click at the inspected box on a cloud Windows Server runner only; a customer Windows 10/11 desktop is UNTESTED; DPI scaling and multiple monitors UNTESTED"
+  },
+  {
+    "n": 35,
+    "title": "Foreground, Background and Minimized-Window State Handling",
+    "status": "PARTIAL",
+    "level": "L2",
+    "owners": [
+      "device-agent/windows/ocade_agent/windows_worker.py"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_windows_ui.py (GitHub windows-latest runner)"
+    ],
+    "reason": "minimized refused, foreground required for keys on a cloud Windows Server runner only; a customer Windows 10/11 desktop is UNTESTED; occluded/background windows UNTESTED"
+  },
+  {
+    "n": 36,
+    "title": "Visual Anchors / OpenCV as Last-Resort Fallback",
+    "status": "PARTIAL",
+    "level": "L2",
+    "owners": [
+      "device-agent/windows/ocade_agent/windows_worker.py",
+      "src/lib/jarvis/planner.server.ts"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_windows_ui.py (GitHub windows-latest runner)"
+    ],
+    "reason": "the window image and each control's box go to the model, which grounds ui.click_point; no OpenCV template matching or confidence score"
+  },
+  {
+    "n": 37,
+    "title": "Dynamic Universal Application Fallback Hierarchy",
+    "status": "PASS",
+    "level": "L1",
+    "owners": [
+      "src/lib/jarvis/planner.server.ts",
+      "device-agent/windows/ocade_agent/discovery.py"
+    ],
+    "tests": [
+      "tests/jarvis/contracts.test.ts"
+    ],
+    "reason": ""
+  },
+  {
+    "n": 38,
+    "title": "Approved Filesystem Sandbox",
+    "status": "PASS",
+    "level": "L2",
+    "owners": [
+      "device-agent/windows/ocade_agent/sandbox.py",
+      "device-agent/windows/ocade_agent/office_worker.py"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_sandbox.py",
+      "device-agent/windows/tests/test_gateway.py"
+    ],
+    "reason": ""
+  },
+  {
+    "n": 39,
+    "title": "Trusted MCP Gateway and Capability Dictionary",
+    "status": "PASS",
+    "level": "L2",
+    "owners": [
+      "device-agent/windows/ocade_agent/gateway.py",
+      "device-agent/windows/ocade_agent/catalog.py"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_gateway.py",
+      "device-agent/windows/tests/test_catalog.py"
+    ],
+    "reason": ""
+  },
+  {
+    "n": 40,
+    "title": "Official MCP Tool/Server Lifecycle",
+    "status": "PASS",
+    "level": "L2",
+    "owners": [
+      "device-agent/windows/ocade_agent/gateway.py"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_gateway.py",
+      "device-agent/windows/tests/test_agent.py"
+    ],
+    "reason": ""
+  },
+  {
+    "n": 41,
+    "title": "Core OS, Filesystem, Browser and Accessibility Tool Roles",
+    "status": "PASS",
+    "level": "L2",
+    "owners": [
+      "device-agent/windows/ocade_agent/gateway.py",
+      "device-agent/windows/packaging/"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_gateway.py",
+      "device-agent/windows/packaging/check_frozen.py"
+    ],
+    "reason": ""
+  },
+  {
+    "n": 42,
+    "title": "Async STDIO — sys.stdin / sys.stdout",
+    "status": "PASS",
+    "level": "L2",
+    "owners": [
+      "device-agent/windows/ocade_agent/gateway.py"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_gateway.py"
+    ],
+    "reason": ""
+  },
+  {
+    "n": 43,
+    "title": "STDIO Subprocess Multiplexing",
+    "status": "PASS",
+    "level": "L2",
+    "owners": [
+      "device-agent/windows/ocade_agent/gateway.py"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_gateway.py"
+    ],
+    "reason": ""
+  },
+  {
+    "n": 44,
+    "title": "Tool Schema Pinning and Validation",
+    "status": "PASS",
+    "level": "L2",
+    "owners": [
+      "src/lib/jarvis/contracts.ts",
+      "device-agent/windows/ocade_agent/gateway.py"
+    ],
+    "tests": [
+      "tests/jarvis/contracts.test.ts",
+      "device-agent/windows/tests/test_gateway.py"
+    ],
+    "reason": ""
+  },
+  {
+    "n": 45,
+    "title": "Tool Discovery, Versioning and Health Checks",
+    "status": "PARTIAL",
+    "level": "L2",
+    "owners": [
+      "device-agent/windows/ocade_agent/catalog.py",
+      "device-agent/windows/ocade_agent/discovery.py"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_catalog.py"
+    ],
+    "reason": "pinned manifests and start-up health; no health TTL cache"
+  },
+  {
+    "n": 46,
+    "title": "Approved External MCP Provenance and Permissions",
+    "status": "PARTIAL",
+    "level": "L2",
+    "owners": [
+      "device-agent/windows/ocade_agent/catalog.py",
+      "device-agent/windows/ocade_agent/gateway.py"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_catalog.py",
+      "device-agent/windows/tests/test_gateway.py"
+    ],
+    "reason": "executable and file arguments pinned (argSha256) on Linux, macOS and Windows runners; no third-party server qualified"
+  },
+  {
+    "n": 47,
+    "title": "Lazy Worker Activation and Isolation",
+    "status": "PASS",
+    "level": "L2",
+    "owners": [
+      "device-agent/windows/ocade_agent/gateway.py"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_gateway.py",
+      "device-agent/windows/tests/test_agent.py"
+    ],
+    "reason": ""
+  },
+  {
+    "n": 48,
+    "title": "IPC Latency and Throughput Measurement",
+    "status": "PARTIAL",
+    "level": "L2",
+    "owners": [
+      "device-agent/windows/ocade_agent/gateway.py",
+      "src/lib/jarvis/authority.server.ts"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_gateway.py",
+      "tests/jarvis/e2e.test.ts"
+    ],
+    "reason": "per-action and model durations recorded; no p50/p95 from real runs"
+  },
+  {
+    "n": 49,
+    "title": "Deterministic Safe Multi-Action Batching",
+    "status": "PARTIAL",
+    "level": "L1",
+    "owners": [
+      "src/lib/jarvis/planner.server.ts",
+      "src/lib/jarvis/authority.server.ts",
+      "supabase/migrations/20261030120000_jarvis_task_authority.sql"
+    ],
+    "tests": [
+      "tests/jarvis/contracts.test.ts",
+      "tests/jarvis/db/authority.test.sql"
+    ],
+    "reason": "Guarded step lists require E1 accuracy qualification (W4)"
+  },
+  {
+    "n": 50,
+    "title": "Resource Locking and Semaphores",
+    "status": "PARTIAL",
+    "level": "L2",
+    "owners": [
+      "supabase/migrations/20261030120000_jarvis_task_authority.sql"
+    ],
+    "tests": [
+      "tests/jarvis/db/authority.test.sql"
+    ],
+    "reason": "one open task per device; no per-file lock across devices"
+  },
+  {
+    "n": 51,
+    "title": "Concurrency Protection and Resource-Aware Scheduling",
+    "status": "PARTIAL",
+    "level": "L2",
+    "owners": [
+      "supabase/migrations/20261030120000_jarvis_task_authority.sql",
+      "device-agent/windows/ocade_agent/gateway.py"
+    ],
+    "tests": [
+      "tests/jarvis/db/authority.test.sql"
+    ],
+    "reason": "serialized per device; no CPU/GPU-aware scheduling"
+  },
+  {
+    "n": 52,
+    "title": "Task UUIDs and Idempotency Keys",
+    "status": "PASS",
+    "level": "L2",
+    "owners": [
+      "supabase/migrations/20261030120000_jarvis_task_authority.sql",
+      "device-agent/windows/ocade_agent/agent.py + device.py + journal.py"
+    ],
+    "tests": [
+      "tests/jarvis/db/authority.test.sql",
+      "device-agent/windows/tests/test_agent.py"
+    ],
+    "reason": ""
+  },
+  {
+    "n": 53,
+    "title": "Transactional Side-Effect Journal",
+    "status": "PASS",
+    "level": "L2",
+    "owners": [
+      "device-agent/windows/ocade_agent/agent.py + device.py + journal.py"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_agent.py"
+    ],
+    "reason": ""
+  },
+  {
+    "n": 54,
+    "title": "Execution, Effect and Verification State Separation",
+    "status": "PASS",
+    "level": "L2",
+    "owners": [
+      "supabase/migrations/20261030120000_jarvis_task_authority.sql"
+    ],
+    "tests": [
+      "tests/jarvis/db/authority.test.sql",
+      "tests/jarvis/e2e.test.ts"
+    ],
+    "reason": ""
+  },
+  {
+    "n": 55,
+    "title": "Lost-Confirmation / Unknown-Effect Reconciliation",
+    "status": "PASS",
+    "level": "L2",
+    "owners": [
+      "device-agent/windows/ocade_agent/agent.py + device.py + journal.py",
+      "supabase/migrations/20261030120000_jarvis_task_authority.sql"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_agent.py",
+      "tests/jarvis/db/authority.test.sql"
+    ],
+    "reason": ""
+  },
+  {
+    "n": 56,
+    "title": "Durable Checkpoints and Crash Recovery",
+    "status": "PASS",
+    "level": "L2",
+    "owners": [
+      "device-agent/windows/ocade_agent/agent.py + device.py + journal.py",
+      "supabase/migrations/20261030120000_jarvis_task_authority.sql"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_agent.py",
+      "tests/jarvis/e2e.test.ts"
+    ],
+    "reason": ""
+  },
+  {
+    "n": 57,
+    "title": "Local STOP / Pause / Take Over / Resume",
+    "status": "PARTIAL",
+    "level": "L2",
+    "owners": [
+      "supabase/migrations/20261030120000_jarvis_task_authority.sql",
+      "device-agent/windows/ocade_agent/agent.py + device.py + journal.py",
+      "device-agent/windows/ocade_agent/gateway.py"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts",
+      "device-agent/windows/tests/test_agent.py",
+      "device-agent/windows/tests/test_gateway.py",
+      "device-agent/windows/tests/test_agent_recovery.py"
+    ],
+    "reason": "D22: local STOP during an in-flight claim can dispatch a new action; repaired Linux regression passes, full platform proof pending (evidence/2026-11-05-local-stop/)"
+  },
+  {
+    "n": 58,
+    "title": "Live User Interference Detection",
+    "status": "PARTIAL",
+    "level": "L2",
+    "owners": [
+      "device-agent/windows/ocade_agent/windows_worker.py"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_windows_ui.py (GitHub windows-latest runner)"
+    ],
+    "reason": "mutations pause while the person's keyboard/mouse input is newer than JARVIS's on a cloud Windows Server runner only; a customer Windows 10/11 desktop is UNTESTED; no detection on macOS/Linux or in the web worker"
+  },
+  {
+    "n": 59,
+    "title": "Target Revalidation After State Changes",
+    "status": "PARTIAL",
+    "level": "L2",
+    "owners": [
+      "device-agent/windows/ocade_agent/web_worker.py",
+      "device-agent/windows/ocade_agent/windows_worker.py"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_web.py",
+      "device-agent/windows/tests/test_windows_ui.py (GitHub windows-latest runner)"
+    ],
+    "reason": "web page binding rechecked per action; window identity rechecked per action on a cloud Windows Server runner only; a customer Windows 10/11 desktop is UNTESTED"
+  },
+  {
+    "n": 60,
+    "title": "Bounded Retry and Cycle Detection",
+    "status": "PASS",
+    "level": "L1",
+    "owners": [
+      "src/lib/jarvis/planner.server.ts"
+    ],
+    "tests": [
+      "tests/jarvis/contracts.test.ts"
+    ],
+    "reason": ""
+  },
+  {
+    "n": 61,
+    "title": "Graceful Degradation and Honest Blocked States",
+    "status": "PASS",
+    "level": "L2",
+    "owners": [
+      "src/lib/jarvis/authority.server.ts",
+      "src/lib/jarvis/planner.server.ts"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts",
+      "tests/jarvis/contracts.test.ts"
+    ],
+    "reason": ""
+  },
+  {
+    "n": 62,
+    "title": "Least-Privilege Runtime Sandboxing / ACLs",
+    "status": "PARTIAL",
+    "level": "L2",
+    "owners": [
+      "device-agent/windows/ocade_agent/gateway.py",
+      "device-agent/windows/ocade_agent/sandbox.py"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_gateway.py",
+      "device-agent/windows/tests/test_sandbox.py",
+      "device-agent/windows/tests/test_shell.py (Linux, macOS and Windows runners)"
+    ],
+    "reason": "sanitized env, path sandbox, confirmed commands with process-tree containment; commands run with the person's own rights, no OS-level ACL or network isolation"
+  },
+  {
+    "n": 63,
+    "title": "Scoped Authentication, Consent, OAuth and MFA",
+    "status": "PASS",
+    "level": "L2",
+    "owners": [
+      "supabase/migrations/20261030120000_jarvis_task_authority.sql",
+      "src/lib/jarvis/authority.server.ts",
+      "src/lib/intelligence/edge-handler.ts (deployed ocade-intelligence-service)"
+    ],
+    "tests": [
+      "tests/jarvis/db/authority.test.sql",
+      "tests/jarvis/e2e.test.ts"
+    ],
+    "reason": ""
+  },
+  {
+    "n": 64,
+    "title": "Secrets Vault and Credential Isolation",
+    "status": "PASS",
+    "level": "L2",
+    "owners": [
+      "device-agent/windows/ocade_agent/gateway.py",
+      "src/lib/intelligence/edge-handler.ts (deployed ocade-intelligence-service)"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_gateway.py",
+      "tests/jarvis/e2e.test.ts"
+    ],
+    "reason": ""
+  },
+  {
+    "n": 65,
+    "title": "Signed Local Device Agent",
+    "status": "PARTIAL",
+    "level": "L2",
+    "owners": [
+      "device-agent/windows/ocade_agent/agent.py + device.py + journal.py",
+      "src/lib/jarvis/authority.server.ts"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts"
+    ],
+    "reason": "request signatures tested; signed binary updates blocked (no certificate)"
+  },
+  {
+    "n": 66,
+    "title": "Secure Device Pairing and Revocation",
+    "status": "PASS",
+    "level": "L2",
+    "owners": [
+      "supabase/migrations/20261030120000_jarvis_task_authority.sql",
+      "src/lib/jarvis/authority.server.ts"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts",
+      "tests/jarvis/db/authority.test.sql"
+    ],
+    "reason": ""
+  },
+  {
+    "n": 67,
+    "title": "Persistent Authorized Capability Scopes",
+    "status": "PARTIAL",
+    "level": "L2",
+    "owners": [
+      "supabase/migrations/20261030120000_jarvis_task_authority.sql"
+    ],
+    "tests": [
+      "tests/jarvis/db/authority.test.sql"
+    ],
+    "reason": "grants persist per device; no purpose or expiry"
+  },
+  {
+    "n": 68,
+    "title": "One-Installer Self-Contained Runtime",
+    "status": "PARTIAL",
+    "level": "L2",
+    "owners": [
+      "device-agent/windows/packaging/"
+    ],
+    "tests": [
+      "device-agent/windows/packaging/check_frozen.py"
+    ],
+    "reason": "unsigned installer builds and every frozen worker starts on the Windows runner; code signing needs a certificate (BLOCKED)"
+  },
+  {
+    "n": 69,
+    "title": "Scoped Local Workspace and Output Provenance",
+    "status": "PASS",
+    "level": "L2",
+    "owners": [
+      "device-agent/windows/ocade_agent/sandbox.py",
+      "device-agent/windows/ocade_agent/media_worker.py + scene_gl.py",
+      "device-agent/windows/ocade_agent/office_worker.py"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_sandbox.py",
+      "device-agent/windows/tests/test_media.py"
+    ],
+    "reason": ""
+  },
+  {
+    "n": 70,
+    "title": "Task Activity, Timing and Progress Telemetry",
+    "status": "PASS",
+    "level": "L2",
+    "owners": [
+      "supabase/migrations/20261030120000_jarvis_task_authority.sql",
+      "src/lib/jarvis/authority.server.ts",
+      "src/jarvis/JarvisPanels.tsx"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts"
+    ],
+    "reason": ""
+  },
+  {
+    "n": 71,
+    "title": "Safe Output Delivery and Editable Artifacts",
+    "status": "PARTIAL",
+    "level": "L2",
+    "owners": [
+      "src/lib/jarvis/authority.server.ts",
+      "src/jarvis/JarvisPanels.tsx"
+    ],
+    "tests": [
+      "tests/jarvis/e2e.test.ts"
+    ],
+    "reason": "files land in the device folder; no download/read-back from the UI tested"
+  },
+  {
+    "n": 72,
+    "title": "Minimal Outcome-First User Experience",
+    "status": "PARTIAL",
+    "level": "L3",
+    "owners": [
+      "src/jarvis/JarvisPanels.tsx"
+    ],
+    "tests": [
+      "staging checks and real UI run (evidence/2026-10-31-architecture)"
+    ],
+    "reason": "UI sign-in, pairing and request on staging; live tasks ran through the production authority from the harness, not yet from the UI"
+  },
+  {
+    "n": 73,
+    "title": "Internal MCP Complexity Hidden from Customers",
+    "status": "PASS",
+    "level": "L2",
+    "owners": [
+      "device-agent/windows/packaging/",
+      "device-agent/windows/ocade_agent/gateway.py"
+    ],
+    "tests": [
+      "device-agent/windows/packaging/check_frozen.py"
+    ],
+    "reason": ""
+  },
+  {
+    "n": 74,
+    "title": "Closed-Loop Telemetry Verification",
+    "status": "PASS",
+    "level": "L2",
+    "owners": [
+      "device-agent/windows/ocade_agent/gateway.py",
+      "device-agent/windows/ocade_agent/agent.py + device.py + journal.py"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_gateway.py",
+      "device-agent/windows/tests/test_agent.py"
+    ],
+    "reason": ""
+  },
+  {
+    "n": 75,
+    "title": "Independent Professional Deliverable Verification",
+    "status": "PARTIAL",
+    "level": "L2",
+    "owners": [
+      "device-agent/windows/ocade_agent/verify_worker.py"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_gateway.py",
+      "device-agent/windows/tests/test_media.py"
+    ],
+    "reason": "Rendered web verification and professional deliverable checks remain incomplete (D2, W5)"
+  },
+  {
+    "n": 76,
+    "title": "Postcondition and Output-Integrity Checks",
+    "status": "PARTIAL",
+    "level": "L2",
+    "owners": [
+      "device-agent/windows/ocade_agent/verify_worker.py"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_gateway.py",
+      "device-agent/windows/tests/test_media.py"
+    ],
+    "reason": "Output integrity and format coverage require W5 qualification"
+  },
+  {
+    "n": 77,
+    "title": "Evidence-Based Adaptive Recovery",
+    "status": "PASS",
+    "level": "L1",
+    "owners": [
+      "src/lib/jarvis/planner.server.ts"
+    ],
+    "tests": [
+      "tests/jarvis/contracts.test.ts"
+    ],
+    "reason": ""
+  },
+  {
+    "n": 78,
+    "title": "Real-World Latency and Resource Benchmarks",
+    "status": "PARTIAL",
+    "level": "L4",
+    "owners": [
+      "src/lib/jarvis/authority.server.ts"
+    ],
+    "tests": [
+      "staging checks and real UI run (evidence/2026-10-31-architecture)"
+    ],
+    "reason": "elapsed, model, execution and wait times recorded per run in live Gemini runs (evidence/2026-10-31-browser); no CPU/memory benchmark; Linux only"
+  },
+  {
+    "n": 79,
+    "title": "Real Unprepared End-to-End Task Qualification",
+    "status": "PARTIAL",
+    "level": "L4",
+    "owners": [],
+    "tests": [
+      "staging checks and real UI run (evidence/2026-10-31-architecture)",
+      "live Gemini runs (evidence/2026-11-01-live)"
+    ],
+    "reason": "Linux container, real Gemini: 15 clean PASS of 24 attempts (independently verified), 12 of 17 unseen problems on the first attempt; below the 90% target; Windows/macOS live runs BLOCKED (no staging credentials in CI)"
+  },
+  {
+    "n": 80,
+    "title": "Adversarial Security and Wrong-Target Tests",
+    "status": "PARTIAL",
+    "level": "L2",
+    "owners": [
+      "device-agent/windows/ocade_agent/gateway.py",
+      "device-agent/windows/ocade_agent/web_worker.py",
+      "device-agent/windows/ocade_agent/sandbox.py",
+      "supabase/migrations/20261030120000_jarvis_task_authority.sql",
+      "device-agent/windows/ocade_agent/windows_worker.py"
+    ],
+    "tests": [
+      "device-agent/windows/tests/test_gateway.py",
+      "device-agent/windows/tests/test_web.py",
+      "device-agent/windows/tests/test_sandbox.py",
+      "tests/jarvis/db/authority.test.sql",
+      "device-agent/windows/tests/test_windows_ui.py (GitHub windows-latest runner)",
+      "device-agent/windows/tests/test_shell.py (Linux, macOS and Windows runners)"
+    ],
+    "reason": "Windows wrong-target cases on a cloud Windows Server runner only; a customer Windows 10/11 desktop is UNTESTED"
+  },
+  {
+    "n": 81,
+    "title": "Proof-Driven Debloating and Regression Protection",
+    "status": "PASS",
+    "level": "L1",
+    "owners": [
+      "scripts/jarvis-no-hardcoded-journeys.mjs"
+    ],
+    "tests": [
+      "npm run jarvis:no-hardcoded",
+      "tests/jarvis/e2e.test.ts"
+    ],
+    "reason": ""
+  },
+  {
+    "n": 82,
+    "title": "PASS / PARTIAL / FAIL / BLOCKED / UNTESTED Evidence States",
+    "status": "PASS",
+    "level": "L1",
+    "owners": [],
+    "tests": [
+      "tests/jarvis/contracts.test.ts"
+    ],
+    "reason": ""
+  },
+  {
+    "n": 83,
+    "title": "Measured Task Success and User-Intervention Metrics",
+    "status": "PARTIAL",
+    "level": "L4",
+    "owners": [
+      "src/lib/jarvis/authority.server.ts"
+    ],
+    "tests": [
+      "staging checks and real UI run (evidence/2026-10-31-architecture)"
+    ],
+    "reason": "per-run outcome and confirmations recorded in live Gemini runs (evidence/2026-10-31-browser); no aggregated product metric"
+  },
+  {
+    "n": 84,
+    "title": "Zero Known Critical Safety-Defect Release Gate",
+    "status": "FAIL",
+    "level": "L0",
+    "owners": [],
+    "tests": [],
+    "reason": "release gate not met: concepts above are FAIL/BLOCKED/PARTIAL"
+  }
+]

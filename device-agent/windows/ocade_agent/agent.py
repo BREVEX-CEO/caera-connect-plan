@@ -271,6 +271,9 @@ class Agent:
                 if woke and self.nudge is not None:
                     self.nudge.spent(useful=bool(state.get("action")))
             woke = False
+            if self.stopped_here():  # STOP may have arrived while the claim was in flight.
+                await anyio.to_thread.run_sync(jobs.cancel_all, str(self.device.home))
+                raise LocalStop()
             if state.get("action"):
                 idle = 1.0
                 state = await self.handle(state["action"])
