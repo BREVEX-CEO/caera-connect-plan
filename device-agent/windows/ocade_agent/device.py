@@ -101,7 +101,7 @@ class Device:
         r, s = decode_dss_signature(self.key.sign(text.encode(), ec.ECDSA(hashes.SHA256())))
         return _b64url(r.to_bytes(32, "big") + s.to_bytes(32, "big"))
 
-    def request(self, payload: dict) -> tuple[int, dict]:
+    def request(self, payload: dict, timeout: float | None = None) -> tuple[int, dict]:
         body = json.dumps(payload, separators=(",", ":"))
         device_id = "-" if payload["op"] == "enroll" else (self.device_id or "-")
         timestamp = self._timestamp()
@@ -118,7 +118,10 @@ class Device:
             },
         )
         try:
-            with urllib.request.urlopen(request, timeout=30) as response:
+            # A receipt's answer waits for the next planning turn (a model call): give it the
+            # proxy's full 100 s, so a slow turn is not mistaken for a lost receipt and resent.
+            limit = timeout or (100 if payload["op"] == "receipt" else 30)
+            with urllib.request.urlopen(request, timeout=limit) as response:
                 return response.status, json.loads(response.read() or b"{}")
         except urllib.error.HTTPError as error:
             return error.code, json.loads(error.read() or b"{}")

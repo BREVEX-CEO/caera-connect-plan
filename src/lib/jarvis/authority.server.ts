@@ -371,6 +371,9 @@ async function plannerWait(
   controller: string,
   error: PlannerUnavailable,
 ) {
+  // The same planning turn is already being answered (a resent receipt started a second
+  // advance with the same permit key): that turn owns the task, this one changes nothing.
+  if (error.message === "permit_refused") return;
   if (plannerBusy(error.message)) {
     const wait = Math.min(Math.max(error.retryAfterMs ?? 0, BUSY_RETRY_MS.min), BUSY_RETRY_MS.max);
     await call(admin, "jarvis_task_wait_until", {
