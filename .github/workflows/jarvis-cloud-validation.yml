@@ -339,6 +339,7 @@ jobs:
       - name: Install test-runner engines (ffmpeg, LibreOffice) on macOS
         if: runner.os == 'macOS'
         run: |
+          brew update
           brew install ffmpeg
           brew install --cask libreoffice
       # Every skip must be one this OS is allowed; any other skipped test fails the job.

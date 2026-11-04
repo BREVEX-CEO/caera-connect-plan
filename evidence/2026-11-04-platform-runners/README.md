@@ -29,3 +29,17 @@ Readiness remains 20/100, conditions 19/42, requirements 79/266 and concepts 45/
 References:
 - [Run 109](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41859437960)
 - [Official runner label and architecture list](https://github.com/actions/runner-images#available-images)
+## 5 November follow-up (local date)
+
+Run 123 at candidate c54ca8f completed all 166 Linux tests and reopened the
+actual exported mesh with Khronos: 11,500 triangles, zero errors, warnings,
+infos or hints. Windows 2022 also passed its complete 166-test suite.
+Windows 2025 exposed D13's actual cause: stale parent PIDs pulled older system
+services into the browser ownership graph. That repair is being qualified.
+
+The Intel Mac runner was acquired, but its old Homebrew cask requested
+LibreOffice 26.2.5 at an upstream URL that now returns HTTP 404. No Mac test ran.
+The current official cask describes 26.8.2 with per-architecture SHA-256 hashes.
+The runner now refreshes Homebrew metadata before installing its test engines.
+Installation and the full Mac suite remain unverified until the new CI finishes.
+This adds no customer dependency and does not skip any required case.
