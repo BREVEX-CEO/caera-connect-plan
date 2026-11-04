@@ -83,6 +83,7 @@ jobs:
         working-directory: device-agent/windows/packaging
         run: python -m PyInstaller --noconfirm --distpath ../dist --workpath ../build ocade-agent.spec
       - name: Independently inspect the actual bundle and run frozen workers without developer PATH
+        shell: bash
         working-directory: device-agent/windows
         run: |
           test -d "dist/OCADE JARVIS.app"
