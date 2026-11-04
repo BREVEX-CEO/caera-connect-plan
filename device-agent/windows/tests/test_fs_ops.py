@@ -5,6 +5,7 @@ ordinary organising. Each must stay inside the workspace, never replace anything
 the person's originals and say exactly what changed.
 """
 
+import json
 import os
 import stat
 import sys
@@ -159,14 +160,27 @@ class BrowserDiscovery(unittest.TestCase):
         from ocade_agent import discovery
 
         listed = discovery.browsers()
-        self.assertTrue(all(set(b) == {"name", "path"} for b in listed), listed)
+        self.assertTrue(all(set(b) == {"name", "path", "profiles"} for b in listed), listed)
         if sys.platform.startswith("linux"):
-            folder = Path(tempfile.mkdtemp())
-            fake = folder / "brave-browser"
-            fake.write_text("#!/bin/sh\n")
-            fake.chmod(0o755)
-            with patch.dict(os.environ, {"PATH": str(folder)}):
-                self.assertEqual(discovery.browsers(), [{"name": "Brave", "path": str(fake)}])
+            folder, home = Path(tempfile.mkdtemp()), Path(tempfile.mkdtemp())
+            for name in ("brave-browser", "firefox"):
+                (folder / name).write_text("#!/bin/sh\n")
+                (folder / name).chmod(0o755)
+            with patch.dict(os.environ, {"PATH": str(folder), "HOME": str(home)}):
+                self.assertEqual(discovery.browsers(), [{"name": "Firefox", "path": str(folder / "firefox"), "profiles": []},
+                                                        {"name": "Brave", "path": str(folder / "brave-browser"),
+                                                         "profiles": []}])
+                brave = home / ".config/BraveSoftware/Brave-Browser"
+                brave.mkdir(parents=True)
+                (brave / "Local State").write_text(json.dumps({"profile": {"info_cache": {
+                    "Default": {"name": "Alex Personal", "user_name": "alex@example.com"}, "Profile 2": {"name": "Work"}}}}))
+                firefox = home / ".mozilla/firefox"
+                firefox.mkdir(parents=True)
+                (firefox / "profiles.ini").write_text("[General]\nVersion=2\n[Profile0]\nName=default-release\n"
+                                                      "Path=abc.default-release\n[Install4F96]\nDefault=abc\n")
+                found = discovery.browsers()
+                self.assertEqual([b["profiles"] for b in found], [["default-release"], ["Default", "Profile 2"]])
+                self.assertNotIn("alex", json.dumps(found).lower())  # names the person chose stay private
             with patch.dict(os.environ, {"PATH": str(Path(tempfile.mkdtemp()))}):
                 self.assertEqual(discovery.browsers(), [])
 

@@ -198,6 +198,7 @@ class WebLadder(unittest.TestCase):
             app = (await run("web.open", {"url": base + "/app"}))["evidence"]
             hidden = next(c for c in app["controls"] if c["type"] == "file")
             out["picker"] = await run("web.click", {"page": app["page"], "selector": "text=Open file"})
+            out["ask"] = await run("web.open", {"url": base + "/ask"})
             # The click observed the page again, so its selectors are the current ones.
             hidden = next(c for c in out["picker"]["evidence"]["controls"] if c["type"] == "file")
             out["app"] = await run("web.upload", {"page": app["page"], "selector": hidden["selector"], "path": "upload-me.txt"})
@@ -258,6 +259,9 @@ class WebLadder(unittest.TestCase):
             # A control that opens the file picker is reported, not left waiting for a person.
             self.assertEqual(results["picker"]["status"], "observed", results["picker"])
             self.assertIn("web.upload", results["picker"]["evidence"]["filePicker"])
+            # A site's permission request is reported and left for the person; never answered.
+            self.assertEqual(sorted(results["ask"]["evidence"]["permissionPrompts"]), ["geolocation", "notifications"])
+            self.assertNotIn("permissionPrompts", results["002"]["evidence"])
             [table] = results["table"]["evidence"]["tables"]  # rows keep their cells, links and headers
             self.assertEqual(table["headers"], ["Version", "Date", "Status"])
             self.assertEqual(table["rows"][0]["cells"][:3], ["6.19.6", "2026-01-13", "stable"])

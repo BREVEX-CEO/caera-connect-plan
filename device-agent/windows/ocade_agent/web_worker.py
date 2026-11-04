@@ -124,6 +124,40 @@ _CONTROLS = """(token) => {
   });
 }"""
 
+# A site's permission request (notifications, location, camera, microphone, clipboard) opens a
+# browser prompt the page cannot show and the planner cannot see, and the page waits on it.
+# Every frame records which permissions it asked for; an observation lists those the browser
+# still holds at "prompt". OCADE never answers one: allowing is the person's choice in the
+# OCADE browser window (req 142, 143).
+_ASKED = """(() => {
+  const asked = window.__ocadeAsked = new Set();
+  const wrap = (owner, method, names) => {
+    const original = owner && owner[method];
+    if (typeof original !== 'function') return;
+    owner[method] = function (...args) {
+      const wanted = typeof names === 'function' ? names(...args) : names;
+      wanted.forEach((n) => asked.add(n));
+      return original.apply(this, args);
+    };
+  };
+  wrap(window.Notification, 'requestPermission', ['notifications']);
+  wrap(navigator.geolocation, 'getCurrentPosition', ['geolocation']);
+  wrap(navigator.geolocation, 'watchPosition', ['geolocation']);
+  wrap(navigator.mediaDevices, 'getUserMedia', (c = {}) => [c.video && 'camera', c.audio && 'microphone'].filter(Boolean));
+  wrap(navigator.clipboard, 'readText', ['clipboard-read']);
+  wrap(navigator.clipboard, 'read', ['clipboard-read']);
+})()"""
+
+_WAITING = """async () => {
+  const waiting = [];
+  for (const name of window.__ocadeAsked || []) {
+    try {
+      if ((await navigator.permissions.query({ name })).state === 'prompt') waiting.push(name);
+    } catch { waiting.push(name); }
+  }
+  return waiting;
+}"""
+
 
 def _host(url: str) -> str:
     return (urlparse(url).hostname or "").lower()
@@ -270,6 +304,7 @@ async def _context():
                             raise
             _browser["context"] = context
             await context.route("**/*", _guard)
+            await context.add_init_script(_ASKED)
         except BaseException:
             await _close_browser()
             raise
@@ -332,6 +367,9 @@ async def _observe(page_id: str) -> dict:
         # A sign-in or challenge is the person's to complete in the OCADE browser window.
         "needsSignIn": await current.locator("input[type=password]:visible").count() > 0,
     }
+    waiting = await current.evaluate(_WAITING)
+    if waiting:
+        observed["permissionPrompts"] = waiting  # the person allows or blocks these in the window
     # The gateway refuses evidence over 16 KB: give up page text first, then the last controls.
     excess = len(json.dumps(observed)) - EVIDENCE_LIMIT
     if excess > 0:

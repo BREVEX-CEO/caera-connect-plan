@@ -133,8 +133,41 @@ def browsers() -> list[dict]:
         else:
             path = shutil.which(where)
         if path and (platform == "darwin" or Path(path).is_file()):
-            found.append({"name": name, "path": str(path)[:300]})
+            found.append({"name": name, "path": str(path)[:300], "profiles": _profiles(name, platform)})
     return found
+
+
+def _profiles(name: str, platform: str) -> list[str]:
+    """The browser's profile folder names ("Default", "Profile 1"; Firefox's profile names),
+    never a profile's contents or the display name the person gave it. OCADE never opens
+    these: it works in its own profile, and the person's sign-ins stay theirs."""
+    import configparser
+    import json
+
+    home = Path.home()
+    local, roaming = Path(os.environ.get("LOCALAPPDATA", home)), Path(os.environ.get("APPDATA", home))
+    support = home / "Library" / "Application Support"
+    folders = {
+        "Chrome": {"win32": local / "Google/Chrome/User Data", "darwin": support / "Google/Chrome",
+                   "linux": home / ".config/google-chrome"},
+        "Edge": {"win32": local / "Microsoft/Edge/User Data", "darwin": support / "Microsoft Edge",
+                 "linux": home / ".config/microsoft-edge"},
+        "Brave": {"win32": local / "BraveSoftware/Brave-Browser/User Data",
+                  "darwin": support / "BraveSoftware/Brave-Browser", "linux": home / ".config/BraveSoftware/Brave-Browser"},
+        "Chromium": {"darwin": support / "Chromium", "linux": home / ".config/chromium"},
+        "Chromium browser": {"linux": home / ".config/chromium"},
+        "Firefox": {"win32": roaming / "Mozilla/Firefox", "darwin": support / "Firefox", "linux": home / ".mozilla/firefox"},
+    }
+    folder = folders.get(name, {}).get(platform)
+    try:
+        if name == "Firefox":
+            ini = configparser.ConfigParser(interpolation=None)
+            ini.read(folder / "profiles.ini", encoding="utf-8")
+            return [ini[s]["Name"][:80] for s in ini.sections() if s.startswith("Profile") and "Name" in ini[s]][:20]
+        state = json.loads((folder / "Local State").read_text(encoding="utf-8"))
+        return [str(key)[:80] for key in state["profile"]["info_cache"]][:20]
+    except Exception:  # not used yet, unreadable, or a browser with one implicit profile (Safari)
+        return []
 
 
 def open_windows(limit: int = 60) -> list[dict]:
