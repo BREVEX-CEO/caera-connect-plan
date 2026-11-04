@@ -52,13 +52,32 @@ if (!objective || !values.workspace || missing.length) {
 
 const root = resolve(import.meta.dirname, "..");
 const jiti = createJiti(import.meta.url, { alias: { "@": join(root, "src") } });
-const { supabaseAdmin: admin } = await jiti.import("@/integrations/supabase/client.server");
+const { supabaseAdmin } = await jiti.import("@/integrations/supabase/client.server");
 const authority = await jiti.import("@/lib/jarvis/authority.server");
 const { ONLINE_CONSENT_VERSION } = await jiti.import("@/lib/intelligence/online-consent-version");
 const must = ({ data, error }) => {
   if (error) throw new Error(error.message);
   return data;
 };
+
+// Where server time goes: every database call the authority makes, timed (report `rpc`).
+const rpcStats = {};
+const timedRpc = (fn, args) => {
+  const started = performance.now();
+  const done = () => {
+    const entry = (rpcStats[fn] ??= { calls: 0, ms: 0 });
+    entry.calls += 1;
+    entry.ms += Math.round(performance.now() - started);
+  };
+  return supabaseAdmin.rpc(fn, args).then(
+    (value) => (done(), value),
+    (error) => (done(), Promise.reject(error)),
+  );
+};
+const admin = new Proxy(supabaseAdmin, {
+  get: (target, prop, receiver) =>
+    prop === "rpc" ? timedRpc : Reflect.get(target, prop, receiver),
+});
 
 // The synthetic account, its consent, a JARVIS conversation.
 const email = process.env.OCADE_LIVE_EMAIL;
@@ -222,6 +241,7 @@ writeFileSync(
       blocker: view.blocker,
       checks: view.checks,
       timing: view.timing,
+      rpc: rpcStats,
       // Person interventions: each external effect the test operator confirmed.
       confirmations,
       // Every decision the model made, as queued: operation, arguments, what was observed.

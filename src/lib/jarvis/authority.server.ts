@@ -313,7 +313,8 @@ export async function advance(admin: Admin, taskId: string, now = new Date()): P
     });
     return;
   }
-  for (const ms of modelCalls) await noteModel(admin, taskId, ms);
+  // Model time is recorded alongside the decision rather than before it: one round trip less.
+  const noted = Promise.all(modelCalls.map((ms) => noteModel(admin, taskId, ms)));
   try {
     if (decision.kind === "queue") {
       await call(admin, "jarvis_queue_actions", {
@@ -359,6 +360,8 @@ export async function advance(admin: Admin, taskId: string, now = new Date()): P
       return;
     }
     throw error;
+  } finally {
+    await noted;
   }
 }
 
@@ -596,6 +599,14 @@ async function verifySignature(publicKey: string, signature: string, text: strin
   }
 }
 
+/**
+ * An approved device's public key, remembered briefly to save a database round trip per
+ * request (W2). It grants nothing on its own: `jarvis_device_seen` below still refuses a
+ * revoked or removed device on every request, so revocation stays immediate.
+ */
+const DEVICE_KEY_CACHE = { ms: 300_000, entries: 1_000 } as const;
+const deviceKeys = new Map<string, { key: string; until: number }>();
+
 type Reply = { status: number; body: Record<string, unknown> };
 const refuse = (status: number, error: string): Reply => ({ status, body: { error } });
 
@@ -659,10 +670,18 @@ export async function handleDeviceRequest(
     }
 
     if (!/^[0-9a-f-]{36}$/.test(deviceId)) return refuse(401, "signature_invalid");
-    const publicKey = await call<string | null>(admin, "jarvis_device_key", { p_device: deviceId });
-    if (!publicKey || !(await verifySignature(publicKey, signature, text))) {
-      // Pending, revoked and unknown devices read the same as a bad signature.
-      return refuse(401, "signature_invalid");
+    const cached = deviceKeys.get(deviceId);
+    if (!cached || cached.until < now || !(await verifySignature(cached.key, signature, text))) {
+      const publicKey = await call<string | null>(admin, "jarvis_device_key", {
+        p_device: deviceId,
+      });
+      if (!publicKey || !(await verifySignature(publicKey, signature, text))) {
+        // Pending, revoked and unknown devices read the same as a bad signature.
+        deviceKeys.delete(deviceId);
+        return refuse(401, "signature_invalid");
+      }
+      if (deviceKeys.size >= DEVICE_KEY_CACHE.entries) deviceKeys.clear();
+      deviceKeys.set(deviceId, { key: publicKey, until: now + DEVICE_KEY_CACHE.ms });
     }
     if (
       !(await call<boolean>(admin, "jarvis_device_seen", {
@@ -670,7 +689,10 @@ export async function handleDeviceRequest(
         p_timestamp_ms: timestamp,
       }))
     ) {
-      return refuse(409, "replayed");
+      // Replayed, or revoked since its key was remembered: only the database can tell.
+      deviceKeys.delete(deviceId);
+      const still = await call<string | null>(admin, "jarvis_device_key", { p_device: deviceId });
+      return still ? refuse(409, "replayed") : refuse(401, "signature_invalid");
     }
 
     if (parsed.op === "inventory") {
