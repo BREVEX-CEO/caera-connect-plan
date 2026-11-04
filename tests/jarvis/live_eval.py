@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
 import io
 import json
 import os
@@ -357,9 +358,105 @@ def tempfile_dir() -> str:
     return tempfile.mkdtemp()
 
 
+def organise_by_type(ws: Path, rng: random.Random):
+    """Files and documents: organise a collection (typed fs.manage, nothing lost or replaced)."""
+    folder = ws / f"{word(rng)}_downloads"
+    folder.mkdir()
+    kinds = {"pdf": b"%PDF-1.4 x", "jpg": b"\xff\xd8\xff x", "csv": b"a,b\n1,2\n", "txt": b"note\n"}
+    made = {}
+    for i in range(rng.randint(7, 11)):
+        suffix = rng.choice(list(kinds))
+        name = f"{word(rng)}-{i}.{suffix}"
+        (folder / name).write_bytes(kinds[suffix] + os.urandom(8))
+        made[name] = hashlib.sha256((folder / name).read_bytes()).hexdigest()
+
+    def oracle(ws: Path):
+        found = {p.name: p for p in ws.rglob("*") if p.is_file() and p.name in made}
+        lost = [n for n in made if n not in found or hashlib.sha256(found[n].read_bytes()).hexdigest() != made[n]]
+        loose = [p.name for p in folder.iterdir() if p.is_file()] if folder.exists() else []
+        mixed = [str(p.parent.name) for p in found.values()
+                 if len({q.suffix for q in p.parent.iterdir() if q.is_file()}) > 1]
+        return not lost and not loose and not mixed, f"lost {lost}, still loose {loose}, mixed folders {sorted(set(mixed))}"
+
+    return (f"Tidy up {folder.name}: put the files into one folder per file type inside it. Keep every file.",
+            [], oracle)
+
+
+def editable_totals(ws: Path, rng: random.Random):
+    """Files and documents: an editable financial workbook whose totals are formulas."""
+    rows = [(word(rng).title(), round(rng.uniform(100, 900), 2)) for _ in range(rng.randint(4, 7))]
+    (ws / "expenses.csv").write_text("item,amount\n" + "".join(f"{a},{b}\n" for a, b in rows))
+    total = round(sum(b for _, b in rows), 2)
+
+    def oracle(ws: Path):
+        import openpyxl
+
+        for path in ws.rglob("*.xlsx"):
+            formulas = openpyxl.load_workbook(path)
+            values = openpyxl.load_workbook(path, data_only=True)
+            for sheet in formulas.worksheets:
+                for row in sheet.iter_rows():
+                    for cell in row:
+                        if isinstance(cell.value, str) and cell.value.startswith("="):
+                            result = values[sheet.title][cell.coordinate].value
+                            if isinstance(result, (int, float)) and abs(result - total) < 0.01:
+                                return True, f"{path.name} {cell.coordinate} {cell.value} = {result}"
+            return False, f"{path.name}: no formula giving {total}"
+        return False, "no workbook"
+
+    return ("Turn expenses.csv into an Excel workbook where the total is a live formula I can edit, not a typed number.",
+            [], oracle)
+
+
+def report_headings(ws: Path, rng: random.Random):
+    """Files and documents: a structured Word report from notes (real headings, real facts)."""
+    sections = rng.sample(["Revenue", "Hiring", "Risks", "Customers", "Roadmap", "Costs"], 3)
+    facts = {s: f"{word(rng)} {rng.randint(10, 99)}" for s in sections}
+    (ws / "notes.md").write_text("".join(f"- {s}: {facts[s]}\n" for s in sections))
+
+    def oracle(ws: Path):
+        from docx import Document
+
+        for path in ws.rglob("*.docx"):
+            document = Document(path)
+            headings = [p.text.strip().lower() for p in document.paragraphs
+                        if p.style is not None and (p.style.name or "").lower().startswith("heading")]
+            text = "\n".join(p.text for p in document.paragraphs).lower()
+            ok = all(any(s.lower() in h for h in headings) for s in sections) and all(
+                f.lower() in text for f in facts.values())
+            return ok, f"{path.name}: headings {headings}"
+        return False, "no docx"
+
+    return (f"Write a Word report from notes.md with one heading for each of {', '.join(sections)} and the facts "
+            "under each.", [], oracle)
+
+
+def extract_across_formats(ws: Path, rng: random.Random):
+    """Files and documents: extract information across text, Word and CSV into one list."""
+    from docx import Document
+
+    codes = [f"{word(rng)[:3].upper()}-{rng.randint(1000, 9999)}" for _ in range(5)]
+    (ws / "a.txt").write_text(f"Order {codes[0]} shipped. Order {codes[1]} pending.\n")
+    document = Document()
+    document.add_paragraph(f"Refund requested for {codes[2]}; see also {codes[3]}.")
+    document.save(ws / "b.docx")
+    (ws / "c.csv").write_text(f"ref,status\n{codes[4]},open\n")
+
+    def oracle(ws: Path):
+        for path in ws.rglob("*"):
+            if "OCADE output" in path.parts and path.is_file() and path.suffix in (".txt", ".csv", ".md", ".json"):
+                if all(code in path.read_text(errors="replace") for code in codes):
+                    return True, path.name
+        return False, f"want all of {codes} in one new list"
+
+    return ("Collect every order reference (like ABC-1234) from a.txt, b.docx and c.csv into one new list file.",
+            [], oracle)
+
+
 GENERATORS = {f.__name__: f for f in (config_repair, crlf_script, dedupe_contacts, totals_workbook, log_cause,
                                       yaml_to_json, failing_test, biggest_files, port_conflict, markdown_doc, web_fact,
-                                      release_pick)}
+                                      release_pick, organise_by_type, editable_totals, report_headings,
+                                      extract_across_formats)}
 
 
 def gaming(live: dict) -> list[str]:
