@@ -240,6 +240,8 @@ writeFileSync(
       result: view.result,
       blocker: view.blocker,
       checks: view.checks,
+      // The fixed checks as compiled (kind and params), so an evaluation can audit them.
+      outcome: state.outcome,
       timing: view.timing,
       rpc: rpcStats,
       // Person interventions: each external effect the test operator confirmed.
