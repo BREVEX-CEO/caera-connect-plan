@@ -370,3 +370,43 @@ test("only the person's answer lifts an unknown-effect fence; the step is never 
   };
   assert.equal(unresolvedEffect([observed]), null, "an observed effect needs no answer");
 });
+
+test("authority advances a proven milestone through its fenced database function", async () => {
+  const second = { ...checks[0], id: "second" };
+  const plan = [
+    { description: "First", checks: ["result"], stepBudget: 3 },
+    { description: "Second", checks: ["second"], stepBudget: 3 },
+  ];
+  const state = {
+    id: "task", userId: "u", status: "running", controller: "current",
+    title: "Create the requested output", outcome: [checks[0], second], plan,
+    checkpoint: { milestones: { index: 0, startStep: 0 } }, grants: ["files"],
+    steps: [{
+      intent: intent("verify.checks", "first-proof", { checks }, deadline),
+      status: "done", controller: "current",
+      receipt: {
+        status: "observed", maybeChanged: false, observedAtUtc: now.toISOString(),
+        evidence: { predicates: { result: true } },
+      },
+    }],
+  };
+  for (const race of [false, true]) {
+    const recorded: { name: string; args: Record<string, unknown> }[] = [];
+    const admin = {
+      rpc: async (name: string, args: Record<string, unknown>) => {
+        recorded.push({ name, args });
+        if (name === "jarvis_task_state") return { data: state, error: null };
+        if (name === "jarvis_complete_milestone") {
+          return race ? { data: null, error: { message: "milestone_changed" } }
+            : { data: 1, error: null };
+        }
+        throw new Error("Unexpected authority call: " + name);
+      },
+    } as unknown as Admin;
+    await advance(admin, "task", now);
+    assert.deepEqual(recorded.map((call) => call.name),
+      ["jarvis_task_state", "jarvis_complete_milestone"]);
+    assert.deepEqual(recorded[1].args,
+      { p_task: "task", p_controller: "current", p_index: 0 });
+  }
+});

@@ -26,7 +26,7 @@ import {
   type OutcomeCheck,
 } from "./contracts.ts";
 import { ONLINE_CONSENT_VERSION } from "../intelligence/online-consent-version.ts";
-import { effectInDoubt, open, unresolvedEffect, type Decision, type Step } from "./supervisor.ts";
+import { effectInDoubt, open, unresolvedEffect, type Decision, type Step, type Milestone } from "./supervisor.ts";
 import {
   PlannerUnavailable,
   compileGoal,
@@ -67,6 +67,7 @@ const REFUSALS: Record<string, string> = {
   // Device-facing and race outcomes; never shown to a person.
   stale_controller: "That task changed; this decision is no longer current.",
   outcome_fixed: "That task's checks were already fixed.",
+  milestone_changed: "That milestone already changed; this decision is no longer current.",
   actions_open: "That task still has a step in progress.",
   unknown_action: "That step is not this device's.",
   invalid_receipt: "That receipt is not valid.",
@@ -97,6 +98,7 @@ interface TaskState {
   controller: string | null;
   title: string;
   outcome: OutcomeCheck[] | null;
+  plan?: unknown;
   blocker: string | null;
   result: string | null;
   checkpoint: Record<string, unknown> | null;
@@ -119,6 +121,7 @@ interface TaskState {
     summary: string;
     intent: unknown;
     status: string;
+    controller?: string | null;
     receipt: unknown;
     createdAt: string;
     completedAt: string | null;
@@ -217,6 +220,7 @@ export async function advance(admin: Admin, taskId: string, now = new Date()): P
     return {
       intent: actionIntent.parse(step.intent),
       status: step.status,
+      controller: step.controller,
       receipt,
       // Durable STOP/crash records may be incomplete. Keep their uncertainty for the shared fence.
       unparsedReceipt: receipt === null ? raw : undefined,
@@ -233,6 +237,7 @@ export async function advance(admin: Admin, taskId: string, now = new Date()): P
     return;
   }
   let checks = task.outcome ?? [];
+  let plan = task.plan;
   if (!checks.length) {
     // The checks are fixed after a first read-only look at the JARVIS folder, not guessed.
     const look = steps.find((step) => step.intent.key === DISCOVERY);
@@ -258,6 +263,7 @@ export async function advance(admin: Admin, taskId: string, now = new Date()): P
         task.grants,
         (ms) => (goalMs = ms),
         look.status === "done" ? (look.receipt?.evidence as { entries?: [] }) : null,
+        (milestones: Milestone[]) => (plan = milestones),
       );
     } catch (error) {
       if (goalMs !== null) await noteModel(admin, taskId, goalMs);
@@ -271,7 +277,7 @@ export async function advance(admin: Admin, taskId: string, now = new Date()): P
         p_task: taskId,
         p_controller: task.controller,
         p_outcome: checks as unknown as Json,
-        p_plan: checks.map((check) => check.description) as unknown as Json,
+        p_plan: plan as Json,
       });
     } catch (error) {
       // Lost a race to STOP or to another turn that fixed the checks first.
@@ -293,6 +299,9 @@ export async function advance(admin: Admin, taskId: string, now = new Date()): P
       objective: task.title,
       checks,
       steps,
+      plan,
+      checkpoint: task.checkpoint,
+      controller: task.controller,
       grants: task.grants,
       mcp: task.mcp ?? [],
       engines: task.engines,
@@ -314,9 +323,17 @@ export async function advance(admin: Admin, taskId: string, now = new Date()): P
         p_task: taskId,
         p_controller: task.controller,
         p_actions: [
-          { summary: decision.summary, action: decision.intent },
-          ...(decision.more ?? []).map((next) => ({ summary: next.summary, action: next.intent })),
+          { summary: decision.summary, action: decision.intent,
+            milestone: Number((task.checkpoint?.milestones as { index?: number } | undefined)?.index ?? 0) },
+          ...(decision.more ?? []).map((next) => ({ summary: next.summary, action: next.intent,
+            milestone: Number((task.checkpoint?.milestones as { index?: number } | undefined)?.index ?? 0) })),
         ] as unknown as Json,
+      });
+    } else if (decision.kind === "milestone") {
+      await call(admin, "jarvis_complete_milestone", {
+        p_task: taskId,
+        p_controller: task.controller,
+        p_index: decision.index,
       });
     } else if (decision.kind === "settle") {
       await call(admin, "jarvis_settle_task", {
@@ -335,7 +352,7 @@ export async function advance(admin: Admin, taskId: string, now = new Date()): P
     }
   } catch (error) {
     // Lost a race to STOP or another planner: the database already holds the truth.
-    if (error instanceof JarvisRefusal && error.code === "stale_controller") return;
+    if (error instanceof JarvisRefusal && ["stale_controller", "milestone_changed"].includes(error.code)) return;
     if (error instanceof JarvisRefusal && error.code === "permission_required") {
       // Grants can change while the planner is running. No action was admitted;
       // keep the saved task resumable after the person restores its permissions.

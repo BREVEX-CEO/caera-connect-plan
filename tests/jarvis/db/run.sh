@@ -12,6 +12,15 @@ run -f tests/jarvis/db/supabase-stub.sql 2>/dev/null
 for migration in supabase/migrations/*.sql; do
   run -f "$migration" >/dev/null 2>&1 || { echo "migration failed: $migration"; run -f "$migration"; exit 1; }
 done
+if [[ "${OCADE_DB_ADVISORS:-}" == 1 ]]; then
+  [[ "${GITHUB_ACTIONS:-}" == true && "${PGHOST:-}" == 127.0.0.1 && "${PGPORT:-}" == 5432 ]] || {
+    echo "REFUSED: advisors require the disposable GitHub Actions database." >&2
+    exit 2
+  }
+  npx --yes supabase@2.122.0 db advisors \
+    --db-url "postgresql://postgres:jarvis_disposable_ci_only@127.0.0.1:5432/$db" \
+    --type all --level warn --fail-on error
+fi
 failures=0
 for test in tests/jarvis/db/*.test.sql; do
   if run -f "$test"; then
