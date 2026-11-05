@@ -1,16 +1,16 @@
 # OCADE — Master Engineering Plan (v5)
 
-> **The single authority for OCADE engineering.** Version 5, 2 November 2026, branch `ocade/p00-p22-implementation`. It is the one place for scope, rules, architecture, order, status and acceptance. `AGENTS.md` and `CLAUDE.md` point here at session start. `docs/research/*` hold supporting research, while `docs/DECISIONS.md` and dated `evidence/` folders are history. None of these compete with this file. `phases.md` does not exist.
+> **The single authority for OCADE engineering.** Version 6 (coding-first, owner decision O13, 5 November 2026), first issued as version 5 on 2 November 2026, branch `ocade/p00-p22-implementation`. It is the one place for scope, rules, architecture, order, status and acceptance. `AGENTS.md` and `CLAUDE.md` point here at session start. `docs/research/*` hold supporting research, while `docs/DECISIONS.md` and dated `evidence/` folders are history. None of these compete with this file. `phases.md` does not exist.
 
 | Level | Read when | Sections |
 |---|---|---|
 | 1 Quick start | Every session (≈2 minutes) | §0–§3 |
 | 2 Permanent Engineering Operating Contract | Every session; it binds all work | §4–§11 |
 | 3 Frozen architecture | Before touching a component | §12–§14 |
-| 4 Execution roadmap | To do the next package | §15–§16 |
-| 5 Verification and release | When proving a package or a release gate | §17–§20 |
-| 6 Decision record | Only when a package refers to it, or when challenging a decision | §21–§28 |
-| 7 Traceability (lookup data) | When updating status | Appendices A–D |
+| 4 Execution roadmap | To pick the next coding batch | §15–§16 |
+| 5 Verification and release | Coding gate (§17) every batch; the rest at the qualification stage, after coding and debloat | §17–§20 |
+| 6 Decision record | Only when a package refers to it, or when challenging a decision | §22–§25, §27 |
+| 7 Traceability (lookup data) | When updating status | Appendices A–E |
 
 ---
 
@@ -19,12 +19,14 @@
 ## 0. Start every session here
 
 1. `git fetch origin ocade/p00-p22-implementation`. Make sure the working tree is clean or holds only your own unfinished work. Read §3 (status) and §15 (package board).
-2. Your task is the **first package on the board that is not DONE and whose dependencies are DONE**. Inside it, first close that package's open defects in Appendix D.
-3. Read that package's entry in §16, its Appendix D rows and the files it names. Do not read anything else unless the package refers to it.
-4. Work through the loop in §7 until the package's acceptance holds. Then update §3, §15 and Appendices A–D **in the same commit** as the evidence.
-5. If you are blocked, record why on the board and in Appendix D, then take the next dependency-ready package.
+2. **Coding comes first (O13).** Your task is the next **coding batch** in §7: a coherent group of requirement IDs whose code is not yet complete (Appendix E). Pick by code dependency only. An unfinished work package, a red unrelated CI job, a missing benchmark, an evaluation campaign, a cloud-computer workflow or real-PC access never blocks writing missing code.
+3. Read the batch's §16 entries, its Appendix D rows and the files it names. Do not read anything else unless the batch refers to it.
+4. Work through the §7 coding loop until every requirement in the batch is CODED and BUILDS. Then update Appendix E **once, in the batch commit**.
+5. If one item is genuinely blocked, record why in Appendix D and Appendix E, and continue immediately with the next independent batch. Never stop the session because another feature is incomplete.
 
-**Current next action: W4 — E1 (≥40 paced live tasks) and the remaining accuracy levers; W5 deliverables in parallel. W2 is blocked only on measuring unaccounted time in the production topology (A1(b)).**
+**Stage order (O13):** C0 coding audit → C1… coding batches until every coding requirement is CODED → integration and compilation fixes → W12 deep debloat and consolidation → final compilation and full GitHub Actions qualification (W13) → owner-directed AI-model comparison and real-PC testing (RPC).
+
+**Current next action: batch C0 (§7): classify every requirement in Appendix E, make every push run only the coding gate (§17), then start batch C1.**
 
 ## 1. What OCADE is
 
@@ -60,6 +62,8 @@ OCADE BY CARCC is an autonomous computer-control agent.
 | O10 | Never fabricate tests, benchmarks or completed work. |
 | O11 | No `main` merge, deployment, payment activation, secret changes, credential exposure or weakened security. |
 | O12 | Free, non-deploying GitHub Actions on this branch are approved. CI stays secrets-free and never contacts production. No scheduled automations. |
+| O13 | **Coding first** (owner, 5 November 2026). Finish 100% of the approved coding requirements before comprehensive qualification. During coding, only the lightweight coding gate (§17) applies. Live AI tests, E1–E3 campaigns, benchmark scores, full CI matrices, cloud-computer workflows and real-PC tests never block writing code; they run at the qualification stage, where every original acceptance criterion still applies in full. No coding deadline and no benchmark threshold apply to the coding stage. |
+| O14 | Keep the existing working model integration (O2) unchanged until the owner authorises a replacement. The owner will supply the tasks that compare Gemini 3.8 Live Extended Thinking, Gemma 4 31B and Gemini 3.5 Flash-Lite after coding is complete. Do not run model benchmarks before then. |
 
 ## 3. Status (update in the same commit as new evidence)
 
@@ -67,7 +71,8 @@ Separate measurements. Never merge them into one percentage.
 
 | Metric | Value (5 Nov 2026) | Source |
 |---|---|---|
-| Requirements PASS | **77/266** (28.9%). Unfinished: 189 (154 PARTIAL, 12 FAIL, 5 BLOCKED, 18 UNTESTED) | Appendix A |
+| Coding status | Not yet audited. Batch C0 classifies every requirement in Appendix E (NOT CODED, CODED, BUILDS, RUNTIME VERIFIED, or qualification-only). | Appendix E |
+| Requirements PASS (runtime verified) | **77/266** (28.9%). Unfinished: 189 (154 PARTIAL, 12 FAIL, 5 BLOCKED, 18 UNTESTED) | Appendix A |
 | Architecture concepts PASS | **44/84** (52.4%). Unfinished: 40 (39 PARTIAL, 1 FAIL) | Appendix B, `npm run jarvis:traceability` |
 | Research ideas with a disposition | 236/236 | Appendix C |
 | Commercial readiness | **10/100** (1/10 milestones, 17/42 conditions); M2 withdrawn for D22; M6 postconditions also retracted for D25 (`evidence/2026-11-05-local-stop/`) | `npm run readiness`, `evidence/readiness/gates.json`, `evidence/2026-11-02-recovery/` |
@@ -94,11 +99,11 @@ Separate measurements. Never merge them into one percentage.
 | **Smallest complete change** | The existing owner of the concern | A diff in the owner, plus a regression test | New layers, duplicates and rewrites | No smaller change satisfies the acceptance and the safety rules |
 | **Proof** | Focused checks, then broader ones, then an independent outcome check | Results bound to a commit SHA and an environment | False PASS | Acceptance holds on the stated platform |
 | **Simplify** | The passing change | Removal of whatever the change made redundant | Leftover scaffolding and orphans | Nothing you added can be removed without failing a test |
-| **Record** | The evidence | Updated §3/§15/appendices; a defect note if one is open | Rework and lost context | Another agent could resume from the repository alone |
+| **Record** | The finished batch | Appendix E updated once per batch; a defect note in Appendix D only if one stays open | Rework and lost context | Another agent could resume from the repository alone |
 
 **Research stops** when another fact would not change the decision. Then record the assumption and implement.
 
-**Implementation starts** as soon as the objective, evidence and owner are known. Planning beyond the current package is waste.
+**Implementation starts** as soon as the objective, evidence and owner are known. Planning beyond the current coding batch is waste.
 
 **Architecture changes** only when measured evidence shows that the current design cannot meet an acceptance condition (§10).
 
@@ -116,7 +121,7 @@ Separate measurements. Never merge them into one percentage.
 | 8 | Do not abstract early | Abstractions freeze wrong assumptions | When code repeats | Abstract on the third real use, or when the duplication causes defects | The callers get simpler | DRY that couples unrelated domains |
 | 9 | One owner per concern | Duplicated state and validators drift apart | Every new responsibility | Put state, permission and validation in their existing owner | Searching for the concern finds one place | Parallel registries, validators or executors |
 | 10 | Clean boundaries | Boundaries contain failures and keep changes local | Interfaces between components | Typed contracts generated from one source; validate untrusted input at the boundary | Contract tests | Passing loosely typed data across trust boundaries |
-| 11 | Order by risk and dependency | Unsafe or blocking work done late causes rework | Choosing the next task | Safety, then foundations, then what the most work depends on, then polish | The board shows dependencies satisfied | Polishing before fixing correctness |
+| 11 | Order by risk and code dependency | Unsafe or blocking work done late causes rework | Choosing the next batch | Safety, then foundations, then what the most code depends on, then polish. Only a real code dependency orders work; tests, campaigns and CI of other features never do | The batch's code prerequisites exist | Waiting for an unrelated package, benchmark or CI job |
 | 12 | Treat uncertainty explicitly | Hidden assumptions become defects | Unknown behaviour or limits | Run the smallest experiment or measurement that decides the question; record it | The decision cites the measurement | Long research with no decision |
 | 13 | Prefer proven libraries | Mature code beats new code | Before writing infrastructure | Check licence, maintenance, size and security; pin the version | Licence and audit pass | Adding a dependency for something a few lines can do |
 | 14 | Write small, explicit code | Small, clear code is easy to verify | Every implementation | Descriptive names, direct control flow, explicit errors, no hidden side effects | Review shows nothing to remove | Clever one-liners; swallowing errors |
@@ -124,7 +129,7 @@ Separate measurements. Never merge them into one percentage.
 | 16 | Catch errors before integration | CI time is the scarcest resource | Before every push | Format, typecheck and focused tests locally | The local gate is green | Using CI as the first test |
 | 17 | Protect against regressions | Fixed bugs come back | Every fix | Keep the reproduction as a permanent test; run sibling suites | The test stays in the required suite | Deleting or skipping tests that fail |
 | 18 | Measure before optimising | Intuition about speed is usually wrong | Any performance work | Time each phase; change one thing; compare p50/p95 on the same tasks | Before/after numbers | Optimising the 6% while ignoring the 56% |
-| 19 | Define done objectively | "Seems to work" is not done | Ending a task | Acceptance plus proof plus recorded evidence plus no new critical/high defect | The §17 gates hold | Calling "implemented" done |
+| 19 | Define done objectively | "Seems to work" is not done | Ending a task | Coding done = CODED and BUILDS (§17 G-Coded). Requirement done = RUNTIME VERIFIED at qualification (§17 G-Requirement) | The §17 gate for that state holds | Calling "implemented" verified, or calling a stub implemented |
 | 20 | Leave the repository resumable | Agents lose context | End of every work unit | Commit, update the board, note any in-flight hypothesis | A fresh agent knows the next step | Leaving state only in chat |
 
 ## 6. OCADE operating rules **[O]**
@@ -138,7 +143,7 @@ Separate measurements. Never merge them into one percentage.
 6. Challenge weak assumptions with a measurement, not an opinion.
 
 **B. Architecture**
-1. The architecture in Level 3 is frozen. Change it only through §10.
+1. The architecture in Level 3 is frozen. Change it only through §10, which includes the owner-ordered simplification audit (W12).
 2. Prefer existing components.
 3. Build reusable capability-based operations, never application-specific journeys.
 4. Every piece of state and every permission decision has exactly one owner (§12).
@@ -160,7 +165,7 @@ Separate measurements. Never merge them into one percentage.
 **D. Execution:** follow the §7 loop.
 
 **E. Testing**
-1. Every requirement has measurable acceptance (Appendix A destination plus the package acceptance).
+1. Every requirement has measurable acceptance (Appendix A destination plus the package acceptance). That acceptance is proven at the qualification stage; it never blocks writing the code.
 2. Every important behaviour has a regression test.
 3. Focused checks run before full suites.
 4. Never fabricate results.
@@ -193,54 +198,53 @@ Separate measurements. Never merge them into one percentage.
 1. One plan (this file).
 2. Track verified results, not activity.
 3. Do not reopen settled decisions without new evidence (§10).
-4. Update evidence after meaningful work.
+4. Record coding progress once per batch in Appendix E. Write evidence files only for qualification results; never a report instead of code.
 5. No competing status documents.
-6. Follow dependencies.
+6. Follow code dependencies only. Never wait for an unrelated package, CI job, benchmark or evaluation.
 7. Always report what remains incomplete.
 
-## 7. The execution loop **[U+O]**
+## 7. The coding loop **[U+O]**
 
-1. **Select:** the next package (§0). Read its §16 entry and its Appendix D rows.
-2. **Inspect:** the named files, their callers and their existing tests. Check Appendix D for a recorded hypothesis so you do not repeat an investigation.
-3. **Reproduce or confirm:** write the failing test, or demonstrate the missing behaviour (locally where possible).
-4. **Decide:** the smallest root-cause change in the existing owner.
-5. **Implement:** the change and its regression test together.
-6. **Local gate:**
-   - `npm run format:check`
-   - `npm run typecheck`
-   - focused suites for the touched owner (§17.1)
-   - `npm run jarvis:protocol-check` if contracts changed
-   - `npm run jarvis:no-hardcoded`
-7. **Repair:** fix what the local gate finds. Never weaken a check.
-8. **Broader regression:** the sibling suites of the touched owner. Run the full matrix only through CI after the preflight is green.
-9. **Measure:** only if the package has speed or resource acceptance (§18).
-10. **Accept:** confirm the package acceptance and the independent outcome check.
-11. **Commit and push:** the verified change plus its tests, on this branch only. Docs-only commits use `[skip ci]`. Do not push while a run for your previous commit is in flight unless that commit is known-bad.
-12. **Record:** update §3, §15 and Appendices A–D in the same commit as the evidence, or in the immediately following docs commit with `[skip ci]`.
-13. **Next:** the next dependency-ready package.
+Work in **coding batches**: one coherent group of requirement IDs (usually one owner or one capability) finished completely, then one commit. Several commits per session are expected; one enormous commit is not.
 
-**Steps you may combine or skip:**
-- Steps 3 and 5 combine for pure additions with no existing behaviour to reproduce, but the test must be written first.
-- Step 9 is skipped when the package has no performance acceptance.
-- Step 8 is limited to the touched owner's suites when the change cannot affect other owners (for example a single worker's pure helper).
+1. **Select:** the next batch from Appendix E whose code prerequisites exist (§0).
+2. **Inspect:** the owner files, their callers and their existing tests. Check Appendix D so you do not repeat an investigation.
+3. **Implement completely:** every function, API connection, database contract, execution path and UI interaction the batch's requirements need, in the existing owner. Fix the shared cause, not one caller. A defect fix keeps or adds one focused regression test.
+4. **Wire and prove presence (mandatory):** for every requirement in the batch, confirm it is reachable from a real entry point (route, operation, worker tool, migration, UI control) and actually called; name the entry point and the caller in Appendix E. No placeholders, empty stubs, `NotImplemented`, TODO markers, fake returns or documentation-only "completion". Search the diff for these before committing.
+5. **Coding gate (§17 G-Change), locally:**
+   - `npm run format:check` and `npm run typecheck`
+   - Python compile and imports: `python3 -m compileall -q device-agent/windows/ocade_agent`
+   - `npm run jarvis:protocol-check` if contracts changed; `npm run jarvis:no-hardcoded`
+   - migration validity: `npm run test:jarvis-db` if SQL changed
+   - the existing focused tests of each touched owner (§17.1). Existing tests must stay green; never weaken or delete one to pass.
+6. **Repair:** fix what the gate finds in the same batch.
+7. **Commit and push:** one commit per finished batch, on this branch only, with a message naming the requirement IDs. Push only when the coding gate is green; the push-triggered CI job (the coding gate) must be green on every pushed commit. If it turns red, fixing it is the next task.
+8. **Record:** in the same commit, move the batch's IDs in Appendix E (NOT CODED → CODED → BUILDS) with the commit, entry point and caller. Do not edit §3, §15, Appendices A–D or evidence files for coding progress.
+9. **Next:** the next batch. Never stop because another feature is incomplete.
 
-**Never skip:** steps 3, 6, 10 and 12.
+**Not part of the coding loop** (all deferred to the qualification stage, W13): full CI matrix, live AI tasks and E1–E3 campaigns, model comparisons, performance measurement (§18), cloud-computer workflows, real-PC tests and readiness re-scoring. Their criteria are unchanged; they only stop blocking code.
 
-**Work states (for packages and individual work items):** NOT STARTED → IMPLEMENTED (code exists) → TESTED (focused tests pass) → VERIFIED (acceptance holds on the stated platform with independent outcome evidence) → DONE (VERIFIED and recorded). PARTIAL means some acceptance holds; BLOCKED means a named external dependency is missing. Requirements and concepts use PASS/PARTIAL/FAIL/BLOCKED/UNTESTED. PASS requires VERIFIED evidence.
+**Batch C0 (first):**
+- Classify every requirement in Appendix E: CODE (needs code), QUALIFICATION-ONLY (needs only a measurement, campaign, real-PC run or owner action, plus any harness code it requires) or STANDING (a rule checked at every gate). Classification never removes a requirement or changes its text.
+- Make the push-triggered CI run only the coding gate; move the full matrix, packaging, bundle and live-evaluation jobs to manual dispatch for the qualification stage.
+- Replace the hard-coded `testsRun == N` pins in `.github/workflows/jarvis-cloud-validation.yml` with one shared check that fails on any unexpected skip or missing test, so adding a test never turns CI red.
+- Merge candidate commit `26ec426b` (glTF, macOS AX, verifier and Windows focus work) once its coding gate is green, or drop it and remove every claim that cites it.
+
+**Work states:** NOT CODED → CODED (fully implemented and wired, §7 step 4) → BUILDS (passes the coding gate) → RUNTIME VERIFIED (qualification evidence on the stated platform; Appendix A `PASS`). DONE means RUNTIME VERIFIED for every requirement of a package.
 
 ## 8. Failure, recovery and resumption **[U+O]**
 
 - **A test stays red:**
-  1. Record the hypothesis and result in Appendix D.
+  1. Fix it inside the batch; that is the default.
   2. Never rerun an identical failing CI job hoping for green.
-  3. After two failed approaches, stop, list the facts, and choose a new root-cause hypothesis.
-  4. If a third attempt fails, mark the item BLOCKED with evidence and move to the next independent package.
-- **Regression found:** it blocks the current package until it is fixed or proven pre-existing. A pre-existing regression gets an Appendix D entry.
+  3. After two failed approaches, choose a new root-cause hypothesis.
+  4. If a third attempt fails, record the facts once in Appendix D, mark only that item blocked in Appendix E, and continue with the next independent batch. Never push a red coding gate.
+- **Regression found:** it blocks the current batch until it is fixed or proven pre-existing. A pre-existing regression gets an Appendix D entry.
 - **Flaky test:** treat it as a defect. Find the race or ordering cause. Never add sleeps or retries to hide it.
 - **Interrupted session:** the repository is the memory. On resume:
   1. Do §0.
   2. Run `git log -5` and check the last CI run for the head.
-  3. Read the package's "In flight" note on the board.
+  3. Read Appendix E for the batch in flight.
   4. If uncommitted work exists, finish it or discard it deliberately (never silently).
 - **The model or provider is busy:** wait or pace. Never rotate keys. Live evaluations resume from saved tasks.
 
@@ -280,11 +284,13 @@ A frozen decision (Level 3) may change only when **all** of these hold:
 3. The replacement is smaller or equal in moving parts, or its extra cost is justified by the measured gain.
 4. The decision, the evidence and the reversal trigger are written into §27 before coding starts.
 
+**Simplification audit (owner-ordered, W12):** a change that removes moving parts (duplicate logic, an unused abstraction, a redundant check) may be made without a new measurement, provided callers are traced, every existing test stays green, and security, recovery, permissions, STOP, Take Over and independent verification are preserved. It never adds an engine, controller, planner, gateway, execution loop or verification system.
+
 Pre-registered reversal triggers are listed in §27. Everything else stays as decided.
 
 ## 11. Owner approval and autonomy
 
-**Continue autonomously:** coding, refactoring inside an owner, tests, local runs, free CI on this branch, staging tests with existing approved staging credentials (least privilege; never shown to the model or logs), and documentation on this branch.
+**Continue autonomously:** coding batches (§7), refactoring inside an owner, tests, local runs, free CI on this branch, staging tests with existing approved staging credentials (least privilege; never shown to the model or logs), and documentation on this branch.
 
 **Stop and ask (with the exact action, reason, risk and the work that can continue meanwhile):**
 - Anything in O11.
@@ -352,7 +358,7 @@ Journal ─▶ independent verifier ─▶ settlement · deliverables · timing
 - Only read and reversible workspace steps, plus at most one confirmed external effect, which must come last.
 - Each step is policy-checked at dispatch and rechecked on the device.
 - The list stops at the first failed guard, unknown effect, STOP, user activity or lease change.
-- Adopt them only if evaluation checkpoint E1 shows no accuracy loss.
+- Build them behind a flag during coding; turn them on by default only after the qualification campaign shows no accuracy loss.
 
 **Long work** (renders, exports, installs) runs as `job.*` and is polled without model calls.
 
@@ -362,12 +368,12 @@ Journal ─▶ independent verifier ─▶ settlement · deliverables · timing
 - **Targets:** observation tokens and leases expire on change. Minimised windows are refused, or restored with consent. Synthetic input happens only in the foreground. Mutations pause while the person is active. Previews are taken only on demand.
 - **Detailed answers and limits:** §22.
 
-## 14. Component decisions (summary; reasons in §21–§27)
+## 14. Component decisions (summary; reasons in §22–§25 and §27)
 
 | Verdict | Components |
 |---|---|
-| KEEP | Task authority, journal, STOP and Take Over, policy gate, one generated protocol, MCP over stdio with persistent workers, TF-IDF shortlist (≤12 operations), window leases, reproducible installer |
-| OPTIMIZE | Planner loop (contract after discovery, step lists, smaller context), large payloads passed as file handles, UIA/AX bridges, browser, verifier, office/media/scene workers, installer |
+| KEEP | Task authority, journal, STOP and Take Over, policy gate, one generated protocol, MCP over stdio with persistent workers, window leases, reproducible installer |
+| OPTIMIZE | Planner loop (contract after discovery, step lists, smaller context, milestones for long tasks), operation offering (TF-IDF shortlist → capability-filtered list, §27), large payloads passed as file handles, UIA/AX bridges, browser, verifier, office/media/scene workers, installer |
 | REPLACE | Outcome checks compiled before observation → compiled after discovery and bound to the request; backoff polling → wake nudge plus active-task claiming plus piggyback dispatch |
 | MERGE | Shell-only file management → typed `fs` operations |
 | ADD | `job.*` long-running work; read-only `system.*` diagnostics; `image.*`; presentations; open editable exports (OTIO, glTF); visual fallback with confidence; updater; dependency manager; macOS app bundle |
@@ -379,32 +385,34 @@ Journal ─▶ independent verifier ─▶ settlement · deliverables · timing
 
 ## 15. Package board (the progress ledger for work)
 
-| WP | Title | Depends | State | In flight / blocker | Requirements | Concepts | Effort |
-|---|---|---|---|---|---|---|---|
-| W0 | Green baseline and one ledger | — | IN PROGRESS | Run 99 verifies both Windows repairs at candidate `2d98e0d`; shared Linux gate works in CI. Run 109 at `00cbd9e`: seven jobs green, macOS host not acquired; explicit Windows 2022/2025 and macOS 15 ARM/Intel matrix pending. Previous proof: [run 78](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41547638177) all green at `5796bb8`; ledgers agree (41→43 concepts after W1) | 10, 43, 196, 214–215, 236–238 | 9, 22, 39–41, 44, 82 | 1–2 d |
-| W1 | Safety closure and request-bound contract | W0 | IN PROGRESS | D22 repair published at 04ff4a99; Linux, Windows 2022/2025 and macOS ARM64 pass the actual warm-worker STOP regression and full 162-test suites; complete matrix awaits Intel (`evidence/2026-11-05-local-stop/`).  [run 78](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41547638177): D2, D3, D5, D6, D7 fixed; D4 mitigated (residual → W11); outage visible; M2 recovery qualification `evidence/2026-11-02-recovery/` | 13, 21, 32, 35–41, 66–69, 79–80, 171, 193, 210, 216, 220 | 4–5, 7, 21, 38, 50, 52–57, 61 | 4–8 d |
-| W2 | Measurement and pickup speed | W1 | BLOCKED (code complete) | Nudge, receipt-carried next step, prewarm, key cache green in [run 82](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41797737703)/[run 85](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41806336402). Met: idle pickup p95 502 ms (30 synthetic tasks) and 0.5–0.8 s live on staging Realtime; claim while running p95 53 ms (synthetic), ~0.2 s live. NOT met: unaccounted ≤10% — live 35% (8.5 of 24 s) from this container ~210 ms per database round trip; the production topology (Worker beside the database) is unmeasured: needs A1(b). Large payloads already bounded (16 KB evidence, 60 KB receipt; files by path + sha256) | 81–92, 94, 96 | 2, 42–43, 47–48, 51, 70, 78 | 3–6 d |
-| W3 | Capability surface | W2 | DONE (code) | [run 85](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41806336402) green on all three OSes: `fs.manage` (D17), `job.*` (D18), shell choice (D20), `system.diagnose`, mechanism fallback (concept 37). Live: `crlf_script` and `config_repair` pass first attempt (eval s21, D12) | 28–30, 93, 136–137 | 25–27, 37, 69 | 5–9 d |
-| W4 | Accuracy engine and evaluation → E1 | W3 | IN PROGRESS | Shortlist recall: tuning 100%, held-out 97.1% (< 98%); busy planner resumes itself (D10); D6 residual closed; failure categories, gaming audit, 16 generators; tables read as rows (D9); A1(a) approved and staging credential presence verified; D27 staging boundary repaired and protected authentication/isolation smoke passes (run 41972053886); full 48-task E1 at `00cbd9e` finished: strict 27/48 (56.25%), original oracle 35/48, completed 31/48, gaming 0; target choices absent. Protected candidate/family retests are available without changing the full 48-task denominator (`evidence/2026-11-05-e1-repair/`). Office parsing, interpreter validation, deliverable goal selection and harness fixture/teardown repairs are in qualification (`evidence/2026-11-05-e1/`). E1 partial: 7/8 first-attempt passes at `a6a728f`, gaming 0, stopped at handoff (`evidence/2026-11-04-e1/`); the `log_cause` miss (`invalid_goal`) is fixed in `2dced6b`, not yet measured live | 23, 31, 33–34, 46–57, 60, 63, 65, 166, 197–199, 201–202, 204, 207, 219 | 6, 8, 10, 14–20, 23, 49, 60, 77, 83 | 6–12 d |
-| W5 | Professional deliverables and visual fallback → E2 | W4 | IN PROGRESS | In-place .docx/.xlsx/.pptx edits, new decks, `image.edit`, OTIO project beside every film; verifier: `script_runnable`, `workbook_formula`, `document_headings`, `local_service_answers`, confirmed re-run `command_succeeds`; clicks matched against the inspected image (concept 36). glTF candidate implemented with independent geometry checks after failing acceptance in run 101 (`evidence/2026-11-04-gltf/`); cloud proof pending. Open: glTF verification, E2 | 61, 70–75, 77, 211 | 36, 74–76 | 7–12 d |
-| W6 | Windows 10/11 | W5 | IN PROGRESS | Hung and elevated windows refused; per-monitor DPI v2; stale-image click refusal (UIA-013/014 on the runner). Focused runner proof: AutoSetFocus off preserves another window's focus and saves the expected file (run 121; evidence/2026-11-04-native-focus/). Full matrix pending. Open: packaged (UWP) apps, Windows 2022/2025 coverage. Consumer Windows 10/11 proof BLOCKED on A2 | 58–59, 122–130 | 11–12, 28, 32–35, 58–59 | 5–9 d |
-| W7 | macOS | W5 | IN PROGRESS | Accessibility revocation and Screen Recording detection with graceful degradation; diagnose names both; zsh and Trash (W3). AXObserver candidate and injected-permission/lifecycle coverage are in qualification. ARM64 bundle starts all six frozen workers and its packaged browser; Intel bundle builds but startup fails (D24), with no Intel PASS claimed (`evidence/2026-11-05-macos-bundle/`). Consumer permission and hardware proof BLOCKED on A2 (D16) | 131–132 | 11–12, 29, 32–33, 35, 58–59 | 6–10 d |
-| W8 | Browser and web → E3 | W5 | IN PROGRESS | Tables as rows with links; failed browser launch is not applied; verifier honours the computer's proxy; installed browsers and profile folders discovered (req 139, Linux-verified); file-picker clicks reported (req 142); site permission prompts reported, never answered; every observation lists the other open tabs (switch by page id). Open: D11, Windows/macOS profile paths on real machines, E3 (A1) | 62, 76, 139–145 | 30–31, 33 | 3–6 d |
-| W9 | Install, dependencies, updates | W6, W7 | IN PROGRESS | D13 ownership diagnostics and retained-handle fixture repair in cloud qualification; dependency manager and updater not yet implemented. Consumer clean installation BLOCKED on A2 | 44–45, 97–120, 185–190, 217 | 13, 24, 45, 65, 68 | 6–10 d |
-| W10 | Customer product | W9 | IN PROGRESS | Protected staging UI first-task harness in qualification: authenticated browser and companion share only the synthetic user's identity; server credential stays with the isolated server. Completion requires both the visible Done and checked state and hidden file oracle. No completed UI task or surface-control PASS claimed | 146–160, 221 | 71–73 | 6–12 d |
-| W11 | Security, privacy, operations | W10 | IN PROGRESS | D27 inheritance repaired at 40f9ea66; protected staging admin/UID/canary smoke passes run 41972053886; old-key revocation owner-confirmed (`evidence/2026-11-05-oracle-isolation/`) | 78, 161–165, 167–170, 172–173, 175–182, 212, 222 | 46, 62–64, 66–67 | 5–8 d |
-| W12 | Proof-based debloat | W11 | NOT STARTED | A3 for PR cleanup | 243 | 81 | 2–4 d |
-| W13 | Full cloud qualification → E4 | W12 | NOT STARTED | needs A1 | 3, 138, 191–192, 194–195, 200, 205, 208, 218, 223–224 | 1, 79–80, 84 | 7–14 d |
-| W14 | Linux (optional) | W5 | NOT STARTED | optional | 134–135 | — | optional |
-| RPC | Real-PC validation → E5 | W13 | BLOCKED | needs A2 | 121, 133, 209 | — | per approval |
-| COM | Commercial prerequisites (§20) | RPC | BLOCKED | owner decisions | 259 | — | later |
+| WP | Title | Code prerequisite | State (runtime) | In flight / blocker | Requirements | Concepts |
+|---|---|---|---|---|---|---|
+| W0 | Green baseline and one ledger | — | IN PROGRESS | Run 99 verifies both Windows repairs at candidate `2d98e0d`; shared Linux gate works in CI. Run 109 at `00cbd9e`: seven jobs green, macOS host not acquired; explicit Windows 2022/2025 and macOS 15 ARM/Intel matrix pending. Previous proof: [run 78](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41547638177) all green at `5796bb8`; ledgers agree (41→43 concepts after W1) | 10, 43, 196, 214–215, 236–238 | 9, 22, 39–41, 44, 82 |
+| W1 | Safety closure and request-bound contract | — | IN PROGRESS | D22 repair published at 04ff4a99; Linux, Windows 2022/2025 and macOS ARM64 pass the actual warm-worker STOP regression and full 162-test suites; complete matrix awaits Intel (`evidence/2026-11-05-local-stop/`).  [run 78](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41547638177): D2, D3, D5, D6, D7 fixed; D4 mitigated (residual → W11); outage visible; M2 recovery qualification `evidence/2026-11-02-recovery/` | 13, 21, 32, 35–41, 66–69, 79–80, 171, 193, 210, 216, 220 | 4–5, 7, 21, 38, 50, 52–57, 61 |
+| W2 | Measurement and pickup speed | — | BLOCKED (code complete) | Nudge, receipt-carried next step, prewarm, key cache green in [run 82](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41797737703)/[run 85](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41806336402). Met: idle pickup p95 502 ms (30 synthetic tasks) and 0.5–0.8 s live on staging Realtime; claim while running p95 53 ms (synthetic), ~0.2 s live. NOT met: unaccounted ≤10% — live 35% (8.5 of 24 s) from this container ~210 ms per database round trip; the production topology (Worker beside the database) is unmeasured: needs A1(b). Large payloads already bounded (16 KB evidence, 60 KB receipt; files by path + sha256) | 81–92, 94, 96 | 2, 42–43, 47–48, 51, 70, 78 |
+| W3 | Capability surface | — | DONE (code) | [run 85](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41806336402) green on all three OSes: `fs.manage` (D17), `job.*` (D18), shell choice (D20), `system.diagnose`, mechanism fallback (concept 37). Live: `crlf_script` and `config_repair` pass first attempt (eval s21, D12) | 28–30, 93, 136–137 | 25–27, 37, 69 |
+| W4 | Accuracy engine and evaluation → E1 | — | IN PROGRESS | Shortlist recall: tuning 100%, held-out 97.1% (< 98%); busy planner resumes itself (D10); D6 residual closed; failure categories, gaming audit, 16 generators; tables read as rows (D9); A1(a) approved and staging credential presence verified; D27 staging boundary repaired and protected authentication/isolation smoke passes (run 41972053886); full 48-task E1 at `00cbd9e` finished: strict 27/48 (56.25%), original oracle 35/48, completed 31/48, gaming 0; target choices absent. Protected candidate/family retests are available without changing the full 48-task denominator (`evidence/2026-11-05-e1-repair/`). Office parsing, interpreter validation, deliverable goal selection and harness fixture/teardown repairs are in qualification (`evidence/2026-11-05-e1/`). E1 partial: 7/8 first-attempt passes at `a6a728f`, gaming 0, stopped at handoff (`evidence/2026-11-04-e1/`); the `log_cause` miss (`invalid_goal`) is fixed in `2dced6b`, not yet measured live | 23, 31, 33–34, 46–57, 60, 63, 65, 166, 197–199, 201–202, 204, 207, 219 | 6, 8, 10, 14–20, 23, 49, 60, 77, 83 |
+| W5 | Professional deliverables and visual fallback → E2 | — | IN PROGRESS | In-place .docx/.xlsx/.pptx edits, new decks, `image.edit`, OTIO project beside every film; verifier: `script_runnable`, `workbook_formula`, `document_headings`, `local_service_answers`, confirmed re-run `command_succeeds`; clicks matched against the inspected image (concept 36). glTF candidate implemented with independent geometry checks after failing acceptance in run 101 (`evidence/2026-11-04-gltf/`); cloud proof pending. Open: glTF verification, E2 | 61, 70–75, 77, 211 | 36, 74–76 |
+| W6 | Windows 10/11 | — | IN PROGRESS | Hung and elevated windows refused; per-monitor DPI v2; stale-image click refusal (UIA-013/014 on the runner). Focused runner proof: AutoSetFocus off preserves another window's focus and saves the expected file (run 121; evidence/2026-11-04-native-focus/). Full matrix pending. Open: packaged (UWP) apps, Windows 2022/2025 coverage. Consumer Windows 10/11 proof BLOCKED on A2 | 58–59, 122–130 | 11–12, 28, 32–35, 58–59 |
+| W7 | macOS | — | IN PROGRESS | Accessibility revocation and Screen Recording detection with graceful degradation; diagnose names both; zsh and Trash (W3). AXObserver candidate and injected-permission/lifecycle coverage are in qualification. ARM64 bundle starts all six frozen workers and its packaged browser; Intel bundle builds but startup fails (D24), with no Intel PASS claimed (`evidence/2026-11-05-macos-bundle/`). Consumer permission and hardware proof BLOCKED on A2 (D16) | 131–132 | 11–12, 29, 32–33, 35, 58–59 |
+| W8 | Browser and web → E3 | — | IN PROGRESS | Tables as rows with links; failed browser launch is not applied; verifier honours the computer's proxy; installed browsers and profile folders discovered (req 139, Linux-verified); file-picker clicks reported (req 142); site permission prompts reported, never answered; every observation lists the other open tabs (switch by page id). Open: D11, Windows/macOS profile paths on real machines, E3 (A1) | 62, 76, 139–145 | 30–31, 33 |
+| W9 | Install, dependencies, updates | — | IN PROGRESS | D13 ownership diagnostics and retained-handle fixture repair in cloud qualification; dependency manager and updater not yet implemented. Consumer clean installation BLOCKED on A2 | 44–45, 97–120, 185–190, 217 | 13, 24, 45, 65, 68 |
+| W10 | Customer product | — | IN PROGRESS | Protected staging UI first-task harness in qualification: authenticated browser and companion share only the synthetic user's identity; server credential stays with the isolated server. Completion requires both the visible Done and checked state and hidden file oracle. No completed UI task or surface-control PASS claimed | 146–160, 221 | 71–73 |
+| W11 | Security, privacy, operations | — | IN PROGRESS | D27 inheritance repaired at 40f9ea66; protected staging admin/UID/canary smoke passes run 41972053886; old-key revocation owner-confirmed (`evidence/2026-11-05-oracle-isolation/`) | 78, 161–165, 167–170, 172–173, 175–182, 212, 222 | 46, 62–64, 66–67 |
+| W12 | Proof-based debloat | all coding batches | NOT STARTED | A3 for PR cleanup | 243 | 81 |
+| W13 | Full cloud qualification → E4 | W12 | NOT STARTED | needs A1 | 3, 138, 191–192, 194–195, 200, 205, 208, 218, 223–224 | 1, 79–80, 84 |
+| W14 | Linux (optional) | — | NOT STARTED | optional | 134–135 | — |
+| RPC | Real-PC validation → E5 | W13; A2 | BLOCKED | needs A2 | 121, 133, 209 | — |
+| COM | Commercial prerequisites (§20) | RPC | BLOCKED | owner decisions | 259 | — |
 
 - **Standing rules (S)**, checked at every release gate: 1–2, 4–9, 11–12, 14–20, 22, 24–27, 42, 64, 95, 174, 183–184, 203, 206, 213, 225–235, 239–242, 244–258, 260–266. Standing concept: 3.
-- **Estimate:** about 65–120 agent-days before RPC, dominated by evaluation pacing inside the free quota.
+- **State** is the runtime-verified state. Coding progress lives in Appendix E. A package's prerequisite never blocks coding another package (O13).
 
 ## 16. Work packages
 
-Each package follows the same shape: **Problem → Evidence → Outcome → Constraints → Approach → Boundaries → Tests → Acceptance → Proof → Next**. Each one is self-contained; §-references point to detail only where needed.
+Each package follows the same shape: **Problem → Evidence → Outcome → Constraints → Approach → Boundaries → Tests → Acceptance → Proof**. Each one is self-contained; §-references point to detail only where needed.
+
+**Coding use (O13):** *Outcome*, *Approach*, *Constraints* and *Boundaries* define what must be coded. *Tests*, *Acceptance* and *Proof* are the final qualification criteria (W13): they stay in full, but they never block coding this or any other package. Live campaigns (E1–E3) named in an acceptance line run at the qualification stage.
 
 ### W0 — Green baseline and one ledger
 - **Problem:** the head is red, so no later measurement can be trusted, and status files disagree.
@@ -420,7 +428,6 @@ Each package follows the same shape: **Problem → Evidence → Outcome → Cons
 - **Tests:** `node --experimental-strip-types --no-warnings --test tests/security/*.test.ts tests/jarvis/contracts.test.ts`, `npm run test:jarvis`, `npm run test:jarvis-db`, then the full matrix in CI.
 - **Acceptance:** all CI jobs are green on the head; `npm run jarvis:traceability` and `npm run readiness` match Appendix B and §3.
 - **Proof:** run URL and SHA in Appendix D (close D1 and D14) and in §3.
-- **Next:** W1.
 
 ### W1 — Safety closure and request-bound contract
 - **Problem:** high safety defects are open, and outcome checks are guessed before observation and then "satisfied" by bending files.
@@ -447,7 +454,6 @@ Each package follows the same shape: **Problem → Evidence → Outcome → Cons
   - Security, DB and real-worker suites.
 - **Acceptance:** each test above passes; Appendix D has no open high item among D2–D7; full matrix green.
 - **Proof:** run URL; Appendix D updated.
-- **Next:** W2.
 
 ### W2 — Measurement and pickup speed
 - **Problem:** about 34% of task time is not model time, and pickup backs off to 30 s.
@@ -471,7 +477,6 @@ Each package follows the same shape: **Problem → Evidence → Outcome → Cons
   - A forged or replayed nudge causes no effect.
 - **Acceptance:** the targets above are met on Linux and on the Windows/macOS runners; the Workers request budget is calculated and recorded.
 - **Proof:** timing summary JSON (≤50 KB).
-- **Next:** W3.
 
 ### W3 — Capability surface
 - **Problem:** the model must use confirmed shell commands for ordinary file management, and long work cannot run.
@@ -498,7 +503,6 @@ Each package follows the same shape: **Problem → Evidence → Outcome → Cons
   - Scope escape is refused.
 - **Acceptance:** the tests pass; a fresh paced sample of `crlf_script`-class tasks passes on the first attempt; no unconfirmed external effect is possible.
 - **Proof:** run URL; D12, D17, D18 and D20 closed.
-- **Next:** W4.
 
 ### W4 — Accuracy engine and evaluation loop
 - **Problem:** first-attempt success is 75%, below the 90% target, and is not measured continuously.
@@ -506,7 +510,7 @@ Each package follows the same shape: **Problem → Evidence → Outcome → Cons
 - **Outcome:**
   - A repeatable, quota-paced evaluation.
   - E1 recorded with ≥40 tasks.
-  - ≥85% as the working target before W5.
+  - ≥85% as the working target (measured at qualification).
   - Median model calls ≤4.
   - Zero gaming.
 - **Constraints:** never tune to fixtures; oracles stay hidden; never rotate keys; no paid models.
@@ -524,7 +528,6 @@ Each package follows the same shape: **Problem → Evidence → Outcome → Cons
 - **Tests:** E1 runs from the agent container against staging, paced.
 - **Acceptance:** E1 recorded with its denominator; every failure category has an owner package or a fix.
 - **Proof:** E1 summary plus a failure taxonomy in Appendix D.
-- **Next:** W5.
 
 ### W5 — Professional deliverables and visual fallback
 - **Problem:** existing documents cannot be edited in place; presentations and images are unsupported; video and 3D have no open editable exports; canvas apps have no fallback.
@@ -545,7 +548,6 @@ Each package follows the same shape: **Problem → Evidence → Outcome → Cons
 - **Tests:** real-file fixtures with hidden oracles; corrupted-input cases; low-confidence visual targets are refused.
 - **Acceptance:** E2 recorded with ≥40 tasks; the format checks are complete.
 - **Proof:** E2 summary; D19 closed.
-- **Next:** W6 and W7, then W8.
 
 ### W6 — Windows 10/11
 - **Problem:** Windows control has only been proven on Server runners, and depth is limited.
@@ -564,7 +566,6 @@ Each package follows the same shape: **Problem → Evidence → Outcome → Cons
 - **Tests:** the UIA ladder plus new cases on `windows-2022` and `windows-2025`; RPC test scripts written for consumer-only items.
 - **Acceptance:** the runner suites are green; consumer-only items are explicitly UNTESTED with RPC tests ready.
 - **Proof:** run URL.
-- **Next:** W7.
 
 ### W7 — macOS
 - **Problem:** macOS control has only been proven on a pre-authorised runner; there is no package, and no change events.
@@ -581,7 +582,6 @@ Each package follows the same shape: **Problem → Evidence → Outcome → Cons
 - **Tests:** the MAC ladder plus new cases on `macos-15` (and `macos-15-intel` if available); permission-withheld paths where the runner allows.
 - **Acceptance:** green runner suites; permission flows tested.
 - **Proof:** run URL; D16 closed or kept OPEN for RPC with a test written.
-- **Next:** W8.
 
 ### W8 — Browser and web
 - **Problem:** the browser lacks discovery of installed browsers, tab handling, file pickers, prompts and hop-level redirect checks.
@@ -592,7 +592,6 @@ Each package follows the same shape: **Problem → Evidence → Outcome → Cons
 - **Tests:** the web ladder plus new fixtures.
 - **Acceptance:** E3 recorded with ≥40 tasks across Linux and the Windows/macOS runners (needs A1; Linux-only if A1 is pending, recorded as such).
 - **Proof:** E3 summary.
-- **Next:** W9.
 
 ### W9 — Install, dependencies, versioning, updates
 - **Problem:** there is no dependency manager and no updater, and only Windows is packaged.
@@ -607,7 +606,6 @@ Each package follows the same shape: **Problem → Evidence → Outcome → Cons
 - **Constraints:** no automatic elevation; signing hooks only (certificates are COM).
 - **Tests:** upgrade and rollback between two built versions on both OSes; interrupted update; blocked install; architecture mismatch.
 - **Acceptance:** the tests are green on both OSes.
-- **Next:** W10.
 
 ### W10 — Customer product
 - **Problem:** no first task has been completed through the website, and not every control has been exercised.
@@ -615,23 +613,25 @@ Each package follows the same shape: **Problem → Evidence → Outcome → Cons
 - **Outcome:** onboarding; device states; progress; exact approvals; STOP/Take Over/Continue/Retry/Remove; deliverables; Library; Settings; Usage; admin; accessibility; responsive/PWA; voice within existing scope; Android only if already scoped; iOS browser only. Follows the minimal outcome-first UI principles (research C1–C12).
 - **Tests:** the website audit with every control; the authenticated flow on staging.
 - **Acceptance:** a first task completed end to end through the UI on staging; no dead controls.
-- **Next:** W11.
 
 ### W11 — Security, privacy, operations
 - **Problem:** web security and operational readiness are not audited.
 - **Evidence:** requirements 161–182; D4.
 - **Outcome:** headers/CSP/CSRF; threat model; XSS/SQLi/SSRF/IDOR tests; secret canary; log redaction; crash reports and health; export and deletion; rate limits; migration rollback strategy; legal and support drafts; an external-MCP review procedure.
 - **Acceptance:** zero open critical or high defects; security suites green.
-- **Next:** W12.
 
-### W12 — Proof-based debloat
-- **Problem:** dead code, duplication and bulky evidence add maintenance cost.
+### W12 — Deep debloat, consolidation and naming (after every coding requirement is CODED)
+- **Problem:** dead code, duplication, misleading names and bulky process artefacts add maintenance cost.
+- **Starts when:** every CODE requirement in Appendix E is CODED and BUILDS. Not before: removing code while features are still being written creates defects.
 - **Approach:**
-  - Process `ToRemove.md` candidates with traced callers and parity tests.
-  - Archive bulky evidence.
+  - Find unused code with standard dead-code finders (TypeScript and Python), then trace every caller before removing anything.
+  - Remove duplicate logic, abstractions with one caller, obsolete dependencies, unnecessary background processes and redundant checks; process `ToRemove.md`.
+  - Rename only names that mislead (for example a function whose name no longer matches what it does); one rename per commit with all references updated.
+  - Known candidates: the TF-IDF operation shortlist once the capability-filtered list replaces it (§27); `HANDOFF-CODEX.md` (stale); raw evidence JSON committed under `evidence/` (keep summaries and file hashes, publish raw files as CI artefacts); the duplicate concept ledgers once `scripts/jarvis-traceability.mjs` and `scripts/launch-readiness.mjs` read one source.
+  - Simplification audit of the existing architecture (§10): improve existing components; never add an engine, controller, planner, gateway, execution loop or verification system.
   - Measure installer size, startup and memory before and after.
-- **Acceptance:** no capability lost, with measured gains recorded.
-- **Next:** W13.
+- **Never remove:** security checks, permissions, STOP and Take Over, recovery and journaling, independent verification, database compatibility, user data, or a useful test.
+- **Acceptance:** every existing test still passes; no capability lost; each removal names its traced callers (none) in the commit message.
 
 ### W13 — Full cloud qualification
 - **Problem:** the integrated system has not been qualified.
@@ -649,9 +649,10 @@ Each package follows the same shape: **Problem → Evidence → Outcome → Cons
 
 | Gate | Applies to | Passes when |
 |---|---|---|
-| **G-Change** | Every commit | The local gate (§7 step 6) is green; a regression test exists for every fix; no test was weakened |
-| **G-Package** | Marking a package DONE | Acceptance holds with independent outcome evidence; full matrix green on the head; no new critical/high defect; ledgers updated |
-| **G-Requirement** | Marking a requirement or concept PASS | Its destination package acceptance covers it, and its evidence (SHA, environment, run or measurement) is recorded. Code existence, mocks, Server runners or pre-authorised macOS runners never establish consumer-platform PASS |
+| **G-Change** (coding gate) | Every commit and every push | Format, type check, Python compile and imports, protocol/contract check when contracts change, migration validity when SQL changes, and the existing focused tests of each touched owner are green (§7 step 5); a defect fix keeps a regression test; no test was weakened or deleted to pass |
+| **G-Coded** | Moving a requirement to CODED or BUILDS (Appendix E) | Fully implemented in the existing owner, reachable from a named entry point and actually called by a named caller; no placeholder, stub, TODO, fake return or documentation-only change; BUILDS also needs G-Change green at that commit |
+| **G-Package** | Marking a package DONE (qualification stage) | Acceptance holds with independent outcome evidence; full matrix green on the head; no new critical/high defect; ledgers updated. Never a prerequisite for coding |
+| **G-Requirement** | Marking a requirement or concept PASS (= RUNTIME VERIFIED; qualification stage) | Its destination package acceptance covers it, and its evidence (SHA, environment, run or measurement) is recorded. Code existence, mocks, Server runners or pre-authorised macOS runners never establish consumer-platform PASS |
 | **G-Release** | R1–R10 (§20) | Every gate condition holds on the stated platforms |
 
 **Regressions:** a regression of a previously passing behaviour blocks further progress until it is fixed or proven pre-existing and recorded.
@@ -668,9 +669,9 @@ Each package follows the same shape: **Problem → Evidence → Outcome → Cons
 | Companion | `cd device-agent/windows && python3 -m unittest discover -s tests -t .` (or a single test module) | Every change to device code |
 | Database | `npm run test:jarvis-db` (local PostgreSQL) | Every change to migrations or authority |
 | Integrated | `npm run test:jarvis` | Before pushing cross-owner changes |
-| Preflight CI | Linux preflight job | Every push |
-| Full matrix | Linux, Windows 2022/2025, macOS 15, installer | After preflight is green |
-| Live evaluation | `tests/jarvis/live_eval.py` against staging, paced | E-checkpoints only |
+| Preflight CI (coding gate) | Linux job triggered by push | Every push; must be green |
+| Full matrix | Linux, Windows 2022/2025, macOS 15, installer, bundles | Qualification stage (manual dispatch); during coding only the one platform job for platform-specific code, when needed |
+| Live evaluation | `tests/jarvis/live_eval.py` against staging, paced | Qualification stage only, owner-directed (O14) |
 | Real PC | Owner-approved machines | RPC only |
 
 ## 18. Performance targets (by workload; measured over ≥30 tasks per category)
@@ -693,19 +694,19 @@ Each package follows the same shape: **Problem → Evidence → Outcome → Cons
 | Verification share (file tasks) | not measured | ≤10% |
 | Agent idle CPU / RAM (no browser) | not measured | ≤0.5% / ≤150 MB |
 
-These are targets, not achievements. A target is met only when the measurement on the stated platform shows it.
+These are targets, not achievements. A target is met only when the measurement on the stated platform shows it. They are measured at the qualification stage and never block coding.
 
 ## 19. Evaluation and qualification campaign
 
 ### 19.1 Checkpoints
 
-Every checkpoint uses fresh randomised tasks with hidden oracles, first attempt only, paced quota, and a published denominator.
+Every checkpoint uses fresh randomised tasks with hidden oracles, first attempt only, paced quota, and a published denominator. Checkpoints run only at the qualification stage; the owner directs them and supplies the model-comparison tasks (O14).
 
 | Checkpoint | After | Tasks | Platforms |
 |---|---|---|---|
-| E1 | W4 | ≥40 | Linux |
-| E2 | W5 | ≥40 | Linux |
-| E3 | W8 | ≥40 | Linux, Windows/macOS runners (A1) |
+| E1 | Coding and W12 complete | ≥40 | Linux |
+| E2 | Coding and W12 complete | ≥40 | Linux |
+| E3 | Coding and W12 complete | ≥40 | Linux, Windows/macOS runners (A1) |
 | E4 | W13 | ≥100 over ≥3 days | Windows 2022/2025 and macOS runners (A1) |
 | E5 | RPC | ≥30 per platform | Windows 10, Windows 11, macOS |
 
@@ -814,29 +815,6 @@ The milestones in `gates.json` map one-to-one to R1–R10.
 
 # LEVEL 6 — DECISION RECORD (consult when a package refers here)
 
-## 21. Diagnosis
-
-**Development causes** (all CONFIRMED):
-- Task measurement was forbidden until every gate passed (old plan, until v3).
-- Architecture and plan restarts: `5568893` deleted 228,292 lines; the plan was replaced several times.
-- A red head and rerun loops: 35/62 runs failed and 10 were cancelled.
-- Formatting failures: runs 34, 52, 55 and 70.
-- Five competing ledgers.
-- About 339k lines of evidence committed to git.
-
-**Product failures:** the taxonomy of 9 first-attempt failures in seeds 11–14:
-
-| Class | Count | Cause |
-|---|---|---|
-| Missing typed capability | 4 | No executable-bit operation; file edits only through confirmed shell (`crlf_script` s11–s14) |
-| Checks compiled before observation | 3 | The model bent files to its own guess (`config_repair` s11/s14; `crlf_script` s12) |
-| Edit granularity | 1 | A whole-file rewrite renamed an output (`config_repair` s13) |
-| Environment / provider | 2 | Browser display died; provider outage (`web_fact` s11, `totals_workbook` s12) |
-
-Conclusion: most failures came from OCADE's capability surface and contract, not raw model reasoning.
-
-**Latency:** device execution is 6% of task time; model time is 56%; waiting is about 34% (backoff polling plus a claim round trip per step).
-
 ## 22. RTAA and RTVC design answers
 
 | Topic | Decision and limits |
@@ -926,26 +904,6 @@ Conclusion: most failures came from OCADE's capability surface and contract, not
 - `.app` bundle.
 - Runners: `macos-15` and `macos-15-intel` (verify availability).
 
-## 26. Honest quality scorecard
-
-Current scores are evidence-based judgments. Projected scores are design expectations, **not** achievements.
-
-| Category | Current | Projected | Evidence needed for 95 |
-|---|---|---|---|
-| Product architecture | 74 | 90 | R1–R10 PASS; E4 ≥95% |
-| Universal control coverage | 45 | 80 | ≥95% of a pre-registered sample of 50 installed apps operable; true universality is impossible |
-| Speed | 40 | 88 | §18 targets met on runners and RPC |
-| Task-selection accuracy | unmeasured (≈50) | 88 | ≥98% on the hidden-target suite |
-| First-attempt completion | 60 (75% measured) | 85–90 | ≥95% on E4+E5, with the confidence-interval lower bound ≥90% |
-| Reliability and recovery | 65 | 90 | Fault-injection suite 100% safe outcomes |
-| Windows 10 / Windows 11 / macOS | 25 / 30 / 20 | 85 / 88 / 82 | RPC suites ≥95%; macOS also needs signing (COM) |
-| Security / permission safety | 75 / 80 | 92 / 94 | Zero open critical/high; adversarial suite 100% refusals |
-| Independent verification | 65 | 92 | Gaming suite 100% caught |
-| Professional output quality | 35 | 75 | Blind human rating ≥4/5 on ≥20 deliverables; a free-model ceiling is likely |
-| Tool routing / app discovery | 70 / 55 | 90 / 88 | Recall ≥98%; ≥98% of installed apps found at RPC |
-| Maintainability / resource efficiency | 62 / unmeasured | 88 / 85 | Green head ≥90% of days; §18 resource targets on low-end hardware |
-| Usability / differentiation / commercial | 35 / 50 / 10 | 85 / 80 / 80 | Unassisted first task by 5 users; benchmark wins in ≥3 categories; R10 plus beta |
-
 ## 27. Alternatives, competitors, self-challenge and reversal triggers
 
 **Alternatives** (decided; do not reopen without §10):
@@ -969,8 +927,8 @@ Current scores are evidence-based judgments. Projected scores are design expecta
 OCADE's intended differentiator is independently proven, editable, locally produced work under exact permissions.
 
 **Reversal triggers (pre-registered):**
-- Guarded step lists, if E1 success drops.
-- TF-IDF, if recall falls below 98%.
+- Guarded step lists, if qualification-campaign success drops.
+- TF-IDF shortlist, if recall falls below 98%. **Fired:** held-out recall 97.1% (W4). Decision (§10): replace it with the deterministic list of every operation the task's grants allow, not embeddings; fewer moving parts. Coded in a coding batch; the old shortlist is removed in W12.
 - Thinking level, if the A/B favours the other setting.
 - Realtime nudge, if free limits or reliability fail (fall back to active-task polling).
 - python-pptx, if LibreOffice conversion suffices.
@@ -984,21 +942,13 @@ OCADE's intended differentiator is independently proven, editable, locally produ
 
 **Supporting research:** `docs/research/UNIVERSAL_LOCAL_CONTROL_MCP_ROUTING_REFERENCE.md` (corrected claims and sources) and `docs/research/OCADE_complete_heading_and_concept_index.md` (236 ideas with plan dispositions).
 
-## 28. Provenance mapping
-
-| Version | Mapping |
-|---|---|
-| v3 → v4 | Packages renumbered; v4 numbering is current |
-| v4 → v5 | Packages unchanged. Methodology, gates, the board and the decision record were reorganised into Levels 1–6; no requirement, concept or status changed |
-| P00–P22, G0–G12 | P00 → W0; P01–P04 → W1; P05/P20 → W9; P06–P08 → W4, W6/W7; P09–P10/P13–P14 → W1–W3; P11 → W8; P12 → W6/W7; P15–P16 → W2/W4; P17–P18 → W1/W5; P19 → W10; P21 → W12/W13; P22 → R10; G0–G12 → R1–R10 |
-
-Earlier plan texts are in git history at `0e1bdcb`, `16654be` and `ef5cd6b`.
-
 ---
 
 # LEVEL 7 — TRACEABILITY (lookup data)
 
 ## Appendix A — The 266 requirements (verbatim) with status and destination
+
+`PASS` here means RUNTIME VERIFIED. Coding status (NOT CODED, CODED, BUILDS) is tracked separately in Appendix E, so a coded requirement is never shown as verified before qualification.
 
 Format: `STATUS` · **destination** — original text. Status source: independent re-audit at `f04228d`, plus W1 promotions of 36, 39, 41, 80, 171 and 216 with [run 78](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41547638177) and `evidence/2026-11-02-recovery/`, and W2/W3 promotions of 30 (mechanism fallback), 94 (live round-trip profile before and after each change) and 137 (shell, engine and diagnostic limits refused before running) with [run 85](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41806336402) (`evidence/2026-11-01-audit/requirements-266.md`, current-review column); it is the conservative lower bound. **S** = standing rule verified at every release gate. **RPC** = needs real-PC validation. **COM** = commercial phase. **W14** = optional Linux; never counted as PASS without evidence and never blocking Windows/macOS release.
 
@@ -1585,3 +1535,44 @@ Severity: CRITICAL = unauthorised action, data loss, secret exposure or wrong-ta
 | D28 | HIGH | Intel scene rendering publishes a flat image while scene/hash/size checks report success | published aaf3bad3, run 41970810529, Intel job 127061543475 | OPEN: existing independent pixel assertion fails; candidate WebGL error validation now refuses the failed readback. Exact native cause and a correct render still need proof (`evidence/2026-11-05-intel-render/`) | W5 |
 | D29 | MEDIUM | Intel browser popup classification intermittently omits the off-site closure | candidate 26ec426b, run 41971524885, job 127064311487, WEB-009 | OPEN: empty popups instead of closed_off_site; fixed collector window is a hypothesis, not a confirmed cause. Network binding remains separately tested; no bypass inferred (`evidence/2026-11-05-intel-render/`) | W8 |
 Closed recently (kept for history): approval arguments clipped at 4000 characters (fixed `43c50ed`, run 64); opaque native/page interactions mislabelled reversible (fixed `43c50ed`); unknown-write replay after resume (fenced `83f3142`, run 58); competing-file overwrite on publication (fixed `897675b`, run 49); installed companion started no worker (fixed `947ceee`); minimized macOS window reported as closed (fixed `a7cf182`).
+
+## Appendix E — Coding ledger (updated once per coding batch)
+
+Coding status is kept separate from runtime verification (Appendix A), so nothing is shown as verified before it is tested.
+
+| State | Meaning | Gate |
+|---|---|---|
+| NOT AUDITED | Not yet classified by batch C0 | — |
+| NOT CODED | Missing, partial, stubbed or not wired | — |
+| CODED | Fully implemented in the existing owner and reachable: named entry point and caller, no placeholder, stub, TODO or fake return | §17 G-Coded |
+| BUILDS | CODED, and the coding gate is green at the recorded commit | §17 G-Change + G-Coded |
+| RUNTIME VERIFIED | Qualification evidence on the stated platform (Appendix A `PASS`) | §17 G-Requirement |
+| QUALIFICATION-ONLY | Needs only a measurement, campaign, real-PC run or owner action; any harness code it needs is a CODE item | Verified at W13/RPC/COM |
+| STANDING | A rule checked at every gate (the S list in §15) | Every gate |
+
+**Entry format** (one line per requirement as it moves): `ID — state — commit — entry point → caller — note`.
+
+**Initial state (5 November 2026, before C0):**
+- RUNTIME VERIFIED (Appendix A `PASS`, 77): 1–2, 4–6, 9, 11–12, 14–15, 17–22, 24–27, 30, 36, 39, 41–43, 47, 53, 64, 79–80, 84, 89, 93–95, 102, 109, 136–137, 141, 145, 154, 171, 173–174, 178, 183–184, 196, 198, 203, 213, 225, 234, 239–241, 244–246, 248–254, 256–258, 260–263, 265–266.
+- NOT AUDITED (189): 3, 7–8, 10, 13, 16, 23, 28–29, 31–35, 37–38, 40, 44–46, 48–52, 54–63, 65–78, 81–83, 85–88, 90–92, 96–101, 103–108, 110–135, 138–140, 142–144, 146–153, 155–170, 172, 175–177, 179–182, 185–195, 197, 199–202, 204–212, 214–224, 226–233, 235–238, 242–243, 247, 255, 259, 264.
+
+**Coding batches (order by code dependency; continue past any blocked item):**
+
+| Batch | Scope | Main owners |
+|---|---|---|
+| C0 | Classify all 189; coding-gate-only push CI; replace `testsRun` pins with one no-unexpected-skip check; merge or drop candidate `26ec426b` | `plan.md` Appendix E, `.github/workflows/*` |
+| C1 | Verifier truthfulness: D25 interpreter check, D28 blank render, Office parse false blocks, D26 harness and fixture defects | `verify_worker.py`, `scene_gl.py`, `tests/jarvis/live_eval.py` |
+| C2 | Long tasks: milestones with their own checks and step budget, durable milestone state, safe resume (31, 32, 38 and related) | `planner.server.ts`, `authority.server.ts`, `supervisor.ts`, a new migration with rollback |
+| C3 | Operation offering: capability-filtered list replacing the TF-IDF shortlist (§27) | `planner.server.ts`, `contracts.ts` |
+| C4 | Dependency manager: detect, propose exact package/source/version/hash/licence, confirm, install unelevated, journal, verify, resume (W9: 44–45, 97–120, 217) | `ocade_agent` (new operations through `contracts.ts`), authority permissions |
+| C5 | Updater: integrity, staging, rollback, never during an action (185–190) | `packaging/*`, `ocade_agent` |
+| C6 | Windows, macOS and browser gaps: packaged (UWP) apps, multi-monitor and DPI transforms, shadow DOM, popups (D29), D11, AXObserver (58–59, 122–135, 139–144) | `windows_worker.py`, `mac_worker.py`, `web_worker.py`, `discovery.py` |
+| C7 | Deliverables and visual fallback still open (61, 70–78, 211) | `office_worker.py`, `media_worker.py`, `scene_gl.py`, `verify_worker.py` |
+| C8 | Customer product: onboarding, every control wired, approvals, deliverables, voice within scope, PWA (146–160, 221) | `src/jarvis/*`, `src/routes/*`, `src/components/*` |
+| C9 | Security, privacy, operations: headers/CSP/CSRF, export and deletion, rate limits, redaction, support and legal drafts, licence inventory (161–182, 212, 222) | web server, `supabase/*`, `docs/*` |
+| C10 | Instrumentation and remaining code items: per-phase timing and token usage, evaluation harness code, stability harness (W1, W2, W4, W13 code items) | `authority.server.ts`, `planner.server.ts`, `tests/jarvis/*` |
+| F | Integration and compilation fixes across all batches | all |
+| W12 | Deep debloat, consolidation and naming | all |
+| Q | Final compilation, full GitHub Actions qualification, then owner-directed model comparison and RPC | — |
+
+**Coding-complete declaration (before W12, and again before Q):** go through all 266 IDs one by one and confirm each is BUILDS, RUNTIME VERIFIED, QUALIFICATION-ONLY with its harness code BUILDS, or STANDING. Any other state means coding is not complete: name the IDs and continue coding. Never report partial completion as complete.
