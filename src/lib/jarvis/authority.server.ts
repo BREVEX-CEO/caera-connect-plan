@@ -26,7 +26,14 @@ import {
   type OutcomeCheck,
 } from "./contracts.ts";
 import { ONLINE_CONSENT_VERSION } from "../intelligence/online-consent-version.ts";
-import { effectInDoubt, open, unresolvedEffect, type Decision, type Step, type Milestone } from "./supervisor.ts";
+import {
+  effectInDoubt,
+  open,
+  unresolvedEffect,
+  type Decision,
+  type Step,
+  type Milestone,
+} from "./supervisor.ts";
 import {
   PlannerUnavailable,
   compileGoal,
@@ -323,10 +330,20 @@ export async function advance(admin: Admin, taskId: string, now = new Date()): P
         p_task: taskId,
         p_controller: task.controller,
         p_actions: [
-          { summary: decision.summary, action: decision.intent,
-            milestone: Number((task.checkpoint?.milestones as { index?: number } | undefined)?.index ?? 0) },
-          ...(decision.more ?? []).map((next) => ({ summary: next.summary, action: next.intent,
-            milestone: Number((task.checkpoint?.milestones as { index?: number } | undefined)?.index ?? 0) })),
+          {
+            summary: decision.summary,
+            action: decision.intent,
+            milestone: Number(
+              (task.checkpoint?.milestones as { index?: number } | undefined)?.index ?? 0,
+            ),
+          },
+          ...(decision.more ?? []).map((next) => ({
+            summary: next.summary,
+            action: next.intent,
+            milestone: Number(
+              (task.checkpoint?.milestones as { index?: number } | undefined)?.index ?? 0,
+            ),
+          })),
         ] as unknown as Json,
       });
     } else if (decision.kind === "milestone") {
@@ -352,7 +369,11 @@ export async function advance(admin: Admin, taskId: string, now = new Date()): P
     }
   } catch (error) {
     // Lost a race to STOP or another planner: the database already holds the truth.
-    if (error instanceof JarvisRefusal && ["stale_controller", "milestone_changed"].includes(error.code)) return;
+    if (
+      error instanceof JarvisRefusal &&
+      ["stale_controller", "milestone_changed"].includes(error.code)
+    )
+      return;
     if (error instanceof JarvisRefusal && error.code === "permission_required") {
       // Grants can change while the planner is running. No action was admitted;
       // keep the saved task resumable after the person restores its permissions.

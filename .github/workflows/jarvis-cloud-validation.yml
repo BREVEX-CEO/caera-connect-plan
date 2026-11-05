@@ -137,7 +137,7 @@ jobs:
           const paths=execFileSync("git", ["diff","--name-only",process.env.CODING_BASE_SHA || "HEAD^","HEAD"], {encoding:"utf8"}).trim().split("\n");
           for (const path of paths) {
             if (!fs.existsSync(path)) continue;
-            const info=await prettier.getFileInfo(path);
+            const info=await prettier.getFileInfo(path,{ignorePath:".prettierignore"});
             if (info.ignored || !info.inferredParser) continue;
             const original=fs.readFileSync(path,"utf8");
             const content=await prettier.format(original,{...await prettier.resolveConfig(path),filepath:path});

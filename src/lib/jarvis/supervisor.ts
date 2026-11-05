@@ -24,30 +24,46 @@ export interface Step {
 }
 
 /** Ordered work selected by the model; checks always refer to the immutable task contract. */
-export const milestonePlan = z.array(
-  z.object({
-    description: z.string().min(1).max(300),
-    checks: z.array(z.string().min(1)).min(1).max(10),
-    stepBudget: z.number().int().min(1).max(30),
-  }).strict(),
-).min(1).max(6);
-export type Milestone = z.infer<typeof milestonePlan>;
+export const milestonePlan = z
+  .array(
+    z
+      .object({
+        description: z.string().min(1).max(300),
+        checks: z.array(z.string().min(1)).min(1).max(10),
+        stepBudget: z.number().int().min(1).max(30),
+      })
+      .strict(),
+  )
+  .min(1)
+  .max(6);
+export type Milestone = z.infer<typeof milestonePlan>[number];
 
 /** One validator owns the server-side milestone contract, including legacy short tasks. */
 export function milestonesFor(checks: OutcomeCheck[], plan: unknown): Milestone[] {
-  if (plan == null || (Array.isArray(plan) && (plan.length === 0 || plan.every((item) => typeof item === "string")))) {
-    return [{
-      description: checks.map((check) => check.description).join("; ").slice(0, 300) || "Complete the requested result",
-      checks: checks.map((check) => check.id),
-      stepBudget: 30,
-    }];
+  if (
+    plan == null ||
+    (Array.isArray(plan) && (plan.length === 0 || plan.every((item) => typeof item === "string")))
+  ) {
+    return [
+      {
+        description:
+          checks
+            .map((check) => check.description)
+            .join("; ")
+            .slice(0, 300) || "Complete the requested result",
+        checks: checks.map((check) => check.id),
+        stepBudget: 30,
+      },
+    ];
   }
   const milestones = milestonePlan.parse(plan);
   const known = new Set(checks.map((check) => check.id));
   const covered = new Set<string>();
   for (const milestone of milestones) {
-    if (new Set(milestone.checks).size !== milestone.checks.length ||
-        milestone.checks.some((id) => !known.has(id))) {
+    if (
+      new Set(milestone.checks).size !== milestone.checks.length ||
+      milestone.checks.some((id) => !known.has(id))
+    ) {
       throw new Error("A milestone refers to an unknown or repeated outcome check.");
     }
     milestone.checks.forEach((id) => covered.add(id));
@@ -58,15 +74,20 @@ export function milestonesFor(checks: OutcomeCheck[], plan: unknown): Milestone[
 
 /** Progress is durable data, never inferred from the model's conversation or a success message. */
 export function milestoneProgress(
-  checks: OutcomeCheck[], plan: unknown, checkpoint: Record<string, unknown> | null,
+  checks: OutcomeCheck[],
+  plan: unknown,
+  checkpoint: Record<string, unknown> | null,
   totalSteps: number,
 ) {
   const milestones = milestonesFor(checks, plan);
   const saved = checkpoint?.milestones;
-  const cursor = z.object({
-    index: z.number().int().min(0),
-    startStep: z.number().int().min(0),
-  }).passthrough().parse(saved ?? { index: 0, startStep: 0 });
+  const cursor = z
+    .object({
+      index: z.number().int().min(0),
+      startStep: z.number().int().min(0),
+    })
+    .passthrough()
+    .parse(saved ?? { index: 0, startStep: 0 });
   if (cursor.index > milestones.length || cursor.startStep > totalSteps) {
     throw new Error("The saved milestone cursor is invalid.");
   }
@@ -76,7 +97,7 @@ export function milestoneProgress(
     description: milestone?.description ?? "Recheck the complete result",
     stepBudget: milestone?.stepBudget ?? 30,
     checks: milestone ? checks.filter((check) => milestone.checks.includes(check.id)) : checks,
-    final: milestone === undefined || (milestones.length === 1),
+    final: milestone === undefined || milestones.length === 1,
   };
 }
 

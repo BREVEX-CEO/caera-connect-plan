@@ -75,7 +75,11 @@ test("goal compilation refuses duplicate, incomplete or conflicting acceptance p
   let duplicateProposal = false;
   const server = createServer(async (req, res) => {
     for await (const chunk of req) void chunk;
-    const call = { id: "goal", name: "set_goal", arguments: { checks, ...(milestones ? { milestones } : {}) } };
+    const call = {
+      id: "goal",
+      name: "set_goal",
+      arguments: { checks, ...(milestones ? { milestones } : {}) },
+    };
     const calls = duplicateProposal ? [call, { ...call, id: "other-goal" }] : [call];
     const frames = [
       ...calls.map((call) => ({ type: "tool_call", call })),
@@ -164,15 +168,31 @@ test("goal compilation refuses duplicate, incomplete or conflicting acceptance p
     checks = [check];
     milestones = [{ description: "Requested result", checks: [check.id], stepBudget: 4 }];
     let persisted: unknown;
-    assert.deepEqual(await compileGoal(base.userId, base.objective, base.grants, undefined, null,
-      (plan) => (persisted = plan)), [check]);
-    assert.deepEqual(persisted, milestones, "validated model milestones must reach durable authority state");
+    assert.deepEqual(
+      await compileGoal(
+        base.userId,
+        base.objective,
+        base.grants,
+        undefined,
+        null,
+        (plan) => (persisted = plan),
+      ),
+      [check],
+    );
+    assert.deepEqual(
+      persisted,
+      milestones,
+      "validated model milestones must reach durable authority state",
+    );
     for (const invalid of [
       [{ description: "Wrong check", checks: ["unrelated"], stepBudget: 4 }],
       [{ description: "Unbounded", checks: [check.id], stepBudget: 31 }],
     ]) {
       milestones = invalid;
-      await assert.rejects(compileGoal(base.userId, base.objective, base.grants), PlannerUnavailable);
+      await assert.rejects(
+        compileGoal(base.userId, base.objective, base.grants),
+        PlannerUnavailable,
+      );
     }
   } finally {
     Object.assign(plannerAccess, saved);
@@ -213,18 +233,34 @@ test("milestones validate coverage and reject corrupt durable cursors", () => {
   ]) {
     assert.throws(() => milestonesFor([check, second], invalid));
   }
-  assert.throws(() => milestoneProgress([check, second], plan, {
-    milestones: { index: 3, startStep: 0 },
-  }, 2));
-  assert.throws(() => milestoneProgress([check, second], plan, {
-    milestones: { index: 1, startStep: 3 },
-  }, 2));
+  assert.throws(() =>
+    milestoneProgress(
+      [check, second],
+      plan,
+      {
+        milestones: { index: 3, startStep: 0 },
+      },
+      2,
+    ),
+  );
+  assert.throws(() =>
+    milestoneProgress(
+      [check, second],
+      plan,
+      {
+        milestones: { index: 1, startStep: 3 },
+      },
+      2,
+    ),
+  );
   assert.equal(milestoneProgress([check], ["Legacy description"], null, 0).final, true);
 });
 
 test("each milestone requires its own proof and final completion rechecks all outcomes", async () => {
   const second: OutcomeCheck = {
-    ...check, id: "second", params: { path: "OCADE output/second.txt", text: "second result" },
+    ...check,
+    id: "second",
+    params: { path: "OCADE output/second.txt", text: "second result" },
   };
   const plan = [
     { description: "First result", checks: [check.id], stepBudget: 2 },
@@ -244,8 +280,10 @@ test("each milestone requires its own proof and final completion rechecks all ou
   const input = { ...base, checks: [check, second], plan, controller: "current" };
   assert.deepEqual(await planStep({ ...input, steps: [first] }), { kind: "milestone", index: 0 });
   const checkpoint = { milestones: { index: 1, startStep: 1 } };
-  assert.deepEqual(await planStep({ ...input, checkpoint, steps: [first, later] }),
-    { kind: "milestone", index: 1 });
+  assert.deepEqual(await planStep({ ...input, checkpoint, steps: [first, later] }), {
+    kind: "milestone",
+    index: 1,
+  });
   const finalCheckpoint = { milestones: { index: 2, startStep: 2 } };
   const final = await planStep({ ...input, checkpoint: finalCheckpoint, steps: [first, later] });
   assert.equal(final.kind, "queue");
@@ -254,12 +292,19 @@ test("each milestone requires its own proof and final completion rechecks all ou
     assert.deepEqual(final.intent.arguments.checks, [check, second]);
   }
   const settled = await planStep({
-    ...input, checkpoint: finalCheckpoint, steps: [first, later, proof([check, second], "all")],
+    ...input,
+    checkpoint: finalCheckpoint,
+    steps: [first, later, proof([check, second], "all")],
   });
   assert.equal(settled.kind, "settle");
-  if (settled.kind === "settle") assert.deepEqual(settled.verification.passed, [check.id, second.id]);
+  if (settled.kind === "settle")
+    assert.deepEqual(settled.verification.passed, [check.id, second.id]);
   const resumed = await planStep({ ...input, controller: "new-epoch", steps: [first] });
-  assert.equal(resumed.kind, "queue", "a previous controller's proof must be read again after resume");
+  assert.equal(
+    resumed.kind,
+    "queue",
+    "a previous controller's proof must be read again after resume",
+  );
   if (resumed.kind === "queue") assert.equal(resumed.intent.operation, "verify.checks");
 });
 
@@ -273,7 +318,10 @@ test("milestone budgets count only their phase while uncertain earlier effects s
     intent: intent("fs.read_text", "read-" + index, { path: "input-" + index }, deadline),
     status: "done",
     receipt: {
-      status: "observed", maybeChanged: false, observedAtUtc: now.toISOString(), evidence: {},
+      status: "observed",
+      maybeChanged: false,
+      observedAtUtc: now.toISOString(),
+      evidence: {},
     },
   }));
   const checkpoint = { milestones: { index: 1, startStep: reads.length } };
@@ -282,17 +330,32 @@ test("milestone budgets count only their phase while uncertain earlier effects s
     receipt: { ...verified([second]).receipt!, evidence: { predicates: { second: true } } },
   };
   const input = { ...base, checks: [check, second], plan, checkpoint };
-  assert.deepEqual(await planStep({ ...input, steps: [...reads, proof] }),
-    { kind: "milestone", index: 1 }, "more than 30 total steps can still finish a later bounded phase");
+  assert.deepEqual(
+    await planStep({ ...input, steps: [...reads, proof] }),
+    { kind: "milestone", index: 1 },
+    "more than 30 total steps can still finish a later bounded phase",
+  );
   const exhausted = await planStep({ ...input, steps: [...reads, reads[0], reads[1]] });
   assert.equal(exhausted.kind, "block");
   if (exhausted.kind === "block") assert.match(exhausted.reason, /2 steps/);
   const uncertain: Step = {
     intent: intent("fs.write_text", "uncertain", { path, text: "x" }, deadline),
     status: "blocked",
-    receipt: { status: "unknown", maybeChanged: true, observedAtUtc: now.toISOString(), evidence: {} },
+    receipt: {
+      status: "unknown",
+      maybeChanged: true,
+      observedAtUtc: now.toISOString(),
+      evidence: {},
+    },
   };
-  assert.equal((await planStep({
-    ...input, steps: [uncertain, ...reads.slice(1), proof],
-  })).kind, "block", "phase advancement must not hide an unresolved effect");
+  assert.equal(
+    (
+      await planStep({
+        ...input,
+        steps: [uncertain, ...reads.slice(1), proof],
+      })
+    ).kind,
+    "block",
+    "phase advancement must not hide an unresolved effect",
+  );
 });

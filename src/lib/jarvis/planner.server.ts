@@ -773,7 +773,9 @@ export async function compileGoal(
         },
       ],
     });
-    const parsed = z.object({ checks: taskChecks, milestones: milestonePlan.optional() }).safeParse(calls[0]?.args);
+    const parsed = z
+      .object({ checks: taskChecks, milestones: milestonePlan.optional() })
+      .safeParse(calls[0]?.args);
     let reason: "invalid_goal" | "invalid_goal_scope";
     if (calls.length !== 1 || calls[0].name !== "set_goal" || !parsed.success) {
       reason = "invalid_goal";
@@ -794,7 +796,8 @@ export async function compileGoal(
           return parsed.data.checks;
         } catch {
           reason = "invalid_goal";
-          rejected = "Milestones must cover every check, and reference only distinct IDs from checks.";
+          rejected =
+            "Milestones must cover every check, and reference only distinct IDs from checks.";
           if (attempt === 2) throw new PlannerUnavailable(reason);
           continue;
         }
@@ -944,7 +947,10 @@ export async function planStep(input: {
   try {
     phase = milestoneProgress(allChecks, input.plan, input.checkpoint ?? null, steps.length);
   } catch {
-    return { kind: "block", reason: "The saved milestone plan or checkpoint is invalid. Nothing was run." };
+    return {
+      kind: "block",
+      reason: "The saved milestone plan or checkpoint is invalid. Nothing was run.",
+    };
   }
   const checks = phase.checks;
   const phaseSteps = steps.slice(phase.startStep);
@@ -971,8 +977,10 @@ export async function planStep(input: {
       };
   }
   const verified =
-    last?.intent.operation === "verify.checks" && (!input.controller || last.controller === input.controller)
-      ? evidenceOf([last], "verify.checks") : undefined;
+    last?.intent.operation === "verify.checks" &&
+    (!input.controller || last.controller === input.controller)
+      ? evidenceOf([last], "verify.checks")
+      : undefined;
   if (verified) {
     const verification = settleChecks(checks, verified);
     const ok = verification.failed.length === 0 && verification.unverified.length === 0;
@@ -998,13 +1006,21 @@ export async function planStep(input: {
     };
   }
 
-  if (last?.intent.operation === "verify.checks" && last.status === "done" &&
-      input.controller && last.controller !== input.controller) {
+  if (
+    last?.intent.operation === "verify.checks" &&
+    last.status === "done" &&
+    input.controller &&
+    last.controller !== input.controller
+  ) {
     return {
       kind: "queue",
       summary: "Checking the result again after resuming",
-      intent: intent("verify.checks", `s${steps.length + 1}`, { checks },
-        new Date(now.getTime() + 10 * 60_000)),
+      intent: intent(
+        "verify.checks",
+        `s${steps.length + 1}`,
+        { checks },
+        new Date(now.getTime() + 10 * 60_000),
+      ),
     };
   }
 
@@ -1012,8 +1028,12 @@ export async function planStep(input: {
     return {
       kind: "queue",
       summary: "Rechecking the complete result independently",
-      intent: intent("verify.checks", `s${steps.length + 1}`, { checks: allChecks },
-        new Date(now.getTime() + 10 * 60_000)),
+      intent: intent(
+        "verify.checks",
+        `s${steps.length + 1}`,
+        { checks: allChecks },
+        new Date(now.getTime() + 10 * 60_000),
+      ),
     };
   }
 

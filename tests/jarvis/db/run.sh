@@ -18,7 +18,7 @@ if [[ "${OCADE_DB_ADVISORS:-}" == 1 ]]; then
     exit 2
   }
   npx --yes supabase@2.122.0 db advisors \
-    --db-url "postgresql://postgres:jarvis_disposable_ci_only@127.0.0.1:5432/$db" \
+    --db-url "postgresql://postgres:jarvis_disposable_ci_only@127.0.0.1:5432/$db?sslmode=disable" \
     --type all --level warn --fail-on error
 fi
 failures=0
