@@ -163,6 +163,9 @@ def _check(kind: str, params: dict, notes: dict) -> bool | None:
         try:
             with Image.open(path, formats=PASSIVE_IMAGE_FORMATS) as image:
                 size, text = image.size, dict(getattr(image, "text", {}) or {})
+                if kind == "scene_render" and not any(low != high for low, high in image.convert("RGB").getextrema()):
+                    notes["error"] = "saved scene render is a uniform image"
+                    return False
         except Exception:
             return False
         if kind == "image_size":
@@ -186,10 +189,18 @@ def _parses(path: Path, notes: dict) -> bool | None:
     import tomllib
     import xml.etree.ElementTree as ElementTree
 
+    suffix = path.suffix.lower()
+    if suffix in (".zip", ".docx", ".xlsx", ".pptx"):
+        valid = _zip_integrity(path, notes)
+        if valid is not True or suffix == ".zip":
+            return valid
+        return _office_parses(path, notes)
+    if path.stat().st_size > 2_000_000:
+        notes["error"] = "file exceeds the verification byte budget"
+        return None
     text = plain_text(path)
     if text is None:
         return None
-    suffix = path.suffix.lower()
     parsers = {
         ".json": json.loads,
         ".py": lambda t: compile(t, path.name, "exec", dont_inherit=True),  # compiled, never run
@@ -214,9 +225,71 @@ def _parses(path: Path, notes: dict) -> bool | None:
     return True
 
 
-def _shell_parses(path: Path, notes: dict) -> bool | None:
+def _zip_integrity(path: Path, notes: dict) -> bool | None:
+    """Read bounded ZIP entries and check CRCs; never extract or execute them."""
+    import zipfile
+
+    try:
+        if path.stat().st_size > 50_000_000:
+            notes["error"] = "archive exceeds the verification byte budget"
+            return None
+        with zipfile.ZipFile(path) as archive:
+            parts = archive.infolist()
+            size = sum(part.file_size for part in parts)
+            if len(parts) > 10_000 or size > 50_000_000:
+                notes["error"] = "archive exceeds the verification part or expanded-byte budget"
+                return None
+            if any(part.flag_bits & 1 for part in parts):
+                notes["error"] = "encrypted archive requires the person's password"
+                return None
+            if archive.testzip() is not None:
+                notes["error"] = "archive has a damaged entry"
+                return False
+            notes.update(packageParts=len(parts), expandedBytes=size)
+        return True
+    except (OSError, ValueError, RuntimeError, zipfile.BadZipFile) as error:
+        notes["error"] = f"{type(error).__name__}: {str(error)[:200]}"
+        return False
+
+
+def _office_parses(path: Path, notes: dict) -> bool | None:
+    """Reopen saved Office packages with independent readers after bounded CRC checks."""
+    try:
+        if path.suffix.lower() == ".xlsx":
+            book = openpyxl.load_workbook(path, read_only=True, data_only=False, keep_links=False)
+            try:
+                cells = 0
+                for sheet in book.worksheets:
+                    if (sheet.max_column or 0) > 16_384 or (sheet.max_row or 0) > 1_048_576:
+                        notes["error"] = "workbook dimensions exceed the file format bounds"
+                        return False
+                    for row in sheet.iter_rows(values_only=True):
+                        cells += len(row)
+                        if cells > 1_000_000:
+                            notes["error"] = "workbook exceeds the verification cell budget"
+                            return None
+                notes.update(sheets=len(book.worksheets), cellsRead=cells)
+                return bool(book.worksheets)
+            finally:
+                book.close()
+        if path.suffix.lower() == ".docx":
+            document = Document(io.BytesIO(path.read_bytes()))
+            notes.update(paragraphs=len(document.paragraphs), tables=len(document.tables))
+        else:
+            from pptx import Presentation
+
+            presentation = Presentation(io.BytesIO(path.read_bytes()))
+            notes.update(slides=len(presentation.slides),
+                         shapes=sum(len(slide.shapes) for slide in presentation.slides))
+        return True
+    except Exception as error:
+        notes["error"] = f"{type(error).__name__}: {str(error)[:200]}"
+        return False
+
+
+def _shell_parses(path: Path, notes: dict, shell: str | None = None) -> bool | None:
     """`sh -n`: the shell reads the script without running any of it."""
-    shell = shutil.which("sh")
+    shell = shell or shutil.which("sh")
     if not shell or sys.platform == "win32":
         return None
     run = subprocess.run([shell, "-n", str(path)], capture_output=True, text=True, timeout=30,
@@ -228,25 +301,70 @@ def _shell_parses(path: Path, notes: dict) -> bool | None:
 
 def _script_runnable(path: Path, notes: dict) -> bool | None:
     """A script can be started directly: on macOS/Linux a #! line, Unix line endings, the
-    executable bit and a script its interpreter accepts. Read only: nothing is run."""
-    data = path.read_bytes()[:2_000_000]
+    executable bit and a script its interpreter accepts. Read only: nothing is run.
+    Never execute a file-supplied interpreter to establish syntax."""
+    import shlex
+
     if sys.platform == "win32":
         return None  # Windows starts scripts by file type, not by these properties
+    with path.open("rb") as stream:
+        data = stream.read(2_000_001)
+    if len(data) > 2_000_000:
+        notes["error"] = "script exceeds the verification byte budget"
+        return None
     problems = []
     if not data.startswith(b"#!"):
         problems.append("no #! line")
     if b"\r\n" in data:
         problems.append("Windows line endings")
-    if not os.stat(path).st_mode & 0o100:
+    if not os.access(path, os.X_OK):
         problems.append("not executable")
-    interpreter = data.split(b"\n", 1)[0].decode("utf-8", "replace")
-    if not problems and "python" in interpreter:
+    line = data.split(b"\n", 1)[0].decode("utf-8", "replace")
+    if any(ord(character) < 32 and character != "\t" for character in line):
+        problems.append("invalid control character in #! line")
+    program, arguments = None, []
+    if not problems:
+        words = line[2:].strip().split(None, 1)
+        executable = Path(words[0]) if words else None
+        if executable is None or not executable.is_absolute() or not executable.is_file() or not os.access(executable, os.X_OK):
+            problems.append("interpreter is not an executable absolute path")
+        elif executable.name == "env":
+            argument = words[1] if len(words) == 2 else ""
+            try:
+                # The kernel passes one optional argument. Only env -S splits it.
+                arguments = shlex.split(argument[3:]) if argument.startswith("-S ") else [argument]
+            except ValueError:
+                arguments = []
+            program = shutil.which(arguments[0]) if arguments and arguments[0] else None
+            arguments = arguments[1:]
+            if program is None:
+                problems.append("env interpreter cannot be resolved")
+        else:
+            program = str(executable)
+            arguments = words[1:]  # a direct shebang's optional argument is one word
+    name = Path(program).name if program else ""
+    if not problems and re.fullmatch(r"(?:python|pypy)(?:3(?:\.[0-9]+)*)?", name):
+        if any(argument not in ("-u", "-B", "-E", "-I", "-s", "-S", "-O", "-OO") for argument in arguments):
+            notes["error"] = "interpreter launch flags cannot be verified without running"
+            return None
         try:
-            compile(data.decode("utf-8", "replace"), path.name, "exec", dont_inherit=True)  # compiled, never run
+            compile(data, path.name, "exec", dont_inherit=True)  # compiled, never run
         except (SyntaxError, ValueError) as error:
             problems.append(f"does not compile ({type(error).__name__})")
-    if not problems and interpreter.rstrip().endswith(("sh", "bash")) and _shell_parses(path, notes) is False:
-        problems.append("shell syntax error")
+    elif not problems and name in ("sh", "bash"):
+        installed = shutil.which(name)
+        # Never invoke an arbitrary executable named by customer-controlled bytes.
+        if arguments or not installed or not os.path.samefile(program, installed):
+            notes["error"] = "interpreter syntax is not independently observable"
+            return None
+        parsed = _shell_parses(path, notes, installed)
+        if parsed is None:
+            return None
+        if parsed is False:
+            problems.append("shell syntax error")
+    elif not problems:
+        notes["error"] = "interpreter syntax is not independently observable"
+        return None
     if problems:
         notes["error"] = ", ".join(problems)
     return not problems

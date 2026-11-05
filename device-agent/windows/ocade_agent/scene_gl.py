@@ -290,13 +290,19 @@ PAGE = """async ([source, width, height, tile]) => {
   gl.useProgram(program);
   gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
-  gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+  const position = gl.getAttribLocation(program, "a");
+  if (position < 0) throw new Error("missing_position_attribute");
+  gl.enableVertexAttribArray(position); gl.vertexAttribPointer(position, 2, gl.FLOAT, false, 0, 0);
   gl.uniform2f(gl.getUniformLocation(program, "uRes"), width, height);
   globalThis.ocadeTile = (x, y) => {
     gl.uniform2f(gl.getUniformLocation(program, "uOffset"), x, y);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
+    gl.finish();
+    if (gl.isContextLost() || gl.getError() !== gl.NO_ERROR) throw new Error("scene_draw_failed");
     const pixels = new Uint8Array(tile * tile * 4);
     gl.readPixels(0, 0, tile, tile, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+    if (gl.isContextLost() || gl.getError() !== gl.NO_ERROR) throw new Error("scene_readback_failed");
+    if (!pixels.some((value, index) => index % 4 === 3 && value !== 0)) throw new Error("scene_empty_readback");
     let text = ""; for (let i = 0; i < pixels.length; i += 32768) text += String.fromCharCode(...pixels.subarray(i, i + 32768));
     return btoa(text);
   };

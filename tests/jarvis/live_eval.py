@@ -319,6 +319,14 @@ def release_pick(ws: Path, rng: random.Random):
         rows.append((version, date, secrets_token(rng)))
     rng.shuffle(rows)
     newest = max(rows, key=lambda r: tuple(int(n) for n in r[0].split(".")))
+    import zipfile
+
+    archives = {}
+    for version, date, token in rows:
+        content = io.BytesIO()
+        with zipfile.ZipFile(content, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+            archive.writestr("release.txt", f"{product} {version} {date} {token}\n")
+        archives[token] = content.getvalue()
     table = "".join(f"<tr><td>{product} {v}</td><td>{d}</td><td><a href='/files/{t}.zip' download>Download</a></td></tr>"
                     for v, d, t in rows)
     page = (f"<!doctype html><title>{product} releases</title><body><h1>{product} releases</h1>"
@@ -330,7 +338,7 @@ def release_pick(ws: Path, rng: random.Random):
 
         def do_GET(self):
             token = self.path.removeprefix("/files/").removesuffix(".zip")
-            body, kind = (page, "text/html") if self.path == "/" else (f"release {token}".encode(), "application/zip")
+            body, kind = (page, "text/html") if self.path == "/" else (archives.get(token, b"not found"), "application/zip")
             self.send_response(200 if self.path == "/" or any(token == r[2] for r in rows) else 404)
             self.send_header("content-type", kind)
             self.end_headers()
@@ -344,6 +352,7 @@ def release_pick(ws: Path, rng: random.Random):
     server.socket = context.wrap_socket(server.socket, server_side=True)
     threading.Thread(target=server.serve_forever, daemon=True).start()
     os.environ["OCADE_ALLOW_PRIVATE_WEB"] = "1"
+    os.environ["NODE_EXTRA_CA_CERTS"] = str(folder / "ca.pem")
     wrapper = web_fixture.browser_wrapper(os.environ["OCADE_BROWSER_EXECUTABLE"], pin)
     os.chmod(Path(wrapper).parent, 0o755)
     os.environ["OCADE_EVAL_BROWSER"] = wrapper
@@ -351,10 +360,19 @@ def release_pick(ws: Path, rng: random.Random):
 
     def oracle(ws: Path):
         got = [p.read_bytes() for p in ws.rglob("*.zip")]
-        return got == [f"release {newest[2]}".encode()], f"want {newest[:2]}, got {got[:3]}"
+        return got == [archives[newest[2]]], f"want {newest[:2]}, downloaded {len(got)} archives"
 
     # This label stays in the harness; only the task and observed page reach the planner.
     oracle.target_name = f"{newest[2]}.zip"
+
+    def cleanup():
+        server.shutdown()
+        server.server_close()
+        shutil.rmtree(folder, ignore_errors=True)
+        if wrapper != os.environ["OCADE_BROWSER_EXECUTABLE"]:
+            shutil.rmtree(Path(wrapper).parent, ignore_errors=True)
+
+    oracle.cleanup = cleanup
     return (f"Download the archive of the newest {product} release from {url} into my folder.",
             ["browser", "site:127.0.0.1"], oracle)
 
@@ -544,6 +562,46 @@ def write_summary(out: Path, seed: int, results: list[dict], commit: str, selfch
     return summary
 
 
+def run_with_oracle(command: list[str], ws: Path, oracle, environment: dict[str, str],
+                    timeout: float = 1500) -> tuple[bool, str]:
+    """Inspect the result while the companion is alive; no oracle data enters the planner."""
+    import tempfile
+
+    # Root-owned mode-0700 directory: model-controlled unprivileged commands cannot
+    # forge the acknowledgement. Only a ready marker crosses to this harness.
+    with tempfile.TemporaryDirectory(prefix="ocade-oracle-") as temporary, tempfile.TemporaryFile() as output:
+        checkpoint = Path(temporary) / "ready"
+        child = subprocess.Popen([*command, "--oracle-checkpoint", str(checkpoint)],
+                                 cwd=ROOT, env=environment, stdout=output, stderr=output)
+        deadline = time.monotonic() + timeout
+        result = (False, "harness ended before the independent pre-STOP checkpoint")
+        try:
+            while child.poll() is None and time.monotonic() < deadline:
+                if checkpoint.is_file():
+                    try:
+                        result = oracle(ws)
+                    except Exception as error:
+                        result = (False, f"oracle error {type(error).__name__}: {error}")
+                    finally:
+                        checkpoint.with_suffix(".done").write_text("checked", encoding="utf-8")
+                    break
+                time.sleep(0.05)
+            child.wait(timeout=max(0.1, deadline - time.monotonic()))
+            if child.returncode != 0:
+                return False, f"harness exit {child.returncode}; {result[1]}"
+            return result
+        except subprocess.TimeoutExpired:
+            return False, "harness timed out before teardown completed"
+        finally:
+            if child.poll() is None:
+                child.terminate()
+                try:
+                    child.wait(timeout=10)
+                except subprocess.TimeoutExpired:
+                    child.kill()
+                    child.wait()
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--seed", type=int, required=True)
@@ -565,10 +623,21 @@ def main() -> int:
         ws = Path(f"/tmp/ocade-eval/{args.seed}/{name}")
         shutil.rmtree(ws, ignore_errors=True)
         ws.mkdir(parents=True)
+        previous_environment = {name: os.environ.get(name) for name in
+                                ("OCADE_ALLOW_PRIVATE_WEB", "NODE_EXTRA_CA_CERTS", "OCADE_EVAL_BROWSER")}
         request, grants, oracle = generate(ws, rng)
         subprocess.run(["chown", "-R", USER, str(ws)], env=public_environment(), check=True)
         if args.selfcheck:
-            ok, detail = oracle(ws)
+            try:
+                ok, detail = oracle(ws)
+            finally:
+                if hasattr(oracle, "cleanup"):
+                    oracle.cleanup()
+                for key, value in previous_environment.items():
+                    if value is None:
+                        os.environ.pop(key, None)
+                    else:
+                        os.environ[key] = value
             print(f"{name}: oracle on the untouched problem {'PASSES (broken oracle!)' if ok else 'fails, as it must'}")
             results.append({"task": name, "pass": not ok, "detail": detail[:200]})
             write_summary(out, args.seed, results, commit, args.selfcheck)
@@ -582,12 +651,16 @@ def main() -> int:
         if os.environ.get("OCADE_EVAL_BROWSER"):  # a generator's own test browser (trusts its fixture certificate)
             env["OCADE_BROWSER_EXECUTABLE"] = os.environ.pop("OCADE_EVAL_BROWSER")
         started = time.monotonic()
-        subprocess.run([*command, request], cwd=ROOT, env=env, capture_output=True, timeout=1500)
         try:
-            ok, detail = oracle(ws)
-        except Exception as error:
-            ok, detail = False, f"oracle error {type(error).__name__}: {error}"
-        os.environ.pop("OCADE_ALLOW_PRIVATE_WEB", None)  # only the generator that serves a local site sets it
+            ok, detail = run_with_oracle([*command, request], ws, oracle, env)
+        finally:
+            if hasattr(oracle, "cleanup"):
+                oracle.cleanup()
+            for key, value in previous_environment.items():
+                if value is None:
+                    os.environ.pop(key, None)
+                else:
+                    os.environ[key] = value
         live = json.loads(report.read_text()) if report.exists() else {}
         timing = live.get("timing") or {}
         results.append({"task": name, "pass": ok, "category": category(ok, live), "detail": detail[:300],

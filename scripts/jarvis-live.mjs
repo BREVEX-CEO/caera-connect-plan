@@ -39,6 +39,8 @@ const { values, positionals } = parseArgs({
     // The test operator confirms each external-effect step, as the person would in the app.
     "confirm-effects": { type: "boolean", default: false },
     "agent-user": { type: "string" },
+    // Test-harness rendezvous outside the customer's workspace; contains no hidden answers.
+    "oracle-checkpoint": { type: "string" },
   },
 });
 const objective = positionals.join(" ").trim();
@@ -126,7 +128,7 @@ const agentUser = values["agent-user"];
 if (agentUser) spawnSync("chown", ["-R", agentUser, home, resolve(values.workspace)]);
 // Only what a customer's computer would have: no Supabase or provider keys.
 const SAFE_ENV =
-  /^(PATH|LANG|LC_\w+|TZ|DISPLAY|XAUTHORITY|HTTPS?_PROXY|https?_proxy|NO_PROXY|no_proxy|PLAYWRIGHT_BROWSERS_PATH|OCADE_BROWSER_EXECUTABLE|OCADE_ALLOW_PRIVATE_WEB)$/;
+  /^(PATH|LANG|LC_\w+|TZ|DISPLAY|XAUTHORITY|HTTPS?_PROXY|https?_proxy|NO_PROXY|no_proxy|PLAYWRIGHT_BROWSERS_PATH|OCADE_BROWSER_EXECUTABLE|OCADE_ALLOW_PRIVATE_WEB|NODE_EXTRA_CA_CERTS)$/;
 const agent = (...args) =>
   new Promise((ok) => {
     const command = ["python3", "-m", "ocade_agent", ...args, "--server", url];
@@ -220,8 +222,26 @@ while (Date.now() < deadline) {
 }
 running = false;
 await confirming;
-await agent("stop");
+let checkpointError;
+try {
+  if (values["oracle-checkpoint"]) {
+    const checkpoint = resolve(values["oracle-checkpoint"]);
+    writeFileSync(checkpoint, "ready", { flag: "wx", mode: 0o600 });
+    const deadline = Date.now() + 120_000;
+    while (!existsSync(checkpoint + ".done") && Date.now() < deadline) {
+      await new Promise((ok) => setTimeout(ok, 50));
+    }
+    if (!existsSync(checkpoint + ".done")) {
+      throw new Error("Independent oracle did not acknowledge the pre-STOP checkpoint");
+    }
+  }
+} catch (error) {
+  checkpointError = error;
+} finally {
+  await agent("stop");
+}
 const ended = await companion;
+if (checkpointError) throw checkpointError;
 if (ended.code !== 0) console.error(ended.out.slice(-600));
 const view = await authority.taskView(admin, user.id, taskId);
 const state = must(await admin.rpc("jarvis_task_state", { p_task: taskId }));

@@ -160,5 +160,79 @@ class VerifierKinds(unittest.TestCase):
         self.assertFalse(marker.exists())
 
 
+    def test_direct_script_launch_requires_a_real_interpreter_and_complete_file(self):
+        from ocade_agent import verify_worker
+        from unittest.mock import patch
+
+        with patch.object(verify_worker.sys, "platform", "linux"):
+            for index, header in enumerate((
+                "#!/no/such/interpreter",
+                "#!/usr/bin/env no_such_ocade_interpreter",
+                "#!/usr/bin/env python3\\nprint('not a newline')",
+            )):
+                path = self.root / f"bad{index}.py"
+                path.write_text(header + "\nprint('body')\n")
+                path.chmod(0o755)
+                self.assertFalse(verify_worker._script_runnable(path, {}), header)
+            oversized = self.root / "large.py"
+            oversized.write_bytes(b"#!/usr/bin/env python3\n" + b"# padding\n" * 200_001 + b"if (\n")
+            oversized.chmod(0o755)
+            notes = {}
+            self.assertIsNone(verify_worker._script_runnable(oversized, notes))
+            self.assertIn("budget", notes["error"])
+            self.assertIsNone(verify_worker._parses(oversized, {}))
+
+    def test_file_supplied_shell_is_never_executed_by_the_verifier(self):
+        from ocade_agent import verify_worker
+
+        interpreter = self.root / "sh"
+        marker = self.root / "interpreter-ran"
+        interpreter.write_text(f"#!/bin/sh\ntouch '{marker}'\n")
+        interpreter.chmod(0o755)
+        script = self.root / "tool"
+        script.write_text(f"#!{interpreter}\necho body\n")
+        script.chmod(0o755)
+        self.assertIsNone(verify_worker._script_runnable(script, {}))
+        self.assertFalse(marker.exists())
+
+    def test_saved_office_packages_parse_and_corrupt_packages_fail(self):
+        from pptx import Presentation
+
+        book = openpyxl.Workbook()
+        book.active["A1"] = "=2+3"
+        book.save(self.root / "sheet.xlsx")
+        document = Document()
+        document.add_heading("Saved heading", level=1)
+        document.save(self.root / "note.docx")
+        deck = Presentation()
+        deck.slides.add_slide(deck.slide_layouts[0]).shapes.title.text = "Saved slide"
+        deck.save(self.root / "deck.pptx")
+        for name in ("bad.docx", "bad.xlsx", "bad.pptx", "bad.zip"):
+            (self.root / name).write_bytes(b"not a package")
+        names = ("sheet.xlsx", "note.docx", "deck.pptx", "bad.docx", "bad.xlsx", "bad.pptx", "bad.zip")
+        checks = [check("file_parses", path=name) for name in names]
+        evidence = self.verify(*checks)
+        self.assertEqual([evidence["predicates"][item["id"]] for item in checks],
+                         [True, True, True, False, False, False, False])
+
+    def test_scene_metadata_cannot_make_a_uniform_saved_image_pass(self):
+        import hashlib
+        import json
+        from PIL import Image, PngImagePlugin
+
+        project = self.root / "scene.json"
+        project.write_text(json.dumps({"camera": {"position": [0, 0, 4]}, "lights": [{"intensity": 1}],
+                                       "materials": [{}], "parts": [{"shapes": [{}]}],
+                                       "render": {"width": 16, "height": 16}}))
+        metadata = PngImagePlugin.PngInfo()
+        metadata.add_text("ocade:project", "scene.json")
+        metadata.add_text("ocade:project-sha256", hashlib.sha256(project.read_bytes()).hexdigest())
+        Image.new("RGB", (16, 16), "gray").save(self.root / "flat.png", pnginfo=metadata)
+        predicate = check("scene_render", path="flat.png")
+        evidence = self.verify(predicate)
+        self.assertFalse(evidence["predicates"][predicate["id"]])
+        self.assertIn("uniform", evidence["measured"][predicate["id"]]["error"])
+
+
 if __name__ == "__main__":
     unittest.main()
