@@ -346,7 +346,11 @@ jobs:
         if: runner.os == 'macOS'
         run: |
           brew update
-          brew install ffmpeg
+          if [[ "$(uname -m)" == x86_64 ]]; then
+            python scripts/ci-macos-media.py
+          else
+            brew install ffmpeg
+          fi
           brew install --cask libreoffice
       # Every skip must be one this OS is allowed; any other skipped test fails the job.
       - name: Linux companion tests (real Chromium on a disposable Xvfb desktop)
