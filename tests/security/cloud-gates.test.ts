@@ -81,10 +81,11 @@ test("coding gate detects SQL and authority changes and fails on an invalid comp
       "fixture",
     );
   };
-  const run = () =>
+  const run = (base = "HEAD^") =>
     spawnSync("bash", ["-e", "-c", "npm() { printf 'DB_GATE_REQUESTED\\n'; }\n" + script], {
       cwd: folder,
       encoding: "utf8",
+      env: { ...process.env, CODING_BASE_SHA: base },
     });
   try {
     git("init", "-q");
@@ -105,6 +106,15 @@ test("coding gate detects SQL and authority changes and fails on an invalid comp
       assert.equal(result.status, 0, result.stderr);
       assert.equal(result.stdout.includes("DB_GATE_REQUESTED"), !path.startsWith("docs/"), path);
     }
+    const originalBase = spawnSync("git", ["rev-parse", "HEAD^"], {
+      cwd: folder, encoding: "utf8",
+    }).stdout.trim();
+    writeFileSync(join(folder, "docs/fixture.md"), "follow-up fix");
+    commit();
+    const followup = run(originalBase);
+    assert.equal(followup.status, 0, followup.stderr);
+    assert.match(followup.stdout, /DB_GATE_REQUESTED/,
+      "a fix-only commit must still check SQL changed earlier in its coding batch");
   } finally {
     rmSync(folder, { recursive: true, force: true });
   }
