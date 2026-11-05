@@ -18,6 +18,7 @@ import io
 import json
 import os
 import random
+import re
 import shutil
 import socket
 import subprocess
@@ -28,6 +29,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 USER = os.environ.get("OCADE_EVAL_USER", "ocadelive")
+PUBLIC_ENVIRONMENT = re.compile(
+    r"^(PATH|HOME|LANG|LC_\w+|TZ|DISPLAY|XAUTHORITY|HTTPS?_PROXY|https?_proxy|NO_PROXY|no_proxy|"
+    r"PLAYWRIGHT_BROWSERS_PATH|OCADE_BROWSER_EXECUTABLE|OCADE_ALLOW_PRIVATE_WEB|NODE_EXTRA_CA_CERTS)$")
 WORDS = ["amber", "birch", "cobalt", "delta", "ember", "fjord", "garnet", "harbor", "indigo", "juniper",
          "kestrel", "lumen", "meadow", "nimbus", "onyx", "prairie", "quartz", "russet", "sierra", "tundra"]
 
@@ -54,8 +58,13 @@ def note_text(ws: Path) -> str:
     return "\n".join(parts)
 
 
+def public_environment() -> dict[str, str]:
+    """Construct the child environment before any privilege drop, never after it."""
+    return {name: value for name, value in os.environ.items() if PUBLIC_ENVIRONMENT.fullmatch(name)}
+
+
 def run_as_user(args: list[str], cwd: Path, timeout: int = 60) -> subprocess.CompletedProcess:
-    return subprocess.run(["runuser", "-u", USER, "--", *args], cwd=cwd, capture_output=True, text=True, timeout=timeout)
+    return subprocess.run(["runuser", "-u", USER, "--", *args], cwd=cwd, env=public_environment(), capture_output=True, text=True, timeout=timeout)
 
 
 # ---- generators: (setup(workspace, rng) -> (request, grants, oracle(workspace) -> (bool, str))) ----
@@ -97,7 +106,7 @@ def crlf_script(ws: Path, rng: random.Random):
     def oracle(ws: Path):
         (ws / archive).unlink(missing_ok=True)
         result = run_as_user(["./backup.sh"], ws)
-        listed = subprocess.run(["tar", "-tzf", str(ws / archive)], capture_output=True, text=True).stdout if (ws / archive).exists() else ""
+        listed = subprocess.run(["tar", "-tzf", str(ws / archive)], env=public_environment(), capture_output=True, text=True).stdout if (ws / archive).exists() else ""
         ok = result.returncode == 0 and all(f"{folder}/{n}" in listed for n in names)
         return ok, f"exit {result.returncode}, archive lists {listed.split()}"
 
@@ -248,7 +257,7 @@ def port_conflict(ws: Path, rng: random.Random):
         f"HTTPServer(('127.0.0.1', {port}), P).serve_forever()\n")
     subprocess.Popen(["runuser", "-u", USER, "--", "setsid", sys.executable, "-c",
                       f"import socket,time; s=socket.socket(); s.bind(('127.0.0.1',{port})); s.listen(); time.sleep(3600)"],
-                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                     env=public_environment(), stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     time.sleep(1)
 
     def oracle(ws: Path):
@@ -557,7 +566,7 @@ def main() -> int:
         shutil.rmtree(ws, ignore_errors=True)
         ws.mkdir(parents=True)
         request, grants, oracle = generate(ws, rng)
-        subprocess.run(["chown", "-R", USER, str(ws)], check=True)
+        subprocess.run(["chown", "-R", USER, str(ws)], env=public_environment(), check=True)
         if args.selfcheck:
             ok, detail = oracle(ws)
             print(f"{name}: oracle on the untouched problem {'PASSES (broken oracle!)' if ok else 'fails, as it must'}")

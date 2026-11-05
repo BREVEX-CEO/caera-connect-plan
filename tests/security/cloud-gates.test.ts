@@ -26,3 +26,16 @@ test("evaluation preserves actual target choices and partial checkpoints", () =>
   assert.ifError(result.error);
   assert.equal(result.status, 0, result.stderr);
 });
+
+test("oracle privilege drops exclude the server environment with an actual synthetic canary", () => {
+  const result = spawnSync(
+    "python3",
+    [
+      "-c",
+      'import sys, unittest; sys.path.insert(0, "tests/jarvis"); suite=unittest.defaultTestLoader.loadTestsFromName("test_eval_isolation.OracleIsolation"); result=unittest.TextTestRunner(verbosity=2).run(suite); sys.exit(0 if result.wasSuccessful() and result.testsRun == 1 and not result.skipped else 1)',
+    ],
+    { encoding: "utf8" },
+  );
+  assert.ifError(result.error);
+  assert.equal(result.status, 0, result.stderr);
+});

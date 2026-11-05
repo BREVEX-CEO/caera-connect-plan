@@ -1,0 +1,22 @@
+{
+  "defect": "D27",
+  "severity": "CRITICAL",
+  "actualCredentialRead": false,
+  "exfiltrationObserved": false,
+  "syntheticReproduction": {
+    "run": 41915577409,
+    "job": 126874225059,
+    "candidate": "f2de6e3650ca484bae491db14c075665d690b700",
+    "credentialPresent": true
+  },
+  "minimalRepair": {
+    "skipsAllowed": 0,
+    "run": 41969374857,
+    "nodeTestsPassed": 122,
+    "job": 127053792299,
+    "credentialPresent": false,
+    "pythonTestsRequired": 1,
+    "candidate": "3e25c629f0293e1535821c8a46599afcbfd0f61c"
+  },
+  "status": "code repaired; owner staging credential replacement and credentialed smoke pending"
+}
