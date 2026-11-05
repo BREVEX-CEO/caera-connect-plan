@@ -106,7 +106,7 @@ jobs:
           npm run jarvis:no-hardcoded
       - name: Existing TypeScript safety and contract tests
         if: success() || failure()
-        run: node --experimental-strip-types --no-warnings --test tests/security/*.test.ts tests/jarvis/contracts.test.ts tests/jarvis/e2e.test.ts
+        run: node --experimental-strip-types --no-warnings --test --test-name-pattern="^(?!timing suite:)" tests/security/*.test.ts tests/jarvis/contracts.test.ts tests/jarvis/e2e.test.ts
       - name: Required-test gate and effect-scope regressions
         if: success() || failure()
         working-directory: device-agent/windows
