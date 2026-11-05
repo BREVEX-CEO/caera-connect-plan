@@ -106,9 +106,13 @@ jobs:
       - name: Migrations and authority contracts when changed
         if: success() || failure()
         run: |
-          if git diff --name-only HEAD^ HEAD | rg -q '^(supabase/|src/lib/jarvis/authority.server.ts|tests/jarvis/db/)'; then
-            npm run test:jarvis-db
-          fi
+          status=0
+          git diff --quiet HEAD^ HEAD -- supabase/ src/lib/jarvis/authority.server.ts tests/jarvis/db/ || status=$?
+          case "$status" in
+            0) ;;
+            1) npm run test:jarvis-db ;;
+            *) exit "$status" ;;
+          esac
 
   planner-safety:
     if: github.event_name == 'workflow_dispatch'

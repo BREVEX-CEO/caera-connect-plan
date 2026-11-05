@@ -1,5 +1,8 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
+import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, join } from "node:path";
 import { test } from "node:test";
 
 test("Linux cloud gate entry points parse before any evaluation credentials are released", () => {
@@ -51,4 +54,58 @@ test("staging isolation smoke refuses an uncredentialed process", () => {
   assert.ifError(result.error);
   assert.notEqual(result.status, 0);
   assert.match(result.stderr, /REFUSED: an isolated root staging step is required/);
+});
+
+test("coding gate detects SQL and authority changes and fails on an invalid comparison", () => {
+  const workflow = readFileSync(".github/workflows/jarvis-cloud-validation.yml", "utf8");
+  const block = workflow.match(
+    /name: Migrations and authority contracts when changed\n[\s\S]*?run: \|\n((?: {10}[^\n]*\n)+)/,
+  )?.[1];
+  assert.ok(block, "the real coding-gate migration step must exist");
+  const script = block.replace(/^ {10}/gm, "");
+  const folder = mkdtempSync(join(tmpdir(), "ocade-coding-diff-"));
+  const git = (...args: string[]) => {
+    const result = spawnSync("git", args, { cwd: folder, encoding: "utf8" });
+    assert.ifError(result.error);
+    assert.equal(result.status, 0, result.stderr);
+  };
+  const commit = () => {
+    git("add", ".");
+    git(
+      "-c",
+      "user.name=Coding gate fixture",
+      "-c",
+      "user.email=fixture@example.invalid",
+      "commit",
+      "-qm",
+      "fixture",
+    );
+  };
+  const run = () =>
+    spawnSync("bash", ["-e", "-c", "npm() { printf 'DB_GATE_REQUESTED\\n'; }\n" + script], {
+      cwd: folder,
+      encoding: "utf8",
+    });
+  try {
+    git("init", "-q");
+    writeFileSync(join(folder, "baseline"), "baseline");
+    commit();
+    assert.notEqual(run().status, 0, "a missing parent must fail, not skip the gate");
+    for (const path of [
+      "docs/fixture.md",
+      "supabase/migrations/fixture.sql",
+      "src/lib/jarvis/authority.server.ts",
+      "tests/jarvis/db/fixture.sql",
+    ]) {
+      mkdirSync(dirname(join(folder, path)), { recursive: true });
+      writeFileSync(join(folder, path), "fixture");
+      commit();
+      const result = run();
+      assert.ifError(result.error);
+      assert.equal(result.status, 0, result.stderr);
+      assert.equal(result.stdout.includes("DB_GATE_REQUESTED"), !path.startsWith("docs/"), path);
+    }
+  } finally {
+    rmSync(folder, { recursive: true, force: true });
+  }
 });
