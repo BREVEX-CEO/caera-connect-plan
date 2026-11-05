@@ -8,6 +8,11 @@ on:
       - "scripts/jarvis-e1.sh"
   workflow_dispatch:
     inputs:
+      campaign:
+        description: "E1 or a credential-and-isolation smoke without model calls"
+        type: choice
+        options: ["e1", "isolation"]
+        default: "e1"
       seed:
         description: "Paced E1 seed; all runs 48 tasks sequentially"
         type: choice
@@ -50,9 +55,11 @@ jobs:
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: "3.12"
+      - name: Install exact JS dependencies (no credentials)
+        run: npm ci --no-audit --no-fund
       - name: Install test-only dependencies and engines on the disposable runner
+        if: inputs.campaign != 'isolation'
         run: |
-          npm ci --no-audit --no-fund
           python3 -m pip install -r device-agent/windows/requirements.txt
           python3 -m pip install reportlab==4.5.1 opentimelineio==0.17.0
           sudo apt-get update -qq
@@ -72,8 +79,9 @@ jobs:
           SUPABASE_PUBLISHABLE_KEY: ${{ vars.SUPABASE_PUBLISHABLE_KEY }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           E1_SEED: ${{ inputs.seed }}
+          STAGING_CAMPAIGN: ${{ inputs.campaign }}
         run: |
-          sudo --preserve-env=PATH,SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,SUPABASE_SERVICE_ROLE_KEY,OCADE_BROWSER_EXECUTABLE,E1_SEED,GITHUB_RUN_ID,GITHUB_OUTPUT \
+          sudo --preserve-env=PATH,SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,SUPABASE_SERVICE_ROLE_KEY,OCADE_BROWSER_EXECUTABLE,E1_SEED,STAGING_CAMPAIGN,GITHUB_RUN_ID,GITHUB_OUTPUT \
             bash scripts/jarvis-e1.sh
       - name: Retain only credential-scanned evaluation evidence
         if: always() && steps.evaluation.outputs.upload == 'true'

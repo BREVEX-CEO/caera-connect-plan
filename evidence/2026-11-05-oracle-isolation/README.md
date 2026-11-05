@@ -47,3 +47,16 @@ isolation defect, not a missing-secret configuration issue. No new live E1/UI
 run is permitted until that owner action is confirmed. D27 remains open until
 replacement and the credentialed isolation smoke are verified. No readiness,
 requirement or architecture PASS is earned by this repair alone.
+
+## Owner replacement response
+
+On 5 November the owner reported "staging replaced". GitHub's write-only secret
+metadata still reports `updated_at: 2026-11-04T14:27:23Z` for the environment
+secret; the other staging environment has no secrets. Secret values were not
+retrieved. Revocation is owner-confirmed, not independently verified. The
+protected `isolation` campaign first checks staging admin authentication using
+the shared header bridge, then runs the actual Python privilege-drop helper.
+It records only effective UIDs and credential/canary presence flags, and applies
+the existing credential scan before artifact upload. It makes no model call and
+creates no task. D27 stays open until this smoke is verified; no new E1 campaign
+has been launched with the replacement yet.

@@ -58,6 +58,14 @@ PY
   exit "$status"
 }
 trap finish EXIT
+case "${STAGING_CAMPAIGN:-e1}" in
+  isolation)
+    python3 scripts/jarvis-staging-isolation.py "$out/isolation.json"
+    exit 0
+    ;;
+  e1) ;;
+  *) echo "REFUSED: unknown staging campaign." >&2; exit 2 ;;
+esac
 for seed in "${seeds[@]}"; do
   xvfb-run -a -s "-ac -screen 0 1280x1024x24" \
     python3 tests/jarvis/live_eval.py --seed "$seed" --out "$out/s$seed" --pause 45

@@ -39,3 +39,16 @@ test("oracle privilege drops exclude the server environment with an actual synth
   assert.ifError(result.error);
   assert.equal(result.status, 0, result.stderr);
 });
+
+test("staging isolation smoke refuses an uncredentialed process", () => {
+  const environment = { ...process.env };
+  delete environment.SUPABASE_URL;
+  delete environment.SUPABASE_SERVICE_ROLE_KEY;
+  const result = spawnSync("python3", ["scripts/jarvis-staging-isolation.py"], {
+    encoding: "utf8",
+    env: environment,
+  });
+  assert.ifError(result.error);
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /REFUSED: an isolated root staging step is required/);
+});
