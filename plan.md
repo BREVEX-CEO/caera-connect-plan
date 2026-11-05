@@ -1758,7 +1758,7 @@ The existing `tests.run_required.main` loads selected modules/classes/methods or
 
 **Candidate disposition:** the unpublished integrated repair is dropped. No candidate code is adopted and no candidate test result establishes published-branch functionality. glTF export, AXObserver, focus, verifier and harness gaps stay in C1/C6/C7/C10 until their implementations pass their own coding gates. Historical diagnostic runs remain historical, with candidate completion claims withdrawn.
 
-**C1 verifier and fixture repair — CODED; coding gate pending at this batch commit (70–75, 197, 207, 211).** No full requirement or runtime status is promoted by this defect slice; remaining deliverable semantics and harness coverage stay NOT CODED in C7/C10.
+**C1 verifier and fixture repair — BUILDS at `fdc5b21a72c54a29fe98e0d3e7fa544679b104aa`, [run 42073714126](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/42073714126) (70–75, 197, 207, 211).** Formatting, types, imports/compilation, protocol, 124 TypeScript tests, 68 companion tests and 5 harness tests passed with no unexpected skips. No full requirement or runtime status is promoted by this defect slice; remaining deliverable semantics and harness coverage stay NOT CODED in C7/C10.
 
 - D25: `verify.checks → _check → _script_runnable` validates the actual shebang executable, env argument semantics, supported syntax and complete byte budget. A file-supplied shell is never executed. Unknown interpreter syntax stays unobservable.
 - Office false blocks: `verify.checks → _check → _parses` checks bounded ZIP CRCs and reopens DOCX/XLSX/PPTX through independent readers. Malformed packages fail; verification budget overruns remain unobservable.
@@ -1766,7 +1766,9 @@ The existing `tests.run_required.main` loads selected modules/classes/methods or
 - D26: `live_eval.main → run_with_oracle → jarvis-live.mjs --oracle-checkpoint` runs the hidden oracle before STOP, with a private rendezvous and bounded acknowledgement. Missing checkpoints fail. `release_pick` serves real CRC-valid ZIP archives, supplies its fixture CA to checked transport and cleans up its server/certificate. No live task or campaign is run.
 - Focused coding checks include every existing verifier, media and gateway test plus synthetic pre-STOP, package and interpreter negative controls. Current model integration is unchanged.
 
-**Resume:** wait for C1's GitHub-hosted coding gate. Fix failures first; then begin C2. Full requirements remain NOT CODED until the complete entry/caller audit and their coding gates.
+**C2 migration preparation (31, 32, 38) — NOT CODED.** The official remote Supabase and Postgres skills were read; no PC access was used. The coding gate runs the pinned CLI's help/version commands and `migration new durable_task_milestones` in an unlinked temporary project on the GitHub runner. Its generated filename will be used for the real migration and rollback; no filename is invented, no project is linked, and no production database is accessed. This preparation does not claim milestone functionality.
+
+**Resume:** read the C2 CLI output, then implement durable milestone state, independent per-milestone checks, bounded step budgets and safe resumption in the existing planner, supervisor and authority. Full requirements remain NOT CODED until their complete entry/caller audit and coding gates.
 
 **Coding batches (order by code dependency; continue past any blocked item):**
 

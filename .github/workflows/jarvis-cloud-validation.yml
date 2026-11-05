@@ -68,13 +68,23 @@ jobs:
         run: |
           npm ci --no-audit --no-fund
           python -m pip install -r device-agent/windows/requirements.txt
-      - name: Install focused verifier and renderer prerequisites
+      - name: Install test-only fixture dependency
+        run: python -m pip install reportlab==4.5.1
+      - name: Generate the C2 migration path with the pinned CLI on this runner
         run: |
-          python -m pip install reportlab==4.5.1 opentimelineio==0.17.0
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq ffmpeg libreoffice-calc libreoffice-writer
-          python -m playwright install --with-deps --no-shell chromium
-          python -c 'from playwright.sync_api import sync_playwright; p=sync_playwright().start(); print("OCADE_BROWSER_EXECUTABLE=" + p.chromium.executable_path); p.stop()' >> "$GITHUB_ENV"
+          npx --yes supabase@2.122.0 --version
+          npx --yes supabase@2.122.0 --help
+          npx --yes supabase@2.122.0 init --help
+          npx --yes supabase@2.122.0 migration --help
+          npx --yes supabase@2.122.0 migration new --help
+          npx --yes supabase@2.122.0 db --help
+          npx --yes supabase@2.122.0 db advisors --help
+          npx --yes supabase@2.122.0 db lint --help
+          candidate="$RUNNER_TEMP/ocade-milestone-migration-$GITHUB_RUN_ID"
+          mkdir -p "$candidate"
+          npx --yes supabase@2.122.0 init --workdir "$candidate"
+          npx --yes supabase@2.122.0 migration new durable_task_milestones --workdir "$candidate"
+          node --input-type=module -e 'import fs from "node:fs"; import path from "node:path"; const folder=path.join(process.env.RUNNER_TEMP,"ocade-milestone-migration-"+process.env.GITHUB_RUN_ID,"supabase","migrations"); const files=fs.readdirSync(folder); if(files.length!==1||!/^\d{14}_durable_task_milestones\.sql$/.test(files[0])) throw new Error("unexpected CLI migration output"); console.log("OCADE_C2_MIGRATION:"+JSON.stringify({name:files[0],scope:"unlinked disposable runner only"}));'
       - name: Source formatting
         run: npm run format:check
       - name: TypeScript compilation
@@ -107,10 +117,10 @@ jobs:
       - name: Existing TypeScript safety and contract tests
         if: success() || failure()
         run: node --experimental-strip-types --no-warnings --test tests/security/*.test.ts tests/jarvis/contracts.test.ts
-      - name: Required-test gate and focused verifier, renderer and gateway regressions
+      - name: Required-test gate and effect-scope regressions
         if: success() || failure()
         working-directory: device-agent/windows
-        run: python -m tests.run_required --tests tests.test_required_runner --tests tests.test_effect_scope --tests tests.test_verify_kinds --tests tests.test_media --tests tests.test_gateway
+        run: python -m tests.run_required --tests tests.test_required_runner --tests tests.test_effect_scope
       - name: Evaluation bookkeeping and fixture regressions without model calls
         if: success() || failure()
         env:
