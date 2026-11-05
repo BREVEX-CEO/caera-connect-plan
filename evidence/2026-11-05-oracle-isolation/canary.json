@@ -18,5 +18,16 @@
     "pythonTestsRequired": 1,
     "candidate": "3e25c629f0293e1535821c8a46599afcbfd0f61c"
   },
-  "status": "code repaired; owner staging credential replacement and credentialed smoke pending"
+  "status": "inheritance fixed; protected staging authentication and actual credential/canary exclusion verified; old-key revocation owner-confirmed only",
+  "protectedSmoke": {
+    "childUid": 1002,
+    "serverUid": 0,
+    "job": 127062417973,
+    "artifactJsonSha256": "2c649c1795bcd4d34db611e552b919277fd62af87b38632c487f705baf493040",
+    "commit": "c6858ce9bbb33cf726be67ab5f204470e01bc5b8",
+    "serverCanaryPresent": false,
+    "serviceCredentialPresent": false,
+    "run": 41972053886,
+    "artifact": 13389733330
+  }
 }

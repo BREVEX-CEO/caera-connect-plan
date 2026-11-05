@@ -60,3 +60,19 @@ It records only effective UIDs and credential/canary presence flags, and applies
 the existing credential scan before artifact upload. It makes no model call and
 creates no task. D27 stays open until this smoke is verified; no new E1 campaign
 has been launched with the replacement yet.
+## Protected credential smoke passed
+
+[Run 41972053886](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41972053886),
+job 127062417973, passes at published `c6858ce9bbb33cf726be67ab5f204470e01bc5b8`.
+The actual staging admin request succeeds using the saved credential. The
+root server has UID 0; the ordinary companion identity has UID 1002 and reports
+both `serviceCredentialPresent: false` and `serverCanaryPresent: false` through
+the real Python helper. Artifact 13389733330 passes the credential scan.
+The original `commit.txt` and `isolation.json` are retained under
+`protected-smoke/`; their fields were independently compared with the job log.
+No actual key was retrieved or printed. This smoke creates no task and makes
+no Gemini call. The code boundary is repaired and verified. Old-key revocation
+remains owner-confirmed rather than independently verified; the unchanged
+GitHub metadata is retained above. Live evaluation can now resume after the
+application changes finish their cloud qualification. This closes D27's known
+inheritance defect without claiming the entire M8 secrets-isolation condition.

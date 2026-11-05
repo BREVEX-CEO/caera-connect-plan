@@ -13,6 +13,14 @@ on:
         type: choice
         options: ["e1", "isolation"]
         default: "e1"
+      candidate_sha:
+        description: "Optional tested candidate descended from this branch head"
+        type: string
+        required: false
+      only:
+        description: "Optional space-separated families; partial retest, never full E1 qualification"
+        type: string
+        required: false
       seed:
         description: "Paced E1 seed; all runs 48 tasks sequentially"
         type: choice
@@ -35,6 +43,19 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           persist-credentials: false
+          ref: ${{ inputs.candidate_sha || github.sha }}
+          fetch-depth: 0
+      - name: Validate the exact candidate before any protected credential step
+        if: inputs.candidate_sha != ''
+        env:
+          CANDIDATE_SHA: ${{ inputs.candidate_sha }}
+          BASE_SHA: ${{ github.sha }}
+        run: |
+          [[ "$GITHUB_REF" == refs/heads/ocade/p00-p22-implementation ]]
+          [[ "$CANDIDATE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          git fetch --no-tags origin "$BASE_SHA"
+          test "$(git rev-parse HEAD)" = "$CANDIDATE_SHA"
+          git merge-base --is-ancestor "$BASE_SHA" HEAD
       - run: bash -n scripts/jarvis-e1.sh
 
   evaluate:
@@ -42,12 +63,14 @@ jobs:
     needs: registration
     name: Real Gemini E1; isolated server and unprivileged companion
     runs-on: ubuntu-latest
-    timeout-minutes: 330
+    timeout-minutes: 360
     environment: SUPABASE_SERVICE_ROLE_KEY
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           persist-credentials: false
+          ref: ${{ inputs.candidate_sha || github.sha }}
+          fetch-depth: 0
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version-file: .node-version
@@ -74,20 +97,23 @@ jobs:
           test "$(id -nG ocadelive)" = ocadelive
       - name: Run paced E1 against staging (server credential in this step only)
         id: evaluation
+        # Keep the evaluation budget; reserve job time for setup and scanned evidence.
+        timeout-minutes: 330
         env:
           SUPABASE_URL: ${{ vars.SUPABASE_URL }}
           SUPABASE_PUBLISHABLE_KEY: ${{ vars.SUPABASE_PUBLISHABLE_KEY }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           E1_SEED: ${{ inputs.seed }}
+          E1_ONLY: ${{ inputs.only }}
           STAGING_CAMPAIGN: ${{ inputs.campaign }}
         run: |
-          sudo --preserve-env=PATH,SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,SUPABASE_SERVICE_ROLE_KEY,OCADE_BROWSER_EXECUTABLE,E1_SEED,STAGING_CAMPAIGN,GITHUB_RUN_ID,GITHUB_OUTPUT \
+          sudo --preserve-env=PATH,SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,SUPABASE_SERVICE_ROLE_KEY,OCADE_BROWSER_EXECUTABLE,E1_SEED,E1_ONLY,STAGING_CAMPAIGN,GITHUB_RUN_ID,GITHUB_OUTPUT \
             bash scripts/jarvis-e1.sh
       - name: Retain only credential-scanned evaluation evidence
         if: always() && steps.evaluation.outputs.upload == 'true'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: e1-${{ github.sha }}-${{ github.run_id }}
+          name: e1-${{ inputs.candidate_sha || github.sha }}-${{ github.run_id }}
           path: ${{ steps.evaluation.outputs.evidence }}
           if-no-files-found: error
           retention-days: 14

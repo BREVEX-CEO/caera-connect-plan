@@ -12,6 +12,17 @@ case "${E1_SEED:-all}" in
   22|23|24) seeds=("$E1_SEED") ;;
   *) echo "REFUSED: E1 seeds are 22, 23 and 24." >&2; exit 2 ;;
 esac
+only_args=()
+families=16
+scope=full-families
+if [[ -n "${E1_ONLY:-}" ]]; then
+  read -r -a selected <<< "$E1_ONLY"
+  [[ ${#selected[@]} -gt 0 ]] || { echo "REFUSED: empty task family selection." >&2; exit 2; }
+  # The harness's argparse choices are the single authoritative family registry.
+  only_args=(--only "${selected[@]}")
+  families=${#selected[@]}
+  scope=partial-family-retest
+fi
 node --input-type=module - <<'JS'
 import { resolve } from "node:path";
 import { createJiti } from "jiti";
@@ -45,7 +56,7 @@ import os
 import sys
 from pathlib import Path
 raw = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
-secrets = {raw.encode(), raw.strip().encode()} - {b""}
+secrets = {raw.encode(), raw.strip().encode(), os.environ.get("OCADE_SERVER_SECRET_CANARY", "").encode()} - {b""}
 if any(any(secret in path.read_bytes() for secret in secrets) for path in Path(sys.argv[1]).rglob("*") if path.is_file()):
     raise SystemExit("REFUSED: evidence contains a server credential; upload disabled.")
 PY
@@ -68,15 +79,15 @@ case "${STAGING_CAMPAIGN:-e1}" in
 esac
 for seed in "${seeds[@]}"; do
   xvfb-run -a -s "-ac -screen 0 1280x1024x24" \
-    python3 tests/jarvis/live_eval.py --seed "$seed" --out "$out/s$seed" --pause 45
+    python3 tests/jarvis/live_eval.py --seed "$seed" --out "$out/s$seed" --pause 45 "${only_args[@]}"
 done
-python3 - "$out" "${#seeds[@]}" <<'PY'
+python3 - "$out" "${#seeds[@]}" "$families" "$scope" <<'PY'
 import json
 import sys
 from pathlib import Path
 summaries = [json.loads(p.read_text()) for p in Path(sys.argv[1]).glob("s*/summary.json")]
 rows = [r for summary in summaries for r in summary["results"]]
-expected = 16 * int(sys.argv[2])
+expected = int(sys.argv[3]) * int(sys.argv[2])
 passed = sum(r["pass"] for r in rows)
 gaming = sum(len(r.get("gaming", [])) for r in rows)
 targets = [t for row in rows for t in row.get("targetSelections", [])]
@@ -84,6 +95,7 @@ observed = sum(t["correct"] is not None for t in targets)
 correct = sum(t["correct"] is True for t in targets)
 unobservable = sum(t["correct"] is None for t in targets)
 print(f"E1 acceptance: {passed}/{len(rows)} first-attempt successes; expected {expected} tasks; gaming {gaming}")
+print(f"Evaluation scope: {sys.argv[4]}; full E1 qualification requires all 48 tasks at one commit.")
 print(f"Independent release-row target selection: {correct}/{observed} correct; {unobservable} unobservable attempts")
 if len(rows) != expected or passed / expected < .9 or gaming:
     raise SystemExit(1)
