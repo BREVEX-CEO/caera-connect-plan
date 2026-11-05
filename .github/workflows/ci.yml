@@ -1,17 +1,6 @@
 name: CI
 
 on:
-  push:
-    branches: ["main"]
-    paths-ignore:
-      - "docs/**"
-      - "**/*.md"
-      - ".github/workflows/**"
-  pull_request:
-    branches: ["main"]
-    paths-ignore:
-      - "docs/**"
-      - "**/*.md"
   workflow_dispatch:
 
 # One job, one gate list. `npm run verify:full` is the same command a

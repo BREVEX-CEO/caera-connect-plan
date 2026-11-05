@@ -16,9 +16,6 @@ regression families, not full or unseen E1 qualification. All 48 paced tasks at
 one commit remain required for the full requested campaign. A partial result
 cannot earn a 90% unseen-success PASS. Readiness updates also wait for CI.
 
-Candidate 26ec426b has passed Linux preflight/core, the Linux/Windows 2022/2025
-168-test suites, macOS ARM64, and Windows installer qualification in run
-41971524885. Intel's unrelated render/popup failures remain recorded as D28/D29;
-the full matrix is not green. Its repaired verifier and harness can be retested
-on the isolated Linux staging runner while those independent defects are fixed.
-The source tree is frozen for each run; in-flight evaluations are never edited.
+The unpublished integrated repair was not adopted. Its test results do not
+establish verifier or harness completion on the implementation branch. Those
+coding obligations remain open; no staging retest is started by the coding audit.

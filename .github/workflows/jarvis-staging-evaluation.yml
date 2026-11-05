@@ -1,11 +1,6 @@
 name: OCADE isolated staging E1 (manual, no deployment)
 
 on:
-  push:
-    branches: ["ocade/p00-p22-implementation"]
-    paths:
-      - ".github/workflows/jarvis-staging-evaluation.yml"
-      - "scripts/jarvis-e1.sh"
   workflow_dispatch:
     inputs:
       campaign:

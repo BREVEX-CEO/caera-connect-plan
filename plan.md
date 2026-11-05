@@ -76,7 +76,7 @@ Separate measurements. Never merge them into one percentage.
 | Architecture concepts PASS | **44/84** (52.4%). Unfinished: 40 (39 PARTIAL, 1 FAIL) | Appendix B, `npm run jarvis:traceability` |
 | Research ideas with a disposition | 236/236 | Appendix C |
 | Commercial readiness | **10/100** (1/10 milestones, 17/42 conditions); M2 withdrawn for D22; M6 postconditions also retracted for D25 (`evidence/2026-11-05-local-stop/`) | `npm run readiness`, `evidence/readiness/gates.json`, `evidence/2026-11-02-recovery/` |
-| Cloud tests | Full green candidate matrix: [run 99](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41848478811), tested `2d98e0d` (checkout SHA independently confirmed; dispatch metadata head is `3b39e36`). All 8 jobs pass, including 162 companion tests per OS with only allowed skips. Run 96 Windows failures fixed. Run 109 at `00cbd9e`: seven jobs passed, macOS host never acquired. Explicit free Windows 2022/2025 and macOS 15 ARM/Intel matrix registered (`fce7a5b`); Intel host acquired but stale LibreOffice metadata returned HTTP 404; Homebrew refresh registered at `a91c30f`. Run 41970810529 now reaches Intel tests: 9/10 jobs pass, but a saved scene image is flat despite reported verification (D28); candidate 26ec426b also exposes intermittent popup classification D29. Fixed Intel media archives pass actual version/hash/architecture probes; full green qualification remains pending (`evidence/2026-11-05-intel-media/`). Expanded qualification pending (`evidence/2026-11-04-platform-runners/`) | `evidence/2026-11-04-cloud-recovery/run-99.json` |
+| Cloud tests | Full green candidate matrix: [run 99](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41848478811), tested `2d98e0d` (checkout SHA independently confirmed; dispatch metadata head is `3b39e36`). All 8 jobs pass, including 162 companion tests per OS with only allowed skips. Run 96 Windows failures fixed. Run 109 at `00cbd9e`: seven jobs passed, macOS host never acquired. Explicit free Windows 2022/2025 and macOS 15 ARM/Intel matrix registered (`fce7a5b`); Intel host acquired but stale LibreOffice metadata returned HTTP 404; Homebrew refresh registered at `a91c30f`. Run 41970810529 now reaches Intel tests: 9/10 jobs pass, but a saved scene image is flat despite reported verification (D28); an unpublished diagnostic run also exposed intermittent popup classification D29; no candidate code or completion evidence is adopted. Fixed Intel media archives pass actual version/hash/architecture probes; full green qualification remains pending (`evidence/2026-11-05-intel-media/`). Expanded qualification pending (`evidence/2026-11-04-platform-runners/`) | `evidence/2026-11-04-cloud-recovery/run-99.json` |
 | Real-task success (real Gemini) | **27/48 (56.25%)** completed plus hidden oracle in full E1 at `00cbd9e`, seeds 22–24, Linux Actions, run 41859445291; original oracle-only 35/48, completed 31/48, gaming 0, target choices 0 (unmeasured). Historical 27/36 (1 November) and 7/8 partial (4 November) retain their original scope | `evidence/2026-11-05-e1/`, historical `evidence/2026-11-01-eval-s11`…`s14` |
 | Task time (39 live tasks) | Median 37 s, p95 79.7 s. Model 56% of the time, device execution 6%, unaccounted ~34%. Median 6 model calls. | eval `timing` fields |
 | Open defects | Critical 1 awaiting full repair qualification (D22) · High 5 open (D8 partial, D9, D16, D25, D28) + 2 mitigated (D4, D10) · Medium 7 open (D11, D13, D19 partial, D23, D24, D26, D29) · Low 1 (D15) | Appendix D |
@@ -392,9 +392,9 @@ Journal ─▶ independent verifier ─▶ settlement · deliverables · timing
 | W2 | Measurement and pickup speed | — | BLOCKED (code complete) | Nudge, receipt-carried next step, prewarm, key cache green in [run 82](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41797737703)/[run 85](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41806336402). Met: idle pickup p95 502 ms (30 synthetic tasks) and 0.5–0.8 s live on staging Realtime; claim while running p95 53 ms (synthetic), ~0.2 s live. NOT met: unaccounted ≤10% — live 35% (8.5 of 24 s) from this container ~210 ms per database round trip; the production topology (Worker beside the database) is unmeasured: needs A1(b). Large payloads already bounded (16 KB evidence, 60 KB receipt; files by path + sha256) | 81–92, 94, 96 | 2, 42–43, 47–48, 51, 70, 78 |
 | W3 | Capability surface | — | DONE (code) | [run 85](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41806336402) green on all three OSes: `fs.manage` (D17), `job.*` (D18), shell choice (D20), `system.diagnose`, mechanism fallback (concept 37). Live: `crlf_script` and `config_repair` pass first attempt (eval s21, D12) | 28–30, 93, 136–137 | 25–27, 37, 69 |
 | W4 | Accuracy engine and evaluation → E1 | — | IN PROGRESS | Shortlist recall: tuning 100%, held-out 97.1% (< 98%); busy planner resumes itself (D10); D6 residual closed; failure categories, gaming audit, 16 generators; tables read as rows (D9); A1(a) approved and staging credential presence verified; D27 staging boundary repaired and protected authentication/isolation smoke passes (run 41972053886); full 48-task E1 at `00cbd9e` finished: strict 27/48 (56.25%), original oracle 35/48, completed 31/48, gaming 0; target choices absent. Protected candidate/family retests are available without changing the full 48-task denominator (`evidence/2026-11-05-e1-repair/`). Office parsing, interpreter validation, deliverable goal selection and harness fixture/teardown repairs are in qualification (`evidence/2026-11-05-e1/`). E1 partial: 7/8 first-attempt passes at `a6a728f`, gaming 0, stopped at handoff (`evidence/2026-11-04-e1/`); the `log_cause` miss (`invalid_goal`) is fixed in `2dced6b`, not yet measured live | 23, 31, 33–34, 46–57, 60, 63, 65, 166, 197–199, 201–202, 204, 207, 219 | 6, 8, 10, 14–20, 23, 49, 60, 77, 83 |
-| W5 | Professional deliverables and visual fallback → E2 | — | IN PROGRESS | In-place .docx/.xlsx/.pptx edits, new decks, `image.edit`, OTIO project beside every film; verifier: `script_runnable`, `workbook_formula`, `document_headings`, `local_service_answers`, confirmed re-run `command_succeeds`; clicks matched against the inspected image (concept 36). glTF candidate implemented with independent geometry checks after failing acceptance in run 101 (`evidence/2026-11-04-gltf/`); cloud proof pending. Open: glTF verification, E2 | 61, 70–75, 77, 211 | 36, 74–76 |
-| W6 | Windows 10/11 | — | IN PROGRESS | Hung and elevated windows refused; per-monitor DPI v2; stale-image click refusal (UIA-013/014 on the runner). Focused runner proof: AutoSetFocus off preserves another window's focus and saves the expected file (run 121; evidence/2026-11-04-native-focus/). Full matrix pending. Open: packaged (UWP) apps, Windows 2022/2025 coverage. Consumer Windows 10/11 proof BLOCKED on A2 | 58–59, 122–130 | 11–12, 28, 32–35, 58–59 |
-| W7 | macOS | — | IN PROGRESS | Accessibility revocation and Screen Recording detection with graceful degradation; diagnose names both; zsh and Trash (W3). AXObserver candidate and injected-permission/lifecycle coverage are in qualification. ARM64 bundle starts all six frozen workers and its packaged browser; Intel bundle builds but startup fails (D24), with no Intel PASS claimed (`evidence/2026-11-05-macos-bundle/`). Consumer permission and hardware proof BLOCKED on A2 (D16) | 131–132 | 11–12, 29, 32–33, 35, 58–59 |
+| W5 | Professional deliverables and visual fallback → E2 | — | IN PROGRESS | In-place .docx/.xlsx/.pptx edits, new decks, `image.edit`, OTIO project beside every film; verifier: `script_runnable`, `workbook_formula`, `document_headings`, `local_service_answers`, confirmed re-run `command_succeeds`; clicks matched against the inspected image (concept 36). glTF export and independent geometry verification remain coding work; unpublished candidate completion claims are withdrawn. Open: glTF, E2 | 61, 70–75, 77, 211 | 36, 74–76 |
+| W6 | Windows 10/11 | — | IN PROGRESS | Hung and elevated windows refused; per-monitor DPI v2; stale-image click refusal (UIA-013/014 on the runner). Unpublished focus candidate proof does not establish published-branch completion; focus repair remains coding work. Full matrix pending. Open: packaged (UWP) apps, Windows 2022/2025 coverage. Consumer Windows 10/11 proof BLOCKED on A2 | 58–59, 122–130 | 11–12, 28, 32–35, 58–59 |
+| W7 | macOS | — | IN PROGRESS | Accessibility revocation and Screen Recording detection with graceful degradation; diagnose names both; zsh and Trash (W3). AXObserver implementation and permission/lifecycle coverage remain coding work; unpublished candidate completion claims are withdrawn. ARM64 bundle starts all six frozen workers and its packaged browser; Intel bundle builds but startup fails (D24), with no Intel PASS claimed (`evidence/2026-11-05-macos-bundle/`). Consumer permission and hardware proof BLOCKED on A2 (D16) | 131–132 | 11–12, 29, 32–33, 35, 58–59 |
 | W8 | Browser and web → E3 | — | IN PROGRESS | Tables as rows with links; failed browser launch is not applied; verifier honours the computer's proxy; installed browsers and profile folders discovered (req 139, Linux-verified); file-picker clicks reported (req 142); site permission prompts reported, never answered; every observation lists the other open tabs (switch by page id). Open: D11, Windows/macOS profile paths on real machines, E3 (A1) | 62, 76, 139–145 | 30–31, 33 |
 | W9 | Install, dependencies, updates | — | IN PROGRESS | D13 ownership diagnostics and retained-handle fixture repair in cloud qualification; dependency manager and updater not yet implemented. Consumer clean installation BLOCKED on A2 | 44–45, 97–120, 185–190, 217 | 13, 24, 45, 65, 68 |
 | W10 | Customer product | — | IN PROGRESS | Protected staging UI first-task harness in qualification: authenticated browser and companion share only the synthetic user's identity; server credential stays with the isolated server. Completion requires both the visible Done and checked state and hidden file oracle. No completed UI task or surface-control PASS claimed | 146–160, 221 | 71–73 |
@@ -1533,7 +1533,7 @@ Severity: CRITICAL = unauthorised action, data loss, secret exposure or wrong-ta
 | D27 | CRITICAL | Evaluation oracle and port-conflict fixture inherit the root server environment after dropping privileges | actual root-to-user synthetic credential canary, run 41915577409 | FIXED: positive environment filter published at 40f9ea66; protected staging admin authentication and actual UID/canary smoke pass run 41972053886 at c6858ce9. Owner reports staging credential replacement; revocation is not independently verified and GitHub metadata is unchanged (`evidence/2026-11-05-oracle-isolation/`) | W11 |
 
 | D28 | HIGH | Intel scene rendering publishes a flat image while scene/hash/size checks report success | published aaf3bad3, run 41970810529, Intel job 127061543475 | OPEN: existing independent pixel assertion fails; candidate WebGL error validation now refuses the failed readback. Exact native cause and a correct render still need proof (`evidence/2026-11-05-intel-render/`) | W5 |
-| D29 | MEDIUM | Intel browser popup classification intermittently omits the off-site closure | candidate 26ec426b, run 41971524885, job 127064311487, WEB-009 | OPEN: empty popups instead of closed_off_site; fixed collector window is a hypothesis, not a confirmed cause. Network binding remains separately tested; no bypass inferred (`evidence/2026-11-05-intel-render/`) | W8 |
+| D29 | MEDIUM | Intel browser popup classification intermittently omits the off-site closure | unpublished diagnostic run 41971524885, job 127064311487, WEB-009 | CANDIDATE-ONLY; not published-branch proof: empty popups instead of closed_off_site; fixed collector window is a hypothesis, not a confirmed cause. Network binding remains separately tested; no bypass inferred (`evidence/2026-11-05-intel-render/`) | W8 |
 Closed recently (kept for history): approval arguments clipped at 4000 characters (fixed `43c50ed`, run 64); opaque native/page interactions mislabelled reversible (fixed `43c50ed`); unknown-write replay after resume (fenced `83f3142`, run 58); competing-file overwrite on publication (fixed `897675b`, run 49); installed companion started no worker (fixed `947ceee`); minimized macOS window reported as closed (fixed `a7cf182`).
 
 ## Appendix E — Coding ledger (updated once per coding batch)
@@ -1555,6 +1555,210 @@ Coding status is kept separate from runtime verification (Appendix A), so nothin
 **Initial state (5 November 2026, before C0):**
 - RUNTIME VERIFIED (Appendix A `PASS`, 77): 1–2, 4–6, 9, 11–12, 14–15, 17–22, 24–27, 30, 36, 39, 41–43, 47, 53, 64, 79–80, 84, 89, 93–95, 102, 109, 136–137, 141, 145, 154, 171, 173–174, 178, 183–184, 196, 198, 203, 213, 225, 234, 239–241, 244–246, 248–254, 256–258, 260–263, 265–266.
 - NOT AUDITED (189): 3, 7–8, 10, 13, 16, 23, 28–29, 31–35, 37–38, 40, 44–46, 48–52, 54–63, 65–78, 81–83, 85–88, 90–92, 96–101, 103–108, 110–135, 138–140, 142–144, 146–153, 155–170, 172, 175–177, 179–182, 185–195, 197, 199–202, 204–212, 214–224, 226–233, 235–238, 242–243, 247, 255, 259, 264.
+
+**C0 classification (base `dd0700cc77808bead5ae5da8986a037b4b80ac92`):** All 189 unfinished IDs below are classified individually. CODE is deliberately conservative: an Appendix A PARTIAL/FAIL/UNTESTED/BLOCKED item remains NOT CODED until its complete implementation and callers are inspected. Existing partial implementations are preserved; this audit does not claim they are absent. Qualification-only items retain a separate harness coding obligation; they cannot satisfy the final declaration until that harness is BUILDS. Historical 77 RUNTIME VERIFIED entries above are unchanged.
+
+| ID | Class | Coding state | Batch / remaining proof |
+|---|---|---|---|
+| 3 | CODE | NOT CODED | C10 |
+| 7 | STANDING | STANDING | Every gate |
+| 8 | STANDING | STANDING | Every gate |
+| 10 | CODE | NOT CODED | C0/C10 |
+| 13 | CODE | NOT CODED | C10 |
+| 16 | STANDING | STANDING | Every gate |
+| 23 | QUALIFICATION-ONLY | QUALIFICATION-ONLY; harness NOT CODED | Q; harness audit in C10, owner-directed run deferred |
+| 28 | CODE | NOT CODED | C3/C10 |
+| 29 | CODE | NOT CODED | C3/C10 |
+| 31 | CODE | NOT CODED | C2 |
+| 32 | CODE | NOT CODED | C2 |
+| 33 | CODE | NOT CODED | C2 |
+| 34 | CODE | NOT CODED | C2 |
+| 35 | CODE | NOT CODED | C2 |
+| 37 | CODE | NOT CODED | C2 |
+| 38 | CODE | NOT CODED | C2 |
+| 40 | CODE | NOT CODED | C10 |
+| 44 | CODE | NOT CODED | C4 |
+| 45 | CODE | NOT CODED | C4 |
+| 46 | CODE | NOT CODED | C3/C10 |
+| 48 | CODE | NOT CODED | C3/C10 |
+| 49 | CODE | NOT CODED | C3/C10 |
+| 50 | CODE | NOT CODED | C3/C10 |
+| 51 | CODE | NOT CODED | C3/C10 |
+| 52 | CODE | NOT CODED | C3/C10 |
+| 54 | CODE | NOT CODED | C3/C10 |
+| 55 | CODE | NOT CODED | C3/C10 |
+| 56 | CODE | NOT CODED | C3/C10 |
+| 57 | CODE | NOT CODED | C3/C10 |
+| 58 | CODE | NOT CODED | C6 |
+| 59 | CODE | NOT CODED | C6 |
+| 60 | CODE | NOT CODED | C3/C10 |
+| 61 | CODE | NOT CODED | C7/C9 |
+| 62 | CODE | NOT CODED | C6 |
+| 63 | CODE | NOT CODED | C3/C10 |
+| 65 | CODE | NOT CODED | C10 |
+| 66 | CODE | NOT CODED | C1/C7 |
+| 67 | CODE | NOT CODED | C1/C7 |
+| 68 | CODE | NOT CODED | C1/C7 |
+| 69 | CODE | NOT CODED | C1/C7 |
+| 70 | CODE | NOT CODED | C7/C9 |
+| 71 | CODE | NOT CODED | C7/C9 |
+| 72 | CODE | NOT CODED | C7/C9 |
+| 73 | CODE | NOT CODED | C7/C9 |
+| 74 | CODE | NOT CODED | C7/C9 |
+| 75 | CODE | NOT CODED | C1/C7 |
+| 76 | CODE | NOT CODED | C6 |
+| 77 | CODE | NOT CODED | C7/C9 |
+| 78 | CODE | NOT CODED | C7/C9 |
+| 81 | CODE | NOT CODED | C10 |
+| 82 | CODE | NOT CODED | C10 |
+| 83 | CODE | NOT CODED | C3/C10 |
+| 85 | CODE | NOT CODED | C3/C10 |
+| 86 | CODE | NOT CODED | C3/C10 |
+| 87 | CODE | NOT CODED | C3/C10 |
+| 88 | CODE | NOT CODED | C10 |
+| 90 | CODE | NOT CODED | C3/C10 |
+| 91 | CODE | NOT CODED | C3/C10 |
+| 92 | CODE | NOT CODED | C3/C10 |
+| 96 | CODE | NOT CODED | C10 |
+| 97 | CODE | NOT CODED | C4 |
+| 98 | CODE | NOT CODED | C4 |
+| 99 | CODE | NOT CODED | C4 |
+| 100 | CODE | NOT CODED | C4 |
+| 101 | CODE | NOT CODED | C4 |
+| 103 | CODE | NOT CODED | C4 |
+| 104 | CODE | NOT CODED | C4 |
+| 105 | CODE | NOT CODED | C4 |
+| 106 | CODE | NOT CODED | C4 |
+| 107 | CODE | NOT CODED | C4 |
+| 108 | CODE | NOT CODED | C4 |
+| 110 | CODE | NOT CODED | C4 |
+| 111 | CODE | NOT CODED | C4 |
+| 112 | CODE | NOT CODED | C4 |
+| 113 | CODE | NOT CODED | C4 |
+| 114 | CODE | NOT CODED | C4 |
+| 115 | CODE | NOT CODED | C4 |
+| 116 | CODE | NOT CODED | C4 |
+| 117 | CODE | NOT CODED | C4 |
+| 118 | CODE | NOT CODED | C4 |
+| 119 | CODE | NOT CODED | C4 |
+| 120 | CODE | NOT CODED | C4 |
+| 121 | QUALIFICATION-ONLY | QUALIFICATION-ONLY; harness NOT CODED | RPC; harness audit in C10, owner-directed run deferred |
+| 122 | CODE | NOT CODED | C6 |
+| 123 | CODE | NOT CODED | C6 |
+| 124 | CODE | NOT CODED | C6 |
+| 125 | CODE | NOT CODED | C6 |
+| 126 | CODE | NOT CODED | C6 |
+| 127 | CODE | NOT CODED | C6 |
+| 128 | CODE | NOT CODED | C6 |
+| 129 | CODE | NOT CODED | C6 |
+| 130 | CODE | NOT CODED | C6 |
+| 131 | CODE | NOT CODED | C6 |
+| 132 | CODE | NOT CODED | C6 |
+| 133 | QUALIFICATION-ONLY | QUALIFICATION-ONLY; harness NOT CODED | RPC; harness audit in C10, owner-directed run deferred |
+| 134 | CODE | NOT CODED | C6 |
+| 135 | CODE | NOT CODED | C6 |
+| 138 | CODE | NOT CODED | C6 |
+| 139 | CODE | NOT CODED | C6 |
+| 140 | CODE | NOT CODED | C6 |
+| 142 | CODE | NOT CODED | C6 |
+| 143 | CODE | NOT CODED | C6 |
+| 144 | CODE | NOT CODED | C6 |
+| 146 | CODE | NOT CODED | C8 |
+| 147 | CODE | NOT CODED | C8 |
+| 148 | CODE | NOT CODED | C8 |
+| 149 | CODE | NOT CODED | C8 |
+| 150 | CODE | NOT CODED | C8 |
+| 151 | CODE | NOT CODED | C8 |
+| 152 | CODE | NOT CODED | C8 |
+| 153 | CODE | NOT CODED | C8 |
+| 155 | CODE | NOT CODED | C8 |
+| 156 | CODE | NOT CODED | C8 |
+| 157 | CODE | NOT CODED | C8 |
+| 158 | CODE | NOT CODED | C8 |
+| 159 | CODE | NOT CODED | C8 |
+| 160 | CODE | NOT CODED | C8 |
+| 161 | CODE | NOT CODED | C9 |
+| 162 | CODE | NOT CODED | C9 |
+| 163 | CODE | NOT CODED | C9 |
+| 164 | CODE | NOT CODED | C2 |
+| 165 | CODE | NOT CODED | C9 |
+| 166 | CODE | NOT CODED | C9 |
+| 167 | CODE | NOT CODED | C9 |
+| 168 | CODE | NOT CODED | C9 |
+| 169 | CODE | NOT CODED | C9 |
+| 170 | CODE | NOT CODED | C9 |
+| 172 | CODE | NOT CODED | C9 |
+| 175 | CODE | NOT CODED | C9 |
+| 176 | CODE | NOT CODED | C9 |
+| 177 | CODE | NOT CODED | C9 |
+| 179 | CODE | NOT CODED | C9 |
+| 180 | CODE | NOT CODED | C9 |
+| 181 | CODE | NOT CODED | C9 |
+| 182 | CODE | NOT CODED | C9 |
+| 185 | CODE | NOT CODED | C5 |
+| 186 | CODE | NOT CODED | C5 |
+| 187 | CODE | NOT CODED | C5 |
+| 188 | CODE | NOT CODED | C5 |
+| 189 | CODE | NOT CODED | C5 |
+| 190 | CODE | NOT CODED | C5 |
+| 191 | CODE | NOT CODED | C10 |
+| 192 | CODE | NOT CODED | C10 |
+| 193 | CODE | NOT CODED | C10 |
+| 194 | CODE | NOT CODED | C10 |
+| 195 | CODE | NOT CODED | C10 |
+| 197 | CODE | NOT CODED | C10 |
+| 199 | CODE | NOT CODED | C10 |
+| 200 | CODE | NOT CODED | C10 |
+| 201 | CODE | NOT CODED | C10 |
+| 202 | CODE | NOT CODED | C10 |
+| 204 | CODE | NOT CODED | C10 |
+| 205 | CODE | NOT CODED | C10 |
+| 206 | STANDING | STANDING | Every gate |
+| 207 | CODE | NOT CODED | C10 |
+| 208 | CODE | NOT CODED | C10 |
+| 209 | QUALIFICATION-ONLY | QUALIFICATION-ONLY; harness NOT CODED | RPC; harness audit in C10, owner-directed run deferred |
+| 210 | CODE | NOT CODED | C10 |
+| 211 | CODE | NOT CODED | C1/C7 |
+| 212 | CODE | NOT CODED | C9 |
+| 214 | CODE | NOT CODED | C0/C10 |
+| 215 | CODE | NOT CODED | C10 |
+| 216 | CODE | NOT CODED | C10 |
+| 217 | CODE | NOT CODED | C4 |
+| 218 | CODE | NOT CODED | C10 |
+| 219 | CODE | NOT CODED | C10 |
+| 220 | CODE | NOT CODED | C10 |
+| 221 | CODE | NOT CODED | C8 |
+| 222 | CODE | NOT CODED | C9 |
+| 223 | CODE | NOT CODED | C10 |
+| 224 | CODE | NOT CODED | C10 |
+| 226 | STANDING | STANDING | Every gate |
+| 227 | STANDING | STANDING | Every gate |
+| 228 | STANDING | STANDING | Every gate |
+| 229 | STANDING | STANDING | Every gate |
+| 230 | STANDING | STANDING | Every gate |
+| 231 | STANDING | STANDING | Every gate |
+| 232 | STANDING | STANDING | Every gate |
+| 233 | STANDING | STANDING | Every gate |
+| 235 | STANDING | STANDING | Every gate |
+| 236 | CODE | NOT CODED | C0/C10 |
+| 237 | CODE | NOT CODED | C0/C10 |
+| 238 | CODE | NOT CODED | C0/C10 |
+| 242 | STANDING | STANDING | Every gate |
+| 243 | CODE | NOT CODED | W12 |
+| 247 | STANDING | STANDING | Every gate |
+| 255 | STANDING | STANDING | Every gate |
+| 259 | QUALIFICATION-ONLY | QUALIFICATION-ONLY; harness NOT CODED | COM; harness audit in C10, owner-directed run deferred |
+| 264 | STANDING | STANDING | Every gate |
+
+C0 totals: 167 CODE, 5 QUALIFICATION-ONLY, 17 STANDING = 189. No requirement text or runtime PASS has been promoted.
+
+**C0 implementation — CODED; coding gate pending at this batch commit.** Entry point `push` on the implementation branch calls `coding-gate` in `.github/workflows/jarvis-cloud-validation.yml`. It checks formatting, TypeScript, Python compilation/imports, canonical protocol, no-hardcoded rules, existing security/contracts tests, and the shared runner's focused regressions. SQL/authority edits also call `test:jarvis-db`. Full matrix, package/bundle and live-evaluation workflows require manual dispatch. No qualification is started.
+
+The existing `tests.run_required.main` loads selected modules/classes/methods or the discovered companion suite and calls `run_required`; all former workflow count pins call that same check. Its regressions cover added tests, missing selections, empty/incompletely executed suites, failures and exact skip allowlists. No existing tests or skip exceptions are removed.
+
+**Candidate disposition:** the unpublished integrated repair is dropped. No candidate code is adopted and no candidate test result establishes published-branch functionality. glTF export, AXObserver, focus, verifier and harness gaps stay in C1/C6/C7/C10 until their implementations pass their own coding gates. Historical diagnostic runs remain historical, with candidate completion claims withdrawn.
+
+**Resume:** wait for this commit's GitHub-hosted coding gate. A failure is the next task. When green, record its SHA/run in the next batch and start C1. C0 is not BUILDS before that result.
 
 **Coding batches (order by code dependency; continue past any blocked item):**
 

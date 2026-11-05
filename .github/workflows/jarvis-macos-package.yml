@@ -1,9 +1,6 @@
 name: OCADE macOS bundle qualification (manual, no deployment)
 
 on:
-  push:
-    branches: ["ocade/p00-p22-implementation"]
-    paths: [".github/workflows/jarvis-macos-package.yml"]
   workflow_dispatch:
     inputs:
       candidate_sha:
@@ -97,7 +94,7 @@ jobs:
           PY
       - name: Native AX ladder (one actual desktop case; no skipped qualification)
         working-directory: device-agent/windows
-        run: python -c 'import sys, unittest; suite=unittest.defaultTestLoader.loadTestsFromName("tests.test_mac_ui.MacUiLadder.test_mac_ladder"); result=unittest.TextTestRunner(verbosity=2).run(suite); sys.exit(0 if result.wasSuccessful() and result.testsRun == 1 and not result.skipped else 1)'
+        run: python -m tests.run_required --tests tests.test_mac_ui.MacUiLadder.test_mac_ladder
       - name: Build the app with the existing packaging owner
         working-directory: device-agent/windows/packaging
         run: python -m PyInstaller --noconfirm --distpath ../dist --workpath ../build ocade-agent.spec

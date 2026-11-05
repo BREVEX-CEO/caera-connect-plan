@@ -10,14 +10,13 @@ gray levels; it is retained. This is D28, a real render/readback defect, not a
 media-bootstrap timeout. Both pinned Intel media executables actually execute
 and report their verified hashes and x86_64 architecture in this job.
 
-The integrated repair candidate `26ec426b4eec83e2b7d822e476af7142d2723254`,
-run 41971524885, also passes nine jobs. Intel job 127064311487 fails the same
-image assertion and additionally reports an empty off-site popup classification
-in WEB-009 (expected `closed_off_site`). That is D29. The existing browser click
-collector has a fixed 500 ms window; its involvement is a hypothesis, not a
-proven cause of this intermittent Intel failure. Site request-binding tests
-remain separate; this failure does not establish that an off-site request was
-allowed. Neither failure is removed or accepted as a platform PASS.
+Unpublished diagnostic run 41971524885, Intel job 127064311487, also failed
+the saved-image assertion and reported an empty off-site popup classification
+in WEB-009 (expected `closed_off_site`). This is historical candidate-only D29
+evidence, not a published-branch result. The integrated repair was dropped;
+its passing jobs establish no implementation completion. The fixed 500 ms
+collector remains only a cause hypothesis. No off-site-request bypass or
+platform PASS is inferred.
 
 ## Controlled render investigation
 

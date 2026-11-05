@@ -5,31 +5,6 @@ name: JARVIS cloud validation (no deployment)
 on:
   push:
     branches: ["ocade/p00-p22-implementation"]
-    paths:
-      - ".github/workflows/jarvis-cloud-validation.yml"
-      - "src/lib/jarvis/**"
-      - "src/jarvis/**"
-      - "src/routes/ocade-jarvis.tsx"
-      - "src/lib/intelligence/**"
-      - "src/integrations/supabase/**"
-      - "src/routes/api/jarvis.device.ts"
-      - "device-agent/**"
-      - "tests/jarvis/**"
-      - "tests/security/**"
-      - "tests/web/**"
-      - "scripts/ci-local.sh"
-      - "scripts/jarvis-*.mjs"
-      - "scripts/jarvis-protocol.ts"
-      - "scripts/verify-full.mjs"
-      - "package.json"
-      - "package-lock.json"
-      - "supabase/migrations/**"
-      - "CLAUDE.md"
-      - "plan.md"
-      - "evidence/readiness/**"
-      # Generated report only; authoritative gates.json still triggers full qualification.
-      - "!evidence/readiness/READINESS.md"
-      - "scripts/launch-readiness.mjs"
   workflow_dispatch:
     inputs:
       candidate_sha:
@@ -45,7 +20,98 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  coding-gate:
+    name: Coding gate · Linux · no qualification
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: jarvis_disposable_ci_only
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 8
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: "5432"
+      PGUSER: postgres
+      PGPASSWORD: jarvis_disposable_ci_only
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ inputs.candidate_sha || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Validate branch and optional candidate before execution
+        env:
+          CANDIDATE_SHA: ${{ inputs.candidate_sha }}
+          BASE_SHA: ${{ github.sha }}
+        run: |
+          [[ "$GITHUB_REF" == refs/heads/ocade/p00-p22-implementation ]]
+          if [[ -n "$CANDIDATE_SHA" ]]; then
+            [[ "$CANDIDATE_SHA" =~ ^[0-9a-f]{40}$ ]]
+            test "$(git rev-parse HEAD)" = "$CANDIDATE_SHA"
+            git merge-base --is-ancestor "$BASE_SHA" HEAD
+          fi
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: "3.12"
+      - name: Install exact coding dependencies
+        run: |
+          npm ci --no-audit --no-fund
+          python -m pip install -r device-agent/windows/requirements.txt
+      - name: Source formatting
+        run: npm run format:check
+      - name: TypeScript compilation
+        if: success() || failure()
+        run: npm run typecheck
+      - name: Compile every companion module and packaging check
+        if: success() || failure()
+        run: |
+          python -m compileall -q device-agent/windows/ocade_agent device-agent/windows/packaging tests/jarvis
+          python -m py_compile device-agent/windows/packaging/ocade-agent.spec
+      - name: Import every companion module without starting the agent
+        if: success() || failure()
+        working-directory: device-agent/windows
+        run: |
+          python - <<'PY'
+          import importlib
+          import pkgutil
+          import ocade_agent
+          for module in pkgutil.iter_modules(ocade_agent.__path__, "ocade_agent."):
+              if module.name != "ocade_agent.__main__":
+                  importlib.import_module(module.name)
+                  print("IMPORTED:" + module.name)
+          PY
+      - name: Canonical protocol and capability-only production paths
+        if: success() || failure()
+        run: |
+          npm run jarvis:protocol-check
+          npm run jarvis:no-hardcoded
+      - name: Existing TypeScript safety and contract tests
+        if: success() || failure()
+        run: node --experimental-strip-types --no-warnings --test tests/security/*.test.ts tests/jarvis/contracts.test.ts
+      - name: Required-test gate and effect-scope regressions
+        if: success() || failure()
+        working-directory: device-agent/windows
+        run: python -m tests.run_required --tests tests.test_required_runner --tests tests.test_effect_scope
+      - name: Migrations and authority contracts when changed
+        if: success() || failure()
+        run: |
+          if git diff --name-only HEAD^ HEAD | rg -q '^(supabase/|src/lib/jarvis/authority.server.ts|tests/jarvis/db/)'; then
+            npm run test:jarvis-db
+          fi
+
   planner-safety:
+    if: github.event_name == 'workflow_dispatch'
     name: Planner safety / source formatting · Linux
     runs-on: ubuntu-latest
     timeout-minutes: 12
@@ -79,7 +145,8 @@ jobs:
       - name: Effect scope propagation and isolation (standard library only, no skips)
         env:
           PYTHONPATH: device-agent/windows
-        run: python -c 'import sys, unittest; suite=unittest.defaultTestLoader.discover("device-agent/windows/tests", pattern="test_effect_scope.py"); result=unittest.TextTestRunner(verbosity=2).run(suite); sys.exit(0 if result.wasSuccessful() and result.testsRun == 9 and not result.skipped else 1)'
+        working-directory: device-agent/windows
+        run: python -m tests.run_required --tests tests.test_effect_scope
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         if: success() || failure()
         with:
@@ -99,15 +166,15 @@ jobs:
       - name: Media nested-source containment (required, no skips)
         if: success() || failure()
         working-directory: device-agent/windows
-        run: python -c 'import sys, unittest; suite=unittest.defaultTestLoader.loadTestsFromName("tests.test_media_scope"); result=unittest.TextTestRunner(verbosity=2).run(suite); sys.exit(0 if result.wasSuccessful() and result.testsRun == 7 and not result.skipped else 1)'
+        run: python -m tests.run_required --tests tests.test_media_scope
       - name: Gateway result boundary and opaque read uncertainty (required, no skips)
         if: success() || failure()
         working-directory: device-agent/windows
-        run: python -c 'import sys, unittest; suite=unittest.defaultTestLoader.loadTestsFromName("tests.test_gateway.ResultBoundary"); result=unittest.TextTestRunner(verbosity=2).run(suite); sys.exit(0 if result.wasSuccessful() and result.testsRun == 8 and not result.skipped else 1)'
+        run: python -m tests.run_required --tests tests.test_gateway.ResultBoundary
       - name: Durable intent identity and interrupted read recovery (required, no skips)
         if: success() || failure()
         working-directory: device-agent/windows
-        run: python -c 'import sys, unittest; suite=unittest.defaultTestLoader.loadTestsFromName("tests.test_agent_recovery"); result=unittest.TextTestRunner(verbosity=2).run(suite); sys.exit(0 if result.wasSuccessful() and result.testsRun == 10 and not result.skipped else 1)'
+        run: python -m tests.run_required --tests tests.test_agent_recovery
       - name: Verifier collisions and unrelated-file preservation (real MCP workers)
         if: success() || failure()
         working-directory: device-agent/windows
@@ -121,19 +188,19 @@ jobs:
       - name: Media sibling regressions (real files and independent measurements, no skips)
         if: success() || failure()
         working-directory: device-agent/windows
-        run: python -c 'import sys, unittest; suite=unittest.defaultTestLoader.loadTestsFromNames(["tests.test_media.Media.test_image_facts", "tests.test_media.Media.test_preview_lets_the_planner_see_images_and_video", "tests.test_media.Media.test_video_inspect_trim_and_verify", "tests.test_media.Media.test_titles_are_drawn_without_relying_on_the_local_ffmpeg_build", "tests.test_media.Media.test_timeline_edit_is_exact_and_independently_measured"]); result=unittest.TextTestRunner(verbosity=2).run(suite); sys.exit(0 if result.wasSuccessful() and result.testsRun == 5 and not result.skipped else 1)'
+        run: python -m tests.run_required --tests tests.test_media.Media.test_image_facts --tests tests.test_media.Media.test_preview_lets_the_planner_see_images_and_video --tests tests.test_media.Media.test_video_inspect_trim_and_verify --tests tests.test_media.Media.test_titles_are_drawn_without_relying_on_the_local_ffmpeg_build --tests tests.test_media.Media.test_timeline_edit_is_exact_and_independently_measured
       - name: Required real-browser address and lifecycle cases (no skips)
         if: success() || failure()
         working-directory: device-agent/windows
-        run: xvfb-run -a python -c 'import sys, unittest; suite=unittest.defaultTestLoader.loadTestsFromNames(["tests.test_web.WebLadder.test_observed_addresses_are_exact_including_fragments_or_explicitly_omitted", "tests.test_web.WebLadder.test_mcp_lifespan_closes_browser_and_failed_startup", "tests.test_web.WebLadder.test_download_refusal_after_the_click_preserves_effect_uncertainty"]); result=unittest.TextTestRunner(verbosity=2).run(suite); sys.exit(0 if result.wasSuccessful() and result.testsRun == 3 and not result.skipped else 1)'
+        run: xvfb-run -a python -m tests.run_required --tests tests.test_web.WebLadder.test_observed_addresses_are_exact_including_fragments_or_explicitly_omitted --tests tests.test_web.WebLadder.test_mcp_lifespan_closes_browser_and_failed_startup --tests tests.test_web.WebLadder.test_download_refusal_after_the_click_preserves_effect_uncertainty
       - name: Actor bound-host request prevention and CDN control (required, no skips)
         if: success() || failure()
         working-directory: device-agent/windows
-        run: xvfb-run -a python -c 'import sys, unittest; suite=unittest.defaultTestLoader.loadTestsFromName("tests.test_web_scope"); result=unittest.TextTestRunner(verbosity=2).run(suite); sys.exit(0 if result.wasSuccessful() and result.testsRun == 5 and not result.skipped else 1)'
+        run: xvfb-run -a python -m tests.run_required --tests tests.test_web_scope
       - name: Rendered verifier and URL transport negative controls (required, no skips)
         if: success() || failure()
         working-directory: device-agent/windows
-        run: xvfb-run -a python -c 'import sys, unittest; suite=unittest.defaultTestLoader.loadTestsFromName("tests.test_verify_web"); result=unittest.TextTestRunner(verbosity=2).run(suite); sys.exit(0 if result.wasSuccessful() and result.testsRun == 8 and not result.skipped else 1)'
+        run: xvfb-run -a python -m tests.run_required --tests tests.test_verify_web
       - name: Restore script syntax and refusal outside disposable CI
         if: success() || failure()
         run: |
@@ -167,6 +234,7 @@ jobs:
           node --input-type=module -e 'import fs from "node:fs"; import prettier from "prettier"; for (const path of process.argv.slice(1)) console.log("OCADE_FORMAT:" + JSON.stringify({path, content: await prettier.format(fs.readFileSync(path, "utf8"), {...await prettier.resolveConfig(path), filepath:path})}));' src/lib/jarvis/contracts.ts src/lib/jarvis/planner.server.ts tests/security/planner.test.ts tests/security/verification.test.ts tests/security/readiness.test.ts tests/security/recovery.test.ts tests/security/verifier-scope.test.ts tests/security/traceability.test.ts tests/security/objective.test.ts tests/security/confirmation.test.ts src/lib/jarvis/authority.server.ts src/lib/jarvis/supervisor.ts scripts/launch-readiness.mjs tests/jarvis/contracts.test.ts tests/jarvis/e2e.test.ts src/lib/jarvis/objective.ts src/lib/jarvis/functions.ts src/jarvis/JarvisWorkspace.tsx src/jarvis/JarvisBubble.tsx src/routes/ocade-jarvis.tsx ToRemove.md evidence/readiness/gates.json .github/workflows/jarvis-cloud-validation.yml
 
   windows-effects-safety:
+    if: github.event_name == 'workflow_dispatch'
     name: Native receipt / COM / process safety · Windows
     runs-on: windows-latest
     timeout-minutes: 8
@@ -181,12 +249,13 @@ jobs:
         run: python -m pip install -r device-agent/windows/requirements.txt
       - name: Native bridge dispatch/readback, COM balance and owned process exit (required, no skips)
         working-directory: device-agent/windows
-        run: python -c 'import sys, unittest; suite=unittest.defaultTestLoader.loadTestsFromNames(["tests.test_effect_receipts", "tests.test_quiescence"]); result=unittest.TextTestRunner(verbosity=2).run(suite); sys.exit(0 if result.wasSuccessful() and result.testsRun == 4 and not result.skipped else 1)'
+        run: python -m tests.run_required --tests tests.test_effect_receipts --tests tests.test_quiescence
       - name: Native exit status, independent rerun and suspended-window regressions
         working-directory: device-agent/windows
-        run: python -c 'import sys, unittest; suite=unittest.defaultTestLoader.loadTestsFromNames(["tests.test_shell.Shell.test_native_exit_codes_and_later_shell_results_are_preserved", "tests.test_verify_kinds.VerifierKinds.test_a_repaired_program_is_rerun_in_a_throwaway_copy", "tests.test_verify_kinds.VerifierKinds.test_a_native_success_cannot_mask_a_later_shell_error", "tests.test_windows_ui.WindowsUiLadder.test_ui_ladder"]); result=unittest.TextTestRunner(verbosity=2).run(suite); sys.exit(0 if result.wasSuccessful() and result.testsRun == 4 and not result.skipped else 1)'
+        run: python -m tests.run_required --tests tests.test_shell.Shell.test_native_exit_codes_and_later_shell_results_are_preserved --tests tests.test_verify_kinds.VerifierKinds.test_a_repaired_program_is_rerun_in_a_throwaway_copy --tests tests.test_verify_kinds.VerifierKinds.test_a_native_success_cannot_mask_a_later_shell_error --tests tests.test_windows_ui.WindowsUiLadder.test_ui_ladder
 
   database-safety:
+    if: github.event_name == 'workflow_dispatch'
     name: Permission revocation / receipt locks · disposable PostgreSQL
     runs-on: ubuntu-latest
     timeout-minutes: 8
@@ -228,6 +297,7 @@ jobs:
           node --input-type=module -e 'import fs from "node:fs"; import path from "node:path"; const folder=path.join(process.env.RUNNER_TEMP,"ocade-held-migration-"+process.env.GITHUB_RUN_ID,"supabase","migrations"); const files=fs.readdirSync(folder); if(files.length!==1||!/^\d{14}_fence_revoked_claims_and_receipt_locks\.sql$/.test(files[0])) throw new Error("unexpected CLI migration output"); console.log("OCADE_HELD_MIGRATION_FILENAME:"+JSON.stringify({name:files[0],scope:"unlinked disposable runner project only"}));'
 
   contracts-db:
+    if: github.event_name == 'workflow_dispatch'
     needs: [planner-safety, windows-effects-safety, database-safety]
     name: Portable build / model contracts / ephemeral DB · Linux
     runs-on: ubuntu-latest
@@ -309,6 +379,7 @@ jobs:
           pip-audit -r device-agent/windows/requirements.txt
 
   companion-cross-platform:
+    if: github.event_name == 'workflow_dispatch'
     needs: [planner-safety, contracts-db]
     name: Python MCP / journal / browser · ${{ matrix.os }}
     strategy:
@@ -372,6 +443,7 @@ jobs:
       # foreground UI automation, macOS AX, customer pairing, or actual media quality.
 
   windows-installer-smoke:
+    if: github.event_name == 'workflow_dispatch'
     needs: [planner-safety, contracts-db]
     name: Windows unsigned installer / frozen MCP smoke · NOT release-ready
     runs-on: windows-latest
