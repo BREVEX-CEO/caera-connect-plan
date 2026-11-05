@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
@@ -119,6 +119,34 @@ test("coding gate detects SQL and authority changes and fails on an invalid comp
       /DB_GATE_REQUESTED/,
       "a fix-only commit must still check SQL changed earlier in its coding batch",
     );
+  } finally {
+    rmSync(folder, { recursive: true, force: true });
+  }
+});
+
+test("coding CI excludes the qualification timing callback while retaining coding cases", () => {
+  const workflow = readFileSync(".github/workflows/jarvis-cloud-validation.yml", "utf8");
+  const gate = workflow.split("\n  planner-safety:")[0];
+  const pattern = gate.match(/--test-name-pattern="([^"]+)"/)?.[1];
+  assert.ok(pattern, "coding integration tests must select their permitted cases explicitly");
+  const folder = mkdtempSync(join(tmpdir(), "ocade-test-selection-"));
+  try {
+    const allowed = join(folder, "coding-ran");
+    const forbidden = join(folder, "qualification-ran");
+    const path = join(folder, "selection.test.mjs");
+    writeFileSync(path, `
+import { test } from "node:test";
+import { writeFileSync } from "node:fs";
+test("coding case", () => writeFileSync(${JSON.stringify(allowed)}, "ran"));
+test("timing suite: qualification case", () => writeFileSync(${JSON.stringify(forbidden)}, "ran"));
+`);
+    const result = spawnSync(process.execPath, ["--test", "--test-name-pattern=" + pattern, path], {
+      encoding: "utf8",
+    });
+    assert.ifError(result.error);
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(existsSync(allowed), true, "ordinary coding tests must execute");
+    assert.equal(existsSync(forbidden), false, "qualification callbacks must not execute");
   } finally {
     rmSync(folder, { recursive: true, force: true });
   }

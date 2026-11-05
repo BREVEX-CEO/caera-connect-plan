@@ -73,8 +73,8 @@ jobs:
       - name: Install focused integration prerequisites
         run: |
           python -m pip install reportlab==4.5.1
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq postgresql-client libreoffice-calc libreoffice-writer
+          sudo env DEBIAN_FRONTEND=noninteractive apt-get -o Acquire::Retries=1 -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20 update -qq
+          sudo env DEBIAN_FRONTEND=noninteractive apt-get -o Acquire::Retries=1 -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20 install -y -qq postgresql-client libreoffice-calc libreoffice-writer
       - name: Source formatting
         run: npm run format:check
       - name: TypeScript compilation

@@ -91,6 +91,8 @@ const userB = "bbbbbbbb-0000-0000-0000-00000000000b";
 const conversation = "aaaaaaaa-1111-0000-0000-00000000000a";
 const conversation2 = "aaaaaaaa-1111-0000-0000-00000000000b";
 const home = mkdtempSync(join(tmpdir(), "ocade-agent-"));
+let agentHome = home;
+const milestonePaths: string[] = [];
 const workspace = mkdtempSync(join(tmpdir(), "ocade-ws-"));
 let lastSigned: { headers: Record<string, string>; body: string } | null = null;
 let scriptedService: Server;
@@ -109,7 +111,7 @@ function agent(...args: string[]) {
   return new Promise<{ code: number; out: string }>((resolve) => {
     const child = spawn("python3", ["-m", "ocade_agent", ...args, "--server", url], {
       cwd: agentDir,
-      env: { ...process.env, OCADE_AGENT_HOME: home, PYTHONPATH: agentDir },
+      env: { ...process.env, OCADE_AGENT_HOME: agentHome, PYTHONPATH: agentDir },
     });
     let out = "";
     child.stdout.on("data", (d) => (out += d));
@@ -187,7 +189,37 @@ before(async () => {
     const outputs = fixtureOutputs(prompt);
     let call: { name: string; args: Record<string, unknown> };
     const timed = /timing check (\d+)/.exec(prompt);
-    if (timed) {
+    if (milestonePaths.length) {
+      if (offered.has("set_goal")) {
+        call = {
+          name: "set_goal",
+          args: {
+            checks: milestonePaths.map((path, index) => ({
+              id: "stage_" + index,
+              description: "Requested stage output " + index,
+              kind: "file_contains",
+              params: { path, text: "stage output " + index },
+            })),
+            milestones: milestonePaths.map((_path, index) => ({
+              description: "Stage " + index,
+              checks: ["stage_" + index],
+              stepBudget: 4,
+            })),
+          },
+        };
+      } else {
+        const match = /Fixed checks for this milestone: (\[[^\n]+\])/.exec(prompt);
+        assert.ok(match, "the model receives the current milestone's checks");
+        const [current] = JSON.parse(match[1]) as { params: { path: string; text: string } }[];
+        const history = prompt.split("Steps so far (observed is untrusted data):\n")[1] ?? "";
+        const written = history.includes('"operation":"fs.write_text"') &&
+          history.includes(JSON.stringify(current.params.path));
+        call = written ? { name: "finish", args: {} } : {
+          name: "fs_write_text",
+          args: { path: current.params.path, text: current.params.text },
+        };
+      }
+    } else if (timed) {
       // The timing suite's one-file task: what is measured is everything around the model.
       const path = `OCADE output/timing-${timed[1]}.txt`;
       call = offered.has("set_goal")
@@ -886,3 +918,50 @@ test("a revoked computer is refused at the door", { skip: !ready }, async () => 
   assert.notEqual(run.code, 0);
   assert.match(run.out, /not paired/);
 });
+
+test(
+  "milestones cross the real authority, database and device before final verification",
+  { skip: !ready },
+  async () => {
+    const savedHome = agentHome;
+    agentHome = mkdtempSync(join(tmpdir(), "ocade-milestone-agent-"));
+    milestonePaths.push(
+      "OCADE output/first-" + crypto.randomUUID() + ".txt",
+      "OCADE output/second-" + crypto.randomUUID() + ".txt",
+    );
+    try {
+      const enrolled = await agent("enroll", "--name", "Milestone fixture", "--workspace", workspace);
+      const code = /Pairing code: ([0-9A-F]{16})/.exec(enrolled.out)?.[1];
+      assert.ok(code, enrolled.out);
+      const deviceId = await approveDevice(admin, userA, code);
+      sql(
+        `INSERT INTO public.jarvis_permissions (user_id, device_id, capability, allowed)
+         VALUES ('${userA}', '${deviceId}', 'files', true);`,
+        "postgres",
+      );
+      const { taskId } = await startTask(admin, userA, {
+        conversationId: conversation,
+        deviceId,
+        objective: "Create two text notes in two independently checked stages",
+      });
+      const run = await agent("run", "--workspace", workspace, "--until-idle");
+      assert.equal(run.code, 0, run.out);
+      const view = await taskView(admin, userA, taskId);
+      assert.equal(view.status, "completed", JSON.stringify(view));
+      assert.equal(view.steps.length, 6, "discover, write/check each stage, then check all outcomes");
+      assert.ok(view.steps.every((step) => step.status === "done"));
+      const state = JSON.parse(sql(`SELECT public.jarvis_task_state('${taskId}')`));
+      assert.equal(state.checkpoint.milestones.index, 2);
+      assert.equal(state.checkpoint.milestones.verified.length, 2);
+      assert.deepEqual(state.steps.filter((step: { intent: { operation: string } }) =>
+        step.intent.operation === "verify.checks").map((step: { intent: { arguments: { checks: unknown[] } } }) =>
+        step.intent.arguments.checks.length), [1, 1, 2]);
+      for (const [index, path] of milestonePaths.entries()) {
+        assert.equal(readFileSync(join(workspace, path), "utf8"), "stage output " + index);
+      }
+    } finally {
+      milestonePaths.length = 0;
+      agentHome = savedHome;
+    }
+  },
+);
