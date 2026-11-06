@@ -45,7 +45,7 @@ jobs:
       PGUSER: postgres
       PGPASSWORD: jarvis_disposable_ci_only
       OCADE_DB_ADVISORS: "1"
-      CODING_BASE_SHA: 14128741d6bf588e47676d4208b5e320bcc14109
+      CODING_BASE_SHA: 19d211044414a32d8675f531b7ae0fd890e8120a
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
@@ -88,6 +88,13 @@ jobs:
             sudo timeout --kill-after=5s 75s apt-get "${apt_options[@]}" update -qq
             sudo timeout --kill-after=5s 75s env DEBIAN_FRONTEND=noninteractive apt-get "${apt_options[@]}" install -y -qq "${packages[@]}"
           fi
+      - name: Reserve the disposable session-fence migration filename
+        run: |
+          migration_workspace=$(mktemp -d "$RUNNER_TEMP/ocade-migration.XXXXXX")
+          cd "$migration_workspace"
+          npx --yes supabase@2.122.0 init
+          npx --yes supabase@2.122.0 migration new jarvis_session_fences
+          printf 'OCADE_MIGRATION:%s\n' supabase/migrations/*_jarvis_session_fences.sql
       - name: Source formatting
         run: npm run format:check
       - name: TypeScript compilation
@@ -457,15 +464,20 @@ jobs:
         env:
           OCADE_DISPOSABLE_POSTGRES_CONTAINER: ${{ job.services.postgres.id }}
         run: bash tests/jarvis/db/restore.sh
-      - name: Website surface audit (built site served locally; every reachable page, desktop and phone)
+      - name: Audit the built loopback site in Chromium, Firefox and WebKit
         if: success() || failure()
         run: |
-          python -m playwright install chromium
+          python -m playwright install --with-deps chromium firefox webkit
           test -f .output/server/index.mjs || npm run build
           npx wrangler dev --ip 127.0.0.1 --port 8787 --local > wrangler.log 2>&1 &
+          site_pid=$!
+          trap 'kill "$site_pid" 2>/dev/null || true' EXIT
           for i in $(seq 1 60); do curl -sf -o /dev/null http://127.0.0.1:8787/ && break; sleep 2; done
-          python tests/web/surface_audit.py http://127.0.0.1:8787
-          python tests/web/objective_handoff.py http://127.0.0.1:8787
+          curl -sf -o /dev/null http://127.0.0.1:8787/
+          for engine in chromium firefox webkit; do
+            python tests/web/surface_audit.py http://127.0.0.1:8787 --engine "$engine" --pwa
+            python tests/web/objective_handoff.py http://127.0.0.1:8787 --engine "$engine"
+          done
       - name: Launch readiness is computed only from existing evidence
         if: success() || failure()
         run: |

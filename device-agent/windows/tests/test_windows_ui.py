@@ -208,6 +208,28 @@ class WindowsUiLadder(unittest.TestCase):
 
 
 class DesktopTargetContract(unittest.TestCase):
+    def test_protected_control_value_is_never_read_or_returned(self):
+        from types import SimpleNamespace
+        from ocade_agent import windows_worker
+
+        class Protected:
+            element_info = SimpleNamespace(
+                name="private-value", automation_id="private-id", control_type="Edit",
+                element=SimpleNamespace(CurrentIsPassword=1),
+            )
+
+            def is_enabled(self):
+                return True
+
+            @property
+            def iface_value(self):
+                raise AssertionError("a protected control's value interface must stay unopened")
+
+        self.assertEqual(windows_worker._describe(Protected()), {
+            "name": "Protected text field", "automationId": "", "controlType": "Edit",
+            "enabled": True, "protected": True,
+        })
+
     def test_virtual_desktop_points_and_obscured_windows(self):
         from types import SimpleNamespace
         from ocade_agent.sandbox import Refused

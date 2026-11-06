@@ -1592,10 +1592,10 @@ Coding status is kept separate from runtime verification (Appendix A), so nothin
 | 58 | CODE | NOT CODED | C6 |
 | 59 | CODE | NOT CODED | C6 |
 | 60 | CODE | NOT CODED | C3/C10 |
-| 61 | CODE | NOT CODED | C7/C9 |
+| 61 | CODE | BUILDS | Visual grounding, `19d21104` |
 | 62 | CODE | NOT CODED | C6 |
 | 63 | CODE | NOT CODED | C3/C10 |
-| 65 | CODE | NOT CODED | C10 |
+| 65 | QUALIFICATION-ONLY | QUALIFICATION-ONLY; harness BUILDS | Independent fixture server observations, `2ca015fb` |
 | 66 | CODE | NOT CODED | C1/C7 |
 | 67 | CODE | NOT CODED | C1/C7 |
 | 68 | CODE | NOT CODED | C1/C7 |
@@ -1828,7 +1828,9 @@ The existing `tests.run_required.main` loads selected modules/classes/methods or
 
 **Integration transport — BUILDS at `2ca015fb7edf263ca4967d60f872f59aeeb68254`.** [GitHub Actions run 42233846405](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/42233846405) passed the focused hosted gate including ten rendered verifier tests, both Edge entry points and 15 disposable rollback checks. The same run generated the eight affected column declarations and two RPC signatures. The generated declarations and typed metrics call passed schema drift, compilation, migrations and focused tests at `14128741d6bf588e47676d4208b5e320bcc14109`, [run 42269028072](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/42269028072). `verify_checks → _web_texts → _web_fetch` connects to a vetted numeric address with the requested TLS identity, enforces encoded and decoded byte budgets, and feeds the independent browser only intercepted responses. Trusted HTTP proxies tunnel to the vetted numeric endpoint. The release fixture records actual archive requests at its HTTP server for `live_eval.py` to compare against its private target. The hosted gate parses the tracked scripts, type-checks both Edge entry points, and generates the affected public Supabase blocks against the disposable migrated database.
 
-**Visual and source grounding follow-up — CODED for this slice, coding gate pending.** `planStep → observedSinceFailure` requires a fresh observation of the same window or tab before retrying a failed mechanism. A visual click requires the latest image of the exact window. The Windows and macOS workers record bounded, expiring images and recheck geometry, focus and hit targets before invoking their pointer APIs. `vision.match` rejects competing matches and the workers record a post-click observation. `planStep` also recognizes case and separator aliases and parent moves when protecting a checked source, while permitting read-only copying. Arbitrary shell writes and native display qualification remain open.
+**Visual and source grounding follow-up — BUILDS at `19d211044414a32d8675f531b7ae0fd890e8120a`.** [GitHub Actions run 42271665419](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/42271665419) passed the coding gate and five visual target fixtures, including competing patches and expired observations. `planStep → observedSinceFailure` requires a fresh observation of the same window or tab before retrying a failed mechanism. A visual click requires the latest image of the exact window. The Windows and macOS workers record bounded, expiring images and recheck geometry, focus and hit targets before invoking their pointer APIs. `vision.match` rejects competing matches and the workers record a post-click observation. `planStep` also recognizes case and separator aliases and parent moves when protecting a checked source, while permitting read-only copying. Arbitrary shell writes and native display qualification remain open.
+
+**Screen consent and browser audit follow-up — CODED for this slice, coding gate pending.** `DeviceAccess → setJarvisAccess` exposes the existing screen grant. `planStep → callPlanner` withholds prior pictures and visual pointer offers when that grant is off. `ui_inspect`, `ui_set_value` and `ui_send_keys` use the native protected-field flags on Windows and Mac. The manual browser audit checks Chromium, Firefox and WebKit at desktop and phone sizes, including offline shell behavior. Its synthetic session injection is bound to the top-level audit origin and runs only once per page session. Coding CI exercises the isolated injection and native metadata fixtures without launching the manual browser matrix.
 
 **Coding batches (order by code dependency; continue past any blocked item):**
 

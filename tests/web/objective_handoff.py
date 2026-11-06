@@ -3,6 +3,7 @@
 Randomized text includes code indentation, significant spaces, Unicode and the
 8000-character composer boundary. Runs only against a loopback CI website.
 """
+import argparse
 import json
 import os
 import secrets
@@ -11,20 +12,24 @@ from urllib.parse import quote, urlparse
 
 from playwright.sync_api import expect, sync_playwright
 
+from surface_audit import ENGINES, browser_profiles, launch_audit_browser
 
-def main(base: str) -> int:
+
+def main(base: str, engine: str = "chromium") -> int:
     if os.environ.get("GITHUB_ACTIONS") != "true" or urlparse(base).hostname not in ("127.0.0.1", "localhost"):
         raise RuntimeError("This fixture requires a disposable CI loopback website")
     nonce = secrets.token_hex(16)
     code = f'Repair {nonce}  draft.py without losing this block:\nif ready:\n    print("a  b")\nKeep the original unchanged. Preserve résumé नमस्ते 🌌.'
     boundary = "x" * (8000 - len(nonce)) + nonce
     failures, passed = [], 0
+    cases = (("significant whitespace", code), ("8000-character boundary", boundary))
     with sync_playwright() as playwright:
-        browser = playwright.chromium.launch(executable_path=os.environ.get("OCADE_BROWSER_EXECUTABLE"))
+        browser = launch_audit_browser(playwright, engine)
+        profiles = browser_profiles(playwright, engine)
         try:
-            for name, viewport in (("desktop", {"width": 1366, "height": 900}), ("phone", {"width": 390, "height": 844})):
-                for label, objective in (("significant whitespace", code), ("8000-character boundary", boundary)):
-                    context = browser.new_context(viewport=viewport)
+            for name, options in profiles:
+                for label, objective in cases:
+                    context = browser.new_context(**options)
                     try:
                         page = context.new_page()
                         response = page.goto(base.rstrip("/") + "/ocade-jarvis?ask=" + quote(objective, safe=""), wait_until="networkidle")
@@ -45,8 +50,11 @@ def main(base: str) -> int:
         finally:
             browser.close()
     print("OCADE_OBJECTIVE_BROWSER:" + json.dumps({"passed": passed, "failed": len(failures), "cases": failures}))
-    return 1 if failures or passed != 4 else 0
+    return int(bool(failures) or not profiles or passed != len(profiles) * len(cases))
 
 
 if __name__ == "__main__":
-    sys.exit(main(*sys.argv[1:]))
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("base")
+    parser.add_argument("--engine", choices=ENGINES, default="chromium")
+    sys.exit(main(**vars(parser.parse_args())))

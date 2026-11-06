@@ -146,7 +146,7 @@ export const latestJarvisTask = createServerFn({ method: "GET" })
   });
 
 const capability = z.union([
-  z.enum(["files", "apps", "browser", "computer_control", "mcp"]),
+  z.enum(["files", "apps", "browser", "screen", "computer_control", "mcp"]),
   z.string().regex(/^mcp:[a-z][a-z0-9_]{1,30}$/),
   z.string().regex(/^site:[a-z0-9]([a-z0-9.-]{0,251}[a-z0-9])?$/),
   appPermission,
@@ -253,10 +253,10 @@ export const listJarvisDevices = createServerFn({ method: "GET" })
           ? "disconnected"
           : now - Date.parse(device.last_seen_at) > DEVICE_SILENCE_MS
             ? "offline"
-            : active.has(device.id)
-              ? "busy"
-              : !allowed
-                ? "permission_required"
+            : !allowed
+              ? "permission_required"
+              : active.has(device.id)
+                ? "busy"
                 : "ready";
       return { ...device, state };
     });

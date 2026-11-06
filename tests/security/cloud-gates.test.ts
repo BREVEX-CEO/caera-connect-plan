@@ -297,3 +297,47 @@ test("the streamed account export preserves device records without credentials o
   );
   assert.equal(document.partial, true);
 });
+
+test("the browser audit never sends a synthetic session to redirects or subframes", () => {
+  const result = spawnSync(
+    "python3",
+    [
+      "-c",
+      [
+        'import sys; sys.path.insert(0, "tests/web")',
+        "from surface_audit import ENGINES, browser_profiles, route_url, session_script",
+        "from playwright.sync_api import sync_playwright",
+        "with sync_playwright() as driver:",
+        "    assert all(len(browser_profiles(driver, engine)) == 2 for engine in ENGINES)",
+        'assert route_url("https://audit.example/", "/library?view=summary#items") == "https://audit.example/library?view=summary"',
+        'assert route_url("https://audit.example/", "http://audit.example/library") is None',
+        'assert route_url("https://audit.example/", "https://other.example/library") is None',
+        'print(session_script("https://audit.example", "session-key", "synthetic-session"))',
+      ].join("\n"),
+    ],
+    { encoding: "utf8" },
+  );
+  assert.ifError(result.error);
+  assert.equal(result.status, 0, result.stderr);
+  const writes: [string, string][] = [];
+  const session = new Map<string, string>();
+  const environment = {
+    window: {} as { top?: unknown },
+    location: { origin: "https://other.example" },
+    localStorage: { setItem: (key: string, value: string) => writes.push([key, value]) },
+    sessionStorage: {
+      getItem: (key: string) => session.get(key),
+      setItem: (key: string, value: string) => session.set(key, value),
+    },
+  };
+  environment.window.top = environment.window;
+  runInNewContext(result.stdout, environment);
+  environment.location.origin = "https://audit.example";
+  environment.window.top = {};
+  runInNewContext(result.stdout, environment);
+  assert.deepEqual(writes, []);
+  environment.window.top = environment.window;
+  runInNewContext(result.stdout, environment);
+  runInNewContext(result.stdout, environment);
+  assert.deepEqual(writes, [["session-key", "synthetic-session"]]);
+});

@@ -169,6 +169,23 @@ class MacUiLadder(unittest.TestCase):
 
 
 class AxEventContract(unittest.TestCase):
+    def test_secure_ax_field_is_redacted_before_value_lookup(self):
+        from unittest.mock import patch
+        from ocade_agent import mac_worker
+
+        def attribute(_element, name):
+            if name == "AXValue":
+                raise AssertionError("a secure field's value must not be read")
+            return {"AXSubrole": "AXSecureTextField", "AXTitle": "private-value",
+                    "AXIdentifier": "private-id", "AXRole": "AXTextField"}.get(name)
+
+        with patch.object(mac_worker, "_attribute", side_effect=attribute):
+            evidence = mac_worker._describe(object(), (0, 0, 100, 100))
+        self.assertTrue(evidence["protected"])
+        self.assertEqual(evidence["name"], "Protected text field")
+        self.assertEqual(evidence["automationId"], "")
+        self.assertNotIn("value", evidence)
+
     def test_native_observer_runs_and_detaches_at_the_action_boundary(self):
         import sys
         from types import SimpleNamespace

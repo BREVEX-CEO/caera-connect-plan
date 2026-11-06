@@ -977,6 +977,7 @@ export function offeredOperations(grants: string[], engines: string[] | null) {
       !name.startsWith("verify.") &&
       !name.startsWith("mcp.") &&
       grants.includes(spec.capability) &&
+      (name !== "ui.click_point" || grants.includes("screen")) &&
       (!spec.engine ||
         (spec.engine === "dependencies"
           ? engines?.includes(spec.engine)
@@ -1321,7 +1322,7 @@ export async function planStep(input: {
         .filter(Boolean)
         .join("\n\n"),
       tools,
-      attachments: previewAttachments(steps),
+      attachments: input.grants.includes("screen") ? previewAttachments(steps) : [],
     });
     if (call.name === "ask") {
       return {

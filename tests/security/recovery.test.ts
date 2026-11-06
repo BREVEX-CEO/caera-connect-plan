@@ -26,8 +26,11 @@ type Proposal = { name: string; arguments: Record<string, unknown> };
 test("mutations require fresh planning; unknown effects fence resumption", async (t) => {
   let proposals: Proposal[] = [list];
   let calls = 0;
+  let attachments: { image: string }[] = [];
   const server = createServer(async (req, res) => {
-    for await (const chunk of req) void chunk;
+    const chunks: Buffer[] = [];
+    for await (const chunk of req) chunks.push(chunk);
+    attachments = JSON.parse(Buffer.concat(chunks).toString("utf8")).attachments;
     calls += 1;
     const toolCalls = proposals.map((call, n) => ({ ...call, id: `proposal-${n}` }));
     const frames = [
@@ -116,12 +119,17 @@ test("mutations require fresh planning; unknown effects fence resumption", async
       ];
       const desktop = {
         ...base,
-        grants: ["files", "computer_control", "app:fixture.exe"],
+        grants: ["files", "computer_control", "screen", "app:fixture.exe"],
         engines: ["desktop"],
       };
       assert.equal((await planStep({ ...desktop, steps: [inspect(other)] })).kind, "block");
       assert.equal((await planStep({ ...desktop, steps: [inspect(window, false)] })).kind, "block");
       assert.equal((await planStep({ ...desktop, steps: [inspect(window)] })).kind, "queue");
+      assert.deepEqual(attachments.map(({ image }) => image), ["dGVzdA=="]);
+      const revoked = desktop.grants.filter((grant) => grant !== "screen");
+      const decision = await planStep({ ...desktop, grants: revoked, steps: [inspect(window)] });
+      assert.equal(decision.kind, "block");
+      assert.deepEqual(attachments, [], "a revoked screen grant must also withhold prior pictures");
     });
     await t.test(
       "case, slash aliases and parent moves cannot change an unrequested check source",

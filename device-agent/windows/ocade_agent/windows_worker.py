@@ -144,18 +144,30 @@ def _element(window, element: dict):
         raise Refused("element_not_found")
 
 
+def _password_state(element) -> bool | None:
+    try:
+        value = element.CurrentIsPassword
+        return None if value is None else bool(value)
+    except Exception:
+        return None
+
+
 def _describe(wrapper) -> dict:
     info = wrapper.element_info
+    protected = _password_state(info.element)
     out = {
-        "name": (info.name or "")[:120],
-        "automationId": (info.automation_id or "")[:120],
+        "name": "Protected text field" if protected else (info.name or "")[:120],
+        "automationId": "" if protected else (info.automation_id or "")[:120],
         "controlType": info.control_type,
         "enabled": wrapper.is_enabled(),
     }
-    try:
-        out["value"] = str(wrapper.iface_value.CurrentValue)[:200]
-    except Exception:
-        pass
+    if protected is True:
+        out["protected"] = True
+    elif protected is False:
+        try:
+            out["value"] = str(wrapper.iface_value.CurrentValue)[:200]
+        except Exception:
+            pass
     return out
 
 
@@ -221,9 +233,14 @@ def ui_inspect(window: dict) -> dict:
         elements.append(described)
         if len(json.dumps(elements)) > 13_000:  # the gateway refuses evidence over 16 KB
             break
+    key = json.dumps(window, sort_keys=True)
+    title = target.window_text()[:200]
+    if any(element.get("protected") for element in elements):
+        _seen.pop(key, None)
+        return {"title": title, "elements": elements, "previewUnavailable": "protected_content"}
     shot = ImageGrab.grab(bbox=(left, top, right, bottom), all_screens=True)
-    vision.remember(_seen, json.dumps(window, sort_keys=True), shot)
-    return {"title": target.window_text()[:200], "elements": elements, "preview": preview_jpeg(shot, 30_000)}
+    vision.remember(_seen, key, shot)
+    return {"title": title, "elements": elements, "preview": preview_jpeg(shot, 30_000)}
 
 
 @app.tool()
@@ -261,6 +278,8 @@ def ui_set_value(window: dict, element: dict, value: str) -> dict:
     from pywinauto.uia_defines import NoPatternInterfaceError  # type: ignore[import-not-found]
 
     wrapper = _element(_leased(window), element)
+    if _password_state(wrapper.element_info.element) is not False:
+        raise Refused("protected_control")
     _person_quiet()
     try:
         interface = wrapper.iface_value
@@ -270,7 +289,7 @@ def ui_set_value(window: dict, element: dict, value: str) -> dict:
         raise Refused("pattern_unsupported")
     mark_effect()
     interface.SetValue(value)
-    actual = interface.CurrentValue
+    actual = interface.CurrentValue if _password_state(wrapper.element_info.element) is False else None
     after = _describe(wrapper)
     return {"after": after, "matches": actual is not None and str(actual) == value}
 
@@ -281,9 +300,12 @@ def ui_send_keys(window: dict, keys: str, element: dict | None = None) -> dict:
     """Type a shortcut or text into the leased window (into `element` when given), only while it holds the foreground."""
     import win32gui  # type: ignore[import-not-found]
     from pywinauto.keyboard import send_keys  # type: ignore[import-not-found]
+    from pywinauto.uia_defines import IUIA  # type: ignore[import-not-found]
 
     target = _leased(window)
     control = _element(target, element) if element is not None else None
+    if control is not None and _password_state(control.element_info.element) is not False:
+        raise Refused("protected_control")
     _person_quiet()
     try:  # focusing can itself send input (pywinauto taps Alt to take the foreground)
         mark_effect()
@@ -292,6 +314,17 @@ def ui_send_keys(window: dict, keys: str, element: dict | None = None) -> dict:
             raise Refused("focus_lost")
         if control is not None:
             control.set_focus()
+        automation = IUIA().iuia
+        focused = automation.GetFocusedElement()
+        if focused is None or _password_state(focused) is not False:
+            raise Refused("protected_control")
+        if win32gui.GetForegroundWindow() != window["hwnd"]:
+            raise Refused("focus_lost")
+        if control is not None:
+            if not automation.CompareElements(focused, control.element_info.element):
+                raise Refused("focus_lost")
+        elif focused.CurrentProcessId != window["pid"]:
+            raise Refused("focus_lost")
         send_keys(keys, pause=0.02, with_spaces=True)  # default drops every space in typed text
     finally:
         _own_input["at"] = time.monotonic()

@@ -211,17 +211,26 @@ def _walk(element, depth: int = 0):
             yield from _walk(child, depth + 1)
 
 
+def _protected_control(element) -> bool:
+    return _attribute(element, "AXSubrole") == "AXSecureTextField"
+
+
 def _describe(element, bounds) -> dict:
     x, y, width, height = bounds
+    protected = _protected_control(element)
     out = {
-        "name": str(_attribute(element, "AXTitle") or _attribute(element, "AXDescription") or "")[:120],
-        "automationId": str(_attribute(element, "AXIdentifier") or "")[:120],
+        "name": ("Protected text field" if protected else
+                 str(_attribute(element, "AXTitle") or _attribute(element, "AXDescription") or "")[:120]),
+        "automationId": "" if protected else str(_attribute(element, "AXIdentifier") or "")[:120],
         "controlType": str(_attribute(element, "AXRole") or "")[:40],
         "enabled": bool(_attribute(element, "AXEnabled") if _attribute(element, "AXEnabled") is not None else True),
     }
-    value = _attribute(element, "AXValue")
-    if isinstance(value, (str, int, float)):
-        out["value"] = str(value)[:200]
+    if protected:
+        out["protected"] = True
+    else:
+        value = _attribute(element, "AXValue")
+        if isinstance(value, (str, int, float)):
+            out["value"] = str(value)[:200]
     position, size = _point(_attribute(element, "AXPosition")), _point(_attribute(element, "AXSize"))
     if position and size and width and height and size[0] > 0 and size[1] > 0:
         out["box"] = [round((position[0] - x) / width, 3), round((position[1] - y) / height, 3),
@@ -315,11 +324,16 @@ def ui_inspect(window: dict) -> dict:
             break
     x, y, width, height = bounds
     title = str(_attribute(target, "AXTitle") or "")[:200]
+    key = json.dumps(window, sort_keys=True)
+    if any(element.get("protected") for element in elements):
+        _seen.pop(key, None)
+        return {"title": title, "elements": elements, "previewUnavailable": "protected_content"}
     if not _screen_capture_allowed():
         # Controls still work through Accessibility; only the picture needs Screen Recording.
+        _seen.pop(key, None)
         return {"title": title, "elements": elements, "previewUnavailable": "screen_recording_permission_needed"}
     shot = ImageGrab.grab(bbox=(x, y, x + width, y + height))
-    vision.remember(_seen, json.dumps(window, sort_keys=True), shot)
+    vision.remember(_seen, key, shot)
     return {"title": title, "elements": elements, "preview": preview_jpeg(shot, 30_000)}
 
 
@@ -347,12 +361,14 @@ def ui_set_value(window: dict, element: dict, value: str) -> dict:
 
     target, bounds = _leased(window)
     control = _element(target, element)
+    if _protected_control(control):
+        raise Refused("protected_control")
     _person_quiet()
     with _ax_change_events(window, target, control) as events:
         mark_effect()
         if AX.AXUIElementSetAttributeValue(control, "AXValue", value) != 0:
             raise Refused("pattern_unsupported")
-    actual = _attribute(control, "AXValue")
+    actual = None if _protected_control(control) else _attribute(control, "AXValue")
     after = _describe(control, bounds)
     return {"after": after, "matches": actual is not None and str(actual) == value, "axEvents": events}
 
@@ -362,16 +378,24 @@ def ui_set_value(window: dict, element: dict, value: str) -> dict:
 def ui_send_keys(window: dict, keys: str, element: dict | None = None) -> dict:
     """Type text into the leased window (into `element` when given), only while it is frontmost."""
     import ApplicationServices as AX  # type: ignore[import-not-found]
+    import CoreFoundation as CF  # type: ignore[import-not-found]
     import Quartz  # type: ignore[import-not-found]
 
     target, _ = _leased(window)
     control = _element(target, element) if element is not None else None
+    if control is not None and _protected_control(control):
+        raise Refused("protected_control")
     _person_quiet()
     try:
         _front(window["pid"])
         if control is not None:
             mark_effect()
             AX.AXUIElementSetAttributeValue(control, "AXFocused", True)
+        focused = _attribute(AX.AXUIElementCreateApplication(window["pid"]), "AXFocusedUIElement")
+        if focused is None or _protected_control(focused):
+            raise Refused("protected_control")
+        if control is not None and not CF.CFEqual(focused, control):
+            raise Refused("focus_lost")
         for character in keys:
             for down in (True, False):
                 event = Quartz.CGEventCreateKeyboardEvent(None, 0, down)
