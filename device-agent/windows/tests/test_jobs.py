@@ -233,6 +233,60 @@ class StopEndsJobs(unittest.TestCase):
 
 
 class DependencyInstall(unittest.TestCase):
+    def test_dependency_discovery_reads_architecture_without_running_the_candidate(self):
+        import struct
+        from ocade_agent import discovery
+
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "runtime"
+            pe = bytearray(134)
+            pe[:2] = b"MZ"
+            struct.pack_into("<I", pe, 60, 128)
+            pe[128:132] = b"PE\0\0"
+            struct.pack_into("<H", pe, 132, 0xAA64)
+            path.write_bytes(pe)
+            self.assertEqual(discovery.executable_architectures(path), ["arm64"])
+
+            elf = bytearray(20)
+            elf[:6] = b"\x7fELF\x02\x01"
+            struct.pack_into("<H", elf, 18, 62)
+            path.write_bytes(elf)
+            self.assertEqual(discovery.executable_architectures(path), ["x64"])
+
+            fat = bytearray(48)
+            struct.pack_into(">IIII", fat, 0, 0xCAFEBABE, 2, 0x01000007, 0)
+            struct.pack_into(">I", fat, 28, 0x0100000C)
+            path.write_bytes(fat)
+            self.assertEqual(discovery.executable_architectures(path), ["x64", "arm64"])
+            path.write_bytes(fat[:-1])
+            self.assertEqual(discovery.executable_architectures(path), [])
+
+    def test_verified_dependency_reports_loader_and_policy_failures(self):
+        from types import SimpleNamespace
+        from unittest.mock import patch
+        from ocade_agent import discovery
+        from ocade_agent.sandbox import Refused
+
+        proposal = {"name": "node", "version": "1", "architecture": "x64", "destination": "runtime"}
+        executable = Path("fixture") / "node"
+        with (patch.object(discovery, "dependency_proposal", return_value=proposal),
+              patch.object(discovery, "dependency_paths", return_value=(executable, executable)),
+              patch.object(discovery, "dependency_integrity", return_value=True),
+              patch.object(subprocess, "run") as startup):
+            for status, stderr, reason in (
+                (0xC0000135, b"", "dependency_missing_library"),
+                (1, b"dyld: Library not loaded", "dependency_missing_library"),
+                (1, b"code signature invalid", "dependency_security_policy"),
+                (1, b"Bad CPU type in executable", "dependency_architecture_mismatch"),
+            ):
+                startup.return_value = SimpleNamespace(returncode=status, stdout=b"", stderr=stderr)
+                with self.subTest(reason=reason), self.assertRaisesRegex(Refused, reason):
+                    discovery.verify_dependency("fixture", proposal)
+            startup.side_effect = OSError("private environment detail")
+            startup.side_effect.winerror = 1260
+            with self.assertRaisesRegex(Refused, "dependency_security_policy"):
+                discovery.verify_dependency("fixture", proposal)
+
     def test_gateway_discovers_a_dependency_through_the_bundled_worker(self):
         async def go(root):
             async with Gateway(root, home=root) as gateway:

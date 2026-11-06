@@ -986,6 +986,19 @@ export function offeredOperations(grants: string[], engines: string[] | null) {
   });
 }
 
+const DEPENDENCY_FAILURES: Record<string, string> = {
+  dependency_missing_library: "A required native library is missing.",
+  dependency_library_entry_point: "An installed native library is incompatible.",
+  dependency_library_initialization_failed: "A required native library could not start.",
+  dependency_architecture_mismatch:
+    "The executable architecture is incompatible with this computer.",
+  dependency_invalid_native_image: "The operating system could not load this executable.",
+  dependency_permission_denied: "The operating system denied access to the executable.",
+  dependency_admin_required: "The operating system requires an administrator to approve this setup.",
+  dependency_security_policy: "The computer's security policy blocked the executable.",
+  insufficient_storage: "The computer ran out of space during installation.",
+};
+
 export async function planStep(input: {
   userId: string;
   objective: string;
@@ -1094,9 +1107,13 @@ export async function planStep(input: {
       last.receipt.evidence.destination !== approved.destination
     ) {
       const code = last.receipt?.errorCode;
+      const explanation =
+        code && Object.hasOwn(DEPENDENCY_FAILURES, code) ? DEPENDENCY_FAILURES[code] : null;
       return {
         kind: "wait",
-        reason: `JARVIS could not verify ${approved.name}${code ? ` (${code})` : ""}. Check the installed version or permissions before continuing.`,
+        reason: explanation
+          ? `JARVIS could not verify ${approved.name}. ${explanation}`
+          : `JARVIS could not verify ${approved.name}${code ? ` (${code})` : ""}. Check the installed version or permissions before continuing.`,
       };
     }
   }

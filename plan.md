@@ -1576,7 +1576,7 @@ Coding status is kept separate from runtime verification (Appendix A), so nothin
 | 35 | CODE | BUILDS | C2, `ec44dd79` |
 | 37 | CODE | BUILDS | C10, `604e808d` |
 | 38 | CODE | BUILDS | C2, `ec44dd79` |
-| 40 | CODE | NOT CODED | C10 |
+| 40 | CODE | BUILDS | C9/C10 session fence |
 | 44 | CODE | BUILDS | C4, `e2f7053e` |
 | 45 | CODE | BUILDS | C4, `e2f7053e` |
 | 46 | CODE | NOT CODED | C3/C10 |
@@ -1832,7 +1832,9 @@ The existing `tests.run_required.main` loads selected modules/classes/methods or
 
 **Screen consent and browser audit follow-up — BUILDS at `a7c93e1e2099a4267df77c33502aa1ecce72c18a`.** [GitHub Actions run 42273524172](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/42273524172) passed 146 TypeScript tests, 108 companion tests, five visual fixtures and six evaluation bookkeeping tests. `DeviceAccess → setJarvisAccess` exposes the existing screen grant. `planStep → callPlanner` withholds prior pictures and visual pointer offers when that grant is off. `ui_inspect`, `ui_set_value` and `ui_send_keys` use the native protected-field flags on Windows and Mac. The manual browser audit checks Chromium, Firefox and WebKit at desktop and phone sizes, including offline shell behavior. Its synthetic session injection is bound to the top-level audit origin and runs only once per page session. Coding CI exercises the isolated injection and native metadata fixtures without launching the manual browser matrix.
 
-**Session dispatch fence follow-up — CODED for this slice, coding gate pending.** `startJarvisTask/resumeJarvisTask → jarvis_open_task/jarvis_resume_task` bind the task to the session claim that authenticated the request. The authority checks that session inside the task lock during `jarvis_queue_actions` and `jarvis_claim_action`, so an ended session stops admission and held work even when the companion remains signed in. `jarvis_action_allowed` rechecks screen consent for pointer actions. The state RPC and account export omit the internal session identifier. Existing service and automatic retry calls retain their compatible argument defaults.
+**Session dispatch fence follow-up — BUILDS at `0565d216568313dc34565dee8b094875dc4b3ae8`.** [Hosted coding gate 42275849184](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/42275849184) exercised expired and cross-account sessions, screen-grant revocation and a signed companion stopped before pickup after browser sign-out. `startJarvisTask/resumeJarvisTask → jarvis_open_task/jarvis_resume_task` bind the task to the session claim that authenticated the request. The authority checks that session inside the task lock during `jarvis_queue_actions` and `jarvis_claim_action`, so an ended session stops admission and held work even when the companion remains signed in. `jarvis_action_allowed` rechecks screen consent for pointer actions. The state RPC and account export omit the internal session identifier. Existing service and automatic retry calls retain their compatible argument defaults.
+
+**C4 native dependency diagnostics follow-up — CODED for this slice, coding gate pending.** `system_dependency → dependency_candidates → executable_architectures/executable_version` reads PE, ELF, Mach-O and native metadata without running discovered candidates. `system_install_dependency → _stage_dependency` and `verify_dependency → dependency_os_error/_dependency_startup_failure` classify loader and policy failures, and `planStep` presents the coarse diagnosis. Firefox discovery reports bounded configuration IDs. Native clean-machine installation and platform acceptance remain open.
 
 **Coding batches (order by code dependency; continue past any blocked item):**
 

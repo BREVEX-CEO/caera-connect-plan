@@ -242,7 +242,7 @@ def _stage_dependency(stage: Path, proposal: dict, executable_name: str) -> None
     import shutil
     import tarfile
 
-    from .discovery import DEPENDENCY_BYTES, _node_archive_member
+    from .discovery import DEPENDENCY_BYTES, _node_archive_member, dependency_os_error
     from .sandbox import sha256
 
     archive = stage / ("vendor.tar.gz" if proposal["platform"] == "Darwin" else executable_name)
@@ -255,8 +255,8 @@ def _stage_dependency(stage: Path, proposal: dict, executable_name: str) -> None
                 if size > DEPENDENCY_BYTES or time.monotonic() > deadline:
                     raise Refused("dependency_download_limit")
                 out.write(chunk)
-    except OSError:
-        raise Refused("dependency_download_failed") from None
+    except OSError as error:
+        raise Refused(dependency_os_error(error, "dependency_download_failed")) from None
     if sha256(archive) != proposal["sha256"]:
         raise Refused("dependency_integrity_failed")
     executable = stage / executable_name
@@ -327,8 +327,8 @@ def system_install_dependency(name: str, version: str, platform: str, architectu
                 raise Refused("dependency_destination_conflict")
             staging.rename(executable.parent)
             mark_effect()
-    except PermissionError:
-        raise Refused("dependency_permission_denied") from None
+    except OSError as error:
+        raise Refused(discovery.dependency_os_error(error, "dependency_installation_failed")) from None
     return {"installed": True, "name": name, "version": version}
 
 

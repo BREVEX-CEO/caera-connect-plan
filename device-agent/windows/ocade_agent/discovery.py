@@ -234,7 +234,7 @@ def browsers() -> list[dict]:
 
 
 def _profiles(name: str, platform: str) -> list[str]:
-    """The browser's profile folder names ("Default", "Profile 1"; Firefox's profile names),
+    """The browser's profile folder names or Firefox configuration section IDs,
     never a profile's contents or the display name the person gave it. OCADE never opens
     these: it works in its own profile, and the person's sign-ins stay theirs."""
     import configparser
@@ -256,11 +256,22 @@ def _profiles(name: str, platform: str) -> list[str]:
     }
     folder = folders.get(name, {}).get(platform)
     try:
+        if folder is None:
+            return []
         if name == "Firefox":
             ini = configparser.ConfigParser(interpolation=None)
-            ini.read(folder / "profiles.ini", encoding="utf-8")
-            return [ini[s]["Name"][:80] for s in ini.sections() if s.startswith("Profile") and "Name" in ini[s]][:20]
-        state = json.loads((folder / "Local State").read_text(encoding="utf-8"))
+            with (folder / "profiles.ini").open(encoding="utf-8") as config:
+                content = config.read(1_000_001)
+            if len(content) > 1_000_000:
+                return []
+            ini.read_string(content)
+            return [section[:80] for section in ini.sections()
+                    if section.startswith("Profile") and "Path" in ini[section]][:20]
+        with (folder / "Local State").open(encoding="utf-8") as config:
+            content = config.read(4_000_001)
+        if len(content) > 4_000_000:
+            return []
+        state = json.loads(content)
         return [str(key)[:80] for key in state["profile"]["info_cache"]][:20]
     except Exception:  # not used yet, unreadable, or a browser with one implicit profile (Safari)
         return []
@@ -435,10 +446,23 @@ def dependency_integrity(executable: Path, artifact: Path, proposal: dict) -> bo
         return False
 
 
-def executable_version(path: str) -> str | None:
-    """Read native version metadata where it exists without executing a PATH candidate."""
+def _bundle_info(bundle: Path) -> dict:
     import plistlib
 
+    try:
+        with (bundle / "Contents/Info.plist").open("rb") as plist:
+            data = plist.read(512_001)
+        if len(data) <= 512_000:
+            metadata = plistlib.loads(data)
+            if isinstance(metadata, dict):
+                return metadata
+    except (OSError, ValueError, plistlib.InvalidFileException):
+        pass
+    return {}
+
+
+def executable_version(path: str) -> str | None:
+    """Read native version metadata where it exists without executing a PATH candidate."""
     if sys.platform == "win32":
         import win32api  # type: ignore[import-not-found]
 
@@ -450,32 +474,153 @@ def executable_version(path: str) -> str | None:
             return None
     for parent in Path(path).parents:
         if parent.suffix == ".app":
-            try:
-                info = plistlib.loads((parent / "Contents/Info.plist").read_bytes())
-                version = info.get("CFBundleShortVersionString")
-                return version[:80] if isinstance(version, str) else None
-            except (OSError, ValueError, plistlib.InvalidFileException):
-                return None
+            version = _bundle_info(parent).get("CFBundleShortVersionString")
+            return version[:80] if isinstance(version, str) else None
     return None
+
+
+def executable_architectures(path: Path) -> list[str]:
+    """Read bounded PE, ELF or Mach-O headers without launching a candidate."""
+    import stat
+
+    pe = {0x014C: "x86", 0x8664: "x64", 0xAA64: "arm64", 0xA641: "arm64ec", 0xA64E: "arm64x"}
+    elf = {3: "x86", 40: "arm", 62: "x64", 183: "arm64"}
+    mach = {7: "x86", 12: "arm", 0x01000007: "x64", 0x0100000C: "arm64"}
+    thin = {b"\xfe\xed\xfa\xce": "big", b"\xce\xfa\xed\xfe": "little",
+            b"\xfe\xed\xfa\xcf": "big", b"\xcf\xfa\xed\xfe": "little"}
+    fat = {b"\xca\xfe\xba\xbe": ("big", 20), b"\xbe\xba\xfe\xca": ("little", 20),
+           b"\xca\xfe\xba\xbf": ("big", 32), b"\xbf\xba\xfe\xca": ("little", 32)}
+    try:
+        flags = os.O_RDONLY | getattr(os, "O_BINARY", 0) | getattr(os, "O_NONBLOCK", 0)
+        with os.fdopen(os.open(path, flags), "rb") as stream:
+            if not stat.S_ISREG(os.fstat(stream.fileno()).st_mode):
+                return []
+            header = stream.read(64)
+            signature = header[:4]
+            if header.startswith(b"MZ") and len(header) == 64:
+                offset = int.from_bytes(header[60:64], "little")
+                if not 64 <= offset <= 16 * 1024 * 1024:
+                    return []
+                stream.seek(offset)
+                record = stream.read(6)
+                kind = pe.get(int.from_bytes(record[4:6], "little")) if record[:4] == b"PE\0\0" else None
+                return [kind] if kind else []
+            if signature == b"\x7fELF" and len(header) >= 20 and header[5] in (1, 2):
+                kind = elf.get(int.from_bytes(header[18:20], "little" if header[5] == 1 else "big"))
+                return [kind] if kind else []
+            if signature in thin and len(header) >= 8:
+                kind = mach.get(int.from_bytes(header[4:8], thin[signature]))
+                return [kind] if kind else []
+            if signature in fat and len(header) >= 8:
+                order, width = fat[signature]
+                count = int.from_bytes(header[4:8], order)
+                if not 1 <= count <= 32:
+                    return []
+                stream.seek(8)
+                table = stream.read(count * width)
+                if len(table) != count * width:
+                    return []
+                kinds = (mach.get(int.from_bytes(table[offset:offset + 4], order))
+                         for offset in range(0, len(table), width))
+                return list(dict.fromkeys(kind for kind in kinds if kind))
+    except OSError:
+        pass
+    return []
+
+
+def _candidate(path: str) -> dict:
+    import subprocess
+
+    binary = Path(path)
+    if binary.suffix == ".app" and binary.is_dir():
+        name = _bundle_info(binary).get("CFBundleExecutable")
+        if isinstance(name, str) and name and name not in (".", "..") and Path(name).name == name:
+            binary = binary / "Contents/MacOS" / name
+    architectures = executable_architectures(binary)
+    _, native = dependency_platform()
+    evidence = {"path": path, "version": executable_version(str(binary)), "architectures": architectures}
+    if architectures:
+        evidence["nativeArchitecture"] = native in architectures
+    try:
+        if sys.platform == "darwin":
+            marker = subprocess.run(
+                ["/usr/bin/xattr", "-p", "com.apple.quarantine", path],
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=2,
+            )
+            if marker.returncode == 0:
+                evidence["quarantineRecorded"] = True
+        elif os.name == "nt":
+            with Path(str(binary) + ":Zone.Identifier").open("rb") as zone:
+                if b"ZoneId=" in zone.read(1024):
+                    evidence["downloadZoneRecorded"] = True
+    except (OSError, subprocess.TimeoutExpired):
+        pass
+    return evidence
+
+
+def dependency_os_error(error: OSError, default: str) -> str:
+    import errno
+
+    code = {
+        5: "dependency_permission_denied",
+        126: "dependency_missing_library",
+        127: "dependency_library_entry_point",
+        193: "dependency_architecture_mismatch",
+        216: "dependency_architecture_mismatch",
+        225: "dependency_security_policy",
+        226: "dependency_security_policy",
+        740: "dependency_admin_required",
+        1260: "dependency_security_policy",
+        14001: "dependency_missing_library",
+    }.get(getattr(error, "winerror", None))
+    if code:
+        return code
+    return {
+        errno.EACCES: "dependency_permission_denied",
+        errno.EPERM: "dependency_permission_denied",
+        errno.ENOEXEC: "dependency_invalid_native_image",
+        errno.ENOSPC: "insufficient_storage",
+    }.get(error.errno, default)
+
+
+def _dependency_startup_failure(returncode: int, stderr: bytes) -> str:
+    # Windows reports loader failures as either signed or unsigned NTSTATUS.
+    native = {
+        0xC0000022: "dependency_permission_denied",
+        0xC000007B: "dependency_invalid_native_image",
+        0xC0000135: "dependency_missing_library",
+        0xC0000139: "dependency_library_entry_point",
+        0xC0000142: "dependency_library_initialization_failed",
+        0xC0000428: "dependency_security_policy",
+    }.get(returncode & 0xFFFFFFFF)
+    if native:
+        return native
+    detail = stderr[:4096].lower()
+    if b"library not loaded" in detail or b"error while loading shared libraries" in detail:
+        return "dependency_missing_library"
+    if b"wrong architecture" in detail or b"bad cpu type" in detail:
+        return "dependency_architecture_mismatch"
+    if b"code signature" in detail and b"invalid" in detail:
+        return "dependency_security_policy"
+    return "dependency_startup_failed"
 
 
 def dependency_candidates(name: str) -> list[dict]:
     import shutil
 
     if name == "browser":
-        return [{"path": item["path"], "version": executable_version(item["path"])}
-                for item in browsers()]
+        return [_candidate(item["path"]) for item in browsers()]
     if name == "libreoffice":
         from .engine import _soffice
 
         path = _soffice()
-        return [{"path": path, "version": executable_version(path)}] if path else []
+        return [_candidate(path)] if path else []
     found = {}
     for program in DEPENDENCY_PROGRAMS[name]:
         path = app_path(program + ".exe") or shutil.which(program)
         if path and Path(path).is_file():
             path = str(Path(path).resolve())
-            found[path] = {"path": path, "version": executable_version(path)}
+            found[path] = _candidate(path)
     return list(found.values())
 
 
@@ -500,19 +645,16 @@ def verify_dependency(home: str, proposal: dict) -> dict:
     except subprocess.TimeoutExpired:
         raise Refused("dependency_startup_timeout") from None
     except OSError as error:
-        code = {
-            5: "dependency_permission_denied", 126: "dependency_missing_library",
-            193: "dependency_architecture_mismatch", 740: "dependency_admin_required",
-            1260: "dependency_security_policy",
-        }.get(getattr(error, "winerror", None), "dependency_startup_failed")
-        raise Refused(code) from None
+        raise Refused(dependency_os_error(error, "dependency_startup_failed")) from None
+    if observed.returncode != 0:
+        raise Refused(_dependency_startup_failure(observed.returncode, observed.stderr))
     import json
 
     try:
         version, arch = json.loads(observed.stdout)
     except (ValueError, TypeError):
         raise Refused("dependency_startup_failed") from None
-    if observed.returncode != 0 or version != proposal["version"] or arch != proposal["architecture"]:
+    if version != proposal["version"] or arch != proposal["architecture"]:
         raise Refused("dependency_version_or_architecture_mismatch")
     return {"verified": True, "name": proposal["name"], "version": version, "architecture": arch,
             "destination": proposal["destination"]}
