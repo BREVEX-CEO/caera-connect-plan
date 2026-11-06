@@ -127,8 +127,11 @@ test("coding gate detects SQL and authority changes and fails on an invalid comp
 test("coding CI excludes the qualification timing callback while retaining coding cases", () => {
   const workflow = readFileSync(".github/workflows/jarvis-cloud-validation.yml", "utf8");
   const gate = workflow.split("\n  planner-safety:")[0];
-  const pattern = gate.match(/--test-name-pattern="([^"]+)"/)?.[1];
-  assert.ok(pattern, "coding integration tests must select their permitted cases explicitly");
+  assert.match(gate, /OCADE_CODING_GATE: "1"\s+run: .*tests\/jarvis\/e2e\.test\.ts/);
+  const e2e = readFileSync("tests/jarvis/e2e.test.ts", "utf8");
+  const flag = e2e.match(/^const codingGate = process\.env\.OCADE_CODING_GATE === "1";$/m)?.[0];
+  const skip = e2e.match(/"timing suite: [^"]+",\s+(\{ skip: !ready \|\| codingGate \})/)?.[1];
+  assert.ok(flag && skip, "the existing timing test must use the coding gate exclusion");
   const folder = mkdtempSync(join(tmpdir(), "ocade-test-selection-"));
   try {
     const allowed = join(folder, "coding-ran");
@@ -139,15 +142,18 @@ test("coding CI excludes the qualification timing callback while retaining codin
       `
 import { test } from "node:test";
 import { writeFileSync } from "node:fs";
+const ready = true;
+${flag}
 test("coding case", () => writeFileSync(${JSON.stringify(allowed)}, "ran"));
-test("timing suite: qualification case", () => writeFileSync(${JSON.stringify(forbidden)}, "ran"));
+test("timing suite: qualification case", ${skip}, () =>
+  writeFileSync(${JSON.stringify(forbidden)}, "ran"));
 `,
     );
-    const result = spawnSync(process.execPath, ["--test", "--test-name-pattern=" + pattern, path], {
-      encoding: "utf8",
-    });
+    const env: NodeJS.ProcessEnv = { ...process.env, OCADE_CODING_GATE: "1" };
+    delete env.NODE_TEST_CONTEXT;
+    const result = spawnSync(process.execPath, ["--test", path], { encoding: "utf8", env });
     assert.ifError(result.error);
-    assert.equal(result.status, 0, result.stderr);
+    assert.equal(result.status, 0, result.stderr || result.stdout);
     assert.equal(existsSync(allowed), true, "ordinary coding tests must execute");
     assert.equal(existsSync(forbidden), false, "qualification callbacks must not execute");
   } finally {

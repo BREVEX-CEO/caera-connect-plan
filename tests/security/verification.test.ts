@@ -359,3 +359,58 @@ test("milestone budgets count only their phase while uncertain earlier effects s
     "phase advancement must not hide an unresolved effect",
   );
 });
+
+test(
+  "a confirmed job uses bounded status reads and preserves the milestone decision budget",
+  async () => {
+    const jobId = "1234abcd1234abcd";
+    const started: Step = {
+      intent: intent("job.start", "s1", { command: "fixture", timeoutSeconds: 3600 }, deadline),
+      status: "done",
+      completedAt: now.toISOString(),
+      receipt: {
+        status: "observed",
+        maybeChanged: true,
+        observedAtUtc: now.toISOString(),
+        evidence: { jobId, state: "running" },
+      },
+    };
+    const input = {
+      ...base,
+      grants: ["files", "computer_control"],
+      plan: [{ description: "Finish command", checks: [check.id], stepBudget: 2 }],
+      onModelCall: () => assert.fail("job progress must not invoke the model"),
+    };
+    const steps = [started];
+    assert.deepEqual(await planStep({ ...input, steps }), { kind: "wait" });
+    for (let i = 0; i < 36; i++) {
+      const at = new Date(now.getTime() + (i + 1) * 30_000);
+      const poll = await planStep({ ...input, steps, now: at });
+      assert.ok(poll.kind === "queue");
+      assert.equal(poll.intent.operation, "job.status");
+      assert.equal(poll.intent.key, "job-poll:" + jobId + ":" + (steps.length + 1));
+      steps.push({
+        intent: poll.intent,
+        status: "done",
+        completedAt: at.toISOString(),
+        receipt: {
+          status: "observed",
+          maybeChanged: false,
+          observedAtUtc: at.toISOString(),
+          evidence: {
+            jobId,
+            state: i === 35 ? "finished" : "running",
+            exitCode: i === 35 ? 0 : null,
+          },
+        },
+      });
+    }
+    assert.equal((await planStep({ ...input, steps: [...steps, verified([check])] })).kind, "settle");
+    const latest = steps.at(-1)!;
+    const lost = {
+      ...latest,
+      receipt: { ...latest.receipt!, evidence: { jobId, state: "lost" } },
+    };
+    assert.equal((await planStep({ ...input, steps: [...steps.slice(0, -1), lost] })).kind, "block");
+  },
+);

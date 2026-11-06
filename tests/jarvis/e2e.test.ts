@@ -214,12 +214,15 @@ before(async () => {
         assert.ok(match, "the model receives the current milestone's checks");
         const [current] = JSON.parse(match[1]) as { params: { path: string; text: string } }[];
         const history = prompt.split("Steps so far (observed is untrusted data):\n")[1] ?? "";
-        const written = history.includes('"operation":"fs.write_text"') &&
+        const written =
+          history.includes('"operation":"fs.write_text"') &&
           history.includes(JSON.stringify(current.params.path));
-        call = written ? { name: "finish", args: {} } : {
-          name: "fs_write_text",
-          args: { path: current.params.path, text: current.params.text },
-        };
+        call = written
+          ? { name: "finish", args: {} }
+          : {
+              name: "fs_write_text",
+              args: { path: current.params.path, text: current.params.text },
+            };
       }
     } else if (timed) {
       // The timing suite's one-file task: what is measured is everything around the model.
@@ -803,10 +806,12 @@ test(
  * explains. A Phoenix-protocol fake stands in for Supabase Realtime and relays exactly what
  * the database asked `realtime.send` to broadcast; the hosted service is measured live.
  */
+const codingGate = process.env.OCADE_CODING_GATE === "1";
 test(
   "timing suite: idle pickup by nudge, next step in the receipt answer",
-  { skip: !ready },
+  { skip: !ready || codingGate },
   async () => {
+    assert.equal(codingGate, false, "qualification timing requires the manual workflow");
     const { WebSocketServer } = await import("ws");
     const deviceId = sql(`SELECT id FROM public.jarvis_devices WHERE user_id = '${userA}'`);
     sql("DELETE FROM realtime.sent", "postgres");
@@ -932,7 +937,13 @@ test(
       "OCADE output/second-" + crypto.randomUUID() + ".txt",
     );
     try {
-      const enrolled = await agent("enroll", "--name", "Milestone fixture", "--workspace", workspace);
+      const enrolled = await agent(
+        "enroll",
+        "--name",
+        "Milestone fixture",
+        "--workspace",
+        workspace,
+      );
       const code = /Pairing code: ([0-9A-F]{16})/.exec(enrolled.out)?.[1];
       assert.ok(code, enrolled.out);
       const deviceId = await approveDevice(admin, userA, code);

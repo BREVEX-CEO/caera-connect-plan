@@ -7,7 +7,7 @@
  */
 import { z } from "zod";
 import type { ActionIntent, ActionReceipt, OutcomeCheck, VerificationResult } from "./contracts.ts";
-import { effectPossible } from "./contracts.ts";
+import { effectPossible, intent } from "./contracts.ts";
 
 export interface Step {
   intent: ActionIntent;
@@ -15,6 +15,7 @@ export interface Step {
   receipt: ActionReceipt | null;
   /** Controller that admitted this action; old epochs cannot prove a resumed task's state. */
   controller?: string | null;
+  completedAt?: string | null;
   /** A minimal durable STOP/crash record can carry unknown without a full device receipt. */
   effectUnknown?: boolean;
   /** Preserve incomplete durable receipts without inventing a validated device observation. */
@@ -113,6 +114,79 @@ export type Decision =
   | { kind: "wait" }
   | { kind: "settle"; verification: VerificationResult; summary: string }
   | { kind: "block"; reason: string };
+
+/** This key space belongs to the supervisor; model-chosen operations use sN. */
+export function isJobPoll(step: Step): boolean {
+  return (
+    step.intent.operation === "job.status" &&
+    /^job-poll:[0-9a-f]{16}:[1-9][0-9]*$/.test(step.intent.key) &&
+    step.intent.key.startsWith("job-poll:" + step.intent.arguments.jobId + ":")
+  );
+}
+
+/** Follow an already confirmed command with bounded read-only observations. */
+export function followJobs(steps: Step[], now: Date): Decision | undefined {
+  for (const [index, started] of steps.entries()) {
+    if (started.intent.operation !== "job.start" || started.status !== "done") continue;
+    const jobId = started.receipt?.evidence.jobId;
+    if (typeof jobId !== "string" || !/^[0-9a-f]{16}$/.test(jobId)) {
+      return { kind: "block", reason: "The running command did not return a valid job identity." };
+    }
+    const observations = steps
+      .slice(index + 1)
+      .filter(
+        (step) =>
+          (step.intent.operation === "job.status" || step.intent.operation === "job.cancel") &&
+          step.intent.arguments.jobId === jobId,
+      );
+    const observed = observations.filter(
+      (step) =>
+        step.status === "done" &&
+        step.receipt?.status === "observed" &&
+        step.receipt.evidence.jobId === jobId,
+    );
+    const latest = observed.at(-1) ?? started;
+    const evidence = latest.receipt?.evidence;
+    const state = evidence?.state;
+    if (state === "finished" && Number.isInteger(evidence?.exitCode)) continue;
+    if (state === "cancelled" || state === "timed_out") continue;
+    if (state !== "running") {
+      return {
+        kind: "block",
+        reason: "The command's result is unknown. Check the computer before retrying it.",
+      };
+    }
+
+    const polls = observations.filter(isJobPoll);
+    const lastAttempt = polls.at(-1) ?? started;
+    const attemptedAt = Date.parse(lastAttempt.completedAt ?? lastAttempt.receipt?.observedAtUtc ?? "");
+    const startedAt = Date.parse(started.completedAt ?? started.receipt?.observedAtUtc ?? "");
+    const timeout = started.intent.arguments.timeoutSeconds;
+    const unanswered = observations.slice(observations.lastIndexOf(latest) + 1).filter(isJobPoll);
+    if (
+      !Number.isFinite(attemptedAt) ||
+      !Number.isFinite(startedAt) ||
+      polls.length >= Math.ceil(timeout / 30) + 12 ||
+      unanswered.length >= 3 ||
+      (polls.length > 0 && attemptedAt > startedAt + (timeout + 60) * 1000)
+    ) {
+      return { kind: "block", reason: "The command stopped reporting progress. Check its result." };
+    }
+    const interval = Math.min(30, 2 ** Math.max(0, Math.min(polls.length - 1, 5)));
+    if (now.getTime() < attemptedAt + interval * 1000) return { kind: "wait" };
+
+    return {
+      kind: "queue",
+      summary: "Checking progress of the running command",
+      intent: intent(
+        "job.status",
+        "job-poll:" + jobId + ":" + (steps.length + 1),
+        { jobId },
+        new Date(now.getTime() + 10 * 60_000),
+      ),
+    };
+  }
+}
 
 /** Unobserved possible effects cannot be resumed or repeated without a separate resolution. */
 export function unresolvedEffect(steps: Step[]): string | null {

@@ -50,6 +50,8 @@ DECLARE
                   {"description":"Second stage","checks":["second"],"stepBudget":2}]';
   receipt jsonb := '{"status":"observed","maybeChanged":false,"observedAtUtc":"2026-11-05T00:00:00.000Z","evidence":{"predicates":{"first":true}}}';
   view jsonb;
+  poll jsonb;
+  job_id text := '1234abcd1234abcd';
 BEGIN
   checks := first_check || second_check;
   PERFORM pg_temp.milestone_assert(
@@ -59,7 +61,7 @@ BEGIN
   PERFORM public.jarvis_enroll_device(k, 'Milestone fixture', 'windows', 'test', repeat('e', 64));
   device := public.jarvis_approve_device(u, public.jarvis_device_code(k));
   INSERT INTO public.jarvis_permissions (user_id, device_id, capability, allowed)
-  SELECT u, device, capability, true FROM unnest(ARRAY['master', 'files']) AS grants(capability);
+  SELECT u, device, capability, true FROM unnest(ARRAY['master', 'files', 'computer_control']) AS grants(capability);
   SELECT * INTO task FROM public.jarvis_open_task(u, c, device, 'Milestone fixture', NULL, '[]');
   controller := task.controller;
   PERFORM pg_temp.milestone_fails(format('SELECT public.jarvis_set_outcome(%L,%L,%L,%L)',
@@ -134,6 +136,43 @@ BEGIN
   view := public.jarvis_task_state(task.task_id);
   PERFORM pg_temp.milestone_assert(jsonb_array_length(view #> '{checkpoint,milestones,verified}') = 2,
     'settlement retains milestone history');
+
+  SELECT * INTO task FROM public.jarvis_open_task(u, c, device, 'Tracked job fixture', NULL, '[]');
+  controller := task.controller;
+  PERFORM public.jarvis_set_outcome(task.task_id, controller, first_check,
+    '[{"description":"Finish command","checks":["first"],"stepBudget":2}]');
+  poll := jsonb_build_array(jsonb_build_object('summary', 'Observe command', 'milestone', 0,
+    'action', jsonb_build_object('key', 'job-poll:' || job_id || ':1', 'operation', 'job.status',
+      'capability', 'computer_control', 'risk', 'read', 'arguments', jsonb_build_object('jobId', job_id))));
+  PERFORM pg_temp.milestone_fails(format('SELECT public.jarvis_queue_actions(%L,%L,%L)',
+    task.task_id, controller, poll), 'invalid_job_poll');
+  PERFORM public.jarvis_queue_actions(task.task_id, controller,
+    '[{"summary":"Confirmed fixture command","action":{"key":"job","operation":"job.start",
+       "capability":"computer_control","risk":"external_effect","arguments":{"command":"fixture","timeoutSeconds":3600}}}]');
+  SELECT a.id INTO activity FROM public.jarvis_activity AS a
+   WHERE a.task_id = task.task_id AND a.action ->> 'key' = 'job';
+  PERFORM public.jarvis_confirm_action(u, activity);
+  activity := (public.jarvis_claim_action(device) -> 'action' ->> 'id')::uuid;
+  PERFORM public.jarvis_submit_receipt(device, activity, receipt ||
+    jsonb_build_object('maybeChanged', true, 'evidence', jsonb_build_object('jobId', job_id, 'state', 'running')));
+  FOR n IN 2..36 LOOP
+    poll := jsonb_set(poll, '{0,action,key}', to_jsonb('job-poll:' || job_id || ':' || n::text));
+    PERFORM pg_temp.milestone_assert(public.jarvis_queue_actions(task.task_id, controller, poll) = 1,
+      'job reads do not consume the remaining milestone action');
+    PERFORM pg_temp.milestone_assert(public.jarvis_queue_actions(task.task_id, controller, poll) = 0,
+      'retrying the same poll does not insert another action');
+    activity := (public.jarvis_claim_action(device) -> 'action' ->> 'id')::uuid;
+    PERFORM public.jarvis_submit_receipt(device, activity,
+      receipt || jsonb_build_object('evidence', jsonb_build_object('jobId', job_id,
+        'state', CASE WHEN n = 36 THEN 'finished' ELSE 'running' END, 'exitCode', 0)));
+  END LOOP;
+  PERFORM pg_temp.milestone_assert(public.jarvis_queue_actions(task.task_id, controller,
+    pg_temp.milestone_action('after-job', 0, first_check)) = 1,
+    'the remaining milestone action is available after many polls');
+  PERFORM pg_temp.milestone_fails(format('SELECT public.jarvis_queue_actions(%L,%L,%L)',
+    task.task_id, controller, pg_temp.milestone_action('one-too-many', 0, first_check)),
+    'milestone_budget_exhausted');
+  PERFORM public.jarvis_stop_task(u, task.task_id);
 
   SELECT * INTO task FROM public.jarvis_open_task(u, c, device, 'STOP milestone fixture', NULL, '[]');
   controller := task.controller;

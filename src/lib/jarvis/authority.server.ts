@@ -228,6 +228,7 @@ export async function advance(admin: Admin, taskId: string, now = new Date()): P
       intent: actionIntent.parse(step.intent),
       status: step.status,
       controller: step.controller,
+      completedAt: step.completedAt,
       receipt,
       // Durable STOP/crash records may be incomplete. Keep their uncertainty for the shared fence.
       unparsedReceipt: receipt === null ? raw : undefined,
