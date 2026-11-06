@@ -600,6 +600,18 @@ export const plannerAccess = {
   serviceKey: () => process.env.SUPABASE_SERVICE_ROLE_KEY,
 };
 
+const measuredUsage = z.object({
+  inputTokens: z.number().int().min(0).max(2_147_483_647).optional(),
+  outputTokens: z.number().int().min(0).max(2_147_483_647).optional(),
+});
+
+export type PlannerMeasurement = {
+  permitId: string;
+  usage: z.infer<typeof measuredUsage> | undefined;
+};
+
+type PlannerTiming = (ms: number, measurement: PlannerMeasurement) => void;
+
 async function callPlanner(input: {
   userId: string;
   key: string;
@@ -607,7 +619,7 @@ async function callPlanner(input: {
   prompt: string;
   tools: { name: string; description: string; parameters: unknown }[];
   attachments?: ReturnType<typeof previewAttachments>;
-  onTimed?: (ms: number) => void;
+  onTimed?: PlannerTiming;
 }): Promise<{ name: string; args: Record<string, unknown> }[]> {
   const url = plannerAccess.serviceUrl();
   const serviceKey = plannerAccess.serviceKey();
@@ -615,6 +627,7 @@ async function callPlanner(input: {
   const { permit, release } = await plannerAccess.acquirePermit(input.userId, input.key);
   // Timed from the request to the end of the stream: a model call the task is charged for.
   const started = performance.now();
+  let usage: PlannerMeasurement["usage"];
   try {
     const response = await fetch(`${url}/functions/v1/ocade-intelligence-service`, {
       method: "POST",
@@ -668,6 +681,7 @@ async function callPlanner(input: {
         const event = JSON.parse(payload) as IntelligenceEvent;
         if (complete) throw new PlannerUnavailable("planner_events_after_final");
         if (event.type === "refusal") throw new PlannerUnavailable(event.code);
+        if (event.type === "usage") usage = measuredUsage.safeParse(event.usage).data ?? usage;
         if (event.type === "tool_call") {
           const call = proposedCall.parse(event.call);
           if (calls.length >= MAX_BATCH || calls.some((prior) => prior.id === call.id))
@@ -684,6 +698,7 @@ async function callPlanner(input: {
             .parse(event.response);
           if (JSON.stringify(final.toolCalls) !== JSON.stringify(calls))
             throw new PlannerUnavailable("planner_final_mismatch");
+          usage = measuredUsage.safeParse(event.response.usage).data ?? usage;
           complete = true;
         }
       }
@@ -695,7 +710,7 @@ async function callPlanner(input: {
     if (!calls.length) throw new PlannerUnavailable("no_decision");
     return calls.map((call) => ({ name: call.name, args: call.arguments }));
   } finally {
-    input.onTimed?.(performance.now() - started);
+    input.onTimed?.(performance.now() - started, { permitId: permit.id, usage });
   }
 }
 
@@ -729,9 +744,10 @@ export async function compileGoal(
   userId: string,
   objective: string,
   allowed: string[],
-  onTimed?: (ms: number) => void,
+  onTimed?: PlannerTiming,
   observed: { entries?: { name: string; kind: string }[] } | null = null,
   onMilestones?: (milestones: Milestone[]) => void,
+  turnKey = `jarvis-goal:${crypto.randomUUID()}`,
 ) {
   const seen = new Set((observed?.entries ?? []).map((entry) => entry.name.toLowerCase()));
   const bound = (path: string) =>
@@ -745,7 +761,7 @@ export async function compileGoal(
     const calls = await callPlanner({
       userId,
       onTimed,
-      key: `jarvis-goal:${crypto.randomUUID()}`,
+      key: `${turnKey}:${attempt}`,
       system:
         "Turn the person's request into 1-6 checks an independent verifier can evaluate by reading real files " +
         "(paths relative to the JARVIS folder itself: 'my JARVIS folder' is that root, never a subfolder named JARVIS), " +
@@ -946,7 +962,7 @@ export async function planStep(input: {
   /** One permit per planning turn: the same turn asked twice is never planned or charged twice. */
   turnKey: string;
   now: Date;
-  onModelCall?: (ms: number) => void;
+  onModelCall?: PlannerTiming;
 }): Promise<Decision> {
   const { steps, now } = input;
   const unknown = unresolvedEffect(steps);

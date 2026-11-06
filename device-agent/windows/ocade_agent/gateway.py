@@ -255,12 +255,23 @@ class Gateway:
     async def run(self, intent: dict, epoch: int) -> dict:
         """Dispatch one validated intent and return an honest, timed receipt."""
         started = time.monotonic()
+        worker_started = worker_ready = tool_started = tool_finished = None
 
-        def timed(status: str, maybe_changed: bool, evidence: dict | None = None, error: str | None = None) -> dict:
-            # Monotonic measurement covers preflight, worker startup and execution.
-            # Per-action timing is factual evidence, not a full task timer.
+        def elapsed(start: float, finish: float) -> float:
+            return round((finish - start) * 1000, 2)
+
+        def timed(status: str, maybe_changed: bool, evidence: dict | None = None,
+                  error: str | None = None, refused: bool = False) -> dict:
+            ended = time.monotonic()
             facts = dict(evidence or {})
-            facts["durationMs"] = round(max(0.0, (time.monotonic() - started) * 1000), 2)
+            facts.pop("executionDisposition", None)
+            facts["durationMs"] = elapsed(started, ended)
+            if worker_started is not None:
+                facts["workerReadyMs"] = elapsed(worker_started, worker_ready or ended)
+            if tool_started is not None:
+                facts["toolMs"] = elapsed(tool_started, tool_finished or ended)
+            if refused:
+                facts["executionDisposition"] = "refused"
             return receipt(status, maybe_changed, facts, error)
 
         if epoch != self.epoch:
@@ -272,23 +283,25 @@ class Gateway:
             or intent.get("capability") != spec["capability"]
             or intent.get("risk") != spec["risk"]
         ):
-            return timed("not_applied", False, error="invalid_intent")
+            return timed("not_applied", False, error="invalid_intent", refused=True)
         try:
             validator(intent["operation"], spec["arguments"]).validate(intent.get("arguments"))
             deadline = datetime.fromisoformat(intent["deadlineUtc"].replace("Z", "+00:00"))
         except (jsonschema.ValidationError, KeyError, ValueError):
-            return timed("not_applied", False, error="invalid_intent")
+            return timed("not_applied", False, error="invalid_intent", refused=True)
         remaining = (deadline - datetime.now(timezone.utc)).total_seconds()
         if remaining <= 0:
             return timed("not_applied", False, error="deadline_passed")
         target = self._target(intent, spec)
         if isinstance(target, str):
-            return timed("not_applied", False, error=target)
+            return timed("not_applied", False, error=target, refused=True)
         key, tool, arguments = target
 
         uncertain = effect_possible(intent)
+        worker_started = time.monotonic()
         try:
             session = await self._session(key)
+            worker_ready = time.monotonic()
         except anyio.get_cancelled_exc_class():
             await self._discard(key)
             raise
@@ -298,20 +311,27 @@ class Gateway:
             return timed("not_applied", False, error="worker_unavailable")
         if epoch != self.epoch:  # STOP during worker start-up
             return timed("not_applied", False, error="stopped")
+        remaining = (deadline - datetime.now(timezone.utc)).total_seconds()
+        if remaining <= 0:
+            return timed("not_applied", False, error="deadline_passed")
         limit = (self.external[key[4:]].get("timeoutSeconds", 60) if key.startswith("mcp:")
                  else spec.get("seconds", MAX_CALL_SECONDS))
+        tool_started = time.monotonic()
         try:
             bound = min(remaining, limit)
             with anyio.fail_after(bound):
                 # The session's own 30 s request timeout is for start-up; a call gets its operation's bound.
                 result = await session.call_tool(tool, arguments, read_timeout_seconds=bound + 5)
+            tool_finished = time.monotonic()
         except anyio.get_cancelled_exc_class():
             await self._discard(key)
             raise
         except TimeoutError:
+            tool_finished = time.monotonic()
             await self._discard(key)
             return timed("unknown" if uncertain else "not_applied", uncertain, error="timeout")
         except Exception:
+            tool_finished = time.monotonic()
             await self._discard(key)
             return timed("unknown" if uncertain else "not_applied", uncertain, error="worker_lost")
 
@@ -347,7 +367,7 @@ class Gateway:
             else:
                 maybe_changed = uncertain or "maybeChanged" in evidence
             return timed("unknown" if maybe_changed else "not_applied", maybe_changed,
-                         error=str(evidence["refused"])[:60])
+                         error=str(evidence["refused"])[:60], refused=True)
         if "maybeChanged" in evidence and evidence["maybeChanged"] is not True and evidence["maybeChanged"] is not False:
             return timed("unknown", True, error="malformed_result")
         # An image for the planner to look at travels beside the evidence, never inside it.

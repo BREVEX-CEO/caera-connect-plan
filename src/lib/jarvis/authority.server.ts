@@ -44,6 +44,7 @@ import {
   plannerBusy,
   plannerMessage,
   type McpServer,
+  type PlannerMeasurement,
 } from "./planner.server.ts";
 
 export type Admin = Pick<SupabaseClient<Database>, "rpc">;
@@ -123,6 +124,16 @@ interface TaskState {
     pausedMs: number;
     modelCalls: number;
     modelMs: number;
+    providerUsage?: {
+      inputTokens: number | null;
+      outputTokens: number | null;
+      inputMeasuredCalls: number;
+      outputMeasuredCalls: number;
+      goalMs: number;
+      decisionMs: number;
+      limitReached: boolean;
+    };
+    plannerAutoRetries?: number;
   };
   steps: {
     id: string;
@@ -148,11 +159,20 @@ const ms = (from: string, to: string | null) => (to ? Date.parse(to) - Date.pars
  */
 export function taskTiming(task: Pick<TaskState, "status" | "timing" | "steps">) {
   const { timing } = task;
+  const milliseconds = (value: unknown) =>
+    typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : null;
   const steps = task.steps.map((step) => {
-    const measured = (step.receipt as { evidence?: { durationMs?: unknown } } | null)?.evidence
-      ?.durationMs;
+    const evidence = (step.receipt as { evidence?: Record<string, unknown> } | null)?.evidence;
+    const intent = step.intent as { operation?: string; risk?: string } | null;
     return {
-      durationMs: typeof measured === "number" ? measured : null,
+      durationMs: milliseconds(evidence?.durationMs),
+      workerReadyMs: milliseconds(evidence?.workerReadyMs),
+      toolMs: milliseconds(evidence?.toolMs),
+      phase: typeof intent?.operation === "string" && intent.operation.startsWith("verify.")
+        ? "verification"
+        : intent?.risk === "read"
+          ? "observation"
+          : "execution",
       confirmWaitMs: ms(step.createdAt, step.confirmedAt),
       // Queued (or confirmed) until the device picked it up.
       pickupMs: step.claimedAt ? ms(step.confirmedAt ?? step.createdAt, step.claimedAt) : null,
@@ -165,6 +185,10 @@ export function taskTiming(task: Pick<TaskState, "status" | "timing" | "steps">)
   const pickupMs = sum(steps.map((step) => step.pickupMs));
   const userWaitMs = sum(steps.map((step) => step.confirmWaitMs));
   const activeExecutionMs = measured.length ? Math.round(sum(measured)) : null;
+  const availableTotal = (values: (number | null)[]) =>
+    values.some((value) => value !== null) ? Math.round(sum(values)) : null;
+  const toolTime = (phase: string) =>
+    availableTotal(steps.filter((step) => step.phase === phase).map((step) => step.toolMs));
   return {
     acceptedAt: timing.acceptedAt,
     finishedAt: timing.finishedAt,
@@ -176,8 +200,14 @@ export function taskTiming(task: Pick<TaskState, "status" | "timing" | "steps">)
     userWaitMs,
     pausedMs: timing.pausedMs,
     activeExecutionMs,
+    workerReadyMs: availableTotal(steps.map((step) => step.workerReadyMs)),
+    observationMs: toolTime("observation"),
+    executionMs: toolTime("execution"),
+    verificationMs: toolTime("verification"),
     modelCalls: timing.modelCalls,
     modelMs: timing.modelMs,
+    providerUsage: timing.providerUsage ?? null,
+    plannerAutoRetries: timing.plannerAutoRetries ?? null,
     pickupMs,
     // What no phase explains (transport, receipt delivery, server work); the W2 target is ≤10%.
     unaccountedMs:
@@ -264,23 +294,24 @@ export async function advance(admin: Admin, taskId: string, now = new Date()): P
       return;
     }
     if (open(look)) return;
-    let goalMs: number | null = null;
+    const goalCalls: TimedPlannerCall[] = [];
     try {
       checks = await compileGoal(
         task.userId,
         task.title,
         task.grants,
-        (ms) => (goalMs = ms),
+        (ms, measurement) => goalCalls.push({ ms, measurement }),
         look.status === "done" ? (look.receipt?.evidence as { entries?: [] }) : null,
         (milestones: Milestone[]) => (plan = milestones),
+        `jarvis-goal:${taskId}:${task.controller}`,
       );
     } catch (error) {
-      if (goalMs !== null) await noteModel(admin, taskId, goalMs);
+      await notePlannerCalls(admin, taskId, "goal", goalCalls);
       if (!(error instanceof PlannerUnavailable)) throw error;
       await plannerWait(admin, taskId, task.controller, error);
       return;
     }
-    if (goalMs !== null) await noteModel(admin, taskId, goalMs);
+    await notePlannerCalls(admin, taskId, "goal", goalCalls);
     try {
       await call(admin, "jarvis_set_outcome", {
         p_task: taskId,
@@ -300,7 +331,7 @@ export async function advance(admin: Admin, taskId: string, now = new Date()): P
   }
   let decision: Decision;
   // Every model call of this turn is counted (a refused proposal may cost a second one).
-  const modelCalls: number[] = [];
+  const modelCalls: TimedPlannerCall[] = [];
   try {
     // No special-case customer journey: every request uses the same AI planner.
     decision = await planStep({
@@ -316,16 +347,19 @@ export async function advance(admin: Admin, taskId: string, now = new Date()): P
       engines: task.engines,
       turnKey: `jarvis-plan:${taskId}:${task.controller}:${steps.length}`,
       now,
-      onModelCall: (ms) => void modelCalls.push(ms),
+      onModelCall: (ms, measurement) => modelCalls.push({ ms, measurement }),
     });
   } catch (error) {
     if (!(error instanceof PlannerUnavailable)) throw error;
-    for (const ms of modelCalls) await noteModel(admin, taskId, ms);
+    await notePlannerCalls(admin, taskId, "decision", modelCalls);
     await plannerWait(admin, taskId, task.controller, error);
     return;
   }
-  // Model time is recorded alongside the decision rather than before it: one round trip less.
-  const noted = Promise.all(modelCalls.map((ms) => noteModel(admin, taskId, ms)));
+  // Admission and measurements share the round trip, with rejection handled immediately.
+  const noted = notePlannerCalls(admin, taskId, "decision", modelCalls).then(
+    () => ({ ok: true as const }),
+    (error: unknown) => ({ ok: false as const, error }),
+  );
   try {
     if (decision.kind === "queue") {
       await call(admin, "jarvis_queue_actions", {
@@ -400,7 +434,8 @@ export async function advance(admin: Admin, taskId: string, now = new Date()): P
     }
     throw error;
   } finally {
-    await noted;
+    const measurement = await noted;
+    if (!measurement.ok) throw measurement.error;
   }
 }
 
@@ -437,8 +472,29 @@ async function plannerWait(
   });
 }
 
-const noteModel = (admin: Admin, taskId: string, elapsed: number) =>
-  call(admin, "jarvis_note_model", { p_task: taskId, p_ms: Math.round(elapsed) });
+type TimedPlannerCall = { ms: number; measurement: PlannerMeasurement };
+
+async function notePlannerCalls(
+  admin: Admin,
+  taskId: string,
+  phase: "goal" | "decision",
+  calls: TimedPlannerCall[],
+) {
+  if (!calls.length) return;
+  const samples = await Promise.all(
+    calls.map(async ({ ms, measurement }) => ({
+      call: await sha256Hex(measurement.permitId),
+      ms: Math.round(ms),
+      input: measurement.usage?.inputTokens ?? null,
+      output: measurement.usage?.outputTokens ?? null,
+    })),
+  );
+  await call(admin, "jarvis_note_model_metrics", {
+    p_task: taskId,
+    p_phase: phase,
+    p_samples: samples,
+  });
+}
 
 /* --------------------------- Customer actions --------------------------- */
 
@@ -628,8 +684,7 @@ export async function taskView(admin: Admin, userId: string, taskId: string) {
       const receipt = step.receipt ? (actionReceipt.safeParse(step.receipt).data ?? null) : null;
       const intent = actionIntent.safeParse(step.intent);
       // The person answers whether a step whose effect nobody observed took effect.
-      const needsAnswer =
-        open &&
+      const uncertain =
         !step.resolution &&
         !["queued", "claimed", "needs_confirmation"].includes(step.status) &&
         (!intent.success ||
@@ -639,11 +694,23 @@ export async function taskView(admin: Admin, userId: string, taskId: string) {
             receipt,
             unparsedReceipt: receipt === null ? step.receipt : undefined,
           }));
+      const needsAnswer = open && uncertain;
+      const disposition = receiptDisposition(
+        step,
+        receipt,
+        uncertain,
+        task.status === "completed" &&
+          index === task.steps.length - 1 &&
+          intent.success &&
+          intent.data.operation === "verify.checks" &&
+          Boolean(task.outcome?.length && task.outcome.every((check) => verification?.passed?.includes(check.id))),
+      );
       return {
         id: step.id,
         durationMs: timing.stepDurationsMs[index],
         summary: step.summary,
         status: step.status,
+        disposition,
         needsConfirmation: step.status === "needs_confirmation",
         needsAnswer,
         resolution: step.resolution,
@@ -664,6 +731,22 @@ export async function taskView(admin: Admin, userId: string, taskId: string) {
     artifacts: artifactFiles.map((file) => file.path),
     artifactFiles,
   };
+}
+
+function receiptDisposition(
+  step: TaskState["steps"][number],
+  receipt: ReturnType<typeof actionReceipt.parse> | null,
+  uncertain: boolean,
+  verified: boolean,
+): string | null {
+  if (["queued", "claimed", "needs_confirmation"].includes(step.status)) return null;
+  if (uncertain || (!step.resolution && receipt?.status === "unknown")) return "outcome unknown";
+  if (step.resolution === "applied") return "executed";
+  if (step.status === "cancelled" && receipt?.status !== "observed") return "cancelled";
+  if (receipt?.errorCode === "stopped") return "cancelled";
+  if (receipt?.status === "observed" && !receipt.errorCode) return verified ? "verified" : "executed";
+  if (receipt?.evidence.executionDisposition === "refused" || step.status === "blocked") return "refused";
+  return receipt?.status === "not_applied" || step.status === "failed" ? "failed" : "outcome unknown";
 }
 
 export function exactEffect(intent: unknown): string {

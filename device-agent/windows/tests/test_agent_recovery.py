@@ -25,6 +25,74 @@ def action_intent(operation, arguments):
     }
 
 
+async def measure_companion_lifecycle(iterations: int) -> dict:
+    """Exercise real worker startup, dispatch, shutdown and journal recovery on a runner."""
+    import psutil
+
+    if not 1 <= iterations <= 10_000:
+        raise ValueError("iterations must be between 1 and 10,000")
+    process = psutil.Process()
+    cpu_before = process.cpu_times()
+    before = process.children(recursive=True)
+    handles = process.num_handles if os.name == "nt" else process.num_fds
+    result = {"cycles": 0, "peakRssBytes": process.memory_info().rss, "peakHandles": handles(),
+              "peakWorkerRssBytes": 0}
+    with tempfile.TemporaryDirectory(prefix="ocade-lifecycle-") as temporary:
+        home = Path(temporary) / "agent"
+        home.mkdir()
+        workspace = Path(temporary) / "workspace"
+        workspace.mkdir()
+        (workspace / "marker.txt").write_text("runner fixture", encoding="utf-8")
+        journal_path = home / "journal.sqlite"
+        for iteration in range(iterations):
+            action = action_intent("fs.list", {"path": "."})
+            activity = f"lifecycle-{iteration}"
+            journal = Journal(journal_path)
+            if not journal.start(activity, action):
+                raise AssertionError("new action was not journaled")
+            async with Gateway(str(workspace), home=str(home)) as gateway:
+                observed = await gateway.run(action, gateway.epoch)
+                if observed["status"] != "observed" or not any(
+                    entry.get("name") == "marker.txt" for entry in observed["evidence"].get("entries", [])
+                ):
+                    raise AssertionError("filesystem worker did not observe the fixture")
+                journal.finish(activity, observed)
+                worker_rss = 0
+                for worker in process.children(recursive=True):
+                    if worker not in before:
+                        try:
+                            worker_rss += worker.memory_info().rss
+                        except psutil.NoSuchProcess:
+                            continue
+                result["peakWorkerRssBytes"] = max(result["peakWorkerRssBytes"], worker_rss)
+            if Journal(journal_path).get(activity) != ("finished", observed):
+                raise AssertionError("reopen did not recover the exact receipt")
+            survivors = [child for child in process.children(recursive=True) if child not in before]
+            if survivors:
+                raise AssertionError("worker processes survived gateway shutdown")
+            result["cycles"] += 1
+            result["peakRssBytes"] = max(result["peakRssBytes"], process.memory_info().rss)
+            result["peakHandles"] = max(result["peakHandles"], handles())
+        result["diskBytes"] = sum(path.stat().st_size for path in home.rglob("*") if path.is_file())
+    cpu_after = process.cpu_times()
+    result["agentCpuSeconds"] = cpu_after.user + cpu_after.system - cpu_before.user - cpu_before.system
+    result["workerCpuSeconds"] = (
+        cpu_after.children_user + cpu_after.children_system - cpu_before.children_user - cpu_before.children_system
+        if hasattr(cpu_after, "children_user") and hasattr(cpu_after, "children_system") else None
+    )
+    return result
+
+
+class CompanionLifecycle(unittest.TestCase):
+    def test_lifecycle_harness_observes_real_worker_and_reopens_its_journal(self):
+        result = anyio.run(measure_companion_lifecycle, 1)
+        self.assertEqual(result["cycles"], 1)
+        self.assertGreater(result["diskBytes"], 0)
+        self.assertGreater(result["peakRssBytes"], 0)
+        self.assertGreater(result["peakWorkerRssBytes"], 0)
+        self.assertGreater(result["peakHandles"], 0)
+
+
 class ReceiptDevice:
     def __init__(self, home):
         self.home = home

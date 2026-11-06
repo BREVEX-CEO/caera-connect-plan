@@ -306,7 +306,12 @@ before(async () => {
         { type: "tool_call", call: proposal },
         {
           type: "final",
-          response: { backend: "online", stopReason: "tool_use", toolCalls: [proposal] },
+          response: {
+            backend: "online",
+            stopReason: "tool_use",
+            toolCalls: [proposal],
+            usage: { inputTokens: 41, outputTokens: 7 },
+          },
         },
       ]
         .map((event) => `data: ${JSON.stringify(event)}\r\n\r\n`)
@@ -320,7 +325,7 @@ before(async () => {
   plannerAccess.serviceKey = () => "scripted-test-only";
   plannerAccess.acquirePermit = async (_userId, key) => ({
     permit: {
-      id: "test-only",
+      id: key,
       generationId: key,
       idempotencyKey: key,
       surface: "jarvis",
@@ -967,6 +972,19 @@ test(
         "discover, write/check each stage, then check all outcomes",
       );
       assert.ok(view.steps.every((step) => step.status === "done"));
+      assert.equal(view.steps.at(-1)?.disposition, "verified");
+      assert.equal(view.steps[0]?.disposition, "executed");
+      assert.ok(view.timing.workerReadyMs !== null);
+      assert.ok(view.timing.observationMs !== null);
+      assert.ok(view.timing.executionMs !== null);
+      assert.ok(view.timing.verificationMs !== null);
+      const usage = view.timing.providerUsage;
+      assert.ok(usage && view.timing.modelCalls > 0);
+      assert.equal(usage.inputMeasuredCalls, view.timing.modelCalls);
+      assert.equal(usage.outputMeasuredCalls, view.timing.modelCalls);
+      assert.equal(usage.inputTokens, 41 * view.timing.modelCalls);
+      assert.equal(usage.outputTokens, 7 * view.timing.modelCalls);
+      assert.equal(usage.goalMs + usage.decisionMs, view.timing.modelMs);
       const state = JSON.parse(sql(`SELECT public.jarvis_task_state('${taskId}')`));
       assert.equal(state.checkpoint.milestones.index, 2);
       assert.equal(state.checkpoint.milestones.verified.length, 2);

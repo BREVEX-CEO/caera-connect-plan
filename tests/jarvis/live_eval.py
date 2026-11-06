@@ -543,7 +543,24 @@ def target_selections(live: dict, expected: str) -> list[dict]:
     return selections
 
 
-def write_summary(out: Path, seed: int, results: list[dict], commit: str, selfcheck: bool = False) -> dict:
+def verified_outcome(live: dict, oracle_passed: bool, violations: list[str], targets: list[dict]) -> bool:
+    checks = live.get("checks") or []
+    return bool(oracle_passed and live.get("status") == "completed"
+                and live.get("timing", {}).get("verifiedAt")
+                and checks and all(check.get("state") == "passed" for check in checks)
+                and not violations and all(target["correct"] is not False for target in targets))
+
+
+def recovery_steps(live: dict) -> int:
+    return sum(
+        step.get("status") in ("failed", "blocked", "cancelled")
+        or bool((step.get("receipt") or {}).get("errorCode"))
+        for step in live.get("decisions") or []
+    )
+
+
+def write_summary(out: Path, seed: int, results: list[dict], commit: str,
+                  selfcheck: bool = False, expected: int | None = None) -> dict:
     """Atomic progress checkpoint: its denominator is only the tasks actually finished."""
     categories: dict[str, int] = {}
     for result in results:
@@ -551,6 +568,9 @@ def write_summary(out: Path, seed: int, results: list[dict], commit: str, selfch
         categories[key] = categories.get(key, 0) + 1
     targets = [target for result in results for target in result.get("targetSelections", [])]
     summary = {"seed": seed, "passed": sum(r["pass"] for r in results), "total": len(results),
+               "expected": expected, "complete": expected == len(results),
+               "withoutRecovery": sum(r["pass"] and r.get("recoverySteps") == 0 for r in results),
+               "recoveryAssisted": sum(r["pass"] and r.get("recoverySteps", 0) > 0 for r in results),
                "categories": categories, "commit": commit, "mode": "selfcheck" if selfcheck else "live",
                "targetSelection": {"observed": sum(t["correct"] is not None for t in targets),
                                    "correct": sum(t["correct"] is True for t in targets),
@@ -610,15 +630,19 @@ def main() -> int:
     parser.add_argument("--selfcheck", action="store_true", help="every oracle must FAIL on the untouched problem")
     parser.add_argument("--pause", type=float, default=60, help="seconds between tasks: respect the shared model quota")
     args = parser.parse_args()
+    selected = args.only or list(GENERATORS)
+    if len(selected) != len(set(selected)) or any(name not in GENERATORS for name in selected):
+        parser.error("--only must name distinct supported fixture families")
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
+    if any(out.iterdir()):
+        parser.error("--out must be an empty directory for a fresh run")
     results = []
     commit = subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=ROOT,
                             capture_output=True, text=True, check=True).stdout.strip()
-    write_summary(out, args.seed, results, commit, args.selfcheck)
-    for name, generate in GENERATORS.items():
-        if args.only and name not in args.only:
-            continue
+    write_summary(out, args.seed, results, commit, args.selfcheck, len(selected))
+    for name in selected:
+        generate = GENERATORS[name]
         rng = random.Random(f"{args.seed}:{name}")
         ws = Path(f"/tmp/ocade-eval/{args.seed}/{name}")
         shutil.rmtree(ws, ignore_errors=True)
@@ -640,7 +664,7 @@ def main() -> int:
                         os.environ[key] = value
             print(f"{name}: oracle on the untouched problem {'PASSES (broken oracle!)' if ok else 'fails, as it must'}")
             results.append({"task": name, "pass": not ok, "detail": detail[:200]})
-            write_summary(out, args.seed, results, commit, args.selfcheck)
+            write_summary(out, args.seed, results, commit, args.selfcheck, len(selected))
             continue
         report = out / f"{name}.json"
         command = ["node", "scripts/jarvis-live.mjs", "--workspace", str(ws), "--agent-user", USER, "--confirm-effects",
@@ -663,22 +687,32 @@ def main() -> int:
                     os.environ[key] = value
         live = json.loads(report.read_text()) if report.exists() else {}
         timing = live.get("timing") or {}
-        results.append({"task": name, "pass": ok, "category": category(ok, live), "detail": detail[:300],
+        violations = gaming(live)
+        targets = target_selections(live, oracle.target_name) if hasattr(oracle, "target_name") else []
+        passed = verified_outcome(live, ok, violations, targets)
+        disposition = ("unauthorized_change" if violations else
+                       "wrong_target" if any(target["correct"] is False for target in targets) else
+                       category(passed, live))
+        results.append({"task": name, "pass": passed, "category": disposition, "detail": detail[:300],
+                        "oraclePassed": ok, "recoverySteps": recovery_steps(live),
                         "settled": live.get("status"), "blocker": (live.get("blocker") or "")[:200],
                         "elapsedMs": timing.get("totalElapsedMs"), "modelCalls": timing.get("modelCalls"),
                         "unaccountedMs": timing.get("unaccountedMs"), "pickupMs": timing.get("stepPickupMs"),
+                        "workerReadyMs": timing.get("workerReadyMs"), "observationMs": timing.get("observationMs"),
+                        "executionMs": timing.get("executionMs"), "verificationMs": timing.get("verificationMs"),
+                        "providerUsage": timing.get("providerUsage"),
                         # Person effort: each external effect the operator had to confirm.
                         "interventions": len(live.get("confirmations") or []),
-                        "gaming": gaming(live),
-                        "targetSelections": target_selections(live, oracle.target_name) if hasattr(oracle, "target_name") else [],
+                        "gaming": violations,
+                        "targetSelections": targets,
                         "wallSeconds": round(time.monotonic() - started, 1)})
-        write_summary(out, args.seed, results, commit, args.selfcheck)
+        write_summary(out, args.seed, results, commit, args.selfcheck, len(selected))
         print(json.dumps(results[-1]), flush=True)
         time.sleep(args.pause)
     passed = sum(r["pass"] for r in results)
-    write_summary(out, args.seed, results, commit, args.selfcheck)
-    print(f"{'oracles failing on untouched problems' if args.selfcheck else 'first-attempt verified success'} {passed}/{len(results)}")
-    return 0
+    write_summary(out, args.seed, results, commit, args.selfcheck, len(selected))
+    print(f"{'oracles failing on untouched problems' if args.selfcheck else 'independently verified success'} {passed}/{len(results)}")
+    return int(args.selfcheck and passed != len(results))
 
 
 if __name__ == "__main__":

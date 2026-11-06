@@ -47,6 +47,18 @@ class EvaluationAudit(unittest.TestCase):
             self.assertEqual(second["commit"], "commit-under-test")
 
 
+    def test_pass_requires_authority_proof_and_an_independent_clean_result(self):
+        live = {"status": "completed", "checks": [{"id": "a", "state": "passed"}],
+                "timing": {"verifiedAt": "2026-01-01T00:00:00Z"},
+                "decisions": [{"status": "failed"}, {"status": "done"}]}
+        self.assertTrue(evaluation.verified_outcome(live, True, [], []))
+        self.assertFalse(evaluation.verified_outcome(live, False, [], []))
+        self.assertFalse(evaluation.verified_outcome(live, True, ["source.txt"], []))
+        self.assertFalse(evaluation.verified_outcome(live, True, [], [{"correct": False}]))
+        self.assertFalse(evaluation.verified_outcome({**live, "status": "running"}, True, [], []))
+        self.assertFalse(evaluation.verified_outcome({**live, "checks": []}, True, [], []))
+        self.assertEqual(evaluation.recovery_steps(live), 1)
+
     def test_oracle_observes_live_output_before_teardown_without_sharing_answers(self):
         with tempfile.TemporaryDirectory() as temporary:
             ws = Path(temporary)

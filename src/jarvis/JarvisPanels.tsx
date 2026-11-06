@@ -527,7 +527,7 @@ export function TaskPanel({
         {task.steps.map((step) => (
           <li key={step.id} className="flex flex-wrap items-center gap-2">
             <span className="w-20 shrink-0 text-xs text-muted-foreground">
-              {step.status.replace("_", " ")}
+              {step.disposition ?? step.status.replace("_", " ")}
             </span>
             <span className="min-w-0 flex-1 truncate">{step.summary}</span>
             <span className="shrink-0 text-xs tabular-nums text-muted-foreground">

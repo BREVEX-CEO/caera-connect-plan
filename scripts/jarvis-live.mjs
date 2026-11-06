@@ -189,41 +189,50 @@ must(await admin.from("jarvis_permissions").insert(grants));
 // The companion runs as a customer's does: already started and idle when the task arrives, so
 // the first step's pickup is the real idle pickup (the nudge, or polling without Realtime).
 const companion = agent("run", "--workspace", resolve(values.workspace));
-await new Promise((ok) => setTimeout(ok, 5000));
-const { taskId } = await authority.startTask(admin, user.id, {
-  conversationId: conversation,
-  deviceId,
-  objective,
-});
-console.log(`task ${taskId}: ${objective}`);
-const confirmations = [];
-// The companion runs while the task does; the operator confirms external effects as they appear.
 let running = true;
-const confirming = (async () => {
-  while (running && values["confirm-effects"]) {
-    const view = await authority.taskView(admin, user.id, taskId);
-    for (const step of view.steps.filter((s) => s.needsConfirmation)) {
-      await authority.confirmAction(admin, user.id, step.id);
-      confirmations.push({ step: step.id, effect: step.effect, at: new Date().toISOString() });
-      console.log(`  operator confirmed: ${step.effect}`);
-    }
-    await new Promise((ok) => setTimeout(ok, 1500));
-  }
-})();
-const deadline = Date.now() + Number(values.minutes) * 60_000;
-let shown = "";
-while (Date.now() < deadline) {
-  const view = await authority.taskView(admin, user.id, taskId);
-  const line = `[${view.status}] ${view.steps.at(-1)?.summary ?? "planning"} (${view.steps.length} steps)`;
-  if (line !== shown) console.log((shown = line));
-  // A task waiting only for a busy planner resumes by itself (D10): keep following it.
-  if (view.status !== "running" && !/tries again by itself/.test(view.blocker ?? "")) break;
-  await new Promise((ok) => setTimeout(ok, 1000));
-}
-running = false;
-await confirming;
-let checkpointError;
+let confirming;
+let confirmationError;
+let taskId;
+let view;
+let state;
+const confirmations = [];
 try {
+  await new Promise((ok) => setTimeout(ok, 5000));
+  ({ taskId } = await authority.startTask(admin, user.id, {
+    conversationId: conversation,
+    deviceId,
+    objective,
+  }));
+  console.log(`task ${taskId}: ${objective}`);
+  confirming = (async () => {
+    while (running && values["confirm-effects"]) {
+      const view = await authority.taskView(admin, user.id, taskId);
+      for (const step of view.steps.filter((candidate) => candidate.needsConfirmation)) {
+        if (!(await authority.confirmAction(admin, user.id, step.id))) continue;
+        confirmations.push({ step: step.id, effect: step.effect, at: new Date().toISOString() });
+        console.log(`  operator confirmed step ${step.id}`);
+      }
+      await new Promise((ok) => setTimeout(ok, 1500));
+    }
+  })().catch((error) => {
+    confirmationError = error;
+    running = false;
+  });
+
+  const deadline = Date.now() + Number(values.minutes) * 60_000;
+  let shown = "";
+  while (running && Date.now() < deadline) {
+    const current = await authority.taskView(admin, user.id, taskId);
+    const line = `[${current.status}] ${current.steps.at(-1)?.summary ?? "planning"} (${current.steps.length} steps)`;
+    if (line !== shown) console.log((shown = line));
+    if (current.status !== "running" && !/tries again by itself/.test(current.blocker ?? "")) break;
+    await new Promise((ok) => setTimeout(ok, 1000));
+  }
+  running = false;
+  await confirming;
+  if (confirmationError) throw confirmationError;
+  view = await authority.taskView(admin, user.id, taskId);
+  state = must(await admin.rpc("jarvis_task_state", { p_task: taskId }));
   if (values["oracle-checkpoint"]) {
     const checkpoint = resolve(values["oracle-checkpoint"]);
     writeFileSync(checkpoint, "ready", { flag: "wx", mode: 0o600 });
@@ -235,21 +244,24 @@ try {
       throw new Error("Independent oracle did not acknowledge the pre-STOP checkpoint");
     }
   }
-} catch (error) {
-  checkpointError = error;
 } finally {
-  await agent("stop");
+  running = false;
+  try {
+    await confirming;
+    await agent("stop");
+    const ended = await companion;
+    if (ended.code !== 0) console.error("Companion ended unexpectedly.");
+  } finally {
+    server.close();
+  }
 }
-const ended = await companion;
-if (checkpointError) throw checkpointError;
-if (ended.code !== 0) console.error(ended.out.slice(-600));
-const view = await authority.taskView(admin, user.id, taskId);
-const state = must(await admin.rpc("jarvis_task_state", { p_task: taskId }));
 const outputs = (dir) =>
   readdirSync(dir, { withFileTypes: true }).flatMap((e) =>
     e.isDirectory()
       ? outputs(join(dir, e.name))
-      : [{ path: join(dir, e.name), bytes: statSync(join(dir, e.name)).size }],
+      : e.isFile()
+        ? [{ path: join(dir, e.name), bytes: statSync(join(dir, e.name)).size }]
+        : [],
   );
 writeFileSync(
   values.report,
@@ -286,4 +298,3 @@ writeFileSync(
   ),
 );
 console.log(`${view.status}: report in ${values.report}`);
-server.close();

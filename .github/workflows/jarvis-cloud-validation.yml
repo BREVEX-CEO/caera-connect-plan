@@ -11,6 +11,10 @@ on:
         description: "Optional unpublished candidate commit descended from this branch head"
         type: string
         required: false
+      stability_iterations:
+        description: "Optional companion lifecycle iterations on the hosted manual matrix"
+        type: number
+        default: 0
 
 permissions:
   contents: read
@@ -41,7 +45,7 @@ jobs:
       PGUSER: postgres
       PGPASSWORD: jarvis_disposable_ci_only
       OCADE_DB_ADVISORS: "1"
-      CODING_BASE_SHA: d6e65552527dd3db512135d9e50f1f5f4ad09570
+      CODING_BASE_SHA: 50f6300e8065aedade9d2729e30f4bc7916650be
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
@@ -84,13 +88,6 @@ jobs:
             sudo timeout --kill-after=5s 75s apt-get "${apt_options[@]}" update -qq
             sudo timeout --kill-after=5s 75s env DEBIAN_FRONTEND=noninteractive apt-get "${apt_options[@]}" install -y -qq "${packages[@]}"
           fi
-      - name: Reserve the disposable C10 migration filename
-        run: |
-          migration_workspace=$(mktemp -d "$RUNNER_TEMP/ocade-migration.XXXXXX")
-          cd "$migration_workspace"
-          npx --yes supabase@2.122.0 init
-          npx --yes supabase@2.122.0 migration new jarvis_task_metrics
-          printf 'OCADE_MIGRATION:%s\n' supabase/migrations/*_jarvis_task_metrics.sql
       - name: Source formatting
         run: npm run format:check
       - name: TypeScript compilation
@@ -502,6 +499,12 @@ jobs:
         if: runner.os == 'macOS'
         working-directory: device-agent/windows
         run: python -m tests.run_required "needs a Windows desktop" "needs Windows process handles" "needs Windows UI Automation and COM" "needs a display and OCADE_PUBLIC_WEB=1"
+      - name: Measure repeated companion startup, receipts and teardown
+        if: inputs.stability_iterations > 0
+        working-directory: device-agent/windows
+        env:
+          OCADE_STABILITY_ITERATIONS: ${{ inputs.stability_iterations }}
+        run: python -c "import anyio, json, os; from tests.test_agent_recovery import measure_companion_lifecycle; print(json.dumps(anyio.run(measure_companion_lifecycle, int(os.environ['OCADE_STABILITY_ITERATIONS']))))"
       # These tests exercise portable contracts; they do NOT establish real
       # foreground UI automation, macOS AX, customer pairing, or actual media quality.
 

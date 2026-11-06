@@ -217,13 +217,14 @@ const CASCADE_PARENT_COLUMN: Partial<
   ocade_messages: { parent: "ocade_conversations", column: "conversation_id" },
 };
 
-const CREDENTIAL_COLUMNS: Partial<Record<AccountTable, ReadonlySet<string>>> = {
+const PRIVATE_EXPORT_COLUMNS: Partial<Record<AccountTable, ReadonlySet<string>>> = {
+  jarvis_tasks: new Set(["model_metric_ids"]),
   jarvis_devices: new Set(["public_key", "enrollment_expires_at", "last_request_ms"]),
   ocade_push_subscriptions: new Set(["auth", "endpoint", "p256dh", "session_id"]),
 };
 
 function exportRow(table: AccountTable, row: ExportedRow): ExportedRow {
-  const excluded = CREDENTIAL_COLUMNS[table];
+  const excluded = PRIVATE_EXPORT_COLUMNS[table];
   return excluded
     ? Object.fromEntries(Object.entries(row).filter(([column]) => !excluded.has(column)))
     : row;
