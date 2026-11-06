@@ -11,6 +11,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSession } from "@/lib/security/session-middleware";
 import { taskObjective } from "./objective";
+import { appPermission, DEVICE_SILENCE_MS } from "./contracts";
 
 const uuid = z.uuid();
 
@@ -148,7 +149,7 @@ const capability = z.union([
   z.enum(["files", "apps", "browser", "computer_control", "mcp"]),
   z.string().regex(/^mcp:[a-z][a-z0-9_]{1,30}$/),
   z.string().regex(/^site:[a-z0-9]([a-z0-9.-]{0,251}[a-z0-9])?$/),
-  z.string().regex(/^app:[a-z0-9 ._()+-]{1,76}\.exe$/),
+  appPermission,
 ]);
 
 /**
@@ -159,6 +160,21 @@ export const setJarvisAccess = createServerFn({ method: "POST" })
   .middleware([requireSession])
   .validator((i) => z.object({ deviceId: uuid, capability, allowed: z.boolean() }).parse(i))
   .handler(async ({ data, context }) => {
+    const { data: device, error: lookupError } = await context.supabase
+      .from("jarvis_devices")
+      .select("installed_apps")
+      .eq("id", data.deviceId)
+      .eq("user_id", context.userId)
+      .is("revoked_at", null)
+      .maybeSingle();
+    if (lookupError || !device) throw new Error("That paired computer is unavailable.");
+    if (data.allowed && data.capability.startsWith("app:")) {
+      const app = data.capability.slice(4);
+      const inventory = z.array(z.object({ exe: z.string() })).safeParse(device.installed_apps);
+      if (!inventory.success || !inventory.data.some(({ exe }) => exe === app)) {
+        throw new Error("That application is no longer reported on this computer.");
+      }
+    }
     const rows = [
       {
         user_id: context.userId,
@@ -189,15 +205,52 @@ export const listJarvisAccess = createServerFn({ method: "GET" })
     return (rows ?? []).filter((row) => row.allowed).map((row) => row.capability);
   });
 
+
 export const listJarvisDevices = createServerFn({ method: "GET" })
   .middleware([requireSession])
   .handler(async ({ context }) => {
-    const { data, error } = await context.supabase
-      .from("jarvis_devices")
-      .select("id, name, platform, last_seen_at, software_version, installed_apps, capabilities")
-      .is("revoked_at", null)
-      .eq("kind", "agent")
-      .order("created_at", { ascending: false });
-    if (error) throw new Error("JARVIS could not list your computers just now.");
-    return data ?? [];
+    const account = context.userId;
+    const [devices, permissions, tasks] = await Promise.all([
+      context.supabase
+        .from("jarvis_devices")
+        .select("id, name, platform, last_seen_at, revoked_at, software_version, installed_apps, capabilities")
+        .eq("user_id", account)
+        .eq("kind", "agent")
+        .order("created_at", { ascending: false }),
+      context.supabase
+        .from("jarvis_permissions")
+        .select("device_id, capability, allowed")
+        .eq("user_id", account)
+        .in("capability", ["master", "files"]),
+      context.supabase
+        .from("jarvis_tasks")
+        .select("device_id")
+        .eq("user_id", account)
+        .in("status", ["running", "waiting", "taken_over"]),
+    ]);
+    if (devices.error || permissions.error || tasks.error)
+      throw new Error("JARVIS could not list your computers just now.");
+    const active = new Set(tasks.data?.map((task) => task.device_id));
+    const granted = permissions.data ?? [];
+    const master = granted.some((permission) =>
+      permission.device_id === null && permission.capability === "master" && permission.allowed
+    );
+    const now = Date.now();
+    return (devices.data ?? []).map((device) => {
+      const allowed = master && granted.some((permission) =>
+        permission.device_id === device.id && permission.capability === "files" && permission.allowed
+      );
+      const state = device.revoked_at
+        ? "removed"
+        : !device.last_seen_at
+          ? "disconnected"
+          : now - Date.parse(device.last_seen_at) > DEVICE_SILENCE_MS
+            ? "offline"
+            : active.has(device.id)
+              ? "busy"
+              : !allowed
+                ? "permission_required"
+                : "ready";
+      return { ...device, state };
+    });
   });

@@ -3,8 +3,8 @@ import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
-import { intent, OPERATIONS } from "../../src/lib/jarvis/contracts.ts";
-import { exactEffect } from "../../src/lib/jarvis/authority.server.ts";
+import { appPermission, intent, OPERATIONS } from "../../src/lib/jarvis/contracts.ts";
+import { exactEffect, taskView, type Admin } from "../../src/lib/jarvis/authority.server.ts";
 
 const deadline = new Date(Date.now() + 60_000);
 const nonce = crypto.randomUUID();
@@ -105,4 +105,57 @@ test("native and page interactions cannot declare their unknown effects reversib
       "reversible_write",
     );
   });
+});
+
+
+test("app grants use the identity in the signed action contract", () => {
+  for (const exe of ["ocade-tool.exe", "pkg-" + "a".repeat(32), "mac fixture"]) {
+    const action = intent("apps.launch", "launch", { exe }, deadline);
+    assert.equal(appPermission.parse("app:" + exe), "app:" + action.target?.app);
+  }
+  for (const invalid of ["app:../other", "app:exe:other", "app:", "site:example.test"]) {
+    assert.equal(appPermission.safeParse(invalid).success, false);
+  }
+});
+
+test("task views show milestone evidence, saved hashes and safe retry availability", async () => {
+  const output = "OCADE output/" + nonce + ".txt";
+  const requested = intent("fs.write_text", "saved", { path: output, text: nonce }, deadline);
+  const observedAtUtc = deadline.toISOString();
+  const task = {
+    id: nonce,
+    userId: "synthetic-account",
+    title: "Write a result",
+    status: "running",
+    plan: [
+      { description: "Create the file", checks: ["saved"], stepBudget: 4 },
+      { description: "Check the report", checks: ["report"], stepBudget: 4 },
+    ],
+    checkpoint: { milestones: { index: 1, startStep: 1 } },
+    timing: {
+      acceptedAt: observedAtUtc, finishedAt: null, now: observedAtUtc,
+      pausedMs: 0, modelCalls: 1, modelMs: 1,
+    },
+    steps: [{
+      id: "step", summary: "Saved file", intent: requested, status: "done",
+      createdAt: observedAtUtc, completedAt: observedAtUtc, confirmedAt: null,
+      receipt: { status: "observed", maybeChanged: true, observedAtUtc, evidence: { sha256: sha(nonce) } },
+    }],
+  };
+  const admin = {
+    rpc: async () => ({ data: task, error: null }),
+  } as unknown as Admin;
+  const view = await taskView(admin, task.userId, task.id);
+  assert.deepEqual(view.milestones.map((stage) => stage.state), ["verified", "current"]);
+  assert.deepEqual(view.artifactFiles, [{ path: output, sha256: sha(nonce), recovery: false }]);
+  task.status = "blocked";
+  assert.equal((await taskView(admin, task.userId, task.id)).canRetry, false);
+  task.steps[0].status = "cancelled";
+  const uncertain = await taskView(admin, task.userId, task.id);
+  assert.deepEqual(uncertain.artifactFiles, []);
+  assert.equal(uncertain.canRetry, false);
+  task.steps[0].receipt = {
+    status: "not_applied", maybeChanged: false, observedAtUtc, evidence: { sha256: "" },
+  };
+  assert.equal((await taskView(admin, task.userId, task.id)).canRetry, true);
 });

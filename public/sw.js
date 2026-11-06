@@ -23,8 +23,9 @@
  */
 
 const SHELL_CACHE_PREFIX = "ocade-shell-v";
-const VERSION = `${SHELL_CACHE_PREFIX}18`;
+const VERSION = `${SHELL_CACHE_PREFIX}19`;
 const OFFLINE_URL = "/offline.html";
+const SHELL_ROUTES = ["/", "/ocade-jarvis"];
 
 /*
  * RUNTIME ASSETS OUTLIVE A DEPLOY. The versioned cache above is deleted on
@@ -36,7 +37,7 @@ const OFFLINE_URL = "/offline.html";
  * under one URL, so they are safe to keep across versions; the oldest are
  * pruned by count so old builds cannot pile up.
  */
-const ASSET_CACHE = "ocade-assets";
+const ASSET_CACHE = "ocade-static-assets";
 const ASSET_CACHE_LIMIT = 200;
 
 async function keepAsset(request, response) {
@@ -57,7 +58,9 @@ async function keepAsset(request, response) {
  * require this file to be generated. They are picked up by the runtime cache
  * below once they have been fetched successfully at least once.
  */
-const REQUIRED_PRECACHE = ["/", OFFLINE_URL];
+const REQUIRED_PRECACHE = [...SHELL_ROUTES, OFFLINE_URL].map(
+  (path) => new Request(new URL(path, self.location.origin), { credentials: "omit", cache: "reload" }),
+);
 
 const OPTIONAL_PRECACHE = [
   "/favicon.ico",
@@ -102,12 +105,14 @@ const OPTIONAL_PRECACHE = [
  */
 async function firstPaintAssets(cache) {
   try {
-    const shell = await cache.match("/");
-    if (!shell) return [];
-    const html = await shell.text();
     const found = new Set();
-    for (const match of html.matchAll(/(?:src|href)="(\/assets\/[^"?#]+\.(?:js|mjs|css))"/g)) {
-      found.add(match[1]);
+    for (const route of SHELL_ROUTES) {
+      const shell = await cache.match(route);
+      if (!shell) continue;
+      const html = await shell.text();
+      for (const match of html.matchAll(/(?:src|href)="(\/assets\/[^"?#]+\.(?:js|mjs|css))"/g)) {
+        found.add(match[1]);
+      }
     }
     return [...found];
   } catch {
@@ -153,7 +158,7 @@ self.addEventListener("activate", (event) => {
         .then((keys) =>
           Promise.all(
             keys
-              .filter((k) => k.startsWith(SHELL_CACHE_PREFIX) && k !== VERSION)
+              .filter((k) => (k.startsWith(SHELL_CACHE_PREFIX) && k !== VERSION) || k === "ocade-assets")
               .map((k) => caches.delete(k)),
           ),
         ),
@@ -209,18 +214,10 @@ function isRuntimeCacheable(url) {
   if (url.origin !== self.location.origin) return false;
   if (isModelWeight(url)) return false;
 
-  /*
-   * A tokenizer is JSON and the engine cannot run without it, but ".json" as a
-   * blanket rule would also cache any route that happens to serve JSON — which
-   * on this app means somebody's data, cached under a URL that survives a sign
-   * out. Restricted to the build's own asset directory, where filenames are
-   * content-hashed and nothing user-specific is ever served.
-   */
-  if (/\.json$/.test(url.pathname)) {
-    return /^\/(assets|_build)\//.test(url.pathname);
-  }
-
-  return /\.(js|mjs|css|woff2?|png|svg|ico|webmanifest|wasm)$/.test(url.pathname);
+  const buildAsset = /^\/(?:assets|_build)\//.test(url.pathname);
+  const publicAsset = /^\/(?:icons|fonts|brand)\//.test(url.pathname);
+  if (url.pathname === "/favicon.ico" || url.pathname === "/manifest.webmanifest") return true;
+  return (buildAsset || publicAsset) && /\.(js|mjs|css|woff2?|png|svg|ico|json|wasm)$/.test(url.pathname);
 }
 
 /* ------------------------------------------------- background preparation -- */
@@ -230,7 +227,7 @@ self.addEventListener("fetch", (event) => {
   if (request.method !== "GET") return;
 
   const url = new URL(request.url);
-  if (isNeverCached(url)) return; // straight to the network, unrecorded
+  if (url.origin !== self.location.origin || isNeverCached(url)) return;
 
   if (request.mode === "navigate") {
     const navigation = Promise.resolve(event.preloadResponse)
@@ -256,47 +253,12 @@ self.addEventListener("fetch", (event) => {
       .then((preloaded) =>
         preloaded && preloaded.ok && preloaded.type !== "error" ? preloaded : fetch(request),
       )
-      .then(async (response) => {
-        const cacheControl = response.headers.get("cache-control") ?? "";
-        const contentType = response.headers.get("content-type") ?? "";
 
-        // Keep the last successful document for this exact route. This is
-        // still network-first, so a connection always receives the current
-        // deployment. Private/no-store responses are never copied, and a
-        // cached shell cannot contain an API response or a signed-out user's
-        // data because those paths were excluded above.
-        if (
-          response.ok &&
-          response.type === "basic" &&
-          contentType.includes("text/html") &&
-          !/\b(?:private|no-store)\b/i.test(cacheControl)
-        ) {
-          const copy = response.clone();
-          /*
-           * Under the page's PATH, not its full address. The fallback below
-           * ignores the query anyway, and keeping one copy per address kept
-           * one per conversation (?c=) and per Shortcut (?ask=…, the words in
-           * it) for as long as the cache lived.
-           */
-          const page = new URL(request.url);
-          // A refused cache write costs the offline copy, never this response.
-          await caches
-            .open(VERSION)
-            .then((cache) => cache.put(new Request(page.origin + page.pathname), copy))
-            .catch(() => undefined);
-        }
-        return response;
-      })
       .catch(async () => {
-        /*
-         * Offline. This page as it was last seen (its query aside: a Chat
-         * link with ?c= is still Chat), else the offline page. Never another
-         * page's markup: Chat's document served for /auth showed Chat at the
-         * sign-in address and failed to hydrate (React error 418), measured on
-         * WebKit when the network dropped mid-navigation.
-         */
-        const cached = await caches.match(request, { ignoreSearch: true });
-        return cached ?? (await caches.match(OFFLINE_URL)) ?? Response.error();
+        // Only anonymous, precached shell documents can be used after a connection drops.
+        const shell = await caches.open(VERSION);
+        const cached = SHELL_ROUTES.includes(url.pathname) ? await shell.match(url.pathname) : null;
+        return cached ?? (await shell.match(OFFLINE_URL)) ?? Response.error();
       });
     event.waitUntil(navigation.then(() => undefined));
     event.respondWith(navigation);

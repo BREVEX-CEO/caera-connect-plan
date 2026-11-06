@@ -4,6 +4,7 @@ import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
+import { runInNewContext } from "node:vm";
 
 test("Linux cloud gate entry points parse before any evaluation credentials are released", () => {
   for (const script of ["scripts/ci-local.sh", "scripts/jarvis-e1.sh"]) {
@@ -159,4 +160,58 @@ test("timing suite: qualification case", ${skip}, () =>
   } finally {
     rmSync(folder, { recursive: true, force: true });
   }
+});
+
+
+test("offline navigation never saves a personalised page", async () => {
+  const origin = "https://ocade.test";
+  const precached: Request[] = [];
+  const listeners = new Map<string, (event: Record<string, unknown>) => void>();
+  const cacheWrites: unknown[] = [];
+  const cache = {
+    addAll: async (paths: unknown[]) => {
+      precached.push(...paths.filter((path): path is Request => path instanceof Request));
+    },
+    match: async (path: string) => new Response(path === "/offline.html" ? "offline" : "public shell"),
+    put: async (...args: unknown[]) => { cacheWrites.push(args); },
+  };
+  let online = true;
+  const network = new Response("private page", { headers: { "content-type": "text/html" } });
+  runInNewContext(readFileSync("public/sw.js", "utf8"), {
+    self: {
+      location: { origin },
+      addEventListener: (name: string, handler: (event: Record<string, unknown>) => void) =>
+        listeners.set(name, handler),
+      skipWaiting: async () => undefined,
+    },
+    caches: { open: async () => cache, delete: async () => undefined },
+    URL,
+    Request,
+    Response,
+    fetch: async () => {
+      if (online) return network;
+      throw new Error("disconnected");
+    },
+  });
+  let wait: Promise<unknown> | undefined;
+  listeners.get("install")!({ waitUntil: (job: Promise<unknown>) => { wait = job; } });
+  assert.ok(wait);
+  await wait;
+  assert.ok(precached.some((request) => request.url === origin + "/ocade-jarvis"));
+  assert.ok(precached.every((request) => request.credentials === "omit"));
+  const navigate = async (path: string) => {
+    let response: Promise<Response> | undefined;
+    listeners.get("fetch")!({
+      request: { url: origin + path, method: "GET", mode: "navigate" },
+      respondWith: (job: Promise<Response>) => { response = job; },
+      waitUntil: () => {},
+    });
+    assert.ok(response);
+    return response;
+  };
+  assert.equal(await (await navigate("/library?private=1")).text(), "private page");
+  assert.deepEqual(cacheWrites, []);
+  online = false;
+  assert.equal(await (await navigate("/library?private=1")).text(), "offline");
+  assert.equal(await (await navigate("/ocade-jarvis?c=secret")).text(), "public shell");
 });

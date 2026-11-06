@@ -18,16 +18,19 @@ import { readBoundedRequestText } from "../read-bounded-request.ts";
 import { JARVIS_CONSENT_NEEDED } from "./consent-needed.ts";
 import { taskObjective } from "./objective.ts";
 import {
+  DEVICE_SILENCE_MS,
   PROTOCOL_VERSION,
   actionIntent,
   actionReceipt,
   deviceRequest,
+  effectPossible,
   intent,
   type OutcomeCheck,
 } from "./contracts.ts";
 import { ONLINE_CONSENT_VERSION } from "../intelligence/online-consent-version.ts";
 import {
   effectInDoubt,
+  milestonePlan,
   open,
   unresolvedEffect,
   type Decision,
@@ -46,7 +49,6 @@ import {
 export type Admin = Pick<SupabaseClient<Database>, "rpc">;
 
 /** A computer that polls at least every 30 s and has been silent this long is unreachable. */
-const DEVICE_SILENCE_MS = 90_000;
 
 /** The first read-only look whose result the fixed checks are compiled from. */
 const DISCOVERY = "discover";
@@ -535,10 +537,70 @@ export async function taskView(admin: Admin, userId: string, taskId: string) {
   } | null;
   const timing = taskTiming(task);
   const open = ["waiting", "taken_over"].includes(task.status);
+  const savedMilestones = milestonePlan.safeParse(task.plan);
+  const cursor = (task.checkpoint?.milestones as { index?: unknown } | undefined)?.index;
+  const milestoneIndex = typeof cursor === "number" && Number.isInteger(cursor) ? cursor : 0;
+  const milestones = savedMilestones.success && savedMilestones.data.length > 1
+    ? savedMilestones.data.map((milestone, index) => ({
+        description: milestone.description,
+        state: index < milestoneIndex ? "verified" : index === milestoneIndex ? "current" : "pending",
+      }))
+    : [];
+  const canRetry = ["blocked", "stopped", "failed"].includes(task.status) && task.steps.every((step) => {
+    const intent = actionIntent.safeParse(step.intent);
+    const result = actionReceipt.safeParse(step.receipt);
+    return intent.success && (!effectPossible(intent.data) || step.resolution === "not_applied" ||
+      (result.success && result.data.status === "not_applied" && !result.data.maybeChanged));
+  });
+  const delivered = new Map<string, { path: string; sha256: string; recovery: boolean }>();
+  const recordFile = (path: unknown, digest: unknown, recovery = false) => {
+    if (
+      typeof path === "string" &&
+      path.length <= 260 &&
+      !path.startsWith("/") &&
+      path.split("/").every((part) => part && part !== "." && part !== "..") &&
+      !/[:\\\u0000-\u001f]/.test(path) &&
+      typeof digest === "string" &&
+      /^[0-9a-f]{64}$/.test(digest)
+    ) {
+      delivered.set(path, { path, sha256: digest, recovery });
+    }
+  };
+  for (const step of task.steps) {
+    const action = actionIntent.safeParse(step.intent);
+    const receipt = actionReceipt.safeParse(step.receipt);
+    if (
+      step.status !== "done" ||
+      !action.success ||
+      action.data.risk === "read" ||
+      !receipt.success ||
+      receipt.data.status !== "observed" ||
+      receipt.data.errorCode
+    )
+      continue;
+    const evidence = receipt.data.evidence;
+    const hash = evidence.sha256;
+    const args = action.data.arguments;
+    if (typeof hash === "string") {
+      recordFile(args.output ?? args.path, hash);
+    } else if (hash && typeof hash === "object") {
+      const hashes = hash as Record<string, unknown>;
+      for (const name of ["docx", "pdf", "project", "interchange"]) recordFile(args[name], hashes[name]);
+      recordFile(args.output, hashes.image);
+    }
+    const project = evidence.project as { path?: unknown; sha256?: unknown } | undefined;
+    if (project?.path === args.project) recordFile(project?.path, project?.sha256);
+    if (typeof evidence.original === "string" && evidence.original.startsWith("OCADE output/originals/"))
+      recordFile(evidence.original, evidence.sha256Before, true);
+  }
+  const artifactFiles = [...delivered.values()];
   return {
     id: task.id,
     status: task.status,
     title: task.title,
+    canRetry,
+    milestones,
+    finalVerification: milestones.length > 0 && milestoneIndex >= milestones.length,
     blocker: task.blocker,
     result: task.result,
     checks: (task.outcome ?? []).map((check) => ({
@@ -547,7 +609,9 @@ export async function taskView(admin: Admin, userId: string, taskId: string) {
         ? "passed"
         : verification?.failed?.includes(check.id)
           ? "failed"
-          : "unchecked",
+          : verification?.unverified?.includes(check.id)
+            ? "unverified"
+            : "unchecked",
     })),
     steps: task.steps.map((step, index) => {
       const receipt = step.receipt ? (actionReceipt.safeParse(step.receipt).data ?? null) : null;
@@ -586,20 +650,8 @@ export async function taskView(admin: Admin, userId: string, taskId: string) {
       (!task.deviceSeenAt ||
         Date.parse(task.timing.now) - Date.parse(task.deviceSeenAt) > DEVICE_SILENCE_MS),
     timing,
-    // Files JARVIS wrote and saw land, named as they are in the computer's JARVIS folder.
-    artifacts: task.steps.flatMap((step) => {
-      const parsed = actionIntent.safeParse(step.intent);
-      if (step.status !== "done" || !parsed.success || parsed.data.risk === "read") return [];
-      const stored = step.receipt as { evidence?: { sha256?: Record<string, unknown> } } | null;
-      const hashes = stored?.evidence?.sha256;
-      const names = ["output", "docx", "pdf", "path"];
-      for (const name of ["project", "interchange"]) {
-        if (typeof hashes?.[name] === "string") names.push(name);
-      }
-      return names
-        .map((name) => parsed.data.arguments[name])
-        .filter((value): value is string => typeof value === "string");
-    }),
+    artifacts: artifactFiles.map((file) => file.path),
+    artifactFiles,
   };
 }
 

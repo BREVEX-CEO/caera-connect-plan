@@ -83,6 +83,13 @@ jobs:
             sudo timeout --kill-after=5s 75s apt-get "${apt_options[@]}" update -qq
             sudo timeout --kill-after=5s 75s env DEBIAN_FRONTEND=noninteractive apt-get "${apt_options[@]}" install -y -qq "${packages[@]}"
           fi
+      - name: Reserve the disposable C9 migration filename
+        run: |
+          migration_workspace=$(mktemp -d "$RUNNER_TEMP/ocade-migration.XXXXXX")
+          cd "$migration_workspace"
+          npx --yes supabase@2.122.0 init
+          npx --yes supabase@2.122.0 migration new jarvis_admission_fences
+          printf 'OCADE_MIGRATION:%s\n' supabase/migrations/*_jarvis_admission_fences.sql
       - name: Source formatting
         run: npm run format:check
       - name: TypeScript compilation
@@ -94,6 +101,7 @@ jobs:
           python -m compileall -q device-agent/windows/ocade_agent device-agent/windows/packaging tests/jarvis
           python -m py_compile device-agent/windows/packaging/ocade-agent.spec
           node --check scripts/jarvis-live.mjs
+          node --check public/sw.js
       - name: Import every companion module without starting the agent
         if: success() || failure()
         working-directory: device-agent/windows

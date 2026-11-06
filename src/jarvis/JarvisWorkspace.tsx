@@ -1,4 +1,3 @@
-import { QualityControl } from "@/lib/intelligence/QualityControl";
 /**
  * The OCADE JARVIS workspace: a compact rail, the conversation and the composer.
  *
@@ -33,6 +32,7 @@ import { cn, typedBeforeHydration } from "@/lib/utils";
 import { useJarvisPreferences, readPreferences, writePreferences } from "./preferences";
 import { SectionPanel, TaskPanel, type Section } from "./JarvisPanels";
 import { takeHandOff } from "./bubble-state";
+import { useJarvisDictation } from "./use-voice";
 import { JARVIS_CONSENT_NEEDED } from "@/lib/jarvis/consent-needed";
 import { MAX_OBJECTIVE_LENGTH, taskObjective } from "@/lib/jarvis/objective";
 import { askOnlineConsent } from "@/lib/intelligence/online-consent-ask";
@@ -72,6 +72,14 @@ export function JarvisWorkspace({
 
   const [turns, setTurns] = useState<Turn[]>([]);
   const [draft, setDraft] = useState("");
+  const composer = useRef<HTMLTextAreaElement>(null);
+  const dictation = useJarvisDictation(signedIn, (text) =>
+    setDraft((current) => [current, text].filter(Boolean).join(" ").slice(0, MAX_OBJECTIVE_LENGTH)),
+  );
+  const draftForReview = (text: string) => {
+    setDraft(text.slice(0, MAX_OBJECTIVE_LENGTH));
+    composer.current?.focus();
+  };
   // Words typed while the page was still loading, or carried from Chat, stay in the box.
   useEffect(() => {
     const handed = takeHandOff()?.text;
@@ -135,23 +143,29 @@ export function JarvisWorkspace({
 
   const queryClient = useQueryClient();
   const devices = useQuery({
-    queryKey: ["jarvis", "devices"],
+    queryKey: ["jarvis", "devices", user?.id ?? ""],
     queryFn: () => listJarvisDevices(),
     enabled: signedIn,
+    refetchInterval: 30_000,
   });
   const [deviceId, setDeviceId] = useState<string | null>(null);
-  const device = devices.data?.find((d) => d.id === deviceId) ?? devices.data?.[0] ?? null;
+  const available = (devices.data ?? []).filter((device) => !device.revoked_at);
+  const device =
+    available.find((item) => item.id === deviceId) ??
+    available.find((item) => item.state === "ready") ??
+    available[0] ??
+    null;
   const latest = useQuery({
-    queryKey: ["jarvis", "latest", conversationId],
+    queryKey: ["jarvis", "latest", user?.id ?? "", conversationId],
     queryFn: () => latestJarvisTask({ data: { conversationId: conversationId! } }),
     enabled: signedIn && Boolean(conversationId),
   });
   const taskId = latest.data?.taskId ?? null;
   // Bounded polling while a task is open; the server, not this tab, holds the task.
   const task = useQuery({
-    queryKey: ["jarvis", "task", taskId],
+    queryKey: ["jarvis", "task", user?.id ?? "", taskId],
     queryFn: () => getJarvisTask({ data: { taskId: taskId! } }),
-    enabled: Boolean(taskId),
+    enabled: signedIn && Boolean(taskId),
     refetchInterval: (query) =>
       query.state.data && OPEN_STATUSES.includes(query.state.data.status) ? 2_000 : false,
   });
@@ -164,7 +178,7 @@ export function JarvisWorkspace({
   const [sending, setSending] = useState(false);
 
   const send = async () => {
-    if (!device || sending) return;
+    if (!device || sendBlockedReason) return;
     const accepted = taskObjective.safeParse(draft);
     if (!accepted.success) {
       toast.error(accepted.error.issues[0].message);
@@ -210,13 +224,21 @@ export function JarvisWorkspace({
     ? null
     : loading || devices.isPending
       ? "Loading your account…"
-      : !device
-        ? "Pair a computer in Settings › Devices to give JARVIS somewhere to work."
+      : devices.isError
+        ? "Your computers could not be loaded. Try again from Devices."
         : taskOpen
           ? "JARVIS is working on a task in this conversation."
-          : sending
-            ? "Starting…"
-            : null;
+          : !device
+            ? "Pair a computer in Settings › Devices."
+            : device.state === "permission_required"
+              ? "Allow access to its JARVIS folder in Devices."
+              : device.state === "busy"
+                ? "This computer already has an open task."
+                : device.state !== "ready"
+                  ? "Start the OCADE companion on your computer and wait for it to connect."
+                  : sending
+                    ? "Starting…"
+                    : null;
 
   const rail = (mobile: boolean, expanded = mobile || prefs.railExpanded) => (
     <nav
@@ -415,13 +437,14 @@ export function JarvisWorkspace({
           {task.data ? (
             <TaskPanel
               task={task.data}
+              onRetry={draftForReview}
+              onUseFile={(path) => draftForReview(`Use the file ${JSON.stringify(path)} to `)}
               onChanged={() => void queryClient.invalidateQueries({ queryKey: ["jarvis"] })}
             />
           ) : null}
           <div className="mx-auto max-w-2xl">
             <div className="flex flex-wrap items-start justify-between gap-x-3">
-              <QualityControl value="standard" onChange={() => undefined} disabled />
-              {(devices.data?.length ?? 0) > 1 ? (
+              {available.length > 1 ? (
                 <label className="flex items-center gap-1 text-xs text-muted-foreground">
                   Computer
                   <select
@@ -429,7 +452,7 @@ export function JarvisWorkspace({
                     onChange={(event) => setDeviceId(event.target.value)}
                     className="rounded-md border border-border bg-transparent px-1 py-0.5"
                   >
-                    {devices.data!.map((d) => (
+                    {available.map((d) => (
                       <option key={d.id} value={d.id}>
                         {d.name}
                       </option>
@@ -451,6 +474,7 @@ export function JarvisWorkspace({
               </label>
               <textarea
                 id="jarvis-composer"
+                ref={composer}
                 value={draft}
                 rows={1}
                 maxLength={MAX_OBJECTIVE_LENGTH}
@@ -467,15 +491,18 @@ export function JarvisWorkspace({
                 }}
                 className="max-h-40 min-h-10 flex-1 resize-none bg-transparent px-2 py-2 text-[15px] outline-none placeholder:text-muted-foreground"
               />
-              <button
-                type="button"
-                aria-label="Start voice"
-                disabled
-                title="Voice is not available in JARVIS yet"
-                className="grid h-10 w-10 place-items-center rounded-full text-muted-foreground disabled:opacity-40"
-              >
-                <Mic className="h-4 w-4" aria-hidden />
-              </button>
+              {signedIn && dictation.supported ? (
+                <button
+                  type="button"
+                  aria-label={dictation.state === "idle" ? "Dictate a draft" : "Cancel dictation"}
+                  aria-describedby="jarvis-dictation-status"
+                  aria-pressed={dictation.state !== "idle"}
+                  onClick={dictation.state === "idle" ? dictation.start : dictation.cancel}
+                  className="grid h-10 w-10 place-items-center rounded-full text-muted-foreground hover:bg-accent"
+                >
+                  <Mic className="h-4 w-4" aria-hidden />
+                </button>
+              ) : null}
               <button
                 type="submit"
                 aria-label={signedIn ? "Send" : "Sign in to send"}
@@ -487,13 +514,28 @@ export function JarvisWorkspace({
                 <ArrowUp className="h-4 w-4" aria-hidden />
               </button>
             </form>
+            {signedIn && dictation.supported ? (
+              <p id="jarvis-dictation-status" role="status" className="mt-1 text-xs text-muted-foreground">
+                {dictation.error ??
+                  (dictation.state === "listening"
+                    ? "Listening for this draft. Press the microphone again to cancel."
+                    : dictation.state === "starting"
+                      ? "Waiting for your browser to open the microphone."
+                      : "Dictation uses your browser's speech service, which may process audio online.")}
+              </p>
+            ) : null}
             {sendBlockedReason ? (
               <p
                 id="jarvis-send-status"
                 role="status"
                 className="mt-2 text-xs text-muted-foreground"
               >
-                {sendBlockedReason}
+                {sendBlockedReason}{" "}
+                {!device || device.state === "permission_required" ? (
+                  <button type="button" onClick={() => settings.open("devices")} className="underline">
+                    Open Devices
+                  </button>
+                ) : null}
               </p>
             ) : null}
           </div>

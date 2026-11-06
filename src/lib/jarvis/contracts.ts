@@ -12,6 +12,7 @@
 import { z } from "zod";
 
 export const PROTOCOL_VERSION = 1;
+export const DEVICE_SILENCE_MS = 90_000;
 
 /**
  * `external_effect` actions wait for the person's confirmation before any device may
@@ -55,6 +56,18 @@ const exe = z
   .string()
   .regex(/^[A-Za-z0-9 ._()+-]{1,80}$/)
   .transform((name) => name.toLowerCase());
+
+export const appPermission = z
+  .string()
+  .startsWith("app:")
+  .transform((value, context) => {
+    const parsed = exe.safeParse(value.slice(4));
+    if (!parsed.success) {
+      context.addIssue({ code: "custom", message: "Invalid application identity." });
+      return z.NEVER;
+    }
+    return `app:${parsed.data}`;
+  });
 
 /**
  * One top-level window, exactly: a reused PID or HWND, or a restarted app, no

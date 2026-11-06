@@ -1,5 +1,5 @@
 /** The rail's Conversations, and JARVIS's place in Settings. */
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Trash2, X } from "lucide-react";
 import { deleteConversation, listConversations } from "@/lib/ocade.functions";
@@ -18,6 +18,8 @@ import {
 } from "@/lib/jarvis/functions";
 import { toast } from "sonner";
 import { useSession } from "@/lib/session";
+import { toBase64 } from "@/lib/chat/attachments";
+import { addLibraryItem, LIBRARY_MAX_BYTES } from "@/lib/library/library.functions";
 
 export type Section = "conversations";
 
@@ -154,27 +156,38 @@ const ACCESS: { capability: string; label: string }[] = [
 
 /** Settings > Devices: pair a computer, choose exactly what JARVIS may use on it, remove it. */
 export function JarvisAccess() {
+  const { user } = useSession();
   const queryClient = useQueryClient();
-  const devices = useQuery({ queryKey: ["jarvis", "devices"], queryFn: () => listJarvisDevices() });
+  const devices = useQuery({
+    queryKey: ["jarvis", "devices", user?.id ?? ""],
+    queryFn: () => listJarvisDevices(),
+    enabled: Boolean(user),
+    refetchInterval: 30_000,
+  });
   const [code, setCode] = useState("");
+  const [pairing, setPairing] = useState(false);
   const refresh = () => void queryClient.invalidateQueries({ queryKey: ["jarvis"] });
   return (
     <div className="space-y-4 text-sm">
-      <p className="text-muted-foreground">
-        Install the OCADE JARVIS companion on a Windows computer, choose its JARVIS folder there,
-        then type the pairing code it shows. JARVIS only uses what you turn on below.
-      </p>
+      <ol className="list-decimal space-y-1 pl-5 text-muted-foreground">
+        <li>Open the OCADE companion on your Windows or Mac computer and choose a JARVIS folder.</li>
+        <li>Enter the pairing code from the companion and keep it running.</li>
+        <li>Allow access to its JARVIS folder, then ask JARVIS for your first task.</li>
+      </ol>
       <form
         className="flex gap-2"
         onSubmit={(event) => {
           event.preventDefault();
+          if (pairing || !/^[0-9A-F]{16}$/.test(code)) return;
+          setPairing(true);
           void pairJarvisDevice({ data: { code } })
             .then(() => {
               setCode("");
               toast.success("Computer paired.");
               refresh();
             })
-            .catch((error: Error) => toast.error(error.message));
+            .catch((error: Error) => toast.error(error.message))
+            .finally(() => setPairing(false));
         }}
       >
         <label className="sr-only" htmlFor="jarvis-pair-code">
@@ -192,10 +205,10 @@ export function JarvisAccess() {
         />
         <button
           type="submit"
-          disabled={code.length !== 16}
+          disabled={pairing || code.length !== 16}
           className="rounded-md bg-foreground px-3 text-background disabled:opacity-40"
         >
-          Pair
+          {pairing ? "Pairing…" : "Pair"}
         </button>
       </form>
       {devices.isError ? (
@@ -211,6 +224,15 @@ export function JarvisAccess() {
   );
 }
 
+const DEVICE_LABELS: Record<string, string> = {
+  ready: "Ready",
+  offline: "Offline",
+  permission_required: "Permission required",
+  busy: "Busy",
+  disconnected: "Disconnected",
+  removed: "Removed",
+};
+
 function DeviceAccess({
   device,
   onChanged,
@@ -218,9 +240,11 @@ function DeviceAccess({
   device: Awaited<ReturnType<typeof listJarvisDevices>>[number];
   onChanged: () => void;
 }) {
+  const { user } = useSession();
   const granted = useQuery({
-    queryKey: ["jarvis", "access", device.id],
+    queryKey: ["jarvis", "access", user?.id ?? "", device.id],
     queryFn: () => listJarvisAccess({ data: { deviceId: device.id } }),
+    enabled: Boolean(user) && !device.revoked_at,
   });
   const [site, setSite] = useState("");
   const has = (capability: string) => granted.data?.includes(capability) ?? false;
@@ -241,10 +265,11 @@ function DeviceAccess({
         <div className="min-w-0">
           <h3 className="truncate font-medium">{device.name}</h3>
           <p className="text-xs text-muted-foreground">
-            {device.last_seen_at ? `Last seen ${when(device.last_seen_at)}` : "Not seen yet"}
+            {DEVICE_LABELS[device.state] ?? device.state}
+            {device.last_seen_at ? ` · Last seen ${when(device.last_seen_at)}` : ""}
           </p>
         </div>
-        <button
+        {!device.revoked_at ? <button
           type="button"
           onClick={() => {
             if (!window.confirm(`Remove ${device.name}? Any task on it stops.`)) return;
@@ -255,13 +280,22 @@ function DeviceAccess({
           className="rounded-md px-2 py-1 text-xs text-muted-foreground hover:bg-accent hover:text-destructive"
         >
           Remove
-        </button>
+        </button> : null}
       </div>
-      {ACCESS.map(({ capability, label }) => (
+      {device.state === "permission_required" && has("files") ? (
+        <button type="button" onClick={() => set("files", true)} className="text-xs underline">
+          Allow JARVIS access again
+        </button>
+      ) : null}
+      {granted.isError && !device.revoked_at ? (
+        <p role="status" className="text-xs text-muted-foreground">Permissions could not be loaded.</p>
+      ) : null}
+      {!device.revoked_at && ACCESS.map(({ capability, label }) => (
         <label key={capability} className="flex items-center gap-2">
           <input
             type="checkbox"
             checked={has(capability)}
+            disabled={!granted.isSuccess}
             onChange={(e) => set(capability, e.target.checked)}
           />
           {label}
@@ -389,12 +423,18 @@ function Elapsed({ timing, live }: { timing: Timing; live: boolean }) {
 }
 
 /** One task: what JARVIS is doing, what it proved, and the person's controls. */
+type Task = Awaited<ReturnType<typeof getJarvisTask>>;
+
 export function TaskPanel({
   task,
   onChanged,
+  onRetry,
+  onUseFile,
 }: {
-  task: Awaited<ReturnType<typeof getJarvisTask>>;
+  task: Task;
   onChanged: () => void;
+  onRetry: (objective: string) => void;
+  onUseFile: (path: string) => void;
 }) {
   const open = ["running", "waiting", "taken_over"].includes(task.status);
   const act = (work: Promise<unknown>) =>
@@ -402,11 +442,10 @@ export function TaskPanel({
   return (
     <section
       aria-label="JARVIS task"
-      aria-live="polite"
       className="mx-auto mb-2 w-full max-w-2xl rounded-2xl border border-border/60 p-3 text-sm"
     >
-      <div className="flex items-center gap-2">
-        <span className="font-medium">{STATUS_WORDS[task.status] ?? task.status}</span>
+      <div className="flex flex-wrap items-center gap-2">
+        <span role="status" className="font-medium">{STATUS_WORDS[task.status] ?? task.status}</span>
         <span className="min-w-0 flex-1 truncate text-muted-foreground">{task.title}</span>
         <Elapsed timing={task.timing} live={open} />
         {task.status === "running" ? (
@@ -424,7 +463,19 @@ export function TaskPanel({
             onClick={() => act(resumeJarvisTask({ data: { taskId: task.id } }))}
             className="rounded-full border border-border px-3 py-1 hover:bg-accent"
           >
-            Resume
+            Continue
+          </button>
+        ) : null}
+        {task.canRetry ? (
+          <button
+            type="button"
+            onClick={() => {
+              onRetry(task.title);
+              toast.info("Review the draft and send it to retry.");
+            }}
+            className="rounded-full border border-border px-3 py-1 hover:bg-accent"
+          >
+            Retry
           </button>
         ) : null}
         {open ? (
@@ -444,7 +495,20 @@ export function TaskPanel({
           nothing new starts until then.
         </p>
       ) : null}
-      <ol className="mt-2 space-y-1">
+      {task.milestones.length ? (
+        <ol aria-label="Task milestones" className="mt-2 space-y-1 text-xs">
+          {task.milestones.map((milestone, index) => (
+            <li key={index} aria-current={milestone.state === "current" ? "step" : undefined}>
+              <span className="font-medium">
+                {milestone.state === "verified" ? "Verified" : milestone.state === "current" ? "Current" : "Pending"}
+              </span>{" "}
+              {milestone.description}
+            </li>
+          ))}
+          {task.finalVerification && open ? <li>Checking the whole result independently.</li> : null}
+        </ol>
+      ) : null}
+      <ol aria-label="Task actions" className="mt-2 space-y-1">
         {task.steps.map((step) => (
           <li key={step.id} className="flex flex-wrap items-center gap-2">
             <span className="w-20 shrink-0 text-xs text-muted-foreground">
@@ -460,13 +524,26 @@ export function TaskPanel({
               </pre>
             ) : null}
             {step.needsConfirmation ? (
-              <button
-                type="button"
-                onClick={() => act(confirmJarvisStep({ data: { activityId: step.id } }))}
-                className="rounded-full bg-foreground px-3 py-0.5 text-xs text-background"
-              >
-                Allow this step
-              </button>
+              <span className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() =>
+                    act(confirmJarvisStep({ data: { activityId: step.id } }).then(({ confirmed }) => {
+                      if (!confirmed) throw new Error("This step is no longer waiting for approval.");
+                    }))
+                  }
+                  className="rounded-full bg-foreground px-3 py-0.5 text-xs text-background"
+                >
+                  Allow this step
+                </button>
+                <button
+                  type="button"
+                  onClick={() => act(stopJarvisTask({ data: { taskId: task.id } }))}
+                  className="rounded-full border border-border px-3 py-0.5 text-xs hover:bg-accent"
+                >
+                  Deny and stop
+                </button>
+              </span>
             ) : null}
             {step.needsAnswer ? (
               <span className="flex basis-full flex-wrap items-center gap-2 text-xs">
@@ -503,27 +580,162 @@ export function TaskPanel({
         <ul className="mt-2 space-y-0.5 text-xs">
           {task.checks.map((check) => (
             <li key={check.id}>
-              {check.state === "passed" ? "✓" : check.state === "failed" ? "✗" : "·"}{" "}
+              <span className="font-medium">
+                {check.state === "passed"
+                  ? "Verified"
+                  : check.state === "failed"
+                    ? "Failed"
+                    : check.state === "unverified"
+                      ? "Needs review"
+                      : "Pending"}
+              </span>{" "}
               {check.description}
             </li>
           ))}
         </ul>
       ) : null}
-      {task.artifacts.length ? (
+      {task.artifactFiles.length ? (
         <div className="mt-2 text-xs">
           <p className="text-muted-foreground">
-            {task.status === "completed" ? "Your files" : "Files written so far"} — on{" "}
-            {task.device ?? "your computer"}, in its OCADE JARVIS folder:
+            Files saved in the OCADE JARVIS folder on {task.device ?? "your computer"}.
           </p>
-          <ul className="mt-1 space-y-0.5 font-mono">
-            {task.artifacts.map((path) => (
-              <li key={path} className="break-all">
-                {path}
-              </li>
+          <ul className="mt-1 space-y-1">
+            {task.artifactFiles.map((file) => (
+              <ArtifactItem key={file.path + file.sha256} file={file} onUseFile={onUseFile} />
             ))}
           </ul>
         </div>
       ) : null}
     </section>
+  );
+}
+
+
+const PREVIEW_TYPES: Record<string, string> = {
+  png: "image/png",
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  webp: "image/webp",
+  gif: "image/gif",
+  mp4: "video/mp4",
+  wav: "audio/wav",
+  pdf: "application/pdf",
+  txt: "text/plain",
+  csv: "text/plain",
+};
+
+function ArtifactItem({
+  file,
+  onUseFile,
+}: {
+  file: Task["artifactFiles"][number];
+  onUseFile: (path: string) => void;
+}) {
+  const picker = useRef<HTMLInputElement>(null);
+  const [selected, setSelected] = useState<{ copy: File; url: string; preview: boolean } | null>(null);
+  const [checking, setChecking] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [problem, setProblem] = useState<string | null>(null);
+  const query = useQueryClient();
+  const active = useRef(true);
+  useEffect(() => {
+    active.current = true;
+    return () => {
+      active.current = false;
+    };
+  }, []);
+  useEffect(() => () => {
+    if (selected) URL.revokeObjectURL(selected.url);
+  }, [selected]);
+
+  const name = file.path.split("/").at(-1) ?? file.path;
+  const extension = name.split(".").at(-1)?.toLowerCase() ?? "";
+  const choose = async (copy: File) => {
+    setSelected(null);
+    setProblem(null);
+    setChecking(true);
+    try {
+      if (copy.name.normalize("NFC").toLowerCase() !== name.normalize("NFC").toLowerCase()) {
+        throw new Error("Choose " + name + " from the JARVIS folder.");
+      }
+      if (copy.size > LIBRARY_MAX_BYTES) {
+        throw new Error("Open this large file directly in the JARVIS folder.");
+      }
+      const hash = await crypto.subtle.digest("SHA-256", await copy.arrayBuffer());
+      const digest = Array.from(new Uint8Array(hash), (byte) => byte.toString(16).padStart(2, "0")).join("");
+      if (digest !== file.sha256) throw new Error("This copy does not match the file JARVIS saved.");
+      if (active.current) {
+        const type = Object.hasOwn(PREVIEW_TYPES, extension) ? PREVIEW_TYPES[extension] : null;
+        const url = URL.createObjectURL(new Blob([copy], { type: type ?? "application/octet-stream" }));
+        setSelected({ copy, url, preview: type !== null });
+      }
+    } catch (error) {
+      if (active.current) setProblem(error instanceof Error ? error.message : "The file could not be opened.");
+    } finally {
+      if (active.current) setChecking(false);
+    }
+  };
+  const save = async () => {
+    if (!selected || uploading) return;
+    setUploading(true);
+    setProblem(null);
+    try {
+      const mime = Object.hasOwn(PREVIEW_TYPES, extension)
+        ? PREVIEW_TYPES[extension]
+        : "application/octet-stream";
+      await addLibraryItem({
+        data: {
+          name,
+          mime,
+          kind: mime.startsWith("image/") ? "image" : "file",
+          source: "generated",
+          contentBase64: await toBase64(selected.copy),
+        },
+      });
+      await query.invalidateQueries({ queryKey: ["library", "items"] });
+      toast.success("Saved a copy in your Library.");
+    } catch (error) {
+      if (active.current) setProblem(error instanceof Error ? error.message : "The copy could not be uploaded.");
+    } finally {
+      if (active.current) setUploading(false);
+    }
+  };
+  return (
+    <li className="rounded-md border border-border/50 p-2">
+      <p className="break-all font-mono">
+        {file.recovery ? "Original copy · " : ""}{file.path}
+      </p>
+      <input
+        ref={picker}
+        type="file"
+        className="hidden"
+        aria-label={"Choose saved file " + name}
+        onChange={(event) => {
+          const copy = event.target.files?.[0];
+          event.target.value = "";
+          if (copy) void choose(copy);
+        }}
+      />
+      <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1">
+        <button type="button" onClick={() => picker.current?.click()} disabled={checking || uploading} className="underline">
+          {checking ? "Checking file…" : "Choose local copy"}
+        </button>
+        <button type="button" onClick={() => onUseFile(file.path)} className="underline">
+          Use in next task
+        </button>
+        {selected ? (
+          <>
+            {selected.preview ? (
+              <a href={selected.url} target="_blank" rel="noopener noreferrer" className="underline">Preview</a>
+            ) : null}
+            <a href={selected.url} download={name} className="underline">Download copy</a>
+            <button type="button" onClick={() => void save()} disabled={uploading} className="underline">
+              {uploading ? "Uploading…" : "Upload copy to Library"}
+            </button>
+          </>
+        ) : null}
+      </div>
+      {problem ? <p role="alert" className="mt-1 text-destructive">{problem}</p> : null}
+    </li>
   );
 }
