@@ -1577,8 +1577,8 @@ Coding status is kept separate from runtime verification (Appendix A), so nothin
 | 37 | CODE | NOT CODED | C10, explicit receipt dispositions |
 | 38 | CODE | BUILDS | C2, `ec44dd79` |
 | 40 | CODE | NOT CODED | C10 |
-| 44 | CODE | NOT CODED | C4 |
-| 45 | CODE | NOT CODED | C4 |
+| 44 | CODE | BUILDS | C4, `e2f7053e` |
+| 45 | CODE | BUILDS | C4, `e2f7053e` |
 | 46 | CODE | NOT CODED | C3/C10 |
 | 48 | CODE | NOT CODED | C3/C10 |
 | 49 | CODE | NOT CODED | C3/C10 |
@@ -1620,26 +1620,26 @@ Coding status is kept separate from runtime verification (Appendix A), so nothin
 | 91 | CODE | NOT CODED | C3/C10 |
 | 92 | CODE | NOT CODED | C3/C10 |
 | 96 | CODE | NOT CODED | C10 |
-| 97 | CODE | NOT CODED | C4 |
+| 97 | CODE | BUILDS | C4, `e2f7053e` |
 | 98 | CODE | NOT CODED | C4 |
 | 99 | CODE | NOT CODED | C4 |
 | 100 | CODE | NOT CODED | C4 |
-| 101 | CODE | NOT CODED | C4 |
-| 103 | CODE | NOT CODED | C4 |
+| 101 | CODE | BUILDS | C4, `e2f7053e` |
+| 103 | CODE | BUILDS | C4, `e2f7053e` |
 | 104 | CODE | NOT CODED | C4 |
-| 105 | CODE | NOT CODED | C4 |
-| 106 | CODE | NOT CODED | C4 |
-| 107 | CODE | NOT CODED | C4 |
-| 108 | CODE | NOT CODED | C4 |
+| 105 | CODE | BUILDS | C4, `e2f7053e` |
+| 106 | CODE | BUILDS | C4, `e2f7053e` |
+| 107 | CODE | BUILDS | C4, `e2f7053e` |
+| 108 | CODE | BUILDS | C4, `e2f7053e` |
 | 110 | CODE | NOT CODED | C4 |
 | 111 | CODE | NOT CODED | C4 |
 | 112 | CODE | NOT CODED | C4 |
 | 113 | CODE | NOT CODED | C4 |
-| 114 | CODE | NOT CODED | C4 |
-| 115 | CODE | NOT CODED | C4 |
-| 116 | CODE | NOT CODED | C4 |
-| 117 | CODE | NOT CODED | C4 |
-| 118 | CODE | NOT CODED | C4 |
+| 114 | CODE | BUILDS | C4, `e2f7053e` |
+| 115 | CODE | BUILDS | C4, `e2f7053e` |
+| 116 | CODE | BUILDS | C4, `e2f7053e` |
+| 117 | CODE | BUILDS | C4, `e2f7053e` |
+| 118 | CODE | BUILDS | C4, `e2f7053e` |
 | 119 | CODE | NOT CODED | C4 |
 | 120 | CODE | NOT CODED | C4 |
 | 121 | QUALIFICATION-ONLY | QUALIFICATION-ONLY; harness NOT CODED | RPC; harness audit in C10, owner-directed run deferred |
@@ -1781,13 +1781,26 @@ The existing `tests.run_required.main` loads selected modules/classes/methods or
 
 **C3 operation offering — BUILDS at `518820e9f8c5146475785a5a72cbe0893909065e`.** [GitHub Actions run 42218311835](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/42218311835) passed the coding gate. `advance → planStep → offeredOperations` sends every built-in operation allowed by current grants and device engines to the existing model service. `planStep` resolves returned names against that same list before queueing. The existing provider test exercises the complete list and refusal of an unoffered operation. The remaining execution ladder and mechanism selection work for 28 and 29 stays in C6/C10.
 
-**C4 dependency flow — CODED for the reviewed portable runtime, coding gate pending.**
+**C4 dependency flow — BUILDS at `e2f7053ef87b0174622a18ddbcdbe85962499d90` for the reviewed portable runtime.** [GitHub Actions run 42221061081](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/42221061081) passed format, types, protocol, database and authority checks, 138 TypeScript tests and 87 focused Python tests.
 
-- `planStep → system.dependency → command_worker.system_dependency` reports prerequisites, local candidates, OS, architecture, space and source availability. The current reviewed install catalog contains the Node.js runtime for Windows and macOS x64 and ARM64. Other discovered prerequisites are reported for manual setup when no reviewed artifact is available.
-- `planStep → jarvis_queue_actions → exactEffect` requires the exact observed proposal and confirmation. `Gateway.run → system_install_dependency` recomputes the local catalog entry, checks the pinned source and bytes, stages privately and publishes atomically without elevation.
-- `Agent.handle → jarvis_submit_receipt → advance → planStep → verify.dependency` reopens the actual installed binary, checks the source binding and observes startup, version and architecture. Failed verification pauses the task with a reason. Continue checks it again under the new controller. Existing journaling keeps the exact action and receipt across interruptions.
-- `Agent.run → signed inventory → offeredOperations` gates the new tools on an advertised capability. `handleDeviceRequest` refuses an incompatible protocol with an upgrade instruction, and the gateway checks each bundled worker's actual tool manifest before dispatch.
-- C4 requirement rows remain pending for the coding gate and the remaining package, diagnostic, compatibility and clean-machine harness gaps. This entry does not qualify any native artifact or change an Appendix A status.
+- 44 — BUILDS — Signed protocol headers → handleDeviceRequest, and Gateway._hold → MCP initialize/list_tools. Signed inventory gates the new operations on the reported dependency capability.
+- 45 — BUILDS — handleDeviceRequest → Device.request → companion CLI returns upgrade instructions. A bundled worker mismatch pauses in planStep.
+- 97 — BUILDS — planStep → system.dependency → command_worker.system_dependency identifies available and missing task prerequisites and returns a reviewed package when one is available.
+- 101 — BUILDS — system_dependency → discovery.dependency_candidates discovers Python, Node.js, Java, .NET, FFmpeg, LibreOffice and browsers. Native library diagnosis remains tracked in 111.
+- 103 — BUILDS — system_dependency → dependency_platform/dependency_proposal checks native architecture and OS support, then disk, user write permission and pinned source availability.
+- 105 — BUILDS — dependency_proposal → system_install_dependency selects a reviewed vendor distribution with no model-controlled source or install command.
+- 106 — BUILDS — system_install_dependency → _stage_dependency binds exact version, OS, architecture, source, SHA-256 and licence. verify_dependency independently checks published bytes and runtime.
+- 107 — BUILDS — planStep → dependencyApproval and command_worker.system_install_dependency require exact observed metadata. Downloads use pinned HTTPS sources and never execute supplied commands.
+- 108 — BUILDS — taskView → exactEffect shows the exact package, source, version, digest, scope, destination and privileges with startup implications before confirmation.
+- 114 — BUILDS — planStep → jarvis_task_wait returns the exact diagnostic code and a safe Continue path when an installation or verification fails.
+- 115 — BUILDS — Agent.handle → Journal.start/finish and system_install_dependency → _stage_dependency bound and stage the install. Retry preserves receipts and never repeats an uncertain effect.
+- 116 — BUILDS — verify.dependency → verify_worker.verify_dependency → discovery.verify_dependency reopens the published executable and checks its integrity, startup, version and architecture.
+- 117 — BUILDS — jarvis_submit_receipt → advance → planStep waits for the exact independent proof under current grants. Continue rechecks published work or re-inspects a definitely unapplied install.
+- 118 — BUILDS — advance → jarvis_task_wait preserves original task state and the receipt on failure. A fresh controller resumes from inspection or independent verification.
+- The reviewed install catalog covers Node.js x64 and ARM64 on Windows and macOS. Discovery returns manual setup when it has no approved package. None of these checks qualifies a consumer installation.
+- 98, 99, 104, 119, 120 and 217 still need packaging, explicit bundled prerequisites and clean-machine harness coverage. 100, 110–113 still need broader installed-version and native diagnostic coverage. These remain NOT CODED.
+
+**C5 updater and packaging — CODED for the signed activation path, coding gate pending.** `activate-update → companion_lock → _activate_release` verifies a release signature, platform, architecture, protocol, archive and extracted files, then starts every worker before selecting the new release. `run → _select_release` rechecks the active files and falls back to a previous valid release or the installed base. `rollback-update → _rollback_release` switches the pointer under the same lock. The Windows installer respects the live companion mutex. The existing package spec and frozen checker use the appropriate Windows and macOS bundle paths. The coding fixtures exercise invalid signatures, wrong architecture, unsafe archives, worker startup failure, active-lock refusal and rollback. Bundles and real-machine qualification remain manual.
 
 **Coding batches (order by code dependency; continue past any blocked item):**
 

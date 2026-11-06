@@ -28,3 +28,10 @@ iscc ocade-agent.iss
 if ($env:OCADE_SIGN_THUMBPRINT) {
   signtool sign /sha1 $env:OCADE_SIGN_THUMBPRINT /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 "Output\OCADE-JARVIS-Setup-0.1.0.exe"
 }
+
+if ($env:OCADE_RELEASE_PUBLIC_KEY_FILE -and $env:SOURCE_DATE_EPOCH) {
+  ..\.build-venv\Scripts\python check_frozen.py --prepare-update "..\dist\OCADE JARVIS" `
+    --archive "Output\OCADE-JARVIS-update.tar.gz" --manifest "Output\OCADE-JARVIS-update.json" `
+    --source-epoch $env:SOURCE_DATE_EPOCH
+  if ($LASTEXITCODE -ne 0) { throw "Update archive preparation failed" }
+}

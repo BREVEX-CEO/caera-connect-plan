@@ -57,9 +57,28 @@ def folder(home: str | os.PathLike) -> Path:
 
 
 def _write(path: Path, value: dict) -> None:
-    temporary = path.with_suffix(".tmp")
-    temporary.write_text(json.dumps(value))
-    os.replace(temporary, path)
+    import tempfile
+
+    with tempfile.NamedTemporaryFile(mode="w", encoding="utf8", dir=path.parent, delete=False) as stream:
+        temporary = Path(stream.name)
+        try:
+            json.dump(value, stream)
+            stream.flush()
+            os.fsync(stream.fileno())
+        except BaseException:
+            stream.close()
+            temporary.unlink(missing_ok=True)
+            raise
+    try:
+        os.replace(temporary, path)
+        if os.name != "nt":
+            parent = os.open(path.parent, os.O_RDONLY)
+            try:
+                os.fsync(parent)
+            finally:
+                os.close(parent)
+    finally:
+        temporary.unlink(missing_ok=True)
 
 
 def _read(path: Path) -> dict | None:
@@ -106,7 +125,10 @@ def end_tree(pid: int) -> None:
 
 def runner_command() -> list[str]:
     if getattr(sys, "frozen", False):  # the packaged agent hosts its own modules
-        return [str(Path(sys.executable).with_name("ocade-agent.exe")), "worker", "ocade_agent.job_runner"]
+        executable = Path(sys.executable)
+        if sys.platform == "win32":
+            executable = executable.with_name("ocade-agent.exe")
+        return [str(executable), "worker", "ocade_agent.job_runner"]
     return [sys.executable, "-s", "-m", "ocade_agent.job_runner"]
 
 

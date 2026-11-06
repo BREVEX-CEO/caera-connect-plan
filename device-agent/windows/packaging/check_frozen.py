@@ -23,7 +23,8 @@ from mcp.client.stdio import StdioServerParameters, stdio_client
 from PIL import Image
 
 WORKERS = ("ocade_agent.office_worker", "ocade_agent.verify_worker", "ocade_agent.media_worker",
-           "ocade_agent.web_worker", "ocade_agent.windows_worker", "ocade_agent.command_worker")
+           "ocade_agent.web_worker", "ocade_agent.mac_worker" if sys.platform == "darwin"
+           else "ocade_agent.windows_worker", "ocade_agent.command_worker")
 
 
 def facts(answer) -> dict:
@@ -141,9 +142,23 @@ def fixture_directory():
 
 async def main(executable: str, path: str) -> None:
     root = Path(executable).resolve().parent
-    candidates = (root / "_internal" / "playwright-browsers", root / "playwright-browsers")
+    candidates = (
+        root / "_internal" / "playwright-browsers", root / "playwright-browsers",
+        root.parent / "Resources" / "playwright-browsers",
+        root.parent / "Frameworks" / "playwright-browsers",
+    )
     browsers = [candidate for candidate in candidates if candidate.is_dir()]
-    chrome = next((exe for folder in browsers for exe in folder.rglob("chrome.exe")), None)
+    if sys.platform == "darwin":
+        chrome = None
+        for folder in browsers:
+            marker = folder / ".ocade-browser-path"
+            if marker.is_file():
+                binary = (folder / marker.read_text(encoding="utf8").strip()).resolve()
+                if binary.is_file() and binary.is_relative_to(folder.resolve()):
+                    chrome = binary
+                    break
+    else:
+        chrome = next((exe for folder in browsers for exe in folder.rglob("chrome.exe")), None)
     if chrome is None:
         raise RuntimeError("frozen installer is missing its Playwright Chromium dependency")
     files = [file for file in root.rglob("*") if file.is_file()]
@@ -237,9 +252,67 @@ async def main(executable: str, path: str) -> None:
         thread.join(timeout=5)
 
 
+
+
+def prepare_update(bundle: Path, archive: Path, manifest: Path, source_epoch: int) -> None:
+    """Create the deterministic payload and manifest for the release signer's approval."""
+    import gzip
+    import tarfile
+
+    # This runs in the packaging environment, from the same source the executable uses.
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+    from ocade_agent.agent import VERSION, PROTOCOL, _RELEASE_ENTRY, _release_tree
+    from ocade_agent.discovery import dependency_platform
+    from ocade_agent.sandbox import sha256
+
+    system, architecture = dependency_platform()
+    if architecture not in {"x64", "arm64"} or system not in _RELEASE_ENTRY:
+        raise RuntimeError("Unsupported release platform or architecture")
+    root = bundle.resolve(strict=True)
+    prefix = bundle.name if system == "Darwin" else ""
+    with tempfile.TemporaryDirectory(prefix="ocade-release-") as folder:
+        import shutil
+
+        tree = Path(folder)
+        if prefix:
+            shutil.copytree(root, tree / prefix, symlinks=True)
+        else:
+            shutil.copytree(root, tree, dirs_exist_ok=True, symlinks=True)
+        if not (tree / _RELEASE_ENTRY[system]).is_file():
+            raise RuntimeError("The bundle does not contain its expected launcher")
+        tree_sha = _release_tree(tree)
+        with archive.open("xb") as output, gzip.GzipFile(filename="", mode="wb", fileobj=output,
+                                                        mtime=source_epoch) as compressed:
+            with tarfile.open(fileobj=compressed, mode="w|") as packed:
+                for item in sorted(tree.rglob("*")):
+                    info = packed.gettarinfo(str(item), item.relative_to(tree).as_posix())
+                    info.uid = info.gid = 0
+                    info.uname = info.gname = ""
+                    info.mtime = source_epoch
+                    if info.isfile():
+                        with item.open("rb") as data:
+                            packed.addfile(info, data)
+                    else:
+                        packed.addfile(info)
+    manifest.write_text(json.dumps({
+        "version": VERSION, "platform": system, "architecture": architecture,
+        "protocol": PROTOCOL["version"], "archiveSha256": sha256(archive), "treeSha256": tree_sha,
+    }, sort_keys=True, separators=(",", ":")) + "\n", encoding="utf8")
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("executable")
+    parser.add_argument("executable", nargs="?")
     parser.add_argument("--path", default="")
+    parser.add_argument("--prepare-update", type=Path)
+    parser.add_argument("--archive", type=Path)
+    parser.add_argument("--manifest", type=Path)
+    parser.add_argument("--source-epoch", type=int)
     args = parser.parse_args()
-    asyncio.run(main(args.executable, args.path))
+    if args.prepare_update:
+        if not (args.archive and args.manifest and args.source_epoch is not None):
+            parser.error("prepare-update needs --archive, --manifest and --source-epoch")
+        prepare_update(args.prepare_update, args.archive, args.manifest, args.source_epoch)
+    elif args.executable:
+        asyncio.run(main(args.executable, args.path))
+    else:
+        parser.error("provide a frozen executable to check or a bundle to prepare")

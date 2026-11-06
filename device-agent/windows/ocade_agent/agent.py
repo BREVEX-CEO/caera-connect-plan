@@ -21,6 +21,7 @@ import random
 import runpy
 import sys
 import time
+from contextlib import contextmanager
 from pathlib import Path
 
 import anyio
@@ -375,6 +376,266 @@ def diagnose(home: Path, server: str | None, workspace: str | None) -> list[dict
     return checks
 
 
+
+@contextmanager
+def companion_lock(home: Path):
+    """Serialise the companion and updates, including interrupted process recovery."""
+    home.mkdir(parents=True, exist_ok=True, mode=0o700)
+    with (home / ".companion-lock").open("a+b") as stream:
+        if os.name == "nt":
+            import msvcrt
+            import win32event
+
+            stream.seek(0)
+            try:
+                msvcrt.locking(stream.fileno(), msvcrt.LK_NBLCK, 1)
+            except OSError:
+                raise RuntimeError("Stop OCADE on this computer before starting another copy or updating.") from None
+            # The per-user installer also refuses to replace files while this mutex exists.
+            mutex = win32event.CreateMutex(None, False, "OCADE.Jarvis.Active")
+            try:
+                yield
+            finally:
+                mutex.Close()
+        else:
+            import fcntl
+
+            try:
+                fcntl.flock(stream, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except BlockingIOError:
+                raise RuntimeError("Stop OCADE on this computer before starting another copy or updating.") from None
+            yield
+
+
+_RELEASE_SIZE = 1024 ** 3
+_RELEASE_FILES = 30_000
+_RELEASE_ENTRY = {
+    "Windows": "ocade-agent.exe",
+    "Darwin": "OCADE JARVIS.app/Contents/MacOS/ocade-agent",
+}
+
+
+def _release_info(raw: bytes, signature: bytes) -> dict:
+    import base64
+    import re
+
+    from cryptography.exceptions import InvalidSignature
+    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+
+    try:
+        key_text = Path(__file__).with_name("release-key.txt").read_text(encoding="ascii").strip()
+        key = Ed25519PublicKey.from_public_bytes(base64.b64decode(key_text, validate=True))
+    except (OSError, ValueError):
+        raise RuntimeError("This OCADE build does not have an update verification key.") from None
+    if len(raw) > 4096 or len(signature) != 64:
+        raise RuntimeError("The update manifest or signature is invalid.")
+    try:
+        key.verify(signature, raw)
+        manifest = json.loads(raw)
+    except (InvalidSignature, UnicodeDecodeError, ValueError):
+        raise RuntimeError("The update signature did not pass verification.") from None
+    keys = {"version", "platform", "architecture", "protocol", "archiveSha256", "treeSha256"}
+    if not isinstance(manifest, dict) or manifest.keys() != keys:
+        raise RuntimeError("The update manifest does not match the companion format.")
+    version = manifest["version"]
+    if not isinstance(version, str) or not re.fullmatch(r"\d{1,4}\.\d{1,4}\.\d{1,4}", version):
+        raise RuntimeError("The update version is invalid.")
+    for field in ("archiveSha256", "treeSha256"):
+        value = manifest[field]
+        if not isinstance(value, str) or not re.fullmatch(r"[0-9a-f]{64}", value):
+            raise RuntimeError("The update digest is invalid.")
+    system, arch = discovery.dependency_platform()
+    if system not in _RELEASE_ENTRY or (manifest["platform"], manifest["architecture"]) != (system, arch):
+        raise RuntimeError("Choose an OCADE update for this operating system and architecture.")
+    if type(manifest["protocol"]) is not int or manifest["protocol"] != PROTOCOL["version"]:
+        raise RuntimeError("This update uses an incompatible companion protocol.")
+    return manifest
+
+
+def _release_tree(root: Path) -> str:
+    """Hash paths and actual bytes, including confined macOS bundle symlinks."""
+    import hashlib
+
+    from .sandbox import sha256
+
+    digest = hashlib.sha256()
+    size = 0
+    paths = sorted(root.rglob("*"))
+    if len(paths) > _RELEASE_FILES:
+        raise RuntimeError("The update contains too many files.")
+    for path in paths:
+        name = path.relative_to(root).as_posix()
+        if path.is_symlink():
+            if not path.resolve(strict=True).is_relative_to(root):
+                raise RuntimeError("An update link leaves the release directory.")
+            entry = [name, "link", os.readlink(path)]
+        elif path.is_dir():
+            continue
+        elif path.is_file():
+            size += path.stat().st_size
+            if size > _RELEASE_SIZE:
+                raise RuntimeError("The unpacked update is too large.")
+            entry = [name, "file", sha256(path)]
+        else:
+            raise RuntimeError("The update contains an unsupported file type.")
+        digest.update((json.dumps(entry, ensure_ascii=True, separators=(",", ":")) + "\n").encode("ascii"))
+    return digest.hexdigest()
+
+
+def _installed_release(home: Path, release_id: str) -> tuple[Path, str]:
+    import hashlib
+    import re
+
+    if not isinstance(release_id, str) or not re.fullmatch(r"[0-9a-f]{64}", release_id):
+        raise RuntimeError("The saved update identifier is invalid.")
+    releases = home.resolve() / "releases"
+    slot = releases / release_id
+    if slot.resolve() != slot or slot.is_symlink():
+        raise RuntimeError("The release directory was changed.")
+    with (slot / "manifest.json").open("rb") as stream:
+        raw = stream.read(4097)
+    if hashlib.sha256(raw).hexdigest() != release_id:
+        raise RuntimeError("The saved update manifest was changed.")
+    with (slot / "manifest.sig").open("rb") as stream:
+        manifest = _release_info(raw, stream.read(65))
+    root = slot / "app"
+    executable = root / _RELEASE_ENTRY[manifest["platform"]]
+    if root.is_symlink() or not executable.is_file() or not executable.resolve().is_relative_to(root):
+        raise RuntimeError("The update executable is missing or was changed.")
+    if _release_tree(root) != manifest["treeSha256"]:
+        raise RuntimeError("The installed update no longer matches its manifest.")
+    return executable.resolve(), manifest["version"]
+
+
+def _release_state(home: Path) -> dict:
+    state = home / "releases" / "active.json"
+    if not state.exists():
+        return {"active": None, "previous": None}
+    with state.open("rb") as stream:
+        saved = json.loads(stream.read(1024))
+    if not isinstance(saved, dict) or saved.keys() != {"active", "previous"}:
+        raise RuntimeError("The update state is unreadable.")
+    return saved
+
+
+def _no_active_jobs(home: Path) -> None:
+    root = jobs.folder(home)
+    if not root.is_dir():
+        return
+    for job in root.iterdir():
+        if (job / "spec.json").is_file() and not (job / "exit.json").is_file():
+            raise RuntimeError("Resolve or stop the outstanding tracked command before updating.")
+
+
+def _activate_release(home: Path, manifest_path: Path, signature_path: Path, archive_path: Path) -> None:
+    """Verify, stage and health-check a release before the single durable activation."""
+    import hashlib
+    import subprocess
+    import tarfile
+    import tempfile
+
+    from .sandbox import Refused, resolve, sha256
+
+    _no_active_jobs(home)
+    with manifest_path.open("rb") as stream:
+        raw = stream.read(4097)
+    with signature_path.open("rb") as stream:
+        signature = stream.read(65)
+    manifest = _release_info(raw, signature)
+    state = _release_state(home)
+    version = _installed_release(home, state["active"])[1] if state["active"] else VERSION
+    if tuple(map(int, manifest["version"].split("."))) <= tuple(map(int, version.split("."))):
+        raise RuntimeError("Choose a newer signed release or use rollback-update.")
+    if not 1 <= archive_path.stat().st_size <= _RELEASE_SIZE:
+        raise RuntimeError("The update archive size is invalid.")
+    root = home.resolve() / "releases"
+    root.mkdir(mode=0o700, exist_ok=True)
+    if root.is_symlink():
+        raise RuntimeError("The release directory was changed.")
+    release_id = hashlib.sha256(raw).hexdigest()
+    slot = root / release_id
+    if not slot.exists():
+        with tempfile.TemporaryDirectory(dir=root, prefix=".staging-") as temp:
+            stage = Path(temp) / "release"
+            app = stage / "app"
+            app.mkdir(parents=True, mode=0o700)
+            # Copy the archive into private staging so the source path cannot change after validation.
+            import shutil
+
+            bundle = Path(temp) / "update.tar.gz"
+            with archive_path.open("rb") as source, bundle.open("xb") as target:
+                remaining = _RELEASE_SIZE
+                while block := source.read(min(1024 * 1024, remaining + 1)):
+                    remaining -= len(block)
+                    if remaining < 0:
+                        raise RuntimeError("The update archive exceeded its size bound.")
+                    target.write(block)
+            if sha256(bundle) != manifest["archiveSha256"]:
+                raise RuntimeError("The update archive hash did not match.")
+            with tarfile.open(bundle, "r:gz") as archive:
+                paths = set()
+                size = 0
+                for member in archive:
+                    name = member.name.rstrip("/")
+                    parts = name.split("/")
+                    normalized = name.casefold()
+                    if (len(paths) >= _RELEASE_FILES or normalized in paths or
+                            any(not part or part in (".", "..") or ":" in part or "\\" in part for part in parts)):
+                        raise RuntimeError("The update archive contains an invalid or repeated path.")
+                    try:
+                        resolve(app, name)
+                    except Refused:
+                        raise RuntimeError("An update entry does not stay in the release directory.") from None
+                    paths.add(normalized)
+                    size += member.size
+                    if size > _RELEASE_SIZE or not (member.isfile() or member.isdir() or member.issym()):
+                        raise RuntimeError("The update archive contains an unsupported entry.")
+                    try:
+                        archive.extract(member, app, filter="data")
+                    except (tarfile.TarError, OSError):
+                        raise RuntimeError("The update archive could not be safely extracted.") from None
+            if _release_tree(app) != manifest["treeSha256"]:
+                raise RuntimeError("The extracted update does not match the signed file tree.")
+            (stage / "manifest.json").write_bytes(raw)
+            (stage / "manifest.sig").write_bytes(signature)
+            stage.rename(slot)
+
+    executable, _ = _installed_release(home, release_id)
+    from mcp.client.stdio import get_default_environment
+
+    try:
+        probe = subprocess.run(
+            [str(executable), "check-update-runtime"], cwd=executable.parent,
+            env={**get_default_environment(), "PYINSTALLER_RESET_ENVIRONMENT": "1"},
+            stdin=subprocess.DEVNULL, capture_output=True, timeout=90,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        raise RuntimeError("The update did not start in time. The previous release is still active.") from None
+    if probe.returncode != 0:
+        raise RuntimeError("The update failed to start every required worker. The previous release is still active.")
+    jobs._write(root / "active.json", {"active": release_id, "previous": state["active"]})
+
+
+def _rollback_release(home: Path) -> None:
+    _no_active_jobs(home)
+    state = _release_state(home)
+    if not state["active"]:
+        raise RuntimeError("The installed base release is already active.")
+    previous = state["previous"]
+    if previous:
+        _installed_release(home, previous)
+    jobs._write(home / "releases" / "active.json", {"active": previous, "previous": None})
+
+
+async def _check_update_runtime() -> None:
+    import tempfile
+
+    with tempfile.TemporaryDirectory(prefix="ocade-update-probe-") as fixture:
+        async with Gateway(fixture, home=fixture) as gateway:
+            for module in sorted(set(gateway.modules.values())):
+                await gateway._session(module)
+
+
 def main(argv: list[str] | None = None) -> int:
     # A frozen customer installer has its own verified Chromium; neither the
     # customer's Edge/Chrome nor a developer-level Playwright install is needed.
@@ -382,15 +643,50 @@ def main(argv: list[str] | None = None) -> int:
         bundled_browsers = Path(getattr(sys, "_MEIPASS", "")) / "playwright-browsers"
         if bundled_browsers.is_dir():
             os.environ["PLAYWRIGHT_BROWSERS_PATH"] = str(bundled_browsers)
+            marker = bundled_browsers / ".ocade-browser-path"
+            if marker.is_file():
+                browser = (bundled_browsers / marker.read_text(encoding="utf8").strip()).resolve()
+                if browser.is_file() and browser.is_relative_to(bundled_browsers.resolve()):
+                    os.environ["OCADE_BROWSER_EXECUTABLE"] = str(browser)
     parser = argparse.ArgumentParser(prog="ocade_agent")
-    parser.add_argument("command", choices=["enroll", "run", "stop", "worker", "diagnose"])
+    parser.add_argument(
+        "command", nargs="?", default="run" if getattr(sys, "frozen", False) else None,
+        choices=["enroll", "run", "stop", "worker", "diagnose",
+                 "activate-update", "rollback-update", "check-update-runtime", "run-activated"],
+    )
     parser.add_argument("module", nargs="?", help=argparse.SUPPRESS)
     parser.add_argument("--server")
     parser.add_argument("--name", default=platform.node() or "My computer")
     parser.add_argument("--workspace")
     parser.add_argument("--until-idle", action="store_true")
+    parser.add_argument("--manifest", type=Path)
+    parser.add_argument("--signature", type=Path)
+    parser.add_argument("--archive", type=Path)
     args = parser.parse_args(argv)
+    if args.command is None:
+        parser.error("a command is required")
     home = default_home()
+    if args.command == "check-update-runtime":
+        try:
+            anyio.run(_check_update_runtime)
+        except Exception as error:
+            print(f"Companion worker startup failed: {type(error).__name__}", file=sys.stderr)
+            return 3
+        return 0
+    if args.command in {"activate-update", "rollback-update"}:
+        try:
+            with companion_lock(home):
+                if args.command == "rollback-update":
+                    _rollback_release(home)
+                else:
+                    if not (args.manifest and args.signature and args.archive):
+                        parser.error("activate-update needs --manifest, --signature and --archive")
+                    _activate_release(home, args.manifest, args.signature, args.archive)
+        except (OSError, RuntimeError, ValueError) as error:
+            print(f"Update refused: {error}", file=sys.stderr)
+            return 3
+        print("The selected release will start the next time you open OCADE.")
+        return 0
     if args.command == "worker":  # the packaged executable hosting one capability worker
         if args.module not in set(WORKERS.values()) | {"ocade_agent.job_runner"}:
             return 2
@@ -422,6 +718,48 @@ def main(argv: list[str] | None = None) -> int:
         enrolled = device.enroll(args.name, f"{platform.system()} {platform.release()}"[:60], VERSION)
         print(f"Pairing code: {enrolled['code']}  (type it in OCADE JARVIS within 10 minutes)")
         return 0
+    try:
+        with companion_lock(home):
+            release = _select_release(home)
+            if args.command == "run-activated":
+                if release is None or Path(sys.executable).resolve() != release:
+                    raise RuntimeError("The active release changed. Open OCADE again from its installed shortcut.")
+                return _run_companion(device, home, args.until_idle)
+            if release is None:
+                return _run_companion(device, home, args.until_idle)
+        # A different frozen bundle needs a fresh bootloader environment.
+        import subprocess
+
+        launch = [str(release), "run-activated", "--server", server, "--workspace", workspace]
+        if args.until_idle:
+            launch.append("--until-idle")
+        return subprocess.call(launch, env={**os.environ, "PYINSTALLER_RESET_ENVIRONMENT": "1"})
+    except (OSError, RuntimeError, ValueError) as error:
+        print(f"Cannot start the companion: {error}", file=sys.stderr)
+        return 3
+
+
+def _select_release(home: Path) -> Path | None:
+    state = _release_state(home)
+    if not state["active"]:
+        return None
+    try:
+        return _installed_release(home, state["active"])[0]
+    except (OSError, RuntimeError, ValueError):
+        print("The active update failed integrity checks. Restoring the previous release.", file=sys.stderr)
+    previous = state["previous"]
+    if previous:
+        try:
+            recovered = _installed_release(home, previous)[0]
+            jobs._write(home / "releases" / "active.json", {"active": previous, "previous": None})
+            return recovered
+        except (OSError, RuntimeError, ValueError):
+            pass
+    jobs._write(home / "releases" / "active.json", {"active": None, "previous": None})
+    return None
+
+
+def _run_companion(device: Device, home: Path, until_idle: bool) -> int:
     (home / "STOP").unlink(missing_ok=True)  # starting again is the person's decision
     external, rejected = catalog.load(home)
     for entry in rejected:
@@ -431,7 +769,7 @@ def main(argv: list[str] | None = None) -> int:
     async def go() -> str | None:
         async with gateway:
             try:
-                await Agent(device, Journal(home / "journal.sqlite"), gateway).run(args.until_idle)
+                await Agent(device, Journal(home / "journal.sqlite"), gateway).run(until_idle)
             except ConnectionError as error:
                 return str(error)
             except LocalStop:

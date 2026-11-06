@@ -4,6 +4,7 @@
 # background agent started at sign-in). Build with packaging/build.ps1 on Windows.
 # STATUS: Windows build UNTESTED (no Windows host); the same spec builds and runs on Linux.
 import os
+import sys
 from pathlib import Path
 
 from PyInstaller.utils.hooks import collect_data_files, collect_submodules
@@ -18,8 +19,34 @@ for worker in ("office_worker", "verify_worker", "windows_worker", "web_worker",
 # The frozen installer must carry its own Playwright Chromium, not depend on
 # the builder's profile or a separately installed browser on a customer PC.
 BROWSERS = Path(SPECPATH, "playwright-browsers")
-if not BROWSERS.is_dir() or not any(BROWSERS.rglob("chrome.exe")):
-    raise RuntimeError("Missing packaged Playwright Chromium; run packaging/build.ps1")
+if sys.platform == "win32":
+    if not BROWSERS.is_dir() or not any(BROWSERS.rglob("chrome.exe")):
+        raise RuntimeError("Missing packaged Playwright Chromium; run packaging/build.ps1")
+elif sys.platform == "darwin":
+    marker = BROWSERS / ".ocade-browser-path"
+    browser = (BROWSERS / marker.read_text(encoding="utf-8").strip()).resolve()
+    if not browser.is_file() or not browser.is_relative_to(BROWSERS.resolve()):
+        raise RuntimeError("Missing package-local macOS Chromium")
+else:
+    raise RuntimeError("The companion installer targets Windows and macOS")
+
+trust_file = os.environ.get("OCADE_RELEASE_PUBLIC_KEY_FILE")
+trust_data = []
+if trust_file:
+    import base64
+
+    public_key = Path(trust_file).resolve(strict=True)
+    if len(base64.b64decode(public_key.read_text(encoding="ascii").strip(), validate=True)) != 32:
+        raise RuntimeError("Expected one Ed25519 public key in base64")
+    if public_key.name != "release-key.txt":
+        raise RuntimeError("Name the release public key release-key.txt")
+    trust_data = [(str(public_key), "ocade_agent")]
+
+native_modules = (
+    collect_submodules("pywinauto") + ["win32timezone", "pyautogui"]
+    if sys.platform == "win32"
+    else ["ApplicationServices", "AppKit", "Foundation", "Quartz"]
+)
 
 block_cipher = None
 analysis = Analysis(
@@ -31,15 +58,22 @@ analysis = Analysis(
     ]
     # The Word and PowerPoint libraries build new files from their own bundled templates.
     + collect_data_files("docx")
-    + collect_data_files("pptx"),
-    hiddenimports=bundled
-    + collect_submodules("pywinauto")
+    + collect_data_files("pptx")
+    + trust_data,
+    hiddenimports=bundled + native_modules
     + collect_submodules("send2trash")
-    + ["win32timezone", "pyautogui", "playwright.async_api", "pptx"],
+    + ["playwright.async_api", "pptx"],
     excludes=["tkinter"],
 )
 pyz = PYZ(analysis.pure, cipher=block_cipher)
-common = dict(debug=False, strip=False, upx=False, version="version.txt")
+common = dict(debug=False, strip=False, upx=False)
+if sys.platform == "win32":
+    common["version"] = "version.txt"
 console = EXE(pyz, analysis.scripts, [], exclude_binaries=True, name="ocade-agent", console=True, **common)
-background = EXE(pyz, analysis.scripts, [], exclude_binaries=True, name="ocade-agent-bg", console=False, **common)
-COLLECT(console, background, analysis.binaries, analysis.datas, name="OCADE JARVIS")
+if sys.platform == "win32":
+    background = EXE(pyz, analysis.scripts, [], exclude_binaries=True, name="ocade-agent-bg", console=False, **common)
+    COLLECT(console, background, analysis.binaries, analysis.datas, name="OCADE JARVIS")
+else:
+    contents = COLLECT(console, analysis.binaries, analysis.datas, name="OCADE JARVIS")
+    BUNDLE(contents, name="OCADE JARVIS.app", bundle_identifier="in.ocade.jarvis.companion",
+           info_plist={"CFBundleShortVersionString": "0.1.0", "CFBundleVersion": "0.1.0"})

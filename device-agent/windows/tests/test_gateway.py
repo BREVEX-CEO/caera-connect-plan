@@ -40,7 +40,8 @@ class PackagingContract(unittest.TestCase):
         from unittest.mock import patch
 
         gateway = Gateway("sandbox")
-        with patch.object(sys, "frozen", True, create=True), patch.object(sys, "executable", "C:/OCADE/ocade-agent-bg.exe"):
+        with (patch.object(sys, "platform", "win32"), patch.object(sys, "frozen", True, create=True),
+              patch.object(sys, "executable", "C:/OCADE/ocade-agent-bg.exe")):
             # Exactly as run() calls it: the worker key is the role's module (the old test passed
             # roles, which hid that the installed companion could start no worker at all).
             for role in ("fs_sandbox", "sys_core", "verifier", "ui_bridge", "web_automation", "shell"):
@@ -50,6 +51,19 @@ class PackagingContract(unittest.TestCase):
                 params = gateway._parameters(key)
                 self.assertEqual(params.args, ["worker", gateway.modules[role]])
                 self.assertTrue(params.command.endswith("ocade-agent.exe"))
+
+
+    def test_frozen_macos_dispatch_uses_the_bundle_executable(self):
+        import sys
+        from unittest.mock import patch
+
+        gateway = Gateway("sandbox")
+        executable = "/Applications/OCADE JARVIS.app/Contents/MacOS/ocade-agent"
+        with (patch.object(sys, "platform", "darwin"), patch.object(sys, "frozen", True, create=True),
+              patch.object(sys, "executable", executable)):
+            params = gateway._parameters(gateway.modules["verifier"])
+            self.assertEqual(params.command, executable)
+            self.assertEqual(params.args, ["worker", gateway.modules["verifier"]])
 
     def test_observed_gateway_action_reports_monotonic_duration(self):
         """The duration field is per-action evidence, not fabricated end-to-end timing."""

@@ -1,6 +1,7 @@
 """Interrupted actions retain their durable identity and effect uncertainty."""
 
 import json
+import os
 import tempfile
 import unittest
 from datetime import datetime, timedelta, timezone
@@ -327,6 +328,97 @@ class DispatchedStopTest(unittest.TestCase):
             self.assertFalse((home / "OCADE output/after-stop.txt").exists(), "the actual worker wrote after local STOP")
             self.assertIsNone(journal.get("after-stop"))
             journal.db.close()
+
+
+
+class SignedUpdates(unittest.TestCase):
+    def setUp(self):
+        import base64
+        from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+
+        temp = tempfile.TemporaryDirectory()
+        self.addCleanup(temp.cleanup)
+        self.root = Path(temp.name)
+        self.home = self.root / "agent-data"
+        self.home.mkdir()
+        self.private = Ed25519PrivateKey.generate()
+        (self.root / "release-key.txt").write_bytes(
+            base64.b64encode(self.private.public_key().public_bytes_raw())
+        )
+        self.enterContext(patch.object(agent_module, "__file__", str(self.root / "agent.py")))
+        self.enterContext(patch.object(agent_module.discovery, "dependency_platform",
+                                       return_value=("Windows", "x64")))
+
+    def release(self, version, architecture="x64", *, traversal=False):
+        import hashlib
+        import tarfile
+
+        files = self.root / version
+        app = files / "app"
+        app.mkdir(parents=True)
+        launcher = app / "ocade-agent.exe"
+        launcher.write_text(version, encoding="utf8")
+        bundle = files / "payload.tar.gz"
+        with tarfile.open(bundle, "w:gz") as archive:
+            archive.add(launcher, arcname="../escaped.exe" if traversal else launcher.name)
+        raw = json.dumps({
+            "version": version, "platform": "Windows", "architecture": architecture,
+            "protocol": PROTOCOL["version"],
+            "archiveSha256": hashlib.sha256(bundle.read_bytes()).hexdigest(),
+            "treeSha256": agent_module._release_tree(app),
+        }).encode("utf8")
+        manifest = files / "manifest.json"
+        signature = files / "manifest.sig"
+        manifest.write_bytes(raw)
+        signature.write_bytes(self.private.sign(raw))
+        return manifest, signature, bundle
+
+    def test_signed_update_and_rollback_use_verified_files(self):
+        from subprocess import CompletedProcess
+
+        with patch("subprocess.run", return_value=CompletedProcess([], 0)) as probe:
+            agent_module._activate_release(self.home, *self.release("1.0.0"))
+            first = agent_module._select_release(self.home)
+            self.assertEqual(first.read_text(), "1.0.0")
+            agent_module._activate_release(self.home, *self.release("2.0.0"))
+            second = agent_module._select_release(self.home)
+            self.assertEqual(second.read_text(), "2.0.0")
+            self.assertEqual(probe.call_args.args[0], [str(second), "check-update-runtime"])
+            agent_module._rollback_release(self.home)
+            self.assertEqual(agent_module._select_release(self.home), first)
+            self.assertEqual(second.read_text(), "2.0.0")
+
+    def test_bad_signatures_wrong_architecture_and_traversal_do_not_launch(self):
+        unsigned = self.release("1.0.0")
+        unsigned[1].write_bytes(bytes(64))
+        with patch("subprocess.run") as probe:
+            with self.assertRaisesRegex(RuntimeError, "signature"):
+                agent_module._activate_release(self.home, *unsigned)
+            with self.assertRaisesRegex(RuntimeError, "architecture"):
+                agent_module._activate_release(self.home, *self.release("2.0.0", "arm64"))
+            with self.assertRaisesRegex(RuntimeError, "invalid or repeated path"):
+                agent_module._activate_release(self.home, *self.release("3.0.0", traversal=True))
+            probe.assert_not_called()
+        self.assertIsNone(agent_module._select_release(self.home))
+        self.assertFalse(list(self.home.rglob("escaped.exe")))
+
+    def test_failed_startup_preserves_the_previous_release(self):
+        from subprocess import CompletedProcess
+
+        with patch("subprocess.run", return_value=CompletedProcess([], 0)):
+            agent_module._activate_release(self.home, *self.release("1.0.0"))
+        previous = agent_module._select_release(self.home)
+        with patch("subprocess.run", return_value=CompletedProcess([], 1)):
+            with self.assertRaisesRegex(RuntimeError, "previous release is still active"):
+                agent_module._activate_release(self.home, *self.release("2.0.0"))
+        self.assertEqual(agent_module._select_release(self.home), previous)
+
+    def test_update_entry_refuses_while_the_agent_holds_its_lock(self):
+        with patch.dict(os.environ, {"OCADE_AGENT_HOME": str(self.home)}):
+            with agent_module.companion_lock(self.home):
+                result = agent_module.main(["activate-update"])
+        self.assertEqual(result, 3)
+        self.assertFalse((self.home / "releases").exists())
 
 
 if __name__ == "__main__":
