@@ -84,6 +84,13 @@ jobs:
             sudo timeout --kill-after=5s 75s apt-get "${apt_options[@]}" update -qq
             sudo timeout --kill-after=5s 75s env DEBIAN_FRONTEND=noninteractive apt-get "${apt_options[@]}" install -y -qq "${packages[@]}"
           fi
+      - name: Reserve the disposable C10 migration filename
+        run: |
+          migration_workspace=$(mktemp -d "$RUNNER_TEMP/ocade-migration.XXXXXX")
+          cd "$migration_workspace"
+          npx --yes supabase@2.122.0 init
+          npx --yes supabase@2.122.0 migration new jarvis_task_metrics
+          printf 'OCADE_MIGRATION:%s\n' supabase/migrations/*_jarvis_task_metrics.sql
       - name: Source formatting
         run: npm run format:check
       - name: TypeScript compilation

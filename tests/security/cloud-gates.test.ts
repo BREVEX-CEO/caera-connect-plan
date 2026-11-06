@@ -250,10 +250,24 @@ test("the streamed account export preserves device records without credentials o
               or: () => page,
               async limit() {
                 if (table === "jarvis_devices") {
-                  return { data: [{ id: "device", name: "My computer", public_key: "secret-key" }], error: null };
+                  return {
+                    data: [{ id: "device", name: "My computer", public_key: "secret-key" }],
+                    error: null,
+                  };
                 }
                 if (table === "ocade_push_subscriptions") {
-                  return { data: [{ endpoint: "secret-endpoint", auth: "secret-auth", session_id: "secret-session", p256dh: "secret-p256dh", failures: 0 }], error: null };
+                  return {
+                    data: [
+                      {
+                        endpoint: "secret-endpoint",
+                        auth: "secret-auth",
+                        session_id: "secret-session",
+                        p256dh: "secret-p256dh",
+                        failures: 0,
+                      },
+                    ],
+                    error: null,
+                  };
                 }
                 if (table === "activity_log") {
                   return { data: null, error: { message: "secret-error" } };
@@ -263,9 +277,13 @@ test("the streamed account export preserves device records without credentials o
             };
             return page;
           },
-          in() { throw new Error("No parent IDs should be selected in this fixture"); },
+          in() {
+            throw new Error("No parent IDs should be selected in this fixture");
+          },
         }),
-        delete() { throw new Error("An export must not delete data"); },
+        delete() {
+          throw new Error("An export must not delete data");
+        },
       };
     },
   };
@@ -273,7 +291,9 @@ test("the streamed account export preserves device records without credentials o
   assert.doesNotMatch(payload, /secret-/);
   const document = JSON.parse(payload);
   const tables = document.classes.flatMap((entry: { tables: unknown[] }) => entry.tables);
-  assert.deepEqual(tables.find((table: { table: string }) => table.table === "jarvis_devices").rows,
-    [{ id: "device", name: "My computer" }]);
+  assert.deepEqual(
+    tables.find((table: { table: string }) => table.table === "jarvis_devices").rows,
+    [{ id: "device", name: "My computer" }],
+  );
   assert.equal(document.partial, true);
 });

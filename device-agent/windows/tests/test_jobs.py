@@ -5,9 +5,11 @@ STOP together with everything it started, and is reported `lost` when nobody can
 ended. The commands are portable Python one-liners run through each OS's default shell.
 """
 
+import csv
 import json
 import os
 import signal
+import subprocess
 import sys
 import tempfile
 import time
@@ -27,7 +29,14 @@ def py(code: str) -> str:
 
 
 def alive(pid: int) -> bool:
-    return jobs._alive(pid)
+    """Check the observed process independently of the companion's job records."""
+    if sys.platform == "win32":
+        result = subprocess.run(["tasklist", "/FI", f"PID eq {pid}", "/FO", "CSV", "/NH"],
+                                capture_output=True, text=True, check=True)
+        return any(len(row) > 1 and row[1] == str(pid) for row in csv.reader(result.stdout.splitlines()))
+    result = subprocess.run(["ps", "-o", "stat=", "-p", str(pid)], capture_output=True, text=True)
+    state = result.stdout.strip()
+    return bool(state) and not state.startswith("Z")
 
 
 class Jobs(unittest.TestCase):
