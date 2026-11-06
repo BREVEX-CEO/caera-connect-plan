@@ -115,10 +115,11 @@ def _attribute(element, name):
 
 
 def _point(value) -> tuple[float, float] | None:
-    import ApplicationServices as AX  # type: ignore[import-not-found]
-
     if value is None:
         return None
+
+    import ApplicationServices as AX  # type: ignore[import-not-found]
+
     for kind, unpack in ((AX.kAXValueCGPointType, lambda v: (v.x, v.y)), (AX.kAXValueCGSizeType, lambda v: (v.width, v.height))):
         ok, raw = AX.AXValueGetValue(value, kind, None)
         if ok:

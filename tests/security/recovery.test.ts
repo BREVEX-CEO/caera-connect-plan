@@ -125,7 +125,10 @@ test("mutations require fresh planning; unknown effects fence resumption", async
       assert.equal((await planStep({ ...desktop, steps: [inspect(other)] })).kind, "block");
       assert.equal((await planStep({ ...desktop, steps: [inspect(window, false)] })).kind, "block");
       assert.equal((await planStep({ ...desktop, steps: [inspect(window)] })).kind, "queue");
-      assert.deepEqual(attachments.map(({ image }) => image), ["dGVzdA=="]);
+      assert.deepEqual(
+        attachments.map(({ image }) => image),
+        ["dGVzdA=="],
+      );
       const revoked = desktop.grants.filter((grant) => grant !== "screen");
       const decision = await planStep({ ...desktop, grants: revoked, steps: [inspect(window)] });
       assert.equal(decision.kind, "block");
