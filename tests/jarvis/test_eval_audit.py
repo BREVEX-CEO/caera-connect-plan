@@ -7,6 +7,7 @@ import os
 import random
 import ssl
 import sys
+import urllib.error
 import urllib.request
 import zipfile
 import tempfile
@@ -20,17 +21,12 @@ spec.loader.exec_module(evaluation)
 
 class EvaluationAudit(unittest.TestCase):
     def test_wrong_then_right_download_keeps_both_actual_choices(self):
-        live = {"decisions": [
-            {"intent": {"operation": "web.download"}, "receipt": {"evidence": {"suggested": "old.zip"}}},
-            {"intent": {"operation": "web.download"}, "receipt": {"evidence": {"suggested": "new.zip"}}},
-            {"intent": {"operation": "web.read"}, "receipt": {"evidence": {"suggested": "new.zip"}}},
-            {"intent": {"operation": "web.download"}, "receipt": {"errorCode": "selector_not_found"}},
-        ]}
-        before = json.dumps(live)
-        selections = evaluation.target_selections(live, "new.zip")
+        requests = ["/files/old.zip", "/files/new.zip", None]
+        before = json.dumps(requests)
+        selections = evaluation.target_selections(requests, "/files/new.zip")
         self.assertEqual([s["correct"] for s in selections], [False, True, None])
-        self.assertEqual([s["selected"] for s in selections], ["old.zip", "new.zip", None])
-        self.assertEqual(json.dumps(live), before, "hidden expected targets must not enter the model report")
+        self.assertEqual([s["selected"] for s in selections], ["/files/old.zip", "/files/new.zip", None])
+        self.assertEqual(json.dumps(requests), before, "hidden expected targets must not enter observed requests")
 
     def test_each_checkpoint_is_a_complete_honest_partial_denominator(self):
         with tempfile.TemporaryDirectory() as temporary:
@@ -107,8 +103,12 @@ while not checkpoint.with_suffix('.done').exists():
                 with response:
                     page = response.read().decode()
                 self.assertIn("Download", page)
+                self.assertEqual(oracle.target_requests(), [])
+                with self.assertRaises(urllib.error.HTTPError):
+                    urllib.request.urlopen(base + "files/unobserved.zip", context=context, timeout=5)
                 with urllib.request.urlopen(base + "files/" + oracle.target_name, context=context, timeout=5) as archive:
                     data = archive.read()
+                self.assertEqual([entry["correct"] for entry in oracle.target_requests()], [False, True])
                 with zipfile.ZipFile(io.BytesIO(data)) as parsed:
                     self.assertIsNone(parsed.testzip())
                     self.assertTrue(parsed.read("release.txt").strip())

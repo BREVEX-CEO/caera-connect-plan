@@ -33,6 +33,61 @@ def check(url, text, key="required"):
             "kind": "web_text_contains", "params": {"url": url, "text": text}}
 
 
+class PinnedVerifierTransport(unittest.TestCase):
+    def test_checked_address_is_the_only_address_connected(self):
+        import socket
+        from ocade_agent import verify_worker
+
+        received = []
+
+        class Target(BaseHTTPRequestHandler):
+            def do_GET(self):
+                received.append((self.path, self.headers["Host"]))
+                body = b"independently observed bytes"
+                self.send_response(200)
+                self.send_header("content-length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+
+            def log_message(self, *_args):
+                pass
+
+        with ThreadingHTTPServer(("127.0.0.1", 0), Target) as server:
+            worker = threading.Thread(target=server.serve_forever, daemon=True)
+            worker.start()
+            port = server.server_port
+            try:
+                def resolve(host, requested_port, *, type):
+                    self.assertEqual((host, requested_port, type), ("fixture.example", port, socket.SOCK_STREAM))
+                    return [(socket.AF_INET, type, 0, "", ("127.0.0.1", port))]
+
+                with (patch.dict(os.environ, {"OCADE_ALLOW_PRIVATE_WEB": "1"}),
+                      patch("urllib.request.getproxies", return_value={}),
+                      patch.object(socket, "getaddrinfo", side_effect=resolve) as resolver):
+                    status, _, body = verify_worker._web_fetch(f"http://fixture.example:{port}/checked")
+                    self.assertEqual((status, body), (200, b"independently observed bytes"))
+                    resolver.assert_called_once()
+                self.assertEqual(received, [("/checked", f"fixture.example:{port}")])
+            finally:
+                server.shutdown()
+                worker.join(3)
+
+    def test_public_lookup_refuses_mixed_private_answers_and_url_credentials(self):
+        import socket
+        from ocade_agent import verify_worker
+        from ocade_agent.sandbox import Refused
+
+        endpoints = [(socket.AF_INET, socket.SOCK_STREAM, 0, "", (address, 443))
+                     for address in ("93.184.216.34", "127.0.0.1")]
+        with (patch.dict(os.environ, {"OCADE_ALLOW_PRIVATE_WEB": "0"}),
+              patch.object(socket, "getaddrinfo", return_value=endpoints) as resolver):
+            with self.assertRaisesRegex(Refused, "web_url_refused"):
+                verify_worker._web_fetch("https://fixture.example/")
+            with self.assertRaisesRegex(Refused, "web_url_refused"):
+                verify_worker._web_fetch("https://user:password@fixture.example/")
+            resolver.assert_called_once()
+
+
 @unittest.skipUnless(BROWSER, "needs a display and a Chromium executable")
 class RenderedWebVerification(unittest.TestCase):
     def setUp(self):

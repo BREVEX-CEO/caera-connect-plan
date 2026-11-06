@@ -741,37 +741,137 @@ _VISIBLE_TEXT = """(wanted) => {
 
 def _web_origin(url: str) -> tuple:
     parts = urlsplit(url)
-    return parts.scheme, (parts.hostname or "").lower(), parts.port or {"http": 80, "https": 443}.get(parts.scheme)
+    default = {"http": 80, "https": 443}.get(parts.scheme)
+    host = (parts.hostname or "").encode("idna").decode("ascii").lower()
+    return parts.scheme, host, default if parts.port is None else parts.port
 
 
-def _web_allowed(url: str) -> bool:
-    """https to a public host (http and private hosts only on an owner-flagged test machine)."""
+def _web_target(url: str) -> tuple:
+    """Resolve every address once. The caller connects to one of those exact addresses."""
     import ipaddress
     import socket
 
+    parts = urlsplit(url)
     scheme, host, port = _web_origin(url)
-    if os.environ.get("OCADE_ALLOW_PRIVATE_WEB") == "1":
-        return scheme in ("http", "https") and bool(host)
-    if scheme != "https" or port != 443 or not host or host == "localhost" or host.endswith(".localhost"):
-        return False
+    private = os.environ.get("OCADE_ALLOW_PRIVATE_WEB") == "1"
+    if (not host or parts.username is not None or parts.password is not None
+            or scheme not in ("http", "https") or not port
+            or (not private and (scheme != "https" or port != 443
+                                 or host.rstrip(".") == "localhost"
+                                 or host.rstrip(".").endswith(".localhost")))):
+        raise Refused("web_url_refused")
+    endpoints = list(dict.fromkeys(socket.getaddrinfo(host, port, type=socket.SOCK_STREAM)))
+    if not endpoints:
+        raise Refused("web_url_refused")
+    if not private:
+        for endpoint in endpoints:
+            address = ipaddress.ip_address(endpoint[4][0].split("%")[0])
+            address = getattr(address, "ipv4_mapped", None) or address
+            if not address.is_global or address.is_multicast or address.is_reserved:
+                raise Refused("web_url_refused")
+    return scheme, host, port, endpoints
+
+
+def _web_fetch(url: str) -> tuple[int, dict, bytes]:
+    """Anonymous GET over a checked address, with original Host and TLS server name."""
+    import base64
+    import http.client
+    import socket
+    import ssl
+    import urllib.request
+    import zlib
+    from urllib.parse import unquote
+
+    scheme, host, port, endpoints = _web_target(url)
+    parts = urlsplit(url)
+    path = (parts.path or "/") + (("?" + parts.query) if parts.query else "")
+    proxy = urllib.request.getproxies().get(scheme)
+    if urllib.request.proxy_bypass(host):
+        proxy = None
+    proxy_url = urlsplit(proxy if "://" in proxy else "http://" + proxy) if proxy else None
+    if proxy_url and (proxy_url.scheme != "http" or not proxy_url.hostname):
+        raise Refused("web_proxy_unsupported")
+
+    tls = ssl.create_default_context() if scheme == "https" else None
+    extra_ca = os.environ.get("NODE_EXTRA_CA_CERTS")
+    if tls and extra_ca:
+        tls.load_verify_locations(cafile=extra_ca)
+    for family, kind, protocol, _, address in endpoints[:4]:
+        connection = http.client.HTTPConnection(host, port, timeout=5)
+        try:
+            if proxy_url:
+                # A trusted proxy still connects to the checked numeric destination.
+                tunnel_headers = {}
+                if proxy_url.username is not None:
+                    credential = unquote(proxy_url.username) + ":" + unquote(proxy_url.password or "")
+                    tunnel_headers["Proxy-Authorization"] = "Basic " + base64.b64encode(credential.encode()).decode()
+                tunnel = http.client.HTTPConnection(proxy_url.hostname, proxy_url.port or 80, timeout=5)
+                try:
+                    tunnel.set_tunnel(address[0], port, headers=tunnel_headers)
+                    tunnel.connect()
+                    connection.sock, tunnel.sock = tunnel.sock, None
+                finally:
+                    tunnel.close()
+            else:
+                connection.sock = socket.socket(family, kind, protocol)
+                connection.sock.settimeout(5)
+                connection.sock.connect(address)
+            if tls:
+                connection.sock = tls.wrap_socket(connection.sock, server_hostname=host)
+        except OSError:
+            connection.close()
+            continue
+        break
+    else:
+        raise Refused("web_unreachable")
+
     try:
-        addresses = {info[4][0].split("%")[0] for info in socket.getaddrinfo(host, 443)}
-        return bool(addresses) and all(ipaddress.ip_address(a).is_global for a in addresses)
-    except (OSError, ValueError):
-        return False
+        connection.request("GET", path, headers={
+            "Accept-Encoding": "identity", "User-Agent": "OCade-IndependentVerifier/1",
+        })
+        with connection.getresponse() as response:
+            headers = {name.lower(): value for name, value in response.getheaders()}
+            if 300 <= response.status < 400 and headers.get("location"):
+                return response.status, headers, b""
+            limit = WEB_LIMITS["response_bytes"]
+            length = headers.get("content-length")
+            if length is not None and int(length) > limit:
+                raise Refused("response_bytes")
+            body = response.read(limit + 1)
+            if len(body) > limit:
+                raise Refused("response_bytes")
+            if length is not None and len(body) != int(length):
+                raise Refused("web_unreachable")
+            encoding = headers.get("content-encoding", "identity").lower()
+            if encoding in ("gzip", "deflate"):
+                inflater = zlib.decompressobj(31 if encoding == "gzip" else zlib.MAX_WBITS)
+                body = inflater.decompress(body, WEB_LIMITS["decoded_bytes"] + 1)
+                if len(body) > WEB_LIMITS["decoded_bytes"]:
+                    raise Refused("decoded_bytes")
+                if not inflater.eof or inflater.unused_data:
+                    raise Refused("web_unreachable")
+            elif encoding != "identity":
+                raise Refused("web_encoding_unsupported")
+            return response.status, headers, body
+    finally:
+        connection.close()
 
 
 async def _web_texts(url: str, wanted: list[str]) -> tuple[dict, dict]:
     """Each wanted text: visibly on the page (True), absent or hidden (False), or unknown (None)."""
     unknown = {text: None for text in wanted}
-    if not isinstance(url, str) or not _web_allowed(url):
+    if not isinstance(url, str):
+        return unknown, {"error": "web_url_refused"}
+    try:
+        origin = _web_origin(url)
+    except ValueError:
         return unknown, {"error": "web_url_refused"}
     executable = os.environ.get("OCADE_BROWSER_EXECUTABLE")
     if executable and not Path(executable).is_file():
         return unknown, {"error": "browser_unavailable"}
     from playwright.async_api import async_playwright
 
-    origin, state = _web_origin(url), {"requests": 0, "hop": None, "stop": None}
+    state = {"requests": 0, "hop": None, "stop": None}
 
     async def guard(route) -> None:
         request = route.request
@@ -781,44 +881,40 @@ async def _web_texts(url: str, wanted: list[str]) -> tuple[dict, dict]:
             return await route.abort("blockedbyclient")
         if (request.method != "GET" or request.resource_type not in WEB_RESOURCES
                 or _web_origin(request.url) != origin
-                or (request.resource_type == "document" and request.frame.parent_frame is not None)
-                # Resolved again for every request: a name that now points somewhere private is refused.
-                or not await anyio.to_thread.run_sync(_web_allowed, request.url)):
+                or (request.resource_type == "document" and request.frame.parent_frame is not None)):
             state["stop"] = state["stop"] or {"error": "web_request_blocked"}
             return await route.abort("blockedbyclient")
         try:
-            response = await route.fetch(max_redirects=0, timeout=20_000)
-            declared = int(response.headers.get("content-length") or 0)
-            body = b"" if declared > WEB_LIMITS["response_bytes"] else await response.body()
+            with anyio.fail_after(20):
+                status, headers, body = await anyio.to_thread.run_sync(_web_fetch, request.url, abandon_on_cancel=True)
+        except Refused as error:
+            reason = ({"error": "web_resource_limit", "resourceLimit": error.code}
+                      if error.code in ("response_bytes", "decoded_bytes") else {"error": error.code})
+            state["stop"] = state["stop"] or reason
+            return await route.abort("blockedbyclient")
         except Exception:
             state["stop"] = state["stop"] or {"error": "web_unreachable"}
             return await route.abort("failed")
-        location = response.headers.get("location")
-        if 300 <= response.status < 400 and location and request.resource_type == "document":
-            state["hop"] = urljoin(request.url, location)  # followed by the caller once checked
+        location = headers.get("location")
+        if 300 <= status < 400 and location:
+            if request.resource_type == "document":
+                state["hop"] = urljoin(request.url, location)
+            else:
+                state["stop"] = state["stop"] or {"error": "web_redirect_refused"}
             return await route.abort("blockedbyclient")
-        limit = ("response_bytes" if declared > WEB_LIMITS["response_bytes"]
-                 else "decoded_bytes" if len(body) > WEB_LIMITS["decoded_bytes"] else None)
-        if limit:
-            state["stop"] = state["stop"] or {"error": "web_resource_limit", "resourceLimit": limit}
-            return await route.abort("blockedbyclient")
-        headers = {k: v for k, v in response.headers.items()
-                   if k.lower() not in ("content-encoding", "content-length", "transfer-encoding")}
-        await route.fulfill(status=response.status, headers=headers, body=body)
+        headers = {name: value for name, value in headers.items()
+                   if name not in ("content-encoding", "content-length", "transfer-encoding", "set-cookie")}
+        await route.fulfill(status=status, headers=headers, body=body)
 
     async with async_playwright() as playwright:
         try:
-            proxy = os.environ.get("HTTPS_PROXY") or os.environ.get("https_proxy")
             browser = await playwright.chromium.launch(
                 executable_path=executable or None,
-                # A fulfilled document has no remote address; owner-flagged loopback is already allowed.
-                # A verifier reads one page: none of the browser's own update or sync traffic.
-                args=["--disable-background-networking", "--disable-component-update"]
+                # Chromium only renders fulfilled bytes; it never resolves the page host.
+                args=["--disable-background-networking", "--disable-component-update",
+                      "--no-proxy-server", "--host-resolver-rules=MAP * ~NOTFOUND"]
                 + (["--disable-features=LocalNetworkAccessChecks"]
                    if os.environ.get("OCADE_ALLOW_PRIVATE_WEB") == "1" else []),
-                # The computer's own proxy, exactly as the actor's browser uses it: without it a
-                # check behind a proxy can never reach the site and stays unobservable.
-                **({"proxy": {"server": proxy, "bypass": os.environ.get("NO_PROXY", "")}} if proxy else {}),
             )
         except Exception:
             return unknown, {"error": "browser_unavailable"}

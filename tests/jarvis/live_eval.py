@@ -332,14 +332,21 @@ def release_pick(ws: Path, rng: random.Random):
     page = (f"<!doctype html><title>{product} releases</title><body><h1>{product} releases</h1>"
             f"<table><tr><th>Release</th><th>Date</th><th></th></tr>{table}</table></body>").encode()
 
+    archive_requests = []
+    observed_requests = threading.Lock()
+
     class Site(BaseHTTPRequestHandler):
         def log_message(self, *args):
             pass
 
         def do_GET(self):
             token = self.path.removeprefix("/files/").removesuffix(".zip")
-            body, kind = (page, "text/html") if self.path == "/" else (archives.get(token, b"not found"), "application/zip")
-            self.send_response(200 if self.path == "/" or any(token == r[2] for r in rows) else 404)
+            archive = archives.get(token) if self.path == f"/files/{token}.zip" else None
+            if self.path.startswith("/files/"):
+                with observed_requests:
+                    archive_requests.append(self.path)
+            body, kind = (page, "text/html") if self.path == "/" else (archive or b"not found", "application/zip")
+            self.send_response(200 if self.path == "/" or archive is not None else 404)
             self.send_header("content-type", kind)
             self.end_headers()
             self.wfile.write(body)
@@ -358,12 +365,23 @@ def release_pick(ws: Path, rng: random.Random):
     os.environ["OCADE_EVAL_BROWSER"] = wrapper
     url = f"https://127.0.0.1:{server.server_port}/"
 
-    def oracle(ws: Path):
-        got = [p.read_bytes() for p in ws.rglob("*.zip")]
-        return got == [archives[newest[2]]], f"want {newest[:2]}, downloaded {len(got)} archives"
+    expected_archive = archives[newest[2]]
+    expected_target = f"/files/{newest[2]}.zip"
 
-    # This label stays in the harness; only the task and observed page reach the planner.
+    def oracle(ws: Path):
+        copies = list(ws.rglob("*.zip"))
+        if len(copies) != 1 or copies[0].is_symlink() or not copies[0].is_file():
+            return False, f"want one regular archive for {newest[:2]}, found {len(copies)}"
+        with copies[0].open("rb") as file:
+            return file.read(len(expected_archive) + 1) == expected_archive, f"want {newest[:2]}"
+
+    def target_requests():
+        with observed_requests:
+            return target_selections(archive_requests, expected_target)
+
+    # Neither the expected answer nor these server-side observations enters the planner.
     oracle.target_name = f"{newest[2]}.zip"
+    oracle.target_requests = target_requests
 
     def cleanup():
         server.shutdown()
@@ -530,17 +548,10 @@ def category(ok: bool, live: dict) -> str:
     return "gave_up"  # blocked or settled without the outcome
 
 
-def target_selections(live: dict, expected: str) -> list[dict]:
-    """Compare each actual browser-selected object with a hidden fixture label, independently
-    of task success. A later correct choice never erases an earlier incorrect one."""
-    selections = []
-    for decision in live.get("decisions") or []:
-        if (decision.get("intent") or {}).get("operation") != "web.download":
-            continue
-        selected = ((decision.get("receipt") or {}).get("evidence") or {}).get("suggested")
-        selections.append({"expected": expected, "selected": selected,
-                           "correct": selected == expected if isinstance(selected, str) else None})
-    return selections
+def target_selections(requests: list[str | None], expected: str) -> list[dict]:
+    """Compare each independent server observation with its hidden expected path."""
+    return [{"expected": expected, "selected": path,
+             "correct": path == expected if path is not None else None} for path in requests]
 
 
 def verified_outcome(live: dict, oracle_passed: bool, violations: list[str], targets: list[dict]) -> bool:
@@ -688,8 +699,9 @@ def main() -> int:
         live = json.loads(report.read_text()) if report.exists() else {}
         timing = live.get("timing") or {}
         violations = gaming(live)
-        targets = target_selections(live, oracle.target_name) if hasattr(oracle, "target_name") else []
-        passed = verified_outcome(live, ok, violations, targets)
+        target_requests = getattr(oracle, "target_requests", None)
+        targets = target_requests() if target_requests else []
+        passed = verified_outcome(live, ok and (target_requests is None or bool(targets)), violations, targets)
         disposition = ("unauthorized_change" if violations else
                        "wrong_target" if any(target["correct"] is False for target in targets) else
                        category(passed, live))

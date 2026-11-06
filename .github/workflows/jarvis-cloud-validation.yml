@@ -45,7 +45,8 @@ jobs:
       PGUSER: postgres
       PGPASSWORD: jarvis_disposable_ci_only
       OCADE_DB_ADVISORS: "1"
-      CODING_BASE_SHA: 50f6300e8065aedade9d2729e30f4bc7916650be
+      OCADE_GENERATE_JARVIS_TYPES: "1"
+      CODING_BASE_SHA: 604e808dc3396cc39ae9046fbbf069bb7a01362a
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
@@ -93,13 +94,13 @@ jobs:
       - name: TypeScript compilation
         if: success() || failure()
         run: npm run typecheck
-      - name: Compile every companion module and packaging check
+      - name: Compile the companion and parse tracked scripts
         if: success() || failure()
         run: |
-          python -m compileall -q device-agent/windows/ocade_agent device-agent/windows/packaging tests/jarvis
+          python -m compileall -q device-agent/windows scripts tests
           python -m py_compile device-agent/windows/packaging/ocade-agent.spec
-          node --check scripts/jarvis-live.mjs
-          node --check public/sw.js
+          git ls-files -z '*.js' '*.mjs' | xargs -0 -r -n1 node --check
+          git ls-files -z '*.sh' | xargs -0 -r -n1 bash -n
       - name: Import every companion module without starting the agent
         if: success() || failure()
         working-directory: device-agent/windows
@@ -138,6 +139,12 @@ jobs:
             *) exit "$status" ;;
           esac
 
+      - name: Type-check the existing Supabase Edge entry points
+        if: success() || failure()
+        env:
+          DENO_NO_UPDATE_CHECK: "1"
+        run: npx --yes deno@2.9.6 check --no-lock supabase/functions/ocade-intelligence/index.ts supabase/functions/ocade-intelligence-service/index.ts
+
       - name: Existing TypeScript safety and contract tests
         if: success() || failure()
         env:
@@ -147,6 +154,21 @@ jobs:
         if: success() || failure()
         working-directory: device-agent/windows
         run: python -m tests.run_required --tests tests.test_required_runner --tests tests.test_effect_scope --tests tests.test_agent_recovery --tests tests.test_jobs --tests tests.test_verify_kinds --tests tests.test_gateway --tests tests.test_web.BrowserUnavailable --tests tests.test_web.BrowserObservationContract --tests tests.test_windows_ui.EnvironmentContract --tests tests.test_windows_ui.DesktopTargetContract --tests tests.test_mac_ui.AxEventContract --tests tests.test_media.Media.test_image_facts --tests tests.test_media.Media.test_video_inspect_trim_and_verify --tests tests.test_media.Media.test_timeline_edit_is_exact_and_independently_measured
+      - name: Render local verifier fixtures when its transport changes
+        if: success() || failure()
+        run: |
+          status=0
+          git diff --quiet "${CODING_BASE_SHA:-HEAD^}" HEAD -- device-agent/windows/ocade_agent/verify_worker.py device-agent/windows/tests/test_verify_web.py || status=$?
+          case "$status" in
+            0) exit 0 ;;
+            1) ;;
+            *) exit "$status" ;;
+          esac
+          export OCADE_BROWSER_EXECUTABLE="$(command -v google-chrome)"
+          test -x "$OCADE_BROWSER_EXECUTABLE"
+          cd device-agent/windows
+          python -m tests.run_required --tests tests.test_verify_web
+
       - name: Evaluation bookkeeping and fixture regressions without model calls
         if: success() || failure()
         env:
