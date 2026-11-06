@@ -179,6 +179,23 @@ jobs:
             --tests tests.test_vision.TargetCheck.test_a_moved_target_still_has_a_unique_match \
             --tests tests.test_vision.TargetCheck.test_observations_expire_and_cannot_grow_without_bound
 
+      - name: Check the browser bridge against its local fixture when changed
+        if: success() || failure()
+        run: |
+          status=0
+          git diff --quiet "${CODING_BASE_SHA:-HEAD^}" HEAD -- device-agent/windows/ocade_agent/web_worker.py device-agent/windows/tests/test_web.py device-agent/windows/tests/web_fixture.py || status=$?
+          case "$status" in
+            0) exit 0 ;;
+            1) ;;
+            *) exit "$status" ;;
+          esac
+          export OCADE_BROWSER_EXECUTABLE="$(command -v google-chrome)"
+          test -x "$OCADE_BROWSER_EXECUTABLE"
+          cd device-agent/windows
+          xvfb-run -a python -m tests.run_required \
+            --tests tests.test_web.WebLadder.test_web_ladder \
+            --tests tests.test_web.WebLadder.test_mcp_lifespan_closes_browser_and_failed_startup
+
       - name: Render local verifier fixtures when its transport changes
         if: success() || failure()
         run: |

@@ -448,7 +448,8 @@ class BrowserObservationContract(unittest.TestCase):
             route = SimpleNamespace(
                 request=request, abort=AsyncMock(), continue_=AsyncMock(), fetch=AsyncMock(),
             )
-            with (patch.object(web_worker, "_pages", {"p": {"page": page, "site": "first.example"}}),
+            with (patch.object(web_worker, "_pages", {"p": {"page": page, "site": "first.example",
+                                                       "origin": ("https", "first.example", 443)}}),
                   patch.object(web_worker, "_public_by_dns", side_effect=lambda host: host != "private.example")):
                 await web_worker._guard(route)
                 request.url, request.method = "https://second.example/submit", "POST"
@@ -463,6 +464,51 @@ class BrowserObservationContract(unittest.TestCase):
                 await web_worker._guard(route)
                 self.assertEqual(route.abort.await_count, 3)
                 route.fetch.assert_not_awaited()
+
+        anyio.run(checks)
+
+    def test_unknown_popup_cannot_borrow_another_tabs_host_or_port(self):
+        from types import SimpleNamespace
+        from unittest.mock import AsyncMock, Mock, patch
+        from ocade_agent import web_worker
+        from ocade_agent.sandbox import Refused
+
+        async def checks():
+            first = ("https", "first.example", 8443)
+            second = ("https", "second.example", 8443)
+            page = SimpleNamespace(
+                on=Mock(), is_closed=Mock(return_value=False),
+                url="https://first.example:8443/",
+            )
+            other = SimpleNamespace(on=Mock())
+            request = SimpleNamespace(
+                url="https://second.example:8443/attempt", method="GET",
+                is_navigation_request=lambda: True,
+            )
+            response = SimpleNamespace(status=200, headers={})
+            route = SimpleNamespace(
+                request=request, abort=AsyncMock(), continue_=AsyncMock(),
+                fetch=AsyncMock(return_value=response), fulfill=AsyncMock(),
+            )
+            with (patch.object(web_worker, "PRIVATE_ALLOWED", True),
+                  patch.object(web_worker, "_pages", {}), patch.object(web_worker, "_browser", {})):
+                page_id = web_worker._bind(page, first[1], first)
+                web_worker._bind(other, second[1], second)
+                async with web_worker._browser_interaction(web_worker._pages[page_id]):
+                    await web_worker._guard(route)
+                    request.url = "https://first.example:9443/attempt"
+                    await web_worker._guard(route)
+                    route.fetch.assert_not_awaited()
+                    request.url = "https://first.example:8443/allowed"
+                    await web_worker._guard(route)
+                    route.fetch.assert_awaited_once_with(max_redirects=0)
+                await web_worker._guard(route)
+                self.assertEqual(route.abort.await_count, 3)
+                route.continue_.assert_not_awaited()
+
+                page.url = "https://first.example:9443/"
+                with self.assertRaisesRegex(Refused, "page_left_site"):
+                    web_worker._bound({"id": page_id, "site": first[1]})
 
         anyio.run(checks)
 

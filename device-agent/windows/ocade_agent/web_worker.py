@@ -25,6 +25,7 @@ import json
 import re
 import os
 import secrets
+import shutil
 import socket
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -177,8 +178,21 @@ _WAITING = """async () => {
 }"""
 
 
+def _origin(url: str) -> tuple[str, str, int] | None:
+    try:
+        parsed = urlparse(url)
+        if parsed.scheme not in ("http", "https") or parsed.username is not None or parsed.password is not None:
+            return None
+        host = (parsed.hostname or "").encode("idna").decode("ascii").lower()
+        port = parsed.port if parsed.port is not None else (443 if parsed.scheme == "https" else 80)
+        return (parsed.scheme, host, port) if host and port else None
+    except ValueError:
+        return None
+
+
 def _host(url: str) -> str:
-    return (urlparse(url).hostname or "").lower()
+    origin = _origin(url)
+    return origin[1] if origin else ""
 
 
 def _private_address(text: str) -> bool:
@@ -186,23 +200,20 @@ def _private_address(text: str) -> bool:
         address = ipaddress.ip_address(text)
     except ValueError:
         return False
-    return not address.is_global
+    address = getattr(address, "ipv4_mapped", None) or address
+    return not address.is_global or address.is_multicast or address.is_reserved
 
 
 def _allowed_url(url: str) -> bool:
-    """https on the default port to a public address (or anything, on an owner-flagged test machine)."""
-    try:
-        parsed = urlparse(url)
-        host, port = (parsed.hostname or "").lower(), parsed.port
-    except ValueError:
-        return False
-    if parsed.username is not None or parsed.password is not None:
+    origin = _origin(url)
+    if origin is None:
         return False
     if PRIVATE_ALLOWED:
-        return parsed.scheme in ("https", "http") and bool(host)
-    if parsed.scheme != "https" or port not in (None, 443) or not host:
-        return False
-    return host != "localhost" and not host.endswith(".localhost") and not _private_address(host)
+        return True
+    scheme, host, port = origin
+    name = host.rstrip(".")
+    return (scheme == "https" and port == 443 and name != "localhost"
+            and not name.endswith(".localhost") and not _private_address(host))
 
 
 def _public_by_dns(host: str) -> bool:
@@ -215,13 +226,31 @@ def _public_by_dns(host: str) -> bool:
     return bool(addresses) and not any(_private_address(a.split("%")[0]) for a in addresses)
 
 
-async def _site_of(page) -> str | None:
-    """The host a page is bound to, or its bound opener's for a popup; None for the person's own tabs."""
-    for candidate in (page, await page.opener()):
-        for entry in _pages.values():
-            if candidate is not None and entry["page"] is candidate:
-                return entry["site"]
-    return None
+async def _page_origin(page) -> tuple[str, str, int] | None:
+    """Find the exact origin bound to the page or its popup opener."""
+    for entry in _pages.values():
+        if entry["page"] is page:
+            return entry["origin"]
+    try:
+        opener = await page.opener()
+    except Exception:
+        return None
+    return next((entry["origin"] for entry in _pages.values() if entry["page"] is opener), None)
+
+
+@asynccontextmanager
+async def _browser_interaction(entry: dict, *, starting: bool = False):
+    if "interactionOrigin" in _browser:
+        raise Refused("browser_busy")
+    origin = entry["origin"]
+    current_origin = _origin(entry["page"].url)
+    if current_origin != origin and not (starting and entry["page"].url == "about:blank"):
+        raise Refused("page_left_site")
+    _browser["interactionOrigin"] = origin
+    try:
+        yield
+    finally:
+        _browser.pop("interactionOrigin", None)
 
 
 async def _guard(route) -> None:
@@ -240,15 +269,12 @@ async def _guard(route) -> None:
     if not top_navigation and not writes:
         return await route.continue_()
     page = frame.page if frame is not None else None
-    if page is not None:
-        site = await _site_of(page)
-        if site is None:
-            return await route.continue_()  # the person's own tab
-    elif not _pages:
-        return await route.continue_()
-    else:
-        site = _host(url) if _host(url) in {entry["site"] for entry in _pages.values()} else None
-    if _host(url) != site:
+    origin = await _page_origin(page) if page is not None else None
+    if origin is None:
+        origin = _browser.get("interactionOrigin")
+        if origin is None and (page is not None or not _pages):
+            return await route.continue_()  # an unbound tab outside a controlled interaction
+    if origin is None or _origin(url) != origin:
         return await route.abort("blockedbyclient")
     if writes:
         # Chromium may withhold the file bytes of a multipart submission. Never
@@ -275,7 +301,7 @@ async def _guard(route) -> None:
     await route.fulfill(response=response)
 
 
-async def _follow(current, site: str, before: str) -> None:
+async def _follow(current, origin: tuple[str, str, int], before: str) -> None:
     """Follow a stopped redirect hop by hop, each one checked against the page's site."""
     for _hop in range(MAX_HOPS):
         if current not in _redirects:
@@ -283,7 +309,7 @@ async def _follow(current, site: str, before: str) -> None:
         location = _redirects.pop(current)
         if not urlparse(location).fragment and urlparse(before).fragment:
             location += "#" + urlparse(before).fragment
-        if _host(location) != site or not _allowed_url(location):
+        if _origin(location) != origin or not _allowed_url(location):
             raise Refused("redirected_off_site")
         before = location
         try:
@@ -355,7 +381,7 @@ def _bound(page: dict) -> dict:
         raise Refused("page_gone")
     if page["site"] != entry["site"]:
         raise Refused("site_mismatch")
-    if _host(entry["page"].url) != entry["site"]:
+    if _origin(entry["page"].url) != entry["origin"]:
         raise Refused("page_left_site")
     return entry
 
@@ -369,7 +395,7 @@ async def _scope(entry: dict, frame: str | None):
     content = await handle.content_frame() if handle else None
     if content is None:
         raise Refused("frame_not_found")
-    if _host(content.url) != entry["site"]:
+    if _origin(content.url) != entry["origin"]:
         raise Refused("frame_off_site")
     return content
 
@@ -403,6 +429,8 @@ async def _one(entry: dict, scope, selector: str):
 async def _observe(page_id: str) -> dict:
     entry = _pages[page_id]
     current = entry["page"]
+    if _origin(current.url) != entry["origin"]:
+        raise Refused("page_left_site")
     text = await current.inner_text("body", timeout=10_000)
     token = secrets.token_hex(8)
     snapshot = await current.evaluate_handle(_CONTROLS, token)
@@ -440,7 +468,8 @@ async def _observe(page_id: str) -> dict:
     if popups:
         observed["popups"] = popups
     # The other tabs OCADE has open (popups included): switching is acting with that page id.
-    others = [(other_id, e) for other_id, e in _pages.items() if other_id != page_id and not e["page"].is_closed()]
+    others = [(other_id, e) for other_id, e in _pages.items()
+              if other_id != page_id and not e["page"].is_closed() and _origin(e["page"].url) == e["origin"]]
     if others:
         observed["otherTabs"] = [{"page": {"id": other_id, "site": e["site"]}, "title": (await e["page"].title())[:80]}
                                  for other_id, e in others[-10:]]
@@ -452,6 +481,8 @@ async def _observe(page_id: str) -> dict:
         observed["controls"].pop()
     while len(json.dumps(observed)) > EVIDENCE_LIMIT and any(t["rows"] for t in observed["tables"]):
         max(observed["tables"], key=lambda t: len(t["rows"]))["rows"].pop()  # say how many there were
+    if _origin(current.url) != entry["origin"]:
+        raise Refused("page_left_site")
     return observed
 
 
@@ -474,9 +505,10 @@ async def _capture(current) -> bytes:
             await asyncio.sleep(0.5)
 
 
-def _bind(new_page, site: str) -> str:
+def _bind(new_page, site: str, origin: tuple[str, str, int] | None = None) -> str:
     page_id = secrets.token_hex(6)
-    entry = {"page": new_page, "site": site, "pendingPopups": [], "popupArrived": asyncio.Event()}
+    entry = {"page": new_page, "site": site, "origin": origin or ("https", site, 443),
+             "pendingPopups": [], "popupArrived": asyncio.Event()}
     _pages[page_id] = entry
 
     def opened(popup) -> None:
@@ -494,12 +526,12 @@ async def _collect_popups(entry: dict) -> list[str]:
     for popup in pending:
         try:
             await popup.wait_for_load_state("domcontentloaded", timeout=5000)
-            await _follow(popup, entry["site"], popup.url)
+            await _follow(popup, entry["origin"], popup.url)
         except Exception:
             pass
         _redirects.pop(popup, None)
-        if not popup.is_closed() and _host(popup.url) == entry["site"]:
-            results.append(_bind(popup, entry["site"]))
+        if not popup.is_closed() and _origin(popup.url) == entry["origin"]:
+            results.append(_bind(popup, entry["site"], entry["origin"]))
         else:
             if not popup.is_closed():
                 await popup.close()
@@ -511,9 +543,10 @@ async def _collect_popups(entry: dict) -> list[str]:
 @_refusals
 async def web_open(url: str) -> dict:
     """Open a page on an allowed site in the OCADE browser; the page is bound to that site."""
-    site = _host(url)
-    if not _allowed_url(url) or not _public_by_dns(site):
+    origin = _origin(url)
+    if origin is None or not _allowed_url(url) or not _public_by_dns(origin[1]):
         raise Refused("site_not_public")
+    site = origin[1]
     for attempt in range(2):
         try:
             context = await _context()
@@ -523,16 +556,17 @@ async def web_open(url: str) -> dict:
             if attempt or not _browser.get("closed"):
                 raise Refused("browser_unavailable") from None
     # Bind before any site request, including the first navigation.
-    page_id = _bind(current, site)  # bound before the first request, so its navigation is checked
+    page_id = _bind(current, site, origin)
     try:
-        try:
-            await current.goto(url, wait_until="domcontentloaded", timeout=45_000)
-        except Exception:
-            if current not in _redirects:
-                raise Refused("navigation_failed")
-        await _follow(current, site, url)
-        if _host(current.url) != site:
-            raise Refused("redirected_off_site")
+        async with _browser_interaction(_pages[page_id], starting=True):
+            try:
+                await current.goto(url, wait_until="domcontentloaded", timeout=45_000)
+            except Exception:
+                if current not in _redirects:
+                    raise Refused("navigation_failed")
+            await _follow(current, origin, url)
+            if _origin(current.url) != origin:
+                raise Refused("redirected_off_site")
     except BaseException:
         _pages.pop(page_id, None)
         _redirects.pop(current, None)
@@ -558,20 +592,19 @@ async def web_fill(page: dict, selector: str, value: str, frame: str | None = No
     field = await _one(entry, await _scope(entry, frame), selector)
     if (await field.get_attribute("type") or "").lower() == "password":
         raise Refused("password_field")  # credentials are the person's to type
-    if await field.evaluate("e => e.isContentEditable"):
-        # A web app's own text widget listens for real keystrokes, not a set value.
-        if any(ord(ch) < 32 for ch in value):
-            raise Refused("control_characters")  # Enter or Tab could submit or move on
-        mark_effect()
-        await field.focus()
-        await field.page.keyboard.press("ControlOrMeta+A")
-        await field.page.keyboard.type(value)
-    else:
-        mark_effect()
-        await field.fill(value, timeout=10_000)
-    await field.evaluate("e => e.blur()")  # as a person moving on: the widget commits its value
-    # Read back from a form field or an editable element (a web app's own text widget).
-    shown = await field.evaluate("e => 'value' in e ? e.value : e.innerText")
+    async with _browser_interaction(entry):
+        if await field.evaluate("e => e.isContentEditable"):
+            # The widget listens for keystrokes. Keep both operations bound to this exact field.
+            if any(ord(ch) < 32 for ch in value):
+                raise Refused("control_characters")
+            mark_effect()
+            await field.press("ControlOrMeta+A")
+            await field.type(value)
+        else:
+            mark_effect()
+            await field.fill(value, timeout=10_000)
+        await field.evaluate("e => e.blur()")
+        shown = await field.evaluate("e => 'value' in e ? e.value : e.innerText")
     return {"matches": shown.strip() == value.strip()}
 
 
@@ -581,9 +614,10 @@ async def web_select(page: dict, selector: str, option: str, frame: str | None =
     """Choose one option (by its visible label) in a dropdown, then read the choice back."""
     entry = _bound(page)
     field = await _one(entry, await _scope(entry, frame), selector)
-    mark_effect()
-    await field.select_option(label=option, timeout=10_000)
-    chosen = await field.evaluate("e => e.options[e.selectedIndex]?.text ?? ''")
+    async with _browser_interaction(entry):
+        mark_effect()
+        await field.select_option(label=option, timeout=10_000)
+        chosen = await field.evaluate("e => e.options[e.selectedIndex]?.text ?? ''")
     return {"matches": chosen == option}
 
 
@@ -602,11 +636,12 @@ async def web_click(page: dict, selector: str, frame: str | None = None) -> dict
 
     current.on("filechooser", chosen)
     try:
-        mark_effect()
-        await target.click(timeout=10_000)
-        if expects_popup and not entry["pendingPopups"]:
-            with anyio.move_on_after(5):
-                await entry["popupArrived"].wait()
+        async with _browser_interaction(entry):
+            mark_effect()
+            await target.click(timeout=10_000)
+            if expects_popup and not entry["pendingPopups"]:
+                with anyio.move_on_after(5):
+                    await entry["popupArrived"].wait()
     finally:
         current.remove_listener("filechooser", chosen)
         for chooser in choosers:
@@ -614,8 +649,8 @@ async def web_click(page: dict, selector: str, frame: str | None = None) -> dict
                 await chooser.set_files([])
             except Exception:
                 pass
-    await _follow(current, entry["site"], current.url)
-    if _host(current.url) != entry["site"]:
+    await _follow(current, entry["origin"], current.url)
+    if _origin(current.url) != entry["origin"]:
         return {"leftSite": True, "url": current.url[:500], "popups": await _collect_popups(entry)}
     # What the page now looks like travels as a preview, so a canvas app's change is seen.
     from io import BytesIO
@@ -645,9 +680,10 @@ async def web_upload(page: dict, selector: str, path: str) -> dict:
     await field.evaluate(
         "e => e.addEventListener('change', () => { e.dataset.ocadeAttached = JSON.stringify([...e.files].map(f => f.name)) }, {once: true, capture: true})"
     )
-    mark_effect()
-    await field.set_input_files(str(source))
-    names = json.loads(await field.evaluate("e => e.dataset.ocadeAttached || '[]'"))
+    async with _browser_interaction(entry):
+        mark_effect()
+        await field.set_input_files(str(source))
+        names = json.loads(await field.evaluate("e => e.dataset.ocadeAttached || '[]'"))
     return {"attached": names, "matches": names == [source.name]}
 
 
@@ -659,12 +695,16 @@ async def web_download(page: dict, selector: str, output: str) -> dict:
     current = entry["page"]
     target = output_path(WORKSPACE, output)
     link = await _one(entry, current, selector)
-    async with current.expect_download(timeout=60_000) as pending:
-        mark_effect()  # the request may take effect even if publication later refuses
-        await link.click()
-    download = await pending.value
+    async with _browser_interaction(entry):
+        async with current.expect_download(timeout=60_000) as pending:
+            mark_effect()  # the request may take effect even if publication later refuses
+            await link.click()
+        download = await pending.value
+    if not download.url.startswith("data:") and _origin(download.url.removeprefix("blob:")) != entry["origin"]:
+        await download.cancel()
+        raise Refused("download_off_origin")
     staged = Path(await download.path())
-    digest = write_atomically(target, lambda temporary: temporary.write_bytes(staged.read_bytes()))
+    digest = write_atomically(target, lambda temporary: shutil.copyfile(staged, temporary))
     with open(target, "rb") as stream:
         head = stream.read(8)
     return {
@@ -682,6 +722,7 @@ async def web_screenshot(page: dict, output: str) -> dict:
     current = _bound(page)["page"]
     target = output_path(WORKSPACE, output)
     image = await _capture(current)
+    _bound(page)  # a concurrent navigation must not publish a capture of another origin
     return {"sha256": write_atomically(target, lambda temporary: temporary.write_bytes(image)), "bytes": len(image)}
 
 
