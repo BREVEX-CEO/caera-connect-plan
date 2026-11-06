@@ -112,6 +112,8 @@ function agent(...args: string[]) {
     const child = spawn("python3", ["-m", "ocade_agent", ...args, "--server", url], {
       cwd: agentDir,
       env: { ...process.env, OCADE_AGENT_HOME: agentHome, PYTHONPATH: agentDir },
+      timeout: args.includes("--until-idle") ? 60_000 : undefined,
+      killSignal: "SIGKILL",
     });
     let out = "";
     child.stdout.on("data", (d) => (out += d));
@@ -948,14 +950,26 @@ test(
       assert.equal(run.code, 0, run.out);
       const view = await taskView(admin, userA, taskId);
       assert.equal(view.status, "completed", JSON.stringify(view));
-      assert.equal(view.steps.length, 6, "discover, write/check each stage, then check all outcomes");
+      assert.equal(
+        view.steps.length,
+        6,
+        "discover, write/check each stage, then check all outcomes",
+      );
       assert.ok(view.steps.every((step) => step.status === "done"));
       const state = JSON.parse(sql(`SELECT public.jarvis_task_state('${taskId}')`));
       assert.equal(state.checkpoint.milestones.index, 2);
       assert.equal(state.checkpoint.milestones.verified.length, 2);
-      assert.deepEqual(state.steps.filter((step: { intent: { operation: string } }) =>
-        step.intent.operation === "verify.checks").map((step: { intent: { arguments: { checks: unknown[] } } }) =>
-        step.intent.arguments.checks.length), [1, 1, 2]);
+      assert.deepEqual(
+        state.steps
+          .filter(
+            (step: { intent: { operation: string } }) => step.intent.operation === "verify.checks",
+          )
+          .map(
+            (step: { intent: { arguments: { checks: unknown[] } } }) =>
+              step.intent.arguments.checks.length,
+          ),
+        [1, 1, 2],
+      );
       for (const [index, path] of milestonePaths.entries()) {
         assert.equal(readFileSync(join(workspace, path), "utf8"), "stage output " + index);
       }

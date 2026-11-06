@@ -788,9 +788,10 @@ export async function handleDeviceRequest(
       });
       return { status: 200, body: { receipt: recorded.outcome, ...next } };
     }
-    let state = await call<{ task?: { status?: string } | null }>(admin, "jarvis_claim_action", {
-      p_device: deviceId,
-    });
+    let state = await call<{
+      task?: { id?: string; status?: string } | null;
+      action?: unknown;
+    }>(admin, "jarvis_claim_action", { p_device: deviceId });
     if (state.task?.status === "waiting") {
       // A task that waited only for a busy planner and is now due runs again (D10).
       const due = await call<string | null>(admin, "jarvis_resume_due", { p_device: deviceId });
@@ -798,6 +799,11 @@ export async function handleDeviceRequest(
         await advance(admin, due);
         state = await call(admin, "jarvis_claim_action", { p_device: deviceId });
       }
+    }
+    if (state.task?.status === "running" && state.task.id && !state.action) {
+      // A milestone can advance without a queued device action.
+      await advance(admin, state.task.id);
+      state = await call(admin, "jarvis_claim_action", { p_device: deviceId });
     }
     return { status: 200, body: state };
   } catch (error) {

@@ -134,12 +134,15 @@ test("coding CI excludes the qualification timing callback while retaining codin
     const allowed = join(folder, "coding-ran");
     const forbidden = join(folder, "qualification-ran");
     const path = join(folder, "selection.test.mjs");
-    writeFileSync(path, `
+    writeFileSync(
+      path,
+      `
 import { test } from "node:test";
 import { writeFileSync } from "node:fs";
 test("coding case", () => writeFileSync(${JSON.stringify(allowed)}, "ran"));
 test("timing suite: qualification case", () => writeFileSync(${JSON.stringify(forbidden)}, "ran"));
-`);
+`,
+    );
     const result = spawnSync(process.execPath, ["--test", "--test-name-pattern=" + pattern, path], {
       encoding: "utf8",
     });

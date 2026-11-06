@@ -104,6 +104,17 @@ jobs:
         run: |
           npm run jarvis:protocol-check
           npm run jarvis:no-hardcoded
+      - name: Migrations and authority contracts when changed
+        if: success() || failure()
+        run: |
+          status=0
+          git diff --quiet "${CODING_BASE_SHA:-HEAD^}" HEAD -- supabase/ src/lib/jarvis/authority.server.ts tests/jarvis/db/ || status=$?
+          case "$status" in
+            0) ;;
+            1) npm run test:jarvis-db ;;
+            *) exit "$status" ;;
+          esac
+
       - name: Existing TypeScript safety and contract tests
         if: success() || failure()
         run: node --experimental-strip-types --no-warnings --test --test-name-pattern="^(?!timing suite:)" tests/security/*.test.ts tests/jarvis/contracts.test.ts tests/jarvis/e2e.test.ts
@@ -116,17 +127,6 @@ jobs:
         env:
           PYTHONPATH: device-agent/windows:tests/jarvis
         run: python -m tests.run_required --tests test_eval_audit
-      - name: Migrations and authority contracts when changed
-        if: success() || failure()
-        run: |
-          status=0
-          git diff --quiet "${CODING_BASE_SHA:-HEAD^}" HEAD -- supabase/ src/lib/jarvis/authority.server.ts tests/jarvis/db/ || status=$?
-          case "$status" in
-            0) ;;
-            1) npm run test:jarvis-db ;;
-            *) exit "$status" ;;
-          esac
-
       - name: Show exact formatter corrections for changed sources
         if: failure()
         run: |
