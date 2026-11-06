@@ -147,7 +147,9 @@ test("mutations require fresh planning; unknown effects fence resumption", async
           proposals = [{ name: "fs_manage", arguments: args }];
           assert.equal((await planStep(input)).kind, "block");
         }
-        proposals = [{ name: "fs_manage", arguments: { action: "copy", path: source, to: output } }];
+        proposals = [
+          { name: "fs_manage", arguments: { action: "copy", path: source, to: output } },
+        ];
         assert.equal((await planStep(input)).kind, "queue");
       },
     );

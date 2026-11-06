@@ -193,8 +193,9 @@ test("capability shortlist: descriptor vectors, bounded, continuity, paraphrase-
 test("mechanism fallback: a failed route is followed by a fresh look, then the next route", async () => {
   const { fallbackRoute, observedSinceFailure, shortlistOperations, offeredOperations } =
     await import("../../src/lib/jarvis/planner.server.ts");
+  const window = { exe: "fixture.exe", pid: 5, hwnd: 7, started: 11 };
   const step = (operation: string, status: string, receipt: unknown = null) =>
-    ({ intent: { operation, risk: "read" }, status, receipt }) as never;
+    ({ intent: { operation, risk: "read", arguments: { window } }, status, receipt }) as never;
   const failed = [
     step("ui.inspect", "done"),
     step("ui.invoke", "failed", {
@@ -207,9 +208,17 @@ test("mechanism fallback: a failed route is followed by a fresh look, then the n
     observe: "ui.inspect",
     next: ["ui.send_keys", "ui.click_point"],
   });
-  assert.throws(() => observedSinceFailure(failed, "ui.send_keys"), /look again with ui.inspect/);
+  assert.throws(
+    () => observedSinceFailure(failed, "ui.send_keys", { window }),
+    /look again with ui.inspect/,
+  );
+  const fresh = step("ui.inspect", "done", {
+    status: "observed",
+    evidence: {},
+    preview: "dGVzdA==",
+  });
   assert.doesNotThrow(() =>
-    observedSinceFailure([...failed, step("ui.inspect", "done")], "ui.click_point"),
+    observedSinceFailure([...failed, fresh], "ui.click_point", { window }),
   );
   // Another mechanism is not held back by a failure on a window.
   assert.doesNotThrow(() => observedSinceFailure(failed, "fs.write_text"));
