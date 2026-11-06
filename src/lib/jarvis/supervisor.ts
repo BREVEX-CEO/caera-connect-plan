@@ -7,7 +7,7 @@
  */
 import { z } from "zod";
 import type { ActionIntent, ActionReceipt, OutcomeCheck, VerificationResult } from "./contracts.ts";
-import { effectPossible, intent } from "./contracts.ts";
+import { effectPossible, intent, OPERATIONS } from "./contracts.ts";
 
 export interface Step {
   intent: ActionIntent;
@@ -159,16 +159,18 @@ export function followJobs(steps: Step[], now: Date): Decision | undefined {
 
     const polls = observations.filter(isJobPoll);
     const lastAttempt = polls.at(-1) ?? started;
-    const attemptedAt = Date.parse(lastAttempt.completedAt ?? lastAttempt.receipt?.observedAtUtc ?? "");
+    const attemptedAt = Date.parse(
+      lastAttempt.completedAt ?? lastAttempt.receipt?.observedAtUtc ?? "",
+    );
     const startedAt = Date.parse(started.completedAt ?? started.receipt?.observedAtUtc ?? "");
-    const timeout = started.intent.arguments.timeoutSeconds;
+    const { timeoutSeconds } = OPERATIONS["job.start"].arguments.parse(started.intent.arguments);
     const unanswered = observations.slice(observations.lastIndexOf(latest) + 1).filter(isJobPoll);
     if (
       !Number.isFinite(attemptedAt) ||
       !Number.isFinite(startedAt) ||
-      polls.length >= Math.ceil(timeout / 30) + 12 ||
+      polls.length >= Math.ceil(timeoutSeconds / 30) + 12 ||
       unanswered.length >= 3 ||
-      (polls.length > 0 && attemptedAt > startedAt + (timeout + 60) * 1000)
+      (polls.length > 0 && attemptedAt > startedAt + (timeoutSeconds + 60) * 1000)
     ) {
       return { kind: "block", reason: "The command stopped reporting progress. Check its result." };
     }
