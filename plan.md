@@ -1567,15 +1567,15 @@ Coding status is kept separate from runtime verification (Appendix A), so nothin
 | 13 | CODE | NOT CODED | C10 |
 | 16 | STANDING | STANDING | Every gate |
 | 23 | QUALIFICATION-ONLY | QUALIFICATION-ONLY; harness NOT CODED | Q; harness audit in C10, owner-directed run deferred |
-| 28 | CODE | NOT CODED | C3/C10 |
-| 29 | CODE | NOT CODED | C3/C10 |
-| 31 | CODE | CODED | C2; coding gate pending |
-| 32 | CODE | CODED | C2; coding gate pending |
-| 33 | CODE | NOT CODED | C2 |
-| 34 | CODE | NOT CODED | C2 |
-| 35 | CODE | NOT CODED | C2 |
-| 37 | CODE | NOT CODED | C2 |
-| 38 | CODE | CODED | C2; coding gate pending |
+| 28 | CODE | NOT CODED | C3 offering coded, C6/C10 execution ladder |
+| 29 | CODE | NOT CODED | C3 offering coded, C6/C10 mechanism selection |
+| 31 | CODE | BUILDS | C2, `ec44dd79` |
+| 32 | CODE | BUILDS | C2, `ec44dd79` |
+| 33 | CODE | BUILDS | C2, `ec44dd79` |
+| 34 | CODE | BUILDS | C2, `ec44dd79` |
+| 35 | CODE | BUILDS | C2, `ec44dd79` |
+| 37 | CODE | NOT CODED | C10, explicit receipt dispositions |
+| 38 | CODE | BUILDS | C2, `ec44dd79` |
 | 40 | CODE | NOT CODED | C10 |
 | 44 | CODE | NOT CODED | C4 |
 | 45 | CODE | NOT CODED | C4 |
@@ -1680,7 +1680,7 @@ Coding status is kept separate from runtime verification (Appendix A), so nothin
 | 161 | CODE | NOT CODED | C9 |
 | 162 | CODE | NOT CODED | C9 |
 | 163 | CODE | NOT CODED | C9 |
-| 164 | CODE | NOT CODED | C2 |
+| 164 | CODE | NOT CODED | C9, backpressure and job ownership |
 | 165 | CODE | NOT CODED | C9 |
 | 166 | CODE | NOT CODED | C9 |
 | 167 | CODE | NOT CODED | C9 |
@@ -1766,18 +1766,20 @@ The existing `tests.run_required.main` loads selected modules/classes/methods or
 - D26: `live_eval.main → run_with_oracle → jarvis-live.mjs --oracle-checkpoint` runs the hidden oracle before STOP, with a private rendezvous and bounded acknowledgement. Missing checkpoints fail. `release_pick` serves real CRC-valid ZIP archives, supplies its fixture CA to checked transport and cleans up its server/certificate. No live task or campaign is run.
 - Focused coding checks include every existing verifier, media and gateway test plus synthetic pre-STOP, package and interpreter negative controls. Current model integration is unchanged.
 
-**C2 migration preparation — BUILDS at `e3ced1f347596b1703d1413a295c9cd34cedc468`, [run 42075734307](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/42075734307).** The runner generated `20261105173418_durable_task_milestones.sql` with CLI 2.122.0. The official remote Supabase and Postgres skills were read; no PC access was used. The coding gate runs the pinned CLI's help/version commands and `migration new durable_task_milestones` in an unlinked temporary project on the GitHub runner. Its generated filename will be used for the real migration and rollback; no filename is invented, no project is linked, and no production database is accessed. This preparation alone did not provide milestone functionality.
+**C2 — BUILDS at `ec44dd79eaa09498afc6cb5835853de0149c5302`.** [GitHub Actions run 42217755830](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/42217755830) passed format, types, Python compilation and imports, protocol, migration and rollback checks, 137 TypeScript tests and 30 focused Python tests.
 
-**C2 implementation (31, 32, 38) — CODED; coding gate pending at this commit.**
+- 31 — BUILDS — `advance → compileGoal → jarvis_set_outcome` stores ordered milestones, immutable check references and budgets. `advance → planStep → milestoneProgress` uses the saved objective, permissions, current milestone, observations and unresolved effects.
+- 32 — BUILDS — `jarvis_task_state → advance` reloads the plan and checkpoint. `planStep → jarvis_complete_milestone` requires the current controller's exact independently observed proof. Signed claims without queued actions pick up the next phase. Completion requires the final whole-outcome verifier.
+- 33 — BUILDS — `advance → planStep → jarvis_queue_actions` bounds each phase, limits read batches to the remaining budget, and replans after observed results. `followJobs` polls an already confirmed tracked job with a bounded cadence and budget, preserving the decisions needed to finish the milestone.
+- 34 — BUILDS — `planStep → advance → jarvis_queue_actions → Agent.handle → Gateway.run` separates proposal, dispatch and execution. `Agent.handle → jarvis_submit_receipt → advance` records actual observations. The independent verifier, called through `verify.checks`, produces the proof used to advance or settle.
+- 35 — BUILDS — `intent → jarvis_queue_actions` validates registry capability, target bindings, risk and deadline. `jarvis_claim_action → Agent.handle → Journal.start/finish → jarvis_submit_receipt` binds the unique action and task records to the device, controller and durable outcome.
+- 38 — BUILDS — `Agent.handle → Journal.start/finish` records intent before effects and resends saved receipts after lost acknowledgements. `jarvis_complete_milestone → jarvis_task_state` persists the checkpoint across Take Over and Continue. Old controller proofs are rechecked and unresolved effects fence further work.
+- 37 remains NOT CODED for C10. Execution receipts and outcome proof persist, but the customer-facing step result still needs explicit refused, failed, cancelled, unknown and verified dispositions.
+- 164 remains NOT CODED for C9. Deterministic status reads, durable keys and retry limits are wired. Queue overload protection and safe job termination after a persisted process ID is reused still need work.
+- Supabase CLI 2.122.0 generated the migration name in an unlinked runner workspace. The disposable database gate passed advisors, service role and scope checks, rollback and reapply. The signed companion integration verified two saved outputs, two milestone proofs and a final whole-outcome proof.
+- Earlier coding runs accidentally executed the synthetic timing fixture. Its callback is now excluded at registration during coding CI. The green run confirms the exclusion. No timing scores qualify any requirement.
 
-- 31 — CODED — this C2 commit — `advance → compileGoal → jarvis_set_outcome` persists the model's ordered milestone descriptions, references to immutable outcome checks and per-phase step budgets. `advance → planStep → milestoneProgress` reconstructs objective, current work and remaining budget from database state, with all prior observations, permissions and uncertainty still available.
-- 32 — CODED — this C2 commit — `jarvis_task_state → advance → planStep` reloads the plan and cursor without conversational memory. `planStep(kind=milestone) → advance → jarvis_complete_milestone` advances only after the current controller's independently observed, exact verifier receipt. A task stays running until a fresh whole-outcome verification passes.
-- 38 — CODED — this C2 commit — `Agent.run → Agent.handle → Journal.start/finish` retains intent-before-effect and immutable receipt recovery (`journal.py`, SQLite WAL + FULL synchronization); `advance → jarvis_complete_milestone` adds durable milestone checkpoints. Take Over/Continue preserve the cursor; old controller proofs are rechecked. Unknown effects anywhere in the task still fence progress. The focused recovery suite remains required.
-- Database boundary: `jarvis_queue_actions` rejects stale milestone proposals and over-budget batches, while preserving controller, grant, STOP and confirmation checks. The milestone plan is immutable once outcome checks are fixed. New functions use SECURITY INVOKER, an empty search path and explicit service-role-only execution; no public table access is widened.
-- Migration and rollback use the CLI-generated filename above. Focused SQL contracts cover missing/false/stale proof, revocation, bounded batches, durable Take Over/resume, final verification and STOP. Existing authority/migration/rollback tests remain mandatory. Advisors run against the disposable runner database only.
-- No runtime or consumer-platform claim is made. The current model service and configured model remain unchanged.
-
-**Resume:** verify this C2 commit's coding gate; fix failures first. When green, continue C3. No final coding-complete declaration has been made.
+**C3 operation offering — CODED, coding gate pending.** `advance → planStep → offeredOperations` sends every built-in operation allowed by current grants and device engines to the existing model service. `planStep` resolves returned names against that same list before queueing. The existing provider test exercises the complete list and refusal of an unoffered operation. The remaining execution ladder and mechanism selection work for 28 and 29 stays in C6/C10.
 
 **Coding batches (order by code dependency; continue past any blocked item):**
 

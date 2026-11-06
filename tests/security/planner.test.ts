@@ -5,9 +5,10 @@
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
 import { test } from "node:test";
-import { intent, type OutcomeCheck } from "../../src/lib/jarvis/contracts.ts";
+import { intent, OPERATIONS, type OutcomeCheck } from "../../src/lib/jarvis/contracts.ts";
 import {
   compileGoal,
+  planStep,
   plannerAccess,
   PlannerUnavailable,
   unseenAddress,
@@ -99,8 +100,12 @@ test("only a complete, matching provider turn may define a goal", async (t) => {
     },
   };
   let frames: unknown[] = [];
+  let offered: string[] = [];
   const server = createServer(async (req, res) => {
-    for await (const chunk of req) void chunk;
+    const body: Buffer[] = [];
+    for await (const chunk of req) body.push(chunk as Buffer);
+    const request = JSON.parse(Buffer.concat(body).toString());
+    offered = request.tools.map((tool: { name: string }) => tool.name);
     res.writeHead(200, { "content-type": "text/event-stream" });
     res.end(frames.map((frame) => `data: ${JSON.stringify(frame)}\r\n\r\n`).join(""));
   });
@@ -154,6 +159,38 @@ test("only a complete, matching provider turn may define a goal", async (t) => {
       await compileGoal("synthetic-user", "Create the requested output", ["files"]),
       [check],
     );
+    const denied = {
+      id: "proposal",
+      name: "web_open",
+      arguments: { url: "https://example.test" },
+    };
+    frames = [
+      { type: "tool_call", call: denied },
+      { ...terminal, response: { ...terminal.response, toolCalls: [denied] } },
+    ];
+    const grants = ["files", "media", "computer_control", "browser"];
+    const decision = await planStep({
+      userId: "synthetic-user",
+      objective: "Create the requested output",
+      checks: [check],
+      steps: [],
+      grants,
+      engines: ["ffmpeg", "office"],
+      turnKey: "operation-offering",
+      now: new Date(),
+    });
+    const expected = Object.entries(OPERATIONS)
+      .filter(
+        ([name, spec]) =>
+          !name.startsWith("verify.") &&
+          !name.startsWith("mcp.") &&
+          grants.includes(spec.capability) &&
+          (!("engine" in spec) || ["ffmpeg", "office"].includes(spec.engine)),
+      )
+      .map(([name]) => name.replace(".", "_"));
+    assert.ok(expected.length > 12, "the old shortlist would omit at least one tool");
+    assert.deepEqual(offered, [...expected, "finish", "ask"]);
+    assert.equal(decision.kind, "block", "a fabricated, unavailable tool must not queue");
   } finally {
     Object.assign(plannerAccess, saved);
     server.closeAllConnections();
