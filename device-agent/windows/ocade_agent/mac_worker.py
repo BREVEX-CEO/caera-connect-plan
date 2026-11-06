@@ -27,6 +27,7 @@ from pathlib import Path
 
 from mcp.server.mcpserver import MCPServer
 
+from . import vision
 from .sandbox import Refused, guarded, mark_effect, preview_jpeg, resolve
 
 _seen: dict = {}  # the last image ui.inspect captured of each leased window
@@ -318,7 +319,7 @@ def ui_inspect(window: dict) -> dict:
         # Controls still work through Accessibility; only the picture needs Screen Recording.
         return {"title": title, "elements": elements, "previewUnavailable": "screen_recording_permission_needed"}
     shot = ImageGrab.grab(bbox=(x, y, x + width, y + height))
-    _seen[json.dumps(window, sort_keys=True)] = shot  # what a later ui.click_point is checked against
+    vision.remember(_seen, json.dumps(window, sort_keys=True), shot)
     return {"title": title, "elements": elements, "preview": preview_jpeg(shot, 30_000)}
 
 
@@ -389,21 +390,19 @@ def ui_click_point(window: dict, x: float, y: float, expectTitle: str) -> dict:
     """Click only a freshly observed point that still belongs to this exact window."""
     import json
 
+    import AppKit  # type: ignore[import-not-found]
     import ApplicationServices as AX  # type: ignore[import-not-found]
     import CoreFoundation as CF  # type: ignore[import-not-found]
     import Quartz  # type: ignore[import-not-found]
     from PIL import ImageGrab
 
-    from . import vision
-
     target, _ = _leased(window)
-    if expectTitle not in str(_attribute(target, "AXTitle") or ""):
+    title = str(_attribute(target, "AXTitle") or "")[:200]
+    if expectTitle not in title:
         raise Refused("unexpected_window")
     if not _screen_capture_allowed():
         raise Refused("screen_recording_permission_needed")
-    seen = _seen.get(json.dumps(window, sort_keys=True))
-    if seen is None:
-        raise Refused("inspect_first")
+    seen = vision.last_observation(_seen, json.dumps(window, sort_keys=True))
     _person_quiet()
     try:
         mark_effect()
@@ -424,14 +423,25 @@ def ui_click_point(window: dict, x: float, y: float, expectTitle: str) -> dict:
         if hit_window is None or not CF.CFEqual(hit_window, target):
             raise Refused("point_obscured")
         _person_quiet()
+        active = AppKit.NSWorkspace.sharedWorkspace().frontmostApplication()
+        if active is None or active.processIdentifier() != window["pid"]:
+            raise Refused("focus_lost")
         for kind in (Quartz.kCGEventLeftMouseDown, Quartz.kCGEventLeftMouseUp):
             Quartz.CGEventPost(Quartz.kCGHIDEventTap,
                                Quartz.CGEventCreateMouseEvent(None, kind, point, Quartz.kCGMouseButtonLeft))
             time.sleep(0.05)
     finally:
         _own_input["at"] = time.monotonic()
-    return {"clicked": [round(point[0]), round(point[1])], "title": str(_attribute(target, "AXTitle") or "")[:200],
-            "confidence": checked["confidence"]}
+    result = {"clicked": [round(point[0]), round(point[1])], "title": title,
+              "confidence": checked["confidence"]}
+    try:
+        after, (ax, ay, aw, ah) = _leased(window)
+        after_image = ImageGrab.grab(bbox=(ax, ay, ax + aw, ay + ah))
+        result["after"] = {"title": str(_attribute(after, "AXTitle") or "")[:200],
+                           "imageChanged": vision.changed(shot, after_image)}
+    except Exception:
+        result["after"] = {"unavailable": True}
+    return result
 
 
 if __name__ == "__main__":

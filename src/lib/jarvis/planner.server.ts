@@ -419,27 +419,47 @@ export function fallbackRoute(steps: Step[]) {
   return { observe: OBSERVE_AGAIN[role], next: NEXT_ROUTE[operation] ?? [] };
 }
 
-/** After a failed step on a window or page, nothing changes it again before a fresh look. */
-export function observedSinceFailure(steps: Step[], operation: Operation) {
+function observedTarget(args: unknown): string | null {
+  const target = args as {
+    page?: { id: string; site: string };
+    window?: { exe: string; hwnd: number; pid: number; started: number };
+  } | null;
+  if (target?.page) return JSON.stringify(["page", target.page.id, target.page.site]);
+  const window = target?.window;
+  return window && typeof window.exe === "string"
+    ? JSON.stringify(["window", window.exe.toLowerCase(), window.hwnd, window.pid, window.started])
+    : null;
+}
+
+/** Require a current observation of the same tab or window before a fallback effect. */
+export function observedSinceFailure(steps: Step[], operation: Operation, args?: unknown) {
   const role = OPERATIONS[operation].role;
   const observe = OBSERVE_AGAIN[role];
   if (!observe) return;
-  let failed = -1;
-  steps.forEach((step, index) => {
-    if (OPERATIONS[step.intent.operation as Operation]?.role === role && mechanismFailed(step))
-      failed = index;
-  });
-  if (failed < 0) return;
-  const looked = steps
-    .slice(failed + 1)
-    .some((step) => step.intent.operation === observe && step.status === "done");
-  if (!looked) {
-    const next = NEXT_ROUTE[steps[failed].intent.operation as Operation] ?? [];
-    throw new Error(
-      `${steps[failed].intent.operation} did not work: look again with ${observe} first` +
-        (next.length ? `, then try ${next.join(" or ")}` : ""),
-    );
+  const target = observedTarget(args);
+  const history = steps.filter(
+    (step) =>
+      OPERATIONS[step.intent.operation as Operation]?.role === role &&
+      (target === null || observedTarget(step.intent.arguments) === target),
+  );
+  const observed = (step: Step | undefined) =>
+    step?.intent.operation === observe &&
+    step.status === "done" &&
+    step.receipt?.status === "observed" &&
+    !step.receipt.errorCode;
+  if (operation === "ui.click_point") {
+    const latest = history.at(-1);
+    if (!target || !observed(latest) || !latest?.receipt?.preview) {
+      throw new Error("inspect the exact window and use its latest image before a pointer click");
+    }
   }
+  const failed = history.map(mechanismFailed).lastIndexOf(true);
+  if (failed < 0 || history.slice(failed + 1).some(observed)) return;
+  const next = NEXT_ROUTE[history[failed].intent.operation as Operation] ?? [];
+  throw new Error(
+    `${history[failed].intent.operation} did not work: look again with ${observe} first` +
+      (next.length ? `, then try ${next.join(" or ")}` : ""),
+  );
 }
 
 /** No progress: the same step (or the same run of up to three steps) three times in a row, or too many refused steps. */
@@ -717,11 +737,29 @@ async function callPlanner(input: {
 const toolName = (operation: string) => operation.replace(".", "_");
 
 /** Fix the outcome before anything runs: typed checks the separate verifier can evaluate. */
-/** A path the request itself names (whole or by file name), compared without case. */
+/** Conservative case folding also protects the same check on case-insensitive workspaces. */
+function workspacePathKey(path: string): string {
+  return path
+    .normalize("NFC")
+    .split(/[\\/]+/)
+    .filter((part) => part && part !== ".")
+    .join("/")
+    .toLowerCase();
+}
+
+/** Match a full relative path or a standalone filename, never a prefix of another name. */
 export function requestNamed(path: string, objective: string): boolean {
-  const text = objective.toLowerCase();
-  const wanted = path.toLowerCase().replace(/\\/g, "/");
-  return text.includes(wanted) || text.includes(wanted.split("/").at(-1)!);
+  const text = objective.normalize("NFC").toLowerCase().replace(/\\/g, "/");
+  const wanted = workspacePathKey(path);
+  const names = [wanted, wanted.split("/").at(-1) ?? ""];
+  return names.some((name) => {
+    if (!name) return false;
+    const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const boundary = "[^\\p{L}\\p{N}._/+-]";
+    const before = "(?:^|" + boundary + ")(?:\\./)*";
+    const after = "(?:$|" + boundary + "|\\.(?=$|\\s))";
+    return new RegExp(before + escaped + after, "u").test(text);
+  });
 }
 
 const OUTPUT_FOLDER = "OCADE output/";
@@ -1214,18 +1252,29 @@ export async function planStep(input: {
       unseenAddress((args as { url?: unknown })?.url, input.objective, steps);
     if (OPERATIONS[operation].risk !== "read") {
       observedSinceTakeOver(steps);
-      observedSinceFailure(steps, operation);
+      observedSinceFailure(steps, operation, args);
       // Never make a check pass by changing what it reads: only a new output or a file the
       // request itself names may be changed when a check reads it.
-      const changed = Object.values(args as Record<string, unknown>).filter(
-        (value): value is string => typeof value === "string",
-      );
+      const fields = args as Record<string, unknown>;
+      const changed = Object.entries(fields).flatMap(([name, value]) => {
+        if (typeof value !== "string") return [];
+        if (operation === "fs.manage" && fields.action === "copy" && name === "path") return [];
+        return [workspacePathKey(value)];
+      });
+      const movedFolder =
+        operation === "fs.manage" &&
+        ["move", "trash"].includes(String(fields.action)) &&
+        typeof fields.path === "string"
+          ? workspacePathKey(fields.path)
+          : null;
       for (const check of allChecks) {
         const path = check.params?.path;
+        if (!path) continue;
+        const source = workspacePathKey(path);
         if (
-          path &&
-          changed.includes(path) &&
-          !path.startsWith(OUTPUT_FOLDER) &&
+          (changed.includes(source) ||
+            (movedFolder !== null && source.startsWith(movedFolder + "/"))) &&
+          !source.startsWith(workspacePathKey(OUTPUT_FOLDER) + "/") &&
           !requestChanges(path, input.objective)
         )
           throw new Error(

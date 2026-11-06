@@ -94,6 +94,63 @@ test("mutations require fresh planning; unknown effects fence resumption", async
       assert.equal((await planStep({ ...base, steps: [uncertain] })).kind, "block");
       assert.equal(calls, before, "no provider call may spend quota or authorize a retry");
     });
+    await t.test("a pointer fallback requires the latest image of its exact window", async () => {
+      const window = { exe: "fixture.exe", hwnd: 11, pid: 24, started: 30 };
+      const other = { ...window, hwnd: 12 };
+      const inspect = (target: typeof window, image = true): Step => ({
+        intent: intent("ui.inspect", "inspect", { window: target }, deadline),
+        status: "done",
+        receipt: {
+          status: "observed",
+          maybeChanged: false,
+          observedAtUtc: now.toISOString(),
+          evidence: {},
+          ...(image ? { preview: "dGVzdA==" } : {}),
+        },
+      });
+      proposals = [
+        {
+          name: "ui_click_point",
+          arguments: { window, x: 0.5, y: 0.5, expectTitle: "Fixture" },
+        },
+      ];
+      const desktop = {
+        ...base,
+        grants: ["files", "computer_control", "app:fixture.exe"],
+        engines: ["desktop"],
+      };
+      assert.equal((await planStep({ ...desktop, steps: [inspect(other)] })).kind, "block");
+      assert.equal((await planStep({ ...desktop, steps: [inspect(window, false)] })).kind, "block");
+      assert.equal((await planStep({ ...desktop, steps: [inspect(window)] })).kind, "queue");
+    });
+    await t.test(
+      "case, slash aliases and parent moves cannot change an unrequested check source",
+      async () => {
+        const source = "source/quarterly.txt";
+        const input = {
+          ...base,
+          objective: "Copy the data into the requested output and repair quarterly.txt.bak",
+          checks: [
+            {
+              id: "source",
+              description: "Source stays readable",
+              kind: "file_exists" as const,
+              params: { path: source },
+            },
+          ],
+          steps: [],
+        };
+        for (const args of [
+          { action: "trash", path: ".\\SOURCE\\QUARTERLY.txt" },
+          { action: "move", path: "./SOURCE", to: "archive" },
+        ]) {
+          proposals = [{ name: "fs_manage", arguments: args }];
+          assert.equal((await planStep(input)).kind, "block");
+        }
+        proposals = [{ name: "fs_manage", arguments: { action: "copy", path: source, to: output } }];
+        assert.equal((await planStep(input)).kind, "queue");
+      },
+    );
     await t.test("a failed read remains recoverable", async () => {
       const step: Step = {
         ...uncertain,

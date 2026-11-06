@@ -45,6 +45,7 @@ jobs:
       PGUSER: postgres
       PGPASSWORD: jarvis_disposable_ci_only
       OCADE_DB_ADVISORS: "1"
+      CODING_BASE_SHA: 14128741d6bf588e47676d4208b5e320bcc14109
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
@@ -153,6 +154,24 @@ jobs:
         if: success() || failure()
         working-directory: device-agent/windows
         run: python -m tests.run_required --tests tests.test_required_runner --tests tests.test_effect_scope --tests tests.test_agent_recovery --tests tests.test_jobs --tests tests.test_verify_kinds --tests tests.test_gateway --tests tests.test_web.BrowserUnavailable --tests tests.test_web.BrowserObservationContract --tests tests.test_windows_ui.EnvironmentContract --tests tests.test_windows_ui.DesktopTargetContract --tests tests.test_mac_ui.AxEventContract --tests tests.test_media.Media.test_image_facts --tests tests.test_media.Media.test_video_inspect_trim_and_verify --tests tests.test_media.Media.test_timeline_edit_is_exact_and_independently_measured
+      - name: Check visual target boundaries when the desktop bridge changes
+        if: success() || failure()
+        run: |
+          status=0
+          git diff --quiet "${CODING_BASE_SHA:-HEAD^}" HEAD -- device-agent/windows/ocade_agent/vision.py device-agent/windows/ocade_agent/windows_worker.py device-agent/windows/ocade_agent/mac_worker.py device-agent/windows/tests/test_vision.py || status=$?
+          case "$status" in
+            0) exit 0 ;;
+            1) ;;
+            *) exit "$status" ;;
+          esac
+          cd device-agent/windows
+          python -m tests.run_required \
+            --tests tests.test_vision.TargetCheck.test_unchanged_target_is_clicked_where_it_was_seen \
+            --tests tests.test_vision.TargetCheck.test_an_overlay_or_resize_is_refused \
+            --tests tests.test_vision.TargetCheck.test_two_equivalent_moved_patches_are_not_interchangeable \
+            --tests tests.test_vision.TargetCheck.test_a_moved_target_still_has_a_unique_match \
+            --tests tests.test_vision.TargetCheck.test_observations_expire_and_cannot_grow_without_bound
+
       - name: Render local verifier fixtures when its transport changes
         if: success() || failure()
         run: |

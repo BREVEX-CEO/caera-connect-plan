@@ -24,7 +24,7 @@ import time
 
 from mcp.server.mcpserver import MCPServer
 
-from . import discovery
+from . import discovery, vision
 from .sandbox import Refused, guarded, mark_effect, preview_jpeg, resolve
 
 _seen: dict = {}  # the last image ui.inspect captured of each leased window
@@ -222,7 +222,7 @@ def ui_inspect(window: dict) -> dict:
         if len(json.dumps(elements)) > 13_000:  # the gateway refuses evidence over 16 KB
             break
     shot = ImageGrab.grab(bbox=(left, top, right, bottom), all_screens=True)
-    _seen[json.dumps(window, sort_keys=True)] = shot  # what a later ui.click_point is checked against
+    vision.remember(_seen, json.dumps(window, sort_keys=True), shot)
     return {"title": target.window_text()[:200], "elements": elements, "preview": preview_jpeg(shot, 30_000)}
 
 
@@ -324,37 +324,50 @@ def ui_click_point(window: dict, x: float, y: float, expectTitle: str) -> dict:
     import win32gui  # type: ignore[import-not-found]
     from PIL import ImageGrab
 
-    from . import vision
-
     pyautogui.FAILSAFE = True
     pyautogui.failSafeCheck()
     target = _leased(window)
-    if expectTitle not in target.window_text():
+    title = target.window_text()[:200]
+    if expectTitle not in title:
         raise Refused("unexpected_window")
-    seen = _seen.get(json.dumps(window, sort_keys=True))
-    if seen is None:
-        raise Refused("inspect_first")
+    seen = vision.last_observation(_seen, json.dumps(window, sort_keys=True))
     hwnd = window["hwnd"]
+    left, top, right, bottom = win32gui.GetWindowRect(hwnd)
+    if seen.size != (right - left, bottom - top):
+        raise Refused("window_resized")
     _person_quiet()
     try:
-        mark_effect()
-        target.set_focus()
+        if win32gui.GetForegroundWindow() != hwnd:
+            mark_effect()
+            target.set_focus()
         if win32gui.GetForegroundWindow() != hwnd:
             raise Refused("focus_lost")
         target = _leased(window)
         rect = win32gui.GetWindowRect(hwnd)
-        checked = vision.match(seen, ImageGrab.grab(bbox=rect, all_screens=True), x, y)
+        fresh = ImageGrab.grab(bbox=rect, all_screens=True)
+        checked = vision.match(seen, fresh, x, y)
         if "reason" in checked:
             raise Refused(checked["reason"])
         if win32gui.GetWindowRect(hwnd) != rect or win32gui.GetForegroundWindow() != hwnd:
             raise Refused("window_changed")
         point = _window_point(rect, checked["x"], checked["y"])
-        _check_point(hwnd, point, win32api, win32gui)
         _person_quiet()
+        if win32gui.GetWindowRect(hwnd) != rect or win32gui.GetForegroundWindow() != hwnd:
+            raise Refused("window_changed")
+        _check_point(hwnd, point, win32api, win32gui)
+        mark_effect()
         pyautogui.click(*point)
     finally:
         _own_input["at"] = time.monotonic()
-    return {"clicked": list(point), "title": target.window_text()[:200], "confidence": checked["confidence"]}
+    result = {"clicked": list(point), "title": title, "confidence": checked["confidence"]}
+    try:
+        after = _leased(window)
+        after_rect = win32gui.GetWindowRect(hwnd)
+        after_image = ImageGrab.grab(bbox=after_rect, all_screens=True)
+        result["after"] = {"title": after.window_text()[:200], "imageChanged": vision.changed(fresh, after_image)}
+    except Exception:
+        result["after"] = {"unavailable": True}
+    return result
 
 
 if __name__ == "__main__":
