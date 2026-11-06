@@ -1512,7 +1512,7 @@
             "minLength": 1,
             "maxLength": 260,
             "pattern": "^OCADE output\\/",
-            "description": "Optional standalone glTF 2.0 mesh, .gltf"
+            "description": "Optional standalone glTF 2.0 mesh, .gltf: a new path that starts with 'OCADE output/', e.g. 'OCADE output/result.ext'"
           }
         },
         "required": [
