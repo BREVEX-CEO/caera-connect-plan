@@ -1021,14 +1021,17 @@ test(
       assert.ok(code, enrolled.out);
       const deviceId = await approveDevice(admin, userA, code);
       const sessionId = crypto.randomUUID();
+      const sessionConversationId = crypto.randomUUID();
       sql(
         `INSERT INTO auth.sessions (id, user_id) VALUES ('${sessionId}', '${userA}');
+         INSERT INTO public.ocade_conversations (id, user_id, title, surface)
+         VALUES ('${sessionConversationId}', '${userA}', 'Session fixture', 'jarvis');
          INSERT INTO public.jarvis_permissions (user_id, device_id, capability, allowed)
          VALUES ('${userA}', '${deviceId}', 'files', true);`,
         "postgres",
       );
       const { taskId } = await startTask(admin, userA, {
-        conversationId: conversation2,
+        conversationId: sessionConversationId,
         deviceId,
         objective: "Read the authorized workspace for the disposable session fixture",
         sessionId,
@@ -1040,7 +1043,10 @@ test(
       const view = await taskView(admin, userA, taskId);
       assert.equal(view.status, "stopped");
       assert.equal(view.timing.modelCalls, 0);
-      assert.deepEqual(view.steps.map((step) => step.disposition), ["cancelled"]);
+      assert.deepEqual(
+        view.steps.map((step) => step.disposition),
+        ["cancelled"],
+      );
     } finally {
       agentHome = savedHome;
     }

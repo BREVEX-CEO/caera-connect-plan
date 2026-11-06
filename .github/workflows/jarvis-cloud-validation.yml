@@ -45,7 +45,6 @@ jobs:
       PGUSER: postgres
       PGPASSWORD: jarvis_disposable_ci_only
       OCADE_DB_ADVISORS: "1"
-      OCADE_GENERATE_JARVIS_TYPES: "1"
       CODING_BASE_SHA: a7c93e1e2099a4267df77c33502aa1ecce72c18a
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -81,15 +80,23 @@ jobs:
           python -m pip install reportlab==4.5.1
           apt_options=(-o Acquire::Retries=1 -o Acquire::http::Timeout=15 -o Acquire::https::Timeout=15)
           packages=(postgresql-client libreoffice-calc libreoffice-writer ffmpeg glslang-tools)
-          if ! sudo timeout --kill-after=5s 75s env DEBIAN_FRONTEND=noninteractive apt-get "${apt_options[@]}" install -y -qq "${packages[@]}"; then
-            ubuntu_sources=/etc/apt/sources.list.d/ubuntu.sources
-            if [[ ! -r "$ubuntu_sources" ]]; then ubuntu_sources=/etc/apt/sources.list; fi
-            test -r "$ubuntu_sources"
+          if ! sudo timeout --kill-after=5s 40s env DEBIAN_FRONTEND=noninteractive apt-get "${apt_options[@]}" install -y "${packages[@]}"; then
+            . /etc/os-release
+            test "$ID" = ubuntu
+            ubuntu_sources="$RUNNER_TEMP/ocade-ubuntu.sources"
+            cat > "$ubuntu_sources" <<EOF
+          Types: deb
+          URIs: https://archive.ubuntu.com/ubuntu/
+          Suites: $VERSION_CODENAME $VERSION_CODENAME-updates $VERSION_CODENAME-security
+          Components: main restricted universe multiverse
+          Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
+          EOF
             apt_options+=(-o "Dir::Etc::sourcelist=$ubuntu_sources" -o Dir::Etc::sourceparts=-)
-            sudo timeout --kill-after=5s 75s apt-get "${apt_options[@]}" update -qq
-            sudo timeout --kill-after=5s 75s env DEBIAN_FRONTEND=noninteractive apt-get "${apt_options[@]}" install -y -qq "${packages[@]}"
+            sudo timeout --kill-after=5s 90s apt-get "${apt_options[@]}" update --error-on=any
+            sudo timeout --kill-after=5s 120s env DEBIAN_FRONTEND=noninteractive apt-get "${apt_options[@]}" install -y "${packages[@]}"
           fi
       - name: Source formatting
+        if: success() || failure()
         run: npm run format:check
       - name: TypeScript compilation
         if: success() || failure()

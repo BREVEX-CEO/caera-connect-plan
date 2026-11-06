@@ -1872,7 +1872,7 @@ export type Database = {
         Returns: string
       }
       jarvis_resume_task: {
-        Args: { p_task: string; p_user: string }
+        Args: { p_session?: string; p_task: string; p_user: string }
         Returns: string
       }
       jarvis_device_inventory: {
@@ -1943,6 +1943,7 @@ export type Database = {
           p_device: string
           p_outcome: Json
           p_plan: Json
+          p_session?: string
           p_title: string
           p_user: string
         }
