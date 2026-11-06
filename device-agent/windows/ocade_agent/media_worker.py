@@ -638,16 +638,20 @@ def _otio(name: str, clips: list[dict], titles: list[dict], audio: list[dict], f
 
 @app.tool()
 @_evidence
-async def scene_render(scene: dict, output: str, project: str) -> dict:
-    """Render a typed 3D scene to a PNG and save the scene itself as the editable project."""
-    return await _scene_render(scene, output, project)
+async def scene_render(scene: dict, output: str, project: str, interchange: str | None = None) -> dict:
+    """Save the editable scene, render a PNG and optionally export a self-contained glTF mesh."""
+    return await _scene_render(scene, output, project, interchange)
 
 
-async def _scene_render(scene: dict, output: str, project: str) -> dict:
+async def _scene_render(scene: dict, output: str, project: str, interchange: str | None = None) -> dict:
     image_target = output_path(WORKSPACE, output)
     project_target = output_path(WORKSPACE, project)
-    if image_target == project_target:
+    mesh_target = output_path(WORKSPACE, interchange) if interchange is not None else None
+    targets = [image_target, project_target] + ([mesh_target] if mesh_target else [])
+    if len(set(targets)) != len(targets):
         raise Refused("output_path_conflict")
+    if mesh_target and mesh_target.suffix.lower() != ".gltf":
+        raise Refused("gltf_output_only")
     if image_target.suffix.lower() != ".png":
         raise Refused("png_output_only")
     width, height = scene["render"]["width"], scene["render"]["height"]
@@ -656,9 +660,14 @@ async def _scene_render(scene: dict, output: str, project: str) -> dict:
     except (KeyError, ValueError):
         raise Refused("invalid_scene")
     try:
-        renderer, image = await scene_gl.render(scene, width, height)
+        if mesh_target:
+            renderer, image, mesh = await scene_gl.render(scene, width, height, interchange=True)
+        else:
+            renderer, image = await scene_gl.render(scene, width, height)
+    except ValueError:
+        raise Refused("scene_interchange_unavailable" if mesh_target else "invalid_scene") from None
     except Exception:
-        raise Refused("no_3d_engine")
+        raise Refused("no_3d_engine") from None
     text = json.dumps(scene, indent=2, sort_keys=True)
     project_sha = write_atomically(project_target, lambda temporary: temporary.write_text(text, encoding="utf-8"))
     from PIL.PngImagePlugin import PngInfo
@@ -668,8 +677,14 @@ async def _scene_render(scene: dict, output: str, project: str) -> dict:
     info.add_text("ocade:project", project)
     info.add_text("ocade:project-sha256", project_sha)
     image_sha = write_atomically(image_target, lambda temporary: image.save(temporary, "PNG", pnginfo=info))
+    hashes = {"image": image_sha, "project": project_sha}
+    if mesh_target:
+        mesh["extras"] = {"sourceProject": project, "sourceProjectSha256": project_sha}
+        hashes["interchange"] = write_atomically(
+            mesh_target, lambda temporary: temporary.write_text(json.dumps(mesh, separators=(",", ":")), encoding="utf8"),
+        )
     shapes = sum(len(part["shapes"]) for part in scene["parts"])
-    return {"sha256": {"image": image_sha, "project": project_sha}, "engine": scene_gl.ENGINE,
+    return {"sha256": hashes, "engine": scene_gl.ENGINE,
             "renderer": str(renderer)[:120], "width": width, "height": height, "parts": len(scene["parts"]),
             "shapes": shapes, "materials": len(scene["materials"]), "samples": scene["render"].get("samples", 4)}
 

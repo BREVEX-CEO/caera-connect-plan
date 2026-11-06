@@ -1652,7 +1652,7 @@ Coding status is kept separate from runtime verification (Appendix A), so nothin
 | 128 | CODE | NOT CODED | C6 |
 | 129 | CODE | NOT CODED | C6 |
 | 130 | CODE | NOT CODED | C6 |
-| 131 | CODE | NOT CODED | C6 |
+| 131 | CODE | BUILDS | C6, `5fdfcb11` |
 | 132 | CODE | NOT CODED | C6 |
 | 133 | QUALIFICATION-ONLY | QUALIFICATION-ONLY; harness NOT CODED | RPC; harness audit in C10, owner-directed run deferred |
 | 134 | CODE | NOT CODED | C6 |
@@ -1807,7 +1807,14 @@ The existing `tests.run_required.main` loads selected modules/classes/methods or
 - 189 — BUILDS — Normal companion work and activation use `companion_lock`. `_no_active_jobs` also fences a detached or unresolved tracked job. The Windows installer checks the companion mutex and cannot automatically restart the companion. Worker binaries remain in their own release directory throughout activation.
 - 185, 187 and 190 remain NOT CODED pending reproducible bundle, upgrade/repair/uninstall and clean-machine harness coverage. Production update signing and native installer qualification require the later owner-directed stage.
 
-**C6 desktop and browser repair — CODED for this slice, coding gate pending.** `discovery.installed_apps/window_identity → windows_worker.apps_list/apps_launch/_leased` binds packaged Windows apps to native shell IDs, not shared window titles. `ui_click_point` on both desktops checks fresh geometry and window ownership before input. macOS `ui_invoke/ui_set_value → _ax_change_events` listens for native action notifications on the current run loop. `web_open → _context` recovers a closed browser context. `_observe → _one` binds open shadow-root controls to actual elements in one tab, and the bound opener records late popup events. Focused synthetic contracts cover these boundaries. Native and full browser ladder qualification are deferred.
+**C6 desktop and browser repair — BUILDS for this slice at `5fdfcb11e5d8ee3860147380799bceeef3e4c0bd`.** [GitHub Actions run 42224056912](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/42224056912) passed the coding gate, 138 TypeScript tests and 101 focused Python tests.
+
+- 131 — BUILDS — `Gateway → mac_worker.ui_invoke/ui_set_value → _ax_change_events` uses native AX actions, value readback and actual observer notifications. Accessibility checks precede leased access. The focused run loop fixture verifies registration, delivery and removal.
+- `discovery.installed_apps/window_identity → windows_worker.apps_list/apps_launch/_leased` binds packaged Windows apps to native shell identities. Windows and macOS `ui_click_point` rechecks exact geometry and hit ownership before input. The synthetic contracts cover negative monitor origins, overlay refusal and stable packaged identity. Native desktop cases still require qualification.
+- `web_open → _context` recovers a closed browser context. `_observe → _one` binds shadow-root controls to actual elements in a single tab. The bound opener records late popup events, and `web_close` checks the stored site. Tests cover detached handles, wrong tabs and off-site popup closure.
+- 58, 59, 62, 76, 122–130, 132, 134–135, 138–140 and 142–144 remain NOT CODED for remaining native safety, diagnostics, browser security or qualification-harness work. This coding run did not execute a desktop or browser ladder.
+
+**C7 deliverable repair — CODED for this slice, coding gate pending.** `scene.render → media_worker._scene_render → scene_gl.render/_sample_gltf` samples the same signed-distance map as the render and saves a standalone glTF beside the editable source project and PNG. `verify.checks(file_parses) → _gltf_mesh` independently reads real position and normal buffers and checks triangle structure and declared bounds. `taskView` lists the sidecar only after receiving its saved hash. Older companion inventories cannot be offered the new export field. The verifier also checks the actual decode result for video, reopens saved workbook formula and result independently, and refuses to rerun from a workspace with links. Complete format, output semantics and OS sandbox requirements remain tracked individually.
 
 **Coding batches (order by code dependency; continue past any blocked item):**
 

@@ -1132,7 +1132,12 @@ export async function planStep(input: {
     ...operations.map((name) => ({
       name: toolName(name),
       description: `${OPERATIONS[name].summary} (${OPERATIONS[name].risk})`,
-      parameters: z.toJSONSchema(OPERATIONS[name].arguments, { io: "input" }),
+      parameters: z.toJSONSchema(
+        name === "scene.render" && !input.engines?.includes("gltf")
+          ? OPERATIONS["scene.render"].arguments.omit({ interchange: true })
+          : OPERATIONS[name].arguments,
+        { io: "input" },
+      ),
     })),
     {
       name: "finish",
@@ -1181,6 +1186,13 @@ export async function planStep(input: {
           "installation needs remaining steps for independent verification and outcome proof",
         );
       }
+    }
+    if (
+      operation === "scene.render" &&
+      (args as { interchange?: unknown })?.interchange !== undefined &&
+      !input.engines?.includes("gltf")
+    ) {
+      throw new Error("this companion needs an update to export glTF");
     }
     if (operation === "web.open")
       unseenAddress((args as { url?: unknown })?.url, input.objective, steps);

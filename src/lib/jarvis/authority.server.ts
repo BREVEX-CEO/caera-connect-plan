@@ -590,7 +590,13 @@ export async function taskView(admin: Admin, userId: string, taskId: string) {
     artifacts: task.steps.flatMap((step) => {
       const parsed = actionIntent.safeParse(step.intent);
       if (step.status !== "done" || !parsed.success || parsed.data.risk === "read") return [];
-      return ["output", "docx", "pdf", "path"]
+      const stored = step.receipt as { evidence?: { sha256?: Record<string, unknown> } } | null;
+      const hashes = stored?.evidence?.sha256;
+      const names = ["output", "docx", "pdf", "path"];
+      for (const name of ["project", "interchange"]) {
+        if (typeof hashes?.[name] === "string") names.push(name);
+      }
+      return names
         .map((name) => parsed.data.arguments[name])
         .filter((value): value is string => typeof value === "string");
     }),

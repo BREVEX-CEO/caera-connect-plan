@@ -21,7 +21,7 @@ export const PROTOCOL_VERSION = 1;
 const RISKS = ["read", "reversible_write", "external_effect"] as const;
 
 /** Shared programs an operation needs on the computer; the device reports which it has. */
-export const ENGINES = ["ffmpeg", "browser", "office", "desktop", "dependencies"] as const;
+export const ENGINES = ["ffmpeg", "browser", "office", "desktop", "dependencies", "gltf"] as const;
 
 /** Paths are relative to a workspace folder the person chose on the device itself. */
 const workspacePath = z
@@ -659,6 +659,7 @@ export const OPERATIONS = {
       scene,
       output: outputPath("The rendered still, .png"),
       project: outputPath("Where to save the editable scene file, e.g. .ocade-scene.json"),
+      interchange: outputPath("Optional standalone glTF 2.0 mesh, .gltf").optional(),
     }),
   },
   "office.inspect_workbook": {

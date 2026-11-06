@@ -190,6 +190,8 @@ def _parses(path: Path, notes: dict) -> bool | None:
     import xml.etree.ElementTree as ElementTree
 
     suffix = path.suffix.lower()
+    if suffix == ".gltf":
+        return _gltf_mesh(path, notes)
     if suffix in (".zip", ".docx", ".xlsx", ".pptx"):
         valid = _zip_integrity(path, notes)
         if valid is not True or suffix == ".zip":
@@ -223,6 +225,90 @@ def _parses(path: Path, notes: dict) -> bool | None:
         notes["error"] = "rows have different numbers of fields"
         return False
     return True
+
+
+def _gltf_mesh(path: Path, notes: dict) -> bool | None:
+    """Validate actual standalone triangle data rather than accepting its JSON header."""
+    import base64
+    import binascii
+    import math
+    import struct
+
+    if path.stat().st_size > 20_000_000:
+        notes["error"] = "mesh exceeds the verification byte budget"
+        return None
+    try:
+        document = json.loads(path.read_bytes())
+        if document["asset"]["version"] != "2.0":
+            return False
+        buffers = document["buffers"]
+        uri = buffers[0]["uri"]
+        prefix = "data:application/octet-stream;base64,"
+        if len(buffers) != 1 or not uri.startswith(prefix):
+            notes["error"] = "only a standalone embedded glTF mesh can be checked"
+            return None
+        data = base64.b64decode(uri[len(prefix):], validate=True)
+        if buffers[0]["byteLength"] != len(data):
+            return False
+
+        def lookup(sequence, index):
+            if type(index) is not int or not 0 <= index < len(sequence):
+                raise ValueError("invalid glTF index")
+            return sequence[index]
+
+        def vertices(index, bounds=False):
+            accessor = lookup(document["accessors"], index)
+            view = lookup(document["bufferViews"], accessor["bufferView"])
+            count = accessor["count"]
+            if (accessor["componentType"] != 5126 or accessor["type"] != "VEC3" or
+                    type(count) is not int or count < 3 or count > 480_000 or view["buffer"] != 0 or
+                    "sparse" in accessor or view.get("byteStride", 12) != 12):
+                raise ValueError("unsupported glTF vertex data")
+            base = view.get("byteOffset", 0)
+            relative = accessor.get("byteOffset", 0)
+            offset = base + relative
+            length = count * 12
+            if min(base, relative) < 0 or offset % 4 or relative + length > view["byteLength"] or offset + length > len(data):
+                raise ValueError("glTF vertex buffer is truncated")
+            points = list(struct.iter_unpack("<3f", memoryview(data)[offset:offset + length]))
+            if any(not math.isfinite(value) for point in points for value in point):
+                raise ValueError("glTF vertex is non-finite")
+            if bounds and (accessor.get("min") != [min(point[i] for point in points) for i in range(3)] or
+                           accessor.get("max") != [max(point[i] for point in points) for i in range(3)]):
+                raise ValueError("glTF vertex bounds do not match the bytes")
+            return points
+
+        selected = lookup(document["scenes"], document.get("scene", 0))
+        triangles = 0
+        for node in selected["nodes"]:
+            mesh = lookup(document["meshes"], lookup(document["nodes"], node)["mesh"])
+            for primitive in mesh["primitives"]:
+                if primitive.get("mode", 4) != 4 or "indices" in primitive:
+                    notes["error"] = "only standalone non-indexed triangle meshes can be checked"
+                    return None
+                if "material" in primitive:
+                    lookup(document["materials"], primitive["material"])
+                positions = vertices(primitive["attributes"]["POSITION"], bounds=True)
+                normals = vertices(primitive["attributes"]["NORMAL"])
+                if len(positions) != len(normals) or len(positions) % 3:
+                    return False
+                if any(abs(math.hypot(*normal) - 1) > 0.001 for normal in normals):
+                    return False
+                for idx in range(0, len(positions), 3):
+                    a, b, c = positions[idx:idx + 3]
+                    u = [y - x for x, y in zip(a, b)]
+                    v = [y - x for x, y in zip(a, c)]
+                    area = math.hypot(u[1]*v[2]-u[2]*v[1], u[2]*v[0]-u[0]*v[2], u[0]*v[1]-u[1]*v[0])
+                    if not area:
+                        return False
+                triangles += len(positions) // 3
+                if triangles > 160_000:
+                    return None
+        notes["triangles"] = triangles
+        return triangles > 0
+    except (OSError, ValueError, TypeError, KeyError, IndexError, binascii.Error, struct.error) as error:
+        notes["error"] = f"Invalid glTF mesh: {type(error).__name__}"
+        return False
 
 
 def _zip_integrity(path: Path, notes: dict) -> bool | None:
@@ -373,8 +459,15 @@ def _script_runnable(path: Path, notes: dict) -> bool | None:
 def _workbook_formula(path: Path, params: dict, notes: dict) -> bool:
     """The cell holds a formula (the workbook stays editable), and its saved result is the value."""
     try:
-        formula = openpyxl.load_workbook(path)[params["sheet"]][params["cell"]].value
-        result = openpyxl.load_workbook(path, data_only=True)[params["sheet"]][params["cell"]].value
+        def saved_value(data_only):
+            book = openpyxl.load_workbook(path, data_only=data_only, read_only=True, keep_links=False)
+            try:
+                return book[params["sheet"]][params["cell"]].value
+            finally:
+                book.close()
+
+        formula = saved_value(False)
+        result = saved_value(True)
     except Exception:
         return False
     if not (isinstance(formula, str) and formula.startswith("=")):
@@ -421,13 +514,21 @@ def _command_succeeds(command, text, notes: dict) -> bool | None:
     if not isinstance(command, str) or not command.strip():
         return False
     root = Path(os.path.realpath(WORKSPACE))
-    size = sum(p.stat().st_size for p in root.rglob("*") if p.is_file() and not p.is_symlink())
+    paths = list(root.rglob("*"))
+    if any(path.is_symlink() or (hasattr(path, "is_junction") and path.is_junction()) for path in paths):
+        notes["error"] = "workspace links need independent review before a re-run"
+        return None
+    size = sum(p.stat().st_size for p in paths if p.is_file())
     if size > COPY_LIMIT:
         notes["error"] = "workspace too large to copy for a re-run"
         return None
     with tempfile.TemporaryDirectory(prefix="ocade-verify-") as scratch:
         copy = Path(scratch) / "workspace"
-        shutil.copytree(root, copy, symlinks=True)  # links are copied as links, never followed
+        shutil.copytree(root, copy, symlinks=True)
+        if any(path.is_symlink() or (hasattr(path, "is_junction") and path.is_junction())
+               for path in copy.rglob("*")):
+            notes["error"] = "workspace links changed during staging"
+            return None
         argv = shell_argv(command, None)
         process = subprocess.Popen(argv, cwd=copy, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
                                    stderr=subprocess.STDOUT, start_new_session=sys.platform != "win32",
@@ -444,9 +545,11 @@ def _command_succeeds(command, text, notes: dict) -> bool | None:
             return False
     printed = output.decode("utf-8", "replace")
     notes["exitCode"] = process.returncode
-    notes["outputTail"] = printed[-300:]
     wanted = " ".join(str(text or "").split()).casefold()
-    return process.returncode == 0 and wanted in " ".join(printed.split()).casefold()
+    matches = wanted in " ".join(printed.split()).casefold()
+    if wanted:
+        notes["expectedOutputObserved"] = matches
+    return process.returncode == 0 and matches
 
 
 def _local_service(port, text, notes: dict) -> bool:
@@ -517,12 +620,16 @@ def _media_quality(path: Path, params: dict, notes: dict) -> bool | None:
         return False
     if video.get("width", 0) < params.get("width", 0) or video.get("height", 0) < params.get("height", 0):
         return False
-    log = subprocess.run(
-        [ffmpeg, "-hide_banner", "-nostats", *MEDIA_INPUT_OPTIONS, "-i", str(path), "-filter_complex",
+    decoded = subprocess.run(
+        [ffmpeg, "-hide_banner", "-nostats", "-xerror", *MEDIA_INPUT_OPTIONS, "-i", str(path), "-filter_complex",
          "[0:v]blackdetect=d=1:pix_th=0.06[v];[0:a]ebur128=peak=true,silencedetect=n=-50dB:d=1.5[a]",
          "-map", "[v]", "-map", "[a]", "-f", "null", "-"],
         capture_output=True, text=True, timeout=1800,
-    ).stderr
+    )
+    if decoded.returncode != 0:
+        notes["error"] = "the saved video did not decode to its end"
+        return False
+    log = decoded.stderr
     integrated = re.findall(r"I:\s+(-?[0-9.]+) LUFS", log)
     peak = re.findall(r"Peak:\s+(-?[0-9.]+) dBFS", log)
     black = [(float(a), float(b)) for a, b in re.findall(r"black_start:([0-9.]+) black_end:([0-9.]+)", log)]

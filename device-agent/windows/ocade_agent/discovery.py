@@ -33,7 +33,7 @@ def engines() -> list[str]:
     edge = Path(os.environ.get("PROGRAMFILES(X86)", r"C:\Program Files (x86)")) / "Microsoft/Edge/Application/msedge.exe"
     if (os.environ.get("OCADE_BROWSER_EXECUTABLE") or any(browsers.glob("chromium*"))
             or (sys.platform == "win32" and edge.exists())):
-        found.append("browser")
+        found.extend(("browser", "gltf"))
     if engine.office_available():
         found.append("office")
     if sys.platform == "win32":  # UI Automation

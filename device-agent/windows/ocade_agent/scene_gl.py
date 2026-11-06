@@ -74,13 +74,28 @@ def _place(var: str, node: dict) -> list[str]:
 
 def _reach(shape: dict) -> float:
     """A generous radius that contains the shape, for the part's bounding sphere."""
-    size = max([abs(s) for s in shape.get("size", [])] or [0.0])
-    extent = math.sqrt(3) * size + shape.get("round", 0) + shape.get("shell", 0)
+    sizes = [abs(value) for value in shape.get("size", [])]
+    kind = shape["shape"]
+    if kind in ("torus", "capsule"):
+        radius = sum(sizes[:2])
+    elif kind in ("box", "cylinder"):
+        radius = math.hypot(*sizes)
+    else:
+        radius = max(sizes, default=0.0)
+    extent = radius + shape.get("round", 0) + shape.get("shell", 0)
     offset = shape.get("offset") or [0, 0, 0]
     position = shape.get("position") or [0, 0, 0]
     if shape.get("mirror"):
         position = [abs(c) for c in position]
     return math.dist(position, [0, 0, 0]) + math.dist(offset, [0, 0, 0]) + extent
+
+
+def _part_extent(part: dict) -> float:
+    return max(_reach(shape) for shape in part["shapes"]) + sum(
+        max(shape.get("k", 0.05), 1e-4)
+        for shape in part["shapes"]
+        if shape.get("op") in ("smooth_union", "smooth_subtract")
+    )
 
 
 def compile_map(scene: dict) -> str:
@@ -123,7 +138,7 @@ def compile_map(scene: dict) -> str:
                         "intersect": "a=opI(a,b);}",
                     }[op]
                 )
-        reach = max(_reach(s) for s in part["shapes"])
+        reach = _part_extent(part)
         guard = "" if infinite else f"float bound=length(q)-{f(reach)};if(bound>0.3)return vec2(bound,-1.);"
         functions.append(f"vec2 part{index}(vec3 q){{{guard}vec2 a=vec2(1e9,-1.);" + "".join(body) + "return a;}")
         placed = "".join(_place("q", part))
@@ -184,7 +199,7 @@ precision highp float;
 uniform vec2 uRes; uniform vec2 uOffset;
 out vec4 outColor;
 float sdBox(vec3 p,vec3 b){{vec3 q=abs(p)-b;return length(max(q,0.))+min(max(q.x,max(q.y,q.z)),0.);}}
-float sdEllipsoid(vec3 p,vec3 r){{float k0=length(p/r);float k1=length(p/(r*r));return k0*(k0-1.)/max(k1,1e-6);}}
+float sdEllipsoid(vec3 p,vec3 r){{float k0=length(p/r);if(k0==0.)return -min(r.x,min(r.y,r.z));float k1=length(p/(r*r));return k0*(k0-1.)/max(k1,1e-6);}}
 float sdCylinder(vec3 p,float r,float h){{vec2 d=abs(vec2(length(p.xz),p.y))-vec2(r,h);return min(max(d.x,d.y),0.)+length(max(d,0.));}}
 float sdTorus(vec3 p,float R,float r){{return length(vec2(length(p.xz)-R,p.y))-r;}}
 float sdCapsule(vec3 p,float h,float r){{p.y-=clamp(p.y,-h,h);return length(p)-r;}}
@@ -276,9 +291,9 @@ void main(){{
 }}
 """
 
-PAGE = """async ([source, width, height, tile]) => {
+PAGE = """async ([source, width, height, tile, requireAlpha = true]) => {
   const canvas = new OffscreenCanvas(tile, tile);
-  const gl = canvas.getContext("webgl2", { preserveDrawingBuffer: true, antialias: false });
+  const gl = canvas.getContext("webgl2", { preserveDrawingBuffer: true, antialias: false, premultipliedAlpha: false });
   if (!gl) return { error: "no_webgl2" };
   const compile = (type, text) => { const s = gl.createShader(type); gl.shaderSource(s, text); gl.compileShader(s);
     if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s)); return s; };
@@ -288,6 +303,7 @@ PAGE = """async ([source, width, height, tile]) => {
   gl.linkProgram(program);
   if (!gl.getProgramParameter(program, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(program));
   gl.useProgram(program);
+  if (!requireAlpha) gl.disable(gl.DITHER); // mesh samples are packed bytes
   gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
   const position = gl.getAttribLocation(program, "a");
@@ -302,7 +318,7 @@ PAGE = """async ([source, width, height, tile]) => {
     const pixels = new Uint8Array(tile * tile * 4);
     gl.readPixels(0, 0, tile, tile, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
     if (gl.isContextLost() || gl.getError() !== gl.NO_ERROR) throw new Error("scene_readback_failed");
-    if (!pixels.some((value, index) => index % 4 === 3 && value !== 0)) throw new Error("scene_empty_readback");
+    if (requireAlpha && !pixels.some((value, index) => index % 4 === 3 && value !== 0)) throw new Error("scene_empty_readback");
     let text = ""; for (let i = 0; i < pixels.length; i += 32768) text += String.fromCharCode(...pixels.subarray(i, i + 32768));
     return btoa(text);
   };
@@ -310,8 +326,8 @@ PAGE = """async ([source, width, height, tile]) => {
 }"""
 
 
-async def render(scene: dict, width: int, height: int):
-    """Render the scene in tiles; return (renderer name, PIL image)."""
+async def render(scene: dict, width: int, height: int, *, interchange: bool = False):
+    """Render in tiles and, when requested, sample that same scene into a glTF mesh."""
     from PIL import Image
     from playwright.async_api import async_playwright
 
@@ -340,6 +356,191 @@ async def render(scene: dict, width: int, height: int):
                     tile = Image.frombytes("RGBA", (TILE, TILE), raw).transpose(Image.Transpose.FLIP_TOP_BOTTOM)
                     # WebGL rows start at the bottom: tile (x, y) covers image rows height-y-TILE .. height-y.
                     image.paste(tile.convert("RGB"), (x, height - y - TILE))
+            if interchange:
+                mesh = await _sample_gltf(page, scene)
+                return ready["renderer"], image, mesh
             return ready["renderer"], image
         finally:
             await browser.close()
+
+
+_GRID = 44
+_CUBE = ((0, 0, 0), (1, 0, 0), (1, 1, 0), (0, 1, 0), (0, 0, 1), (1, 0, 1), (1, 1, 1), (0, 1, 1))
+_TETRAHEDRA = ((0, 5, 1, 6), (0, 1, 2, 6), (0, 2, 3, 6), (0, 3, 7, 6), (0, 7, 4, 6), (0, 4, 5, 6))
+
+
+def _mesh_bounds(scene: dict) -> tuple[list[float], list[float]]:
+    minimum, maximum = [math.inf] * 3, [-math.inf] * 3
+    for part in scene["parts"]:
+        radius = _part_extent(part)
+        for instance in part.get("instances") or [[0, 0, 0]]:
+            position = part.get("position") or [0, 0, 0]
+            for axis in range(3):
+                lo = hi = position[axis]
+                if "xyz"[axis] in part.get("mirror", []):
+                    lo, hi = -abs(lo), abs(hi)
+                minimum[axis] = min(minimum[axis], instance[axis] + lo - radius)
+                maximum[axis] = max(maximum[axis], instance[axis] + hi + radius)
+    extent = max(b - a for a, b in zip(minimum, maximum))
+    if not math.isfinite(extent) or extent <= 0:
+        raise ValueError("scene has no bounded mesh extent")
+    margin = extent / (_GRID - 4)
+    return [v - margin for v in minimum], [v + margin for v in maximum]
+
+
+def _mesh_sample_shader(scene: dict, low, high, spread: float) -> str:
+    """Compile the same distance field into the sampling shader."""
+    primitives = SHADER.split("{MAP}", 1)[0].replace("{{", "{").replace("}}", "}")
+    primitives = primitives.replace("precision highp float;", "precision highp float;\nprecision highp int;")
+    return primitives + compile_map(scene) + f"""
+void main(){{
+ ivec2 px=ivec2(gl_FragCoord.xy+uOffset);
+ int n={_GRID}; int index=px.y*int(uRes.x)+px.x;
+ ivec3 cell=ivec3(index%n,(index/n)%n,index/(n*n));
+ vec3 p=mix({v3(low)},{v3(high)},vec3(cell)/float(n-1));
+ vec2 observed=map(p);
+ uint value=uint(round((clamp(observed.x/{f(spread)},-1.,1.)*.5+.5)*16777215.));
+ outColor=vec4(float(value&255u),float((value>>8u)&255u),
+               float((value>>16u)&255u),max(0.,observed.y+1.))/255.;
+}}
+"""
+
+
+async def _sample_gltf(page, scene: dict) -> dict:
+    """Encode the existing shader's signed distance and material ID into a byte grid."""
+    low, high = _mesh_bounds(scene)
+    spread = max(b - a for a, b in zip(low, high))
+    side = math.ceil(math.sqrt(_GRID ** 3) / TILE) * TILE
+    source = _mesh_sample_shader(scene, low, high, spread)
+    ready = await page.evaluate(PAGE, [source, side, side, TILE, False])
+    if "error" in ready:
+        raise RuntimeError(ready["error"])
+    raster = bytearray(side * side * 4)
+    for y in range(0, side, TILE):
+        for x in range(0, side, TILE):
+            tile = base64.b64decode(await page.evaluate("([x,y]) => ocadeTile(x,y)", [x, y]), validate=True)
+            if len(tile) != TILE * TILE * 4:
+                raise ValueError("invalid mesh sample dimensions")
+            for row in range(TILE):
+                start = ((y + row) * side + x) * 4
+                raster[start:start + TILE * 4] = tile[row * TILE * 4:(row + 1) * TILE * 4]
+    samples = [
+        ((int.from_bytes(raster[i:i + 3], "little") / 16777215 * 2 - 1) * spread, raster[i + 3] - 1)
+        for i in range(0, _GRID ** 3 * 4, 4)
+    ]
+    return _mesh_document(samples, _GRID, low, high, scene["materials"])
+
+
+def _mesh_document(samples, n: int, low, high, materials) -> dict:
+    """Triangulate the zero surface of the sampled scene using fixed tetrahedra."""
+    import collections
+    import struct
+
+    if len(samples) != n ** 3 or n < 3:
+        raise ValueError("invalid mesh samples")
+    positions = collections.defaultdict(list)
+    normals = collections.defaultdict(list)
+    step = [(b - a) / (n - 1) for a, b in zip(low, high)]
+    triangles = 0
+
+    def point(x, y, z):
+        return tuple(low[i] + at * step[i] for i, at in enumerate((x, y, z)))
+
+    def crossing(a, b):
+        pa, da, _ = a
+        pb, db, _ = b
+        t = da / (da - db)
+        # Reject degeneracy in the same float32 representation that is saved.
+        return struct.unpack("<3f", struct.pack("<3f", *(x + t * (y - x) for x, y in zip(pa, pb))))
+
+    def emit(a, b, c, outward, material):
+        nonlocal triangles
+        u = [y - x for x, y in zip(a, b)]
+        v = [y - x for x, y in zip(a, c)]
+        normal = [u[1] * v[2] - u[2] * v[1], u[2] * v[0] - u[0] * v[2], u[0] * v[1] - u[1] * v[0]]
+        length = math.hypot(*normal)
+        if length <= 1e-16:
+            return
+        if sum(x * y for x, y in zip(normal, outward)) < 0:
+            b, c = c, b
+            normal = [-x for x in normal]
+        triangles += 1
+        if triangles > 160_000:
+            raise ValueError("mesh exceeds the triangle budget")
+        positions[material].extend((a, b, c))
+        normals[material].extend([tuple(x / length for x in normal)] * 3)
+
+    def sample(x, y, z):
+        distance, material = samples[x + y * n + z * n * n]
+        return point(x, y, z), distance, material
+
+    # A surface reaching the grid edge is truncated (e.g. an infinite union).
+    for z in range(n):
+        for y in range(n):
+            for x in range(n):
+                if (x in (0, n-1) or y in (0, n-1) or z in (0, n-1)) and samples[x + y*n + z*n*n][0] <= 0:
+                    raise ValueError("scene surface reaches the interchange bounds")
+    for z in range(n - 1):
+        for y in range(n - 1):
+            for x in range(n - 1):
+                cube = [sample(x + a, y + b, z + c) for a, b, c in _CUBE]
+                if all(vertex[1] < 0 for vertex in cube) or all(vertex[1] >= 0 for vertex in cube):
+                    continue
+                for tetra in _TETRAHEDRA:
+                    inside = [cube[i] for i in tetra if cube[i][1] < 0]
+                    outside = [cube[i] for i in tetra if cube[i][1] >= 0]
+                    if not inside or not outside:
+                        continue
+                    material = max(inside, key=lambda vertex: vertex[1])[2]
+                    if not 0 <= material < len(materials):
+                        material = len(materials)  # same neutral fallback for unassigned surfaces
+                    outward = tuple(b - a for a, b in zip(inside[0][0], outside[0][0]))
+                    if len(inside) == 2:
+                        a, b = (crossing(inside[0], v) for v in outside)
+                        c, d = (crossing(inside[1], v) for v in reversed(outside))
+                        emit(a, b, c, outward, material)
+                        emit(a, c, d, outward, material)
+                    else:
+                        vertices = [crossing(i, o) for i in inside for o in outside]
+                        emit(*vertices, outward, material)
+    if not triangles:
+        raise ValueError("no surface was sampled")
+    data, views, accessors, primitives = bytearray(), [], [], []
+
+    def accessor(values, bounds=False):
+        offset = len(data)
+        for vertex in values:
+            data.extend(struct.pack("<3f", *vertex))
+        views.append({"buffer": 0, "byteOffset": offset, "byteLength": len(data) - offset, "target": 34962})
+        entry = {"bufferView": len(views)-1, "componentType": 5126, "count": len(values), "type": "VEC3"}
+        if bounds:
+            stored = list(struct.iter_unpack("<3f", data[offset:]))
+            entry["min"] = [min(v[i] for v in stored) for i in range(3)]
+            entry["max"] = [max(v[i] for v in stored) for i in range(3)]
+        accessors.append(entry)
+        return len(accessors) - 1
+
+    for material in sorted(positions):
+        attributes = {"POSITION": accessor(positions[material], bounds=True), "NORMAL": accessor(normals[material])}
+        primitives.append({"attributes": attributes, "material": material, "mode": 4})
+
+    def surface(m):
+        return {
+            "name": m.get("id", "Default material"),
+            "pbrMetallicRoughness": {
+                "baseColorFactor": [*m.get("color", [0.65, 0.65, 0.65]), 1],
+                "metallicFactor": m.get("metallic", 0),
+                "roughnessFactor": m.get("roughness", 0.5),
+            },
+            "emissiveFactor": m.get("emission", [0, 0, 0]),
+        }
+
+    return {
+        "asset": {"version": "2.0", "generator": "OCADE signed-distance scene"},
+        "scene": 0, "scenes": [{"nodes": [0]}], "nodes": [{"mesh": 0}],
+        "meshes": [{"primitives": primitives}],
+        "materials": [surface(m) for m in materials] + [surface({})],
+        "buffers": [{"uri": "data:application/octet-stream;base64," + base64.b64encode(data).decode("ascii"),
+                     "byteLength": len(data)}],
+        "bufferViews": views, "accessors": accessors,
+    }

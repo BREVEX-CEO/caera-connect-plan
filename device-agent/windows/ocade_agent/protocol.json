@@ -1506,6 +1506,13 @@
             "maxLength": 260,
             "pattern": "^OCADE output\\/",
             "description": "Where to save the editable scene file, e.g. .ocade-scene.json: a new path that starts with 'OCADE output/', e.g. 'OCADE output/result.ext'"
+          },
+          "interchange": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 260,
+            "pattern": "^OCADE output\\/",
+            "description": "Optional standalone glTF 2.0 mesh, .gltf"
           }
         },
         "required": [

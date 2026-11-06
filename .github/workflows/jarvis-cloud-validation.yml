@@ -74,7 +74,7 @@ jobs:
         run: |
           python -m pip install reportlab==4.5.1
           apt_options=(-o Acquire::Retries=1 -o Acquire::http::Timeout=15 -o Acquire::https::Timeout=15)
-          packages=(postgresql-client libreoffice-calc libreoffice-writer)
+          packages=(postgresql-client libreoffice-calc libreoffice-writer ffmpeg glslang-tools)
           if ! sudo timeout --kill-after=5s 75s env DEBIAN_FRONTEND=noninteractive apt-get "${apt_options[@]}" install -y -qq "${packages[@]}"; then
             ubuntu_sources=/etc/apt/sources.list.d/ubuntu.sources
             if [[ ! -r "$ubuntu_sources" ]]; then ubuntu_sources=/etc/apt/sources.list; fi
@@ -112,6 +112,15 @@ jobs:
         run: |
           npm run jarvis:protocol-check
           npm run jarvis:no-hardcoded
+      - name: Compile the scene interchange shader
+        if: success() || failure()
+        working-directory: device-agent/windows
+        run: |
+          python - <<'PY' | glslangValidator --stdin -S frag
+          from ocade_agent.scene_gl import _mesh_sample_shader
+          scene = {"materials": [], "parts": [{"shapes": [{"shape": "sphere", "size": [1]}]}]}
+          print(_mesh_sample_shader(scene, [-2] * 3, [2] * 3, 4))
+          PY
       - name: Migrations and authority contracts when changed
         if: success() || failure()
         run: |
@@ -131,7 +140,7 @@ jobs:
       - name: Required-test gate and effect-scope regressions
         if: success() || failure()
         working-directory: device-agent/windows
-        run: python -m tests.run_required --tests tests.test_required_runner --tests tests.test_effect_scope --tests tests.test_agent_recovery --tests tests.test_jobs --tests tests.test_verify_kinds --tests tests.test_gateway --tests tests.test_web.BrowserUnavailable --tests tests.test_web.BrowserObservationContract --tests tests.test_windows_ui.EnvironmentContract --tests tests.test_windows_ui.DesktopTargetContract --tests tests.test_mac_ui.AxEventContract
+        run: python -m tests.run_required --tests tests.test_required_runner --tests tests.test_effect_scope --tests tests.test_agent_recovery --tests tests.test_jobs --tests tests.test_verify_kinds --tests tests.test_gateway --tests tests.test_web.BrowserUnavailable --tests tests.test_web.BrowserObservationContract --tests tests.test_windows_ui.EnvironmentContract --tests tests.test_windows_ui.DesktopTargetContract --tests tests.test_mac_ui.AxEventContract --tests tests.test_media.Media.test_image_facts --tests tests.test_media.Media.test_video_inspect_trim_and_verify --tests tests.test_media.Media.test_timeline_edit_is_exact_and_independently_measured
       - name: Evaluation bookkeeping and fixture regressions without model calls
         if: success() || failure()
         env:

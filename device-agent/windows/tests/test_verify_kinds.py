@@ -234,5 +234,42 @@ class VerifierKinds(unittest.TestCase):
         self.assertIn("uniform", evidence["measured"][predicate["id"]]["error"])
 
 
+
+class SceneInterchange(unittest.TestCase):
+    def test_real_mesh_positions_and_corrupt_binary_are_checked_independently(self):
+        import json
+        import math
+        from ocade_agent.scene_gl import _mesh_document
+        from ocade_agent.verify_worker import _gltf_mesh
+
+        n = 13
+        samples = [
+            (math.dist((x / 3, y / 3, z / 3), (2, 2, 2)) - 1, 0)
+            for z in range(n) for y in range(n) for x in range(n)
+        ]
+        mesh = _mesh_document(samples, n, [-2, -2, -2], [2, 2, 2],
+                              [{"id": "blue", "color": [0.1, 0.2, 0.8]}])
+        first = mesh["meshes"][0]["primitives"][0]
+        self.assertEqual(first["material"], 0)
+        positions = mesh["accessors"][first["attributes"]["POSITION"]]
+        self.assertEqual(positions["min"], [-1, -1, -1])
+        self.assertEqual(positions["max"], [1, 1, 1])
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "scene.gltf"
+            path.write_text(json.dumps(mesh), encoding="utf8")
+            observed = {}
+            self.assertTrue(_gltf_mesh(path, observed), observed)
+            self.assertGreater(observed["triangles"], 10)
+            mesh["bufferViews"][0]["byteLength"] = 3
+            path.write_text(json.dumps(mesh), encoding="utf8")
+            self.assertFalse(_gltf_mesh(path, {}))
+
+    def test_unbounded_geometry_cannot_be_exported_as_a_truncated_success(self):
+        from ocade_agent.scene_gl import _mesh_document
+
+        with self.assertRaisesRegex(ValueError, "bounds"):
+            _mesh_document([(-1, 0)] * 27, 3, [-1, -1, -1], [1, 1, 1], [])
+
+
 if __name__ == "__main__":
     unittest.main()
