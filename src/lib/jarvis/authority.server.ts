@@ -168,11 +168,12 @@ export function taskTiming(task: Pick<TaskState, "status" | "timing" | "steps">)
       durationMs: milliseconds(evidence?.durationMs),
       workerReadyMs: milliseconds(evidence?.workerReadyMs),
       toolMs: milliseconds(evidence?.toolMs),
-      phase: typeof intent?.operation === "string" && intent.operation.startsWith("verify.")
-        ? "verification"
-        : intent?.risk === "read"
-          ? "observation"
-          : "execution",
+      phase:
+        typeof intent?.operation === "string" && intent.operation.startsWith("verify.")
+          ? "verification"
+          : intent?.risk === "read"
+            ? "observation"
+            : "execution",
       confirmWaitMs: ms(step.createdAt, step.confirmedAt),
       // Queued (or confirmed) until the device picked it up.
       pickupMs: step.claimedAt ? ms(step.confirmedAt ?? step.createdAt, step.claimedAt) : null,
@@ -703,7 +704,10 @@ export async function taskView(admin: Admin, userId: string, taskId: string) {
           index === task.steps.length - 1 &&
           intent.success &&
           intent.data.operation === "verify.checks" &&
-          Boolean(task.outcome?.length && task.outcome.every((check) => verification?.passed?.includes(check.id))),
+          Boolean(
+            task.outcome?.length &&
+            task.outcome.every((check) => verification?.passed?.includes(check.id)),
+          ),
       );
       return {
         id: step.id,
@@ -744,9 +748,13 @@ function receiptDisposition(
   if (step.resolution === "applied") return "executed";
   if (step.status === "cancelled" && receipt?.status !== "observed") return "cancelled";
   if (receipt?.errorCode === "stopped") return "cancelled";
-  if (receipt?.status === "observed" && !receipt.errorCode) return verified ? "verified" : "executed";
-  if (receipt?.evidence.executionDisposition === "refused" || step.status === "blocked") return "refused";
-  return receipt?.status === "not_applied" || step.status === "failed" ? "failed" : "outcome unknown";
+  if (receipt?.status === "observed" && !receipt.errorCode)
+    return verified ? "verified" : "executed";
+  if (receipt?.evidence.executionDisposition === "refused" || step.status === "blocked")
+    return "refused";
+  return receipt?.status === "not_applied" || step.status === "failed"
+    ? "failed"
+    : "outcome unknown";
 }
 
 export function exactEffect(intent: unknown): string {
