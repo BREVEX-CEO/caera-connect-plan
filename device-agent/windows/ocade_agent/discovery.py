@@ -24,7 +24,7 @@ def engines() -> list[str]:
 
     from . import engine
 
-    found = []
+    found = ["dependencies"]
     if shutil.which("ffmpeg") and shutil.which("ffprobe"):
         found.append("ffmpeg")
     browsers = Path(os.environ.get("PLAYWRIGHT_BROWSERS_PATH")
@@ -214,3 +214,214 @@ def window_identity(hwnd: int, win32api=None, win32con=None, win32process=None) 
     except Exception:
         return None
     return {"exe": exe, "pid": pid, "hwnd": int(hwnd), "started": created.timestamp()}
+
+
+# Reviewed vendor artifacts. The runtime trusts these pinned bytes, never a URL or shell
+# command supplied by a model. Node's release checksums are published at
+# https://nodejs.org/en/blog/release/v22.23.2.
+_NODE_VERSION = "22.23.2"
+_NODE_RELEASE = "https://nodejs.org/dist/v22.23.2/"
+_NODE_ARTIFACTS = {
+    ("Windows", "x64"): ("win-x64/node.exe", "0d0f5e39f9f3d9587bc19f73eab3c2c9c4903fd02d6dbf9c853dd81b3d95fad4"),
+    ("Windows", "arm64"): ("win-arm64/node.exe", "97cce5301a815d2dce07ac5bfd1e6039eae88185ec1d10ae4f8cb712f1732878"),
+    ("Darwin", "x64"): ("node-v22.23.2-darwin-x64.tar.gz", "58e99022c2ff89395576cc7fd4d98cea24bb68081475d5f88b801ee8729fb026"),
+    ("Darwin", "arm64"): ("node-v22.23.2-darwin-arm64.tar.gz", "61130f394c1630d211dd50aecc4353d379480f36d3ac913cd85dbba1aed585c6"),
+}
+DEPENDENCY_PROGRAMS = {
+    "python": ("python3", "python"),
+    "node": ("node",),
+    "java": ("java",),
+    "dotnet": ("dotnet",),
+    "ffmpeg": ("ffmpeg", "ffprobe"),
+    "libreoffice": ("soffice", "libreoffice"),
+    "browser": (),
+}
+DEPENDENCY_BYTES = 100 * 1024 * 1024
+
+
+def dependency_platform() -> tuple[str, str]:
+    import platform
+
+    system = platform.system()
+    # The native OS architecture may differ from a translated companion process.
+    machine = os.environ.get("PROCESSOR_ARCHITEW6432", platform.machine()).lower()
+    arch = {"amd64": "x64", "x86_64": "x64", "aarch64": "arm64"}.get(machine, machine)
+    if system == "Darwin" and arch == "x64":
+        import subprocess
+
+        try:
+            probe = subprocess.run(["/usr/sbin/sysctl", "-in", "hw.optional.arm64"],
+                                   capture_output=True, timeout=3)
+        except (OSError, subprocess.TimeoutExpired):
+            return system, "unknown"
+        if probe.stdout.strip() == b"1":
+            arch = "arm64"
+    return system, arch
+
+
+def dependency_proposal(name: str) -> dict | None:
+    system, arch = dependency_platform()
+    artifact = _NODE_ARTIFACTS.get((system, arch)) if name == "node" else None
+    if artifact is None:
+        return None
+    filename, digest = artifact
+    exe = "node.exe" if system == "Windows" else "node"
+    return {
+        "name": name, "version": _NODE_VERSION, "platform": system, "architecture": arch,
+        "source": _NODE_RELEASE + filename, "sha256": digest,
+        "licence": "MIT and third-party notices (Node.js v22.23.2 LICENSE)",
+        "scope": "current_user", "privileges": "none",
+        "destination": f"dependencies/{name}/{_NODE_VERSION}/{arch}/{exe}",
+    }
+
+
+def dependency_paths(home: str, proposal: dict) -> tuple[Path, Path]:
+    from .sandbox import Refused, resolve
+
+    if not home:
+        raise Refused("dependency_directory_unavailable")
+    executable = resolve(home, proposal["destination"])
+    expected = Path(home).resolve() / proposal["destination"]
+    if executable != expected:
+        raise Refused("dependency_directory_unavailable")
+    return executable, executable.with_name("vendor.tar.gz") if proposal["platform"] == "Darwin" else executable
+
+
+def _node_archive_member(archive, architecture: str):
+    member = archive.getmember(f"node-v{_NODE_VERSION}-darwin-{architecture}/bin/node")
+    if not member.isfile() or not 1 <= member.size <= DEPENDENCY_BYTES:
+        raise ValueError("invalid executable member")
+    return member
+
+
+def dependency_integrity(executable: Path, artifact: Path, proposal: dict) -> bool:
+    """Independently bind installed bytes to the trusted artifact before any execution."""
+    import hashlib
+    import tarfile
+
+    from .sandbox import sha256
+
+    try:
+        if executable.is_symlink() or artifact.is_symlink():
+            return False
+        if not executable.is_file() or not artifact.is_file():
+            return False
+        if not (1 <= executable.stat().st_size <= DEPENDENCY_BYTES
+                and 1 <= artifact.stat().st_size <= DEPENDENCY_BYTES):
+            return False
+        if sha256(artifact) != proposal["sha256"]:
+            return False
+        if artifact == executable:
+            return True
+        with tarfile.open(artifact, "r:gz") as archive:
+            member = _node_archive_member(archive, proposal["architecture"])
+            with archive.extractfile(member) as stream:
+                digest = hashlib.file_digest(stream, "sha256").hexdigest()
+        return digest == sha256(executable)
+    except (OSError, ValueError, KeyError, tarfile.TarError):
+        return False
+
+
+def executable_version(path: str) -> str | None:
+    """Read native version metadata where it exists without executing a PATH candidate."""
+    import plistlib
+
+    if sys.platform == "win32":
+        import win32api  # type: ignore[import-not-found]
+
+        try:
+            info = win32api.GetFileVersionInfo(path, "\\")
+            ms, ls = info["FileVersionMS"], info["FileVersionLS"]
+            return f"{ms >> 16}.{ms & 0xFFFF}.{ls >> 16}.{ls & 0xFFFF}"
+        except Exception:
+            return None
+    for parent in Path(path).parents:
+        if parent.suffix == ".app":
+            try:
+                info = plistlib.loads((parent / "Contents/Info.plist").read_bytes())
+                version = info.get("CFBundleShortVersionString")
+                return version[:80] if isinstance(version, str) else None
+            except (OSError, ValueError, plistlib.InvalidFileException):
+                return None
+    return None
+
+
+def dependency_candidates(name: str) -> list[dict]:
+    import shutil
+
+    if name == "browser":
+        return [{"path": item["path"], "version": executable_version(item["path"])}
+                for item in browsers()]
+    if name == "libreoffice":
+        from .engine import _soffice
+
+        path = _soffice()
+        return [{"path": path, "version": executable_version(path)}] if path else []
+    found = {}
+    for program in DEPENDENCY_PROGRAMS[name]:
+        path = app_path(program + ".exe") or shutil.which(program)
+        if path and Path(path).is_file():
+            path = str(Path(path).resolve())
+            found[path] = {"path": path, "version": executable_version(path)}
+    return list(found.values())
+
+
+def verify_dependency(home: str, proposal: dict) -> dict:
+    """Observe the actual installed executable, startup, reported version and native arch."""
+    import subprocess
+
+    from .sandbox import Refused
+
+    if dependency_proposal(proposal.get("name")) != proposal:
+        raise Refused("dependency_proposal_changed")
+    executable, artifact = dependency_paths(home, proposal)
+    if not dependency_integrity(executable, artifact, proposal):
+        raise Refused("dependency_integrity_failed")
+    try:
+        observed = subprocess.run(
+            [str(executable), "-p", "JSON.stringify([process.versions.node,process.arch])"],
+            cwd=executable.parent, stdin=subprocess.DEVNULL, capture_output=True, timeout=12,
+            env={key: val for key, val in os.environ.items() if key.upper() not in {"NODE_OPTIONS", "NODE_PATH"}},
+            creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0,
+        )
+    except subprocess.TimeoutExpired:
+        raise Refused("dependency_startup_timeout") from None
+    except OSError as error:
+        code = {
+            5: "dependency_permission_denied", 126: "dependency_missing_library",
+            193: "dependency_architecture_mismatch", 740: "dependency_admin_required",
+            1260: "dependency_security_policy",
+        }.get(getattr(error, "winerror", None), "dependency_startup_failed")
+        raise Refused(code) from None
+    import json
+
+    try:
+        version, arch = json.loads(observed.stdout)
+    except (ValueError, TypeError):
+        raise Refused("dependency_startup_failed") from None
+    if observed.returncode != 0 or version != proposal["version"] or arch != proposal["architecture"]:
+        raise Refused("dependency_version_or_architecture_mismatch")
+    return {"verified": True, "name": proposal["name"], "version": version, "architecture": arch,
+            "destination": proposal["destination"]}
+
+
+def managed_dependency_path(home: str) -> str | None:
+    """Give subsequent confirmed commands the verified portable runtime without editing PATH globally."""
+    proposal = dependency_proposal("node")
+    if not proposal or not home:
+        return None
+    from .sandbox import Refused
+
+    try:
+        executable, artifact = dependency_paths(home, proposal)
+    except Refused:
+        return None
+    return str(executable.parent) if dependency_integrity(executable, artifact, proposal) else None
+
+
+def command_environment(home: str) -> dict[str, str]:
+    environment = dict(os.environ)
+    managed = managed_dependency_path(home)
+    if managed:
+        environment["PATH"] = managed + os.pathsep + environment.get("PATH", "")
+    return environment

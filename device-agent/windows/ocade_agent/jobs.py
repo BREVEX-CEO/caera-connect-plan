@@ -124,8 +124,10 @@ def start(home: str, workspace: str, command: str, shell: str | None, seconds: i
     # the shell worker's kill-on-close job object (breaking away is refused inside nested jobs),
     # so it ends with the companion and reads "lost" after a restart: never a silent orphan.
     flags = subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
+    from .discovery import command_environment
+
     runner = subprocess.Popen(
-        runner_command(), cwd=workspace, env={**os.environ, "OCADE_JOB": str(here),
+        runner_command(), cwd=workspace, env={**command_environment(home), "OCADE_JOB": str(here),
              "PYTHONPATH": os.pathsep.join(filter(None, (PACKAGE_ROOT, os.environ.get("PYTHONPATH"))))},
         stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
         start_new_session=sys.platform != "win32", creationflags=flags,

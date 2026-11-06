@@ -2253,6 +2253,202 @@
         "additionalProperties": false
       }
     },
+    "system.dependency": {
+      "role": "shell",
+      "capability": "computer_control",
+      "risk": "read",
+      "seconds": 25,
+      "arguments": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "enum": [
+              "python",
+              "node",
+              "java",
+              "dotnet",
+              "ffmpeg",
+              "libreoffice",
+              "browser"
+            ]
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "system.install_dependency": {
+      "role": "shell",
+      "capability": "computer_control",
+      "risk": "external_effect",
+      "seconds": 120,
+      "arguments": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "enum": [
+              "python",
+              "node",
+              "java",
+              "dotnet",
+              "ffmpeg",
+              "libreoffice",
+              "browser"
+            ]
+          },
+          "version": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 60
+          },
+          "platform": {
+            "type": "string",
+            "enum": [
+              "Windows",
+              "Darwin"
+            ]
+          },
+          "architecture": {
+            "type": "string",
+            "enum": [
+              "x64",
+              "arm64"
+            ]
+          },
+          "source": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 320,
+            "pattern": "^https:\\/\\/"
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "licence": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "scope": {
+            "type": "string",
+            "const": "current_user"
+          },
+          "privileges": {
+            "type": "string",
+            "const": "none"
+          },
+          "destination": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 180
+          }
+        },
+        "required": [
+          "name",
+          "version",
+          "platform",
+          "architecture",
+          "source",
+          "sha256",
+          "licence",
+          "scope",
+          "privileges",
+          "destination"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "verify.dependency": {
+      "role": "verifier",
+      "capability": "computer_control",
+      "risk": "read",
+      "seconds": 40,
+      "arguments": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "enum": [
+              "python",
+              "node",
+              "java",
+              "dotnet",
+              "ffmpeg",
+              "libreoffice",
+              "browser"
+            ]
+          },
+          "version": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 60
+          },
+          "platform": {
+            "type": "string",
+            "enum": [
+              "Windows",
+              "Darwin"
+            ]
+          },
+          "architecture": {
+            "type": "string",
+            "enum": [
+              "x64",
+              "arm64"
+            ]
+          },
+          "source": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 320,
+            "pattern": "^https:\\/\\/"
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "licence": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "scope": {
+            "type": "string",
+            "const": "current_user"
+          },
+          "privileges": {
+            "type": "string",
+            "const": "none"
+          },
+          "destination": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 180
+          }
+        },
+        "required": [
+          "name",
+          "version",
+          "platform",
+          "architecture",
+          "source",
+          "sha256",
+          "licence",
+          "scope",
+          "privileges",
+          "destination"
+        ],
+        "additionalProperties": false
+      }
+    },
     "shell.run": {
       "role": "shell",
       "capability": "computer_control",

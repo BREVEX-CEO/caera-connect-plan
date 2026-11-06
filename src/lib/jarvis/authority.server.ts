@@ -360,6 +360,12 @@ export async function advance(admin: Admin, taskId: string, now = new Date()): P
         p_verification: decision.verification as unknown as Json,
         p_summary: decision.summary,
       });
+    } else if (decision.kind === "wait" && decision.reason) {
+      await call(admin, "jarvis_task_wait", {
+        p_task: taskId,
+        p_controller: task.controller,
+        p_reason: decision.reason,
+      });
     } else if (decision.kind === "block") {
       await call(admin, "jarvis_settle_task", {
         p_task: taskId,
@@ -687,7 +693,14 @@ export async function handleDeviceRequest(
 ): Promise<Reply> {
   if (request.method !== "POST") return refuse(405, "method_not_allowed");
   if (Number(request.headers.get(HEADERS.protocol)) !== PROTOCOL_VERSION) {
-    return refuse(426, "update_required");
+    return {
+      status: 426,
+      body: {
+        error: "update_required",
+        protocol: PROTOCOL_VERSION,
+        message: "Update the OCADE companion from the JARVIS device page, then reconnect.",
+      },
+    };
   }
   const timestamp = Number(request.headers.get(HEADERS.timestamp));
   if (!Number.isSafeInteger(timestamp) || Math.abs(now - timestamp) > SIGNING.skewMs) {

@@ -1779,7 +1779,15 @@ The existing `tests.run_required.main` loads selected modules/classes/methods or
 - Supabase CLI 2.122.0 generated the migration name in an unlinked runner workspace. The disposable database gate passed advisors, service role and scope checks, rollback and reapply. The signed companion integration verified two saved outputs, two milestone proofs and a final whole-outcome proof.
 - Earlier coding runs accidentally executed the synthetic timing fixture. Its callback is now excluded at registration during coding CI. The green run confirms the exclusion. No timing scores qualify any requirement.
 
-**C3 operation offering — CODED, coding gate pending.** `advance → planStep → offeredOperations` sends every built-in operation allowed by current grants and device engines to the existing model service. `planStep` resolves returned names against that same list before queueing. The existing provider test exercises the complete list and refusal of an unoffered operation. The remaining execution ladder and mechanism selection work for 28 and 29 stays in C6/C10.
+**C3 operation offering — BUILDS at `518820e9f8c5146475785a5a72cbe0893909065e`.** [GitHub Actions run 42218311835](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/42218311835) passed the coding gate. `advance → planStep → offeredOperations` sends every built-in operation allowed by current grants and device engines to the existing model service. `planStep` resolves returned names against that same list before queueing. The existing provider test exercises the complete list and refusal of an unoffered operation. The remaining execution ladder and mechanism selection work for 28 and 29 stays in C6/C10.
+
+**C4 dependency flow — CODED for the reviewed portable runtime, coding gate pending.**
+
+- `planStep → system.dependency → command_worker.system_dependency` reports prerequisites, local candidates, OS, architecture, space and source availability. The current reviewed install catalog contains the Node.js runtime for Windows and macOS x64 and ARM64. Other discovered prerequisites are reported for manual setup when no reviewed artifact is available.
+- `planStep → jarvis_queue_actions → exactEffect` requires the exact observed proposal and confirmation. `Gateway.run → system_install_dependency` recomputes the local catalog entry, checks the pinned source and bytes, stages privately and publishes atomically without elevation.
+- `Agent.handle → jarvis_submit_receipt → advance → planStep → verify.dependency` reopens the actual installed binary, checks the source binding and observes startup, version and architecture. Failed verification pauses the task with a reason. Continue checks it again under the new controller. Existing journaling keeps the exact action and receipt across interruptions.
+- `Agent.run → signed inventory → offeredOperations` gates the new tools on an advertised capability. `handleDeviceRequest` refuses an incompatible protocol with an upgrade instruction, and the gateway checks each bundled worker's actual tool manifest before dispatch.
+- C4 requirement rows remain pending for the coding gate and the remaining package, diagnostic, compatibility and clean-machine harness gaps. This entry does not qualify any native artifact or change an Appendix A status.
 
 **Coding batches (order by code dependency; continue past any blocked item):**
 

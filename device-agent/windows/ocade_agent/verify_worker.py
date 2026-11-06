@@ -28,7 +28,7 @@ from mcp.server.mcpserver import MCPServer
 from pypdf import PdfReader
 
 from .jobs import shell_argv
-from .sandbox import MEDIA_INPUT_OPTIONS, PASSIVE_IMAGE_FORMATS, Refused, plain_text, resolve
+from .sandbox import MEDIA_INPUT_OPTIONS, PASSIVE_IMAGE_FORMATS, Refused, guarded, plain_text, resolve
 
 app = MCPServer("ocade-verifier")
 WORKSPACE = os.environ.get("OCADE_WORKSPACE", "")
@@ -772,6 +772,23 @@ async def verify_checks(checks: list[dict]) -> dict:
         if notes:
             measured[check["id"]] = notes  # what was measured, so a failure says which criterion missed
     return {"predicates": predicates, **({"measured": measured} if measured else {}), "verifierVersion": "checks-verifier/1"}
+
+
+
+@app.tool()
+@guarded
+def verify_dependency(name: str, version: str, platform: str, architecture: str,
+                      source: str, sha256: str, licence: str, scope: str,
+                      privileges: str, destination: str) -> dict:
+    """Reopen the published artifact and observe the actual runtime independently."""
+    from . import discovery
+
+    return discovery.verify_dependency(
+        os.environ.get("OCADE_AGENT_HOME", ""),
+        dict(name=name, version=version, platform=platform, architecture=architecture,
+             source=source, sha256=sha256, licence=licence, scope=scope,
+             privileges=privileges, destination=destination),
+    )
 
 
 if __name__ == "__main__":

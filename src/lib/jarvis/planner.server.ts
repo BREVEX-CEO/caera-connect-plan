@@ -15,7 +15,14 @@
  * model is substituted.
  */
 import { z } from "zod";
-import { OPERATIONS, intent, taskChecks, type Operation, type OutcomeCheck } from "./contracts.ts";
+import {
+  dependencyApproval,
+  intent,
+  OPERATIONS,
+  taskChecks,
+  type Operation,
+  type OutcomeCheck,
+} from "./contracts.ts";
 import {
   evidenceOf,
   followJobs,
@@ -489,8 +496,8 @@ const SYSTEM = [
   "and ui.click_point only when nothing else can reach the control. Use only apps and sites in `allowed`.",
   "shell.run runs one command the person reads and confirms: use it when no typed operation fits (diagnosing or",
   "repairing the computer, installing software); look before changing anything, and judge its exit code and output.",
-  "Before installing a program, system.inspect what is already there (OS, architecture, disk); install with the",
-  "platform's own package manager when one is present, then inspect again to confirm it is in place.",
+  "For a missing prerequisite, call system.dependency. Use system.install_dependency only with its exact proposal.",
+  "If it has no approved package, ask the person for manual installation. The independent verifier checks it before work continues.",
   "To change an existing text file, fs.read_text it, then fs.edit_text the exact passages that must change (or",
   "fs.replace_text for a whole rewrite) with the sha256 that read returned, leaving everything else as it was; never",
   "write file contents through a command. Never change where the person's own scripts or programs read or write:",
@@ -916,7 +923,10 @@ export function offeredOperations(grants: string[], engines: string[] | null) {
       !name.startsWith("verify.") &&
       !name.startsWith("mcp.") &&
       grants.includes(spec.capability) &&
-      (!engines || !spec.engine || engines.includes(spec.engine))
+      (!spec.engine ||
+        (spec.engine === "dependencies"
+          ? engines?.includes(spec.engine)
+          : !engines || engines.includes(spec.engine)))
     );
   });
 }
@@ -966,8 +976,54 @@ export async function planStep(input: {
   const job = followJobs(steps, now);
   if (job) return job;
 
-  // A receipt proves only the exact acceptance rules the independent worker actually read.
   const last = phaseSteps.at(-1);
+  if (last?.receipt?.errorCode === "worker_rejected" && !last.intent.operation.startsWith("mcp.")) {
+    return {
+      kind: "wait",
+      reason: "This companion has an incompatible worker. Reinstall the OCADE companion from the JARVIS device page and continue.",
+    };
+  }
+  if (
+    last?.intent.operation === "system.install_dependency" ||
+    last?.intent.operation === "verify.dependency"
+  ) {
+    const approved = dependencyApproval.parse(last.intent.arguments);
+    const canInspect =
+      input.grants.includes("computer_control") && input.engines?.includes("dependencies");
+    const installDone =
+      last.intent.operation === "system.install_dependency" &&
+      ((last.receipt?.status === "observed" && last.receipt.evidence.installed === true) ||
+        last.resolution === "applied");
+    const verifyAgain =
+      last.intent.operation === "verify.dependency" &&
+      input.controller !== undefined &&
+      last.controller !== input.controller;
+    if (canInspect && (installDone || verifyAgain) && phaseDecisions.length < phase.stepBudget) {
+      return {
+        kind: "queue",
+        summary: "Independently checking the installed prerequisite",
+        intent: intent(
+          "verify.dependency",
+          `s${steps.length + 1}`,
+          approved,
+          new Date(now.getTime() + 600_000),
+        ),
+      };
+    }
+    if (
+      last.intent.operation === "system.install_dependency" ||
+      verifyAgain ||
+      last.receipt?.status !== "observed" ||
+      last.receipt.evidence.verified !== true
+    ) {
+      const code = last.receipt?.errorCode;
+      return {
+        kind: "wait",
+        reason: `JARVIS could not verify ${approved.name}${code ? ` (${code})` : ""}. Check the installed version or permissions before continuing.`,
+      };
+    }
+  }
+  // A receipt proves only the exact acceptance rules the independent worker actually read.
   if (last?.intent.operation === "verify.checks" && last.status === "done") {
     const dispatched = taskChecks.safeParse(last.intent.arguments.checks);
     if (
@@ -1076,6 +1132,27 @@ export async function planStep(input: {
   const queued = (name: string, args: unknown, at: string) => {
     const operation = operations.find((candidate) => toolName(candidate) === name);
     if (!operation) throw new Error("that tool was not offered this turn");
+    if (operation === "system.install_dependency") {
+      const requested = dependencyApproval.parse(args);
+      const inspected = steps.findLast(
+        (step) =>
+          step.intent.operation === "system.dependency" &&
+          step.intent.arguments.name === requested.name,
+      );
+      const proposal = dependencyApproval.safeParse(inspected?.receipt?.evidence.proposal);
+      if (
+        inspected?.status !== "done" ||
+        inspected.receipt?.status !== "observed" ||
+        inspected.receipt.evidence.state !== "approval_required" ||
+        !proposal.success ||
+        JSON.stringify(proposal.data) !== JSON.stringify(requested)
+      ) {
+        throw new Error("inspect the prerequisite and use the exact returned proposal before installing");
+      }
+      if (phase.stepBudget - phaseDecisions.length < 3) {
+        throw new Error("installation needs remaining steps for independent verification and outcome proof");
+      }
+    }
     if (operation === "web.open")
       unseenAddress((args as { url?: unknown })?.url, input.objective, steps);
     if (OPERATIONS[operation].risk !== "read") {

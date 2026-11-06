@@ -411,3 +411,54 @@ test("a confirmed job uses bounded status reads and preserves the milestone deci
   };
   assert.equal((await planStep({ ...input, steps: [...steps.slice(0, -1), lost] })).kind, "block");
 });
+
+test("the planner pauses until an independent worker verifies the installed dependency", async () => {
+  const approved = {
+    name: "node",
+    version: "22.23.2",
+    platform: "Windows",
+    architecture: "x64",
+    source: "https://nodejs.org/dist/v22.23.2/win-x64/node.exe",
+    sha256: "a".repeat(64),
+    licence: "MIT",
+    scope: "current_user",
+    privileges: "none",
+    destination: "dependencies/node/22.23.2/x64/node.exe",
+  } as const;
+  const installed: Step = {
+    intent: intent("system.install_dependency", "s1", approved, deadline),
+    status: "done",
+    receipt: {
+      status: "observed",
+      maybeChanged: true,
+      observedAtUtc: now.toISOString(),
+      evidence: { installed: true },
+    },
+  };
+  const request = {
+    ...base,
+    grants: ["files", "computer_control"],
+    engines: ["dependencies"],
+    steps: [installed],
+    onModelCall: () => assert.fail("installation must be verified before asking the model"),
+  };
+  const next = await planStep(request);
+  assert.ok(next.kind === "queue");
+  assert.equal(next.intent.operation, "verify.dependency");
+  assert.deepEqual(next.intent.arguments, approved);
+  assert.equal((await planStep({ ...request, grants: ["files"] })).kind, "wait");
+  const failed: Step = {
+    intent: next.intent,
+    status: "failed",
+    receipt: {
+      status: "not_applied",
+      maybeChanged: false,
+      observedAtUtc: now.toISOString(),
+      evidence: {},
+      errorCode: "dependency_integrity_failed",
+    },
+  };
+  const waiting = await planStep({ ...request, steps: [installed, failed] });
+  assert.ok(waiting.kind === "wait");
+  assert.match(waiting.reason ?? "", /dependency_integrity_failed/);
+});

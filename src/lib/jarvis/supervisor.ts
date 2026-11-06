@@ -111,7 +111,7 @@ export type Decision =
       more?: { summary: string; intent: ActionIntent }[];
     }
   | { kind: "milestone"; index: number }
-  | { kind: "wait" }
+  | { kind: "wait"; reason?: string }
   | { kind: "settle"; verification: VerificationResult; summary: string }
   | { kind: "block"; reason: string };
 

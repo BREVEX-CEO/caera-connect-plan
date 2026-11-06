@@ -188,5 +188,69 @@ class StopEndsJobs(unittest.TestCase):
         self.assertEqual(self.run_agent((503, {"error": "unavailable"})), "running")
 
 
+
+class DependencyInstall(unittest.TestCase):
+    def test_gateway_discovers_a_dependency_through_the_bundled_worker(self):
+        async def go(root):
+            async with Gateway(root, home=root) as gateway:
+                return await gateway.run(intent("system.dependency", {"name": "python"}), gateway.epoch)
+
+        with tempfile.TemporaryDirectory() as root:
+            result = anyio.run(go, root)
+        self.assertEqual(result["status"], "observed", result)
+        self.assertEqual(result["evidence"]["name"], "python")
+        self.assertIn(result["evidence"]["state"], ("detected", "manual_installation_required"))
+
+    def test_interrupted_and_untrusted_downloads_never_publish(self):
+        import hashlib
+        import io
+        from unittest.mock import patch
+
+        from ocade_agent import command_worker, discovery, verify_worker
+
+        binary = b"vendor fixture bytes"
+        digest = hashlib.sha256(binary).hexdigest()
+        with tempfile.TemporaryDirectory() as home:
+            proposal = {
+                "name": "node", "version": "9.9.9", "platform": "Windows",
+                "architecture": "x64", "source": "https://vendor.example/node",
+                "sha256": digest, "licence": "MIT", "scope": "current_user",
+                "privileges": "none", "destination": "dependencies/node/9.9.9/x64/node.exe",
+            }
+            dest = Path(home) / proposal["destination"]
+            with (patch.object(command_worker, "HOME", home),
+                  patch.object(discovery, "dependency_proposal", return_value=proposal),
+                  patch.dict(os.environ, {"OCADE_AGENT_HOME": home}),
+                  patch.object(command_worker, "_dependency_source") as source):
+                changed = command_worker.system_install_dependency(**(proposal | {"source": "https://other.example"}))
+                self.assertEqual(changed["refused"], "dependency_proposal_changed")
+                source.assert_not_called()
+                source.side_effect = OSError("interrupted fixture")
+                interrupted = command_worker.system_install_dependency(**proposal)
+                self.assertEqual(interrupted["refused"], "dependency_download_failed")
+                self.assertFalse(dest.exists())
+                source.side_effect = None
+                source.return_value = io.BytesIO(b"changed bytes")
+                bad = command_worker.system_install_dependency(**proposal)
+                self.assertEqual(bad["refused"], "dependency_integrity_failed")
+                self.assertFalse(dest.exists())
+                source.return_value = io.BytesIO(binary)
+                installed = command_worker.system_install_dependency(**proposal)
+                self.assertTrue(installed["installed"])
+                self.assertEqual(dest.read_bytes(), binary)
+                self.assertTrue(command_worker.system_install_dependency(**proposal)["reused"])
+
+                from subprocess import CompletedProcess
+
+                with patch("subprocess.run", return_value=CompletedProcess([], 0, b'["9.9.9","x64"]')) as run:
+                    proved = verify_worker.verify_dependency(**proposal)
+                    self.assertTrue(proved["verified"])
+                    self.assertEqual(run.call_args.args[0][0], str(dest))
+                    dest.write_bytes(b"replaced binary")
+                    rejected = verify_worker.verify_dependency(**proposal)
+                    self.assertEqual(rejected["refused"], "dependency_integrity_failed")
+                    self.assertEqual(run.call_count, 1, "changed bytes must never execute")
+
+
 if __name__ == "__main__":
     unittest.main()

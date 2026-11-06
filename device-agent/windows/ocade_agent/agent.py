@@ -442,6 +442,9 @@ def main(argv: list[str] | None = None) -> int:
         refused = anyio.run(go)
         if refused == "stop":
             print("Stopped on this computer.", file=sys.stderr)
+        elif refused == "update_required":
+            print("Update the OCADE companion from the JARVIS device page, then reconnect.", file=sys.stderr)
+            return 3
         elif refused:
             print(f"This computer is not paired with OCADE, or was removed ({refused}).", file=sys.stderr)
             return 3

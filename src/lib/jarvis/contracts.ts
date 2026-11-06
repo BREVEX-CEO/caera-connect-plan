@@ -21,7 +21,7 @@ export const PROTOCOL_VERSION = 1;
 const RISKS = ["read", "reversible_write", "external_effect"] as const;
 
 /** Shared programs an operation needs on the computer; the device reports which it has. */
-export const ENGINES = ["ffmpeg", "browser", "office", "desktop"] as const;
+export const ENGINES = ["ffmpeg", "browser", "office", "desktop", "dependencies"] as const;
 
 /** Paths are relative to a workspace folder the person chose on the device itself. */
 const workspacePath = z
@@ -429,6 +429,20 @@ const timeline = z.strictObject({
  * each operation with its permission, risk, argument schema and — for apps and
  * websites — the exact target that also needs the person's `app:`/`site:` grant.
  */
+const dependencyName = z.enum(["python", "node", "java", "dotnet", "ffmpeg", "libreoffice", "browser"]);
+export const dependencyApproval = z.strictObject({
+  name: dependencyName,
+  version: z.string().min(1).max(60),
+  platform: z.enum(["Windows", "Darwin"]),
+  architecture: z.enum(["x64", "arm64"]),
+  source: z.string().min(1).max(320).regex(/^https:\/\//),
+  sha256: z.string().regex(/^[0-9a-f]{64}$/),
+  licence: z.string().min(1).max(160),
+  scope: z.literal("current_user"),
+  privileges: z.literal("none"),
+  destination: z.string().min(1).max(180),
+});
+
 export const OPERATIONS = {
   "fs.list": {
     summary: "List the files and folders in a folder of the person’s workspace.",
@@ -853,6 +867,32 @@ export const OPERATIONS = {
       expectTitle: z.string().min(1).max(200),
     }),
     target: (a: { window: { exe: string } }): Target => ({ app: a.window.exe }),
+  },
+  "system.dependency": {
+    summary: "Inspect one task prerequisite and return an exact approved installation proposal if available.",
+    engine: "dependencies",
+    role: "shell",
+    capability: "computer_control",
+    risk: "read",
+    arguments: z.strictObject({ name: dependencyName }),
+    seconds: 25,
+  },
+  "system.install_dependency": {
+    summary: "Install the exact previously observed dependency proposal after the person confirms it.",
+    engine: "dependencies",
+    role: "shell",
+    capability: "computer_control",
+    risk: "external_effect",
+    arguments: dependencyApproval,
+    seconds: 120,
+  },
+  "verify.dependency": {
+    summary: "Independently start and verify the installed runtime's integrity, version and architecture.",
+    role: "verifier",
+    capability: "computer_control",
+    risk: "read",
+    arguments: dependencyApproval,
+    seconds: 40,
   },
   "shell.run": {
     summary:
