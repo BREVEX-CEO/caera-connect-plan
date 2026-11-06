@@ -461,4 +461,18 @@ test("the planner pauses until an independent worker verifies the installed depe
   const waiting = await planStep({ ...request, steps: [installed, failed] });
   assert.ok(waiting.kind === "wait");
   assert.match(waiting.reason ?? "", /dependency_integrity_failed/);
+
+  const notApplied: Step = {
+    ...installed,
+    controller: "before",
+    status: "failed",
+    receipt: failed.receipt,
+  };
+  assert.equal(
+    (await planStep({ ...request, controller: "before", steps: [notApplied] })).kind,
+    "wait",
+  );
+  const recovery = await planStep({ ...request, controller: "after", steps: [notApplied] });
+  assert.ok(recovery.kind === "queue");
+  assert.equal(recovery.intent.operation, "system.dependency");
 });

@@ -995,10 +995,26 @@ export async function planStep(input: {
       last.intent.operation === "system.install_dependency" &&
       ((last.receipt?.status === "observed" && last.receipt.evidence.installed === true) ||
         last.resolution === "applied");
-    const verifyAgain =
-      last.intent.operation === "verify.dependency" &&
-      input.controller !== undefined &&
-      last.controller !== input.controller;
+    const resumed = input.controller !== undefined && last.controller !== input.controller;
+    const verifyAgain = last.intent.operation === "verify.dependency" && resumed;
+    if (
+      canInspect &&
+      resumed &&
+      last.intent.operation === "system.install_dependency" &&
+      last.receipt?.status === "not_applied" &&
+      phaseDecisions.length < phase.stepBudget
+    ) {
+      return {
+        kind: "queue",
+        summary: "Checking prerequisites again after resuming",
+        intent: intent(
+          "system.dependency",
+          `s${steps.length + 1}`,
+          { name: approved.name },
+          new Date(now.getTime() + 600_000),
+        ),
+      };
+    }
     if (canInspect && (installDone || verifyAgain) && phaseDecisions.length < phase.stepBudget) {
       return {
         kind: "queue",
@@ -1016,7 +1032,11 @@ export async function planStep(input: {
       last.intent.operation === "system.install_dependency" ||
       verifyAgain ||
       last.receipt?.status !== "observed" ||
-      last.receipt.evidence.verified !== true
+      last.receipt.evidence.verified !== true ||
+      last.receipt.evidence.name !== approved.name ||
+      last.receipt.evidence.version !== approved.version ||
+      last.receipt.evidence.architecture !== approved.architecture ||
+      last.receipt.evidence.destination !== approved.destination
     ) {
       const code = last.receipt?.errorCode;
       return {

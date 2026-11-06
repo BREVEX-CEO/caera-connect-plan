@@ -600,7 +600,15 @@ export async function taskView(admin: Admin, userId: string, taskId: string) {
 export function exactEffect(intent: unknown): string {
   const parsed = actionIntent.safeParse(intent);
   if (!parsed.success) return "An action that could not be read: do not allow it.";
-  return `${parsed.data.operation} ${JSON.stringify(parsed.data.arguments, null, 2)}`;
+  const details = JSON.stringify(parsed.data.arguments, null, 2);
+  if (parsed.data.operation === "system.install_dependency") {
+    return [
+      "Install a verified vendor runtime in OCADE's private application data.",
+      "The startup check runs vendor code with your account's permissions.",
+      details,
+    ].join("\n");
+  }
+  return `${parsed.data.operation} ${details}`;
 }
 
 export function approveDevice(admin: Admin, userId: string, code: string) {
