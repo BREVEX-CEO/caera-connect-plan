@@ -267,11 +267,17 @@ def _stage_dependency(stage: Path, proposal: dict, executable_name: str) -> None
                 with bundle.extractfile(member) as stream, executable.open("xb") as out:
                     shutil.copyfileobj(stream, out)
             executable.chmod(0o700)
-            # Apply the native execution policy to the downloaded program before publishing.
-            subprocess.run(["/usr/bin/xattr", "-w", "com.apple.quarantine",
+            # Use the OS utilities, never a replacement from an inherited user PATH.
+            system = Path(os.sep, "usr")
+            native_path = os.pathsep.join(str(system / directory) for directory in ("bin", "sbin"))
+            xattr = shutil.which("xattr", path=native_path)
+            spctl = shutil.which("spctl", path=native_path)
+            if not xattr or not spctl:
+                raise Refused("dependency_security_policy")
+            subprocess.run([xattr, "-w", "com.apple.quarantine",
                             f"0083;{int(time.time()):x};OCADE;", str(executable)],
                            check=True, capture_output=True, timeout=10)
-            subprocess.run(["/usr/sbin/spctl", "--assess", "--type", "execute", str(executable)],
+            subprocess.run([spctl, "--assess", "--type", "execute", str(executable)],
                            check=True, capture_output=True, timeout=15)
         except (subprocess.CalledProcessError, subprocess.TimeoutExpired):
             raise Refused("dependency_security_policy") from None

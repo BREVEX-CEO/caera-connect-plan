@@ -247,23 +247,33 @@ def dependency_platform() -> tuple[str, str]:
     machine = os.environ.get("PROCESSOR_ARCHITEW6432", platform.machine()).lower()
     arch = {"amd64": "x64", "x86_64": "x64", "aarch64": "arm64"}.get(machine, machine)
     if system == "Darwin" and arch == "x64":
-        import subprocess
+        import errno
 
-        try:
-            probe = subprocess.run(["/usr/sbin/sysctl", "-in", "hw.optional.arm64"],
-                                   capture_output=True, timeout=3)
-        except (OSError, subprocess.TimeoutExpired):
-            return system, "unknown"
-        if probe.stdout.strip() == b"1":
+        native = ctypes.CDLL(None, use_errno=True)
+        value = ctypes.c_int()
+        size = ctypes.c_size_t(ctypes.sizeof(value))
+        if native.sysctlbyname(b"hw.optional.arm64", ctypes.byref(value), ctypes.byref(size), None, 0):
+            if ctypes.get_errno() != errno.ENOENT:
+                return system, "unknown"
+        elif value.value == 1:
             arch = "arm64"
     return system, arch
 
 
 def dependency_proposal(name: str) -> dict | None:
+    import platform
+
     system, arch = dependency_platform()
     artifact = _NODE_ARTIFACTS.get((system, arch)) if name == "node" else None
     if artifact is None:
         return None
+    # The pinned Node release supports Windows 10 and macOS 11 or newer.
+    if system == "Windows" and sys.getwindowsversion().major < 10:
+        return None
+    if system == "Darwin":
+        version = platform.mac_ver()[0].split(".", 1)[0]
+        if not version.isdecimal() or int(version) < 11:
+            return None
     filename, digest = artifact
     exe = "node.exe" if system == "Windows" else "node"
     return {

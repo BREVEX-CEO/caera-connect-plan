@@ -980,7 +980,8 @@ export async function planStep(input: {
   if (last?.receipt?.errorCode === "worker_rejected" && !last.intent.operation.startsWith("mcp.")) {
     return {
       kind: "wait",
-      reason: "This companion has an incompatible worker. Reinstall the OCADE companion from the JARVIS device page and continue.",
+      reason:
+        "This companion has an incompatible worker. Reinstall the OCADE companion from the JARVIS device page and continue.",
     };
   }
   if (
@@ -1011,6 +1012,7 @@ export async function planStep(input: {
       };
     }
     if (
+      !canInspect ||
       last.intent.operation === "system.install_dependency" ||
       verifyAgain ||
       last.receipt?.status !== "observed" ||
@@ -1134,23 +1136,30 @@ export async function planStep(input: {
     if (!operation) throw new Error("that tool was not offered this turn");
     if (operation === "system.install_dependency") {
       const requested = dependencyApproval.parse(args);
-      const inspected = steps.findLast(
-        (step) =>
-          step.intent.operation === "system.dependency" &&
-          step.intent.arguments.name === requested.name,
-      );
+      const inspected = [...steps]
+        .reverse()
+        .find(
+          (step) =>
+            step.intent.operation === "system.dependency" &&
+            step.intent.arguments.name === requested.name,
+        );
       const proposal = dependencyApproval.safeParse(inspected?.receipt?.evidence.proposal);
       if (
         inspected?.status !== "done" ||
+        (input.controller !== undefined && inspected.controller !== input.controller) ||
         inspected.receipt?.status !== "observed" ||
         inspected.receipt.evidence.state !== "approval_required" ||
         !proposal.success ||
         JSON.stringify(proposal.data) !== JSON.stringify(requested)
       ) {
-        throw new Error("inspect the prerequisite and use the exact returned proposal before installing");
+        throw new Error(
+          "inspect the prerequisite and use the exact returned proposal before installing",
+        );
       }
       if (phase.stepBudget - phaseDecisions.length < 3) {
-        throw new Error("installation needs remaining steps for independent verification and outcome proof");
+        throw new Error(
+          "installation needs remaining steps for independent verification and outcome proof",
+        );
       }
     }
     if (operation === "web.open")

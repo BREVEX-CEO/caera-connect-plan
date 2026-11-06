@@ -429,13 +429,25 @@ const timeline = z.strictObject({
  * each operation with its permission, risk, argument schema and — for apps and
  * websites — the exact target that also needs the person's `app:`/`site:` grant.
  */
-const dependencyName = z.enum(["python", "node", "java", "dotnet", "ffmpeg", "libreoffice", "browser"]);
+const dependencyName = z.enum([
+  "python",
+  "node",
+  "java",
+  "dotnet",
+  "ffmpeg",
+  "libreoffice",
+  "browser",
+]);
 export const dependencyApproval = z.strictObject({
   name: dependencyName,
   version: z.string().min(1).max(60),
   platform: z.enum(["Windows", "Darwin"]),
   architecture: z.enum(["x64", "arm64"]),
-  source: z.string().min(1).max(320).regex(/^https:\/\//),
+  source: z
+    .string()
+    .min(1)
+    .max(320)
+    .regex(/^https:\/\//),
   sha256: z.string().regex(/^[0-9a-f]{64}$/),
   licence: z.string().min(1).max(160),
   scope: z.literal("current_user"),
@@ -869,7 +881,8 @@ export const OPERATIONS = {
     target: (a: { window: { exe: string } }): Target => ({ app: a.window.exe }),
   },
   "system.dependency": {
-    summary: "Inspect one task prerequisite and return an exact approved installation proposal if available.",
+    summary:
+      "Inspect one task prerequisite and return an exact approved installation proposal if available.",
     engine: "dependencies",
     role: "shell",
     capability: "computer_control",
@@ -878,7 +891,8 @@ export const OPERATIONS = {
     seconds: 25,
   },
   "system.install_dependency": {
-    summary: "Install the exact previously observed dependency proposal after the person confirms it.",
+    summary:
+      "Install the exact previously observed dependency proposal after the person confirms it.",
     engine: "dependencies",
     role: "shell",
     capability: "computer_control",
@@ -887,7 +901,8 @@ export const OPERATIONS = {
     seconds: 120,
   },
   "verify.dependency": {
-    summary: "Independently start and verify the installed runtime's integrity, version and architecture.",
+    summary:
+      "Independently start and verify the installed runtime's integrity, version and architecture.",
     role: "verifier",
     capability: "computer_control",
     risk: "read",
