@@ -217,9 +217,7 @@ test("mechanism fallback: a failed route is followed by a fresh look, then the n
     evidence: {},
     preview: "dGVzdA==",
   });
-  assert.doesNotThrow(() =>
-    observedSinceFailure([...failed, fresh], "ui.click_point", { window }),
-  );
+  assert.doesNotThrow(() => observedSinceFailure([...failed, fresh], "ui.click_point", { window }));
   // Another mechanism is not held back by a failure on a window.
   assert.doesNotThrow(() => observedSinceFailure(failed, "fs.write_text"));
   const all = offeredOperations(["files", "browser", "apps", "screen", "computer_control"], null);
