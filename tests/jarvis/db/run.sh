@@ -34,13 +34,34 @@ if [[ "${OCADE_GENERATE_JARVIS_TYPES:-}" == 1 ]]; then
   ) > "$generated_types"
   node --input-type=module - "$generated_types" <<'JS'
 import { readFileSync } from "node:fs";
-const source = readFileSync(process.argv[2], "utf8");
-const names = ["jarvis_tasks", "jarvis_complete_milestone", "jarvis_note_model_metrics"];
-for (const name of names) {
-  const sections = source.split(/^ {4}(?:Tables|Views|Functions|Enums|CompositeTypes): \{/m);
-  const section = name === "jarvis_tasks" ? sections[1] : sections[3];
-  const block = section?.match(new RegExp(`^ {6}${name}: [^\\n]*(?:\\n {8,}[^\\n]*|\\n {6}\\})*`, "m"))?.[0];
-  if (!block) throw new Error("CLI output omitted " + name);
+import prettier from "prettier";
+import ts from "typescript";
+
+const tree = ts.createSourceFile("generated.ts", readFileSync(process.argv[2], "utf8"), ts.ScriptTarget.Latest);
+const database = tree.statements.find((node) => ts.isTypeAliasDeclaration(node) && node.name.text === "Database");
+const property = (type, name) => {
+  const member = type?.members?.find((node) => ts.isPropertySignature(node) && node.name.text === name);
+  if (!member) throw new Error("Generated Supabase shape is missing " + name);
+  return member;
+};
+const schema = property(database?.type, "public").type;
+const tasks = property(property(schema, "Tables").type, "jarvis_tasks").type;
+const fields = [
+  "model_metric_ids", "planner_auto_retries", "planner_decision_ms", "planner_goal_ms",
+  "provider_input_calls", "provider_input_tokens", "provider_output_calls", "provider_output_tokens",
+];
+for (const shape of ["Row", "Insert", "Update"]) {
+  const record = property(tasks, shape).type;
+  const declarations = fields.map((field) => property(record, field).getText(tree).replace(/[;,]$/, ""));
+  console.log("OCADE_TYPES:" + JSON.stringify({ name: "jarvis_tasks", shape, declarations }));
+}
+const functions = property(schema, "Functions").type;
+for (const name of ["jarvis_complete_milestone", "jarvis_note_model_metrics"]) {
+  const declaration = property(functions, name).getText(tree);
+  const formatted = await prettier.format("type Contract = {\n" + declaration + "\n}", {
+    parser: "typescript", semi: false, trailingComma: "none", printWidth: 96,
+  });
+  const block = formatted.trimEnd().split("\n").slice(1, -1).map((line) => "    " + line).join("\n");
   console.log("OCADE_TYPES:" + JSON.stringify({ name, block }));
 }
 JS
