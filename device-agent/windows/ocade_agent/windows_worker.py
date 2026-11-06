@@ -75,7 +75,7 @@ def _leased(window: dict):
         not now
         or now["pid"] != window["pid"]
         or now["exe"] != window["exe"]
-        or abs(now["started"] - window["started"]) > 1
+        or now["started"] != window["started"]
     ):
         raise Refused("window_changed")
     if _elevated(window["pid"]) and not _elevated(os.getpid()):
@@ -172,16 +172,24 @@ def apps_launch(exe: str, open: str | None = None) -> dict:
     """Start an installed app, optionally with one workspace file, and lease its new window."""
     if exe not in {a["exe"] for a in discovery.installed_apps()}:
         raise Refused("app_not_installed")
-    path = discovery.app_path(exe)
-    if not path:
-        raise Refused("app_not_installed")
     before = {w["hwnd"] for w in discovery.open_windows(200)}
-    arguments = [path] + ([str(resolve(WORKSPACE, open))] if open else [])
-    mark_effect()
-    subprocess.Popen(arguments, close_fds=True)  # argument list, no shell
+    if exe.startswith("pkg-"):
+        if open is not None:
+            raise Refused("packaged_app_file_activation_unsupported")
+        if not discovery.launch_packaged(exe, mark_effect):
+            raise Refused("app_not_installed")
+    else:
+        path = discovery.app_path(exe)
+        if not path:
+            raise Refused("app_not_installed")
+        arguments = [path] + ([str(resolve(WORKSPACE, open))] if open else [])
+        mark_effect()
+        subprocess.Popen(arguments, close_fds=True)  # argument list, no shell
     deadline = time.monotonic() + 20
     while time.monotonic() < deadline:
         fresh = [w for w in discovery.open_windows(200) if w["exe"] == exe and w["hwnd"] not in before]
+        if len(fresh) > 1:
+            raise Refused("window_ambiguous")
         if fresh:
             return {"window": {k: fresh[0][k] for k in ("exe", "pid", "hwnd", "started")}, "title": fresh[0]["title"]}
         time.sleep(0.5)
@@ -290,42 +298,59 @@ def ui_send_keys(window: dict, keys: str, element: dict | None = None) -> dict:
     return {"title": target.window_text()[:200]}
 
 
+def _window_point(rect, x: float, y: float) -> tuple[int, int]:
+    left, top, right, bottom = rect
+    if not (left < right and top < bottom and 0 <= x < 1 and 0 <= y < 1):
+        raise Refused("point_off_screen")
+    return left + int(x * (right - left)), top + int(y * (bottom - top))
+
+
+def _check_point(hwnd: int, point: tuple[int, int], win32api, win32gui) -> None:
+    if not win32api.MonitorFromPoint(point, 0):  # MONITOR_DEFAULTTONULL, includes negative origins
+        raise Refused("point_off_screen")
+    hit = win32gui.WindowFromPoint(point)
+    if not hit or win32gui.GetAncestor(hit, 2) != hwnd:  # GA_ROOT: an exact child of the leased window
+        raise Refused("point_obscured")
+
+
 @app.tool()
 @_evidence
 def ui_click_point(window: dict, x: float, y: float, expectTitle: str) -> dict:
-    """Last resort: one click at a window-relative point, fail-safe on, never while the person is using the PC."""
-    import pyautogui  # type: ignore[import-not-found]
-    import win32gui  # type: ignore[import-not-found]
-
+    """Last resort: one fresh, unambiguous click in the exact leased window."""
     import json
 
+    import pyautogui  # type: ignore[import-not-found]
+    import win32api  # type: ignore[import-not-found]
+    import win32gui  # type: ignore[import-not-found]
     from PIL import ImageGrab
 
     from . import vision
 
-    pyautogui.FAILSAFE = True  # a corner flick always stops it
+    pyautogui.FAILSAFE = True
+    pyautogui.failSafeCheck()
     target = _leased(window)
     if expectTitle not in target.window_text():
         raise Refused("unexpected_window")
     seen = _seen.get(json.dumps(window, sort_keys=True))
     if seen is None:
-        raise Refused("inspect_first")  # a point is only grounded in an image of this window
-    left, top, right, bottom = win32gui.GetWindowRect(window["hwnd"])
-    checked = vision.match(seen, ImageGrab.grab(bbox=(left, top, right, bottom), all_screens=True), x, y)
-    if "reason" in checked:
-        raise Refused(checked["reason"])  # nothing was clicked: look again with ui.inspect
-    x, y = checked["x"], checked["y"]
+        raise Refused("inspect_first")
+    hwnd = window["hwnd"]
     _person_quiet()
     try:
         mark_effect()
         target.set_focus()
-        if win32gui.GetForegroundWindow() != window["hwnd"]:
+        if win32gui.GetForegroundWindow() != hwnd:
             raise Refused("focus_lost")
-        left, top, right, bottom = win32gui.GetWindowRect(window["hwnd"])
-        point = (int(left + x * (right - left)), int(top + y * (bottom - top)))
-        width, height = pyautogui.size()
-        if not (0 <= point[0] < width and 0 <= point[1] < height):
-            raise Refused("point_off_screen")
+        target = _leased(window)
+        rect = win32gui.GetWindowRect(hwnd)
+        checked = vision.match(seen, ImageGrab.grab(bbox=rect, all_screens=True), x, y)
+        if "reason" in checked:
+            raise Refused(checked["reason"])
+        if win32gui.GetWindowRect(hwnd) != rect or win32gui.GetForegroundWindow() != hwnd:
+            raise Refused("window_changed")
+        point = _window_point(rect, checked["x"], checked["y"])
+        _check_point(hwnd, point, win32api, win32gui)
+        _person_quiet()
         pyautogui.click(*point)
     finally:
         _own_input["at"] = time.monotonic()

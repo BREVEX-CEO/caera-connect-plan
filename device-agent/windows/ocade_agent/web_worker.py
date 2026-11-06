@@ -50,12 +50,14 @@ async def _close_browser() -> None:
     """One cleanup owner for server shutdown and partially failed startup."""
     context = _browser.pop("context", None)
     playwright = _browser.pop("playwright", None)
+    closed = _browser.pop("closed", False)
     _pages.clear()
+    _redirects.clear()
     # The MCP transport bounds process shutdown and contains the whole tree.
     # EOF/cancellation must still give Chromium and its driver a chance to close.
     with anyio.CancelScope(shield=True):
         try:
-            if context is not None:
+            if context is not None and not closed:
                 await context.close()
         finally:
             if playwright is not None:
@@ -79,10 +81,21 @@ app = MCPServer("ocade-web", lifespan=_lifespan)
 # File inputs are listed even when a web app hides them.
 # Visible tables as rows of cells with their headers and each row's first link: a dense table
 # read as flat text loses which value belongs to which row (eval r1c, D9).
+_OPEN_ROOTS = """const roots = [document];
+  let examined = 0;
+  for (let i = 0; i < roots.length && roots.length < 64 && examined < 20000; i++) {
+    const walk = document.createTreeWalker(roots[i], NodeFilter.SHOW_ELEMENT);
+    while (roots.length < 64 && examined++ < 20000 && walk.nextNode()) {
+      if (walk.currentNode.shadowRoot) roots.push(walk.currentNode.shadowRoot);
+    }
+  }
+  const all = selector => roots.flatMap(root => [...root.querySelectorAll(selector)]);"""
+
 _TABLES = """() => {
+  /*OPEN_ROOTS*/
   const visible = (e) => !!(e.offsetWidth || e.offsetHeight || e.getClientRects().length);
   const cell = (c) => (c.innerText || '').replace(/\\s+/g, ' ').trim().slice(0, 80);
-  return [...document.querySelectorAll('table')].filter(visible).slice(0, 3).map((table) => {
+  return all('table').filter(visible).slice(0, 3).map((table) => {
     const rows = [...table.rows].filter(visible);
     const head = rows.length && [...rows[0].cells].every((c) => c.tagName === 'TH') ? rows.shift() : null;
     const headers = head ? [...head.cells].map(cell).slice(0, 8)
@@ -97,17 +110,21 @@ _TABLES = """() => {
       totalRows: rows.length,
     };
   });
-}"""
+}""".replace("/*OPEN_ROOTS*/", _OPEN_ROOTS)
 
 _CONTROLS = """(token) => {
-  document.querySelectorAll('[data-ocade]').forEach(e => e.removeAttribute('data-ocade'));
+  /*OPEN_ROOTS*/
+  all('[data-ocade]').forEach(e => e.removeAttribute('data-ocade'));
   const flat = s => (s || '').replace(/\\s+/g, ' ').trim();
-  const listed = [...document.querySelectorAll('a[href],button,input,select,textarea,[contenteditable]:not([contenteditable=false]),[role=button],[role=menuitem],[role=tab],[role=textbox],[role=spinbutton],[role=slider],iframe')]
+  const listed = all('a[href],button,input,select,textarea,[contenteditable]:not([contenteditable=false]),[role=button],[role=menuitem],[role=tab],[role=textbox],[role=spinbutton],[role=slider],iframe')
     .filter(e => e.offsetParent !== null || e.type === 'file').slice(0, 80);
-  const labels = listed.map(e => flat(e.labels?.[0]?.innerText || e.getAttribute('aria-label') || e.title || e.innerText || e.value).slice(0, 80));
+  const labels = listed.map(e => {
+    const buttonText = e.type === 'submit' || e.type === 'button' ? e.value : '';
+    return flat(e.labels?.[0]?.innerText || e.getAttribute('aria-label') || e.title || e.innerText || buttonText).slice(0, 80);
+  });
   const seen = {};
   labels.forEach(l => { seen[l] = (seen[l] || 0) + 1; });
-  return listed.map((e, i) => {
+  const facts = listed.map((e, i) => {
     e.setAttribute('data-ocade', `${token}-${i}`);
     const row = seen[labels[i]] > 1 ? e.closest('tr,li,[role=row]') : null;
     return {
@@ -122,7 +139,8 @@ _CONTROLS = """(token) => {
           : { hrefOmitted: 'too_long' }) : {}),
     };
   });
-}"""
+  return { facts, nodes: listed };
+}""".replace("/*OPEN_ROOTS*/", _OPEN_ROOTS)
 
 # A site's permission request (notifications, location, camera, microphone, clipboard) opens a
 # browser prompt the page cannot show and the planner cannot see, and the page waits on it.
@@ -269,6 +287,8 @@ async def _follow(current, site: str, before: str) -> None:
 
 
 async def _context():
+    if _browser.get("closed"):
+        await _close_browser()
     if "context" not in _browser:
         executable = os.environ.get("OCADE_BROWSER_EXECUTABLE")
         if executable and not Path(executable).is_file():
@@ -303,6 +323,14 @@ async def _context():
                         if channel is None:
                             raise
             _browser["context"] = context
+
+            def closed() -> None:
+                if _browser.get("context") is context:
+                    _browser["closed"] = True
+                    _pages.clear()
+                    _redirects.clear()
+
+            context.on("close", closed)
             await context.route("**/*", _guard)
             await context.add_init_script(_ASKED)
         except BaseException:
@@ -337,11 +365,22 @@ async def _scope(entry: dict, frame: str | None):
     return content
 
 
-async def _one(scope, selector: str):
-    """Exactly one element; web apps render late, so wait (bounded) for it to exist first."""
-    observed = re.match(r'\[data-ocade="([0-9a-f]+)-\d+"\]$', selector)
-    if observed and observed.group(1) not in {entry.get("token") for entry in _pages.values()}:
-        raise Refused("stale_selector")  # from an older observation: read the page again
+async def _one(entry: dict, scope, selector: str):
+    """Resolve a live element under this tab's observation lease."""
+    observed = re.fullmatch(r'\[data-ocade="([0-9a-f]+)-\d+"\]', selector)
+    if observed and (observed.group(1) != entry.get("token") or scope is not entry["page"]):
+        raise Refused("stale_selector")
+    if observed:
+        handle = entry.get("controls", {}).get(selector)
+        try:
+            connected = handle is not None and await handle.evaluate("(element) => element.isConnected")
+        except Exception:
+            connected = False
+        if not connected:
+            raise Refused("stale_selector")
+        # Return the element captured during inspection. A replacement with copied
+        # attributes can never redirect this action.
+        return handle
     target = scope.locator(selector)
     try:
         await target.first.wait_for(state="attached", timeout=20_000)
@@ -356,12 +395,30 @@ async def _observe(page_id: str) -> dict:
     entry = _pages[page_id]
     current = entry["page"]
     text = await current.inner_text("body", timeout=10_000)
-    token = entry["token"] = secrets.token_hex(3)
+    token = secrets.token_hex(8)
+    snapshot = await current.evaluate_handle(_CONTROLS, token)
+    facts = await snapshot.get_property("facts")
+    nodes = await snapshot.get_property("nodes")
+    try:
+        controls = await facts.json_value()
+        handles = await nodes.get_properties()
+    finally:
+        await facts.dispose()
+        await nodes.dispose()
+        await snapshot.dispose()
+    for handle in entry.get("controls", {}).values():
+        await handle.dispose()
+    entry["token"] = token
+    entry["controls"] = {
+        control["selector"]: handles[str(index)].as_element()
+        for index, control in enumerate(controls)
+        if str(index) in handles and handles[str(index)].as_element() is not None
+    }
     observed = {
         "page": {"id": page_id, "site": entry["site"]},
         **({"url": current.url} if len(current.url) <= 2000 else {"urlOmitted": "too_long"}),
         "title": (await current.title())[:200],
-        "controls": await current.evaluate(_CONTROLS, token),
+        "controls": [control for control in controls if control["selector"] in entry["controls"]],
         "tables": await current.evaluate(_TABLES),
         "text": text[:TEXT_LIMIT],
         # A sign-in or challenge is the person's to complete in the OCADE browser window.
@@ -370,6 +427,9 @@ async def _observe(page_id: str) -> dict:
     waiting = await current.evaluate(_WAITING)
     if waiting:
         observed["permissionPrompts"] = waiting  # the person allows or blocks these in the window
+    popups = await _collect_popups(entry)
+    if popups:
+        observed["popups"] = popups
     # The other tabs OCADE has open (popups included): switching is acting with that page id.
     others = [(other_id, e) for other_id, e in _pages.items() if other_id != page_id and not e["page"].is_closed()]
     if others:
@@ -407,8 +467,35 @@ async def _capture(current) -> bytes:
 
 def _bind(new_page, site: str) -> str:
     page_id = secrets.token_hex(6)
-    _pages[page_id] = {"page": new_page, "site": site}
+    entry = {"page": new_page, "site": site, "pendingPopups": [], "popupArrived": asyncio.Event()}
+    _pages[page_id] = entry
+
+    def opened(popup) -> None:
+        entry["pendingPopups"].append(popup)
+        entry["popupArrived"].set()
+
+    new_page.on("popup", opened)
     return page_id
+
+
+async def _collect_popups(entry: dict) -> list[str]:
+    pending, entry["pendingPopups"] = entry["pendingPopups"], []
+    entry["popupArrived"].clear()
+    results = []
+    for popup in pending:
+        try:
+            await popup.wait_for_load_state("domcontentloaded", timeout=5000)
+            await _follow(popup, entry["site"], popup.url)
+        except Exception:
+            pass
+        _redirects.pop(popup, None)
+        if not popup.is_closed() and _host(popup.url) == entry["site"]:
+            results.append(_bind(popup, entry["site"]))
+        else:
+            if not popup.is_closed():
+                await popup.close()
+            results.append("closed_off_site")
+    return results[-10:]
 
 
 @app.tool()
@@ -418,13 +505,15 @@ async def web_open(url: str) -> dict:
     site = _host(url)
     if not _allowed_url(url) or not _public_by_dns(site):
         raise Refused("site_not_public")
-    try:
-        context = await _context()
-    except Exception:
-        raise Refused("browser_unavailable")  # no display, or the browser cannot start here: retrying will not help
-    # Opening is a GET on the bound site; an observed open is still reported as possibly
-    # changing something (gateway), while a refused one never reached another host.
-    current = await context.new_page()
+    for attempt in range(2):
+        try:
+            context = await _context()
+            current = await context.new_page()
+            break
+        except Exception:
+            if attempt or not _browser.get("closed"):
+                raise Refused("browser_unavailable") from None
+    # Bind before any site request, including the first navigation.
     page_id = _bind(current, site)  # bound before the first request, so its navigation is checked
     try:
         try:
@@ -438,7 +527,8 @@ async def web_open(url: str) -> dict:
     except BaseException:
         _pages.pop(page_id, None)
         _redirects.pop(current, None)
-        await current.close()
+        if not current.is_closed():
+            await current.close()
         raise
     return await _observe(page_id)
 
@@ -455,7 +545,8 @@ async def web_read(page: dict) -> dict:
 @_refusals
 async def web_fill(page: dict, selector: str, value: str, frame: str | None = None) -> dict:
     """Type a value into one field (optionally inside a same-site iframe), then read it back."""
-    field = await _one(await _scope(_bound(page), frame), selector)
+    entry = _bound(page)
+    field = await _one(entry, await _scope(entry, frame), selector)
     if (await field.get_attribute("type") or "").lower() == "password":
         raise Refused("password_field")  # credentials are the person's to type
     if await field.evaluate("e => e.isContentEditable"):
@@ -479,7 +570,8 @@ async def web_fill(page: dict, selector: str, value: str, frame: str | None = No
 @_refusals
 async def web_select(page: dict, selector: str, option: str, frame: str | None = None) -> dict:
     """Choose one option (by its visible label) in a dropdown, then read the choice back."""
-    field = await _one(await _scope(_bound(page), frame), selector)
+    entry = _bound(page)
+    field = await _one(entry, await _scope(entry, frame), selector)
     mark_effect()
     await field.select_option(label=option, timeout=10_000)
     chosen = await field.evaluate("e => e.options[e.selectedIndex]?.text ?? ''")
@@ -491,18 +583,11 @@ async def web_select(page: dict, selector: str, option: str, frame: str | None =
 async def web_click(page: dict, selector: str, frame: str | None = None) -> dict:
     """Click one control (confirmed by the person); bind a same-site popup, close any other."""
     entry = _bound(page)
-    target = await _one(await _scope(entry, frame), selector)
-    context = await _context()
-    opened_now: list = []
-
-    def collect(new_page) -> None:
-        opened_now.append(new_page)
-
-    context.on("page", collect)
+    target = await _one(entry, await _scope(entry, frame), selector)
     current = entry["page"]
+    expects_popup = await target.evaluate("(element) => element.target === '_blank'")
     choosers: list = []
-    # A control that opens the computer's file picker: no dialog appears (it would wait for a
-    # person); the planner is told to choose the file with web.upload instead.
+
     def chosen(chooser) -> None:
         choosers.append(chooser)
 
@@ -510,31 +595,19 @@ async def web_click(page: dict, selector: str, frame: str | None = None) -> dict
     try:
         mark_effect()
         await target.click(timeout=10_000)
-        try:
-            await current.wait_for_load_state("domcontentloaded", timeout=30_000)
-            # ponytail: fixed 0.5 s window for a popup to appear; a slower one is seen by the next read.
-            await current.wait_for_timeout(500)
-        except Exception:
-            pass  # observed below either way
+        if expects_popup and not entry["pendingPopups"]:
+            with anyio.move_on_after(5):
+                await entry["popupArrived"].wait()
     finally:
-        context.remove_listener("page", collect)
         current.remove_listener("filechooser", chosen)
+        for chooser in choosers:
+            try:
+                await chooser.set_files([])
+            except Exception:
+                pass
     await _follow(current, entry["site"], current.url)
-    popups = []
-    for opened in opened_now:
-        try:
-            await opened.wait_for_load_state("domcontentloaded", timeout=15_000)
-            await _follow(opened, entry["site"], opened.url)
-        except Exception:
-            pass
-        _redirects.pop(opened, None)
-        if _host(opened.url) == entry["site"]:
-            popups.append(_bind(opened, entry["site"]))
-        else:
-            await opened.close()
-            popups.append("closed_off_site")
     if _host(current.url) != entry["site"]:
-        return {"leftSite": True, "url": current.url[:500], "popups": popups}
+        return {"leftSite": True, "url": current.url[:500], "popups": await _collect_popups(entry)}
     # What the page now looks like travels as a preview, so a canvas app's change is seen.
     from io import BytesIO
 
@@ -542,13 +615,9 @@ async def web_click(page: dict, selector: str, frame: str | None = None) -> dict
 
     with Image.open(BytesIO(await _capture(current))) as shot:
         preview = preview_jpeg(shot, 30_000)  # leaves room for the page beside it in one receipt
-    for chooser in choosers:  # close the picker unanswered, as a person pressing Cancel would
-        try:
-            await chooser.set_files([])
-        except Exception:
-            pass
     picker = {"filePicker": "opened: choose the file with web.upload on that input"} if choosers else {}
-    return await _observe(page["id"]) | {"popups": popups, "preview": preview} | picker
+    observed = await _observe(page["id"])
+    return {"popups": []} | observed | {"preview": preview} | picker
 
 
 @app.tool()
@@ -558,7 +627,8 @@ async def web_upload(page: dict, selector: str, path: str) -> dict:
     source = resolve(WORKSPACE, path)
     if not source.is_file():
         raise Refused("not_a_file")
-    field = await _one(_bound(page)["page"], selector)
+    entry = _bound(page)
+    field = await _one(entry, entry["page"], selector)
     if (await field.get_attribute("type") or "").lower() != "file":
         raise Refused("not_a_file_input")
     # Web apps often read the file on `change` and then clear the input, so the names are
@@ -576,9 +646,10 @@ async def web_upload(page: dict, selector: str, path: str) -> dict:
 @_refusals
 async def web_download(page: dict, selector: str, output: str) -> dict:
     """Click a download link and save the file under OCADE output."""
-    current = _bound(page)["page"]
+    entry = _bound(page)
+    current = entry["page"]
     target = output_path(WORKSPACE, output)
-    link = await _one(current, selector)
+    link = await _one(entry, current, selector)
     async with current.expect_download(timeout=60_000) as pending:
         mark_effect()  # the request may take effect even if publication later refuses
         await link.click()
@@ -609,9 +680,12 @@ async def web_screenshot(page: dict, output: str) -> dict:
 @_refusals
 async def web_close(page: dict) -> dict:
     """Close a page JARVIS opened, wherever it ended up."""
-    entry = _pages.pop(page["id"], None)
-    if entry is None:
+    entry = _pages.get(page["id"])
+    if entry is None or entry["page"].is_closed():
         raise Refused("page_gone")
+    if page["site"] != entry["site"]:
+        raise Refused("site_mismatch")
+    _pages.pop(page["id"])
     mark_effect()
     _redirects.pop(entry["page"], None)
     await entry["page"].close()

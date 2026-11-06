@@ -21,6 +21,7 @@ import os
 import plistlib
 import subprocess
 import time
+from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
 
@@ -151,15 +152,56 @@ def _leased(window: dict):
     if now["pid"] != window["pid"] or now["exe"] != window["exe"] or abs(now["started"] - window["started"]) > 1:
         raise Refused("window_changed")
     x, y, width, height = now["bounds"]
+    matches = []
     for candidate in _attribute(AX.AXUIElementCreateApplication(window["pid"]), "AXWindows") or []:
         if _attribute(candidate, "AXMinimized"):
             continue
         position, size = _point(_attribute(candidate, "AXPosition")), _point(_attribute(candidate, "AXSize"))
         if position and size and abs(position[0] - x) < 2 and abs(position[1] - y) < 2 \
                 and abs(size[0] - width) < 2 and abs(size[1] - height) < 2:
-            return candidate, now["bounds"]
-    raise Refused("window_changed")
+            matches.append(candidate)
+    if len(matches) != 1:
+        raise Refused("window_ambiguous" if matches else "window_changed")
+    return matches[0], now["bounds"]
 
+
+@contextmanager
+def _ax_change_events(window: dict, target, control):
+    """Observe native changes on the action's current run loop."""
+    import ApplicationServices as AX  # type: ignore[import-not-found]
+    import CoreFoundation as CF  # type: ignore[import-not-found]
+
+    events: list[str] = []
+
+    def received(_observer, _element, notification, _refcon):
+        if len(events) < 8:
+            events.append(str(notification))
+
+    error, observer = AX.AXObserverCreate(window["pid"], received, None)
+    if error or observer is None:
+        yield events
+        return
+    registrations = [
+        (target, "AXMoved"), (target, "AXResized"), (target, "AXTitleChanged"),
+        (target, "AXUIElementDestroyed"), (control, "AXValueChanged"),
+    ]
+    registered = [
+        (item, event) for item, event in registrations
+        if AX.AXObserverAddNotification(observer, item, event, None) == 0
+    ]
+    if not registered:
+        yield events
+        return
+    source = AX.AXObserverGetRunLoopSource(observer)
+    run_loop = CF.CFRunLoopGetCurrent()
+    CF.CFRunLoopAddSource(run_loop, source, CF.kCFRunLoopDefaultMode)
+    try:
+        yield events
+        CF.CFRunLoopRunInMode(CF.kCFRunLoopDefaultMode, 0.15, False)
+    finally:
+        CF.CFRunLoopRemoveSource(run_loop, source, CF.kCFRunLoopDefaultMode)
+        for item, event in registered:
+            AX.AXObserverRemoveNotification(observer, item, event)
 
 def _walk(element, depth: int = 0):
     yield element
@@ -289,10 +331,11 @@ def ui_invoke(window: dict, element: dict) -> dict:
     target, bounds = _leased(window)
     control = _element(target, element)
     _person_quiet()
-    mark_effect()
-    if AX.AXUIElementPerformAction(control, "AXPress") != 0:
-        raise Refused("pattern_unsupported")
-    return {"pattern": "press", "after": _describe(control, bounds)}
+    with _ax_change_events(window, target, control) as events:
+        mark_effect()
+        if AX.AXUIElementPerformAction(control, "AXPress") != 0:
+            raise Refused("pattern_unsupported")
+    return {"pattern": "press", "after": _describe(control, bounds), "axEvents": events}
 
 
 @app.tool()
@@ -304,12 +347,13 @@ def ui_set_value(window: dict, element: dict, value: str) -> dict:
     target, bounds = _leased(window)
     control = _element(target, element)
     _person_quiet()
-    mark_effect()
-    if AX.AXUIElementSetAttributeValue(control, "AXValue", value) != 0:
-        raise Refused("pattern_unsupported")
+    with _ax_change_events(window, target, control) as events:
+        mark_effect()
+        if AX.AXUIElementSetAttributeValue(control, "AXValue", value) != 0:
+            raise Refused("pattern_unsupported")
     actual = _attribute(control, "AXValue")
     after = _describe(control, bounds)
-    return {"after": after, "matches": actual is not None and str(actual) == value}
+    return {"after": after, "matches": actual is not None and str(actual) == value, "axEvents": events}
 
 
 @app.tool()
@@ -342,33 +386,45 @@ def ui_send_keys(window: dict, keys: str, element: dict | None = None) -> dict:
 @app.tool()
 @_evidence
 def ui_click_point(window: dict, x: float, y: float, expectTitle: str) -> dict:
-    """Last resort: one click at a window-relative point, never while the person is using the Mac."""
-    import Quartz  # type: ignore[import-not-found]
-
+    """Click only a freshly observed point that still belongs to this exact window."""
     import json
 
+    import ApplicationServices as AX  # type: ignore[import-not-found]
+    import CoreFoundation as CF  # type: ignore[import-not-found]
+    import Quartz  # type: ignore[import-not-found]
     from PIL import ImageGrab
 
     from . import vision
 
-    target, (left, top, width, height) = _leased(window)
+    target, _ = _leased(window)
     if expectTitle not in str(_attribute(target, "AXTitle") or ""):
         raise Refused("unexpected_window")
     if not _screen_capture_allowed():
-        raise Refused("screen_recording_permission_needed")  # no picture to ground a point in
+        raise Refused("screen_recording_permission_needed")
     seen = _seen.get(json.dumps(window, sort_keys=True))
     if seen is None:
-        raise Refused("inspect_first")  # a point is only grounded in an image of this window
-    checked = vision.match(seen, ImageGrab.grab(bbox=(left, top, left + width, top + height)), x, y)
-    if "reason" in checked:
-        raise Refused(checked["reason"])  # nothing was clicked: look again with ui.inspect
-    x, y = checked["x"], checked["y"]
+        raise Refused("inspect_first")
     _person_quiet()
-    point = (left + x * width, top + y * height)
     try:
+        mark_effect()
         _front(window["pid"])
+        target, (left, top, width, height) = _leased(window)
+        shot = ImageGrab.grab(bbox=(left, top, left + width, top + height))
+        checked = vision.match(seen, shot, x, y)
+        if "reason" in checked:
+            raise Refused(checked["reason"])
+        point = (left + checked["x"] * width, top + checked["y"] * height)
+        _, fresh_bounds = _leased(window)
+        if tuple(fresh_bounds) != (left, top, width, height):
+            raise Refused("window_changed")
+        error, hit = AX.AXUIElementCopyElementAtPosition(
+            AX.AXUIElementCreateSystemWide(), point[0], point[1], None,
+        )
+        hit_window = _attribute(hit, "AXWindow") if not error and hit is not None else None
+        if hit_window is None or not CF.CFEqual(hit_window, target):
+            raise Refused("point_obscured")
+        _person_quiet()
         for kind in (Quartz.kCGEventLeftMouseDown, Quartz.kCGEventLeftMouseUp):
-            mark_effect()
             Quartz.CGEventPost(Quartz.kCGHIDEventTap,
                                Quartz.CGEventCreateMouseEvent(None, kind, point, Quartz.kCGMouseButtonLeft))
             time.sleep(0.05)

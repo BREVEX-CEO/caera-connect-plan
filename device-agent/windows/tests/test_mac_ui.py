@@ -167,5 +167,40 @@ class MacUiLadder(unittest.TestCase):
             self.assertEqual(out["person"]["errorCode"], "user_active")
 
 
+
+class AxEventContract(unittest.TestCase):
+    def test_native_observer_runs_and_detaches_at_the_action_boundary(self):
+        import sys
+        from types import SimpleNamespace
+        from unittest.mock import Mock, patch
+        from ocade_agent.mac_worker import _ax_change_events
+
+        callback = None
+
+        def create(pid, receive, unused):
+            nonlocal callback
+            self.assertEqual(pid, 51)
+            callback = receive
+            return 0, "observer"
+
+        ax = SimpleNamespace(
+            AXObserverCreate=create, AXObserverAddNotification=Mock(return_value=0),
+            AXObserverGetRunLoopSource=Mock(return_value="source"), AXObserverRemoveNotification=Mock(),
+        )
+        cf = SimpleNamespace(
+            CFRunLoopGetCurrent=lambda: "loop", kCFRunLoopDefaultMode="default",
+            CFRunLoopAddSource=Mock(), CFRunLoopRemoveSource=Mock(),
+            CFRunLoopRunInMode=lambda *_: callback(None, None, "AXValueChanged", None),
+        )
+        with patch.dict(sys.modules, {"ApplicationServices": ax, "CoreFoundation": cf}):
+            with _ax_change_events({"pid": 51}, "window", "control") as observed:
+                self.assertEqual(observed, [])
+        self.assertEqual(observed, ["AXValueChanged"])
+        ax.AXObserverAddNotification.assert_any_call("observer", "control", "AXValueChanged", None)
+        cf.CFRunLoopAddSource.assert_called_once_with("loop", "source", "default")
+        cf.CFRunLoopRemoveSource.assert_called_once_with("loop", "source", "default")
+        ax.AXObserverRemoveNotification.assert_any_call("observer", "control", "AXValueChanged")
+
+
 if __name__ == "__main__":
     unittest.main()

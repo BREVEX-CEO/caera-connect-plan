@@ -66,29 +66,125 @@ def installed_apps(limit: int = 300) -> list[dict]:
     import win32com.client  # type: ignore[import-not-found]
 
     pythoncom.CoInitialize()  # called from worker threads; COM is per thread
-    found: dict[str, str] = {}
-    shell = win32com.client.Dispatch("WScript.Shell")
-    menus = [Path(os.environ.get("APPDATA", "")), Path(os.environ.get("PROGRAMDATA", ""))]
-    for root in (m / "Microsoft/Windows/Start Menu/Programs" for m in menus):
-        for link in root.rglob("*.lnk") if root.is_dir() else []:
+    try:
+        found: dict[str, str] = {}
+        shell = win32com.client.Dispatch("WScript.Shell")
+        menus = [Path(os.environ.get("APPDATA", "")), Path(os.environ.get("PROGRAMDATA", ""))]
+        for root in (m / "Microsoft/Windows/Start Menu/Programs" for m in menus):
+            for link in root.rglob("*.lnk") if root.is_dir() else []:
+                try:
+                    target = shell.CreateShortCut(str(link)).TargetPath
+                except Exception:
+                    continue
+                if target.lower().endswith(".exe") and "uninstall" not in link.stem.lower():
+                    found.setdefault(Path(target).name.lower(), link.stem[:120])
+        for hive in (winreg.HKEY_CURRENT_USER, winreg.HKEY_LOCAL_MACHINE):
             try:
-                target = shell.CreateShortCut(str(link)).TargetPath
-            except Exception:
+                key = winreg.OpenKey(hive, r"Software\Microsoft\Windows\CurrentVersion\App Paths")
+            except OSError:
                 continue
-            if target.lower().endswith(".exe") and "uninstall" not in link.stem.lower():
-                found.setdefault(Path(target).name.lower(), link.stem[:120])
-    for hive in (winreg.HKEY_CURRENT_USER, winreg.HKEY_LOCAL_MACHINE):
-        try:
-            key = winreg.OpenKey(hive, r"Software\Microsoft\Windows\CurrentVersion\App Paths")
-        except OSError:
-            continue
-        with key:
-            for index in range(winreg.QueryInfoKey(key)[0]):
-                name = winreg.EnumKey(key, index)
-                if name.lower().endswith(".exe"):
-                    found.setdefault(name.lower(), Path(name).stem[:120])
-    apps = [{"name": name, "exe": exe} for exe, name in found.items() if len(exe) <= 84]
+            with key:
+                for index in range(winreg.QueryInfoKey(key)[0]):
+                    name = winreg.EnumKey(key, index)
+                    if name.lower().endswith(".exe"):
+                        found.setdefault(name.lower(), Path(name).stem[:120])
+        app_shell = win32com.client.Dispatch("Shell.Application")
+        for key, name, _item in _packaged_apps(app_shell):
+            found.setdefault(key, name)
+    finally:
+        pythoncom.CoUninitialize()
+    apps = [{"name": name, "exe": exe} for exe, name in found.items() if len(exe) <= 80]
     return sorted(apps, key=lambda app: app["name"].lower())[:limit]
+
+
+def _packaged_key(aumid: str) -> str:
+    import hashlib
+
+    return "pkg-" + hashlib.sha256(aumid.casefold().encode("utf8")).hexdigest()[:32]
+
+
+def _packaged_apps(shell):
+    folder = shell.NameSpace("shell:AppsFolder")
+    if folder is None:
+        return
+    for item in folder.Items():
+        try:
+            aumid = item.ExtendedProperty("System.AppUserModel.ID")
+            if isinstance(aumid, str) and "!" in aumid and len(aumid) <= 256:
+                yield _packaged_key(aumid), str(item.Name)[:120], item
+        except Exception:
+            continue
+
+
+def launch_packaged(exe: str, before_launch) -> bool:
+    """Resolve a fresh Windows shell item from its approved opaque app identity."""
+    if sys.platform != "win32":
+        return False
+    import pythoncom  # type: ignore[import-not-found]
+    import win32com.client  # type: ignore[import-not-found]
+
+    pythoncom.CoInitialize()
+    try:
+        shell = win32com.client.Dispatch("Shell.Application")
+        for key, _name, item in _packaged_apps(shell):
+            if key == exe:
+                before_launch()
+                item.InvokeVerb()
+                return True
+        return False
+    finally:
+        pythoncom.CoUninitialize()
+
+
+def _process_aumid(handle) -> str | None:
+    from ctypes.wintypes import HANDLE
+
+    query = ctypes.windll.kernel32.GetApplicationUserModelId
+    length = ctypes.c_uint32(0)
+    process = HANDLE(int(handle))
+    if query(process, ctypes.byref(length), None) != 122 or not 1 <= length.value <= 257:
+        return None
+    value = ctypes.create_unicode_buffer(length.value)
+    return value.value if query(process, ctypes.byref(length), value) == 0 else None
+
+
+def _window_aumid(hwnd: int, pid: int, handle, win32api, win32con, win32process, hosted: bool) -> str | None:
+    """Packaged apps can be hosted in another process's top-level frame."""
+    import win32gui  # type: ignore[import-not-found]
+
+    direct = _process_aumid(handle)
+    if direct or not hosted:
+        return direct
+    seen = set()
+
+    def child(child_hwnd, _):
+        if not win32gui.IsWindowVisible(child_hwnd):
+            return True
+        _, child_pid = win32process.GetWindowThreadProcessId(child_hwnd)
+        if child_pid == pid or child_pid in seen:
+            return True
+        seen.add(child_pid)
+        return len(seen) < 32
+
+    try:
+        win32gui.EnumChildWindows(hwnd, child, None)
+    except win32gui.error:
+        return None
+    identities = set()
+    for child_pid in seen:
+        try:
+            owned = win32api.OpenProcess(win32con.PROCESS_QUERY_LIMITED_INFORMATION, False, child_pid)
+        except Exception:
+            continue
+        try:
+            identity = _process_aumid(owned)
+            if identity:
+                identities.add(identity)
+        finally:
+            win32api.CloseHandle(owned)
+    if len(identities) > 1:
+        raise ValueError("ambiguous packaged window")
+    return next(iter(identities), None)
 
 
 def app_path(exe: str) -> str | None:
@@ -208,6 +304,13 @@ def window_identity(hwnd: int, win32api=None, win32con=None, win32process=None) 
             if not ctypes.windll.kernel32.QueryFullProcessImageNameW(int(handle), 0, image, ctypes.byref(size)):
                 return None
             exe = Path(image.value).name.lower()
+            system_root = os.environ.get("WINDIR")
+            hosted = bool(system_root and Path(image.value) == Path(system_root) / "System32" / "ApplicationFrameHost.exe")
+            aumid = _window_aumid(hwnd, pid, handle, win32api, win32con, win32process, hosted)
+            if aumid:
+                exe = _packaged_key(aumid)
+            elif hosted:
+                return None  # a frame alone does not identify an allowed application
             created = win32process.GetProcessTimes(handle)["CreationTime"]
         finally:
             win32api.CloseHandle(handle)

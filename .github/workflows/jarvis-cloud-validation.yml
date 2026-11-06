@@ -122,7 +122,7 @@ jobs:
       - name: Required-test gate and effect-scope regressions
         if: success() || failure()
         working-directory: device-agent/windows
-        run: python -m tests.run_required --tests tests.test_required_runner --tests tests.test_effect_scope --tests tests.test_agent_recovery --tests tests.test_jobs --tests tests.test_verify_kinds --tests tests.test_gateway
+        run: python -m tests.run_required --tests tests.test_required_runner --tests tests.test_effect_scope --tests tests.test_agent_recovery --tests tests.test_jobs --tests tests.test_verify_kinds --tests tests.test_gateway --tests tests.test_web.BrowserUnavailable --tests tests.test_web.BrowserObservationContract --tests tests.test_windows_ui.EnvironmentContract --tests tests.test_windows_ui.DesktopTargetContract --tests tests.test_mac_ui.AxEventContract
       - name: Evaluation bookkeeping and fixture regressions without model calls
         if: success() || failure()
         env:

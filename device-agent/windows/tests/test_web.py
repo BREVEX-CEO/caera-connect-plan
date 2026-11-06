@@ -409,6 +409,54 @@ class WebLadder(unittest.TestCase):
         self.evidence("IMG-002-edited.png", self.root / "OCADE output" / "web" / "edited.png")
 
 
+
+class BrowserObservationContract(unittest.TestCase):
+    def test_a_tab_cannot_reuse_another_tabs_control_or_a_detached_element(self):
+        from unittest.mock import AsyncMock
+        from types import SimpleNamespace
+        from ocade_agent.sandbox import Refused
+        from ocade_agent.web_worker import _one
+
+        async def checks():
+            page = object()
+            selector = '[data-ocade="ab12-0"]'
+            element = SimpleNamespace(evaluate=AsyncMock(return_value=True))
+            observed = {"token": "ab12", "page": page, "controls": {selector: element}}
+            self.assertIs(await _one(observed, page, selector), element)
+            with self.assertRaisesRegex(Refused, "stale_selector"):
+                await _one({**observed, "token": "b1a2"}, page, selector)
+            with self.assertRaisesRegex(Refused, "stale_selector"):
+                await _one(observed, object(), selector)
+            element.evaluate.return_value = False
+            with self.assertRaisesRegex(Refused, "stale_selector"):
+                await _one(observed, page, selector)
+
+        anyio.run(checks)
+
+    def test_a_late_popup_is_classified_for_its_opener(self):
+        from types import SimpleNamespace
+        from unittest.mock import AsyncMock, Mock, patch
+        from ocade_agent import web_worker
+
+        async def checks():
+            pages = {}
+            opener = SimpleNamespace(on=Mock())
+            unrelated = SimpleNamespace(on=Mock())
+            with patch.object(web_worker, "_pages", pages), patch.object(web_worker, "_redirects", {}):
+                first = web_worker._bind(opener, "first.example")
+                other = web_worker._bind(unrelated, "other.example")
+                popup = Mock(
+                    url="https://other.example", wait_for_load_state=AsyncMock(),
+                    is_closed=Mock(return_value=False), close=AsyncMock(),
+                )
+                opener.on.call_args.args[1](popup)
+                self.assertEqual(await web_worker._collect_popups(pages[other]), [])
+                self.assertEqual(await web_worker._collect_popups(pages[first]), ["closed_off_site"])
+                popup.close.assert_awaited_once()
+
+        anyio.run(checks)
+
+
 if __name__ == "__main__":
     unittest.main()
 

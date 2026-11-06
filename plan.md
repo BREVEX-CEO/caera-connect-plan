@@ -1696,10 +1696,10 @@ Coding status is kept separate from runtime verification (Appendix A), so nothin
 | 181 | CODE | NOT CODED | C9 |
 | 182 | CODE | NOT CODED | C9 |
 | 185 | CODE | NOT CODED | C5 |
-| 186 | CODE | NOT CODED | C5 |
+| 186 | CODE | BUILDS | C5, `543eeb1a` |
 | 187 | CODE | NOT CODED | C5 |
-| 188 | CODE | NOT CODED | C5 |
-| 189 | CODE | NOT CODED | C5 |
+| 188 | CODE | BUILDS | C5, `543eeb1a` |
+| 189 | CODE | BUILDS | C5, `543eeb1a` |
 | 190 | CODE | NOT CODED | C5 |
 | 191 | CODE | NOT CODED | C10 |
 | 192 | CODE | NOT CODED | C10 |
@@ -1800,7 +1800,14 @@ The existing `tests.run_required.main` loads selected modules/classes/methods or
 - The reviewed install catalog covers Node.js x64 and ARM64 on Windows and macOS. Discovery returns manual setup when it has no approved package. None of these checks qualifies a consumer installation.
 - 98, 99, 104, 119, 120 and 217 still need packaging, explicit bundled prerequisites and clean-machine harness coverage. 100, 110–113 still need broader installed-version and native diagnostic coverage. These remain NOT CODED.
 
-**C5 updater and packaging — CODED for the signed activation path, coding gate pending.** `activate-update → companion_lock → _activate_release` verifies a release signature, platform, architecture, protocol, archive and extracted files, then starts every worker before selecting the new release. `run → _select_release` rechecks the active files and falls back to a previous valid release or the installed base. `rollback-update → _rollback_release` switches the pointer under the same lock. The Windows installer respects the live companion mutex. The existing package spec and frozen checker use the appropriate Windows and macOS bundle paths. The coding fixtures exercise invalid signatures, wrong architecture, unsafe archives, worker startup failure, active-lock refusal and rollback. Bundles and real-machine qualification remain manual.
+**C5 updater and packaging — BUILDS for signed activation at `543eeb1ad1bc85059c9097b69a83746948e45bf0`.** [GitHub Actions run 42221887654](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/42221887654) passed the coding gate, including 138 TypeScript and 92 focused Python tests.
+
+- 186 — BUILDS — `activate-update → _activate_release → _installed_release` verifies the signed archive and actual extracted file tree, then `check-update-runtime → Gateway._session` starts and checks every required worker. The manual frozen checker uses the native Windows and macOS executable and bundled browser paths.
+- 188 — BUILDS — `activate-update → _activate_release` stages privately and validates protocol, platform, architecture and file hashes before publishing one atomic selection. `run → _select_release` verifies selected files and falls back on damage. `rollback-update → _rollback_release` restores the prior valid release.
+- 189 — BUILDS — Normal companion work and activation use `companion_lock`. `_no_active_jobs` also fences a detached or unresolved tracked job. The Windows installer checks the companion mutex and cannot automatically restart the companion. Worker binaries remain in their own release directory throughout activation.
+- 185, 187 and 190 remain NOT CODED pending reproducible bundle, upgrade/repair/uninstall and clean-machine harness coverage. Production update signing and native installer qualification require the later owner-directed stage.
+
+**C6 desktop and browser repair — CODED for this slice, coding gate pending.** `discovery.installed_apps/window_identity → windows_worker.apps_list/apps_launch/_leased` binds packaged Windows apps to native shell IDs, not shared window titles. `ui_click_point` on both desktops checks fresh geometry and window ownership before input. macOS `ui_invoke/ui_set_value → _ax_change_events` listens for native action notifications on the current run loop. `web_open → _context` recovers a closed browser context. `_observe → _one` binds open shadow-root controls to actual elements in one tab, and the bound opener records late popup events. Focused synthetic contracts cover these boundaries. Native and full browser ladder qualification are deferred.
 
 **Coding batches (order by code dependency; continue past any blocked item):**
 

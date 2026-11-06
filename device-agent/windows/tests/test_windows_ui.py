@@ -206,5 +206,43 @@ class WindowsUiLadder(unittest.TestCase):
             self.assertEqual(out["ambiguous"]["errorCode"], "element_ambiguous")
 
 
+
+class DesktopTargetContract(unittest.TestCase):
+    def test_virtual_desktop_points_and_obscured_windows(self):
+        from types import SimpleNamespace
+        from ocade_agent.sandbox import Refused
+        from ocade_agent.windows_worker import _check_point, _window_point
+
+        point = _window_point((-1920, -540, -320, 660), 0.25, 0.5)
+        self.assertEqual(point, (-1520, 60))
+        screens = SimpleNamespace(MonitorFromPoint=lambda candidate, flags: candidate == point and flags == 0)
+        window = SimpleNamespace(WindowFromPoint=lambda _point: 4, GetAncestor=lambda child, flags: 7)
+        _check_point(7, point, screens, window)
+        with self.assertRaisesRegex(Refused, "point_obscured"):
+            _check_point(8, point, screens, window)
+        with self.assertRaisesRegex(Refused, "point_off_screen"):
+            _check_point(7, (1920, 0), screens, window)
+
+    def test_packaged_keys_preserve_native_identity_across_labels_and_case(self):
+        from types import SimpleNamespace
+        from ocade_agent.discovery import _packaged_apps, _packaged_key
+
+        class Item:
+            def __init__(self, aumid, name):
+                self.aumid, self.Name = aumid, name
+
+            def ExtendedProperty(self, property_name):
+                if property_name == "System.AppUserModel.ID":
+                    return self.aumid
+
+        aumid = "Fixture.Test_abcd!Main"
+        items = [Item(aumid, "App label"), Item("other.desktop", "Unpackaged")]
+        shell = SimpleNamespace(NameSpace=lambda _: SimpleNamespace(Items=lambda: items))
+        [(key, label, native)] = list(_packaged_apps(shell))
+        self.assertEqual((key, label, native), (_packaged_key(aumid.upper()), "App label", items[0]))
+        self.assertRegex(key, r"^pkg-[0-9a-f]{32}$")
+        self.assertNotEqual(key, _packaged_key("Fixture.Test_abcd!Alternate"))
+
+
 if __name__ == "__main__":
     unittest.main()
