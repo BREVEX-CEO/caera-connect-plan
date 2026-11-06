@@ -466,10 +466,18 @@ export type Database = {
           live_frame: string | null
           live_frame_at: string | null
           model_calls: number
+          model_metric_ids: string[]
           model_ms: number
           outcome: Json | null
           paused_at: string | null
           plan: Json
+          planner_auto_retries: number
+          planner_decision_ms: number
+          planner_goal_ms: number
+          provider_input_calls: number
+          provider_input_tokens: number
+          provider_output_calls: number
+          provider_output_tokens: number
           result: string | null
           retry_at: string | null
           schedule_occurrence: string | null
@@ -494,10 +502,18 @@ export type Database = {
           live_frame?: string | null
           live_frame_at?: string | null
           model_calls?: number
+          model_metric_ids?: string[]
           model_ms?: number
           outcome?: Json | null
           paused_at?: string | null
           plan?: Json
+          planner_auto_retries?: number
+          planner_decision_ms?: number
+          planner_goal_ms?: number
+          provider_input_calls?: number
+          provider_input_tokens?: number
+          provider_output_calls?: number
+          provider_output_tokens?: number
           result?: string | null
           retry_at?: string | null
           schedule_occurrence?: string | null
@@ -522,10 +538,18 @@ export type Database = {
           live_frame?: string | null
           live_frame_at?: string | null
           model_calls?: number
+          model_metric_ids?: string[]
           model_ms?: number
           outcome?: Json | null
           paused_at?: string | null
           plan?: Json
+          planner_auto_retries?: number
+          planner_decision_ms?: number
+          planner_goal_ms?: number
+          provider_input_calls?: number
+          provider_input_tokens?: number
+          provider_output_calls?: number
+          provider_output_tokens?: number
           result?: string | null
           retry_at?: string | null
           schedule_occurrence?: string | null
@@ -1867,6 +1891,10 @@ export type Database = {
         Args: { p_device: string }
         Returns: Json
       }
+      jarvis_complete_milestone: {
+        Args: { p_controller: string; p_index: number; p_task: string }
+        Returns: number
+      }
       jarvis_device_code: {
         Args: { p_public_key: string }
         Returns: string
@@ -1899,6 +1927,10 @@ export type Database = {
       }
       jarvis_note_model: {
         Args: { p_ms: number; p_task: string }
+        Returns: undefined
+      }
+      jarvis_note_model_metrics: {
+        Args: { p_phase: string; p_samples: Json; p_task: string }
         Returns: undefined
       }
       jarvis_online_consented: {

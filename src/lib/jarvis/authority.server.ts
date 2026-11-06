@@ -490,11 +490,12 @@ async function notePlannerCalls(
       output: measurement.usage?.outputTokens ?? null,
     })),
   );
-  await call(admin, "jarvis_note_model_metrics", {
+  const { error } = await admin.rpc("jarvis_note_model_metrics", {
     p_task: taskId,
     p_phase: phase,
     p_samples: samples,
   });
+  if (error) throw new Error("JARVIS could not record that just now (jarvis_note_model_metrics).");
 }
 
 /* --------------------------- Customer actions --------------------------- */
