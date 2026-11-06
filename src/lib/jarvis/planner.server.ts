@@ -994,7 +994,8 @@ const DEPENDENCY_FAILURES: Record<string, string> = {
     "The executable architecture is incompatible with this computer.",
   dependency_invalid_native_image: "The operating system could not load this executable.",
   dependency_permission_denied: "The operating system denied access to the executable.",
-  dependency_admin_required: "The operating system requires an administrator to approve this setup.",
+  dependency_admin_required:
+    "The operating system requires an administrator to approve this setup.",
   dependency_security_policy: "The computer's security policy blocked the executable.",
   insufficient_storage: "The computer ran out of space during installation.",
 };

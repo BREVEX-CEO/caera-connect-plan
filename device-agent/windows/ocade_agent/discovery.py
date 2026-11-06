@@ -529,6 +529,7 @@ def executable_architectures(path: Path) -> list[str]:
 
 
 def _candidate(path: str) -> dict:
+    import shutil
     import subprocess
 
     binary = Path(path)
@@ -542,9 +543,10 @@ def _candidate(path: str) -> dict:
     if architectures:
         evidence["nativeArchitecture"] = native in architectures
     try:
-        if sys.platform == "darwin":
+        xattr = shutil.which("xattr", path=os.defpath) if sys.platform == "darwin" else None
+        if xattr:
             marker = subprocess.run(
-                ["/usr/bin/xattr", "-p", "com.apple.quarantine", path],
+                [xattr, "-p", "com.apple.quarantine", path],
                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=2,
             )
             if marker.returncode == 0:
