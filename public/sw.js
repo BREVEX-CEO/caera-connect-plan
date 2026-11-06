@@ -59,7 +59,8 @@ async function keepAsset(request, response) {
  * below once they have been fetched successfully at least once.
  */
 const REQUIRED_PRECACHE = [...SHELL_ROUTES, OFFLINE_URL].map(
-  (path) => new Request(new URL(path, self.location.origin), { credentials: "omit", cache: "reload" }),
+  (path) =>
+    new Request(new URL(path, self.location.origin), { credentials: "omit", cache: "reload" }),
 );
 
 const OPTIONAL_PRECACHE = [
@@ -158,7 +159,9 @@ self.addEventListener("activate", (event) => {
         .then((keys) =>
           Promise.all(
             keys
-              .filter((k) => (k.startsWith(SHELL_CACHE_PREFIX) && k !== VERSION) || k === "ocade-assets")
+              .filter(
+                (k) => (k.startsWith(SHELL_CACHE_PREFIX) && k !== VERSION) || k === "ocade-assets",
+              )
               .map((k) => caches.delete(k)),
           ),
         ),
@@ -217,7 +220,9 @@ function isRuntimeCacheable(url) {
   const buildAsset = /^\/(?:assets|_build)\//.test(url.pathname);
   const publicAsset = /^\/(?:icons|fonts|brand)\//.test(url.pathname);
   if (url.pathname === "/favicon.ico" || url.pathname === "/manifest.webmanifest") return true;
-  return (buildAsset || publicAsset) && /\.(js|mjs|css|woff2?|png|svg|ico|json|wasm)$/.test(url.pathname);
+  return (
+    (buildAsset || publicAsset) && /\.(js|mjs|css|woff2?|png|svg|ico|json|wasm)$/.test(url.pathname)
+  );
 }
 
 /* ------------------------------------------------- background preparation -- */

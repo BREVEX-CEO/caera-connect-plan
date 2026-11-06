@@ -515,7 +515,11 @@ export function JarvisWorkspace({
               </button>
             </form>
             {signedIn && dictation.supported ? (
-              <p id="jarvis-dictation-status" role="status" className="mt-1 text-xs text-muted-foreground">
+              <p
+                id="jarvis-dictation-status"
+                role="status"
+                className="mt-1 text-xs text-muted-foreground"
+              >
                 {dictation.error ??
                   (dictation.state === "listening"
                     ? "Listening for this draft. Press the microphone again to cancel."
@@ -532,7 +536,11 @@ export function JarvisWorkspace({
               >
                 {sendBlockedReason}{" "}
                 {!device || device.state === "permission_required" ? (
-                  <button type="button" onClick={() => settings.open("devices")} className="underline">
+                  <button
+                    type="button"
+                    onClick={() => settings.open("devices")}
+                    className="underline"
+                  >
                     Open Devices
                   </button>
                 ) : null}

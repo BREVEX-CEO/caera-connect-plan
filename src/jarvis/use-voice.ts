@@ -26,8 +26,10 @@ export function pickVoice(
   return best && FEMALE_VOICE.test(best.name) ? best : null;
 }
 
-
-type RecognitionEvent = { resultIndex: number; results: ArrayLike<ArrayLike<{ transcript: string }>> };
+type RecognitionEvent = {
+  resultIndex: number;
+  results: ArrayLike<ArrayLike<{ transcript: string }>>;
+};
 
 interface DictationRecognition {
   lang: string;
@@ -67,7 +69,6 @@ export function useJarvisDictation(enabled: boolean, onText: (text: string) => v
   const [state, setState] = useState<"idle" | "starting" | "listening">("idle");
   const [error, setError] = useState<string | null>(null);
   const current = useRef<DictationRecognition | null>(null);
-
 
   const cancel = useCallback(() => {
     const recognition = current.current;

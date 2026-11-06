@@ -170,7 +170,9 @@ export function JarvisAccess() {
   return (
     <div className="space-y-4 text-sm">
       <ol className="list-decimal space-y-1 pl-5 text-muted-foreground">
-        <li>Open the OCADE companion on your Windows or Mac computer and choose a JARVIS folder.</li>
+        <li>
+          Open the OCADE companion on your Windows or Mac computer and choose a JARVIS folder.
+        </li>
         <li>Enter the pairing code from the companion and keep it running.</li>
         <li>Allow access to its JARVIS folder, then ask JARVIS for your first task.</li>
       </ol>
@@ -269,18 +271,20 @@ function DeviceAccess({
             {device.last_seen_at ? ` · Last seen ${when(device.last_seen_at)}` : ""}
           </p>
         </div>
-        {!device.revoked_at ? <button
-          type="button"
-          onClick={() => {
-            if (!window.confirm(`Remove ${device.name}? Any task on it stops.`)) return;
-            void removeJarvisDevice({ data: { deviceId: device.id } })
-              .then(onChanged)
-              .catch((error: Error) => toast.error(error.message));
-          }}
-          className="rounded-md px-2 py-1 text-xs text-muted-foreground hover:bg-accent hover:text-destructive"
-        >
-          Remove
-        </button> : null}
+        {!device.revoked_at ? (
+          <button
+            type="button"
+            onClick={() => {
+              if (!window.confirm(`Remove ${device.name}? Any task on it stops.`)) return;
+              void removeJarvisDevice({ data: { deviceId: device.id } })
+                .then(onChanged)
+                .catch((error: Error) => toast.error(error.message));
+            }}
+            className="rounded-md px-2 py-1 text-xs text-muted-foreground hover:bg-accent hover:text-destructive"
+          >
+            Remove
+          </button>
+        ) : null}
       </div>
       {device.state === "permission_required" && has("files") ? (
         <button type="button" onClick={() => set("files", true)} className="text-xs underline">
@@ -288,19 +292,22 @@ function DeviceAccess({
         </button>
       ) : null}
       {granted.isError && !device.revoked_at ? (
-        <p role="status" className="text-xs text-muted-foreground">Permissions could not be loaded.</p>
+        <p role="status" className="text-xs text-muted-foreground">
+          Permissions could not be loaded.
+        </p>
       ) : null}
-      {!device.revoked_at && ACCESS.map(({ capability, label }) => (
-        <label key={capability} className="flex items-center gap-2">
-          <input
-            type="checkbox"
-            checked={has(capability)}
-            disabled={!granted.isSuccess}
-            onChange={(e) => set(capability, e.target.checked)}
-          />
-          {label}
-        </label>
-      ))}
+      {!device.revoked_at &&
+        ACCESS.map(({ capability, label }) => (
+          <label key={capability} className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={has(capability)}
+              disabled={!granted.isSuccess}
+              onChange={(e) => set(capability, e.target.checked)}
+            />
+            {label}
+          </label>
+        ))}
       {has("apps") && apps.length ? (
         <details>
           <summary className="cursor-pointer text-muted-foreground">Allowed apps</summary>
@@ -445,7 +452,9 @@ export function TaskPanel({
       className="mx-auto mb-2 w-full max-w-2xl rounded-2xl border border-border/60 p-3 text-sm"
     >
       <div className="flex flex-wrap items-center gap-2">
-        <span role="status" className="font-medium">{STATUS_WORDS[task.status] ?? task.status}</span>
+        <span role="status" className="font-medium">
+          {STATUS_WORDS[task.status] ?? task.status}
+        </span>
         <span className="min-w-0 flex-1 truncate text-muted-foreground">{task.title}</span>
         <Elapsed timing={task.timing} live={open} />
         {task.status === "running" ? (
@@ -500,12 +509,18 @@ export function TaskPanel({
           {task.milestones.map((milestone, index) => (
             <li key={index} aria-current={milestone.state === "current" ? "step" : undefined}>
               <span className="font-medium">
-                {milestone.state === "verified" ? "Verified" : milestone.state === "current" ? "Current" : "Pending"}
+                {milestone.state === "verified"
+                  ? "Verified"
+                  : milestone.state === "current"
+                    ? "Current"
+                    : "Pending"}
               </span>{" "}
               {milestone.description}
             </li>
           ))}
-          {task.finalVerification && open ? <li>Checking the whole result independently.</li> : null}
+          {task.finalVerification && open ? (
+            <li>Checking the whole result independently.</li>
+          ) : null}
         </ol>
       ) : null}
       <ol aria-label="Task actions" className="mt-2 space-y-1">
@@ -528,9 +543,12 @@ export function TaskPanel({
                 <button
                   type="button"
                   onClick={() =>
-                    act(confirmJarvisStep({ data: { activityId: step.id } }).then(({ confirmed }) => {
-                      if (!confirmed) throw new Error("This step is no longer waiting for approval.");
-                    }))
+                    act(
+                      confirmJarvisStep({ data: { activityId: step.id } }).then(({ confirmed }) => {
+                        if (!confirmed)
+                          throw new Error("This step is no longer waiting for approval.");
+                      }),
+                    )
                   }
                   className="rounded-full bg-foreground px-3 py-0.5 text-xs text-background"
                 >
@@ -610,7 +628,6 @@ export function TaskPanel({
   );
 }
 
-
 const PREVIEW_TYPES: Record<string, string> = {
   png: "image/png",
   jpg: "image/jpeg",
@@ -632,7 +649,9 @@ function ArtifactItem({
   onUseFile: (path: string) => void;
 }) {
   const picker = useRef<HTMLInputElement>(null);
-  const [selected, setSelected] = useState<{ copy: File; url: string; preview: boolean } | null>(null);
+  const [selected, setSelected] = useState<{ copy: File; url: string; preview: boolean } | null>(
+    null,
+  );
   const [checking, setChecking] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
@@ -644,9 +663,12 @@ function ArtifactItem({
       active.current = false;
     };
   }, []);
-  useEffect(() => () => {
-    if (selected) URL.revokeObjectURL(selected.url);
-  }, [selected]);
+  useEffect(
+    () => () => {
+      if (selected) URL.revokeObjectURL(selected.url);
+    },
+    [selected],
+  );
 
   const name = file.path.split("/").at(-1) ?? file.path;
   const extension = name.split(".").at(-1)?.toLowerCase() ?? "";
@@ -662,15 +684,21 @@ function ArtifactItem({
         throw new Error("Open this large file directly in the JARVIS folder.");
       }
       const hash = await crypto.subtle.digest("SHA-256", await copy.arrayBuffer());
-      const digest = Array.from(new Uint8Array(hash), (byte) => byte.toString(16).padStart(2, "0")).join("");
-      if (digest !== file.sha256) throw new Error("This copy does not match the file JARVIS saved.");
+      const digest = Array.from(new Uint8Array(hash), (byte) =>
+        byte.toString(16).padStart(2, "0"),
+      ).join("");
+      if (digest !== file.sha256)
+        throw new Error("This copy does not match the file JARVIS saved.");
       if (active.current) {
         const type = Object.hasOwn(PREVIEW_TYPES, extension) ? PREVIEW_TYPES[extension] : null;
-        const url = URL.createObjectURL(new Blob([copy], { type: type ?? "application/octet-stream" }));
+        const url = URL.createObjectURL(
+          new Blob([copy], { type: type ?? "application/octet-stream" }),
+        );
         setSelected({ copy, url, preview: type !== null });
       }
     } catch (error) {
-      if (active.current) setProblem(error instanceof Error ? error.message : "The file could not be opened.");
+      if (active.current)
+        setProblem(error instanceof Error ? error.message : "The file could not be opened.");
     } finally {
       if (active.current) setChecking(false);
     }
@@ -695,7 +723,8 @@ function ArtifactItem({
       await query.invalidateQueries({ queryKey: ["library", "items"] });
       toast.success("Saved a copy in your Library.");
     } catch (error) {
-      if (active.current) setProblem(error instanceof Error ? error.message : "The copy could not be uploaded.");
+      if (active.current)
+        setProblem(error instanceof Error ? error.message : "The copy could not be uploaded.");
     } finally {
       if (active.current) setUploading(false);
     }
@@ -703,7 +732,8 @@ function ArtifactItem({
   return (
     <li className="rounded-md border border-border/50 p-2">
       <p className="break-all font-mono">
-        {file.recovery ? "Original copy · " : ""}{file.path}
+        {file.recovery ? "Original copy · " : ""}
+        {file.path}
       </p>
       <input
         ref={picker}
@@ -717,7 +747,12 @@ function ArtifactItem({
         }}
       />
       <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1">
-        <button type="button" onClick={() => picker.current?.click()} disabled={checking || uploading} className="underline">
+        <button
+          type="button"
+          onClick={() => picker.current?.click()}
+          disabled={checking || uploading}
+          className="underline"
+        >
           {checking ? "Checking file…" : "Choose local copy"}
         </button>
         <button type="button" onClick={() => onUseFile(file.path)} className="underline">
@@ -726,16 +761,34 @@ function ArtifactItem({
         {selected ? (
           <>
             {selected.preview ? (
-              <a href={selected.url} target="_blank" rel="noopener noreferrer" className="underline">Preview</a>
+              <a
+                href={selected.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline"
+              >
+                Preview
+              </a>
             ) : null}
-            <a href={selected.url} download={name} className="underline">Download copy</a>
-            <button type="button" onClick={() => void save()} disabled={uploading} className="underline">
+            <a href={selected.url} download={name} className="underline">
+              Download copy
+            </a>
+            <button
+              type="button"
+              onClick={() => void save()}
+              disabled={uploading}
+              className="underline"
+            >
               {uploading ? "Uploading…" : "Upload copy to Library"}
             </button>
           </>
         ) : null}
       </div>
-      {problem ? <p role="alert" className="mt-1 text-destructive">{problem}</p> : null}
+      {problem ? (
+        <p role="alert" className="mt-1 text-destructive">
+          {problem}
+        </p>
+      ) : null}
     </li>
   );
 }

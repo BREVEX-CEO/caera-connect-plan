@@ -107,7 +107,6 @@ test("native and page interactions cannot declare their unknown effects reversib
   });
 });
 
-
 test("app grants use the identity in the signed action contract", () => {
   for (const exe of ["ocade-tool.exe", "pkg-" + "a".repeat(32), "mac fixture"]) {
     const action = intent("apps.launch", "launch", { exe }, deadline);
@@ -133,20 +132,39 @@ test("task views show milestone evidence, saved hashes and safe retry availabili
     ],
     checkpoint: { milestones: { index: 1, startStep: 1 } },
     timing: {
-      acceptedAt: observedAtUtc, finishedAt: null, now: observedAtUtc,
-      pausedMs: 0, modelCalls: 1, modelMs: 1,
+      acceptedAt: observedAtUtc,
+      finishedAt: null,
+      now: observedAtUtc,
+      pausedMs: 0,
+      modelCalls: 1,
+      modelMs: 1,
     },
-    steps: [{
-      id: "step", summary: "Saved file", intent: requested, status: "done",
-      createdAt: observedAtUtc, completedAt: observedAtUtc, confirmedAt: null,
-      receipt: { status: "observed", maybeChanged: true, observedAtUtc, evidence: { sha256: sha(nonce) } },
-    }],
+    steps: [
+      {
+        id: "step",
+        summary: "Saved file",
+        intent: requested,
+        status: "done",
+        createdAt: observedAtUtc,
+        completedAt: observedAtUtc,
+        confirmedAt: null,
+        receipt: {
+          status: "observed",
+          maybeChanged: true,
+          observedAtUtc,
+          evidence: { sha256: sha(nonce) },
+        },
+      },
+    ],
   };
   const admin = {
     rpc: async () => ({ data: task, error: null }),
   } as unknown as Admin;
   const view = await taskView(admin, task.userId, task.id);
-  assert.deepEqual(view.milestones.map((stage) => stage.state), ["verified", "current"]);
+  assert.deepEqual(
+    view.milestones.map((stage) => stage.state),
+    ["verified", "current"],
+  );
   assert.deepEqual(view.artifactFiles, [{ path: output, sha256: sha(nonce), recovery: false }]);
   task.status = "blocked";
   assert.equal((await taskView(admin, task.userId, task.id)).canRetry, false);
@@ -155,7 +173,10 @@ test("task views show milestone evidence, saved hashes and safe retry availabili
   assert.deepEqual(uncertain.artifactFiles, []);
   assert.equal(uncertain.canRetry, false);
   task.steps[0].receipt = {
-    status: "not_applied", maybeChanged: false, observedAtUtc, evidence: { sha256: "" },
+    status: "not_applied",
+    maybeChanged: false,
+    observedAtUtc,
+    evidence: { sha256: "" },
   };
   assert.equal((await taskView(admin, task.userId, task.id)).canRetry, true);
 });

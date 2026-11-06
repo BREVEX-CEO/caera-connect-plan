@@ -540,18 +540,26 @@ export async function taskView(admin: Admin, userId: string, taskId: string) {
   const savedMilestones = milestonePlan.safeParse(task.plan);
   const cursor = (task.checkpoint?.milestones as { index?: unknown } | undefined)?.index;
   const milestoneIndex = typeof cursor === "number" && Number.isInteger(cursor) ? cursor : 0;
-  const milestones = savedMilestones.success && savedMilestones.data.length > 1
-    ? savedMilestones.data.map((milestone, index) => ({
-        description: milestone.description,
-        state: index < milestoneIndex ? "verified" : index === milestoneIndex ? "current" : "pending",
-      }))
-    : [];
-  const canRetry = ["blocked", "stopped", "failed"].includes(task.status) && task.steps.every((step) => {
-    const intent = actionIntent.safeParse(step.intent);
-    const result = actionReceipt.safeParse(step.receipt);
-    return intent.success && (!effectPossible(intent.data) || step.resolution === "not_applied" ||
-      (result.success && result.data.status === "not_applied" && !result.data.maybeChanged));
-  });
+  const milestones =
+    savedMilestones.success && savedMilestones.data.length > 1
+      ? savedMilestones.data.map((milestone, index) => ({
+          description: milestone.description,
+          state:
+            index < milestoneIndex ? "verified" : index === milestoneIndex ? "current" : "pending",
+        }))
+      : [];
+  const canRetry =
+    ["blocked", "stopped", "failed"].includes(task.status) &&
+    task.steps.every((step) => {
+      const intent = actionIntent.safeParse(step.intent);
+      const result = actionReceipt.safeParse(step.receipt);
+      return (
+        intent.success &&
+        (!effectPossible(intent.data) ||
+          step.resolution === "not_applied" ||
+          (result.success && result.data.status === "not_applied" && !result.data.maybeChanged))
+      );
+    });
   const delivered = new Map<string, { path: string; sha256: string; recovery: boolean }>();
   const recordFile = (path: unknown, digest: unknown, recovery = false) => {
     if (
@@ -585,12 +593,16 @@ export async function taskView(admin: Admin, userId: string, taskId: string) {
       recordFile(args.output ?? args.path, hash);
     } else if (hash && typeof hash === "object") {
       const hashes = hash as Record<string, unknown>;
-      for (const name of ["docx", "pdf", "project", "interchange"]) recordFile(args[name], hashes[name]);
+      for (const name of ["docx", "pdf", "project", "interchange"])
+        recordFile(args[name], hashes[name]);
       recordFile(args.output, hashes.image);
     }
     const project = evidence.project as { path?: unknown; sha256?: unknown } | undefined;
     if (project?.path === args.project) recordFile(project?.path, project?.sha256);
-    if (typeof evidence.original === "string" && evidence.original.startsWith("OCADE output/originals/"))
+    if (
+      typeof evidence.original === "string" &&
+      evidence.original.startsWith("OCADE output/originals/")
+    )
       recordFile(evidence.original, evidence.sha256Before, true);
   }
   const artifactFiles = [...delivered.values()];

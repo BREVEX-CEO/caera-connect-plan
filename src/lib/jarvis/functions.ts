@@ -205,7 +205,6 @@ export const listJarvisAccess = createServerFn({ method: "GET" })
     return (rows ?? []).filter((row) => row.allowed).map((row) => row.capability);
   });
 
-
 export const listJarvisDevices = createServerFn({ method: "GET" })
   .middleware([requireSession])
   .handler(async ({ context }) => {
@@ -213,7 +212,9 @@ export const listJarvisDevices = createServerFn({ method: "GET" })
     const [devices, permissions, tasks] = await Promise.all([
       context.supabase
         .from("jarvis_devices")
-        .select("id, name, platform, last_seen_at, revoked_at, software_version, installed_apps, capabilities")
+        .select(
+          "id, name, platform, last_seen_at, revoked_at, software_version, installed_apps, capabilities",
+        )
         .eq("user_id", account)
         .eq("kind", "agent")
         .order("created_at", { ascending: false }),
@@ -232,14 +233,20 @@ export const listJarvisDevices = createServerFn({ method: "GET" })
       throw new Error("JARVIS could not list your computers just now.");
     const active = new Set(tasks.data?.map((task) => task.device_id));
     const granted = permissions.data ?? [];
-    const master = granted.some((permission) =>
-      permission.device_id === null && permission.capability === "master" && permission.allowed
+    const master = granted.some(
+      (permission) =>
+        permission.device_id === null && permission.capability === "master" && permission.allowed,
     );
     const now = Date.now();
     return (devices.data ?? []).map((device) => {
-      const allowed = master && granted.some((permission) =>
-        permission.device_id === device.id && permission.capability === "files" && permission.allowed
-      );
+      const allowed =
+        master &&
+        granted.some(
+          (permission) =>
+            permission.device_id === device.id &&
+            permission.capability === "files" &&
+            permission.allowed,
+        );
       const state = device.revoked_at
         ? "removed"
         : !device.last_seen_at

@@ -162,7 +162,6 @@ test("timing suite: qualification case", ${skip}, () =>
   }
 });
 
-
 test("offline navigation never saves a personalised page", async () => {
   const origin = "https://ocade.test";
   const precached: Request[] = [];
@@ -172,8 +171,11 @@ test("offline navigation never saves a personalised page", async () => {
     addAll: async (paths: unknown[]) => {
       precached.push(...paths.filter((path): path is Request => path instanceof Request));
     },
-    match: async (path: string) => new Response(path === "/offline.html" ? "offline" : "public shell"),
-    put: async (...args: unknown[]) => { cacheWrites.push(args); },
+    match: async (path: string) =>
+      new Response(path === "/offline.html" ? "offline" : "public shell"),
+    put: async (...args: unknown[]) => {
+      cacheWrites.push(args);
+    },
   };
   let online = true;
   const network = new Response("private page", { headers: { "content-type": "text/html" } });
@@ -194,7 +196,11 @@ test("offline navigation never saves a personalised page", async () => {
     },
   });
   let wait: Promise<unknown> | undefined;
-  listeners.get("install")!({ waitUntil: (job: Promise<unknown>) => { wait = job; } });
+  listeners.get("install")!({
+    waitUntil: (job: Promise<unknown>) => {
+      wait = job;
+    },
+  });
   assert.ok(wait);
   await wait;
   assert.ok(precached.some((request) => request.url === origin + "/ocade-jarvis"));
@@ -203,7 +209,9 @@ test("offline navigation never saves a personalised page", async () => {
     let response: Promise<Response> | undefined;
     listeners.get("fetch")!({
       request: { url: origin + path, method: "GET", mode: "navigate" },
-      respondWith: (job: Promise<Response>) => { response = job; },
+      respondWith: (job: Promise<Response>) => {
+        response = job;
+      },
       waitUntil: () => {},
     });
     assert.ok(response);
