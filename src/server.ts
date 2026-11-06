@@ -1,8 +1,7 @@
-import "./lib/error-capture";
-
-import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
 import { cloudflareRequestEnv, releaseHealthResponse } from "./lib/health";
+import { readBoundedRequestText } from "./lib/read-bounded-request";
+import { buildHealthRecord } from "./lib/telemetry/operation-health";
 import { withPublicSecurityHeaders } from "./lib/security/public-response";
 import offlineShellHtml from "../public/offline.html?raw";
 
@@ -23,19 +22,35 @@ async function getServerEntry(): Promise<ServerEntry> {
 
 // h3 swallows in-handler throws into a normal 500 Response with body
 // {"unhandled":true,"message":"HTTPError"} — try/catch alone never fires for those.
-async function normalizeCatastrophicSsrResponse(response: Response): Promise<Response> {
+async function normalizeCatastrophicSsrResponse(
+  response: Response,
+  started: number,
+): Promise<Response> {
   if (response.status < 500) return response;
   const contentType = response.headers.get("content-type") ?? "";
   if (!contentType.includes("application/json")) return response;
 
-  const body = await response.clone().text();
-  if (!isH3SwallowedErrorBody(body)) return response;
+  if (!response.body) return response;
+  const body = await readBoundedRequestText(response.clone(), 2_048);
+  if (body === null || !isH3SwallowedErrorBody(body)) return response;
 
-  console.error(consumeLastCapturedError() ?? new Error(`h3 swallowed SSR error: ${body}`));
+  recordSsrFailure(started);
   return new Response(renderErrorPage(), {
     status: 500,
     headers: { "content-type": "text/html; charset=utf-8" },
   });
+}
+
+function recordSsrFailure(started: number): void {
+  console.error(
+    buildHealthRecord({
+      component: "web",
+      operation: "ssr",
+      outcome: "failed",
+      errorClass: "internal",
+      durationMs: performance.now() - started,
+    }),
+  );
 }
 
 function isH3SwallowedErrorBody(body: string): boolean {
@@ -82,15 +97,16 @@ export default {
       );
     }
 
+    const started = performance.now();
     try {
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
       return withPublicSecurityHeaders(
-        await normalizeCatastrophicSsrResponse(response),
+        await normalizeCatastrophicSsrResponse(response, started),
         url.pathname,
       );
-    } catch (error) {
-      console.error(error);
+    } catch {
+      recordSsrFailure(started);
       return withPublicSecurityHeaders(
         new Response(renderErrorPage(), {
           status: 500,

@@ -191,11 +191,16 @@ def _private_address(text: str) -> bool:
 
 def _allowed_url(url: str) -> bool:
     """https on the default port to a public address (or anything, on an owner-flagged test machine)."""
-    parsed = urlparse(url)
-    host = (parsed.hostname or "").lower()
+    try:
+        parsed = urlparse(url)
+        host, port = (parsed.hostname or "").lower(), parsed.port
+    except ValueError:
+        return False
+    if parsed.username is not None or parsed.password is not None:
+        return False
     if PRIVATE_ALLOWED:
         return parsed.scheme in ("https", "http") and bool(host)
-    if parsed.scheme != "https" or parsed.port not in (None, 443) or not host:
+    if parsed.scheme != "https" or port not in (None, 443) or not host:
         return False
     return host != "localhost" and not host.endswith(".localhost") and not _private_address(host)
 
@@ -220,25 +225,20 @@ async def _site_of(page) -> str | None:
 
 
 async def _guard(route) -> None:
-    # Every request, including scripts and frames: no loopback or private literal addresses.
     request = route.request
     url = request.url
     if url.startswith(("data:", "blob:", "about:")):
         return await route.continue_()
-    if not _allowed_url(url):
+    if not _allowed_url(url) or not await anyio.to_thread.run_sync(_public_by_dns, _host(url)):
         return await route.abort("blockedbyclient")
-    if not request.is_navigation_request():
-        return await route.continue_()
-    if request.method != "GET":
-        # A confirmed form submission: Chromium does not expose upload bodies to interception,
-        # so it is sent by the browser itself and its landing site is checked afterwards.
-        return await route.continue_()
     try:
         frame = request.frame
     except Exception:
         frame = None  # a popup's first navigation, before its frame exists
-    if frame is not None and frame.parent_frame is not None:
-        return await route.continue_()  # an iframe loads like any other subresource
+    top_navigation = request.is_navigation_request() and (frame is None or frame.parent_frame is None)
+    writes = request.method not in ("GET", "HEAD", "OPTIONS")
+    if not top_navigation and not writes:
+        return await route.continue_()
     page = frame.page if frame is not None else None
     if page is not None:
         site = await _site_of(page)
@@ -247,23 +247,31 @@ async def _guard(route) -> None:
     elif not _pages:
         return await route.continue_()
     else:
-        # Fail closed: only a site JARVIS already has open, and no redirect it could not follow.
         site = _host(url) if _host(url) in {entry["site"] for entry in _pages.values()} else None
-    # A bound page (or its popup) navigates only on its site. The browser follows redirect hops
-    # without asking this handler, so a hop is stopped here and followed by `_follow` once checked.
-    # Resolved again right before the request: a site whose name now points somewhere private is refused.
-    if _host(url) != site or not await anyio.to_thread.run_sync(_public_by_dns, site):
+    if _host(url) != site:
         return await route.abort("blockedbyclient")
+    if writes:
+        # Chromium may withhold the file bytes of a multipart submission. Never
+        # send a partial body or let Chromium replay opaque bytes on a redirect.
+        headers = await request.all_headers()
+        if headers.get("content-type", "").lower().startswith("multipart/"):
+            length = headers.get("content-length", "")
+            body = request.post_data_buffer
+            if not length.isdecimal() or body is None or str(len(body)) != length:
+                return await route.abort("blockedbyclient")
     try:
         response = await route.fetch(max_redirects=0)
     except Exception:
         return await route.abort("failed")
     location = response.headers.get("location")
     if 300 <= response.status < 400 and location:
-        if page is None:
+        can_follow_as_get = not writes or response.status == 303 or (
+            request.method == "POST" and response.status in (301, 302)
+        )
+        if not top_navigation or page is None or not can_follow_as_get:
             return await route.abort("blockedbyclient")
         _redirects[page] = urljoin(url, location)
-        return await route.fulfill(status=204)  # No Content: the page stays put, nothing is committed
+        return await route.fulfill(status=204)  # the next hop is checked by _follow
     await route.fulfill(response=response)
 
 
@@ -301,7 +309,8 @@ async def _context():
         _browser["playwright"] = playwright
         try:
             PROFILE.mkdir(parents=True, exist_ok=True)
-            options = {"user_data_dir": str(PROFILE), "headless": False, "accept_downloads": True}
+            options = {"user_data_dir": str(PROFILE), "headless": False,
+                       "accept_downloads": True, "service_workers": "block"}
             if PRIVATE_ALLOWED:
                 # A checked navigation is fulfilled without a remote address, so Chromium would hold
                 # its loopback subresources for a local-network prompt; loopback is already allowed here.

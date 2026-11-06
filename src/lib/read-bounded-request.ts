@@ -1,24 +1,25 @@
 /** Read at most maxBytes from the wire; a missing or false Content-Length cannot bypass it. */
 export async function readBoundedRequestText(
-  request: Request,
+  request: Request | Response,
   maxBytes: number,
 ): Promise<string | null> {
   const declaredLength = Number(request.headers.get("content-length"));
   if (Number.isFinite(declaredLength) && declaredLength > maxBytes) return null;
 
+  const signal = "signal" in request ? request.signal : undefined;
   const reader = request.body?.getReader();
   const decoder = new TextDecoder();
   let text = "";
   let bytes = 0;
   const abortRead = () => {
-    void reader?.cancel(request.signal.reason).catch(() => undefined);
+    void reader?.cancel(signal?.reason).catch(() => undefined);
   };
-  request.signal.addEventListener("abort", abortRead, { once: true });
+  signal?.addEventListener("abort", abortRead, { once: true });
   try {
-    request.signal.throwIfAborted();
+    signal?.throwIfAborted();
     while (reader) {
       const chunk = await reader.read();
-      request.signal.throwIfAborted();
+      signal?.throwIfAborted();
       if (chunk.done) break;
       bytes += chunk.value.byteLength;
       if (bytes > maxBytes) return null;
@@ -26,8 +27,10 @@ export async function readBoundedRequestText(
     }
     return text + decoder.decode();
   } finally {
-    request.signal.removeEventListener("abort", abortRead);
-    await reader?.cancel().catch(() => undefined);
+    signal?.removeEventListener("abort", abortRead);
+    const cancelled = reader?.cancel().catch(() => undefined);
+    // A cloned response tees the stream. Its cancellation waits for the original reader.
+    if (signal) await cancelled;
     reader?.releaseLock();
   }
 }

@@ -48,8 +48,6 @@ import {
 
 export type Admin = Pick<SupabaseClient<Database>, "rpc">;
 
-/** A computer that polls at least every 30 s and has been silent this long is unreachable. */
-
 /** The first read-only look whose result the fixed checks are compiled from. */
 const DISCOVERY = "discover";
 
@@ -69,6 +67,7 @@ const REFUSALS: Record<string, string> = {
   permission_required:
     "Turn on file access (and any app or website it needs) for that computer first.",
   busy: "That computer or conversation is already running a task. Stop it or wait.",
+  queue_full: "That task already has steps waiting. Let them finish before trying again.",
   task_not_found: "That task does not exist.",
   unknown_code: "That pairing code is wrong or has expired.",
   too_many_enrollments:
@@ -756,6 +755,28 @@ async function verifySignature(publicKey: string, signature: string, text: strin
 const DEVICE_KEY_CACHE = { ms: 300_000, entries: 1_000 } as const;
 const deviceKeys = new Map<string, { key: string; until: number }>();
 
+// Local overload brake. Freshness and replay protection still come from the database.
+const REQUEST_WINDOW_MS = 10_000;
+const REQUEST_BUCKETS = 2_048;
+const requestBuckets = new Map<string, { expires: number; count: number }>();
+
+function allowDeviceRequest(key: string, limit: number, now: number): boolean {
+  const bucket = requestBuckets.get(key);
+  if (bucket && bucket.expires > now) {
+    if (bucket.count >= limit) return false;
+    bucket.count += 1;
+    return true;
+  }
+  if (!bucket && requestBuckets.size >= REQUEST_BUCKETS) {
+    for (const [id, active] of requestBuckets) {
+      if (active.expires <= now) requestBuckets.delete(id);
+    }
+    if (requestBuckets.size >= REQUEST_BUCKETS) return false;
+  }
+  requestBuckets.set(key, { expires: now + REQUEST_WINDOW_MS, count: 1 });
+  return true;
+}
+
 type Reply = { status: number; body: Record<string, unknown> };
 const refuse = (status: number, error: string): Reply => ({ status, body: { error } });
 
@@ -770,6 +791,9 @@ export async function handleDeviceRequest(
   now = Date.now(),
 ): Promise<Reply> {
   if (request.method !== "POST") return refuse(405, "method_not_allowed");
+  if (!allowDeviceRequest(`source:${source.slice(0, 64)}`, 240, now)) {
+    return refuse(429, "rate_limited");
+  }
   if (Number(request.headers.get(HEADERS.protocol)) !== PROTOCOL_VERSION) {
     return {
       status: 426,
@@ -839,6 +863,9 @@ export async function handleDeviceRequest(
       if (deviceKeys.size >= DEVICE_KEY_CACHE.entries) deviceKeys.clear();
       deviceKeys.set(deviceId, { key: publicKey, until: now + DEVICE_KEY_CACHE.ms });
     }
+    if (parsed.op !== "receipt" && !allowDeviceRequest(`device:${deviceId}`, 30, now)) {
+      return refuse(429, "rate_limited");
+    }
     if (
       !(await call<boolean>(admin, "jarvis_device_seen", {
         p_device: deviceId,
@@ -883,8 +910,9 @@ export async function handleDeviceRequest(
     let state = await call<{
       task?: { id?: string; status?: string } | null;
       action?: unknown;
+      paused?: boolean;
     }>(admin, "jarvis_claim_action", { p_device: deviceId });
-    if (state.task?.status === "waiting") {
+    if (!state.paused && state.task?.status === "waiting") {
       // A task that waited only for a busy planner and is now due runs again (D10).
       const due = await call<string | null>(admin, "jarvis_resume_due", { p_device: deviceId });
       if (due) {
@@ -892,7 +920,7 @@ export async function handleDeviceRequest(
         state = await call(admin, "jarvis_claim_action", { p_device: deviceId });
       }
     }
-    if (state.task?.status === "running" && state.task.id && !state.action) {
+    if (!state.paused && state.task?.status === "running" && state.task.id && !state.action) {
       // A milestone can advance without a queued device action.
       await advance(admin, state.task.id);
       state = await call(admin, "jarvis_claim_action", { p_device: deviceId });

@@ -41,6 +41,7 @@ jobs:
       PGUSER: postgres
       PGPASSWORD: jarvis_disposable_ci_only
       OCADE_DB_ADVISORS: "1"
+      CODING_BASE_SHA: d6e65552527dd3db512135d9e50f1f5f4ad09570
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
@@ -83,13 +84,6 @@ jobs:
             sudo timeout --kill-after=5s 75s apt-get "${apt_options[@]}" update -qq
             sudo timeout --kill-after=5s 75s env DEBIAN_FRONTEND=noninteractive apt-get "${apt_options[@]}" install -y -qq "${packages[@]}"
           fi
-      - name: Reserve the disposable C9 migration filename
-        run: |
-          migration_workspace=$(mktemp -d "$RUNNER_TEMP/ocade-migration.XXXXXX")
-          cd "$migration_workspace"
-          npx --yes supabase@2.122.0 init
-          npx --yes supabase@2.122.0 migration new jarvis_admission_fences
-          printf 'OCADE_MIGRATION:%s\n' supabase/migrations/*_jarvis_admission_fences.sql
       - name: Source formatting
         run: npm run format:check
       - name: TypeScript compilation

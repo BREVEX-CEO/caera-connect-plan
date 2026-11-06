@@ -129,6 +129,31 @@ class Jobs(unittest.TestCase):
             intent("job.start", {"command": py("import time; time.sleep(120)")}), then=runner_killed)
         self.assertEqual((lost, ended, command_alive), ("lost", "cancelled", False))
 
+    def test_legacy_or_reused_process_ids_never_signal_an_unrelated_process(self):
+        import subprocess
+
+        child = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(30)"])
+        try:
+            started = jobs.process_start(child.pid)
+            self.assertIsNotNone(started)
+            here = jobs.folder(self.home) / "0123456789abcdef"
+            here.mkdir(parents=True)
+            jobs._write(here / "spec.json", {"started": time.time()})
+            for record in (
+                {"runner": child.pid, "command": child.pid},
+                {"runner": child.pid, "runnerStart": started - 1,
+                 "command": child.pid, "commandStart": started - 1},
+            ):
+                with self.subTest(record=record):
+                    jobs._write(here / "runner.json", record)
+                    self.assertEqual(jobs.status(str(self.home), here.name)["state"], "lost")
+                    self.assertEqual(jobs.cancel(str(self.home), here.name)["state"], "lost")
+                    self.assertIsNone(child.poll())
+                    self.assertFalse((here / "exit.json").exists())
+        finally:
+            child.kill()
+            child.wait()
+
     def test_shell_choice_and_unknown_jobs(self):
         other = "cmd" if sys.platform == "win32" else "bash"
         missing = "zsh" if sys.platform == "win32" else "cmd"
@@ -177,12 +202,21 @@ class StopEndsJobs(unittest.TestCase):
                 anyio.run(runner._loop, True)
             except KeyboardInterrupt:
                 pass
+            except ConnectionError as error:
+                self.assertEqual(str(error), answer[1]["error"])
         state = jobs.status(str(home), job)["state"]
         jobs.cancel_all(str(home))
         return state
 
     def test_nothing_running_ends_jobs(self):
         self.assertEqual(self.run_agent((200, {"task": {"id": "t", "status": "stopped"}, "action": None})), "cancelled")
+
+    def test_a_revoked_identity_ends_jobs(self):
+        self.assertEqual(self.run_agent((401, {"error": "signature_invalid"})), "cancelled")
+
+    def test_a_revoked_grant_ends_jobs_even_during_a_wait(self):
+        self.assertEqual(self.run_agent((200, {"task": {"id": "t", "status": "waiting"},
+                                              "action": None, "jobsAllowed": False})), "cancelled")
 
     def test_an_outage_ends_nothing(self):
         self.assertEqual(self.run_agent((503, {"error": "unavailable"})), "running")

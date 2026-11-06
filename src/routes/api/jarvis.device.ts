@@ -17,7 +17,10 @@ export const Route = createFileRoute("/api/jarvis/device")({
         const reply = await handleDeviceRequest(supabaseAdmin, request, source);
         return Response.json(reply.body, {
           status: reply.status,
-          headers: { "cache-control": "no-store" },
+          headers: {
+            "cache-control": "no-store",
+            ...(reply.status === 429 ? { "retry-after": "10" } : {}),
+          },
         });
       },
     },

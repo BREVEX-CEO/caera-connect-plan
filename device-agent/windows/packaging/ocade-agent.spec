@@ -7,7 +7,7 @@ import os
 import sys
 from pathlib import Path
 
-from PyInstaller.utils.hooks import collect_data_files, collect_submodules
+from PyInstaller.utils.hooks import collect_data_files, collect_submodules, copy_metadata
 
 # Every companion module, listed from disk: collect_submodules("ocade_agent") runs in a child
 # process that cannot see this source tree and silently returned nothing (no workers shipped).
@@ -59,6 +59,7 @@ analysis = Analysis(
     # The Word and PowerPoint libraries build new files from their own bundled templates.
     + collect_data_files("docx")
     + collect_data_files("pptx")
+    + copy_metadata("psutil")
     + trust_data,
     hiddenimports=bundled + native_modules
     + collect_submodules("send2trash")

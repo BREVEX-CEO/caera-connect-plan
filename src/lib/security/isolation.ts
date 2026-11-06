@@ -216,3 +216,12 @@ function normalisePath(pathname: string): string {
 function underPrefix(path: string, prefix: string): boolean {
   return path === prefix || path.startsWith(`${prefix}/`);
 }
+
+/** Browser writes require same-origin metadata and still require a valid bearer token. */
+export function isSameOriginWrite(request: Request): boolean {
+  const origin = request.headers.get("origin");
+  return (
+    request.headers.get("sec-fetch-site") !== "cross-site" &&
+    (origin === null || origin === new URL(request.url).origin)
+  );
+}

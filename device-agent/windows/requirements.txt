@@ -11,6 +11,8 @@ pypdf==6.21.4
 Send2Trash==1.8.3
 pypdfium2==5.13.0
 anyio==4.15.1
+# Job reattachment checks process creation identity before signalling; BSD-3-Clause.
+psutil==7.2.2
 # The idle-pickup nudge (W2): a Realtime WebSocket; BSD-3-Clause, pure Python fallback.
 websockets==15.0.1
 pillow==13.0.0

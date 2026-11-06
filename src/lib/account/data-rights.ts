@@ -22,7 +22,7 @@ import {
   type AccountDataClassId,
   type AccountTable,
   type OwnerColumn,
-} from "./data-classes";
+} from "./data-classes.ts";
 
 /** Bumped when the SHAPE changes, so a reader can tell what it is holding. */
 const ACCOUNT_EXPORT_SCHEMA_VERSION = 1;
@@ -162,7 +162,7 @@ async function* pagesByKey(
     const ordered = keys.reduce((page, key) => page.order(key), query());
     const { data, error } = await (last ? ordered.or(after(keys, last)) : ordered).limit(PAGE_SIZE);
     if (error) {
-      yield { unavailable: error.message };
+      yield { unavailable: "This table could not be read. Try exporting again." };
       return;
     }
     if (!data || data.length === 0) return;
@@ -217,6 +217,18 @@ const CASCADE_PARENT_COLUMN: Partial<
   ocade_messages: { parent: "ocade_conversations", column: "conversation_id" },
 };
 
+const CREDENTIAL_COLUMNS: Partial<Record<AccountTable, ReadonlySet<string>>> = {
+  jarvis_devices: new Set(["public_key", "enrollment_expires_at", "last_request_ms"]),
+  ocade_push_subscriptions: new Set(["auth", "endpoint", "p256dh", "session_id"]),
+};
+
+function exportRow(table: AccountTable, row: ExportedRow): ExportedRow {
+  const excluded = CREDENTIAL_COLUMNS[table];
+  return excluded
+    ? Object.fromEntries(Object.entries(row).filter(([column]) => !excluded.has(column)))
+    : row;
+}
+
 /**
  * Everything the account holds, as the JSON text of an `AccountDataExport`, one page of
  * rows at a time (PLAN Phase 09). Built whole in the Worker, a large account's export could
@@ -243,7 +255,10 @@ async function* exportText(admin: DynamicTableClient, userId: string): AsyncGene
           unavailable = page.unavailable;
           break;
         }
-        yield page.rows.map((row) => `${first ? "" : ","}${((first = false), json(row))}`).join("");
+        for (const row of page.rows) {
+          yield `${first ? "" : ","}${json(exportRow(name, row))}`;
+          first = false;
+        }
         rowCount += page.rows.length;
         for (const row of page.rows) if (typeof row.id === "string") ids.push(row.id);
       }

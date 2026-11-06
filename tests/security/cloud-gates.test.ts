@@ -5,6 +5,8 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { runInNewContext } from "node:vm";
+import { isSameOriginWrite } from "../../src/lib/security/isolation.ts";
+import { streamAccountExport } from "../../src/lib/account/data-rights.ts";
 
 test("Linux cloud gate entry points parse before any evaluation credentials are released", () => {
   for (const script of ["scripts/ci-local.sh", "scripts/jarvis-e1.sh"]) {
@@ -36,7 +38,7 @@ test("oracle privilege drops exclude the server environment with an actual synth
     "python3",
     [
       "-c",
-      'import sys, unittest; sys.path.insert(0, "tests/jarvis"); suite=unittest.defaultTestLoader.loadTestsFromName("test_eval_isolation.OracleIsolation"); result=unittest.TextTestRunner(verbosity=2).run(suite); sys.exit(0 if result.wasSuccessful() and result.testsRun == 1 and not result.skipped else 1)',
+      'import sys; sys.path[:0]=["device-agent/windows","tests/jarvis"]; from tests.run_required import main; sys.exit(main(["--tests", "test_eval_isolation.OracleIsolation"]))',
     ],
     { encoding: "utf8" },
   );
@@ -222,4 +224,56 @@ test("offline navigation never saves a personalised page", async () => {
   online = false;
   assert.equal(await (await navigate("/library?private=1")).text(), "offline");
   assert.equal(await (await navigate("/ocade-jarvis?c=secret")).text(), "public shell");
+});
+
+test("session-backed writes refuse foreign browser origins", () => {
+  const request = (headers: HeadersInit) =>
+    new Request("https://ocade.example/_server/action", { method: "POST", headers });
+  assert.equal(isSameOriginWrite(request({ origin: "https://ocade.example" })), true);
+  assert.equal(isSameOriginWrite(request({ origin: "https://other.ocade.example" })), false);
+  assert.equal(isSameOriginWrite(request({ "sec-fetch-site": "cross-site" })), false);
+  assert.equal(isSameOriginWrite(request({ origin: "null" })), false);
+  assert.equal(isSameOriginWrite(request({})), true);
+});
+
+test("the streamed account export preserves device records without credentials or raw errors", async () => {
+  const account = "aaaaaaaa-0000-0000-0000-000000000001";
+  const admin = {
+    from(table: string) {
+      return {
+        select: () => ({
+          eq(owner: string, userId: string) {
+            assert.ok(owner === "id" || owner === "user_id");
+            assert.equal(userId, account);
+            const page = {
+              order: () => page,
+              or: () => page,
+              async limit() {
+                if (table === "jarvis_devices") {
+                  return { data: [{ id: "device", name: "My computer", public_key: "secret-key" }], error: null };
+                }
+                if (table === "ocade_push_subscriptions") {
+                  return { data: [{ endpoint: "secret-endpoint", auth: "secret-auth", session_id: "secret-session", p256dh: "secret-p256dh", failures: 0 }], error: null };
+                }
+                if (table === "activity_log") {
+                  return { data: null, error: { message: "secret-error" } };
+                }
+                return { data: [], error: null };
+              },
+            };
+            return page;
+          },
+          in() { throw new Error("No parent IDs should be selected in this fixture"); },
+        }),
+        delete() { throw new Error("An export must not delete data"); },
+      };
+    },
+  };
+  const payload = await new Response(streamAccountExport(admin, account)).text();
+  assert.doesNotMatch(payload, /secret-/);
+  const document = JSON.parse(payload);
+  const tables = document.classes.flatMap((entry: { tables: unknown[] }) => entry.tables);
+  assert.deepEqual(tables.find((table: { table: string }) => table.table === "jarvis_devices").rows,
+    [{ id: "device", name: "My computer" }]);
+  assert.equal(document.partial, true);
 });

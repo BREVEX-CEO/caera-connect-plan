@@ -433,6 +433,39 @@ class BrowserObservationContract(unittest.TestCase):
 
         anyio.run(checks)
 
+    def test_private_resources_and_unbound_writes_abort_before_transport(self):
+        from types import SimpleNamespace
+        from unittest.mock import AsyncMock, patch
+        from ocade_agent import web_worker
+
+        async def checks():
+            page = SimpleNamespace(opener=AsyncMock(return_value=None))
+            request = SimpleNamespace(
+                url="https://private.example/asset.js", method="GET",
+                frame=SimpleNamespace(page=page, parent_frame=None),
+                is_navigation_request=lambda: False,
+            )
+            route = SimpleNamespace(
+                request=request, abort=AsyncMock(), continue_=AsyncMock(), fetch=AsyncMock(),
+            )
+            with (patch.object(web_worker, "_pages", {"p": {"page": page, "site": "first.example"}}),
+                  patch.object(web_worker, "_public_by_dns", side_effect=lambda host: host != "private.example")):
+                await web_worker._guard(route)
+                request.url, request.method = "https://second.example/submit", "POST"
+                await web_worker._guard(route)
+                self.assertEqual(route.abort.await_count, 2)
+                route.fetch.assert_not_awaited()
+                route.continue_.assert_not_awaited()
+
+                request.url = "https://first.example/submit"
+                request.all_headers = AsyncMock(return_value={"content-type": "multipart/form-data"})
+                request.post_data_buffer = None
+                await web_worker._guard(route)
+                self.assertEqual(route.abort.await_count, 3)
+                route.fetch.assert_not_awaited()
+
+        anyio.run(checks)
+
     def test_a_late_popup_is_classified_for_its_opener(self):
         from types import SimpleNamespace
         from unittest.mock import AsyncMock, Mock, patch

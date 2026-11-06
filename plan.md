@@ -1666,9 +1666,9 @@ Coding status is kept separate from runtime verification (Appendix A), so nothin
 | 146 | CODE | NOT CODED | C8 |
 | 147 | CODE | NOT CODED | C8 |
 | 148 | CODE | NOT CODED | C8 |
-| 149 | CODE | NOT CODED | C8 |
-| 150 | CODE | NOT CODED | C8 |
-| 151 | CODE | NOT CODED | C8 |
+| 149 | CODE | BUILDS | C8, `d6e65552` |
+| 150 | CODE | BUILDS | C8, `d6e65552` |
+| 151 | CODE | BUILDS | C8, `d6e65552` |
 | 152 | CODE | NOT CODED | C8 |
 | 153 | CODE | NOT CODED | C8 |
 | 155 | CODE | NOT CODED | C8 |
@@ -1820,7 +1820,9 @@ The existing `tests.run_required.main` loads selected modules/classes/methods or
 - `_media_quality` refuses a video whose complete decode fails. `_workbook_formula` independently reopens the saved formula and cached result. `_command_succeeds` refuses workspace links before running in a throwaway copy and reports the expected-output result without the raw transcript.
 - 61, 66–78 and 211 retain any open rows. Full format and content semantics, visual quality, and native isolation for command re-runs still need the remaining code and harness work. The hosted run used file and shader fixtures, without a live task or native GPU qualification.
 
-**C8 customer product — CODED for this slice, coding gate pending.** `JarvisAccess → setJarvisAccess` checks device ownership and uses the same application identity as the signed action registry, including packaged Windows apps and Mac applications. `listJarvisDevices → JarvisWorkspace/JarvisAccess` reports device, permission and open task states with account-scoped queries. `taskView → TaskPanel` shows durable milestones, exact approvals, STOP, Continue, and a Retry draft only for tasks with no unresolved effects. File controls verify the user-selected local copy against the saved hash before preview, download or explicit Library upload. `useJarvisDictation` records only after a user gesture and cancels on hide or sign-out. The offline cache keeps only anonymous shell documents and static assets.
+**C8 customer product — BUILDS for this slice at `d6e65552527dd3db512135d9e50f1f5f4ad09570`.** [GitHub Actions run 42227866928](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/42227866928) passed formatting, type and protocol checks, companion compilation/imports, migration and focused tests. `JarvisAccess → setJarvisAccess` checks device ownership and uses the same application identity as the signed action registry, including packaged Windows apps and Mac applications. `listJarvisDevices → JarvisWorkspace/JarvisAccess` reports device, permission and open task states with account-scoped queries. `taskView → TaskPanel` shows durable milestones, exact approvals, STOP, Continue, and a Retry draft only for tasks with no unresolved effects. File controls verify the user-selected local copy against the saved hash before preview, download or explicit Library upload. `useJarvisDictation` records only after a user gesture and cancels on hide or sign-out. The offline cache keeps only anonymous shell documents and static assets.
+
+**C9 authority, session and privacy — CODED for this slice, coding gate pending.** `startTask → jarvis_open_task` relies on the partial unique indexes for concurrent admission, and `advance → jarvis_queue_actions` limits new pending actions under the task lock while preserving repeats. Signed claim replies carry the current detached-job grant into `Agent._loop → jobs.cancel_all`. Jobs match both PID and creation time before orphan termination. `requireSession` checks browser write origin and bypasses the session cache for writes. The browser route guard checks initial DNS and fences off-site writes; subresource redirects and transport DNS rebinding remain open under D4. `eraseAccount → revokeDevice` fences paired devices before erasure, and `exportMyAccountData → streamAccountExport` omits push credentials and device verification fields. SSR errors use the existing coarse health record. A remaining fixed test-count assertion now uses the shared required-test runner.
 
 **Coding batches (order by code dependency; continue past any blocked item):**
 

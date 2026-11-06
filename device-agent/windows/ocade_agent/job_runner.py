@@ -10,7 +10,7 @@ import sys
 import time
 from pathlib import Path
 
-from .jobs import _write, end_tree
+from .jobs import _write, end_tree, process_start
 
 
 def main() -> None:
@@ -28,7 +28,10 @@ def main() -> None:
             _write(here / "exit.json", {"state": "failed_to_start", "exitCode": None, "error": error.strerror,
                                         "ended": time.time()})
             return
-        _write(here / "runner.json", {"runner": os.getpid(), "command": command.pid})
+        _write(here / "runner.json", {
+            "runner": os.getpid(), "runnerStart": process_start(os.getpid()),
+            "command": command.pid, "commandStart": process_start(command.pid),
+        })
         state = "finished"
         while command.poll() is None:
             if (here / "cancel").exists():

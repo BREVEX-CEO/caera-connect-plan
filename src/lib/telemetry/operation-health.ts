@@ -41,6 +41,7 @@ const HEALTH_OPERATIONS = [
   /** The provider began answering (the stream was handed off): not yet an answer. */
   "generation_start",
   "offline_allowance",
+  "ssr",
   /** Finalising or releasing a reservation after a generation ended. */
   "usage_settlement",
 ] as const;

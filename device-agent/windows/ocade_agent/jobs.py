@@ -6,7 +6,7 @@ the companion and then reads "lost"). Each job has a folder under the agent's ho
 
     spec.json    what to run, where, until when (written before it starts)
     output.log   everything it printed
-    runner.json  the runner's and the command's process ids
+    runner.json  the runner's and the command's process ids and creation times
     exit.json    how it ended: exit code, or timed out / cancelled (written by the runner)
     cancel       present when someone asked it to stop
 
@@ -26,6 +26,8 @@ import subprocess
 import sys
 import time
 from pathlib import Path
+
+import psutil
 
 OUTPUT_TAIL = 4_000
 SHELLS = ("powershell", "cmd") if sys.platform == "win32" else ("sh", "bash", "zsh")
@@ -88,28 +90,52 @@ def _read(path: Path) -> dict | None:
         return None
 
 
-def _alive(pid: int | None) -> bool:
-    if not pid:
-        return False
-    if sys.platform == "win32":
-        import ctypes
-
-        handle = ctypes.windll.kernel32.OpenProcess(0x1000, False, pid)  # PROCESS_QUERY_LIMITED_INFORMATION
-        if not handle:
-            return False
-        code = ctypes.c_ulong()
-        ctypes.windll.kernel32.GetExitCodeProcess(handle, ctypes.byref(code))
-        ctypes.windll.kernel32.CloseHandle(handle)
-        return code.value == 259  # STILL_ACTIVE
+def process_start(pid: int) -> float | None:
     try:
-        os.kill(pid, 0)
-    except ProcessLookupError:
-        return False
-    except PermissionError:
+        return psutil.Process(pid).create_time()
+    except (psutil.NoSuchProcess, psutil.AccessDenied):
+        return None
+
+
+def _job_process(record: dict, name: str) -> psutil.Process | None:
+    pid, started = record.get(name), record.get(f"{name}Start")
+    if type(pid) is not int or pid <= 0 or type(started) not in (int, float):
+        return None
+    try:
+        process = psutil.Process(pid)
+        if (process.create_time() == started and process.is_running()
+                and process.status() != psutil.STATUS_ZOMBIE):
+            return process
+    except (psutil.NoSuchProcess, psutil.AccessDenied):
         pass
-    # A killed process nobody has reaped yet (a zombie) still answers kill(0): it is not running.
-    state = subprocess.run(["ps", "-o", "stat=", "-p", str(pid)], capture_output=True, text=True).stdout.strip()
-    return bool(state) and not state.startswith("Z")
+    return None
+
+
+def _end_orphan(command: psutil.Process) -> bool:
+    try:
+        descendants = command.children(recursive=True)
+        command.kill()
+    except psutil.NoSuchProcess:
+        return False
+    except psutil.AccessDenied:
+        return False
+    for process in reversed(descendants):
+        try:
+            process.kill()
+        except psutil.NoSuchProcess:
+            continue
+        except psutil.AccessDenied:
+            return False
+    _, still_alive = psutil.wait_procs([command, *descendants], timeout=2)
+    for process in still_alive:
+        try:
+            if process.is_running() and process.status() != psutil.STATUS_ZOMBIE:
+                return False
+        except psutil.NoSuchProcess:
+            continue
+        except psutil.AccessDenied:
+            return False
+    return True
 
 
 def end_tree(pid: int) -> None:
@@ -171,7 +197,7 @@ def status(home: str, job: str) -> dict:
     pids = _read(here / "runner.json") or {}
     if ended:
         state = ended["state"]
-    elif _alive(pids.get("runner")):
+    elif _job_process(pids, "runner") is not None:
         state = "running"
     else:
         state = "lost"  # neither running nor recorded as ended: its effect is unknown
@@ -194,9 +220,11 @@ def cancel(home: str, job: str) -> dict:
         return current
     (here / "cancel").touch()
     pids = _read(here / "runner.json") or {}
-    if not _alive(pids.get("runner")) and pids.get("command"):
-        end_tree(pids["command"])  # the runner is gone: end its command directly
-        _write(here / "exit.json", {"state": "cancelled", "exitCode": None, "ended": time.time()})
+    if _job_process(pids, "runner") is None:
+        command = _job_process(pids, "command")
+        if command is not None and _end_orphan(command):
+            _write(here / "exit.json", {"state": "cancelled", "exitCode": None, "ended": time.time()})
+        return status(home, job)
     deadline = time.monotonic() + 10
     while _read(here / "exit.json") is None and time.monotonic() < deadline:
         time.sleep(0.05)
@@ -204,11 +232,12 @@ def cancel(home: str, job: str) -> dict:
 
 
 def cancel_all(home: str) -> list[str]:
-    """STOP: every job still running ends."""
-    ended = []
+    """Signal every unfinished job immediately; return only confirmed cancellations."""
     root = folder(home)
-    for here in sorted(root.iterdir()) if root.is_dir() else []:
-        if (here / "spec.json").exists() and not (here / "exit.json").exists():
-            cancel(home, here.name)
-            ended.append(here.name)
-    return ended
+    active = [
+        here for here in sorted(root.iterdir())
+        if here.name.isalnum() and (here / "spec.json").is_file() and not (here / "exit.json").exists()
+    ] if root.is_dir() else []
+    for here in active:
+        (here / "cancel").touch()
+    return [here.name for here in active if cancel(home, here.name)["state"] == "cancelled"]

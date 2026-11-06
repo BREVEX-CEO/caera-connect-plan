@@ -34,6 +34,7 @@ from .journal import Journal
 
 VERSION = "0.1.0"
 WATCH_SECONDS = 2.0
+DEVICE_REFUSED = ("signature_invalid", "device_unavailable", "update_required")
 TICK_SECONDS = 0.25
 # While a task runs the server is planning the next step: ask again promptly, never back off.
 ACTIVE_POLL_SECONDS = 0.5
@@ -154,6 +155,7 @@ class Agent:
         """Run one action; cancel it if the server says its task stopped meanwhile."""
         epoch = self.gateway.epoch
         outcome: dict = {}
+        jobs_revoked = False
 
         async with anyio.create_task_group() as group:
 
@@ -162,6 +164,7 @@ class Agent:
                 group.cancel_scope.cancel()
 
             async def watch() -> None:
+                nonlocal jobs_revoked
                 waited = 0.0
                 while True:
                     nudged = await self.pause(TICK_SECONDS)
@@ -173,8 +176,12 @@ class Agent:
                     waited = 0.0
                     try:
                         state = await self.claim()
-                    except ConnectionError:
+                    except ConnectionError as error:
+                        if str(error) in DEVICE_REFUSED:
+                            jobs_revoked = True
+                            break
                         continue  # offline: keep the already-authorized step, decide nothing new
+                    jobs_revoked = state.get("jobsAllowed") is False
                     if (state.get("action") or {}).get("id") != activity:
                         break
                     if nudged and self.nudge is not None:
@@ -185,6 +192,8 @@ class Agent:
             group.start_soon(work)
             group.start_soon(watch)
 
+        if jobs_revoked or self.stopped_here():
+            await anyio.to_thread.run_sync(jobs.cancel_all, str(self.device.home))
         if "receipt" in outcome:
             return outcome["receipt"]
         uncertain = effect_possible(intent)
@@ -222,6 +231,8 @@ class Agent:
                 status, answer = 503, {}  # transport outage: retry only this exact saved receipt
             if status == 200:
                 return answer
+            if status == 401 or str(answer.get("error")) in DEVICE_REFUSED:
+                await anyio.to_thread.run_sync(jobs.cancel_all, str(self.device.home))
             if status in (401, 409):
                 return {}  # the server has a final answer this receipt cannot change
             if 400 <= status < 500 and status not in (408, 425, 429):
@@ -266,7 +277,8 @@ class Agent:
                 try:
                     state = await self.claim()
                 except ConnectionError as error:
-                    if str(error) in ("signature_invalid", "update_required"):
+                    if str(error) in DEVICE_REFUSED:
+                        await anyio.to_thread.run_sync(jobs.cancel_all, str(self.device.home))
                         raise
                     state = {}
                 if woke and self.nudge is not None:
@@ -275,10 +287,14 @@ class Agent:
             if self.stopped_here():  # STOP may have arrived while the claim was in flight.
                 await anyio.to_thread.run_sync(jobs.cancel_all, str(self.device.home))
                 raise LocalStop()
+            if state.get("jobsAllowed") is False:
+                await anyio.to_thread.run_sync(jobs.cancel_all, str(self.device.home))
             if state.get("action"):
                 idle = 1.0
                 state = await self.handle(state["action"])
                 if not state.get("action"):
+                    if state.get("jobsAllowed") is False:
+                        await anyio.to_thread.run_sync(jobs.cancel_all, str(self.device.home))
                     state = None  # no next step in the answer: ask
                 continue
             status = (state.get("task") or {}).get("status")

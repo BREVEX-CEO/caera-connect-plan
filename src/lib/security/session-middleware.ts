@@ -11,6 +11,8 @@
  * same rule as the tables.
  */
 import { createMiddleware } from "@tanstack/react-start";
+import { getRequest } from "@tanstack/react-start/server";
+import { isSameOriginWrite } from "./isolation";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 /** What a server function answers when the session behind the token was ended. */
@@ -45,12 +47,13 @@ export async function sessionStanding(
   supabase: RpcClient,
   claims: Record<string, unknown> | null | undefined,
   now = Date.now(),
+  fresh = false,
 ): Promise<Standing> {
   // The assurance is part of the question: a session's aal1 and aal2 tokens can
   // be issued in the same second, and an answer for one is not an answer for the other.
   const key = `${String(claims?.sub)}:${String(claims?.session_id)}:${String(claims?.exp)}:${String(claims?.aal)}`;
   const held = answered.get(key);
-  if (held && now - held.at < CACHE_MS) return held.standing;
+  if (!fresh && held && now - held.at < CACHE_MS) return held.standing;
   const { data, error } = await supabase.rpc("ocade_session_meets_second_factor");
   let standing: Standing;
   if (!error) standing = data === true ? "ok" : "factor_required";
@@ -66,9 +69,14 @@ export async function sessionStanding(
 export const requireSession = createMiddleware({ type: "function" })
   .middleware([requireSupabaseAuth])
   .server(async ({ next, context }) => {
+    const request = getRequest();
+    const writes = request.method !== "GET" && request.method !== "HEAD";
+    if (writes && !isSameOriginWrite(request)) throw new Error("Forbidden: Cross-origin request");
     const standing = await sessionStanding(
       context.supabase as unknown as RpcClient,
       context.claims as Record<string, unknown>,
+      Date.now(),
+      writes,
     );
     // Its own words, so the browser can tell "signed out elsewhere" (leave this
     // tab too) from a token the server merely could not verify this once.

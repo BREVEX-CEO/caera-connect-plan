@@ -274,9 +274,21 @@ DECLARE
 BEGIN
   SELECT * INTO t FROM public.jarvis_open_task(a, 'aaaaaaaa-1111-0000-0000-000000000001', dev_a, 'Paused', '[{"id": "c"}]', '[]');
   PERFORM public.jarvis_queue_actions(t.task_id, t.controller, pg_temp.act('p1'));
+  FOR i IN 2..10 LOOP
+    PERFORM public.jarvis_queue_actions(t.task_id, t.controller, pg_temp.act('p' || i));
+  END LOOP;
+  PERFORM pg_temp.check(public.jarvis_queue_actions(t.task_id, t.controller, pg_temp.act('p1')) = 0,
+                       'replay succeeds even at capacity');
+  PERFORM pg_temp.fails(format('SELECT public.jarvis_queue_actions(%L, %L, %L)',
+    t.task_id, t.controller, pg_temp.act('overflow')), 'queue_full');
+  INSERT INTO public.jarvis_permissions (user_id, device_id, capability, allowed)
+    VALUES (a, dev_a, 'computer_control', true);
+  claim := public.jarvis_claim_action(dev_a);
+  PERFORM pg_temp.check(claim -> 'jobsAllowed' = 'true'::jsonb, 'claim proves a current job grant');
   UPDATE public.ocade_service_controls SET paused = true WHERE key = 'jarvis_execution';
   claim := public.jarvis_claim_action(dev_a);
-  PERFORM pg_temp.check(claim -> 'action' = 'null'::jsonb, 'owner pause stops dispatch');
+  PERFORM pg_temp.check(claim -> 'action' = 'null'::jsonb AND claim -> 'paused' = 'true'::jsonb
+    AND claim -> 'jobsAllowed' = 'false'::jsonb, 'owner pause stops dispatch and detached jobs');
   UPDATE public.ocade_service_controls SET paused = false WHERE key = 'jarvis_execution';
 END $$;
 DO $$

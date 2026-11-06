@@ -12,6 +12,20 @@
  */
 export async function eraseAccount(userId: string): Promise<{ pendingFiles: number }> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { revokeDevice } = await import("@/lib/jarvis/authority.server");
+  while (true) {
+    const devices = await supabaseAdmin
+      .from("jarvis_devices")
+      .select("id")
+      .eq("user_id", userId)
+      .is("revoked_at", null)
+      .order("id")
+      .limit(50);
+    if (devices.error) throw new Error("Could not disconnect JARVIS devices. Try deleting again.");
+    if (!devices.data.length) break;
+    for (const device of devices.data) await revokeDevice(supabaseAdmin, userId, device.id);
+  }
+
   const steps = [
     () => supabaseAdmin.from("ocade_conversations").delete().eq("user_id", userId),
     () => supabaseAdmin.from("ocade_library_items").delete().eq("user_id", userId),
@@ -39,6 +53,6 @@ export async function eraseAccount(userId: string): Promise<{ pendingFiles: numb
   // The identity last. After this no session can be refreshed.
   const { error } = await supabaseAdmin.auth.admin.deleteUser(userId);
   if (error)
-    throw new Error(`Account records were removed but sign-in deletion failed: ${error.message}`);
+    throw new Error("Account records were removed. Try again to finish deleting sign-in access.");
   return { pendingFiles: pending };
 }
