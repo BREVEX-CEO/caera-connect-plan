@@ -1674,7 +1674,7 @@ Coding status is kept separate from runtime verification (Appendix A), so nothin
 | 155 | CODE | NOT CODED | C8 |
 | 156 | CODE | NOT CODED | C8 |
 | 157 | CODE | NOT CODED | C8 |
-| 158 | CODE | NOT CODED | C8 |
+| 158 | QUALIFICATION-ONLY | QUALIFICATION-ONLY; harness BUILDS | Manual WebKit phone and offline-shell audit, `a7c93e1e` |
 | 159 | CODE | NOT CODED | C8 |
 | 160 | CODE | NOT CODED | C8 |
 | 161 | CODE | NOT CODED | C9 |
@@ -1830,7 +1830,9 @@ The existing `tests.run_required.main` loads selected modules/classes/methods or
 
 **Visual and source grounding follow-up — BUILDS at `19d211044414a32d8675f531b7ae0fd890e8120a`.** [GitHub Actions run 42271665419](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/42271665419) passed the coding gate and five visual target fixtures, including competing patches and expired observations. `planStep → observedSinceFailure` requires a fresh observation of the same window or tab before retrying a failed mechanism. A visual click requires the latest image of the exact window. The Windows and macOS workers record bounded, expiring images and recheck geometry, focus and hit targets before invoking their pointer APIs. `vision.match` rejects competing matches and the workers record a post-click observation. `planStep` also recognizes case and separator aliases and parent moves when protecting a checked source, while permitting read-only copying. Arbitrary shell writes and native display qualification remain open.
 
-**Screen consent and browser audit follow-up — CODED for this slice, coding gate pending.** `DeviceAccess → setJarvisAccess` exposes the existing screen grant. `planStep → callPlanner` withholds prior pictures and visual pointer offers when that grant is off. `ui_inspect`, `ui_set_value` and `ui_send_keys` use the native protected-field flags on Windows and Mac. The manual browser audit checks Chromium, Firefox and WebKit at desktop and phone sizes, including offline shell behavior. Its synthetic session injection is bound to the top-level audit origin and runs only once per page session. Coding CI exercises the isolated injection and native metadata fixtures without launching the manual browser matrix.
+**Screen consent and browser audit follow-up — BUILDS at `a7c93e1e2099a4267df77c33502aa1ecce72c18a`.** [GitHub Actions run 42273524172](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/42273524172) passed 146 TypeScript tests, 108 companion tests, five visual fixtures and six evaluation bookkeeping tests. `DeviceAccess → setJarvisAccess` exposes the existing screen grant. `planStep → callPlanner` withholds prior pictures and visual pointer offers when that grant is off. `ui_inspect`, `ui_set_value` and `ui_send_keys` use the native protected-field flags on Windows and Mac. The manual browser audit checks Chromium, Firefox and WebKit at desktop and phone sizes, including offline shell behavior. Its synthetic session injection is bound to the top-level audit origin and runs only once per page session. Coding CI exercises the isolated injection and native metadata fixtures without launching the manual browser matrix.
+
+**Session dispatch fence follow-up — CODED for this slice, coding gate pending.** `startJarvisTask/resumeJarvisTask → jarvis_open_task/jarvis_resume_task` bind the task to the session claim that authenticated the request. The authority checks that session inside the task lock during `jarvis_queue_actions` and `jarvis_claim_action`, so an ended session stops admission and held work even when the companion remains signed in. `jarvis_action_allowed` rechecks screen consent for pointer actions. The state RPC and account export omit the internal session identifier. Existing service and automatic retry calls retain their compatible argument defaults.
 
 **Coding batches (order by code dependency; continue past any blocked item):**
 

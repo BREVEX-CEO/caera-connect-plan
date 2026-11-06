@@ -63,6 +63,7 @@ export class JarvisRefusal extends Error {
 /** Database refusals the person can act on, in their words. Anything else stays generic. */
 const REFUSALS: Record<string, string> = {
   jarvis_paused: "JARVIS is paused by OCADE right now. Nothing was started.",
+  session_ended: "Your sign-in ended. Sign in again before starting or continuing a JARVIS task.",
   conversation_not_found: "That conversation is not a JARVIS conversation of yours.",
   device_unavailable: "That computer is not paired with your account, or was removed.",
   permission_required:
@@ -103,6 +104,7 @@ async function call<T>(admin: Admin, fn: string, args: Record<string, unknown>):
 interface TaskState {
   id: string;
   userId: string;
+  sessionLive?: boolean;
   status: string;
   controller: string | null;
   title: string;
@@ -252,7 +254,7 @@ async function nudgeChannel(admin: Admin, deviceId: string) {
 
 export async function advance(admin: Admin, taskId: string, now = new Date()): Promise<void> {
   const task = await readTask(admin, taskId);
-  if (!task || task.status !== "running" || !task.controller) return;
+  if (!task || task.status !== "running" || !task.controller || task.sessionLive === false) return;
   const steps: Step[] = task.steps.map((step) => {
     const raw = step.receipt;
     const receipt = raw ? (actionReceipt.safeParse(raw).data ?? null) : null;
@@ -503,7 +505,7 @@ async function notePlannerCalls(
 export async function startTask(
   admin: Admin,
   userId: string,
-  input: { conversationId: string; deviceId: string; objective: string },
+  input: { conversationId: string; deviceId: string; objective: string; sessionId?: string },
 ) {
   const accepted = taskObjective.safeParse(input.objective);
   if (!accepted.success)
@@ -539,6 +541,7 @@ export async function startTask(
       p_title: objective,
       p_outcome: null as unknown as Json,
       p_plan: [] as unknown as Json,
+      ...(input.sessionId ? { p_session: input.sessionId } : {}),
     },
   );
   if (!opened.reused) await advance(admin, opened.task_id);
@@ -559,8 +562,12 @@ export async function takeOver(admin: Admin, userId: string, taskId: string) {
   return call<string>(admin, "jarvis_take_over", { p_user: userId, p_task: taskId });
 }
 
-export async function resumeTask(admin: Admin, userId: string, taskId: string) {
-  await call<string>(admin, "jarvis_resume_task", { p_user: userId, p_task: taskId });
+export async function resumeTask(admin: Admin, userId: string, taskId: string, sessionId?: string) {
+  await call<string>(admin, "jarvis_resume_task", {
+    p_user: userId,
+    p_task: taskId,
+    ...(sessionId ? { p_session: sessionId } : {}),
+  });
   await advance(admin, taskId);
 }
 

@@ -225,9 +225,24 @@ const PRIVATE_EXPORT_COLUMNS: Partial<Record<AccountTable, ReadonlySet<string>>>
 
 function exportRow(table: AccountTable, row: ExportedRow): ExportedRow {
   const excluded = PRIVATE_EXPORT_COLUMNS[table];
-  return excluded
+  const exported = excluded
     ? Object.fromEntries(Object.entries(row).filter(([column]) => !excluded.has(column)))
     : row;
+  const checkpoint = exported.checkpoint;
+  if (
+    table === "jarvis_tasks" &&
+    checkpoint &&
+    typeof checkpoint === "object" &&
+    !Array.isArray(checkpoint)
+  ) {
+    return {
+      ...exported,
+      checkpoint: Object.fromEntries(
+        Object.entries(checkpoint).filter(([field]) => field !== "authorizedSessionId"),
+      ),
+    };
+  }
+  return exported;
 }
 
 /**

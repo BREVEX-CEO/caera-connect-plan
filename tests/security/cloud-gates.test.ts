@@ -249,6 +249,18 @@ test("the streamed account export preserves device records without credentials o
               order: () => page,
               or: () => page,
               async limit() {
+                if (table === "jarvis_tasks") {
+                  return {
+                    data: [
+                      {
+                        id: "task",
+                        model_metric_ids: ["secret-hashed-call"],
+                        checkpoint: { phase: "planning", authorizedSessionId: "secret-session-id" },
+                      },
+                    ],
+                    error: null,
+                  };
+                }
                 if (table === "jarvis_devices") {
                   return {
                     data: [{ id: "device", name: "My computer", public_key: "secret-key" }],
@@ -295,6 +307,9 @@ test("the streamed account export preserves device records without credentials o
     tables.find((table: { table: string }) => table.table === "jarvis_devices").rows,
     [{ id: "device", name: "My computer" }],
   );
+  assert.deepEqual(tables.find((table: { table: string }) => table.table === "jarvis_tasks").rows, [
+    { id: "task", checkpoint: { phase: "planning" } },
+  ]);
   assert.equal(document.partial, true);
 });
 

@@ -380,3 +380,87 @@ BEGIN
   PERFORM pg_temp.check(true, 'legacy keystroke rows do not collide with the idempotency index');
 END $$;
 RESET ROLE;
+
+-- Browser ownership expires independently of the companion's signed device identity.
+INSERT INTO auth.sessions (id, user_id, not_after) VALUES
+  ('aaaaaaaa-5555-4000-8000-000000000001', 'aaaaaaaa-0000-0000-0000-000000000001', NULL),
+  ('bbbbbbbb-5555-4000-8000-000000000001', 'bbbbbbbb-0000-0000-0000-000000000002', NULL),
+  ('bbbbbbbb-5555-4000-8000-000000000002', 'bbbbbbbb-0000-0000-0000-000000000002', NULL),
+  ('bbbbbbbb-5555-4000-8000-000000000003', 'bbbbbbbb-0000-0000-0000-000000000002', now() - interval '1 second'),
+  ('bbbbbbbb-5555-4000-8000-000000000004', 'bbbbbbbb-0000-0000-0000-000000000002', NULL);
+SET ROLE service_role;
+DO $$
+DECLARE
+  owner_id uuid := 'bbbbbbbb-0000-0000-0000-000000000002';
+  conversation uuid := 'bbbbbbbb-1111-0000-0000-000000000001';
+  device uuid := (SELECT id FROM ids WHERE name = 'dev_b');
+  first_session uuid := 'bbbbbbbb-5555-4000-8000-000000000001';
+  next_session uuid := 'bbbbbbbb-5555-4000-8000-000000000002';
+  resumed_session uuid := 'bbbbbbbb-5555-4000-8000-000000000004';
+  task record;
+  controller uuid;
+  action_id uuid;
+  reply jsonb;
+  pointer_action jsonb := '{
+    "key":"pointer-fixture","operation":"ui.click_point","capability":"computer_control",
+    "risk":"external_effect","target":{"app":"session-fixture.exe"},
+    "arguments":{"window":{"exe":"session-fixture.exe","pid":7,"hwnd":11,"started":20},
+                 "x":0.5,"y":0.5,"expectTitle":"Fixture"}
+  }';
+BEGIN
+  PERFORM pg_temp.fails(format('SELECT * FROM public.jarvis_open_task(%L,%L,%L,%L,NULL,%L,%L)',
+    owner_id, conversation, device, 'Forged session', '[]', 'aaaaaaaa-5555-4000-8000-000000000001'),
+    'session_ended');
+  PERFORM pg_temp.fails(format('SELECT * FROM public.jarvis_open_task(%L,%L,%L,%L,NULL,%L,%L)',
+    owner_id, conversation, device, 'Expired session', '[]', 'bbbbbbbb-5555-4000-8000-000000000003'),
+    'session_ended');
+  SELECT * INTO task FROM public.jarvis_open_task(owner_id, conversation, device, 'Browser task',
+                                                  '[{"id":"result"}]', '[]', first_session);
+  PERFORM pg_temp.check((public.jarvis_task_state(task.task_id) ->> 'sessionLive')::boolean,
+                       'task is bound to the current browser session');
+  PERFORM pg_temp.check(NOT (public.jarvis_task_state(task.task_id) -> 'checkpoint' ? 'authorizedSessionId'),
+                       'task state does not expose the session identifier');
+
+  INSERT INTO public.jarvis_permissions (user_id, device_id, capability, allowed)
+    VALUES (owner_id, device, 'computer_control', true),
+           (owner_id, device, 'app:session-fixture.exe', true)
+    ON CONFLICT (user_id, device_id, capability) DO UPDATE SET allowed = true;
+  PERFORM pg_temp.check(NOT public.jarvis_action_allowed(owner_id, device, pointer_action),
+                        'a pointer action needs current screen consent');
+  INSERT INTO public.jarvis_permissions (user_id, device_id, capability, allowed)
+    VALUES (owner_id, device, 'screen', true)
+    ON CONFLICT (user_id, device_id, capability) DO UPDATE SET allowed = true;
+  PERFORM public.jarvis_queue_actions(task.task_id, task.controller,
+    jsonb_build_array(jsonb_build_object('summary','click fixture','action',pointer_action)));
+  SELECT id INTO action_id FROM public.jarvis_activity
+    WHERE task_id = task.task_id AND action ->> 'key' = 'pointer-fixture';
+  PERFORM pg_temp.check(public.jarvis_confirm_action(owner_id, action_id), 'exact fixture effect approved');
+  PERFORM pg_temp.check((public.jarvis_claim_action(device) #>> '{action,id}')::uuid = action_id,
+                       'signed device can pick up the authorized action');
+  UPDATE public.jarvis_permissions SET allowed = false
+   WHERE user_id = owner_id AND device_id = device AND capability = 'screen';
+  reply := public.jarvis_claim_action(device);
+  PERFORM pg_temp.check(reply -> 'action' = 'null'::jsonb AND reply #>> '{task,status}' = 'waiting',
+                       'revocation withholds the held visual action');
+
+  PERFORM public.ocade_revoke_account_session(owner_id, first_session);
+  reply := public.jarvis_claim_action(device);
+  PERFORM pg_temp.check(reply -> 'action' = 'null'::jsonb AND reply #>> '{task,status}' = 'stopped'
+                         AND reply -> 'jobsAllowed' = 'false'::jsonb,
+                       'the signed companion cannot keep a task after its browser signs out');
+
+  SELECT * INTO task FROM public.jarvis_open_task(owner_id, conversation, device, 'Second browser task',
+                                                  '[{"id":"result"}]', '[]', next_session);
+  PERFORM public.jarvis_take_over(owner_id, task.task_id);
+  controller := public.jarvis_resume_task(owner_id, task.task_id, resumed_session);
+  PERFORM pg_temp.check(controller IS DISTINCT FROM task.controller, 'continuing binds the new browser session');
+  PERFORM public.ocade_revoke_account_session(owner_id, next_session);
+  PERFORM pg_temp.check((public.jarvis_task_state(task.task_id) ->> 'sessionLive')::boolean,
+                       'a prior browser no longer owns a resumed task');
+  PERFORM public.ocade_revoke_account_session(owner_id, resumed_session);
+  PERFORM pg_temp.check(public.jarvis_queue_actions(task.task_id, controller, pg_temp.act('after-signout')) = 0,
+                       'a planner holding the old controller cannot admit work after sign-out');
+  PERFORM pg_temp.check((SELECT status = 'stopped' FROM public.jarvis_tasks WHERE id = task.task_id),
+                       'admission persists the STOP fence');
+END $$;
+RESET ROLE;

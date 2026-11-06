@@ -1008,3 +1008,41 @@ test(
     }
   },
 );
+
+test(
+  "a signed device stops before pickup when the starting browser session ends",
+  { skip: !ready },
+  async () => {
+    const savedHome = agentHome;
+    agentHome = mkdtempSync(join(tmpdir(), "ocade-session-agent-"));
+    try {
+      const enrolled = await agent("enroll", "--name", "Session fixture", "--workspace", workspace);
+      const code = /Pairing code: ([0-9A-F]{16})/.exec(enrolled.out)?.[1];
+      assert.ok(code, enrolled.out);
+      const deviceId = await approveDevice(admin, userA, code);
+      const sessionId = crypto.randomUUID();
+      sql(
+        `INSERT INTO auth.sessions (id, user_id) VALUES ('${sessionId}', '${userA}');
+         INSERT INTO public.jarvis_permissions (user_id, device_id, capability, allowed)
+         VALUES ('${userA}', '${deviceId}', 'files', true);`,
+        "postgres",
+      );
+      const { taskId } = await startTask(admin, userA, {
+        conversationId: conversation2,
+        deviceId,
+        objective: "Read the authorized workspace for the disposable session fixture",
+        sessionId,
+      });
+      assert.equal((await taskView(admin, userA, taskId)).status, "running");
+      sql(`SELECT public.ocade_revoke_account_session('${userA}', '${sessionId}')`);
+      const run = await agent("run", "--workspace", workspace, "--until-idle");
+      assert.equal(run.code, 0, run.out);
+      const view = await taskView(admin, userA, taskId);
+      assert.equal(view.status, "stopped");
+      assert.equal(view.timing.modelCalls, 0);
+      assert.deepEqual(view.steps.map((step) => step.disposition), ["cancelled"]);
+    } finally {
+      agentHome = savedHome;
+    }
+  },
+);

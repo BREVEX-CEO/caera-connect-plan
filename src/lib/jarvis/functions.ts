@@ -15,6 +15,14 @@ import { appPermission, DEVICE_SILENCE_MS } from "./contracts";
 
 const uuid = z.uuid();
 
+function taskSessionId(claims: Record<string, unknown>): string {
+  const session = uuid.safeParse(claims.session_id);
+  if (!session.success) {
+    throw new Error("Sign in again before starting or continuing a JARVIS task.");
+  }
+  return session.data;
+}
+
 async function authority() {
   const [module, { supabaseAdmin }] = await Promise.all([
     import("./authority.server"),
@@ -47,7 +55,8 @@ export const startJarvisTask = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { admin, startTask } = await authority();
-    return guarded(() => startTask(admin, context.userId, data));
+    const sessionId = taskSessionId(context.claims);
+    return guarded(() => startTask(admin, context.userId, { ...data, sessionId }));
   });
 
 export const stopJarvisTask = createServerFn({ method: "POST" })
@@ -104,7 +113,8 @@ export const resumeJarvisTask = createServerFn({ method: "POST" })
   .validator((i) => z.object({ taskId: uuid }).parse(i))
   .handler(async ({ data, context }) => {
     const { admin, resumeTask } = await authority();
-    await guarded(() => resumeTask(admin, context.userId, data.taskId));
+    const sessionId = taskSessionId(context.claims);
+    await guarded(() => resumeTask(admin, context.userId, data.taskId, sessionId));
     return { resumed: true };
   });
 
