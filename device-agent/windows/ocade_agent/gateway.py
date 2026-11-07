@@ -31,6 +31,8 @@ import jsonschema
 from mcp.client.session import ClientSession
 from mcp.client.stdio import StdioServerParameters, get_default_environment, stdio_client
 
+from .redact import redact
+
 PROTOCOL = json.loads((Path(__file__).parent / "protocol.json").read_text(encoding="utf-8"))
 WORKERS = {
     "fs_sandbox": "ocade_agent.office_worker",
@@ -376,6 +378,10 @@ class Gateway:
             not isinstance(preview, str) or len(preview) > MAX_PREVIEW or not _BASE64.fullmatch(preview)
         ):
             return timed("unknown" if uncertain else "not_applied", uncertain, error="malformed_result")
+        # Credentials found in the evidence never leave this computer (requirement 176).
+        evidence, redacted = redact(evidence)
+        if redacted:
+            evidence["redactedValues"] = redacted
         if len(json.dumps(evidence)) > 16_000:
             return timed("unknown" if uncertain else "not_applied", uncertain, error="evidence_too_large")
         done = timed("observed", uncertain, evidence)
