@@ -7,6 +7,7 @@ is not covered here: only technical facts are. Web video editors are not covered
 
 import json
 import os
+import platform
 import re
 import sys
 import shutil
@@ -235,6 +236,13 @@ class Media(unittest.TestCase):
                  "params": {"path": "OCADE output/still.png", "width": 96, "height": 54}},
             ]}),
         ])
+        if render.get("errorCode") == "no_3d_engine" and sys.platform == "darwin" and platform.machine() == "x86_64":
+            # D28: headless Chromium on Intel Mac runners cannot draw WebGL. The renderer must then
+            # refuse and publish nothing; it must never pass a flat image off as the scene.
+            self.assertEqual(render["status"], "not_applied", render)
+            self.assertFalse((self.root / "OCADE output/still.png").exists(), "a refused render published a picture")
+            self.assertEqual((broken["status"], broken["errorCode"]), ("not_applied", "invalid_intent"))
+            return
         self.assertEqual(render["status"], "observed", render)
         self.assertEqual((render["evidence"]["shapes"], render["evidence"]["materials"]), (2, 1))
         self.assertEqual((broken["status"], broken["errorCode"]), ("not_applied", "invalid_intent"))
