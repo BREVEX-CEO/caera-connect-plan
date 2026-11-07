@@ -172,9 +172,12 @@ def _ax_change_events(window: dict, target, control):
     """Observe native changes on the action's current run loop."""
     import ApplicationServices as AX  # type: ignore[import-not-found]
     import CoreFoundation as CF  # type: ignore[import-not-found]
+    import objc  # type: ignore[import-not-found]
 
     events: list[str] = []
 
+    # PyObjC passes a Python function to C only as a closure built for that callback's signature.
+    @objc.callbackFor(AX.AXObserverCreate)
     def received(_observer, _element, notification, _refcon):
         if len(events) < 8:
             events.append(str(notification))

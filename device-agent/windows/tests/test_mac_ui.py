@@ -193,10 +193,19 @@ class AxEventContract(unittest.TestCase):
         from ocade_agent.mac_worker import _ax_change_events
 
         callback = None
+        closures = []
+
+        def callback_for(function):
+            def closure(python_function):  # what PyObjC would hand to C
+                closures.append((function, python_function))
+                return python_function
+            return closure
 
         def create(pid, receive, unused):
             nonlocal callback
             self.assertEqual(pid, 51)
+            # Only a PyObjC closure is accepted (a plain function raises TypeError on macOS).
+            self.assertEqual(closures, [(create, receive)])
             callback = receive
             return 0, "observer"
 
@@ -209,7 +218,8 @@ class AxEventContract(unittest.TestCase):
             CFRunLoopAddSource=Mock(), CFRunLoopRemoveSource=Mock(),
             CFRunLoopRunInMode=lambda *_: callback(None, None, "AXValueChanged", None),
         )
-        with patch.dict(sys.modules, {"ApplicationServices": ax, "CoreFoundation": cf}):
+        objc = SimpleNamespace(callbackFor=callback_for)
+        with patch.dict(sys.modules, {"ApplicationServices": ax, "CoreFoundation": cf, "objc": objc}):
             with _ax_change_events({"pid": 51}, "window", "control") as observed:
                 self.assertEqual(observed, [])
         self.assertEqual(observed, ["AXValueChanged"])
