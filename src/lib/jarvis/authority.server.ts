@@ -861,8 +861,11 @@ async function verifySignature(publicKey: string, signature: string, text: strin
 const DEVICE_KEY_CACHE = { ms: 300_000, entries: 1_000 } as const;
 const deviceKeys = new Map<string, { key: string; until: number }>();
 
-// Local overload brake. Freshness and replay protection still come from the database.
+// Local overload brake before any database work. The per-device budget, freshness and replay
+// protection are decided once, in the database, for every server instance (165).
 const REQUEST_WINDOW_MS = 10_000;
+const DEVICE_REQUEST_BUDGET = 30;
+const DEVICE_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const REQUEST_BUCKETS = 2_048;
 const requestBuckets = new Map<string, { expires: number; count: number }>();
 
@@ -955,7 +958,7 @@ export async function handleDeviceRequest(
       };
     }
 
-    if (!/^[0-9a-f-]{36}$/.test(deviceId)) return refuse(401, "signature_invalid");
+    if (!DEVICE_ID.test(deviceId)) return refuse(401, "signature_invalid");
     const cached = deviceKeys.get(deviceId);
     if (!cached || cached.until < now || !(await verifySignature(cached.key, signature, text))) {
       const publicKey = await call<string | null>(admin, "jarvis_device_key", {
@@ -969,15 +972,15 @@ export async function handleDeviceRequest(
       if (deviceKeys.size >= DEVICE_KEY_CACHE.entries) deviceKeys.clear();
       deviceKeys.set(deviceId, { key: publicKey, until: now + DEVICE_KEY_CACHE.ms });
     }
-    if (parsed.op !== "receipt" && !allowDeviceRequest(`device:${deviceId}`, 30, now)) {
-      return refuse(429, "rate_limited");
-    }
-    if (
-      !(await call<boolean>(admin, "jarvis_device_seen", {
-        p_device: deviceId,
-        p_timestamp_ms: timestamp,
-      }))
-    ) {
+    // Receipts are always recorded; every other request spends the device's shared budget.
+    const admission = await call<string>(admin, "jarvis_device_admit", {
+      p_device: deviceId,
+      p_timestamp_ms: timestamp,
+      p_limit: parsed.op === "receipt" ? null : DEVICE_REQUEST_BUDGET,
+      p_window_ms: REQUEST_WINDOW_MS,
+    });
+    if (admission === "rate_limited") return refuse(429, "rate_limited");
+    if (admission !== "admitted") {
       // Replayed, or revoked since its key was remembered: only the database can tell.
       deviceKeys.delete(deviceId);
       const still = await call<string | null>(admin, "jarvis_device_key", { p_device: deviceId });

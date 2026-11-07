@@ -291,6 +291,8 @@ export type Database = {
           platform: string | null
           protocol_version: number
           public_key: string | null
+          request_window_count: number
+          request_window_started_ms: number
           revoked_at: string | null
           software_version: string | null
           user_id: string | null
@@ -313,6 +315,8 @@ export type Database = {
           platform?: string | null
           protocol_version?: number
           public_key?: string | null
+          request_window_count?: number
+          request_window_started_ms?: number
           revoked_at?: string | null
           software_version?: string | null
           user_id?: string | null
@@ -335,6 +339,8 @@ export type Database = {
           platform?: string | null
           protocol_version?: number
           public_key?: string | null
+          request_window_count?: number
+          request_window_started_ms?: number
           revoked_at?: string | null
           software_version?: string | null
           user_id?: string | null
@@ -1901,6 +1907,15 @@ export type Database = {
       }
       jarvis_device_key: {
         Args: { p_device: string }
+        Returns: string
+      }
+      jarvis_device_admit: {
+        Args: {
+          p_device: string
+          p_limit: number | null
+          p_timestamp_ms: number
+          p_window_ms: number
+        }
         Returns: string
       }
       jarvis_device_seen: {
