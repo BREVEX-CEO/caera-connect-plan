@@ -363,83 +363,89 @@ export async function advance(admin: Admin, taskId: string, now = new Date()): P
     () => ({ ok: true as const }),
     (error: unknown) => ({ ok: false as const, error }),
   );
-  try {
-    if (decision.kind === "queue") {
-      await call(admin, "jarvis_queue_actions", {
-        p_task: taskId,
-        p_controller: task.controller,
-        p_actions: [
-          {
-            summary: decision.summary,
-            action: decision.intent,
-            milestone: Number(
-              (task.checkpoint?.milestones as { index?: number } | undefined)?.index ?? 0,
-            ),
-          },
-          ...(decision.more ?? []).map((next) => ({
-            summary: next.summary,
-            action: next.intent,
-            milestone: Number(
-              (task.checkpoint?.milestones as { index?: number } | undefined)?.index ?? 0,
-            ),
-          })),
-        ] as unknown as Json,
-      });
-    } else if (decision.kind === "milestone") {
-      await call(admin, "jarvis_complete_milestone", {
-        p_task: taskId,
-        p_controller: task.controller,
-        p_index: decision.index,
-      });
-    } else if (decision.kind === "settle") {
-      await call(admin, "jarvis_settle_task", {
-        p_task: taskId,
-        p_controller: task.controller,
-        p_verification: decision.verification as unknown as Json,
-        p_summary: decision.summary,
-      });
-    } else if (decision.kind === "wait" && decision.reason) {
-      await call(admin, "jarvis_task_wait", {
-        p_task: taskId,
-        p_controller: task.controller,
-        p_reason: decision.reason,
-      });
-    } else if (decision.kind === "block") {
-      await call(admin, "jarvis_settle_task", {
-        p_task: taskId,
-        p_controller: task.controller,
-        p_verification: { passed: [], failed: [], unverified: [] },
-        p_summary: decision.reason,
-      });
-    }
-  } catch (error) {
-    // Lost a race to STOP or another planner: the database already holds the truth.
-    if (
-      error instanceof JarvisRefusal &&
-      ["stale_controller", "milestone_changed"].includes(error.code)
-    )
-      return;
-    if (error instanceof JarvisRefusal && error.code === "permission_required") {
-      // Grants can change while the planner is running. No action was admitted;
-      // keep the saved task resumable after the person restores its permissions.
-      try {
+  // Admission and measurement both finish; an admission error wins over a measurement error.
+  const admitted = (async () => {
+    try {
+      if (decision.kind === "queue") {
+        await call(admin, "jarvis_queue_actions", {
+          p_task: taskId,
+          p_controller: task.controller,
+          p_actions: [
+            {
+              summary: decision.summary,
+              action: decision.intent,
+              milestone: Number(
+                (task.checkpoint?.milestones as { index?: number } | undefined)?.index ?? 0,
+              ),
+            },
+            ...(decision.more ?? []).map((next) => ({
+              summary: next.summary,
+              action: next.intent,
+              milestone: Number(
+                (task.checkpoint?.milestones as { index?: number } | undefined)?.index ?? 0,
+              ),
+            })),
+          ] as unknown as Json,
+        });
+      } else if (decision.kind === "milestone") {
+        await call(admin, "jarvis_complete_milestone", {
+          p_task: taskId,
+          p_controller: task.controller,
+          p_index: decision.index,
+        });
+      } else if (decision.kind === "settle") {
+        await call(admin, "jarvis_settle_task", {
+          p_task: taskId,
+          p_controller: task.controller,
+          p_verification: decision.verification as unknown as Json,
+          p_summary: decision.summary,
+        });
+      } else if (decision.kind === "wait" && decision.reason) {
         await call(admin, "jarvis_task_wait", {
           p_task: taskId,
           p_controller: task.controller,
-          p_reason: REFUSALS.permission_required,
+          p_reason: decision.reason,
         });
-      } catch (waitError) {
-        if (!(waitError instanceof JarvisRefusal && waitError.code === "stale_controller")) {
-          throw waitError;
-        }
+      } else if (decision.kind === "block") {
+        await call(admin, "jarvis_settle_task", {
+          p_task: taskId,
+          p_controller: task.controller,
+          p_verification: { passed: [], failed: [], unverified: [] },
+          p_summary: decision.reason,
+        });
       }
-      return;
+    } catch (error) {
+      // Lost a race to STOP or another planner: the database already holds the truth.
+      if (
+        error instanceof JarvisRefusal &&
+        ["stale_controller", "milestone_changed"].includes(error.code)
+      )
+        return;
+      if (error instanceof JarvisRefusal && error.code === "permission_required") {
+        // Grants can change while the planner is running. No action was admitted;
+        // keep the saved task resumable after the person restores its permissions.
+        try {
+          await call(admin, "jarvis_task_wait", {
+            p_task: taskId,
+            p_controller: task.controller,
+            p_reason: REFUSALS.permission_required,
+          });
+        } catch (waitError) {
+          if (!(waitError instanceof JarvisRefusal && waitError.code === "stale_controller")) {
+            throw waitError;
+          }
+        }
+        return;
+      }
+      throw error;
     }
-    throw error;
-  } finally {
-    const measurement = await noted;
-    if (!measurement.ok) throw measurement.error;
-  }
+  })().then(
+    () => null,
+    (error: unknown) => ({ error }),
+  );
+  const [failure, measurement] = await Promise.all([admitted, noted]);
+  if (failure) throw failure.error;
+  if (!measurement.ok) throw measurement.error;
 }
 
 /** Between 30 s and 15 min: the provider's own Retry-After when it gave one. */
@@ -631,6 +637,7 @@ export async function taskView(admin: Admin, userId: string, taskId: string) {
       path.length <= 260 &&
       !path.startsWith("/") &&
       path.split("/").every((part) => part && part !== "." && part !== "..") &&
+      // eslint-disable-next-line no-control-regex -- control characters are refused in delivered paths
       !/[:\\\u0000-\u001f]/.test(path) &&
       typeof digest === "string" &&
       /^[0-9a-f]{64}$/.test(digest)

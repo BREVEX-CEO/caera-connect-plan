@@ -18,7 +18,8 @@ if [[ "$mode" != --companion-only ]]; then
   npm run verify:full
   npm run jarvis:protocol-check
   npm run jarvis:no-hardcoded
-  node --experimental-strip-types --no-warnings --test tests/jarvis/*.test.ts tests/security/*.test.ts
+  # Same scope as the push gate: the qualification timing campaign stays excluded.
+  OCADE_CODING_GATE=1 node --experimental-strip-types --no-warnings --test tests/jarvis/*.test.ts tests/security/*.test.ts
   npm run test:jarvis-db
   npm run readiness
   npm run jarvis:traceability

@@ -179,7 +179,7 @@ class BrowserDiscovery(unittest.TestCase):
                 (firefox / "profiles.ini").write_text("[General]\nVersion=2\n[Profile0]\nName=default-release\n"
                                                       "Path=abc.default-release\n[Install4F96]\nDefault=abc\n")
                 found = discovery.browsers()
-                self.assertEqual([b["profiles"] for b in found], [["default-release"], ["Default", "Profile 2"]])
+                self.assertEqual([b["profiles"] for b in found], [["Profile0"], ["Default", "Profile 2"]])  # section IDs, never chosen names
                 self.assertNotIn("alex", json.dumps(found).lower())  # names the person chose stay private
             with patch.dict(os.environ, {"PATH": str(Path(tempfile.mkdtemp()))}):
                 self.assertEqual(discovery.browsers(), [])

@@ -27,7 +27,7 @@ jobs:
   coding-gate:
     name: Coding gate · Linux · no qualification
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     services:
       postgres:
         image: postgres:16
@@ -76,7 +76,7 @@ jobs:
       - name: Install focused integration prerequisites
         timeout-minutes: 5
         run: |
-          python -m pip install reportlab==4.5.1
+          python -m pip install reportlab==4.5.1 opentimelineio==0.17.0
           apt_options=(-o Acquire::Retries=1 -o Acquire::http::Timeout=15 -o Acquire::https::Timeout=15)
           packages=(postgresql-client libreoffice-calc libreoffice-writer ffmpeg glslang-tools)
           if ! sudo timeout --kill-after=5s 40s env DEBIAN_FRONTEND=noninteractive apt-get "${apt_options[@]}" install -y "${packages[@]}"; then
@@ -100,6 +100,9 @@ jobs:
       - name: TypeScript compilation
         if: success() || failure()
         run: npm run typecheck
+      - name: Lint
+        if: success() || failure()
+        run: npm run lint
       - name: Compile the companion and parse tracked scripts
         if: success() || failure()
         run: |
@@ -157,59 +160,17 @@ jobs:
         env:
           OCADE_CODING_GATE: "1"
         run: node --experimental-strip-types --no-warnings --test tests/security/*.test.ts tests/jarvis/contracts.test.ts tests/jarvis/e2e.test.ts
-      - name: Required-test gate and effect-scope regressions
+      - name: Full companion suite (real workers, Chromium on Xvfb; only platform skips allowed)
         if: success() || failure()
         working-directory: device-agent/windows
-        run: python -m tests.run_required --tests tests.test_required_runner --tests tests.test_effect_scope --tests tests.test_agent_recovery --tests tests.test_jobs --tests tests.test_verify_kinds --tests tests.test_gateway --tests tests.test_web.BrowserUnavailable --tests tests.test_web.BrowserObservationContract --tests tests.test_windows_ui.EnvironmentContract --tests tests.test_windows_ui.DesktopTargetContract --tests tests.test_mac_ui.AxEventContract --tests tests.test_media.Media.test_image_facts --tests tests.test_media.Media.test_video_inspect_trim_and_verify --tests tests.test_media.Media.test_timeline_edit_is_exact_and_independently_measured
-      - name: Check visual target boundaries when the desktop bridge changes
-        if: success() || failure()
         run: |
-          status=0
-          git diff --quiet "${CODING_BASE_SHA:-HEAD^}" HEAD -- device-agent/windows/ocade_agent/vision.py device-agent/windows/ocade_agent/windows_worker.py device-agent/windows/ocade_agent/mac_worker.py device-agent/windows/tests/test_vision.py || status=$?
-          case "$status" in
-            0) exit 0 ;;
-            1) ;;
-            *) exit "$status" ;;
-          esac
-          cd device-agent/windows
-          python -m tests.run_required \
-            --tests tests.test_vision.TargetCheck.test_unchanged_target_is_clicked_where_it_was_seen \
-            --tests tests.test_vision.TargetCheck.test_an_overlay_or_resize_is_refused \
-            --tests tests.test_vision.TargetCheck.test_two_equivalent_moved_patches_are_not_interchangeable \
-            --tests tests.test_vision.TargetCheck.test_a_moved_target_still_has_a_unique_match \
-            --tests tests.test_vision.TargetCheck.test_observations_expire_and_cannot_grow_without_bound
-
-      - name: Check the browser bridge against its local fixture when changed
-        if: success() || failure()
-        run: |
-          status=0
-          git diff --quiet "${CODING_BASE_SHA:-HEAD^}" HEAD -- device-agent/windows/ocade_agent/web_worker.py device-agent/windows/tests/test_web.py device-agent/windows/tests/web_fixture.py || status=$?
-          case "$status" in
-            0) exit 0 ;;
-            1) ;;
-            *) exit "$status" ;;
-          esac
           export OCADE_BROWSER_EXECUTABLE="$(command -v google-chrome)"
           test -x "$OCADE_BROWSER_EXECUTABLE"
-          cd device-agent/windows
           xvfb-run -a python -m tests.run_required \
-            --tests tests.test_web.WebLadder.test_web_ladder \
-            --tests tests.test_web.WebLadder.test_mcp_lifespan_closes_browser_and_failed_startup
-
-      - name: Render local verifier fixtures when its transport changes
-        if: success() || failure()
-        run: |
-          status=0
-          git diff --quiet "${CODING_BASE_SHA:-HEAD^}" HEAD -- device-agent/windows/ocade_agent/verify_worker.py device-agent/windows/tests/test_verify_web.py || status=$?
-          case "$status" in
-            0) exit 0 ;;
-            1) ;;
-            *) exit "$status" ;;
-          esac
-          export OCADE_BROWSER_EXECUTABLE="$(command -v google-chrome)"
-          test -x "$OCADE_BROWSER_EXECUTABLE"
-          cd device-agent/windows
-          python -m tests.run_required --tests tests.test_verify_web
+            "needs a Windows desktop" "needs Windows process handles" \
+            "needs Windows UI Automation and COM" \
+            "needs a Mac desktop with Accessibility granted" \
+            "needs a display and OCADE_PUBLIC_WEB=1"
 
       - name: Evaluation bookkeeping and fixture regressions without model calls
         if: success() || failure()

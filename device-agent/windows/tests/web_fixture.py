@@ -160,6 +160,10 @@ def _certificate(folder: Path) -> tuple[Path, Path, str]:
         .serial_number(x509.random_serial_number()).not_valid_before(now - timedelta(minutes=5))
         .not_valid_after(now + timedelta(days=1))
         .add_extension(x509.BasicConstraints(ca=True, path_length=0), critical=True)
+        .add_extension(x509.KeyUsage(digital_signature=False, content_commitment=False, key_encipherment=False,
+                                     data_encipherment=False, key_agreement=False, key_cert_sign=True,
+                                     crl_sign=True, encipher_only=False, decipher_only=False), critical=True)
+        .add_extension(x509.SubjectKeyIdentifier.from_public_key(ca_key.public_key()), critical=False)
         .sign(ca_key, hashes.SHA256())
     )
     key = ec.generate_private_key(ec.SECP256R1())
@@ -171,6 +175,10 @@ def _certificate(folder: Path) -> tuple[Path, Path, str]:
         .not_valid_after(now + timedelta(days=1))
         .add_extension(x509.SubjectAlternativeName([
             x509.DNSName("localhost"), x509.IPAddress(ipaddress.ip_address("127.0.0.1"))]), critical=False)
+        # Strict X.509 verification (Python 3.13+ default) requires the key identifiers.
+        .add_extension(x509.AuthorityKeyIdentifier.from_issuer_public_key(ca_key.public_key()), critical=False)
+        .add_extension(x509.SubjectKeyIdentifier.from_public_key(key.public_key()), critical=False)
+        .add_extension(x509.ExtendedKeyUsage([x509.oid.ExtendedKeyUsageOID.SERVER_AUTH]), critical=False)
         .sign(ca_key, hashes.SHA256())
     )
     cert_path, key_path = folder / "cert.pem", folder / "key.pem"
