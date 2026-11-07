@@ -223,6 +223,43 @@ class VerifierKinds(unittest.TestCase):
         self.assertIn('(subpath "/tmp/odd \\"name\\"")', profile.replace("/private", ""))
         self.assertIn("(deny file-write* (require-not", profile)
 
+    def test_changes_are_measured_against_the_kept_original(self):
+        """An edit may touch only what was asked: the edited file is compared with the newest
+        original OCADE kept, unit by unit, and unrelated damage fails the check."""
+        kept = self.root / "OCADE output" / "originals"
+        kept.mkdir(parents=True)
+        document = Document()
+        for text in ("Quarterly report", "Total: 100", "Signed by the board"):
+            document.add_paragraph(text)
+        document.save(kept / "report.docx.20261101T000000Z-00.docx")
+        document.paragraphs[1].text = "Total: 90"  # an older edit, superseded by the newer original
+        document.save(kept / "report.docx.20261102T000000Z-00.docx")
+        document.paragraphs[1].text = "Total: 120"
+        document.save(self.root / "report.docx")
+        book = openpyxl.Workbook()
+        book.active.title = "S"
+        book["S"]["A1"], book["S"]["B1"], book["S"]["C1"] = "Region", 10, "=B1*2"
+        book.save(kept / "sales.xlsx.20261101T000000Z-00.xlsx")
+        book["S"]["B1"], book["S"]["C1"] = 12, "=B1*3"  # the asked change, plus a damaged formula
+        book.save(self.root / "sales.xlsx")
+        (kept / "notes.txt.20261101T000000Z-00.txt").write_text("a\nb\nc\n")
+        (self.root / "notes.txt").write_text("a\nB\nc\n")
+        (self.root / "fresh.txt").write_text("no original kept\n")
+        one = check("changes_within", path="report.docx", value=1)
+        none = check("changes_within", path="report.docx", value=0)
+        sheet = check("changes_within", path="sales.xlsx", value=1)
+        lines = check("changes_within", path="notes.txt", value=1)
+        fresh = check("changes_within", path="fresh.txt", value=3)
+        evidence = self.verify(one, none, sheet, lines, fresh)
+        found = [evidence["predicates"][c["id"]] for c in (one, none, sheet, lines, fresh)]
+        self.assertEqual(found, [True, False, False, True, None])
+        measured = evidence["measured"]
+        self.assertEqual(measured[one["id"]]["original"], "OCADE output/originals/report.docx.20261102T000000Z-00.docx")
+        self.assertEqual(measured[one["id"]]["where"], ["paragraph 2"])
+        self.assertEqual(measured[sheet["id"]]["changed"], 2)
+        self.assertEqual(sorted(measured[sheet["id"]]["where"]), ["S!B1", "S!C1"])
+        self.assertIn("no original", measured[fresh["id"]]["error"])
+
     def test_shell_scripts_parse_without_running(self):
         marker = self.root / "ran"
         (self.root / "ok.sh").write_text(f"echo hi > '{marker}'\n")

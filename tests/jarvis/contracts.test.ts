@@ -548,3 +548,19 @@ test("a new account's JARVIS request is refused with the exact message the page 
   assert.ok(JARVIS_CONSENT_NEEDED.startsWith(plannerMessage("online_not_consented")));
   assert.doesNotMatch(plannerMessage("online_not_consented"), /Settings/); // Settings has no "turn on" for it
 });
+
+test("a change-scope check needs a file and a whole, nonnegative count", async () => {
+  const { taskChecks } = await import("../../src/lib/jarvis/contracts.ts");
+  const check = (value: unknown) => [
+    {
+      id: "scope",
+      description: "Only the total changed",
+      kind: "changes_within",
+      params: { path: "a.xlsx", value },
+    },
+  ];
+  assert.equal(taskChecks.safeParse(check(1)).success, true);
+  assert.equal(taskChecks.safeParse(check(0)).success, true);
+  for (const bad of [-1, 1.5, "1", undefined])
+    assert.equal(taskChecks.safeParse(check(bad)).success, false, String(bad));
+});

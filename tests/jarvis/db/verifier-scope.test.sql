@@ -130,8 +130,9 @@ BEGIN
     'arguments', jsonb_build_object('checks', '[
       {"id":"s","kind":"script_runnable","description":"Runs","params":{"path":"run.sh"}},
       {"id":"f","kind":"workbook_formula","description":"Formula","params":{"path":"a.xlsx","sheet":"S","cell":"B2"}},
-      {"id":"h","kind":"document_headings","description":"Headings","params":{"path":"a.docx","headings":["Summary"]}}
-    ]'::jsonb))), 'script, formula and heading checks need only file permission');
+      {"id":"h","kind":"document_headings","description":"Headings","params":{"path":"a.docx","headings":["Summary"]}},
+      {"id":"w","kind":"changes_within","description":"Only the total","params":{"path":"a.xlsx","value":1}}
+    ]'::jsonb))), 'script, formula, heading and change-scope checks need only file permission');
   PERFORM pg_temp.verifier_assert(NOT public.jarvis_action_allowed(v_user, v_device, v_action || jsonb_build_object(
     'arguments', jsonb_build_object('checks', '[{"id":"x","kind":"script_runs","params":{"path":"run.sh"}}]'::jsonb))),
     'an unknown predicate is still refused');

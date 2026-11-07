@@ -30,7 +30,7 @@ from mcp.server.mcpserver import MCPServer
 from pypdf import PdfReader
 
 from .jobs import shell_argv
-from .sandbox import MEDIA_INPUT_OPTIONS, PASSIVE_IMAGE_FORMATS, Refused, guarded, plain_text, resolve
+from .sandbox import MEDIA_INPUT_OPTIONS, OUTPUT_DIR, PASSIVE_IMAGE_FORMATS, Refused, guarded, plain_text, resolve
 
 app = MCPServer("ocade-verifier")
 WORKSPACE = os.environ.get("OCADE_WORKSPACE", "")
@@ -123,13 +123,15 @@ def _check(kind: str, params: dict, notes: dict) -> bool | None:
         if type(expected) in (int, float):
             return type(value) in (int, float) and abs(value - expected) < TOLERANCE
         return isinstance(expected, str) and isinstance(value, str) and value == expected
-    if kind in ("script_runnable", "workbook_formula", "document_headings"):
+    if kind in ("script_runnable", "workbook_formula", "document_headings", "changes_within"):
         try:
             path = resolve(WORKSPACE, params["path"])
         except (Refused, KeyError):
             return False
         if not path.is_file():
             return False
+        if kind == "changes_within":
+            return _changes_within(path, params, notes)
         if kind == "script_runnable":
             return _script_runnable(path, notes)
         if kind == "workbook_formula":
@@ -497,6 +499,81 @@ def _workbook_formula(path: Path, params: dict, notes: dict) -> bool | None:
     if type(expected) in (int, float):
         return type(result) in (int, float) and abs(result - expected) < TOLERANCE
     return isinstance(result, str) and result == expected
+
+
+CHANGE_FILE_LIMIT = 20_000_000  # bytes per side compared by changes_within
+
+
+def _units(path: Path) -> tuple[str, list[str] | dict[str, str]]:
+    """What a person would call the parts of a file: Word paragraphs and table cells, slide
+    texts, workbook cells (formulas as written) or text lines."""
+    suffix = path.suffix.lower()
+    if suffix == ".docx":
+        document = Document(io.BytesIO(path.read_bytes()))
+        parts = [p.text for p in document.paragraphs]
+        parts += [cell.text for table in document.tables for row in table.rows for cell in row.cells]
+        return "paragraph", parts
+    if suffix == ".pptx":
+        from pptx import Presentation
+
+        deck = Presentation(io.BytesIO(path.read_bytes()))
+        return "slide text", [shape.text_frame.text for slide in deck.slides for shape in slide.shapes
+                              if shape.has_text_frame]
+    if suffix in (".xlsx", ".xlsm"):
+        book = openpyxl.load_workbook(io.BytesIO(path.read_bytes()), read_only=True, keep_links=False)
+        try:
+            return "cell", {f"{sheet.title}!{cell.coordinate}": repr(cell.value)
+                            for sheet in book.worksheets for row in sheet.iter_rows() for cell in row
+                            if cell.value is not None}
+        finally:
+            book.close()
+    return "line", path.read_bytes().decode("utf-8").splitlines()
+
+
+def _changes_within(path: Path, params: dict, notes: dict) -> bool | None:
+    """The edited file differs from the newest original OCADE kept of it (`OCADE output/originals`)
+    in at most `value` units, so an edit did not damage unrelated content. Without a kept
+    original the change scope is unobservable (None)."""
+    limit = params.get("value")
+    if not isinstance(limit, int) or isinstance(limit, bool) or limit < 0:
+        return False
+    root = Path(os.path.realpath(WORKSPACE))
+    relative = path.resolve().relative_to(root)
+    folder = root / OUTPUT_DIR / "originals" / relative.parent
+    prefix, suffix = relative.name + ".", path.suffix
+    kept = sorted(candidate for candidate in (folder.iterdir() if folder.is_dir() else [])
+                  if candidate.is_file() and candidate.name.startswith(prefix) and candidate.name.endswith(suffix)
+                  and not candidate.is_symlink())
+    if not kept:
+        notes["error"] = "OCADE kept no original of this file to compare with"
+        return None
+    original = kept[-1]
+    if path.stat().st_size > CHANGE_FILE_LIMIT or original.stat().st_size > CHANGE_FILE_LIMIT:
+        notes["error"] = "file too large to compare"
+        return None
+    try:
+        unit, before = _units(original)
+        _, after = _units(path)
+    except Exception:
+        notes["error"] = "the file or its original could not be read to compare"
+        return False
+    notes["original"] = original.relative_to(root).as_posix()
+    if isinstance(before, dict):
+        keys = sorted(set(before) | set(after))
+        changed = [key for key in keys if before.get(key) != after.get(key)]
+        count, where = len(changed), changed[:5]
+    else:
+        import difflib
+
+        count, where = 0, []
+        for tag, i1, i2, j1, j2 in difflib.SequenceMatcher(a=before, b=after, autojunk=False).get_opcodes():
+            if tag != "equal":
+                count += max(i2 - i1, j2 - j1)
+                where += [f"{unit} {j1 + n + 1}" for n in range(min(max(j2 - j1, 1), 5 - len(where)))]
+    notes["changed"] = count
+    notes["unit"] = unit
+    notes["where"] = where[:5]
+    return count <= limit
 
 
 def _document_headings(path: Path, params: dict) -> bool:

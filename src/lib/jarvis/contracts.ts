@@ -1238,6 +1238,7 @@ export const outcomeCheck = z.object({
       "document_headings",
       "local_service_answers",
       "command_succeeds",
+      "changes_within",
     ])
     .optional()
     .describe(
@@ -1249,12 +1250,15 @@ export const outcomeCheck = z.object({
         "width x height, broadcast loudness, no long black or silent gap; image_size {path,width,height}; " +
         "scene_render {path}: a .png rendered from a valid saved 3D scene project; script_runnable {path}: a " +
         "script starts directly on macOS/Linux (#! line, Unix line endings, executable, parses; nothing is run); " +
-        "workbook_formula {path,sheet,cell,value?}: the cell holds a formula, and its saved result is value; " +
+        "workbook_formula {path,sheet,cell,value?}: the cell holds a formula, and a real spreadsheet engine " +
+        "recalculating a private copy gets value (the saved result is never trusted); " +
         "document_headings {path,headings}: each text is a Title/Heading of the Word document or a slide title of the .pptx; " +
         "local_service_answers {port,text?}: a program on this computer answers http://127.0.0.1:port/ with status 200 " +
         "(and the text, when given); command_succeeds {command,text?}: a repaired script or program, re-run by the " +
         "verifier in a throwaway copy of the folder, exits 0 (and prints the text): only a command the person " +
-        "confirmed with shell.run in this task",
+        "confirmed with shell.run in this task; changes_within {path,value}: an edited file differs from the " +
+        "original OCADE kept of it in at most value paragraphs (Word), cells (Excel) or lines (text), so " +
+        "nothing unrelated was damaged",
     ),
   params: z
     .strictObject({
@@ -1301,6 +1305,7 @@ export const taskChecks = z
       command_succeeds: ["command"],
       image_size: ["path", "width", "height"],
       scene_render: ["path"],
+      changes_within: ["path", "value"],
     } as const;
     for (const [index, check] of checks.entries()) {
       if (ids.has(check.id))
@@ -1321,6 +1326,15 @@ export const taskChecks = z
           code: "custom",
           path: [index, "params", "value"],
           message: "duration must be a nonnegative number",
+        });
+      if (
+        check.kind === "changes_within" &&
+        !(Number.isInteger(check.params.value) && (check.params.value as number) >= 0)
+      )
+        context.addIssue({
+          code: "custom",
+          path: [index, "params", "value"],
+          message: "the number of changed units must be a nonnegative whole number",
         });
     }
   });
