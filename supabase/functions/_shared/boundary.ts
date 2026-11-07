@@ -210,6 +210,10 @@ export const boundary: Omit<OnlineHandlerDependencies, "verifyJwt" | "verifyServ
   discoveredLimit(limit) {
     console.log("ocade.provider_limit", JSON.stringify(limit));
   },
+  // Why a provider turn failed: model, key slot and an enumerated kind only.
+  providerIssue(issue) {
+    console.log("ocade.provider_issue", JSON.stringify(issue));
+  },
   highAvailable: async (signal) =>
     Boolean(CF_TOKEN) && (await highIncluded(CF_ACCOUNT, CF_BILLING_TOKEN, signal)),
   observe,

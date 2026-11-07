@@ -157,6 +157,11 @@ export interface OnlineHandlerDependencies {
    * place OCADE learns a project's real RPM, TPM or RPD. Nothing here is assumed or hardcoded.
    */
   discoveredLimit?(limit: DiscoveredLimit): void;
+  /**
+   * Why a provider attempt or stream did not give a usable turn, as identifiers only (HTTP status,
+   * finish reason, timeout kind): the operator's diagnosis, never a prompt, key or answer.
+   */
+  providerIssue?(issue: { model: string; slot: string; kind: string }): void;
   /** Models whose provider refused the request's thinking setting: asked again without one. */
   withoutThinking?: Set<string>;
   callProvider(input: {
@@ -763,6 +768,7 @@ function normalizedProviderStream(
   cancelProvider: (reason: unknown) => void,
   delivered: (toolCalls: NormalizedToolCall[]) => Promise<void> = async () => undefined,
   undelivered: () => Promise<void> = async () => undefined,
+  report: (kind: string) => void = () => undefined,
 ): ReadableStream<Uint8Array> {
   return new ReadableStream<Uint8Array>({
     async start(controller) {
@@ -820,7 +826,10 @@ function normalizedProviderStream(
             }
             if (event.type === "token") answer += event.text;
             if (event.type === "usage") usage = event.usage;
-            if (event.type === "refusal") refused = true;
+            if (event.type === "refusal") {
+              refused = true;
+              report(`refusal_${event.code}_${finishReason ?? "none"}`);
+            }
             controller.enqueue(sse(event));
           }
         }
@@ -833,6 +842,7 @@ function normalizedProviderStream(
           // EOF can land between complete SSE frames. Only the provider's terminal result
           // closes the turn. JARVIS can also interpret exact tool text, so even a
           // text-only token-capped turn must never be released as a completed reply.
+          report(`finish_${finishReason ?? "none"}`);
           throw new Error("Provider ended before completing the turn.");
         } else if (!answer.trim() && toolCalls.length === 0) {
           controller.enqueue(
@@ -871,6 +881,7 @@ function normalizedProviderStream(
           );
         }
       } catch {
+        report(signal.aborted ? "stream_aborted" : "stream_error");
         const timedOut =
           signal.reason instanceof DOMException && signal.reason.name === "TimeoutError";
         controller.enqueue(
@@ -1102,6 +1113,7 @@ async function runOnlineIntelligence(
     let capacityReturnsIn = 0;
     /** How the last model that could not answer ended, when that was not capacity. */
     let refusedAs: "provider_rejected_request" | "provider_unavailable" | undefined;
+    const served = { model: "", slot: "" };
     controller.signal.throwIfAborted(); // stopped during the claim: no provider is called
 
     /*
@@ -1149,6 +1161,11 @@ async function runOnlineIntelligence(
            * could not be reached is failed over, within the same budget.
            */
           if (controller.signal.aborted) throw cause;
+          deps.providerIssue?.({
+            model: configured,
+            slot,
+            kind: hung.signal.aborted ? "first_byte_timeout" : "transport",
+          });
           slotIndex += 1;
           continue;
         } finally {
@@ -1160,7 +1177,11 @@ async function runOnlineIntelligence(
           return json(503, { error: "high_unavailable" }, origin);
         }
         provider = high ? workersAiResponse(response, controller.signal) : response;
-        if (response.ok) break;
+        if (response.ok) {
+          Object.assign(served, { model: configured, slot });
+          break;
+        }
+        deps.providerIssue?.({ model: configured, slot, kind: `status_${response.status}` });
 
         /*
          * A REFUSED ATTEMPT'S BODY IS STILL AN OPEN STREAM: read for its reason where the status
@@ -1286,6 +1307,7 @@ async function runOnlineIntelligence(
             Promise.resolve()
           );
         },
+        (kind) => deps.providerIssue?.({ ...served, kind }),
       ),
       {
         status: 200,
