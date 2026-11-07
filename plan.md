@@ -76,7 +76,7 @@ Separate measurements. Never merge them into one percentage.
 
 | Metric | Value (7 Nov 2026 unless dated) | Source |
 |---|---|---|
-| **Model comparison (§19.4)** | **0/24 mandatory runs** (Windows 0/12, macOS 0/12; Linux 0/12 optional). Staging benchmark function deployed and probed; runner harness and workflow ready; first run waits for the owner's environment approval (B1) | §19.4 |
+| **Model comparison (§19.4)** | **0/24 PASS so far** (Windows 0/12, macOS 0/12; Linux not run). Three campaign rounds ran on GitHub-hosted Windows and macOS; every task FAILED on model-integration defects, which are being fixed and rerun | §19.4 |
 | Completed work | W3; 77 RUNTIME VERIFIED requirements; 236 research dispositions; fixed defects | [archive](docs/archive/plan-v6-2026-11-07.md) |
 | Coding status (7 Nov 2026) | Every required ID is coded or classified: 77 RUNTIME VERIFIED, 142 BUILDS, 25 QUALIFICATION-ONLY with their harness BUILDS, 20 STANDING; 134–135 optional (O1) NOT CODED. BUILDS is code plus a green coding gate, not runtime proof | Appendix E |
 | Requirements PASS (runtime verified) | **77/266** (28.9%). Unfinished: 189 (154 PARTIAL, 12 FAIL, 5 BLOCKED, 18 UNTESTED) | Appendix A |
@@ -796,13 +796,17 @@ Success = verified complete ÷ eligible attempted. The harness supplies only the
 - Runner side: the `benchmark` campaign of `.github/workflows/jarvis-staging-evaluation.yml` (a workflow must exist on the default branch to be dispatched), matrix Windows/macOS (Linux optional) × configuration; `tests/jarvis/benchmark.py` builds inputs, opens Calc/GIMP for the "already open" tasks, runs the real authority and companion (`scripts/jarvis-live.mjs`, now able to start the companion on Windows) and applies the oracles. The repository is public, so GitHub-hosted minutes are free; limits are 6 h per job and macOS concurrency.
 - Applications on runners: Chocolatey (Windows), Homebrew (macOS) or apt + the FreeCAD PPA (Linux): LibreOffice, GIMP, FreeCAD, Blender, Kdenlive, ffmpeg. CapCut: no Linux build; the Windows/macOS builds need an interactive account sign-in, so it is not installed.
 
-**Evaluation matrix (runs):**
+**Evaluation matrix (runs, GitHub-hosted desktops; not consumer PCs):** every run so far FAILED; nothing PASSED.
 
-| System | Task | A | B | C |
+| Run | System × configuration | Tasks | Result | Cause found |
 |---|---|---|---|---|
-| Windows | 1 Calc / 2 GIMP / 3 Car / 4 Advert | UNTESTED | UNTESTED | UNTESTED |
-| macOS | 1 Calc / 2 GIMP / 3 Car / 4 Advert | UNTESTED | UNTESTED | UNTESTED |
-| Linux (optional) | all four | UNTESTED | UNTESTED | UNTESTED |
+| [42421618278](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/42421618278) | macOS A, B, C | 4 each | 0/12 PASS | A: Gemma's first byte took >25 s, keys failed over, turn deadline lost; B: every Live session refused ("API key not valid" with `?key=`) |
+| [42422302152](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/42422302152) | Windows A, B, C | 4 each | 0/12 PASS | same, plus the planner's 110 s wait expired before the 140 s turn (duplicate permit); GIMP not found by the harness |
+| [42425648457](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/42425648457) | Windows + macOS A, B, C | 4 each | macOS B 0/4, macOS C 0/4 (others running) | B: Live answered (≈3.7k in / 70 out tokens, ≈10 s) but the adapter closed at `turnComplete` before the asynchronous call; C: apps discovered (`apps.list` found Blender, FreeCAD, GIMP 3.2, Kdenlive, LibreOffice), then OCADE refused the step because the person had not allowed the app (`app:` consent) |
+
+Verified along the way: real desktop sessions on both runners (timestamped screenshots show Calc with the workbook and GIMP 3.2.6 with the four-layer project, plus a macOS network-permission prompt); OCADE's `apps.list` discovers the installed applications dynamically; real limit discovered: `gemma-4-31b-it` free tier, 16,000 input tokens per minute per project (primary).
+
+Defects fixed during the campaign (each with a test where code changed): 25 s first-byte deadline too short for Gemma (now 60 s, turn 140 s, planner 145 s); Live key refused in the URL and headers unsupported by the Edge runtime (now a single-use ephemeral token minted over REST); Live turn closed before asynchronous calls (now settles at `IDLE` or after the last call); no reason logged for provider failures (`ocade.provider_issue`); harness PATH shadowing, Windows version-step hang, Chocolatey 2 flag, GIMP location, missing `app:` consent in the harness. The benchmark function is at version 6.
 
 **Blockers (exact, current):**
 - **B1 Approval per run.** The runner jobs use the protected environment `SUPABASE_SERVICE_ROLE_KEY`, which needs the owner's "Approve" on each run before the job starts (smoke run [42420339443](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/42420339443) waits for it). No other credential is missing.
