@@ -188,15 +188,15 @@ jobs:
           sudo add-apt-repository -y ppa:freecad-maintainers/freecad-stable
           sudo apt-get update -qq
           sudo apt-get install -y -qq libreoffice-calc gimp freecad blender kdenlive melt ffmpeg xvfb
-      - name: Record what is installed (versions, licences come from the vendors)
+      - name: Record what is installed (package manager versions; no application is started)
         shell: bash
         run: |
-          for c in soffice gimp gimp-3.0 gimp-2.10 freecadcmd FreeCADCmd blender kdenlive melt ffmpeg; do
-            p=$(command -v "$c" || true); [ -n "$p" ] && echo "$c: $p"
-          done
-          blender --version 2>/dev/null | head -1 || true
-          soffice --version 2>/dev/null || true
-          echo "CapCut: no official Linux build; Windows/macOS builds need an interactive sign-in, so it is not installed here."
+          case "$RUNNER_OS" in
+            Windows) choco list --local-only | grep -iE "libreoffice|gimp|freecad|blender|kdenlive|ffmpeg" ;;
+            macOS) brew list --cask --versions libreoffice gimp freecad blender kdenlive; brew list --versions ffmpeg ;;
+            Linux) dpkg-query -W libreoffice-calc gimp freecad blender kdenlive ffmpeg ;;
+          esac
+          echo "CapCut: no official Linux build; the Windows/macOS builds need an interactive sign-in, so it is not installed."
       - name: Run the benchmark (server credential in this step only)
         shell: bash
         env:

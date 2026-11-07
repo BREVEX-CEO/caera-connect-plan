@@ -49,7 +49,7 @@ def tool(names: list[str], patterns: list[str]) -> str | None:
 PROGRAMS = os.environ.get("ProgramFiles", r"C:\Program Files")
 SOFFICE = tool(["soffice", "libreoffice"], [rf"{PROGRAMS}\LibreOffice\program\soffice.exe",
                                             "/Applications/LibreOffice.app/Contents/MacOS/soffice"])
-GIMP = tool(["gimp", "gimp-3.0", "gimp-2.10"], [rf"{PROGRAMS}\GIMP*\bin\gimp-*.exe",
+GIMP = tool(["gimp", "gimp-3.0", "gimp-2.10"], [rf"{PROGRAMS}\GIMP*\bin\gimp-[0-9]*.exe",
                                                 "/Applications/GIMP*.app/Contents/MacOS/gimp*"])
 BLENDER = tool(["blender"], [rf"{PROGRAMS}\Blender Foundation\Blender*\blender.exe",
                              "/Applications/Blender.app/Contents/MacOS/Blender"])
