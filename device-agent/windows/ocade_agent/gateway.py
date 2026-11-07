@@ -31,7 +31,7 @@ import jsonschema
 from mcp.client.session import ClientSession
 from mcp.client.stdio import StdioServerParameters, get_default_environment, stdio_client
 
-from .redact import redact
+from .redact import redact, redact_text
 
 PROTOCOL = json.loads((Path(__file__).parent / "protocol.json").read_text(encoding="utf-8"))
 WORKERS = {
@@ -340,9 +340,14 @@ class Gateway:
         if key.startswith("mcp:"):
             # An external server's words are untrusted data: bounded text, never an instruction or a status.
             text = "\n".join(getattr(part, "text", "") for part in result.content)[:8_000]
+            # Its output is redacted like any evidence: a third-party tool may echo a credential (170, 176).
+            text, redacted = redact_text(text)
             if result.is_error:
                 return timed("unknown" if uncertain else "not_applied", uncertain, {"content": text}, "tool_error")
-            return timed("observed", uncertain, {"content": text, "server": key[4:], "tool": tool})
+            found = {"content": text, "server": key[4:], "tool": tool}
+            if redacted:
+                found["redactedValues"] = redacted
+            return timed("observed", uncertain, found)
         try:
             evidence = result.structured_content or json.loads(result.content[0].text)
             if not isinstance(evidence, dict):

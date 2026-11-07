@@ -284,6 +284,8 @@ class WebLadder(unittest.TestCase):
         with self.subTest("WEB-005 PDF download is a real PDF"):
             saved = output / "report.pdf"
             self.assertEqual(results["005"]["evidence"]["magic"][:8], b"%PDF".hex())
+            self.assertEqual(results["005"]["evidence"]["internetMark"],
+                             {"win32": "zone_identifier", "darwin": "quarantine"}.get(sys.platform, "none"))
             self.assertIn("1234.50", PdfReader(saved).pages[0].extract_text())
         with self.subTest("WEB-006 upload: server received the exact file"):
             expected = __import__("hashlib").sha256((self.root / "upload-me.txt").read_bytes()).hexdigest()

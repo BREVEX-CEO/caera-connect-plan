@@ -27,6 +27,9 @@ import os
 import secrets
 import shutil
 import socket
+import subprocess
+import sys
+import time
 from contextlib import asynccontextmanager
 from email.parser import BytesHeaderParser
 from mimetypes import guess_type
@@ -806,7 +809,32 @@ async def web_download(page: dict, selector: str, output: str) -> dict:
         "bytes": target.stat().st_size,
         "suggested": download.suggested_filename[:200],
         "magic": head.hex(),
+        "internetMark": mark_downloaded(target, "{}://{}:{}".format(*entry["origin"])),
     }
+
+
+def mark_downloaded(target: Path, origin: str) -> str:
+    """Give a downloaded file the system's came-from-the-internet mark (170, 113).
+
+    Playwright saves downloads without it, so SmartScreen and Gatekeeper would treat the
+    file as locally made. With the mark they still judge it when the person opens it;
+    OCADE never opens or runs it. Only the origin is recorded, never the full URL.
+    """
+    try:
+        if sys.platform == "win32":
+            with open(f"{target}:Zone.Identifier", "w", encoding="utf-8", newline="") as mark:
+                mark.write(f"[ZoneTransfer]\r\nZoneId=3\r\nHostUrl={origin}\r\n")
+            return "zone_identifier"
+        if sys.platform == "darwin" and (xattr := shutil.which("xattr")):
+            value = f"0081;{int(time.time()):x};OCADE;"
+            subprocess.run([xattr, "-w", "com.apple.quarantine", value, str(target)], check=True, timeout=10,
+                           stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            return "quarantine"
+    except (OSError, subprocess.SubprocessError):
+        # The file is already published (for example on a drive without alternate streams);
+        # the evidence says the mark is missing rather than reporting a failed download.
+        return "unavailable"
+    return "none"
 
 
 @app.tool()

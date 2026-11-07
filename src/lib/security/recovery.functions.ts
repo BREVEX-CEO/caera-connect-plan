@@ -19,7 +19,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { HIGH_RISK, requireAssurance } from "./assurance-middleware";
-import { requireSession, SESSION_ENDED, sessionStanding } from "./session-middleware";
+import { requireSession, SESSION_ENDED } from "./session-middleware";
+import { sessionStanding } from "./session-standing";
 import {
   generateRecoveryCodes,
   hashRecoveryCode,

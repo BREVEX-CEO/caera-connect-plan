@@ -1,3 +1,4 @@
+import json
 import sys
 import tempfile
 import time
@@ -187,6 +188,32 @@ class DiagnoseTest(unittest.TestCase):
         self.assertFalse((home / "device-key.bin").exists(), "diagnosing never creates or reads the key")
         if sys.platform == "darwin":  # the two macOS permissions are named, granted or not (D16)
             self.assertTrue({"mac:accessibility", "mac:screen_recording"} <= set(checks))
+
+
+class CrashReportTest(unittest.TestCase):
+    def test_a_crash_is_reported_locally_without_messages_or_contents(self):
+        home = Path(tempfile.mkdtemp())
+        secret = "ghp_" + "Q" * 36
+
+        def explode():
+            raise ValueError(f"could not parse C:/Users/ada/salaries.xlsx with token {secret}")
+
+        try:
+            explode()
+        except ValueError as error:
+            for _ in range(agent_module.CRASH_REPORTS_KEPT + 3):
+                path = agent_module.record_crash(home, error)
+        report = json.loads(path.read_text())
+        self.assertEqual(report["error"], "ValueError")
+        self.assertEqual(report["frames"][-1]["function"], "explode")
+        self.assertEqual(report["frames"][-1]["file"], "test_agent.py")
+        text = path.read_text()
+        for leaked in (secret, "salaries", "ada"):
+            self.assertNotIn(leaked, text)
+        self.assertLessEqual(len(list((home / "crash-reports").glob("*.json"))), agent_module.CRASH_REPORTS_KEPT)
+        checks = {c["check"]: c for c in agent_module.diagnose(home, None, None)}
+        self.assertIn("newest crash report", checks["crash"]["detail"])
+        self.assertTrue(checks["crash"]["ok"], "a past crash is information, not a broken install")
 
 
 CHILD = """

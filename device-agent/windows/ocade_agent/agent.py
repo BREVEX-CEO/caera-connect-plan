@@ -21,6 +21,7 @@ import random
 import runpy
 import sys
 import time
+import traceback
 from contextlib import contextmanager
 from pathlib import Path
 
@@ -387,6 +388,9 @@ def diagnose(home: Path, server: str | None, workspace: str | None) -> list[dict
         check("mac:screen_recording", seeing, "granted" if seeing else
               "not granted (app windows cannot be seen, only controlled): System Settings > Privacy & "
               "Security > Screen Recording, turn on OCADE JARVIS")
+    reports = sorted((home / "crash-reports").glob("*.json"))
+    check("crash", True, f"newest crash report: {reports[-1]} ({len(reports)} kept, nothing sent)"
+          if reports else "no crash reports")
     check("stop", not (home / "STOP").exists(),
           "no local STOP" if not (home / "STOP").exists() else "STOP is set on this computer; run starts JARVIS again")
     return checks
@@ -805,4 +809,37 @@ def _run_companion(device: Device, home: Path, until_idle: bool) -> int:
     except KeyboardInterrupt:
         gateway.stop()
         print("Stopped.", file=sys.stderr)
+    except Exception as error:
+        report = record_crash(home, error)
+        print(f"OCADE JARVIS stopped unexpectedly ({type(error).__name__}). A crash report with no file "
+              f"contents or messages was saved for support: {report}", file=sys.stderr)
+        return 4
     return 0
+
+
+CRASH_REPORTS_KEPT = 20
+
+
+def record_crash(home: Path, error: BaseException) -> Path:
+    """Save a structured crash report on this computer only (177).
+
+    It names the release, platform, error type and the code locations involved, nothing
+    else: no exception message, arguments or local values, which could hold file names,
+    page text or credentials. It is never sent anywhere; `diagnose` points to the newest,
+    and the person decides whether to share it. Only the newest few are kept.
+    """
+    frames = [{"file": Path(frame.filename).name, "line": frame.lineno, "function": frame.name}
+              for frame in traceback.extract_tb(error.__traceback__)][-40:]
+    report = {
+        "schemaVersion": 1, "atUtc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "release": VERSION, "protocol": PROTOCOL["version"],
+        "platform": f"{platform.system()} {platform.release()} {platform.machine()}",
+        "python": platform.python_version(), "error": type(error).__name__, "frames": frames,
+    }
+    folder = home / "crash-reports"
+    folder.mkdir(parents=True, exist_ok=True, mode=0o700)
+    path = folder / f"{time.strftime('%Y%m%dT%H%M%SZ', time.gmtime())}-{os.getpid()}.json"
+    path.write_text(json.dumps(report, indent=2), encoding="utf-8")
+    for old in sorted(folder.glob("*.json"))[:-CRASH_REPORTS_KEPT]:
+        old.unlink(missing_ok=True)
+    return path

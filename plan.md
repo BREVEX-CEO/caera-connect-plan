@@ -1678,19 +1678,19 @@ Coding status is kept separate from runtime verification (Appendix A), so nothin
 | 159 | CODE | NOT CODED | C8 |
 | 160 | CODE | NOT CODED | C8 |
 | 161 | CODE | NOT CODED | C9 |
-| 162 | CODE | NOT CODED | C9: forged/malformed device IDs `d4185c0`, replay and revocation (`authority.test.sql`); expired-session, cross-account and duplicate-submission cases remain |
+| 162 | CODE | BUILDS | C9: forged/malformed device IDs `d4185c0`, replay and revocation (`authority.test.sql`); expired tokens refused before any network call and ended sessions or owed second factors refused by the database (`requireSession` → `sessionStanding`, `tests/security/session.test.ts`, `session-account.test.sql`); cross-account stop, take over, resume and device removal refused with the task untouched; duplicate Send, queue key and receipt (`authority.test.sql`) |
 | 163 | CODE | BUILDS | C9, `50f6300e` |
 | 164 | CODE | BUILDS | C2/C9, `50f6300e` |
 | 165 | CODE | BUILDS | C9, `d4185c0`: shared per-device budget in `jarvis_device_admit` (entry `handleDeviceRequest` → device route); local per-source brake; queue caps from `50f6300e` |
 | 166 | CODE | NOT CODED | C9 |
 | 167 | CODE | NOT CODED | C9 |
 | 168 | CODE | BUILDS | C9, `a5b3c25`: per-request CSP nonce (`src/server.ts` → `getRouter`), fixed scripts by hash, no `'unsafe-inline'` scripts; HSTS, canonical HTTPS redirect, CSRF middleware for server functions; OCADE sets no cookies |
-| 169 | CODE | NOT CODED | C9 |
-| 170 | CODE | NOT CODED | C9: malicious-site DNS rebinding closed `4436082`; threat cases for files, MCP tools, downloads, workers and stolen credentials remain |
+| 169 | CODE | BUILDS | C9: XSS (chat Markdown renderer, `tests/security/injection.test.ts`), SSRF (`isPushService`; actor pin `4436082`), SQL injection and privilege escalation over the whole schema (no dynamic SQL, fixed search_path, no anonymous account function — migration `20261107075756` — RLS on every table, non-staff refused by every staff function: `injection-privilege.test.sql`), command injection and unsafe deserialization (`tests/test_injection.py`), path traversal (`test_sandbox.py`), IDOR (`authority.test.sql`, `session-account.test.sql`) |
+| 170 | CODE | BUILDS | C9: threat model with control and regression test per threat, `docs/SUPPORT_LEGAL_SECURITY.md` §7.1; new controls: third-party MCP output redacted (`Gateway.run`, `test_catalog.py`), downloads keep the system internet mark (`web_download` → `mark_downloaded`, `test_download_mark.py`), off-origin download cancelled and never saved |
 | 172 | CODE | NOT CODED | C9 |
-| 175 | CODE | NOT CODED | C9 |
+| 175 | CODE | BUILDS | C9: other accounts (RLS, `authority.test.sql`, `session-account.test.sql`), support and staff (no policy or staff function reads content; sharing is the person's time-limited `ocade_support_share`: `injection-privilege.test.sql`), model traces and logs (enumerated health records only, server code logs nothing else: `tests/security/privacy.test.ts`), evidence redaction `c8fbd54` |
 | 176 | CODE | BUILDS | C9, `c8fbd54`: credentials in every receipt's evidence redacted at the gateway result boundary (`Gateway.run` → `redact`), count reported; companion and server logs carry no evidence text |
-| 177 | CODE | NOT CODED | C9 |
+| 177 | CODE | BUILDS | C9: structured local crash reports with no messages or contents (`_run_companion` → `record_crash`, shown by `diagnose`, `test_agent.py`), health endpoint `/api/health` (`src/server.ts` → `releaseHealthResponse`), latency buckets and failure classes (`buildHealthRecord`, `privacy.test.ts`) |
 | 179 | CODE | NOT CODED | C9 |
 | 180 | CODE | NOT CODED | C9 |
 | 181 | CODE | NOT CODED | C9 |
@@ -1864,3 +1864,5 @@ The existing `tests.run_required.main` loads selected modules/classes/methods or
 **Staging prerequisite before any qualification run:** apply migration `20261107040622_device_admission_shared_rate_limit.sql` to staging; the server now calls `jarvis_device_admit` on every signed device request.
 
 **Reclassification (7 November 2026):** 3, 205 and 215–224 are milestone or threshold results and move to QUALIFICATION-ONLY; 138 is a claim rule and moves to STANDING; 214 (the score itself) is coded. No requirement was removed or changed; each still needs its qualification evidence.
+
+**C9 sessions, injection, threats, privacy and crash reports (162, 169, 170, 175, 177) — BUILDS (local gate green; hosted run recorded on push).** New: `src/lib/security/session-standing.ts` (the decision moved out of the middleware so it is testable), migration `20261107075756_signed_out_visitors_call_no_account_functions` with rollback (anonymous callers lost two account-function grants), external MCP output redaction, the download internet mark, local crash reports. **Staging prerequisite:** apply `20261107075756` with the other new migrations before qualification.
