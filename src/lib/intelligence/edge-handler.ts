@@ -84,9 +84,17 @@ const THINKING_LEVEL = "medium";
 const LOCAL_CALL_ID = "provider-tool-";
 /** Google's documented value for a call whose real signature does not exist (thought-signatures docs). */
 const SKIP_SIGNATURE = "skip_thought_signature_validator";
-const PROVIDER_TIMEOUT_MS = 110_000;
-/** How long one key may take to START answering before the next key is tried. */
-const ATTEMPT_TIMEOUT_MS = 25_000;
+/**
+ * One turn's whole deadline, kept under the Edge Function's 150 s wall clock. Larger models
+ * (the owner's comparison, plan.md §19.4) take tens of seconds per planning turn.
+ */
+const PROVIDER_TIMEOUT_MS = 140_000;
+/**
+ * How long one key may take to START answering before the next key is tried. Measured
+ * 7 Nov 2026: gemma-4-31b-it often needs more than 25 s to its first byte on a full planning
+ * prompt, so 25 s failed every key over and spent the turn's deadline on retries.
+ */
+const ATTEMPT_TIMEOUT_MS = 60_000;
 /** Finish reasons that mean the content itself was refused: never a capacity problem. */
 const BLOCKED_FINISH = new Set(["SAFETY", "RECITATION", "BLOCKLIST", "PROHIBITED_CONTENT", "SPII"]);
 /**
@@ -1181,7 +1189,26 @@ async function runOnlineIntelligence(
           Object.assign(served, { model: configured, slot });
           break;
         }
-        deps.providerIssue?.({ model: configured, slot, kind: `status_${response.status}` });
+        // A 400's provider message, reduced to lowercase words, says which argument was refused.
+        const said =
+          response.status === 400
+            ? (
+                await response
+                  .clone()
+                  .text()
+                  .catch(() => "")
+              )
+                .toLowerCase()
+                .replace(/[^a-z_ ]+/g, " ")
+                .trim()
+                .replace(/\s+/g, "_")
+                .slice(0, 80)
+            : "";
+        deps.providerIssue?.({
+          model: configured,
+          slot,
+          kind: `status_${response.status}${said ? `_${said}` : ""}`,
+        });
 
         /*
          * A REFUSED ATTEMPT'S BODY IS STILL AN OPEN STREAM: read for its reason where the status

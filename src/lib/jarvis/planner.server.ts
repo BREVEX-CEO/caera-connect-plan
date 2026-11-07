@@ -511,7 +511,8 @@ async function callPlanner(input: {
         // The service re-reads the account's own consent; this flag alone grants nothing.
         privacy: { onlineInferenceConsented: true, sealed: false },
       }),
-      signal: AbortSignal.timeout(110_000),
+      // Just past the service's own 140 s turn deadline (edge-handler.ts).
+      signal: AbortSignal.timeout(145_000),
     }).catch(() => null);
     if (!response?.ok || !response.body) {
       // Refused before any output (consent, key, quota, outage): nothing is charged.
