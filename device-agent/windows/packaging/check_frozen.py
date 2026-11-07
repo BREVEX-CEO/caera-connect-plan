@@ -174,7 +174,9 @@ async def main(executable: str, path: str) -> None:
         chrome = next((exe for folder in browsers for exe in folder.rglob("chrome.exe")), None)
     if chrome is None:
         raise RuntimeError("frozen installer is missing its Playwright Chromium dependency")
-    files = [file for file in root.rglob("*") if file.is_file()]
+    # A macOS bundle keeps its data beside Contents/MacOS (in Contents/Resources): count it all.
+    program = root.parent if sys.platform == "darwin" else root
+    files = [file for file in program.rglob("*") if file.is_file()]
     # Redistribution (180, 182): the notices ship with the program (the spec refuses GPL modules).
     if not any(file.name == "THIRD_PARTY_NOTICES.md" for file in files):
         raise RuntimeError("the installer is missing THIRD_PARTY_NOTICES.md")
