@@ -59,6 +59,20 @@ BLENDER = tool(["blender"], [rf"{PROGRAMS}\Blender Foundation\Blender*\blender.e
 FFPROBE = tool(["ffprobe"], [])
 
 
+def app_grants() -> list[str]:
+    """The person allows the benchmark's applications (`app:<executable>`, as OCADE's `apps.list`
+    names them: `name.exe` on Windows, the bundle's executable on macOS). Consent stays OCADE's."""
+    patterns = {
+        "Windows": [rf"{PROGRAMS}\LibreOffice\program\soffice*.exe", rf"{PROGRAMS}\GIMP*\bin\gimp*.exe",
+                    rf"{LOCAL}\Programs\GIMP*\bin\gimp*.exe", rf"{PROGRAMS}\FreeCAD*\bin\FreeCAD*.exe",
+                    rf"{PROGRAMS}\Blender Foundation\Blender*\blender*.exe", rf"{PROGRAMS}\kdenlive\bin\kdenlive*.exe"],
+        "Darwin": [f"/Applications/{app}.app/Contents/MacOS/*" for app in ("LibreOffice", "GIMP*", "FreeCAD", "Blender", "kdenlive")],
+    }.get(SYSTEM, [])
+    names = {Path(hit).name.lower() for pattern in patterns for hit in glob.glob(pattern)}
+    names |= {Path(found).name.lower() for found in (SOFFICE, GIMP, BLENDER) if found}
+    return sorted(f"app:{name}" for name in names if all(c.isalnum() or c in " ._()+-" for c in name))
+
+
 class Watch:
     """Screenshots every `every` seconds and CPU/RAM samples while a task runs."""
 
@@ -101,7 +115,7 @@ class Watch:
 
 
 def ocade(ws: Path, request: str, report: Path, configuration: str, minutes: int,
-          grants=("computer_control", "screen", "apps")) -> tuple[dict, float]:
+          grants=("computer_control", "screen", "apps", *app_grants())) -> tuple[dict, float]:
     command = ["node", "scripts/jarvis-live.mjs", "--workspace", str(ws), "--confirm-effects",
                "--minutes", str(minutes), "--report", str(report)]
     for grant in grants:
@@ -408,7 +422,8 @@ def main() -> int:
     base = Path(tempfile.mkdtemp(prefix="ocade-bench-"))
     commit = subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT, capture_output=True, text=True).stdout.strip()
     summary = {"configuration": args.configuration, "system": SYSTEM, "machine": platform.platform(), "commit": commit,
-               "programs": {"soffice": SOFFICE, "gimp": GIMP, "blender": BLENDER, "ffprobe": FFPROBE}, "results": []}
+               "programs": {"soffice": SOFFICE, "gimp": GIMP, "blender": BLENDER, "ffprobe": FFPROBE},
+               "appGrants": app_grants(), "results": []}
     car_ws = None
     for name in args.only:
         ws = base / name
