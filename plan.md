@@ -1567,8 +1567,8 @@ Coding status is kept separate from runtime verification (Appendix A), so nothin
 | 13 | CODE | NOT CODED | C10 |
 | 16 | STANDING | STANDING | Every gate |
 | 23 | QUALIFICATION-ONLY | QUALIFICATION-ONLY; harness NOT CODED | Q; harness audit in C10, owner-directed run deferred |
-| 28 | CODE | NOT CODED | C3 offering coded, C6/C10 execution ladder |
-| 29 | CODE | NOT CODED | C3 offering coded, C6/C10 mechanism selection |
+| 28 | CODE | BUILDS | C6: the planner prompt orders the routes (typed file, document, media and scene operations; website operations; accessibility after `ui.inspect`; `ui.click_point` last) and the server enforces the tail: a pointer click needs the latest image of the exact window, and a failed mechanism needs a fresh look before the next route (`SYSTEM`, `observedSinceFailure`, `NEXT_ROUTE`; `contracts.test.ts` mechanism fallback) |
+| 29 | CODE | BUILDS | C6: only operations the current grants and the computer's engines support are offered (`offeredOperations`, C3); read-only observations may share a turn, every effect runs alone; a failed route is followed by a fresh observation and then the next route (`fallbackRoute`) |
 | 31 | CODE | BUILDS | C2, `ec44dd79` |
 | 32 | CODE | BUILDS | C2, `ec44dd79` |
 | 33 | CODE | BUILDS | C2, `ec44dd79` |
@@ -1579,22 +1579,22 @@ Coding status is kept separate from runtime verification (Appendix A), so nothin
 | 40 | CODE | BUILDS | C9/C10 session fence |
 | 44 | CODE | BUILDS | C4, `e2f7053e` |
 | 45 | CODE | BUILDS | C4, `e2f7053e` |
-| 46 | CODE | NOT CODED | C3/C10 |
+| 46 | CODE | BUILDS | C6: the generic fix: repeated "Download" links carry their row and section, tables are read as rows and headers, a deep address typed from memory is refused, and facts come only from what the task observed (WEB-015, `release_pick` and `web_fact` live tasks, `contracts.test.ts`) |
 | 48 | CODE | BUILDS | C6: one target per intent, resolved against what was observed: web controls by observation-scoped selector (`web_worker._one`, stale refused), desktop windows and elements by exact lease (`windows_worker`/`mac_worker`, 59), files by workspace resolution (`sandbox.resolve`), processes by creation identity (`jobs`) |
 | 49 | CODE | BUILDS | C6: each observation issues a random token; every control's selector `[data-ocade="<token>-<n>"]` names that observation only, and an older one is `stale_selector` (`_CONTROLS`, `_one`) |
 | 50 | CODE | BUILDS | C6: control facts carry tag, type, name, label (accessible name, aria-label, title or text), href, role, box (position and size), state (disabled, checked, selected, pressed, expanded, hidden), containing row and nearest heading for repeated labels, and the observation token (`_CONTROLS`; WEB-001b, WEB-015 in `test_web.py`) |
 | 51 | CODE | BUILDS | C6: a repeated label ("Download" per row) carries its row text and section heading, so the planner chooses by version, platform or row (WEB-015, WEB-001b) |
 | 52 | CODE | BUILDS | C6: a selector from an older observation, a page that left its site, or a disconnected element is refused (`stale_selector`, `page_left_site`); desktop actions recheck their exact window lease before input (59) |
-| 54 | CODE | NOT CODED | C3/C10 |
+| 54 | CODE | BUILDS | C6: the prompt requires current facts to come from this task's observations, an address not seen in this task is refused, and the verifier checks the real page, never the model's claim (`SYSTEM`, `contracts.test.ts`, `web_text_contains`) |
 | 55 | CODE | BUILDS | C6: visible tables are read as caption, headers and rows of cells with each row's link, hidden rows excluded (`_TABLES`; table case in `test_web.py`) |
-| 56 | CODE | NOT CODED | C3/C10 |
-| 57 | CODE | NOT CODED | C3/C10 |
+| 56 | CODE | BUILDS | C6: an incomplete observation makes the planner look again (targeted reads such as `web.read`, `ui.inspect`, `fs.read_text`, `system.diagnose`) or ask the person with `ask`; a mechanism failure requires a fresh look first (`observedSinceFailure`) |
+| 57 | CODE | BUILDS | C6: structured observations come first (page controls and tables, UI Automation and Accessibility trees); a screenshot is used only where structure is missing, such as a canvas, and is looked at with `media.preview` (`SYSTEM`) |
 | 58 | CODE | BUILDS | C6: a point is a fraction of the leased window, turned into pixels from its live rectangle under per-monitor DPI awareness v2; the click is refused when the window moved, resized, lost the foreground, lies off every monitor (negative origins included) or is obscured, and the target is re-matched in a fresh capture first (`ui_click_point`, `_window_point`, `_check_point`); macOS uses live window bounds (`mac_worker._leased`). Real DPI and monitor setups are qualification (127) |
 | 59 | CODE | BUILDS | C6 audit: every `ui.*` mutation on Windows and macOS re-proves the lease (handle, pid, exe, start time) and refuses gone, minimized, elevated (UIPI) or unresponsive windows (`windows_worker._leased`, `mac_worker._leased`); Windows/macOS runner proof at qualification |
-| 60 | CODE | NOT CODED | C3/C10 |
+| 60 | CODE | BUILDS | C6: visual grounding is the last route after structured controls fail, needs the latest image of the exact window, re-matches the target in a fresh capture before clicking, and repeated pairs of steps are stopped as a stall (`ui_click_point`, `vision.match`, stall rules in `contracts.test.ts`) |
 | 61 | CODE | BUILDS | Visual grounding, `19d21104` |
-| 62 | CODE | NOT CODED | C6 |
-| 63 | CODE | NOT CODED | C3/C10 |
+| 62 | CODE | BUILDS | C6: duplicate buttons (WEB-015, WEB-001b), changing layouts (stale observation refused), dynamic and hidden table rows (`_TABLES`), identical file names (new files never overwrite, `test_sandbox.py`), overlapping windows (`point_obscured`, `test_windows_ui.py`), dialogs (WEB-017: reported, never answered yes), hidden controls (filtered), overlays (obscured points refused) and redirected downloads (`download_off_origin`, `test_download_mark.py`) |
+| 63 | CODE | BUILDS | C6: every result returns to the planner before the next effect; edits name the digest they read, so a wrong file is refused before it is overwritten; outputs are new files; and nothing is accepted before the independent verifier passes it (`fs.edit_text` expectSha256, `recovery.test.ts`) |
 | 65 | QUALIFICATION-ONLY | QUALIFICATION-ONLY; harness BUILDS | Independent fixture server observations, `2ca015fb` |
 | 66 | CODE | BUILDS | C7: a task completes only when the independent verifier worker, reading the real files, pages or windows, returns true for every fixed check (`settleChecks`: unknown is not success; `jarvis_settle_task` refuses partial passes; `verification.test.ts`, `authority.test.sql`) |
 | 67 | CODE | BUILDS | C7: the model only proposes checks at task start; the server validates them (`compileGoal`: one well-formed proposal, allowed apps and sites, bound paths, milestone coverage) and stores them immutably (`jarvis_set_outcome`); outcomes are observed by a separate worker; a check that cannot apply is a question, not a repair target (69) (`verification.test.ts`, `contract-binding.test.ts`) |
@@ -1882,3 +1882,5 @@ The existing `tests.run_required.main` loads selected modules/classes/methods or
 **C5/C6/C8 native, installer and browser audit (58, 122–126, 130, 132, 139, 140, 142–144, 187) — BUILDS; 127, 128, 129, 190 reclassified QUALIFICATION-ONLY (real-hardware test campaigns) with their harness; harnesses for 121, 133, 209 recorded.** New: Unicode and long file names tested in the sandbox.
 
 **C10 harnesses and test inventory (193–195, 197, 199–201, 204, 207, 210) — BUILDS (local gate green; hosted run recorded on push).** New: image and video live tasks with hidden oracles, the versioned test matrix and its existence test.
+
+**C6 planner and targeting audit (28, 29, 46, 54, 56, 57, 60, 62, 63) — BUILDS (local gate green; hosted run recorded on push).** New: the browser reports and dismisses a site's alert, confirm and prompt dialogs instead of letting them pass unseen.

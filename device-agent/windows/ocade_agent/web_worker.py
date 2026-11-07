@@ -565,6 +565,8 @@ async def _observe(page_id: str) -> dict:
     popups = await _collect_popups(entry)
     if popups:
         observed["popups"] = popups
+    if entry.get("dialogs"):
+        observed["dialogsDismissed"], entry["dialogs"] = entry["dialogs"], []
     # The other tabs OCADE has open (popups included): switching is acting with that page id.
     others = [(other_id, e) for other_id, e in _pages.items()
               if other_id != page_id and not e["page"].is_closed() and _origin(e["page"].url) == e["origin"]]
@@ -606,14 +608,25 @@ async def _capture(current) -> bytes:
 def _bind(new_page, site: str, origin: tuple[str, str, int] | None = None) -> str:
     page_id = secrets.token_hex(6)
     entry = {"page": new_page, "site": site, "origin": origin or ("https", site, 443),
-             "pendingPopups": [], "popupArrived": asyncio.Event()}
+             "pendingPopups": [], "popupArrived": asyncio.Event(), "dialogs": []}
     _pages[page_id] = entry
 
     def opened(popup) -> None:
         entry["pendingPopups"].append(popup)
         entry["popupArrived"].set()
 
+    async def asked(dialog) -> None:
+        # An alert, confirm, prompt or leave-page question (62, 142). OCADE never answers yes for
+        # the person: it dismisses it, as the browser would without a handler, and the next
+        # observation says what the site asked so the planner can ask the person instead.
+        entry["dialogs"] = (entry["dialogs"] + [{"type": dialog.type, "message": dialog.message[:300]}])[-5:]
+        try:
+            await dialog.dismiss()
+        except Exception:
+            pass
+
     new_page.on("popup", opened)
+    new_page.on("dialog", asked)
     return page_id
 
 

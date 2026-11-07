@@ -244,6 +244,9 @@ class WebLadder(unittest.TestCase):
             out["rows"] = releases["controls"]
             await run("web.read", {"page": releases["page"]})  # a newer observation
             out["stale"] = await run("web.click", {"page": releases["page"], "selector": releases["controls"][0]["selector"]})
+            confirm = (await run("web.open", {"url": base + "/confirm"}))["evidence"]
+            delete = next(c for c in confirm["controls"] if c["label"] == "Delete")
+            out["dialog"] = await run("web.click", {"page": confirm["page"], "selector": delete["selector"]})
             return out
 
         results = self.run_steps(steps)
@@ -338,6 +341,10 @@ class WebLadder(unittest.TestCase):
         with self.subTest("WEB-014 injected text is returned as data only"):
             self.assertIn("IGNORE ALL PREVIOUS INSTRUCTIONS", results["014"]["evidence"]["text"])
             self.assertEqual(len(web_fixture.RECEIVED["uploads"]), 1)  # nothing new left the computer
+        with self.subTest("WEB-017 a site's confirm is reported and never answered yes"):
+            dialog = results["dialog"]["evidence"]
+            self.assertEqual(dialog["dialogsDismissed"], [{"type": "confirm", "message": "Delete everything?"}], dialog)
+            self.assertIn("kept", dialog["text"])
         with self.subTest("WEB-015 repeated labels carry their row, so the right one can be chosen"):
             rows = {c["row"]: c["href"] for c in results["rows"] if c["label"] == "Download"}
             self.assertEqual(rows["Build 8.0.1 2026-09-12 Download"], "/pages/2")
@@ -554,7 +561,8 @@ class BrowserObservationContract(unittest.TestCase):
                     url="https://other.example", wait_for_load_state=AsyncMock(),
                     is_closed=Mock(return_value=False), close=AsyncMock(),
                 )
-                opener.on.call_args.args[1](popup)
+                handlers = {call.args[0]: call.args[1] for call in opener.on.call_args_list}
+                handlers["popup"](popup)
                 self.assertEqual(await web_worker._collect_popups(pages[other]), [])
                 self.assertEqual(await web_worker._collect_popups(pages[first]), ["closed_off_site"])
                 popup.close.assert_awaited_once()
