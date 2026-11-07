@@ -1,0 +1,140 @@
+name: OCADE model comparison benchmark (manual, staging only)
+
+# plan.md §19.4 (O15): the same four tasks for configurations A, B and C on GitHub-hosted
+# Windows and macOS (Linux optional). The real OCADE authority and companion run on the runner;
+# the model is reached only through the staging function `ocade-intelligence-benchmark/<config>`,
+# where the Gemini keys stay. No deployment, no production, no payments.
+
+on:
+  workflow_dispatch:
+    inputs:
+      systems:
+        description: "Runners"
+        type: choice
+        options: ["desktop", "windows", "macos", "linux"]
+        default: "desktop"
+      configurations:
+        description: "Space-separated configurations"
+        type: string
+        default: "a b c"
+      only:
+        description: "Space-separated tasks (calc gimp car advert)"
+        type: string
+        default: "calc gimp car advert"
+
+permissions:
+  contents: read
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+    steps:
+      - id: matrix
+        env:
+          SYSTEMS: ${{ inputs.systems }}
+          CONFIGURATIONS: ${{ inputs.configurations }}
+        run: |
+          case "$SYSTEMS" in
+            desktop) os='["windows-latest","macos-latest"]' ;;
+            windows) os='["windows-latest"]' ;;
+            macos) os='["macos-latest"]' ;;
+            linux) os='["ubuntu-latest"]' ;;
+          esac
+          configs=$(python3 -c 'import json,os; c=os.environ["CONFIGURATIONS"].split(); assert c and set(c)<={"a","b","c"}; print(json.dumps(c))')
+          echo "matrix={\"os\":$os,\"configuration\":$configs}" >> "$GITHUB_OUTPUT"
+
+  benchmark:
+    needs: plan
+    if: github.ref == 'refs/heads/ocade/p00-p22-implementation'
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 355
+    environment: SUPABASE_SERVICE_ROLE_KEY
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: "3.12"
+      - name: Install exact dependencies (no credentials)
+        shell: bash
+        run: |
+          npm ci --no-audit --no-fund
+          python -m pip install --require-hashes -r device-agent/windows/requirements.lock
+          python -m pip install opentimelineio==0.17.0
+      - name: Install the free benchmark applications (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          choco install -y --no-progress libreoffice-fresh gimp freecad blender kdenlive ffmpeg
+          $dirs = @("C:\Program Files\LibreOffice\program") + (Get-ChildItem "C:\Program Files\GIMP*\bin","C:\Program Files\FreeCAD*\bin","C:\Program Files\Blender Foundation\Blender*","C:\Program Files\kdenlive\bin" -ErrorAction SilentlyContinue | ForEach-Object FullName)
+          $dirs | Where-Object { Test-Path $_ } | Add-Content $env:GITHUB_PATH
+      - name: Install the free benchmark applications (macOS)
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          brew install --cask libreoffice gimp freecad blender kdenlive || true
+          brew install ffmpeg
+          for d in /Applications/LibreOffice.app/Contents/MacOS /Applications/Blender.app/Contents/MacOS /Applications/FreeCAD.app/Contents/Resources/bin /Applications/kdenlive.app/Contents/MacOS; do
+            [ -d "$d" ] && echo "$d" >> "$GITHUB_PATH"
+          done
+          ls -d /Applications/GIMP*.app/Contents/MacOS >> "$GITHUB_PATH" || true
+      - name: Install the free benchmark applications (Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          sudo add-apt-repository -y ppa:freecad-maintainers/freecad-stable
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libreoffice-calc gimp freecad blender kdenlive melt ffmpeg xvfb
+      - name: Record what is installed (versions, licences come from the vendors)
+        shell: bash
+        run: |
+          for c in soffice gimp gimp-3.0 gimp-2.10 freecadcmd FreeCADCmd blender kdenlive melt ffmpeg; do
+            p=$(command -v "$c" || true); [ -n "$p" ] && echo "$c: $p"
+          done
+          blender --version 2>/dev/null | head -1 || true
+          soffice --version 2>/dev/null || true
+          echo "CapCut: no official Linux build; Windows/macOS builds need an interactive sign-in, so it is not installed here."
+      - name: Run the benchmark (server credential in this step only)
+        shell: bash
+        env:
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ vars.SUPABASE_PUBLISHABLE_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          ONLY: ${{ inputs.only }}
+          CONFIGURATION: ${{ matrix.configuration }}
+        run: |
+          [[ "$SUPABASE_URL" == https://auyapercxxptziyngycx.supabase.co ]] || { echo "REFUSED: staging only"; exit 2; }
+          read -r -a tasks <<< "$ONLY"
+          run=(python tests/jarvis/benchmark.py --configuration "$CONFIGURATION" --out bench-out --only "${tasks[@]}")
+          if [[ "$RUNNER_OS" == Linux ]]; then xvfb-run -a -s "-screen 0 1920x1080x24" "${run[@]}"; else "${run[@]}"; fi
+      - name: Refuse to upload anything that contains the server credential
+        id: scan
+        if: always()
+        shell: bash
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          python - <<'PY'
+          import os, pathlib, sys
+          key = os.environ["SUPABASE_SERVICE_ROLE_KEY"].strip().encode()
+          root = pathlib.Path("bench-out")
+          if root.exists() and any(key and key in p.read_bytes() for p in root.rglob("*") if p.is_file()):
+              sys.exit("REFUSED: evidence contains the server credential")
+          PY
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always() && steps.scan.outcome == 'success'
+        with:
+          name: bench-${{ matrix.os }}-${{ matrix.configuration }}-${{ github.run_id }}
+          path: bench-out
+          if-no-files-found: warn
+          retention-days: 14
