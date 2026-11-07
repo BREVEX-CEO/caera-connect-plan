@@ -570,6 +570,37 @@ def recovery_steps(live: dict) -> int:
     )
 
 
+def percentile(values: list, share: float):
+    """Nearest-rank percentile of the measured values (None when nothing was measured)."""
+    measured = sorted(v for v in values if isinstance(v, (int, float)) and not isinstance(v, bool))
+    if not measured:
+        return None
+    return measured[min(len(measured) - 1, max(0, -(-len(measured) * share // 100) - 1))]
+
+
+def measures(results: list[dict]) -> dict:
+    """The campaign's numbers (96, 202): latency percentiles, model calls, retries, tokens,
+    interventions, wrong targets and outcome rates, over the tasks actually finished."""
+    def spread(key: str) -> dict:
+        values = [r.get(key) for r in results]
+        return {"p50": percentile(values, 50), "p95": percentile(values, 95), "p99": percentile(values, 99),
+                "measured": sum(isinstance(v, (int, float)) for v in values)}
+
+    usage = [r.get("providerUsage") or {} for r in results]
+    tokens = lambda field: sum(u.get(field) or 0 for u in usage if isinstance(u, dict))  # noqa: E731
+    total = len(results) or 1
+    return {
+        "elapsedMs": spread("elapsedMs"), "modelCallsPerTask": spread("modelCalls"),
+        "verificationMs": spread("verificationMs"), "unaccountedMs": spread("unaccountedMs"),
+        "plannerRetries": sum(r.get("plannerAutoRetries") or 0 for r in results),
+        "tokens": {"input": tokens("inputTokens"), "output": tokens("outputTokens")},
+        "interventionsPerTask": round(sum(r.get("interventions", 0) for r in results) / total, 3),
+        "wrongTargetIncidents": sum(t.get("correct") is False for r in results for t in r.get("targetSelections", [])),
+        "firstAttemptSuccessRate": round(sum(r["pass"] and r.get("recoverySteps") == 0 for r in results) / total, 3),
+        "verifiedSuccessRate": round(sum(r["pass"] for r in results) / total, 3),
+    }
+
+
 def write_summary(out: Path, seed: int, results: list[dict], commit: str,
                   selfcheck: bool = False, expected: int | None = None) -> dict:
     """Atomic progress checkpoint: its denominator is only the tasks actually finished."""
@@ -583,6 +614,7 @@ def write_summary(out: Path, seed: int, results: list[dict], commit: str,
                "withoutRecovery": sum(r["pass"] and r.get("recoverySteps") == 0 for r in results),
                "recoveryAssisted": sum(r["pass"] and r.get("recoverySteps", 0) > 0 for r in results),
                "categories": categories, "commit": commit, "mode": "selfcheck" if selfcheck else "live",
+               "measures": measures(results),
                "targetSelection": {"observed": sum(t["correct"] is not None for t in targets),
                                    "correct": sum(t["correct"] is True for t in targets),
                                    "unobservable": sum(t["correct"] is None for t in targets)},
@@ -713,6 +745,7 @@ def main() -> int:
                         "workerReadyMs": timing.get("workerReadyMs"), "observationMs": timing.get("observationMs"),
                         "executionMs": timing.get("executionMs"), "verificationMs": timing.get("verificationMs"),
                         "providerUsage": timing.get("providerUsage"),
+                        "plannerAutoRetries": timing.get("plannerAutoRetries"),
                         # Person effort: each external effect the operator had to confirm.
                         "interventions": len(live.get("confirmations") or []),
                         "gaming": violations,

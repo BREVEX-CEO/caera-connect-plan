@@ -1609,17 +1609,17 @@ Coding status is kept separate from runtime verification (Appendix A), so nothin
 | 76 | CODE | NOT CODED | C6 |
 | 77 | CODE | NOT CODED | C7: unobservable formula values and containment level reported `5f6db4d`; remaining kinds to audit |
 | 78 | CODE | NOT CODED | C7/C9 |
-| 81 | CODE | NOT CODED | C10 |
-| 82 | CODE | NOT CODED | C10 |
+| 81 | CODE | BUILDS | C10: a task settles only after the independent verifier (`planStep` → `settle`), and timing counts the verified completion (`taskTiming`: `verifiedAt`, `deliveredAt` only for a completed task); campaign speed is measured on verified outcomes (`live_eval.measures`) |
+| 82 | CODE | BUILDS | C10: `taskTiming` reports planning and provider time (`modelMs`, `modelCalls`, provider tokens per call), worker start-up (`workerReadyMs`), observation, execution and verification tool time, planner retries, pickup, the person's waits, pauses, unaccounted time and total elapsed (`timing.test.ts`) |
 | 83 | CODE | NOT CODED | C3/C10 |
-| 85 | CODE | NOT CODED | C3/C10 |
+| 85 | CODE | BUILDS | C10: only reads are batched; every write or risky action needs a fresh planning turn after the previous result (`tests/security/recovery.test.ts`: mutations require fresh planning) |
 | 86 | CODE | NOT CODED | C3/C10 |
 | 87 | CODE | NOT CODED | C3/C10 |
-| 88 | CODE | NOT CODED | C10 |
-| 90 | CODE | NOT CODED | C3/C10 |
-| 91 | CODE | NOT CODED | C3/C10 |
+| 88 | CODE | BUILDS | C10: the gateway pre-warms the file workers on start so the first step pays no start-up, and STOP still ends them (`test_prewarmed_workers_spare_the_first_step_its_start_up`, STOP tests in `test_agent.py`) |
+| 90 | CODE | BUILDS | C10: bounded by category: verification repairs (`MAX_VERIFICATIONS`), repeated or refused steps (pilot stall rules, `contracts.test.ts`), busy-planner retries with the provider's Retry-After (`planner-wait.test.ts`), per-milestone step budgets, deadlines per action, and never an automatic repeat of an uncertain effect (`recovery.test.ts`) |
+| 91 | CODE | BUILDS | C10: the planner prompt keeps every step's operation, status and error code, clips only long observed content with a visible marker, and states grants, checks and milestones every turn (`history`, `contracts.test.ts`: every result of a batch is seen in full) |
 | 92 | CODE | NOT CODED | C3/C10 |
-| 96 | CODE | NOT CODED | C10 |
+| 96 | CODE | BUILDS | C10: `live_eval.measures` reports p50/p95/p99 of elapsed, verification and unaccounted time, model calls per task, planner retries, tokens, interventions, wrong targets and first-attempt and verified success rates in every campaign summary (`test_eval_audit.py`); resource use (resident memory, CPU time, open files, threads, workers, disk) is sampled by the stability harness `tests/stability.py` |
 | 97 | CODE | BUILDS | C4, `e2f7053e` |
 | 98 | CODE | NOT CODED | C4 |
 | 99 | CODE | NOT CODED | C4 |
@@ -1701,7 +1701,7 @@ Coding status is kept separate from runtime verification (Appendix A), so nothin
 | 188 | CODE | BUILDS | C5, `543eeb1a` |
 | 189 | CODE | BUILDS | C5, `543eeb1a` |
 | 190 | CODE | NOT CODED | C5 |
-| 191 | CODE | NOT CODED | C10 |
+| 191 | CODE | BUILDS | C10: `tests/stability.py` runs the real gateway and workers through repeated write, read, list, workbook and verify cycles, samples the process tree each cycle, and fails on memory, open-file or thread growth, a call past its bound (pipe hang), workers outliving the gateway, or runaway disk use; a 12-cycle run is in every gate (`test_stability.py`); the long run on target computers is qualification |
 | 192 | CODE | NOT CODED | C10 |
 | 193 | CODE | NOT CODED | C10 |
 | 194 | CODE | NOT CODED | C10 |
@@ -1710,7 +1710,7 @@ Coding status is kept separate from runtime verification (Appendix A), so nothin
 | 199 | CODE | NOT CODED | C10 |
 | 200 | CODE | NOT CODED | C10 |
 | 201 | CODE | NOT CODED | C10 |
-| 202 | CODE | NOT CODED | C10 |
+| 202 | CODE | BUILDS | C10: first-attempt, recovery-assisted and verified success, interventions per task, wrong-target incidents, time per task and model calls are computed for every campaign (`write_summary` → `measures`); the measurements themselves are qualification work |
 | 204 | CODE | NOT CODED | C10 |
 | 205 | QUALIFICATION-ONLY | QUALIFICATION-ONLY; harness BUILDS | Reclassified: the ≥90% threshold is a qualification result; `tests/jarvis/live_eval.py` hidden-oracle harness exists |
 | 206 | STANDING | STANDING | Every gate |
@@ -1872,3 +1872,5 @@ The existing `tests.run_required.main` loads selected modules/classes/methods or
 **C9/C10 provider errors, secret isolation, licences, operations and locked runtime (166, 167, 180, 181, 182, 208) — BUILDS (local gate green; hosted run recorded on push).** The companion's whole Python dependency tree is now locked with hashes (61 packages); the licence check found two GPL-3.0 modules pulled in by pyautogui and keeps them out of the installer. Manual CI jobs were fixed: the planner-safety job installs Python before the tests that need it, and a stale Windows test fake now models the password-field check.
 
 **C6/C9 targeting metadata, staff authority, deletion and export coverage (48–52, 55, 161, 172, 179; 212 reclassified STANDING) — BUILDS (local gate green; hosted run recorded on push).** Migration `20261107083209_deleting_a_staff_account_keeps_what_they_did` with rollback. **Staging prerequisite:** apply it with the other new migrations.
+
+**C10 speed instrumentation and campaign measures (81, 82, 85, 88, 90, 91, 96, 191, 202) — BUILDS (local gate green; hosted run recorded on push).** New: percentile and outcome measures in every evaluation summary and the stability harness; the rest is recorded from existing code and tests.

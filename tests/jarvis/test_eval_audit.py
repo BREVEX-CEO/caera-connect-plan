@@ -43,6 +43,20 @@ class EvaluationAudit(unittest.TestCase):
             self.assertEqual(second["commit"], "commit-under-test")
 
 
+    def test_campaign_measures_are_percentiles_of_what_was_measured(self):
+        rows = [{"pass": n < 8, "recoverySteps": 1 if n == 7 else 0, "elapsedMs": (n + 1) * 1000,
+                 "modelCalls": n % 3 + 1, "plannerAutoRetries": 1 if n == 0 else 0, "interventions": n % 2,
+                 "providerUsage": {"inputTokens": 100, "outputTokens": 10},
+                 "targetSelections": [{"correct": n != 9}]} for n in range(10)]
+        rows.append({"pass": False, "elapsedMs": None, "targetSelections": []})  # not measured
+        result = evaluation.measures(rows)
+        self.assertEqual(result["elapsedMs"], {"p50": 5000, "p95": 10000, "p99": 10000, "measured": 10})
+        self.assertEqual(result["modelCallsPerTask"]["p50"], 2)
+        self.assertEqual((result["plannerRetries"], result["wrongTargetIncidents"]), (1, 1))
+        self.assertEqual(result["tokens"], {"input": 1000, "output": 100})
+        self.assertEqual((result["verifiedSuccessRate"], result["firstAttemptSuccessRate"]), (round(8 / 11, 3), round(7 / 11, 3)))
+        self.assertIsNone(evaluation.percentile([None, "x"], 50))
+
     def test_pass_requires_authority_proof_and_an_independent_clean_result(self):
         live = {"status": "completed", "checks": [{"id": "a", "state": "passed"}],
                 "timing": {"verifiedAt": "2026-01-01T00:00:00Z"},
