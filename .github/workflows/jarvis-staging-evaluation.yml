@@ -192,7 +192,7 @@ jobs:
         shell: bash
         run: |
           case "$RUNNER_OS" in
-            Windows) choco list | grep -iE "libreoffice|gimp|freecad|blender|kdenlive|ffmpeg" || true ;;
+            Windows) choco list | grep -iE "libreoffice|gimp|freecad|blender|kdenlive|ffmpeg" || true; ls "/c/Program Files" "$LOCALAPPDATA/Programs" 2>/dev/null | grep -iE "gimp|blender|libre|freecad|kdenlive" || true ;;
             macOS) brew list --cask --versions libreoffice gimp freecad blender kdenlive || true; brew list --versions ffmpeg || true ;;
             Linux) dpkg-query -W libreoffice-calc gimp freecad blender kdenlive ffmpeg || true ;;
           esac
