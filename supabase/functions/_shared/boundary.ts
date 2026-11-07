@@ -7,9 +7,11 @@ import {
 import { SERVICE_USER_HEADER } from "../../../src/lib/intelligence/contract.ts";
 import { ONLINE_CONSENT_VERSION } from "../../../src/lib/intelligence/online-consent-version.ts";
 import { buildHealthRecord } from "../../../src/lib/telemetry/operation-health.ts";
+import { liveTurn, servedAsLiveSession } from "../../../src/lib/intelligence/live-session.ts";
 import {
   DEFAULT_ONLINE_MODEL,
   HIGH_ONLINE_MODEL,
+  modelRoute,
   PROVIDER_KEY_ENVIRONMENT,
   PROVIDER_KEY_SLOTS,
   type ProviderKeySlot,
@@ -144,6 +146,37 @@ function observe(record: ReturnType<typeof buildHealthRecord>): void {
   console.log("ocade.health", JSON.stringify(record));
 }
 
+/**
+ * How the provider serves each model, read from its own model metadata once per instance and
+ * per key slot (each slot may be a different project). Unreadable metadata is not cached and
+ * falls back to the streamed request, whose own status then says what is wrong.
+ */
+const generationMethods = new Map<string, string[]>();
+async function servedLive(
+  model: string,
+  slot: ProviderKeySlot,
+  signal: AbortSignal,
+): Promise<boolean> {
+  const cacheKey = `${slot}:${model}`;
+  if (!generationMethods.has(cacheKey)) {
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}`,
+      { headers: { "x-goog-api-key": PROVIDER_KEYS[slot] }, redirect: "error", signal },
+    ).catch(() => null);
+    const meta = response?.ok
+      ? ((await response.json().catch(() => null)) as Record<string, unknown> | null)
+      : null;
+    if (!response?.ok) await response?.body?.cancel().catch(() => undefined);
+    const listed: unknown = meta?.supportedGenerationMethods;
+    if (!Array.isArray(listed)) return false;
+    generationMethods.set(
+      cacheKey,
+      listed.filter((method): method is string => typeof method === "string"),
+    );
+  }
+  return servedAsLiveSession(generationMethods.get(cacheKey)!);
+}
+
 /** A signed-in person's session, asked of Supabase Auth itself. */
 export async function verifyUserJwt(token: string): Promise<{ userId: string } | null> {
   const auth = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
@@ -172,6 +205,11 @@ export const boundary: Omit<OnlineHandlerDependencies, "verifyJwt" | "verifyServ
   ),
   providerSlots: CONFIGURED_SLOTS,
   quotaReturnsAt: new Map(),
+  withoutThinking: new Set(),
+  // A real limit the provider named: logged for the operator (ids and numbers only, never a key).
+  discoveredLimit(limit) {
+    console.log("ocade.provider_limit", JSON.stringify(limit));
+  },
   highAvailable: async (signal) =>
     Boolean(CF_TOKEN) && (await highIncluded(CF_ACCOUNT, CF_BILLING_TOKEN, signal)),
   observe,
@@ -268,7 +306,11 @@ export const boundary: Omit<OnlineHandlerDependencies, "verifyJwt" | "verifyServ
         },
       );
     }
-    if (model !== DEFAULT_ONLINE_MODEL) return new Response(null, { status: 400 });
+    if (!modelRoute(GEMINI_MODEL)?.includes(model as never))
+      return new Response(null, { status: 400 });
+    if (await servedLive(model, slot, signal)) {
+      return liveTurn({ key: PROVIDER_KEYS[slot], model, body, signal });
+    }
     return fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse`,
       {

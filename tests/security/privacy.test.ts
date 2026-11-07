@@ -57,6 +57,8 @@ test("server and edge code logs only health records", () => {
   // Names of missing configuration variables only: no request, account or content.
   const allowed = new Set([
     "src/integrations/supabase/client.server.ts: console.error(`[Supabase] ${message}`",
+    // A provider quota the provider named: slot, model, quota id and number (identifiers only).
+    'supabase/functions/_shared/boundary.ts: console.log("ocade.provider_limit", JSON.stringify(limit',
   ]);
   const offenders: string[] = [];
   for (const path of new Set(server)) {

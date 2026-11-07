@@ -14,9 +14,9 @@ import type {
 } from "./contract.ts";
 import { SERVICE_USER_HEADER, sseData } from "./contract.ts";
 import {
-  DEFAULT_ONLINE_MODEL,
   HIGH_ONLINE_MODEL,
   PROVIDER_KEY_SLOTS,
+  modelRoute,
   type OnlineModelId,
   type ProviderKeySlot,
 } from "./online-models.ts";
@@ -152,6 +152,13 @@ export interface OnlineHandlerDependencies {
    * at once: no permit claimed, no provider call spent against a quota already known spent.
    */
   quotaReturnsAt?: Map<OnlineModelId, number>;
+  /**
+   * A limit the provider named when it refused for quota (its QuotaFailure detail): the only
+   * place OCADE learns a project's real RPM, TPM or RPD. Nothing here is assumed or hardcoded.
+   */
+  discoveredLimit?(limit: DiscoveredLimit): void;
+  /** Models whose provider refused the request's thinking setting: asked again without one. */
+  withoutThinking?: Set<string>;
   callProvider(input: {
     model: OnlineModelId;
     body: Record<string, unknown>;
@@ -372,7 +379,7 @@ function parseBody(value: unknown): OnlineRequestBody | null {
   return value as unknown as OnlineRequestBody;
 }
 
-function providerBody(body: OnlineRequestBody): Record<string, unknown> {
+function providerBody(body: OnlineRequestBody, thinking = true): Record<string, unknown> {
   const system = body.messages
     .filter((message) => message.role === "system")
     .map((message) => message.content)
@@ -461,7 +468,7 @@ function providerBody(body: OnlineRequestBody): Record<string, unknown> {
     contents,
     generationConfig: {
       maxOutputTokens: MAX_OUTPUT_TOKENS,
-      thinkingConfig: { thinkingLevel: THINKING_LEVEL },
+      ...(thinking ? { thinkingConfig: { thinkingLevel: THINKING_LEVEL } } : {}),
     },
     /*
      * RESEARCH IS THE PROVIDER'S OWN GROUNDED SEARCH.
@@ -512,6 +519,86 @@ export function providerWait(
   }
   const body = /"retryDelay"\s*:\s*"(\d+(?:\.\d+)?)s"/.exec(detail)?.[1];
   return body === undefined ? undefined : Number(body) * 1_000;
+}
+
+/** One limit a quota refusal named, with the project (key slot) and model it belongs to. */
+export interface DiscoveredLimit {
+  slot: ProviderKeySlot;
+  model: string;
+  /** The provider's quota id, e.g. "GenerateRequestsPerDayPerProjectPerModel-FreeTier". */
+  quotaId: string;
+  /** The limit's value as the provider stated it; absent when it did not say. */
+  value?: number;
+  metric?: string;
+}
+
+/**
+ * What a 429 body says about the quota it hit: every QuotaFailure violation, and, when one of
+ * them is a per-day quota, how long until it resets (midnight Pacific, the provider's documented
+ * reset). A per-day quota is never retried within the day on a short `retryDelay`.
+ */
+export function providerQuota(
+  detail: string,
+  now = Date.now(),
+): { limits: Omit<DiscoveredLimit, "slot" | "model">[]; dailyResetMs?: number } {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(detail);
+  } catch {
+    return { limits: [] };
+  }
+  const error = isRecord(parsed) && isRecord(parsed.error) ? parsed.error : null;
+  const details = error && Array.isArray(error.details) ? error.details : [];
+  const limits: Omit<DiscoveredLimit, "slot" | "model">[] = [];
+  for (const entry of details) {
+    if (!isRecord(entry) || !Array.isArray(entry.violations)) continue;
+    for (const violation of entry.violations) {
+      // Identifiers only, so a limit can be logged: no provider prose and no request content.
+      const identifier = (value: unknown) =>
+        boundedString(value, 200) && /^[\w./-]+$/.test(value) ? value : undefined;
+      if (!isRecord(violation) || !identifier(violation.quotaId)) continue;
+      const value = Number(violation.quotaValue);
+      limits.push({
+        quotaId: violation.quotaId as string,
+        ...(Number.isFinite(value) && value >= 0 ? { value } : {}),
+        ...(identifier(violation.quotaMetric) ? { metric: violation.quotaMetric as string } : {}),
+      });
+    }
+  }
+  const daily = limits.some((limit) => /PerDay/i.test(limit.quotaId));
+  return { limits, ...(daily ? { dailyResetMs: untilPacificMidnight(now) } : {}) };
+}
+
+/**
+ * Milliseconds until the next midnight in America/Los_Angeles.
+ * ponytail: uses the current UTC offset, so on a DST-change night it can be an hour off;
+ * the next refusal corrects it.
+ */
+function untilPacificMidnight(now: number): number {
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat("en-US", {
+      timeZone: "America/Los_Angeles",
+      hourCycle: "h23",
+      year: "numeric",
+      month: "numeric",
+      day: "numeric",
+      hour: "numeric",
+      minute: "numeric",
+      second: "numeric",
+    })
+      .formatToParts(new Date(now))
+      .map((part) => [part.type, Number(part.value)]),
+  ) as Record<string, number>;
+  const wall = Date.UTC(
+    parts.year!,
+    parts.month! - 1,
+    parts.day!,
+    parts.hour!,
+    parts.minute!,
+    parts.second!,
+  );
+  const offset = wall - (now - (now % 1_000));
+  return Date.UTC(parts.year!, parts.month! - 1, parts.day! + 1) - offset - now;
 }
 
 /** Without a provider instruction: 250 ms, then 500, never more than 2 s. */
@@ -922,24 +1009,27 @@ async function runOnlineIntelligence(
   if (service && body.surface !== "jarvis") return json(400, { error: "invalid_request" });
 
   const high = body.quality === "high";
-  const configured = high ? HIGH_ONLINE_MODEL : DEFAULT_ONLINE_MODEL;
+  // The server's own route (`GEMINI_MODEL`), never the request's: one model, or "a,b" in order.
+  const route: readonly OnlineModelId[] | undefined = high
+    ? [HIGH_ONLINE_MODEL]
+    : modelRoute(deps.model);
   if (high && body.research) return json(403, { error: "research_unavailable" }, origin);
   if (high && !(await deps.highAvailable?.(request.signal).catch(() => false))) {
     return json(503, { error: "high_unavailable" }, origin);
   }
-  if (
-    !high &&
-    (!deps.providerReady || (deps.model !== undefined && deps.model !== DEFAULT_ONLINE_MODEL))
-  ) {
+  if (!high && (!deps.providerReady || !route)) {
     return json(503, { error: "online_unavailable" }, origin);
   }
   // Before anything is claimed or sent: the account's own agreement, read on the server.
   if (deps.consented && !(await deps.consented(identity.userId))) {
     return json(403, { error: "online_not_consented" }, origin);
   }
-  const spentFor = (deps.quotaReturnsAt?.get(configured) ?? 0) - (deps.now ?? Date.now)();
-  if (spentFor > 0) {
-    const retryAfterSeconds = Math.ceil(spentFor / 1_000);
+  // A model whose quota the provider named as spent is not asked until it returns.
+  const spentFor = (model: OnlineModelId) =>
+    (deps.quotaReturnsAt?.get(model) ?? 0) - (deps.now ?? Date.now)();
+  const open = route!.filter((model) => spentFor(model) <= 0);
+  if (!open.length) {
+    const retryAfterSeconds = Math.ceil(Math.min(...route!.map(spentFor)) / 1_000);
     return json(429, { error: "provider_unavailable", retryAfterSeconds }, origin);
   }
   const claimed = await deps.claimPermit({ userId: identity.userId, permit: body.permit });
@@ -1010,120 +1100,158 @@ async function runOnlineIntelligence(
     let provider: Response | null = null;
     let quotaExhausted = false;
     let capacityReturnsIn = 0;
+    /** How the last model that could not answer ended, when that was not capacity. */
+    let refusedAs: "provider_rejected_request" | "provider_unavailable" | undefined;
     controller.signal.throwIfAborted(); // stopped during the claim: no provider is called
 
-    let slotIndex = 0;
-    while (attempted.attempts < MAX_PROVIDER_ATTEMPTS && slotIndex < slots.length) {
-      const slot = slots[slotIndex]!;
-      const attempt = attempted.attempts;
-      const last = attempt === MAX_PROVIDER_ATTEMPTS - 1;
-      let response: Response;
-      /*
-       * One key that hangs must not hold the whole request: it has its own
-       * deadline to START answering. Only to start: the timer is cleared the
-       * moment headers arrive, so a long answer is never cut off by it.
-       */
-      const hung = new AbortController();
-      const attemptTimer = setTimeout(
-        () => hung.abort(new DOMException("Provider key timeout", "TimeoutError")),
-        ATTEMPT_TIMEOUT_MS,
-      );
-      try {
-        attempted.slot = slot;
-        attempted.attempts += 1; // counted before the request, so a failed transport counts too
-        response = await deps.callProvider({
-          model: configured,
-          body: high ? workersAiBody(body, MAX_OUTPUT_TOKENS) : providerBody(body),
-          signal: AbortSignal.any([controller.signal, hung.signal]),
-          slot,
-        });
-      } catch (cause) {
+    /*
+     * THE ROUTE IS TRIED IN ORDER, AND ONLY BEFORE ANY OUTPUT.
+     * Each model has its own quota and its own attempt budget; the next model is asked only
+     * when this one cannot answer this turn. A model is never switched once a stream begins.
+     */
+    models: for (const configured of open) {
+      provider = null;
+      refusedAs = undefined;
+      let thinking = !deps.withoutThinking?.has(configured);
+      let modelAttempts = 0;
+      let slotIndex = 0;
+      while (modelAttempts < MAX_PROVIDER_ATTEMPTS && slotIndex < slots.length) {
+        const slot = slots[slotIndex]!;
+        const attempt = modelAttempts;
+        const last = attempt === MAX_PROVIDER_ATTEMPTS - 1;
+        let response: Response;
         /*
-         * A THROW IS A TRANSPORT FAILURE OF THIS SLOT — unless we asked for
-         * it. An abort is the person leaving or the whole request's deadline,
-         * and trying the next key after that would be spending their
-         * allowance on a request nobody is waiting for. A key that hung or
-         * could not be reached is failed over, within the same budget.
+         * One key that hangs must not hold the whole request: it has its own
+         * deadline to START answering. Only to start: the timer is cleared the
+         * moment headers arrive, so a long answer is never cut off by it.
          */
-        if (controller.signal.aborted) throw cause;
-        slotIndex += 1;
-        continue;
-      } finally {
-        clearTimeout(attemptTimer);
-      }
+        const hung = new AbortController();
+        const attemptTimer = setTimeout(
+          () => hung.abort(new DOMException("Provider key timeout", "TimeoutError")),
+          ATTEMPT_TIMEOUT_MS,
+        );
+        try {
+          attempted.slot = slot;
+          attempted.attempts += 1; // counted before the request, so a failed transport counts too
+          modelAttempts += 1;
+          response = await deps.callProvider({
+            model: configured,
+            body: high ? workersAiBody(body, MAX_OUTPUT_TOKENS) : providerBody(body, thinking),
+            signal: AbortSignal.any([controller.signal, hung.signal]),
+            slot,
+          });
+        } catch (cause) {
+          /*
+           * A THROW IS A TRANSPORT FAILURE OF THIS SLOT — unless we asked for
+           * it. An abort is the person leaving or the whole request's deadline,
+           * and trying the next key after that would be spending their
+           * allowance on a request nobody is waiting for. A key that hung or
+           * could not be reached is failed over, within the same budget.
+           */
+          if (controller.signal.aborted) throw cause;
+          slotIndex += 1;
+          continue;
+        } finally {
+          clearTimeout(attemptTimer);
+        }
 
-      if (high && response.status === 412) {
-        await response.body?.cancel();
-        return json(503, { error: "high_unavailable" }, origin);
-      }
-      provider = high ? workersAiResponse(response, controller.signal) : response;
-      if (response.ok) break;
+        if (high && response.status === 412) {
+          await response.body?.cancel();
+          return json(503, { error: "high_unavailable" }, origin);
+        }
+        provider = high ? workersAiResponse(response, controller.signal) : response;
+        if (response.ok) break;
 
-      /*
-       * A REFUSED ATTEMPT'S BODY IS STILL AN OPEN STREAM: read for its reason where the status
-       * needs one, otherwise cancelled so it does not hold its connection.
-       */
-      if (response.status === 429) {
-        quotaExhausted = true;
-        const detail = await response.text().catch(() => "");
-        const wait = providerWait(response, detail);
         /*
-         * A WEB SEARCH THE PLAN DOES NOT INCLUDE IS NOT A BUSY PROVIDER.
-         *
-         * On the free tier, grounding with Google Search is "Not available" (Google's pricing
-         * page): every grounded request is a 429 with no time to wait, and JARVIS spent
-         * minutes retrying one as if it were busy (live cloud runs, 13 Oct 2026). Said once,
-         * not retried; it answers again if the plan ever includes it.
+         * A REFUSED ATTEMPT'S BODY IS STILL AN OPEN STREAM: read for its reason where the status
+         * needs one, otherwise cancelled so it does not hold its connection.
          */
-        if (body.research && !wait) {
-          return json(403, { error: "research_unavailable" }, origin);
+        if (response.status === 429) {
+          quotaExhausted = true;
+          const detail = await response.text().catch(() => "");
+          const quota = providerQuota(detail, (deps.now ?? Date.now)());
+          for (const limit of quota.limits)
+            deps.discoveredLimit?.({ ...limit, slot, model: configured });
+          const named = providerWait(response, detail);
+          // A spent per-day quota returns at its reset, whatever shorter wait the body suggests.
+          const wait =
+            quota.dailyResetMs !== undefined ? Math.max(named ?? 0, quota.dailyResetMs) : named;
+          /*
+           * A WEB SEARCH THE PLAN DOES NOT INCLUDE IS NOT A BUSY PROVIDER.
+           *
+           * On the free tier, grounding with Google Search is "Not available" (Google's pricing
+           * page): every grounded request is a 429 with no time to wait, and JARVIS spent
+           * minutes retrying one as if it were busy (live cloud runs, 13 Oct 2026). Said once,
+           * not retried; it answers again if the plan ever includes it.
+           */
+          if (body.research && !wait) {
+            return json(403, { error: "research_unavailable" }, origin);
+          }
+          // Quota belongs to the PROJECT: the same key is retried, never another one. A wait the
+          // provider asks for that is longer than a moment is not slept here, and never cut short.
+          if (wait !== undefined && wait > MAX_INLINE_WAIT_MS) {
+            const seconds = Math.ceil(wait / 1_000);
+            capacityReturnsIn = capacityReturnsIn ? Math.min(capacityReturnsIn, seconds) : seconds;
+            deps.quotaReturnsAt?.set(configured, (deps.now ?? Date.now)() + wait);
+            break;
+          }
+          if (last) break;
+          await sleep(wait ?? backoff(attempt), controller.signal);
+          continue;
         }
-        // Quota belongs to the PROJECT: the same key is retried, never another one. A wait the
-        // provider asks for that is longer than a moment is not slept here, and never cut short.
-        if (wait !== undefined && wait > MAX_INLINE_WAIT_MS) {
-          capacityReturnsIn = Math.ceil(wait / 1_000);
-          deps.quotaReturnsAt?.set(configured, (deps.now ?? Date.now)() + wait);
-          break;
-        }
-        if (last) break;
-        await sleep(wait ?? backoff(attempt), controller.signal);
-        continue;
-      }
 
-      if (response.status === 400) {
-        // Google reports a bad or expired key as 400: that is THIS key, not the request.
-        const detail = await response.text().catch(() => "");
-        if (/API_KEY_INVALID|API key (not valid|expired)/i.test(detail)) {
+        if (response.status === 400) {
+          // Google reports a bad or expired key as 400: that is THIS key, not the request.
+          const detail = await response.text().catch(() => "");
+          if (/API_KEY_INVALID|API key (not valid|expired)/i.test(detail)) {
+            slotIndex += 1;
+            continue;
+          }
+          // The model does not take this thinking setting: the same request once without one.
+          if (thinking && /thinking/i.test(detail)) {
+            thinking = false;
+            deps.withoutThinking?.add(configured);
+            continue;
+          }
+          // The request itself was refused by this model: the next model in the route may take it.
+          refusedAs = "provider_rejected_request";
+          continue models;
+        }
+        const wait = providerWait(response);
+        void response.body?.cancel().catch(() => undefined);
+
+        // THIS key is refused: the next one may not be.
+        if (response.status === 401 || response.status === 403) {
           slotIndex += 1;
           continue;
         }
-        // The request itself was refused: asking again, or elsewhere, gets the same answer.
-        return json(400, { error: "provider_rejected_request" }, origin);
-      }
-      const wait = providerWait(response);
-      void response.body?.cancel().catch(() => undefined);
 
-      // THIS key is refused: the next one may not be.
-      if (response.status === 401 || response.status === 403) {
-        slotIndex += 1;
-        continue;
-      }
-
-      // The provider is overloaded or failing. Every key reaches the same provider, so the same
-      // key is retried, as long as the budget lasts and the provider allows it.
-      if (response.status >= 500) {
-        if (wait !== undefined && wait > MAX_INLINE_WAIT_MS) {
-          capacityReturnsIn = Math.ceil(wait / 1_000);
-          break;
+        // The provider is overloaded or failing. Every key reaches the same provider, so the same
+        // key is retried, as long as the budget lasts and the provider allows it.
+        if (response.status >= 500) {
+          if (wait !== undefined && wait > MAX_INLINE_WAIT_MS) {
+            const seconds = Math.ceil(wait / 1_000);
+            capacityReturnsIn = capacityReturnsIn ? Math.min(capacityReturnsIn, seconds) : seconds;
+            break;
+          }
+          if (last) break;
+          await sleep(wait ?? backoff(attempt), controller.signal);
+          continue;
         }
-        if (last) break;
-        await sleep(wait ?? backoff(attempt), controller.signal);
-        continue;
-      }
 
-      return json(503, { error: "provider_unavailable" }, origin);
+        refusedAs = "provider_unavailable";
+        continue models;
+      }
+      if (provider?.ok) break;
     }
 
+    if (!provider?.ok && refusedAs) {
+      return json(
+        refusedAs === "provider_rejected_request" ? 400 : 503,
+        { error: refusedAs },
+        origin,
+      );
+    }
     if (!provider?.ok) {
       return json(
         quotaExhausted ? 429 : 503,
