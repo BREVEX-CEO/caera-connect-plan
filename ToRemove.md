@@ -1,5 +1,15 @@
 # OCADE retirement manifest
 
+## W12 deep debloat — 7 November 2026
+
+On `ocade/p00-p22-implementation`, each removal traced to no remaining caller (commit messages name them):
+
+- **Removed (`ee972df`):** the TF-IDF operation shortlist (`shortlistOperations`, `RANKING_WORDS`, `ESSENTIAL`) and its dedicated tests, replaced in production by the capability-filtered list since C3 (`rankBySimilarity` stays for external MCP tools); `src/lib/error-capture.ts`, never imported; `HANDOFF-CODEX.md`, a stale second backlog; four evidence media files (52 MB), listed with sizes and SHA-256 in `evidence/LARGE_FILES.md`.
+- **Simplified:** orphaned doc comments in `planner.server.ts`; the stale candidate table here.
+- **Found by tracing, fixed instead of removed:** the JARVIS voice setting had no reader (now drives Read aloud); staff device removal bypassed the owner's removal path (D36).
+- **Kept on purpose:** raw evaluation JSON under `evidence/` (2.1 MB not named by any document: the E1 raw reports cited by D25/D26 and the per-task eval reports behind each summary). Moving them saves little and would leave those findings without their data. The historical architecture ledgers are snapshots cited by Appendix B at their commits; `scripts/jarvis-traceability.mjs` reads plan.md as its one source.
+- **Dead-code scans with nothing left:** TypeScript unused locals and parameters, exports used nowhere, unreferenced npm packages, vulture on the companion (every hit is a registered MCP tool), and the new dead-control press in `tests/web/surface_audit.py`.
+
 ## Unused bundled Chromium headless shell removed — 1 November 2026
 
 - **Removed from Windows packaging:** Playwright's `chromium_headless_shell-*` payload, using the pinned SDK's `install --no-shell chromium`. Runtime code launches the explicitly bundled full Chromium executable.
@@ -51,26 +61,7 @@ This is a proof-gated retirement list, not another implementation plan or deploy
 
 Trace all callers and security roles → identify canonical replacement → record working behaviour and cost → prove replacement on normal/failure/STOP/restart/fidelity cases → remove → rerun targeted and broader evidence → independent adversarial/real-user checks. Record active LOC/modules/dependencies/package size and relevant latency before/after. No percentage quota. Revert a cleanup that loses valid functionality.
 
-| Candidate                                                                                                                                        | Replacement / owning PLAN package                           | Deletion gate                                                                          |
-| ------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| ~~Model-owned completed transition in src/jarvis/agent.ts~~ — RETIRED 11 Oct 2026 (both copies now route through the `changeTask` evidence gate) | P01 receipt-gated task settlement                           | All terminal paths require contract proof; false finish tests fail closed              |
-| Preflight-only semantic cancellation/stale coordinate reuse                                                                                      | P02 final-point checks and observation generations          | STOP race and real platform drift tests pass                                           |
-| Rotation exchange that consumes commands; memory-only Android results                                                                            | P03 handshake and durable journal                           | Lost reply/crash/replay tests preserve every effect                                    |
-| Office failure reported unchanged after mutation                                                                                                 | P04 effect/recovery metadata                                | Real partial-save/readback failures represented truthfully                             |
-| Coarse duplicate staff permission authority                                                                                                      | P05 database predicate                                      | Direct Data API and route tests agree, concurrent owner transfer safe                  |
-| Silent partial export/deletion success                                                                                                           | P06 durable reconciliation                                  | All classes counted; unknown counts never complete                                     |
-| Network-first offline activation, destructive ciphertext error cleanup                                                                           | P07 local-first verified manifest and quarantine            | Cold offline restart, corrupt bytes and cross-tab key tests                            |
-| Repeated cloud round-trip for each deterministic segment step                                                                                    | P08 local bounded segment                                   | Old-agent compatibility and full safety parity before retiring old path                |
-| Independent polling/connection owners                                                                                                            | P09 shared authenticated events plus bounded recovery fetch | Loss/reconnect/order tests; never remove all fallback polling                          |
-| Giant app-name/menu maps and reusable coordinates                                                                                                | P10 live capability discovery and sanitised recipes         | Unfamiliar app/version drift tests, safe refusal                                       |
-| Duplicate browser/installer/privileged action authorities                                                                                        | P11 existing signed companion/broker                        | Installed lifecycle, existing/managed browser parity; no cookie copying                |
-| Post-install wake download paths and overlapping audio owners                                                                                    | P11/P12 bundled signed wake and one session owner           | Signature, update, microphone/recovery and real wake proof                             |
-| Duplicate Android setup/settings, dead controls, hidden errors                                                                                   | P13/P15 guided flow and canonical settings                  | Every control mapped; denied permission and async failure handled                      |
-| Always-mounted expensive Orb/graph and redundant UI trees                                                                                        | P15 lazy shared responsive surfaces                         | Keyboard/mobile/reduced-motion and measured performance parity                         |
-| Redundant task summaries/unbounded context                                                                                                       | P16 durable compact checkpoint                              | Goal/permission survives compression and restart                                       |
-| App-specific adapters                                                                                                                            | P17 generic broker only where it proves parity              | KEEP Office and other measured fidelity/safety advantages until equivalent replacement |
-| Source-string tests/unused helpers/dependencies                                                                                                  | P19/P22 stronger behaviour proof or confirmed no callers    | Never remove unique negative/security/platform evidence                                |
-| Retired checkout controls or resurrected payment schema                                                                                          | P20 authoritative new commerce implementation               | Approved provider and settlement proof; preserve required financial history            |
+Superseded on 7 November 2026: the candidate table named the P01–P20 packages of the retired plan, and every row's code was removed with the old JARVIS engine, Android and wake runtime or replaced by the current owners (plan.md §12). Live removal candidates are listed in plan.md W12. The table remains at `ee972df`.
 
 ## 19 October 2026 routing correction
 
