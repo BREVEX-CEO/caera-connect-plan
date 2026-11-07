@@ -27,7 +27,7 @@ jobs:
   coding-gate:
     name: Coding gate · Linux · no qualification
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 40
     services:
       postgres:
         image: postgres:16
@@ -74,12 +74,13 @@ jobs:
           npm ci --no-audit --no-fund
           python -m pip install -r device-agent/windows/requirements.txt
       - name: Install focused integration prerequisites
-        timeout-minutes: 5
+        timeout-minutes: 12
         run: |
           python -m pip install reportlab==4.5.1 opentimelineio==0.17.0
           apt_options=(-o Acquire::Retries=1 -o Acquire::http::Timeout=15 -o Acquire::https::Timeout=15)
           packages=(postgresql-client libreoffice-calc libreoffice-writer ffmpeg glslang-tools bubblewrap)
-          if ! sudo timeout --kill-after=5s 40s env DEBIAN_FRONTEND=noninteractive apt-get "${apt_options[@]}" install -y "${packages[@]}"; then
+          # LibreOffice is large: a short limit killed apt mid-install and left a broken engine behind.
+          if ! sudo timeout --kill-after=10s 300s env DEBIAN_FRONTEND=noninteractive apt-get "${apt_options[@]}" install -y "${packages[@]}"; then
             . /etc/os-release
             test "$ID" = ubuntu
             ubuntu_sources="$RUNNER_TEMP/ocade-ubuntu.sources"
@@ -92,7 +93,7 @@ jobs:
           EOF
             apt_options+=(-o "Dir::Etc::sourcelist=$ubuntu_sources" -o Dir::Etc::sourceparts=-)
             sudo timeout --kill-after=5s 90s apt-get "${apt_options[@]}" update --error-on=any
-            sudo timeout --kill-after=5s 120s env DEBIAN_FRONTEND=noninteractive apt-get "${apt_options[@]}" install -y "${packages[@]}"
+            sudo timeout --kill-after=10s 300s env DEBIAN_FRONTEND=noninteractive apt-get "${apt_options[@]}" install -y "${packages[@]}"
           fi
       - name: Source formatting
         if: success() || failure()
