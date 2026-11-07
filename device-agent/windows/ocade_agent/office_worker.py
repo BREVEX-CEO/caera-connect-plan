@@ -535,7 +535,12 @@ def system_diagnose(topic: str, filter: str | None = None) -> dict:
         return {"topic": topic, "browsers": discovery.browsers()}
     if topic == "environment":
         path = [entry for entry in os.environ.get("PATH", "").split(os.pathsep) if entry]
-        return {"topic": topic, "names": sorted(name for name in os.environ if keep(name))[:200], "path": path[:80]}
+        # A PATH folder that is gone is a common reason a program "is not found" (112).
+        missing = [entry for entry in path if not Path(os.path.expandvars(entry)).is_dir()]
+        return {"topic": topic, "names": sorted(name for name in os.environ if keep(name))[:200], "path": path[:80],
+                "missingPathEntries": missing[:40]}
+    if topic == "registry":
+        return _registry_values(filter or "")
     if topic == "associations":
         if os.name != "nt" or not wanted.startswith("."):
             raise Refused("diagnostic_unavailable")  # Windows, for one extension like ".pdf"
@@ -543,6 +548,42 @@ def system_diagnose(topic: str, filter: str | None = None) -> dict:
         program = _run(["cmd", "/d", "/c", "ftype", kind.split("=", 1)[1]]).strip() if "=" in kind else ""
         return {"topic": topic, "extension": wanted, "type": kind, "opensWith": program}
     raise Refused("unknown_topic")
+
+
+REGISTRY_ROOTS = {"HKCU": "HKEY_CURRENT_USER", "HKEY_CURRENT_USER": "HKEY_CURRENT_USER",
+                  "HKLM": "HKEY_LOCAL_MACHINE", "HKEY_LOCAL_MACHINE": "HKEY_LOCAL_MACHINE"}
+
+
+def _registry_values(key: str) -> dict:
+    """The value names, types and (bounded) data of one registry key, read-only (112).
+
+    Only the current user's and the machine's hives; the gateway redacts credential-shaped
+    data like any evidence. Nothing is written, and missing keys are reported, not created.
+    """
+    if os.name != "nt":
+        raise Refused("diagnostic_unavailable")
+    root, _, rest = key.replace("/", "\\").partition("\\")
+    if root.upper() not in REGISTRY_ROOTS or not rest or any(ord(ch) < 32 for ch in key):
+        raise Refused("invalid_registry_key")
+    import winreg  # type: ignore[import-not-found]
+
+    hive = getattr(winreg, REGISTRY_ROOTS[root.upper()])
+    try:
+        with winreg.OpenKey(hive, rest, 0, winreg.KEY_READ) as handle:
+            values = []
+            for index in range(winreg.QueryInfoKey(handle)[1]):
+                if index >= 100:
+                    break
+                name, data, kind = winreg.EnumValue(handle, index)
+                values.append({"name": name[:120] or "(Default)", "type": kind,
+                               "data": data[:200] if isinstance(data, str) else
+                               data.hex()[:200] if isinstance(data, bytes) else str(data)[:200]})
+            subkeys = [winreg.EnumKey(handle, i) for i in range(min(winreg.QueryInfoKey(handle)[0], 60))]
+    except FileNotFoundError:
+        return {"topic": "registry", "key": key, "exists": False}
+    except PermissionError:
+        raise Refused("permission_denied")
+    return {"topic": "registry", "key": key, "exists": True, "values": values, "subkeys": subkeys}
 
 
 def _file_version(path: str) -> dict:

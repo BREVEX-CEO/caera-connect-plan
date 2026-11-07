@@ -1900,13 +1900,14 @@
               "crashes",
               "environment",
               "associations",
+              "registry",
               "browsers"
             ]
           },
           "filter": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 80
+            "maxLength": 260
           }
         },
         "required": [

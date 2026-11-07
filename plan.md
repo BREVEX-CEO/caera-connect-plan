@@ -1596,19 +1596,19 @@ Coding status is kept separate from runtime verification (Appendix A), so nothin
 | 62 | CODE | NOT CODED | C6 |
 | 63 | CODE | NOT CODED | C3/C10 |
 | 65 | QUALIFICATION-ONLY | QUALIFICATION-ONLY; harness BUILDS | Independent fixture server observations, `2ca015fb` |
-| 66 | CODE | NOT CODED | C1/C7 |
-| 67 | CODE | NOT CODED | C1/C7 |
-| 68 | CODE | NOT CODED | C7: `changes_within` catches unrelated edits against the kept original `c8c6123`; source-mutation fences exist; remaining gaming paths to audit |
+| 66 | CODE | BUILDS | C7: a task completes only when the independent verifier worker, reading the real files, pages or windows, returns true for every fixed check (`settleChecks`: unknown is not success; `jarvis_settle_task` refuses partial passes; `verification.test.ts`, `authority.test.sql`) |
+| 67 | CODE | BUILDS | C7: the model only proposes checks at task start; the server validates them (`compileGoal`: one well-formed proposal, allowed apps and sites, bound paths, milestone coverage) and stores them immutably (`jarvis_set_outcome`); outcomes are observed by a separate worker; a check that cannot apply is a question, not a repair target (69) (`verification.test.ts`, `contract-binding.test.ts`) |
+| 68 | CODE | BUILDS | C7: changing a file or source image a check reads is refused unless the request asks for that file to change (`planStep` fence, `contract-binding.test.ts`), unrelated damage is caught against the kept original (`changes_within` with formatting), and saved formula results are never trusted (recalculation) |
 | 69 | CODE | BUILDS | C7: a check that cannot apply to the result (wrong file kind, wrong range shape, region outside the image, a format `changes_within` cannot compare) is `invalid`, not failed work (`verify_worker._invalid`); `planStep` → `invalidChecks` makes the task wait and ask instead of sending the work back for repair |
-| 70 | CODE | NOT CODED | C7: formula recalculation `5f6db4d`; application-level semantics for other formats remain |
+| 70 | CODE | BUILDS | C7: digests in every write receipt, contents (`file_contains`), parseability (`file_parses`, Office packages reopened), semantics (recalculated cells and ranges, headings, scene and media checks) and application behaviour (a real spreadsheet engine; a repaired program re-run, `command_succeeds`) |
 | 71 | CODE | BUILDS | C7: formulas recalculated by a real engine on a private copy `5f6db4d`, now also for single cells (`workbook_cell_equals`, never the saved result) and ranges (`workbook_range_equals` {path,sheet,range,values}, ≤400 cells, row-by-row values, structure such as header rows): `_workbook_grid` |
 | 72 | CODE | BUILDS | C7: structure (`document_headings`), contents (`file_contains`, PDF rendered with no blank page), preservation of requested formatting (`changes_within` now compares style, weight, italics, underline, size and font per paragraph and number formats per cell: `_formatted`) |
 | 73 | CODE | BUILDS | C7: file properties (`image_size`), decoded render (`scene_render`, passive formats), requested visible change and nothing else (`image_changed_within` {path,source,region?}: pixels visibly changed inside the region, ≤0.2% stray outside, size kept); the source is fenced against edits like any checked file (`planStep`) |
 | 74 | CODE | NOT CODED | C7/C9 |
-| 75 | CODE | NOT CODED | C7: re-run contained (bubblewrap / user namespace / sandbox-exec / copy) `5f6db4d`; Windows has only the copy |
-| 76 | CODE | NOT CODED | C6 |
-| 77 | CODE | NOT CODED | C7: unobservable formula values and containment level reported `5f6db4d`; remaining kinds to audit |
-| 78 | CODE | NOT CODED | C7/C9 |
+| 75 | CODE | BUILDS | C7: a repaired program is re-run with the command the person confirmed, in a throwaway copy, and must exit 0 and print the expected text (`command_succeeds`); the containment used is reported (bubblewrap, user namespace, sandbox-exec, or copy only on Windows) `5f6db4d` |
+| 76 | CODE | BUILDS | C7: page state by a fresh rendered observation through checked transport (`web_text_contains`, `test_verify_web.py`: hidden source text, blocked subresources and unavailable browsers stay unverified), downloaded artifacts by the file checks, and submitted data by the confirmation the site shows |
+| 77 | CODE | BUILDS | C7: each check is reported as verified, failed or needs review (`JarvisPanels` task view); unverified checks keep the task from completing and the summary names them; measured notes say what was measured and why something is unobservable (engine missing, no kept original, containment level) |
+| 78 | CODE | BUILDS | C11: every action's receipt carries its evidence (digests, paths, measured values, durations) bound to the action record; credentials are redacted on the device before it leaves (`c8fbd54`, MCP output too), and diagnostics carry no content (175, 177) |
 | 81 | CODE | BUILDS | C10: a task settles only after the independent verifier (`planStep` → `settle`), and timing counts the verified completion (`taskTiming`: `verifiedAt`, `deliveredAt` only for a completed task); campaign speed is measured on verified outcomes (`live_eval.measures`) |
 | 82 | CODE | BUILDS | C10: `taskTiming` reports planning and provider time (`modelMs`, `modelCalls`, provider tokens per call), worker start-up (`workerReadyMs`), observation, execution and verification tool time, planner retries, pickup, the person's waits, pauses, unaccounted time and total elapsed (`timing.test.ts`) |
 | 83 | CODE | NOT CODED | C3/C10 |
@@ -1621,9 +1621,9 @@ Coding status is kept separate from runtime verification (Appendix A), so nothin
 | 92 | CODE | NOT CODED | C3/C10 |
 | 96 | CODE | BUILDS | C10: `live_eval.measures` reports p50/p95/p99 of elapsed, verification and unaccounted time, model calls per task, planner retries, tokens, interventions, wrong targets and first-attempt and verified success rates in every campaign summary (`test_eval_audit.py`); resource use (resident memory, CPU time, open files, threads, workers, disk) is sampled by the stability harness `tests/stability.py` |
 | 97 | CODE | BUILDS | C4, `e2f7053e` |
-| 98 | CODE | NOT CODED | C4 |
-| 99 | CODE | NOT CODED | C4 |
-| 100 | CODE | NOT CODED | C4 |
+| 98 | CODE | BUILDS | C4: the installer freezes the companion with its Python runtime, libraries and its own Chromium (`packaging/ocade-agent.spec`, hashed `requirements.lock`); `check_frozen.py` starts every worker and the bundled browser with an empty developer PATH (Windows installer job) |
+| 99 | CODE | BUILDS | C4: bundled components are fixed by the protocol and spec (`catalog.bundled`, the frozen bundle); a task's extra prerequisite is found, proposed and installed separately (`system.dependency` → `system_install_dependency`, 97/105–108), and the person sees which is which before confirming |
+| 100 | CODE | BUILDS | C4: installed tools are located through registered App Paths and known install folders before PATH, resolved to the real file, and identified by version metadata and executable headers without running them (`discovery.app_path`, `executable_version`, `executable_architectures`, `_candidate`; `test_jobs.py`) |
 | 101 | CODE | BUILDS | C4, `e2f7053e` |
 | 103 | CODE | BUILDS | C4, `e2f7053e` |
 | 104 | CODE | NOT CODED | C4 |
@@ -1631,17 +1631,17 @@ Coding status is kept separate from runtime verification (Appendix A), so nothin
 | 106 | CODE | BUILDS | C4, `e2f7053e` |
 | 107 | CODE | BUILDS | C4, `e2f7053e` |
 | 108 | CODE | BUILDS | C4, `e2f7053e` |
-| 110 | CODE | NOT CODED | C4 |
-| 111 | CODE | NOT CODED | C4 |
-| 112 | CODE | NOT CODED | C4 |
-| 113 | CODE | NOT CODED | C4 |
+| 110 | CODE | BUILDS | C4: permission denied, elevation required (UAC), enterprise policy, insufficient storage and architecture mismatch are distinct diagnostic codes from the operating system's own errors (`dependency_os_error`); installs never elevate and never use a package manager the model chooses |
+| 111 | CODE | BUILDS | C4: missing DLLs, `.dylib` and `.so` libraries, missing entry points, failed library initialisation, invalid native images and wrong-architecture loads are recognised from loader status codes and messages (`_dependency_startup_failure`; `test_verified_dependency_reports_loader_and_policy_failures`) |
+| 112 | CODE | BUILDS | C4: `system.diagnose` names PATH folders that no longer exist, environment variable names (never values), file associations, one registry key's values (HKCU/HKLM, read-only, redacted) and crash events; configuration files and working directories are read with the file operations (`test_fs_ops.py` Diagnostics) |
+| 113 | CODE | BUILDS | C4: quarantine and download-zone marks are observed, code-signature and policy refusals are reported as `dependency_security_policy`, and downloads keep the system mark (170); nothing disables or bypasses SmartScreen, Gatekeeper or application control |
 | 114 | CODE | BUILDS | C4, `e2f7053e` |
 | 115 | CODE | BUILDS | C4, `e2f7053e` |
 | 116 | CODE | BUILDS | C4, `e2f7053e` |
 | 117 | CODE | BUILDS | C4, `e2f7053e` |
 | 118 | CODE | BUILDS | C4, `e2f7053e` |
 | 119 | CODE | NOT CODED | C4 |
-| 120 | CODE | NOT CODED | C4 |
+| 120 | CODE | BUILDS | C4: builds install only the hashed locks (`--require-hashes`), the no-hardcoded guard refuses developer paths in production code (`npm run jarvis:no-hardcoded`), dependency installs use pinned public sources with digests, and the frozen check runs with an empty developer PATH |
 | 121 | QUALIFICATION-ONLY | QUALIFICATION-ONLY; harness NOT CODED | RPC; harness audit in C10, owner-directed run deferred |
 | 122 | CODE | NOT CODED | C6 |
 | 123 | CODE | NOT CODED | C6 |
@@ -1874,3 +1874,7 @@ The existing `tests.run_required.main` loads selected modules/classes/methods or
 **C6/C9 targeting metadata, staff authority, deletion and export coverage (48–52, 55, 161, 172, 179; 212 reclassified STANDING) — BUILDS (local gate green; hosted run recorded on push).** Migration `20261107083209_deleting_a_staff_account_keeps_what_they_did` with rollback. **Staging prerequisite:** apply it with the other new migrations.
 
 **C10 speed instrumentation and campaign measures (81, 82, 85, 88, 90, 91, 96, 191, 202) — BUILDS (local gate green; hosted run recorded on push).** New: percentile and outcome measures in every evaluation summary and the stability harness; the rest is recorded from existing code and tests.
+
+**C7 verifier audit (66, 67, 68, 70, 75, 76, 77, 78) — BUILDS, recorded from the code and tests named in each row; no new code was needed.** 74 stays open: requested video edits beyond length, size, codec, loudness and gaps have no check yet.
+
+**C4 dependency diagnosis follow-up (98–100, 110–113, 120) — BUILDS (local gate green; hosted run recorded on push).** New: `system.diagnose` names missing PATH folders and reads one registry key (Windows, read-only); the rest is recorded from existing code and tests. 104 (ARM64 artifacts) and 119 (clean-machine harness) stay open.

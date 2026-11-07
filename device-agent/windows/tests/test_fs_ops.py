@@ -153,6 +153,24 @@ class Diagnostics(unittest.TestCase):
         self.assertEqual(nonsense["errorCode"], "invalid_intent")
 
 
+    def test_missing_path_folders_and_registry_keys_are_named_read_only(self):
+        from unittest.mock import patch
+
+        from ocade_agent import office_worker
+
+        real, gone = tempfile.mkdtemp(), os.path.join(tempfile.mkdtemp(), "uninstalled-tool")
+        with patch.dict(os.environ, {"PATH": os.pathsep.join([real, gone])}):
+            found = office_worker.system_diagnose(topic="environment")
+        self.assertEqual(found["missingPathEntries"], [gone], "a removed program folder is named")
+        if os.name == "nt":
+            present = office_worker.system_diagnose(topic="registry", filter="HKCU\\Software")
+            self.assertTrue(present["exists"] and present["subkeys"], present)
+            absent = office_worker.system_diagnose(topic="registry", filter="HKCU\\Software\\OCADE-missing-key-test")
+            self.assertEqual(absent, {"topic": "registry", "key": "HKCU\\Software\\OCADE-missing-key-test", "exists": False})
+        refused = office_worker.system_diagnose(topic="registry", filter="HKCR\\anything")
+        self.assertEqual(refused["refused"], "diagnostic_unavailable" if os.name != "nt" else "invalid_registry_key")
+
+
 class BrowserDiscovery(unittest.TestCase):
     def test_installed_browsers_are_found_not_assumed(self):
         from unittest.mock import patch
