@@ -24,8 +24,30 @@ export interface LiveSocket {
   addEventListener(type: string, listener: (event: never) => void): void;
 }
 
+/**
+ * Sessions open with a single-use ephemeral token (Google's documented Live API flow), never with
+ * the key: staging refused every key passed as `?key=` on the socket ("API key not valid") and the
+ * Edge runtime's WebSocket cannot send headers, while minting the token over REST with the key
+ * in the `x-goog-api-key` header works like every other call.
+ */
+const TOKEN_ENDPOINT = "https://generativelanguage.googleapis.com/v1alpha/auth_tokens";
 const LIVE_ENDPOINT =
-  "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent";
+  "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContentConstrained";
+
+function mintToken(key: string, signal: AbortSignal): Promise<Response> {
+  const now = Date.now();
+  return fetch(TOKEN_ENDPOINT, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-goog-api-key": key },
+    body: JSON.stringify({
+      uses: 1,
+      expireTime: new Date(now + 10 * 60_000).toISOString(),
+      newSessionExpireTime: new Date(now + 60_000).toISOString(),
+    }),
+    redirect: "error",
+    signal,
+  });
+}
 
 /** Whether a model's provider metadata says it is served only as a live session. */
 export function servedAsLiveSession(methods: readonly string[]): boolean {
@@ -100,28 +122,33 @@ const frame = (value: unknown) => new TextEncoder().encode(`data: ${JSON.stringi
  * Open a session, send the turn, and resolve once the provider accepted the setup: a 200
  * whose body streams the turn, or the refusal the provider gave before any output.
  */
-export function liveTurn(input: {
+type LiveInput = {
   key: string;
   model: string;
   body: Json;
   signal: AbortSignal;
-  /**
-   * Injected in tests; the platform WebSocket otherwise. The key travels in the
-   * `x-goog-api-key` header (Deno's WebSocket accepts headers): staging refused every key
-   * passed as `?key=` on the socket ("API key not valid") while the same keys work over REST.
-   */
+  /** Injected in tests; the platform WebSocket otherwise. */
   connect?: (url: string) => LiveSocket;
-}): Promise<Response> {
+  /** Injected in tests; mints the session's single-use token otherwise. */
+  mint?: (key: string, signal: AbortSignal) => Promise<Response>;
+};
+
+export async function liveTurn(input: LiveInput): Promise<Response> {
+  const minted = await (input.mint ?? mintToken)(input.key, input.signal);
+  // The provider's own refusal (bad key, quota, outage) goes back as the handler reads any other.
+  if (!minted.ok) return minted;
+  const token = ((await minted.json().catch(() => null)) as { name?: unknown } | null)?.name;
+  if (typeof token !== "string" || !token) return new Response(null, { status: 503 });
+  return openTurn(input, `${LIVE_ENDPOINT}?access_token=${encodeURIComponent(token)}`);
+}
+
+function openTurn(input: LiveInput, url: string): Promise<Response> {
   const connect =
-    input.connect ??
-    ((url: string) =>
-      new (WebSocket as unknown as new (url: string, options: unknown) => LiveSocket)(url, {
-        headers: { "x-goog-api-key": input.key },
-      }));
+    input.connect ?? ((address: string) => new WebSocket(address) as unknown as LiveSocket);
   return new Promise<Response>((resolve, reject) => {
     let socket: LiveSocket;
     try {
-      socket = connect(LIVE_ENDPOINT);
+      socket = connect(url);
     } catch {
       // Never rethrow the platform error: keep the failure free of any request detail.
       reject(new Error("Live session could not be opened."));

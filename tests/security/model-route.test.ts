@@ -252,12 +252,15 @@ test("a live turn: audio modality with a transcript, asynchronous calls, audio d
       tools: [{ function_declarations: [{ name: "finish", description: "Finish." }] }],
     },
     signal: new AbortController().signal,
+    mint: async () => Response.json({ name: "auth_tokens/t1" }),
     connect: (url) => {
       socket.url = url;
       return socket;
     },
   });
-  assert.ok(!socket.url.includes("key"), "the key never travels in the socket URL");
+  await new Promise((settled) => setImmediate(settled)); // the token is minted first
+  assert.ok(!socket.url.includes("synthetic-key"), "the key never travels in the socket URL");
+  assert.ok(socket.url.endsWith("?access_token=auth_tokens%2Ft1"));
   socket.emit("open");
   const setup = socket.sent[0]!.setup as {
     model: string;
@@ -314,7 +317,9 @@ test("a live session refused before setup answers with the status a request woul
       body: {},
       signal: new AbortController().signal,
       connect: () => socket,
+      mint: async () => Response.json({ name: "auth_tokens/t1" }),
     });
+    await new Promise((settled) => setImmediate(settled));
     socket.emit("close", { code: 1008, reason });
     const response = await pending;
     assert.equal(response.status, status, reason);
@@ -325,8 +330,15 @@ test("a live session refused before setup answers with the status a request woul
 test("a live session through the boundary: the turn's call reaches the planner as final", async () => {
   const socket = new FakeSocket();
   const handler = deps("gemini-3.8-live-extended-thinking", async ({ model, body, signal }) => {
-    const pending = liveTurn({ key: "k", model, body, signal, connect: () => socket });
-    queueMicrotask(() => {
+    const pending = liveTurn({
+      key: "k",
+      model,
+      body,
+      signal,
+      connect: () => socket,
+      mint: async () => Response.json({ name: "auth_tokens/t1" }),
+    });
+    setImmediate(() => {
       socket.emit("open");
       socket.server({ setupComplete: {} });
       queueMicrotask(() => {
