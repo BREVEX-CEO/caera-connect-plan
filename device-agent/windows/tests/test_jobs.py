@@ -166,17 +166,24 @@ class Jobs(unittest.TestCase):
     def test_shell_choice_and_unknown_jobs(self):
         other = "cmd" if sys.platform == "win32" else "bash"
         missing = "zsh" if sys.platform == "win32" else "cmd"
-        chosen, refused, unknown, started = self.call(
-            intent("shell.run", {"command": "echo picked", "shell": other}),
-            intent("shell.run", {"command": "echo picked", "shell": missing}),
-            intent("job.status", {"jobId": "0123456789abcdef"}),
-            intent("job.start", {"command": py("import time; time.sleep(120)")}),
-        )
+        async def go():
+            # One companion throughout: on Windows a job ends with the companion that started it.
+            async with Gateway(str(self.root), home=str(self.home)) as gateway:
+                results = [await gateway.run(i, gateway.epoch) for i in (
+                    intent("shell.run", {"command": "echo picked", "shell": other}),
+                    intent("shell.run", {"command": "echo picked", "shell": missing}),
+                    intent("job.status", {"jobId": "0123456789abcdef"}),
+                    intent("job.start", {"command": py("import time; time.sleep(120)")}),
+                )]
+                job = results[-1]["evidence"]["jobId"]
+                return [*results, await gateway.run(intent("job.cancel", {"jobId": job}), gateway.epoch)]
+
+        chosen, refused, unknown, started, cancelled = anyio.run(go)
         self.assertEqual(chosen["status"], "observed", chosen)
         self.assertIn("picked", chosen["evidence"]["stdout"])
         self.assertEqual(refused["errorCode"], "shell_unavailable")
         self.assertEqual(unknown["errorCode"], "unknown_job")
-        [cancelled] = self.call(intent("job.cancel", {"jobId": started["evidence"]["jobId"]}))
+        self.assertEqual(started["status"], "observed", started)
         self.assertEqual(cancelled["status"], "observed", cancelled)
         self.assertEqual(cancelled["evidence"]["state"], "cancelled")
 
@@ -342,7 +349,7 @@ class DependencyInstall(unittest.TestCase):
                 with patch("subprocess.run", return_value=CompletedProcess([], 0, b'["9.9.9","x64"]')) as run:
                     proved = verify_worker.verify_dependency(**proposal)
                     self.assertTrue(proved["verified"])
-                    self.assertEqual(run.call_args.args[0][0], str(dest))
+                    self.assertEqual(run.call_args.args[0][0], str(dest.resolve()))  # Windows: long, not 8.3, name
                     dest.write_bytes(b"replaced binary")
                     rejected = verify_worker.verify_dependency(**proposal)
                     self.assertEqual(rejected["refused"], "dependency_integrity_failed")

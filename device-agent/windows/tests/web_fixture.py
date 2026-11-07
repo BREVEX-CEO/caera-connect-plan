@@ -175,7 +175,9 @@ def _certificate(folder: Path) -> tuple[Path, Path, str]:
         .serial_number(x509.random_serial_number()).not_valid_before(now - timedelta(minutes=5))
         .not_valid_after(now + timedelta(days=1))
         .add_extension(x509.SubjectAlternativeName([
-            x509.DNSName("localhost"), x509.IPAddress(ipaddress.ip_address("127.0.0.1"))]), critical=False)
+            # fixture.test: the pinned-proxy test's name, which a Windows runner checks against the CA.
+            x509.DNSName("localhost"), x509.DNSName("fixture.test"),
+            x509.IPAddress(ipaddress.ip_address("127.0.0.1"))]), critical=False)
         # Strict X.509 verification (Python 3.13+ default) requires the key identifiers.
         .add_extension(x509.AuthorityKeyIdentifier.from_issuer_public_key(ca_key.public_key()), critical=False)
         .add_extension(x509.SubjectKeyIdentifier.from_public_key(key.public_key()), critical=False)

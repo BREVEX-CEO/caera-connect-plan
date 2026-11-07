@@ -39,6 +39,18 @@ def facts(answer) -> dict:
 
 
 
+def parent_edges(rows: list[tuple[int, int, str]]) -> dict[int, int]:
+    """Child to parent, only where the parent is older than the child (D13).
+
+    Windows reuses process ids, and a process keeps the id of a parent that has long exited. A
+    system process whose dead parent's id now belongs to one of ours would otherwise count as
+    ours, and the wait for it would never end. WMI creation dates (yyyymmddHHMMSS.ffffff+zzz,
+    one zone per machine) compare correctly as text."""
+    created = {pid: when[:21] for pid, _, when in rows}
+    return {pid: parent for pid, parent, when in rows
+            if parent in created and created[parent] and when[:21] >= created[parent]}
+
+
 def profile_processes(profile: Path) -> list:
     """Retain stable handles for this fixture's processes before shutdown."""
     if sys.platform != "win32":
@@ -51,8 +63,9 @@ def profile_processes(profile: Path) -> list:
     pythoncom.CoInitialize()
     try:
         rows = list(win32com.client.GetObject(r"winmgmts:root\cimv2").ExecQuery(
-            "SELECT ProcessId, ParentProcessId, CommandLine FROM Win32_Process"))
-        parents = {int(row.ProcessId): int(row.ParentProcessId) for row in rows}
+            "SELECT ProcessId, ParentProcessId, CommandLine, CreationDate FROM Win32_Process"))
+        parents = parent_edges([(int(row.ProcessId), int(row.ParentProcessId), str(row.CreationDate or ""))
+                                for row in rows])
         needles = {str(profile).casefold(), str(profile.resolve()).casefold()}
         roots = {int(row.ProcessId) for row in rows
                  if any(needle in str(row.CommandLine or "").casefold() for needle in needles)}

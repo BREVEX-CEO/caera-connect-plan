@@ -57,6 +57,7 @@ async def measure_companion_lifecycle(iterations: int) -> dict:
                 ):
                     raise AssertionError("filesystem worker did not observe the fixture")
                 journal.finish(activity, observed)
+                journal.db.close()  # Windows cannot remove an open database file
                 worker_rss = 0
                 for worker in process.children(recursive=True):
                     if worker not in before:
@@ -65,7 +66,10 @@ async def measure_companion_lifecycle(iterations: int) -> dict:
                         except psutil.NoSuchProcess:
                             continue
                 result["peakWorkerRssBytes"] = max(result["peakWorkerRssBytes"], worker_rss)
-            if Journal(journal_path).get(activity) != ("finished", observed):
+            reopened = Journal(journal_path)
+            recovered = reopened.get(activity)
+            reopened.db.close()
+            if recovered != ("finished", observed):
                 raise AssertionError("reopen did not recover the exact receipt")
             survivors = [child for child in process.children(recursive=True) if child not in before]
             if survivors:

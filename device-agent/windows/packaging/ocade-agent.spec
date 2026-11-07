@@ -54,6 +54,8 @@ analysis = Analysis(
     pathex=[ROOT],
     datas=[
         (os.path.join(ROOT, "ocade_agent", "protocol.json"), "ocade_agent"),
+        # Redistribution (180, 182): the third-party notices ship with the program.
+        (os.path.join(ROOT, "..", "..", "THIRD_PARTY_NOTICES.md"), "."),
     ]
     # The Word and PowerPoint libraries build new files from their own bundled templates.
     + collect_data_files("docx")

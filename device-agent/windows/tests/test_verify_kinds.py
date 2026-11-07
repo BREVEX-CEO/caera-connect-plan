@@ -10,7 +10,7 @@ import os
 import sys
 import tempfile
 import unittest
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 import anyio
 import openpyxl
@@ -220,11 +220,19 @@ class VerifierKinds(unittest.TestCase):
         self.assertTrue(self.verify(rerun)["predicates"][rerun["id"]], level)
 
     def test_the_mac_sandbox_allows_writes_only_in_the_copy_and_no_network(self):
+        import posixpath
+        from unittest.mock import patch
+
         from ocade_agent.verify_worker import _mac_profile
 
-        profile = _mac_profile(Path('/tmp/odd "name"'))
+        # The profile is a macOS one; on another host resolve the path the way macOS would.
+        with patch("os.path.realpath", posixpath.realpath):
+            profile = _mac_profile(PurePosixPath('/tmp/odd "name"/workspace'))
         self.assertIn("(deny network*)", profile)
         self.assertIn('(subpath "/tmp/odd \\"name\\"")', profile.replace("/private", ""))
+        # Other programs' temporary files are not this re-run's to change.
+        self.assertNotIn("/var/folders", profile)
+        self.assertNotIn('(subpath "/tmp")', profile.replace("/private", ""))
         self.assertIn("(deny file-write* (require-not", profile)
 
     @unittest.skipUnless(office_available(), "needs a real office engine")

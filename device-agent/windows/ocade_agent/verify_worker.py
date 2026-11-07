@@ -776,14 +776,16 @@ def _runs(argv: tuple[str, ...]) -> bool:
 
 
 def _mac_profile(copy: Path) -> str:
-    """No network, and writes only inside the throwaway copy and the system temporary folders."""
+    """No network, and writes only inside this re-run's own scratch folder (the throwaway copy and
+    its private temporary folder, which TMPDIR names). The system temporary folders hold other
+    programs' files, so they are not writable."""
     def quoted(path: str) -> str:
         return '"' + path.replace("\\", "\\\\").replace('"', '\\"') + '"'
 
     return ("(version 1)(allow default)(deny network*)"
             "(deny file-write* (require-not (require-any"
-            f" (subpath {quoted(os.path.realpath(copy))}) (subpath \"/private/var/folders\")"
-            " (subpath \"/private/tmp\") (literal \"/dev/null\") (literal \"/dev/tty\"))))")
+            f" (subpath {quoted(os.path.realpath(copy.parent))})"
+            " (literal \"/dev/null\") (literal \"/dev/tty\"))))")
 
 
 def _containment(copy: Path) -> tuple[list[str], str]:
@@ -832,8 +834,12 @@ def _command_succeeds(command, text, notes: dict) -> bool | None:
             return None
         prefix, notes["containment"] = _containment(copy)
         argv = prefix + shell_argv(command, None)
+        environment = None
+        if sys.platform == "darwin":  # the macOS sandbox lets it write only beside the copy
+            (copy.parent / "tmp").mkdir()
+            environment = {**os.environ, "TMPDIR": str(copy.parent / "tmp")}
         with tempfile.TemporaryFile() as captured:
-            process = subprocess.Popen(argv, cwd=copy, stdin=subprocess.DEVNULL, stdout=captured,
+            process = subprocess.Popen(argv, cwd=copy, env=environment, stdin=subprocess.DEVNULL, stdout=captured,
                                        stderr=subprocess.STDOUT, start_new_session=sys.platform != "win32",
                                        creationflags=subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0)
             try:

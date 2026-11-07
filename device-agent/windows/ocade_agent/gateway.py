@@ -157,10 +157,10 @@ class Gateway:
         if getattr(sys, "frozen", False):
             # Workers are keyed by MODULE (fs_sandbox and sys_core share office_worker), and the
             # packaged agent takes that module name.
-            executable = Path(sys.executable)
+            executable = sys.executable
             if sys.platform == "win32":
-                executable = executable.with_name("ocade-agent.exe")
-            command = [str(executable), "worker", key]
+                executable = str(Path(executable).with_name("ocade-agent.exe"))
+            command = [executable, "worker", key]
         else:
             command = [sys.executable, "-s", "-m", key]
         return StdioServerParameters(command=command[0], args=command[1:], env=environment, cwd=package_root)

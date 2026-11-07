@@ -31,7 +31,13 @@ class VerifierRebinding(unittest.TestCase):
             resolved.append((host, address))
             return [(socket.AF_INET, socket.SOCK_STREAM, 6, "", (address, 443))]
 
+        real_connect = socket.socket.connect
+
         def connect(sock, address):
+            # Windows builds its event loop's self-pipe from a loopback socket pair; that is not
+            # the verifier's request (port 443), so it goes through.
+            if isinstance(address, tuple) and address[1] != 443:
+                return real_connect(sock, address)
             connected.append(address)
             raise ConnectionRefusedError("no real network in this test")
 

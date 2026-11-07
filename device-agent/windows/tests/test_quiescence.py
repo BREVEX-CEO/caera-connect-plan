@@ -46,3 +46,19 @@ class ProcessQuiescence(unittest.TestCase):
                 qualification.close_process_handles(handles)
                 for stream in (child.stdin, child.stdout, child.stderr):
                     stream.close()
+
+
+class OwnershipGraph(unittest.TestCase):
+    def test_a_reused_parent_id_does_not_make_an_older_process_ours(self):
+        """D13: process 720 started long before our worker 4100, whose id its dead parent had."""
+        script = Path(__file__).resolve().parents[1] / "packaging" / "check_frozen.py"
+        spec = importlib.util.spec_from_file_location("ocade_frozen_graph", script)
+        qualification = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(qualification)
+        edges = qualification.parent_edges([
+            (4100, 1, "20261107155210.000000+000"),   # our web worker
+            (4200, 4100, "20261107155211.500000+000"),  # the browser it started
+            (720, 4100, "20261107080000.000000+000"),   # a system process from the morning
+            (900, 31337, "20261107080000.000000+000"),  # parent no longer exists at all
+        ])
+        self.assertEqual(edges, {4200: 4100})

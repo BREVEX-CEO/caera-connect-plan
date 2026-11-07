@@ -177,7 +177,8 @@ class LongTextReads(unittest.TestCase):
         from ocade_agent import office_worker
 
         root = Path(tempfile.mkdtemp())
-        (root / "log.txt").write_text("".join(f"line {n:05d}\n" for n in range(2000)))  # 22,000 characters
+        # Bytes, so the file has the same 22,000 characters on Windows (no CRLF translation).
+        (root / "log.txt").write_bytes("".join(f"line {n:05d}\n" for n in range(2000)).encode())
         with unittest.mock.patch.object(office_worker, "WORKSPACE", str(root)):
             first = office_worker.fs_read_text(path="log.txt")
             second = office_worker.fs_read_text(path="log.txt", offset=first["nextOffset"])
@@ -186,7 +187,7 @@ class LongTextReads(unittest.TestCase):
         self.assertEqual(second["offset"], 8000)
         self.assertFalse(last["truncated"])
         self.assertNotIn("nextOffset", last)
-        self.assertEqual(first["text"] + second["text"] + last["text"], (root / "log.txt").read_text())
+        self.assertEqual(first["text"] + second["text"] + last["text"], (root / "log.txt").read_bytes().decode())
 
 
 class BrowserDiscovery(unittest.TestCase):
