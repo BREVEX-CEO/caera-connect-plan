@@ -105,16 +105,25 @@ export function liveTurn(input: {
   model: string;
   body: Json;
   signal: AbortSignal;
-  /** Injected in tests; the platform WebSocket otherwise. The key is only ever in this URL. */
+  /**
+   * Injected in tests; the platform WebSocket otherwise. The key travels in the
+   * `x-goog-api-key` header (Deno's WebSocket accepts headers): staging refused every key
+   * passed as `?key=` on the socket ("API key not valid") while the same keys work over REST.
+   */
   connect?: (url: string) => LiveSocket;
 }): Promise<Response> {
-  const connect = input.connect ?? ((url: string) => new WebSocket(url) as unknown as LiveSocket);
+  const connect =
+    input.connect ??
+    ((url: string) =>
+      new (WebSocket as unknown as new (url: string, options: unknown) => LiveSocket)(url, {
+        headers: { "x-goog-api-key": input.key },
+      }));
   return new Promise<Response>((resolve, reject) => {
     let socket: LiveSocket;
     try {
-      socket = connect(`${LIVE_ENDPOINT}?key=${encodeURIComponent(input.key)}`);
+      socket = connect(LIVE_ENDPOINT);
     } catch {
-      // Never rethrow the platform error: it can carry the URL, and the URL carries the key.
+      // Never rethrow the platform error: keep the failure free of any request detail.
       reject(new Error("Live session could not be opened."));
       return;
     }

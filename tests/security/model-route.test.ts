@@ -257,6 +257,7 @@ test("a live turn: audio modality with a transcript, asynchronous calls, audio d
       return socket;
     },
   });
+  assert.ok(!socket.url.includes("key"), "the key never travels in the socket URL");
   socket.emit("open");
   const setup = socket.sent[0]!.setup as {
     model: string;

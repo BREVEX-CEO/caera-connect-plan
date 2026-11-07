@@ -1189,9 +1189,9 @@ async function runOnlineIntelligence(
           Object.assign(served, { model: configured, slot });
           break;
         }
-        // A 400's provider message, reduced to lowercase words, says which argument was refused.
+        // A refusal's provider message, reduced to lowercase words, names what was refused.
         const said =
-          response.status === 400
+          response.status >= 400 && response.status !== 429
             ? (
                 await response
                   .clone()
