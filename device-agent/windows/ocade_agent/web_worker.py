@@ -55,6 +55,7 @@ async def _close_browser() -> None:
     context = _browser.pop("context", None)
     playwright = _browser.pop("playwright", None)
     closed = _browser.pop("closed", False)
+    pin = _browser.pop("pin", None)
     _pages.clear()
     _redirects.clear()
     # The MCP transport bounds process shutdown and contains the whole tree.
@@ -64,8 +65,12 @@ async def _close_browser() -> None:
             if context is not None and not closed:
                 await context.close()
         finally:
-            if playwright is not None:
-                await playwright.stop()
+            try:
+                if playwright is not None:
+                    await playwright.stop()
+            finally:
+                if pin is not None:
+                    await pin.close()
 
 
 @asynccontextmanager
@@ -400,7 +405,16 @@ async def _context():
                 # its loopback subresources for a local-network prompt; loopback is already allowed here.
                 options["args"] = ["--disable-features=LocalNetworkAccessChecks"]
             proxy = os.environ.get("HTTPS_PROXY") or os.environ.get("https_proxy")
-            if proxy:
+            if not PRIVATE_ALLOWED:
+                # Every browser connection is resolved once and pinned to a checked public address
+                # (D4); the computer's own proxy, if any, is reached only with that numeric address.
+                from .pinned_proxy import PinnedProxy
+
+                pin = PinnedProxy(lambda address: not _private_address(address), frozenset({443}), upstream=proxy)
+                _browser["pin"] = pin
+                options["proxy"] = {"server": f"http://127.0.0.1:{await pin.start()}",
+                                    "username": pin.username, "password": pin.password}
+            elif proxy:
                 options["proxy"] = {"server": proxy, "bypass": os.environ.get("NO_PROXY", "")}
             if executable:
                 context = await playwright.chromium.launch_persistent_context(executable_path=executable, **options)
