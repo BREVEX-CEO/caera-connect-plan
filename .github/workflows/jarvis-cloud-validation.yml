@@ -425,6 +425,8 @@ jobs:
           python-version: "3.12"
       - name: Install companion runtime for end-to-end tests (test runner only)
         run: python -m pip install --require-hashes -r device-agent/windows/requirements.lock
+      - name: Install the test-only PDF fixture builder the evaluation fixtures import (never shipped)
+        run: python -m pip install reportlab==4.5.1
       - name: Install disposable Postgres test client and the office engine the workers drive
         run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client libreoffice-calc libreoffice-writer
       - name: Standard source and build gates
@@ -450,7 +452,9 @@ jobs:
         if: success() || failure()
         run: |
           python -m playwright install --with-deps chromium firefox webkit
-          test -f .output/server/index.mjs || npm run build
+          # Built against a plain-HTTP loopback backend (nothing listens there), so the CSP leaves
+          # out upgrade-insecure-requests, which WebKit would otherwise apply to 127.0.0.1.
+          VITE_SUPABASE_URL=http://127.0.0.1:54321 npm run build
           npx wrangler dev --ip 127.0.0.1 --port 8787 --local > wrangler.log 2>&1 &
           site_pid=$!
           trap 'kill "$site_pid" 2>/dev/null || true' EXIT

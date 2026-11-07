@@ -1,3 +1,4 @@
+import "./lib/zod-jitless"; // first: before any zod schema is built
 import { QueryClient } from "@tanstack/react-query";
 import { createRouter } from "@tanstack/react-router";
 import { routeTree } from "./routeTree.gen";

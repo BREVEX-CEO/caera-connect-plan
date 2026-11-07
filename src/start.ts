@@ -1,3 +1,4 @@
+import "./lib/zod-jitless"; // first: before any zod schema is built
 import { createCsrfMiddleware, createStart, createMiddleware } from "@tanstack/react-start";
 
 import { renderErrorPage } from "./lib/error-page";

@@ -2,7 +2,9 @@
   "name": "carcc-ocade",
   "version": "0.1.0",
   "private": true,
-  "sideEffects": false,
+  "sideEffects": [
+    "./src/lib/zod-jitless.ts"
+  ],
   "type": "module",
   "engines": {
     "node": ">=22.23.2 <25",

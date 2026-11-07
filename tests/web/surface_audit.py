@@ -147,7 +147,13 @@ def audit_offline(page, origin: str) -> None:
     if metadata.get("start_url") != "/ocade-jarvis" or metadata.get("display") != "standalone":
         raise AssertionError("manifest_launch_contract")
     page.goto(origin + "/ocade-jarvis", wait_until="domcontentloaded")
-    page.wait_for_function("Boolean(navigator.serviceWorker?.controller)", timeout=15_000)
+    # Polled with evaluate: wait_for_function evaluates a string, which the site's CSP blocks in Firefox.
+    for _ in range(60):
+        if page.evaluate("() => Boolean(navigator.serviceWorker?.controller)"):
+            break
+        page.wait_for_timeout(250)
+    else:
+        raise AssertionError("service_worker_not_controlling")
     page.context.set_offline(True)
     try:
         response = page.goto(origin + "/library", wait_until="domcontentloaded")
@@ -209,8 +215,9 @@ def main(base: str, session: str | None = None, storage_key: str | None = None,
             if login:
                 page.add_init_script(login)
             errors: list[str] = []
-            page.on("console", lambda message: errors.append("console error") if message.type == "error" else None)
-            page.on("pageerror", lambda _error: errors.append("uncaught page error"))
+            page.on("console", lambda message: errors.append(f"console error: {message.text[:160]}")
+                    if message.type == "error" else None)
+            page.on("pageerror", lambda error: errors.append(f"uncaught page error: {str(error)[:160]}"))
             queue = [origin + path for path in ("/", "/library", "/ocade-jarvis")]
             seen: set[str] = set()
             while queue:
@@ -254,7 +261,12 @@ def main(base: str, session: str | None = None, storage_key: str | None = None,
                     problems += [f"{where}: the button '{dead}' does nothing"
                                  for dead in dead_buttons(browser, url, fresh)]
                 queue.extend(target for link in facts["links"] if (target := route_url(url, link)))
-            if pwa:
+            if pwa and engine == "firefox":
+                # Playwright's offline emulation does not reach a Firefox service worker's own
+                # requests, so "offline" pages still come from the network; Chromium and WebKit
+                # measure the offline shell.
+                print(f"[{engine}/{name}] offline shell: not measurable in Firefox under Playwright")
+            elif pwa:
                 try:
                     audit_offline(page, origin)
                 except Exception as error:

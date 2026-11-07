@@ -485,6 +485,9 @@ export function JarvisWorkspace({
               </label>
               <textarea
                 id="jarvis-composer"
+                // Firefox otherwise restores the text on reload, bringing back a request that
+                // was already handed over or sent.
+                autoComplete="off"
                 ref={composer}
                 value={draft}
                 rows={1}
