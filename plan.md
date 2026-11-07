@@ -71,7 +71,7 @@ Separate measurements. Never merge them into one percentage.
 
 | Metric | Value (5 Nov 2026) | Source |
 |---|---|---|
-| Coding status | Not yet audited. Batch C0 classifies every requirement in Appendix E (NOT CODED, CODED, BUILDS, RUNTIME VERIFIED, or qualification-only). | Appendix E |
+| Coding status (7 Nov 2026) | Every required ID is coded or classified: 77 RUNTIME VERIFIED, 142 BUILDS, 25 QUALIFICATION-ONLY with their harness BUILDS, 20 STANDING; 134–135 optional (O1) NOT CODED. BUILDS is code plus a green coding gate, not runtime proof | Appendix E |
 | Requirements PASS (runtime verified) | **77/266** (28.9%). Unfinished: 189 (154 PARTIAL, 12 FAIL, 5 BLOCKED, 18 UNTESTED) | Appendix A |
 | Architecture concepts PASS | **44/84** (52.4%). Unfinished: 40 (39 PARTIAL, 1 FAIL) | Appendix B, `npm run jarvis:traceability` |
 | Research ideas with a disposition | 236/236 | Appendix C |
@@ -79,7 +79,7 @@ Separate measurements. Never merge them into one percentage.
 | Cloud tests | Full green candidate matrix: [run 99](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41848478811), tested `2d98e0d` (checkout SHA independently confirmed; dispatch metadata head is `3b39e36`). All 8 jobs pass, including 162 companion tests per OS with only allowed skips. Run 96 Windows failures fixed. Run 109 at `00cbd9e`: seven jobs passed, macOS host never acquired. Explicit free Windows 2022/2025 and macOS 15 ARM/Intel matrix registered (`fce7a5b`); Intel host acquired but stale LibreOffice metadata returned HTTP 404; Homebrew refresh registered at `a91c30f`. Run 41970810529 now reaches Intel tests: 9/10 jobs pass, but a saved scene image is flat despite reported verification (D28); an unpublished diagnostic run also exposed intermittent popup classification D29; no candidate code or completion evidence is adopted. Fixed Intel media archives pass actual version/hash/architecture probes; full green qualification remains pending (`evidence/2026-11-05-intel-media/`). Expanded qualification pending (`evidence/2026-11-04-platform-runners/`) | `evidence/2026-11-04-cloud-recovery/run-99.json` |
 | Real-task success (real Gemini) | **27/48 (56.25%)** completed plus hidden oracle in full E1 at `00cbd9e`, seeds 22–24, Linux Actions, run 41859445291; original oracle-only 35/48, completed 31/48, gaming 0, target choices 0 (unmeasured). Historical 27/36 (1 November) and 7/8 partial (4 November) retain their original scope | `evidence/2026-11-05-e1/`, historical `evidence/2026-11-01-eval-s11`…`s14` |
 | Task time (39 live tasks) | Median 37 s, p95 79.7 s. Model 56% of the time, device execution 6%, unaccounted ~34%. Median 6 model calls. | eval `timing` fields |
-| Open defects | Critical 1 awaiting full repair qualification (D22) · High 5 open (D8 partial, D9, D16, D25, D28) + 2 mitigated (D4, D10) · Medium 7 open (D11, D13, D19 partial, D23, D24, D26, D29) · Low 1 (D15) | Appendix D |
+| Open defects (7 Nov 2026) | Critical 0 open; D22 code fixed, awaiting full platform qualification · High 3 partial (D8, D9, D16) + 3 mitigated (D4, D10, D28); D25 code fixed · Medium 4 open on platform runners (D11, D13, D24, D29 candidate-only) + D19 partial; D23, D26 code fixed · Low 1 (D15, needs owner A3) | Appendix D |
 
 ---
 
