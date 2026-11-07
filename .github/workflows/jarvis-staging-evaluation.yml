@@ -174,18 +174,13 @@ jobs:
         shell: pwsh
         run: |
           choco install -y --no-progress libreoffice-fresh gimp freecad blender kdenlive ffmpeg
-          $dirs = @("C:\Program Files\LibreOffice\program") + (Get-ChildItem "C:\Program Files\GIMP*\bin","C:\Program Files\FreeCAD*\bin","C:\Program Files\Blender Foundation\Blender*","C:\Program Files\kdenlive\bin" -ErrorAction SilentlyContinue | ForEach-Object FullName)
-          $dirs | Where-Object { Test-Path $_ } | Add-Content $env:GITHUB_PATH
       - name: Install the free benchmark applications (macOS)
         if: runner.os == 'macOS'
         shell: bash
         run: |
+          # No PATH edits: app bundles carry their own python/ffprobe, which would shadow the job's.
           brew install --cask libreoffice gimp freecad blender kdenlive || true
           brew install ffmpeg
-          for d in /Applications/LibreOffice.app/Contents/MacOS /Applications/Blender.app/Contents/MacOS /Applications/FreeCAD.app/Contents/Resources/bin /Applications/kdenlive.app/Contents/MacOS; do
-            [ -d "$d" ] && echo "$d" >> "$GITHUB_PATH"
-          done
-          ls -d /Applications/GIMP*.app/Contents/MacOS >> "$GITHUB_PATH" || true
       - name: Install the free benchmark applications (Linux)
         if: runner.os == 'Linux'
         shell: bash
