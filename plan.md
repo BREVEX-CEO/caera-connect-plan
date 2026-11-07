@@ -1560,7 +1560,7 @@ Coding status is kept separate from runtime verification (Appendix A), so nothin
 
 | ID | Class | Coding state | Batch / remaining proof |
 |---|---|---|---|
-| 3 | CODE | NOT CODED | C10 |
+| 3 | QUALIFICATION-ONLY | QUALIFICATION-ONLY; harness BUILDS | Reclassified: the whole-product objective is closed only by W13/RPC/COM evidence; its code items are the other IDs |
 | 7 | STANDING | STANDING | Every gate |
 | 8 | STANDING | STANDING | Every gate |
 | 10 | CODE | NOT CODED | C0/C10 |
@@ -1590,7 +1590,7 @@ Coding status is kept separate from runtime verification (Appendix A), so nothin
 | 56 | CODE | NOT CODED | C3/C10 |
 | 57 | CODE | NOT CODED | C3/C10 |
 | 58 | CODE | NOT CODED | C6 |
-| 59 | CODE | NOT CODED | C6 |
+| 59 | CODE | BUILDS | C6 audit: every `ui.*` mutation on Windows and macOS re-proves the lease (handle, pid, exe, start time) and refuses gone, minimized, elevated (UIPI) or unresponsive windows (`windows_worker._leased`, `mac_worker._leased`); Windows/macOS runner proof at qualification |
 | 60 | CODE | NOT CODED | C3/C10 |
 | 61 | CODE | BUILDS | Visual grounding, `19d21104` |
 | 62 | CODE | NOT CODED | C6 |
@@ -1598,11 +1598,11 @@ Coding status is kept separate from runtime verification (Appendix A), so nothin
 | 65 | QUALIFICATION-ONLY | QUALIFICATION-ONLY; harness BUILDS | Independent fixture server observations, `2ca015fb` |
 | 66 | CODE | NOT CODED | C1/C7 |
 | 67 | CODE | NOT CODED | C1/C7 |
-| 68 | CODE | NOT CODED | C1/C7 |
+| 68 | CODE | NOT CODED | C7: `changes_within` catches unrelated edits against the kept original `c8c6123`; source-mutation fences exist; remaining gaming paths to audit |
 | 69 | CODE | NOT CODED | C1/C7 |
 | 70 | CODE | NOT CODED | C7: formula recalculation `5f6db4d`; application-level semantics for other formats remain |
 | 71 | CODE | NOT CODED | C7: formulas recalculated by a real engine on a private copy `5f6db4d`; range and structure checks remain |
-| 72 | CODE | NOT CODED | C7/C9 |
+| 72 | CODE | NOT CODED | C7: paragraph and slide-text preservation measured by `changes_within` `c8c6123`; layout and style checks remain |
 | 73 | CODE | NOT CODED | C7/C9 |
 | 74 | CODE | NOT CODED | C7/C9 |
 | 75 | CODE | NOT CODED | C7: re-run contained (bubblewrap / user namespace / sandbox-exec / copy) `5f6db4d`; Windows has only the copy |
@@ -1657,7 +1657,7 @@ Coding status is kept separate from runtime verification (Appendix A), so nothin
 | 133 | QUALIFICATION-ONLY | QUALIFICATION-ONLY; harness NOT CODED | RPC; harness audit in C10, owner-directed run deferred |
 | 134 | CODE | NOT CODED | C6 |
 | 135 | CODE | NOT CODED | C6 |
-| 138 | CODE | NOT CODED | C6 |
+| 138 | STANDING | STANDING | Reclassified: a rule on what may be claimed (no OS support before representative hardware passes); checked at every gate |
 | 139 | CODE | NOT CODED | C6 |
 | 140 | CODE | NOT CODED | C6: exact origin and tab binding `abcfc88`; every connection pinned to a checked address `4436082` (D4); authenticated-session proof remains |
 | 142 | CODE | NOT CODED | C6 |
@@ -1689,7 +1689,7 @@ Coding status is kept separate from runtime verification (Appendix A), so nothin
 | 170 | CODE | NOT CODED | C9: malicious-site DNS rebinding closed `4436082`; threat cases for files, MCP tools, downloads, workers and stolen credentials remain |
 | 172 | CODE | NOT CODED | C9 |
 | 175 | CODE | NOT CODED | C9 |
-| 176 | CODE | NOT CODED | C9 |
+| 176 | CODE | BUILDS | C9, `c8fbd54`: credentials in every receipt's evidence redacted at the gateway result boundary (`Gateway.run` → `redact`), count reported; companion and server logs carry no evidence text |
 | 177 | CODE | NOT CODED | C9 |
 | 179 | CODE | NOT CODED | C9 |
 | 180 | CODE | NOT CODED | C9 |
@@ -1712,25 +1712,25 @@ Coding status is kept separate from runtime verification (Appendix A), so nothin
 | 201 | CODE | NOT CODED | C10 |
 | 202 | CODE | NOT CODED | C10 |
 | 204 | CODE | NOT CODED | C10 |
-| 205 | CODE | NOT CODED | C10 |
+| 205 | QUALIFICATION-ONLY | QUALIFICATION-ONLY; harness BUILDS | Reclassified: the ≥90% threshold is a qualification result; `tests/jarvis/live_eval.py` hidden-oracle harness exists |
 | 206 | STANDING | STANDING | Every gate |
 | 207 | CODE | NOT CODED | C10 |
 | 208 | CODE | NOT CODED | C10 |
 | 209 | QUALIFICATION-ONLY | QUALIFICATION-ONLY; harness NOT CODED | RPC; harness audit in C10, owner-directed run deferred |
 | 210 | CODE | NOT CODED | C10 |
-| 211 | CODE | NOT CODED | C1/C7 |
+| 211 | CODE | NOT CODED | C7: unrelated edits and damaged formulas caught by `changes_within` `c8c6123`, recalculated values `5f6db4d`; formatting damage remains |
 | 212 | CODE | NOT CODED | C9 |
-| 214 | CODE | NOT CODED | C0/C10 |
-| 215 | CODE | NOT CODED | C10 |
-| 216 | CODE | NOT CODED | C10 |
-| 217 | CODE | NOT CODED | C4 |
-| 218 | CODE | NOT CODED | C10 |
-| 219 | CODE | NOT CODED | C10 |
-| 220 | CODE | NOT CODED | C10 |
-| 221 | CODE | NOT CODED | C8 |
-| 222 | CODE | NOT CODED | C9 |
-| 223 | CODE | NOT CODED | C10 |
-| 224 | CODE | NOT CODED | C10 |
+| 214 | CODE | BUILDS | `scripts/launch-readiness.mjs` computes the ten-milestone score from `evidence/readiness/gates.json` (`npm run readiness`, in the coding gate) |
+| 215 | QUALIFICATION-ONLY | QUALIFICATION-ONLY; harness BUILDS (`npm run readiness`) | Reclassified: the repository baseline milestone is earned only by qualification evidence; its code items are tracked under their own IDs |
+| 216 | QUALIFICATION-ONLY | QUALIFICATION-ONLY; harness BUILDS (`npm run readiness`) | Reclassified: the device authority milestone is earned only by qualification evidence; its code items are tracked under their own IDs |
+| 217 | QUALIFICATION-ONLY | QUALIFICATION-ONLY; harness BUILDS (`npm run readiness`) | Reclassified: the installer and dependencies milestone is earned only by qualification evidence; its code items are tracked under their own IDs |
+| 218 | QUALIFICATION-ONLY | QUALIFICATION-ONLY; harness BUILDS (`npm run readiness`) | Reclassified: the computer and browser control milestone is earned only by qualification evidence; its code items are tracked under their own IDs |
+| 219 | QUALIFICATION-ONLY | QUALIFICATION-ONLY; harness BUILDS (`npm run readiness`) | Reclassified: the intelligence and grounding milestone is earned only by qualification evidence; its code items are tracked under their own IDs |
+| 220 | QUALIFICATION-ONLY | QUALIFICATION-ONLY; harness BUILDS (`npm run readiness`) | Reclassified: the verification and recovery milestone is earned only by qualification evidence; its code items are tracked under their own IDs |
+| 221 | QUALIFICATION-ONLY | QUALIFICATION-ONLY; harness BUILDS (`npm run readiness`) | Reclassified: the customer product milestone is earned only by qualification evidence; its code items are tracked under their own IDs |
+| 222 | QUALIFICATION-ONLY | QUALIFICATION-ONLY; harness BUILDS (`npm run readiness`) | Reclassified: the security and operations milestone is earned only by qualification evidence; its code items are tracked under their own IDs |
+| 223 | QUALIFICATION-ONLY | QUALIFICATION-ONLY; harness BUILDS (`npm run readiness`) | Reclassified: the platform and performance milestone is earned only by qualification evidence; its code items are tracked under their own IDs |
+| 224 | QUALIFICATION-ONLY | QUALIFICATION-ONLY; harness BUILDS (`npm run readiness`) | Reclassified: the final release milestone is earned only by qualification evidence; its code items are tracked under their own IDs |
 | 226 | STANDING | STANDING | Every gate |
 | 227 | STANDING | STANDING | Every gate |
 | 228 | STANDING | STANDING | Every gate |
@@ -1862,3 +1862,5 @@ The existing `tests.run_required.main` loads selected modules/classes/methods or
 **Coding-gate fidelity (`dc33d54`):** the push gate now runs lint and the whole companion suite (it ran 112 of 202 companion tests and no lint), matching `scripts/ci-local.sh`.
 
 **Staging prerequisite before any qualification run:** apply migration `20261107040622_device_admission_shared_rate_limit.sql` to staging; the server now calls `jarvis_device_admit` on every signed device request.
+
+**Reclassification (7 November 2026):** 3, 205 and 215–224 are milestone or threshold results and move to QUALIFICATION-ONLY; 138 is a claim rule and moves to STANDING; 214 (the score itself) is coded. No requirement was removed or changed; each still needs its qualification evidence.
