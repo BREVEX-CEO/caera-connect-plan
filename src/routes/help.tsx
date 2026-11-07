@@ -263,6 +263,56 @@ const QUESTIONS: {
       </p>
     ),
   },
+  {
+    category: "Troubleshooting",
+    question: "JARVIS says my computer cannot be reached",
+    words: "jarvis computer offline unreachable companion device agent",
+    answer: (
+      <p>
+        Make sure the computer is on, awake and online, and that OCADE JARVIS is running on it. A
+        task waits while the computer is away and continues when it is back; nothing is repeated
+        that may already have happened. If it stays unreachable, open a terminal on that computer
+        and run <code>ocade_agent diagnose</code>: it lists what to fix, in plain words, and never
+        shows your files or keys.
+      </p>
+    ),
+  },
+  {
+    category: "Troubleshooting",
+    question: "The pairing code does not work",
+    words: "pairing code pair computer device expired",
+    answer: (
+      <p>
+        A pairing code works once and for ten minutes. Start pairing again on the computer to get a
+        new code, and type all sixteen characters in Settings, Devices. If you removed this computer
+        earlier, pair it again as a new device.
+      </p>
+    ),
+  },
+  {
+    category: "Troubleshooting",
+    question: "A step says it may already have changed something",
+    words: "unknown effect may have changed reconcile applied",
+    answer: (
+      <p>
+        When the computer lost contact in the middle of a step, nobody saw whether it took effect.
+        JARVIS never runs it again on its own. Look at the result on your computer, then answer
+        whether it happened, so the task can continue from the truth.
+      </p>
+    ),
+  },
+  {
+    category: "Troubleshooting",
+    question: "OCADE JARVIS stopped unexpectedly on my computer",
+    words: "crash stopped unexpectedly report support",
+    answer: (
+      <p>
+        Start it again; your task continues where it was. OCADE keeps a short crash report on your
+        computer only, with no file contents or messages. <code>ocade_agent diagnose</code> shows
+        where it is, and you can choose to attach it to a support request.
+      </p>
+    ),
+  },
 ];
 
 /** The words an answer shows, so search finds guidance by what it actually says. */

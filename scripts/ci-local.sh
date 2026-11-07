@@ -23,6 +23,7 @@ if [[ "$mode" != --companion-only ]]; then
   npm run test:jarvis-db
   npm run readiness
   npm run jarvis:traceability
+  npm run licences:check
 fi
 if [[ "$mode" != --core-only ]]; then
   if [[ -z "${OCADE_BROWSER_EXECUTABLE:-}" ]]; then

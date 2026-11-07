@@ -70,7 +70,7 @@ jobs:
             test -f "$OPENSSL_DIR/lib/libssl.a"
             test -f "$OPENSSL_DIR/lib/libcrypto.a"
           fi
-          python -m pip install -r device-agent/windows/requirements.txt pyinstaller==6.22.3
+          python -m pip install --require-hashes -r device-agent/windows/requirements.lock -r device-agent/windows/packaging/build.lock
           python - <<'PY'
           import re
           import subprocess

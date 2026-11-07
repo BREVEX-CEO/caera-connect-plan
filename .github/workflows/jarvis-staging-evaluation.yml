@@ -78,7 +78,7 @@ jobs:
       - name: Install test-only dependencies and engines on the disposable runner
         if: inputs.campaign != 'isolation'
         run: |
-          python3 -m pip install -r device-agent/windows/requirements.txt
+          python3 -m pip install --require-hashes -r device-agent/windows/requirements.lock
           python3 -m pip install reportlab==4.5.1 opentimelineio==0.17.0
           sudo apt-get update -qq
           sudo apt-get install -y -qq xvfb ffmpeg libreoffice-calc libreoffice-writer

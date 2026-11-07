@@ -33,7 +33,9 @@
     "test:jarvis-db": "bash tests/jarvis/db/run.sh",
     "jarvis:traceability": "node scripts/jarvis-traceability.mjs",
     "jarvis:no-hardcoded": "node scripts/jarvis-no-hardcoded-journeys.mjs",
-    "readiness": "node scripts/launch-readiness.mjs"
+    "readiness": "node scripts/launch-readiness.mjs",
+    "licences:check": "node scripts/licence-inventory.mjs --check",
+    "licences:write": "node scripts/licence-inventory.mjs --write"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.110.7",

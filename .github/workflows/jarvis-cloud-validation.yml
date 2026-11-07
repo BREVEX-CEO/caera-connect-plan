@@ -72,7 +72,7 @@ jobs:
       - name: Install exact coding dependencies
         run: |
           npm ci --no-audit --no-fund
-          python -m pip install -r device-agent/windows/requirements.txt
+          python -m pip install --require-hashes -r device-agent/windows/requirements.lock
       - name: Install focused integration prerequisites
         timeout-minutes: 12
         run: |
@@ -129,6 +129,7 @@ jobs:
         run: |
           npm run jarvis:protocol-check
           npm run jarvis:no-hardcoded
+          npm run licences:check
           npm run supabase:types-check
       - name: Compile the scene interchange shader
         if: success() || failure()
@@ -237,7 +238,7 @@ jobs:
           python-version: "3.12"
       - name: Install locked runtime for focused real-worker safety checks
         if: success() || failure()
-        run: python -m pip install -r device-agent/windows/requirements.txt
+        run: python -m pip install --require-hashes -r device-agent/windows/requirements.lock
       - name: Install the real media engine for containment controls
         if: success() || failure()
         run: |
@@ -334,7 +335,7 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install the locked runtime (synthetic failure contracts only)
-        run: python -m pip install -r device-agent/windows/requirements.txt
+        run: python -m pip install --require-hashes -r device-agent/windows/requirements.lock
       - name: Native bridge dispatch/readback, COM balance and owned process exit (required, no skips)
         working-directory: device-agent/windows
         run: python -m tests.run_required --tests tests.test_effect_receipts --tests tests.test_quiescence
@@ -423,7 +424,7 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install companion runtime for end-to-end tests (test runner only)
-        run: python -m pip install -r device-agent/windows/requirements.txt
+        run: python -m pip install --require-hashes -r device-agent/windows/requirements.lock
       - name: Install disposable Postgres test client and the office engine the workers drive
         run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client libreoffice-calc libreoffice-writer
       - name: Standard source and build gates
@@ -489,7 +490,7 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install locked companion dependencies on test runner only
-        run: python -m pip install -r device-agent/windows/requirements.txt
+        run: python -m pip install --require-hashes -r device-agent/windows/requirements.lock
       - name: Install test-only PDF fixture builder and timeline reader (never shipped to customers)
         run: python -m pip install reportlab==4.5.1 opentimelineio==0.17.0
       - name: Install test-only Chromium

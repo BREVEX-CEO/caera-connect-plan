@@ -1663,7 +1663,7 @@ Coding status is kept separate from runtime verification (Appendix A), so nothin
 | 142 | CODE | NOT CODED | C6 |
 | 143 | CODE | NOT CODED | C6 |
 | 144 | CODE | NOT CODED | C6 |
-| 146 | CODE | NOT CODED | C8 |
+| 146 | CODE | NOT CODED | C8: Owner/Staff Console now has the emergency pause (System → Emergency pause: `readServiceControls`/`setServiceControl` → `ocade_set_service_control`, permission `execution.manage`); staff device removal has a database function but no console screen; the full per-surface audit remains |
 | 147 | CODE | NOT CODED | C8 |
 | 148 | CODE | NOT CODED | C8 |
 | 149 | CODE | BUILDS | C8, `d6e65552` |
@@ -1682,8 +1682,8 @@ Coding status is kept separate from runtime verification (Appendix A), so nothin
 | 163 | CODE | BUILDS | C9, `50f6300e` |
 | 164 | CODE | BUILDS | C2/C9, `50f6300e` |
 | 165 | CODE | BUILDS | C9, `d4185c0`: shared per-device budget in `jarvis_device_admit` (entry `handleDeviceRequest` → device route); local per-source brake; queue caps from `50f6300e` |
-| 166 | CODE | NOT CODED | C9 |
-| 167 | CODE | NOT CODED | C9 |
+| 166 | CODE | BUILDS | C9: `callPlanner` names every provider failure (unreachable, HTTP status with the provider's code, quota with Retry-After kept, refusal events, garbled stream, cut-off stream with partial tool calls, final mismatch) as `PlannerUnavailable`, releases the permit when refused before output, and never decides on a partial turn (`tests/security/provider-errors.test.ts`); waiting and busy retry `planner-wait.test.ts` |
+| 167 | CODE | BUILDS | C9: workers and commands get a sanitized environment (SHELL-003 in `test_shell.py`, `test_catalog.py`); the service key is a request header, never in what the model reads (`contract-binding.test.ts`); the web bundle is scanned for secrets (`npm run audit:secrets` in `verify:full`); evidence redaction `c8fbd54` |
 | 168 | CODE | BUILDS | C9, `a5b3c25`: per-request CSP nonce (`src/server.ts` → `getRouter`), fixed scripts by hash, no `'unsafe-inline'` scripts; HSTS, canonical HTTPS redirect, CSRF middleware for server functions; OCADE sets no cookies |
 | 169 | CODE | BUILDS | C9: XSS (chat Markdown renderer, `tests/security/injection.test.ts`), SSRF (`isPushService`; actor pin `4436082`), SQL injection and privilege escalation over the whole schema (no dynamic SQL, fixed search_path, no anonymous account function — migration `20261107075756` — RLS on every table, non-staff refused by every staff function: `injection-privilege.test.sql`), command injection and unsafe deserialization (`tests/test_injection.py`), path traversal (`test_sandbox.py`), IDOR (`authority.test.sql`, `session-account.test.sql`) |
 | 170 | CODE | BUILDS | C9: threat model with control and regression test per threat, `docs/SUPPORT_LEGAL_SECURITY.md` §7.1; new controls: third-party MCP output redacted (`Gateway.run`, `test_catalog.py`), downloads keep the system internet mark (`web_download` → `mark_downloaded`, `test_download_mark.py`), off-origin download cancelled and never saved |
@@ -1692,10 +1692,10 @@ Coding status is kept separate from runtime verification (Appendix A), so nothin
 | 176 | CODE | BUILDS | C9, `c8fbd54`: credentials in every receipt's evidence redacted at the gateway result boundary (`Gateway.run` → `redact`), count reported; companion and server logs carry no evidence text |
 | 177 | CODE | BUILDS | C9: structured local crash reports with no messages or contents (`_run_companion` → `record_crash`, shown by `diagnose`, `test_agent.py`), health endpoint `/api/health` (`src/server.ts` → `releaseHealthResponse`), latency buckets and failure classes (`buildHealthRecord`, `privacy.test.ts`) |
 | 179 | CODE | NOT CODED | C9 |
-| 180 | CODE | NOT CODED | C9 |
-| 181 | CODE | NOT CODED | C9 |
-| 182 | CODE | NOT CODED | C9 |
-| 185 | CODE | NOT CODED | C5 |
+| 180 | CODE | BUILDS | C9: Terms and Privacy pages (`/terms`, `/privacy`, `LegalContent.tsx`), third-party licence notices generated from the inventory (`THIRD_PARTY_NOTICES.md`, shipped inside the installer by `ocade-agent.spec`), installation and troubleshooting guidance in Help; legal review of the final text is an owner action |
+| 181 | CODE | BUILDS | C9: `RELEASE_NOTES.md`; `docs/OPERATIONS.md` (support procedure, incident response with the console emergency pause, status communication, recovery for database, website, companion and tasks); JARVIS troubleshooting in Help (`help.tsx`); a public status page does not exist yet and is named as such |
+| 182 | CODE | BUILDS | C9: `npm run licences:check` (local and push gates) verifies every shipped Python package (hashed lock) and production npm package against an allowed-licence list in `release/third-party-licences.json`; GPL-3.0 `pymsgbox`/`mouseinfo` (optional imports of pyautogui) are excluded from the installer and the spec fails the build if they are pulled in; the offline model's licence is an open owner item the check prints |
+| 185 | CODE | NOT CODED | C5: every Python package the companion ships and its build tool are now pinned with hashes (`requirements.lock`, `packaging/build.lock`, universal for Windows, macOS and Linux) and installed with `--require-hashes` by `build.ps1`, the macOS package workflow and CI; byte-reproducibility and ARM64 artifacts remain |
 | 186 | CODE | BUILDS | C5, `543eeb1a` |
 | 187 | CODE | NOT CODED | C5 |
 | 188 | CODE | BUILDS | C5, `543eeb1a` |
@@ -1715,7 +1715,7 @@ Coding status is kept separate from runtime verification (Appendix A), so nothin
 | 205 | QUALIFICATION-ONLY | QUALIFICATION-ONLY; harness BUILDS | Reclassified: the ≥90% threshold is a qualification result; `tests/jarvis/live_eval.py` hidden-oracle harness exists |
 | 206 | STANDING | STANDING | Every gate |
 | 207 | CODE | NOT CODED | C10 |
-| 208 | CODE | NOT CODED | C10 |
+| 208 | CODE | BUILDS | C10: every CI job installs the exact shipped Python lock with hashes, so regressions run on the shipped versions; the frozen installer is re-checked by `packaging/check_frozen.py` (bundled browser, workers, notices) in the Windows installer job |
 | 209 | QUALIFICATION-ONLY | QUALIFICATION-ONLY; harness NOT CODED | RPC; harness audit in C10, owner-directed run deferred |
 | 210 | CODE | NOT CODED | C10 |
 | 211 | CODE | BUILDS | C7: incorrect values (recalculated cells and ranges), missing content (`file_contains`, ranges), damaged formatting and unrelated edits (`changes_within` with formatting), altered checked inputs refused (`planStep` fence); the actor writes only new files under OCADE output or in-place repairs with kept originals |
@@ -1868,3 +1868,5 @@ The existing `tests.run_required.main` loads selected modules/classes/methods or
 **C9 sessions, injection, threats, privacy and crash reports (162, 169, 170, 175, 177) — BUILDS (local gate green; hosted run recorded on push).** New: `src/lib/security/session-standing.ts` (the decision moved out of the middleware so it is testable), migration `20261107075756_signed_out_visitors_call_no_account_functions` with rollback (anonymous callers lost two account-function grants), external MCP output redaction, the download internet mark, local crash reports. **Staging prerequisite:** apply `20261107075756` with the other new migrations before qualification.
 
 **C7 range, image and formatting checks; invalid conditions (69, 71, 72, 73, 211) — BUILDS (local gate green; hosted run recorded on push).** New check kinds `workbook_range_equals` and `image_changed_within` (contracts, protocol, `verify_worker`, migration `20261107080533_verifier_checks_ranges_and_image_changes` with rollback). `workbook_cell_equals` no longer trusts a formula's saved result. **Staging prerequisite:** apply `20261107080533`.
+
+**C9/C10 provider errors, secret isolation, licences, operations and locked runtime (166, 167, 180, 181, 182, 208) — BUILDS (local gate green; hosted run recorded on push).** The companion's whole Python dependency tree is now locked with hashes (61 packages); the licence check found two GPL-3.0 modules pulled in by pyautogui and keeps them out of the installer. Manual CI jobs were fixed: the planner-safety job installs Python before the tests that need it, and a stale Windows test fake now models the password-field check.

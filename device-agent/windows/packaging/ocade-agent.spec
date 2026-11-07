@@ -64,8 +64,15 @@ analysis = Analysis(
     hiddenimports=bundled + native_modules
     + collect_submodules("send2trash")
     + ["playwright.async_api", "pptx"],
-    excludes=["tkinter"],
+    # pymsgbox and mouseinfo (GPL-3.0) are optional imports of pyautogui that OCADE never
+    # uses; leaving them out keeps GPL code out of the installer (release/third-party-licences.json).
+    excludes=["tkinter", "pymsgbox", "mouseinfo"],
 )
+# Redistribution (182): fail the build, not the audit, if an excluded GPL module is still pulled in.
+leaked = sorted({entry[0] for entry in analysis.pure + analysis.binaries
+                 if entry[0].split(".")[0] in ("pymsgbox", "mouseinfo")})
+if leaked:
+    raise SystemExit(f"GPL modules would ship in the installer: {leaked}")
 pyz = PYZ(analysis.pure, cipher=block_cipher)
 common = dict(debug=False, strip=False, upx=False)
 if sys.platform == "win32":

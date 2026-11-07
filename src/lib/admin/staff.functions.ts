@@ -752,6 +752,57 @@ export const readSystemHealth = createServerFn({ method: "GET" })
     return { staff: count ?? 0 };
   });
 
+/* ----------------------------------------------------- emergency pause -- */
+
+export interface ServiceControl {
+  key: string;
+  paused: boolean;
+  reason: string | null;
+  changedAt: string;
+}
+
+/**
+ * The emergency switches (incident response): new JARVIS tasks, work on customers'
+ * computers, the Android companion. The database decides who may read them.
+ */
+export const readServiceControls = createServerFn({ method: "GET" })
+  .middleware([requireSession])
+  .handler(async ({ context }): Promise<ServiceControl[]> => {
+    const { data, error } = await context.supabase.rpc("ocade_read_service_controls");
+    if (error) throw new Error(staffFailure(error.message));
+    return (data ?? []).map((row) => ({
+      key: row.key,
+      paused: row.paused,
+      reason: row.reason,
+      changedAt: row.changed_at,
+    }));
+  });
+
+/**
+ * Pause or resume one switch. The caller's own client, so the database checks the role, a
+ * recent second factor and the reason, and writes the change with who made it.
+ */
+export const setServiceControl = createServerFn({ method: "POST" })
+  .middleware([requireAssurance(HIGH_RISK)])
+  .validator((input) =>
+    z
+      .object({
+        key: z.enum(["jarvis_agent", "jarvis_execution", "jarvis_android"]),
+        pause: z.boolean(),
+        reason,
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }): Promise<{ paused: boolean }> => {
+    const { data: changed, error } = await context.supabase.rpc("ocade_set_service_control", {
+      control_key: data.key,
+      pause: data.pause,
+      change_reason: data.reason,
+    });
+    if (error) throw new Error(staffFailure(error.message));
+    return { paused: changed?.paused === true };
+  });
+
 export interface AuditEntry {
   id: string;
   at: string;

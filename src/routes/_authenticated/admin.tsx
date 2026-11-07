@@ -66,7 +66,7 @@ const MODULES: { id: Module; name: string; needs: StaffPermission[] }[] = [
   { id: "customers", name: "Customers", needs: ["customers.read"] },
   { id: "cases", name: "Cases", needs: ["cases.read", "cases.manage"] },
   { id: "staff", name: "Staff", needs: ["staff.manage"] },
-  { id: "system", name: "System", needs: ["health.read"] },
+  { id: "system", name: "System", needs: ["health.read", "execution.manage"] },
   { id: "audit", name: "Audit", needs: ["audit.read"] },
 ];
 

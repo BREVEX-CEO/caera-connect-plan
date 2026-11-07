@@ -1,0 +1,2 @@
+# The build tool, pinned; its lock is build.lock (hashes, universal).
+pyinstaller==6.22.3

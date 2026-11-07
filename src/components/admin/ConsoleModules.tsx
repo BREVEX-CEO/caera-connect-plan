@@ -15,10 +15,12 @@ import {
   messageOf,
   readCaseConversation,
   readCustomer,
+  readServiceControls,
   readSystemHealth,
   ready,
   revokeStaff,
   revokeUnlimited,
+  setServiceControl,
   setStaffPermissions,
   STAFF_ROLE_NAMES,
   transferOwnership,
@@ -90,6 +92,7 @@ const ALL_PERMISSIONS: { id: StaffPermission; name: string }[] = [
   { id: "usage.manage", name: "Give back usage" },
   { id: "accounts.manage", name: "Suspend or restore accounts" },
   { id: "accounts.delete", name: "Delete accounts" },
+  { id: "execution.manage", name: "Pause JARVIS in an emergency" },
 ];
 
 const GRANTABLE_ROLES: StaffRole[] = [
@@ -819,7 +822,113 @@ export function SystemModule({ me }: { me: MyStaff }) {
           )}
         </Section>
       ) : null}
+      {me.permissions.includes("execution.manage") || me.permissions.includes("health.read") ? (
+        <EmergencyControls canChange={me.permissions.includes("execution.manage")} />
+      ) : null}
     </>
+  );
+}
+
+const CONTROL_NAMES: Record<string, string> = {
+  jarvis_agent: "New JARVIS tasks",
+  jarvis_execution: "Work on customers' computers",
+  jarvis_android: "Android companion",
+};
+
+/** Incident response: stop new work or all dispatch at once, with a reason, and say so. */
+function EmergencyControls({ canChange }: { canChange: boolean }) {
+  const controls = useQuery({
+    queryKey: ["admin", "service-controls"],
+    queryFn: () => readServiceControls(),
+    refetchInterval: 15_000,
+  });
+  return (
+    <Section title="Emergency pause">
+      <p className="mt-1 text-[13px] text-muted-foreground">
+        A pause takes effect on the next request: running steps finish or stop at their next check,
+        nothing new starts, and customers see that JARVIS is paused. Every change is recorded with
+        who made it and why.
+      </p>
+      {controls.data ? (
+        <ul className="mt-2 divide-y divide-border/50">
+          {controls.data.map((control) => (
+            <ControlRow key={control.key} control={control} canChange={canChange} />
+          ))}
+        </ul>
+      ) : (
+        <Pending
+          query={controls}
+          loading="Reading the switches…"
+          problem="The switches could not be read."
+        />
+      )}
+    </Section>
+  );
+}
+
+function ControlRow({
+  control,
+  canChange,
+}: {
+  control: { key: string; paused: boolean; reason: string | null; changedAt: string };
+  canChange: boolean;
+}) {
+  const queryClient = useQueryClient();
+  const [why, setWhy] = useState("");
+  const [asking, setAsking] = useState(false);
+  const { withProof, dialog } = useConfirmIdentity();
+  const change = useMutation({
+    mutationFn: () =>
+      withProof(() =>
+        setServiceControl({
+          data: {
+            key: control.key as "jarvis_agent" | "jarvis_execution" | "jarvis_android",
+            pause: !control.paused,
+            reason: why,
+          },
+        }),
+      ),
+    onSuccess: async (result) => {
+      toast.success(result.paused ? "Paused." : "Running again.");
+      setAsking(false);
+      setWhy("");
+      await queryClient.invalidateQueries({ queryKey: ["admin", "service-controls"] });
+    },
+    onError: (error) => toast.error(messageOf(error)),
+  });
+  return (
+    <li className="py-2">
+      {dialog}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <span className="min-w-0 text-foreground">
+          {CONTROL_NAMES[control.key] ?? control.key} · {control.paused ? "Paused" : "Running"}
+          <span className="block text-[13px] text-muted-foreground">
+            {new Date(control.changedAt).toLocaleString()}
+            {control.reason ? ` · ${control.reason}` : ""}
+          </span>
+        </span>
+        {canChange ? (
+          <button type="button" className={button} onClick={() => setAsking((value) => !value)}>
+            {control.paused ? "Resume" : "Pause"}
+          </button>
+        ) : null}
+      </div>
+      {asking ? (
+        <div className="mt-2 flex flex-wrap gap-2">
+          <div className="min-w-[12rem] flex-1">
+            <Reason value={why} onChange={setWhy} label="Why" />
+          </div>
+          <button
+            type="button"
+            className={button}
+            disabled={!ready(why) || change.isPending}
+            onClick={() => change.mutate()}
+          >
+            {change.isPending ? "Changing…" : control.paused ? "Resume now" : "Pause now"}
+          </button>
+        </div>
+      ) : null}
+    </li>
   );
 }
 

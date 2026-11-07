@@ -13,10 +13,11 @@ import {
 type Proposal = { name: string; arguments: Record<string, unknown> };
 
 async function provider(t: { after: (fn: () => Promise<void>) => void }) {
-  const state = { next: [] as Proposal[], prompts: [] as string[] };
+  const state = { next: [] as Proposal[], prompts: [] as string[], bodies: [] as string[] };
   const server = createServer(async (request, response) => {
     let raw = "";
     for await (const chunk of request) raw += chunk;
+    state.bodies.push(raw);
     const body = JSON.parse(raw);
     state.prompts.push(
       body.messages.find((message: { role: string }) => message.role === "user").content,
@@ -147,6 +148,18 @@ test("changing an image comparison's source to match the edit is refused", async
   });
   assert.notEqual(refused.kind, "queue", JSON.stringify(refused));
   assert.match(state.prompts.at(-1)!, /what check only_sky reads/);
+});
+
+test("the server's key authenticates the call and never enters what the model reads (167)", async (t) => {
+  const state = await provider(t);
+  state.next.push({ name: "set_goal", arguments: { checks: [readsInput] } });
+  await compileGoal("u", `Summarise ${input}`, ["files"]);
+  assert.equal(state.bodies.length, 1);
+  assert.ok(
+    !state.bodies[0].includes("synthetic-loopback-key"),
+    "the service key is a header, never content",
+  );
+  assert.ok(!/service[_-]?role|SUPABASE_SERVICE/i.test(state.bodies[0]));
 });
 
 test("one rejected goal is answered with the reason and asked once more", async (t) => {

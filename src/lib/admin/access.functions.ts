@@ -68,7 +68,8 @@ export type StaffPermission =
   | "cases.manage"
   | "usage.manage"
   | "accounts.manage"
-  | "accounts.delete";
+  | "accounts.delete"
+  | "execution.manage";
 
 /**
  * Refuse before reading anything unless the caller may use this permission now
