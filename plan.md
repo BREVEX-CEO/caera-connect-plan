@@ -76,7 +76,7 @@ Separate measurements. Never merge them into one percentage.
 
 | Metric | Value (7 Nov 2026 unless dated) | Source |
 |---|---|---|
-| **Model comparison (§19.4)** | **0/12 evaluations run** (4 tasks × A, B, C). Harness and routes coded (C11, `c40a2a7`); 4/5 benchmark applications installed and executed headless in the isolated container; all 12 cells BLOCKED (B1 credentials, B2 authorised device, B3 already-open project on Linux, B4 DaVinci Resolve) | §19.4 |
+| **Model comparison (§19.4)** | **0/24 mandatory runs** (Windows 0/12, macOS 0/12; Linux 0/12 optional). Staging benchmark function deployed and probed; runner harness and workflow ready; first run waits for the owner's environment approval (B1) | §19.4 |
 | Completed work | W3; 77 RUNTIME VERIFIED requirements; 236 research dispositions; fixed defects | [archive](docs/archive/plan-v6-2026-11-07.md) |
 | Coding status (7 Nov 2026) | Every required ID is coded or classified: 77 RUNTIME VERIFIED, 142 BUILDS, 25 QUALIFICATION-ONLY with their harness BUILDS, 20 STANDING; 134–135 optional (O1) NOT CODED. BUILDS is code plus a green coding gate, not runtime proof | Appendix E |
 | Requirements PASS (runtime verified) | **77/266** (28.9%). Unfinished: 189 (154 PARTIAL, 12 FAIL, 5 BLOCKED, 18 UNTESTED) | Appendix A |
@@ -785,24 +785,30 @@ Success = verified complete ÷ eligible attempted. The harness supplies only the
 - **B** `gemini-3.8-live-extended-thinking` alone, over the Live API. Provider facts (Google docs, 7 Nov 2026): native-audio Live models accept only the AUDIO response modality; text is observed through `outputAudioTranscription`; function calls must be `NON_BLOCKING`; thinking levels low/medium/high; 128k context; sessions ≤15 min audio-only. OCADE sends text turns, reads the transcript and the function calls, and discards the audio without playing it. It never claims native text-only output. Known provider risk: a forum report (28 Sep 2026, unanswered) says Extended Thinking emitted no `toolCall` for a `NON_BLOCKING` function on some keys.
 - **C** `gemma-4-31b-it,gemini-3.8-live-extended-thinking`: one task authority and one planner loop; the edge handler (the single controller of model choice) asks the second model only before any output, when the first cannot answer that turn (quota spent, unavailable, request refused). Escalation by verifier outcome is not coded; it is added only if C's results show the need.
 
-**Quota and the three projects:** each key slot is its own Google Cloud project with its own per-model RPM/TPM/RPD. Real limits are read from the provider (`npm run model:availability` for availability and token limits; AI Studio for the project's rate limits; every 429 QuotaFailure is logged per slot and model as `ocade.provider_limit`); none is hardcoded. A quota refusal never moves a request to another project: Google's API terms forbid circumventing documented limits, so pooling the three projects for one workload needs the owner's confirmation with Google first. For fairness each configuration runs against one assigned project (A primary, B secondary, C tertiary), paced to that project's discovered limits. Unpaid-tier terms (Google, 7 Nov 2026): no sensitive or personal data in prompts, which the synthetic fixtures respect; EEA/UK/Swiss customers need the paid service (a COM item).
+**Quota and the three projects:** each key slot is its own Google Cloud project with its own per-model RPM/TPM/RPD. Real limits are read from the provider (`npm run model:availability` for availability and token limits; AI Studio for the project's rate limits; every 429 QuotaFailure is logged per slot and model as `ocade.provider_limit`); none is hardcoded. A quota refusal never moves a request to another project: Google's API terms forbid circumventing documented limits, so pooling the three projects for one workload needs the owner's confirmation with Google first. As deployed, every configuration uses the primary project first and moves to another key only for a key or outage failure, never for quota; A and B use different models, so their per-model quotas do not compete. Unpaid-tier terms (Google, 7 Nov 2026): no sensitive or personal data in prompts, which the synthetic fixtures respect; EEA/UK/Swiss customers need the paid service (a COM item).
 
 **Metrics per run:** first-action latency, total time, model calls and tokens (`timing.providerUsage`), CPU/RAM of the companion and each application, interventions, recovery results, oracle verdict, output-quality notes, timestamped intermediate and final screenshots, editable artifacts and the run's commit. Ranking: verified accuracy, then output quality, then completion time, then cost.
 
-**Evaluation matrix:**
+**Owner update (7 Nov 2026, later):** DaVinci Resolve is replaced by Blender's Video Sequencer and Kdenlive; CapCut only where officially available. Mandatory: Windows 4 × 3 = 12 and macOS 4 × 3 = 12 runs; Linux 12 optional, only if quota and runner time remain.
 
-| Task | A | B | C |
-|---|---|---|---|
-| 1 Calc | BLOCKED (B1, B2) | BLOCKED (B1, B2) | BLOCKED (B1, B2) |
-| 2 GIMP | BLOCKED (B1, B2, B3) | BLOCKED (B1, B2, B3) | BLOCKED (B1, B2, B3) |
-| 3 FreeCAD + Blender + Calc | BLOCKED (B1, B2) | BLOCKED (B1, B2) | BLOCKED (B1, B2) |
-| 4 Blender + Resolve + GIMP | BLOCKED (B1, B2, B4) | BLOCKED (B1, B2, B4) | BLOCKED (B1, B2, B4) |
+**How the runs reach the models (prepared, verified):**
+- Staging-only function `ocade-intelligence-benchmark` (version 1, deployed 7 Nov 2026 from `ea11c5b`): the same server-only door as `ocade-intelligence-service`, with the route fixed by its path (`/a`, `/b`, `/c`). Probed without credentials: malformed request 400, unknown configuration 404, browser origin 403. The Gemini keys stay in Supabase; the staging `GEMINI_MODEL` secret and the two existing functions are unchanged. Rollback copies of both existing functions (code only, scanned for key shapes): `evidence/2026-11-07-staging-function-backup/`.
+- Runner side: the `benchmark` campaign of `.github/workflows/jarvis-staging-evaluation.yml` (a workflow must exist on the default branch to be dispatched), matrix Windows/macOS (Linux optional) × configuration; `tests/jarvis/benchmark.py` builds inputs, opens Calc/GIMP for the "already open" tasks, runs the real authority and companion (`scripts/jarvis-live.mjs`, now able to start the companion on Windows) and applies the oracles. The repository is public, so GitHub-hosted minutes are free; limits are 6 h per job and macOS concurrency.
+- Applications on runners: Chocolatey (Windows), Homebrew (macOS) or apt + the FreeCAD PPA (Linux): LibreOffice, GIMP, FreeCAD, Blender, Kdenlive, ffmpeg. CapCut: no Linux build; the Windows/macOS builds need an interactive account sign-in, so it is not installed.
 
-**Blockers (exact):**
-- **B1 Credentials.** This container holds no Gemini key. The three keys exist only as staging Edge Function secrets, which cannot be read, and the deployed staging function serves only the default model; changing its `GEMINI_MODEL` or redeploying it is a secret change and a deployment (O11). The permitted route is the session's secure credential form (the network proxy injects the key and the session never sees it). It holds one key per host, so one project at a time: the per-configuration project assignment above then becomes one shared project, paced to its limits.
-- **B2 Authorised consumer device.** OCADE's product platforms are Windows 10/11 and macOS (O1); its desktop control is UIA and AX. This container is Linux, where OCADE has no desktop UI bridge, so tasks that need an already-open application window cannot be driven through the application's UI here. Running the tasks on the owner's computer needs approval A2 with the exact test list; it has not been given. A Linux-container run would be a cloud qualification result, not a real-PC result, and is labelled as such if it is run.
-- **B3 Already-open project.** Editing the GIMP project file while GIMP holds it open would let GIMP's later save overwrite the change (a §12 invariant: later user edits are never overwritten). On Linux this task is expected to end FAIL or BLOCKED rather than be worked around.
-- **B4 DaVinci Resolve Free** cannot be installed or run here (table above).
+**Evaluation matrix (runs):**
+
+| System | Task | A | B | C |
+|---|---|---|---|---|
+| Windows | 1 Calc / 2 GIMP / 3 Car / 4 Advert | UNTESTED | UNTESTED | UNTESTED |
+| macOS | 1 Calc / 2 GIMP / 3 Car / 4 Advert | UNTESTED | UNTESTED | UNTESTED |
+| Linux (optional) | all four | UNTESTED | UNTESTED | UNTESTED |
+
+**Blockers (exact, current):**
+- **B1 Approval per run.** The runner jobs use the protected environment `SUPABASE_SERVICE_ROLE_KEY`, which needs the owner's "Approve" on each run before the job starts (smoke run [42420339443](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/42420339443) waits for it). No other credential is missing.
+- **B2 Runner versus consumer PC.** GitHub-hosted Windows Server and macOS runners are cloud machines with a desktop session, not consumer Windows 10/11 or consumer Macs; their results are cloud qualification (§6 E7), and A2 still governs the owner's own computer.
+- **B3 Hardware.** No GPU on standard runners: Blender renders on CPU, so long renders may not finish within 6 h; a task that runs out of time is recorded FAIL with its measured progress.
+- **B4 CapCut** not installed (above); Kdenlive and Blender's Video Sequencer are the editors.
 
 **Order (O16):** research on alternative free model APIs, architectures, open-weight storage and inference hosting starts only after all 12 evaluations genuinely finish. Preliminary notes gathered before this order are not decisions and are not used.
 
