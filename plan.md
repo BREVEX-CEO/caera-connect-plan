@@ -1665,17 +1665,17 @@ Coding status is kept separate from runtime verification (Appendix A), so nothin
 | 144 | CODE | BUILDS | C8: unknown apps are operated through the generic UI Automation and Accessibility operations and reviewed MCP servers; no app-specific dispatch exists (`contracts.test.ts`: the supervisor has no task-specific whitelist) |
 | 146 | CODE | NOT CODED | C8: Owner/Staff Console now has the emergency pause (System → Emergency pause: `readServiceControls`/`setServiceControl` → `ocade_set_service_control`, permission `execution.manage`); staff device removal has a database function but no console screen; the full per-surface audit remains |
 | 147 | CODE | NOT CODED | C8 |
-| 148 | CODE | NOT CODED | C8 |
+| 148 | CODE | BUILDS | C8: Settings → Devices walks through install, pairing code and keeping the companion running, then the exact permissions; the first task is sent from the JARVIS page; the whole path is driven end to end by `tests/web/jarvis_ui_flow.py` (sign in, pair, grant, request, confirm, verified result), whose staging run is qualification |
 | 149 | CODE | BUILDS | C8, `d6e65552` |
 | 150 | CODE | BUILDS | C8, `d6e65552` |
 | 151 | CODE | BUILDS | C8, `d6e65552` |
-| 152 | CODE | NOT CODED | C8 |
-| 153 | CODE | NOT CODED | C8 |
+| 152 | CODE | BUILDS | C8: the task view has Stop, Take Over, Continue and Retry (Retry only when safe, `canRetry`) and Devices has Remove, each calling its server function and showing the new state (`JarvisPanels`; `confirmation.test.ts` safe retry, `authority.test.sql` state transitions) |
+| 153 | CODE | BUILDS | C8: produced files are listed with path and digest; the person picks the copy from the JARVIS folder, the site checks its SHA-256 against what JARVIS saved, previews supported types, saves it to the Library or uses it in the next request (`ArtifactItem`) |
 | 155 | CODE | NOT CODED | C8 |
-| 156 | CODE | NOT CODED | C8 |
-| 157 | CODE | NOT CODED | C8 |
+| 156 | CODE | BUILDS | C8: `tests/web/surface_audit.py` audits every reachable page in Chromium, Firefox and WebKit at desktop and phone sizes (status, broken links, console errors, one h1, lang, alt text, accessible names) and the PWA offline contract (manifest, service worker, offline shell); session recovery is the signed-in pass |
+| 157 | STANDING | STANDING | Reclassified: its own condition defers it ("only after core architecture and cloud gates pass"); checked at the launch gates, with no Android code to complete before then |
 | 158 | QUALIFICATION-ONLY | QUALIFICATION-ONLY; harness BUILDS | Manual WebKit phone and offline-shell audit, `a7c93e1e` |
-| 159 | CODE | NOT CODED | C8 |
+| 159 | CODE | BUILDS | C8: the surface audit now fails when a first visit loads more than 950,000 bytes of script (853,462 measured on 7 November 2026); routes and Markdown are split and loaded on demand, the offline shell is cached, and the audit covers accessibility and errors |
 | 160 | CODE | NOT CODED | C8 |
 | 161 | CODE | BUILDS | C9: task authority (`authority.test.sql`, `milestones`, `effect-resolution`), RLS and privilege over the whole schema (`injection-privilege.test.sql`), sessions (`session-account.test.sql`), staff and owner boundaries with the audit record (`staff-authority.test.sql`: role limits, Primary Owner protected, fresh proof and reason required, removal written with who, whom and why, refusals leave nothing), device ownership (`authority.test.sql`, `device-admission.test.sql`) |
 | 162 | CODE | BUILDS | C9: forged/malformed device IDs `d4185c0`, replay and revocation (`authority.test.sql`); expired tokens refused before any network call and ended sessions or owed second factors refused by the database (`requireSession` → `sessionStanding`, `tests/security/session.test.ts`, `session-account.test.sql`); cross-account stop, take over, resume and device removal refused with the task untouched; duplicate Send, queue key and receipt (`authority.test.sql`) |
@@ -1884,3 +1884,5 @@ The existing `tests.run_required.main` loads selected modules/classes/methods or
 **C10 harnesses and test inventory (193–195, 197, 199–201, 204, 207, 210) — BUILDS (local gate green; hosted run recorded on push).** New: image and video live tasks with hidden oracles, the versioned test matrix and its existence test.
 
 **C6 planner and targeting audit (28, 29, 46, 54, 56, 57, 60, 62, 63) — BUILDS (local gate green; hosted run recorded on push).** New: the browser reports and dismisses a site's alert, confirm and prompt dialogs instead of letting them pass unseen.
+
+**C8 website audit (148, 152, 153, 156, 159; 157 reclassified STANDING) — BUILDS (local gate green; hosted run recorded on push).** New: a first-visit script budget in the surface audit. 146, 147, 155 and 160 stay open.

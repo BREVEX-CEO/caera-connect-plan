@@ -105,6 +105,32 @@ def audit_offline(page, origin: str) -> None:
         page.context.set_offline(False)
 
 
+# JavaScript a first visit to the landing page downloads, decoded (159): 853,462 bytes measured
+# on 7 November 2026, plus headroom. Raising it is a decision, not a side effect of an import.
+FIRST_VISIT_SCRIPT_BUDGET = int(os.environ.get("OCADE_FIRST_VISIT_SCRIPT_BUDGET", "0")) or 950_000
+
+
+def first_visit_script_bytes(browser, origin: str) -> int:
+    """Decoded bytes of every script a fresh visitor's landing page loads (nothing cached)."""
+    context = browser.new_context()
+    sizes: list[int] = []
+
+    def counted(response) -> None:
+        if response.request.resource_type == "script":
+            try:
+                sizes.append(len(response.body()))
+            except Exception:
+                pass
+
+    try:
+        page = context.new_page()
+        page.on("response", counted)
+        page.goto(origin + "/", wait_until="networkidle")
+        return sum(sizes)
+    finally:
+        context.close()
+
+
 def main(base: str, session: str | None = None, storage_key: str | None = None,
          engine: str = "chromium", pwa: bool = False) -> int:
     origin = site_origin(base)
@@ -116,6 +142,11 @@ def main(base: str, session: str | None = None, storage_key: str | None = None,
     problems: list[str] = []
     with sync_playwright() as playwright:
         browser = launch_audit_browser(playwright, engine)
+        if not login:
+            scripts = first_visit_script_bytes(browser, origin)
+            print(json.dumps({"engine": engine, "firstVisitScriptBytes": scripts, "budget": FIRST_VISIT_SCRIPT_BUDGET}))
+            if scripts > FIRST_VISIT_SCRIPT_BUDGET:
+                problems.append(f"[{engine}] the landing page loads {scripts} bytes of script, over {FIRST_VISIT_SCRIPT_BUDGET}")
         for name, options in browser_profiles(playwright, engine):
             page = browser.new_page(**options)
             if login:
