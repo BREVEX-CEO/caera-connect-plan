@@ -28,6 +28,8 @@ import secrets
 import shutil
 import socket
 from contextlib import asynccontextmanager
+from email.parser import BytesHeaderParser
+from mimetypes import guess_type
 from pathlib import Path
 from urllib.parse import urljoin, urlparse
 
@@ -45,6 +47,7 @@ _browser: dict = {}
 _pages: dict[str, dict] = {}  # id -> {"page": Page, "site": host fixed at open}
 _redirects: dict = {}  # Page -> the next hop of a stopped redirect, followed only after it is checked
 MAX_HOPS = 10
+MAX_BUFFERED_UPLOAD = 16 * 1024 * 1024
 
 
 async def _close_browser() -> None:
@@ -247,10 +250,54 @@ async def _browser_interaction(entry: dict, *, starting: bool = False):
     if current_origin != origin and not (starting and entry["page"].url == "about:blank"):
         raise Refused("page_left_site")
     _browser["interactionOrigin"] = origin
+    _browser["interactionPage"] = entry["page"]
     try:
         yield
     finally:
         _browser.pop("interactionOrigin", None)
+        _browser.pop("interactionPage", None)
+
+
+def _multipart_body(body: bytes | None, content_type: str, length: str, attachment: dict | None) -> bytes | None:
+    if body is None or len(body) > MAX_BUFFERED_UPLOAD * 2:
+        return None
+    if attachment is None:
+        return body if length.isdecimal() and str(len(body)) == length else None
+    message = BytesHeaderParser().parsebytes(b"Content-Type: " + content_type.encode("ascii", "ignore"))
+    boundary = message.get_boundary()
+    if not boundary or not re.fullmatch(r"[A-Za-z0-9'()+_,./:=?-]{1,70}", boundary):
+        return None
+    marker = b"--" + boundary.encode("ascii")
+    parts = body.split(marker)
+    if len(parts) < 3 or parts[0] or parts[-1] not in (b"--", b"--\r\n"):
+        return None
+    file_part = None
+    for index, part in enumerate(parts[1:-1], 1):
+        header, separator, value = part.partition(b"\r\n\r\n")
+        if not separator or not header.startswith(b"\r\n") or len(header) > 8192 or not value.endswith(b"\r\n"):
+            return None
+        fields = BytesHeaderParser().parsebytes(header[2:])
+        if fields.get_content_disposition() != "form-data":
+            return None
+        name = fields.get_filename()
+        if name is None:
+            continue
+        if (file_part is not None or name != attachment["name"]
+                or fields.get_param("name", header="content-disposition") != attachment["field"]):
+            return None
+        file_part = index
+        expected = attachment["bytes"]
+        if value == b"\r\n":
+            # Chromium can expose the serialized headers but omit the file entry itself.
+            parts[index] = header + separator + expected + b"\r\n"
+        elif value[:-2] != expected:
+            return None
+    if file_part is None:
+        return None
+    if marker in attachment["bytes"]:
+        return None
+    restored = marker.join(parts)
+    return restored if not length or length == str(len(restored)) else None
 
 
 async def _guard(route) -> None:
@@ -276,17 +323,28 @@ async def _guard(route) -> None:
             return await route.continue_()  # an unbound tab outside a controlled interaction
     if origin is None or _origin(url) != origin:
         return await route.abort("blockedbyclient")
+    options = {"max_redirects": 0}
     if writes:
-        # Chromium may withhold the file bytes of a multipart submission. Never
-        # send a partial body or let Chromium replay opaque bytes on a redirect.
         headers = await request.all_headers()
-        if headers.get("content-type", "").lower().startswith("multipart/"):
-            length = headers.get("content-length", "")
-            body = request.post_data_buffer
-            if not length.isdecimal() or body is None or str(len(body)) != length:
+        content_type = headers.get("content-type", "")
+        if content_type.lower().startswith("multipart/"):
+            entry = next((entry for entry in _pages.values() if entry["page"] is page), None)
+            attachment = entry.get("attachment") if entry is not None else None
+            if attachment is not None and (
+                request.method != "POST" or attachment["url"] != url
+                or page is not _browser.get("interactionPage")
+            ):
                 return await route.abort("blockedbyclient")
+            body = _multipart_body(
+                request.post_data_buffer, content_type, headers.get("content-length", ""), attachment,
+            )
+            if body is None:
+                return await route.abort("blockedbyclient")
+            options["post_data"] = body
+            if attachment is not None:
+                entry.pop("attachment", None)
     try:
-        response = await route.fetch(max_redirects=0)
+        response = await route.fetch(**options)
     except Exception:
         return await route.abort("failed")
     location = response.headers.get("location")
@@ -630,15 +688,20 @@ async def web_click(page: dict, selector: str, frame: str | None = None) -> dict
     current = entry["page"]
     expects_popup = await target.evaluate("(element) => element.target === '_blank'")
     choosers: list = []
+    chooser_arrived = asyncio.Event()
 
     def chosen(chooser) -> None:
         choosers.append(chooser)
+        chooser_arrived.set()
 
     current.on("filechooser", chosen)
     try:
         async with _browser_interaction(entry):
             mark_effect()
             await target.click(timeout=10_000)
+            if not choosers:
+                with anyio.move_on_after(0.25):
+                    await chooser_arrived.wait()
             if expects_popup and not entry["pendingPopups"]:
                 with anyio.move_on_after(5):
                     await entry["popupArrived"].wait()
@@ -680,10 +743,27 @@ async def web_upload(page: dict, selector: str, path: str) -> dict:
     await field.evaluate(
         "e => e.addEventListener('change', () => { e.dataset.ocadeAttached = JSON.stringify([...e.files].map(f => f.name)) }, {once: true, capture: true})"
     )
+    form = await field.evaluate("""e => e.form && e.name && e.form.method === 'post'
+        && e.form.enctype === 'multipart/form-data' ? {url: e.form.action, field: e.name} : null""")
     async with _browser_interaction(entry):
+        entry.pop("attachment", None)
+        upload = str(source)
+        if form and _origin(form["url"]) == entry["origin"]:
+            with source.open("rb") as stream:
+                data = stream.read(MAX_BUFFERED_UPLOAD + 1)
+            if len(data) <= MAX_BUFFERED_UPLOAD:
+                entry["attachment"] = {**form, "name": source.name, "bytes": data}
+                upload = {"name": source.name, "mimeType": guess_type(source.name)[0] or "application/octet-stream",
+                          "buffer": data}
         mark_effect()
-        await field.set_input_files(str(source))
-        names = json.loads(await field.evaluate("e => e.dataset.ocadeAttached || '[]'"))
+        try:
+            await field.set_input_files(upload)
+            names = json.loads(await field.evaluate("e => e.dataset.ocadeAttached || '[]'"))
+            if names != [source.name]:
+                entry.pop("attachment", None)
+        except Exception:
+            entry.pop("attachment", None)
+            raise
     return {"attached": names, "matches": names == [source.name]}
 
 

@@ -467,6 +467,23 @@ class BrowserObservationContract(unittest.TestCase):
 
         anyio.run(checks)
 
+    def test_multipart_recovery_requires_exact_bound_file_and_complete_envelope(self):
+        from ocade_agent.web_worker import _multipart_body
+
+        headers = b'--test\r\nContent-Disposition: form-data; name="file"; filename="note.txt"\r\n\r\n'
+        ending = b'\r\n--test--\r\n'
+        original = headers + ending
+        attached = {"field": "file", "name": "note.txt", "bytes": b"known\x00bytes"}
+        complete = headers + attached["bytes"] + ending
+        mime = "multipart/form-data; boundary=test"
+        self.assertEqual(_multipart_body(original, mime, "", attached), complete)
+        self.assertEqual(_multipart_body(complete, mime, str(len(complete)), attached), complete)
+        self.assertIsNone(_multipart_body(original, mime, str(len(original)), attached))
+        self.assertIsNone(_multipart_body(original, mime, "", None))
+        self.assertIsNone(_multipart_body(original, mime, "", attached | {"field": "unrelated"}))
+        self.assertIsNone(_multipart_body(original[:-3], mime, "", attached))
+        self.assertIsNone(_multipart_body(headers + b"other" + ending, mime, "", attached))
+
     def test_unknown_popup_cannot_borrow_another_tabs_host_or_port(self):
         from types import SimpleNamespace
         from unittest.mock import AsyncMock, Mock, patch
