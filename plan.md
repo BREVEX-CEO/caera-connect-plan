@@ -1600,14 +1600,14 @@ Coding status is kept separate from runtime verification (Appendix A), so nothin
 | 67 | CODE | NOT CODED | C1/C7 |
 | 68 | CODE | NOT CODED | C1/C7 |
 | 69 | CODE | NOT CODED | C1/C7 |
-| 70 | CODE | NOT CODED | C7/C9 |
-| 71 | CODE | NOT CODED | C7/C9 |
+| 70 | CODE | NOT CODED | C7: formula recalculation `5f6db4d`; application-level semantics for other formats remain |
+| 71 | CODE | NOT CODED | C7: formulas recalculated by a real engine on a private copy `5f6db4d`; range and structure checks remain |
 | 72 | CODE | NOT CODED | C7/C9 |
 | 73 | CODE | NOT CODED | C7/C9 |
 | 74 | CODE | NOT CODED | C7/C9 |
-| 75 | CODE | NOT CODED | C1/C7 |
+| 75 | CODE | NOT CODED | C7: re-run contained (bubblewrap / user namespace / sandbox-exec / copy) `5f6db4d`; Windows has only the copy |
 | 76 | CODE | NOT CODED | C6 |
-| 77 | CODE | NOT CODED | C7/C9 |
+| 77 | CODE | NOT CODED | C7: unobservable formula values and containment level reported `5f6db4d`; remaining kinds to audit |
 | 78 | CODE | NOT CODED | C7/C9 |
 | 81 | CODE | NOT CODED | C10 |
 | 82 | CODE | NOT CODED | C10 |
@@ -1659,7 +1659,7 @@ Coding status is kept separate from runtime verification (Appendix A), so nothin
 | 135 | CODE | NOT CODED | C6 |
 | 138 | CODE | NOT CODED | C6 |
 | 139 | CODE | NOT CODED | C6 |
-| 140 | CODE | NOT CODED | C6 |
+| 140 | CODE | NOT CODED | C6: exact origin and tab binding `abcfc88`; every connection pinned to a checked address `4436082` (D4); authenticated-session proof remains |
 | 142 | CODE | NOT CODED | C6 |
 | 143 | CODE | NOT CODED | C6 |
 | 144 | CODE | NOT CODED | C6 |
@@ -1678,15 +1678,15 @@ Coding status is kept separate from runtime verification (Appendix A), so nothin
 | 159 | CODE | NOT CODED | C8 |
 | 160 | CODE | NOT CODED | C8 |
 | 161 | CODE | NOT CODED | C9 |
-| 162 | CODE | NOT CODED | C9 |
+| 162 | CODE | NOT CODED | C9: forged/malformed device IDs `d4185c0`, replay and revocation (`authority.test.sql`); expired-session, cross-account and duplicate-submission cases remain |
 | 163 | CODE | BUILDS | C9, `50f6300e` |
 | 164 | CODE | BUILDS | C2/C9, `50f6300e` |
-| 165 | CODE | NOT CODED | C9 |
+| 165 | CODE | BUILDS | C9, `d4185c0`: shared per-device budget in `jarvis_device_admit` (entry `handleDeviceRequest` → device route); local per-source brake; queue caps from `50f6300e` |
 | 166 | CODE | NOT CODED | C9 |
 | 167 | CODE | NOT CODED | C9 |
-| 168 | CODE | NOT CODED | C9 |
+| 168 | CODE | BUILDS | C9, `a5b3c25`: per-request CSP nonce (`src/server.ts` → `getRouter`), fixed scripts by hash, no `'unsafe-inline'` scripts; HSTS, canonical HTTPS redirect, CSRF middleware for server functions; OCADE sets no cookies |
 | 169 | CODE | NOT CODED | C9 |
-| 170 | CODE | NOT CODED | C9 |
+| 170 | CODE | NOT CODED | C9: malicious-site DNS rebinding closed `4436082`; threat cases for files, MCP tools, downloads, workers and stolen credentials remain |
 | 172 | CODE | NOT CODED | C9 |
 | 175 | CODE | NOT CODED | C9 |
 | 176 | CODE | NOT CODED | C9 |
@@ -1858,3 +1858,7 @@ The existing `tests.run_required.main` loads selected modules/classes/methods or
 | Q | Final compilation, full GitHub Actions qualification, then owner-directed model comparison and RPC | — |
 
 **Coding-complete declaration (before W12, and again before Q):** go through all 266 IDs one by one and confirm each is BUILDS, RUNTIME VERIFIED, QUALIFICATION-ONLY with its harness code BUILDS, or STANDING. Any other state means coding is not complete: name the IDs and continue coding. Never report partial completion as complete.
+
+**Coding-gate fidelity (`dc33d54`):** the push gate now runs lint and the whole companion suite (it ran 112 of 202 companion tests and no lint), matching `scripts/ci-local.sh`.
+
+**Staging prerequisite before any qualification run:** apply migration `20261107040622_device_admission_shared_rate_limit.sql` to staging; the server now calls `jarvis_device_admit` on every signed device request.
