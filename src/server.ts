@@ -2,6 +2,8 @@ import { renderErrorPage } from "./lib/error-page";
 import { cloudflareRequestEnv, releaseHealthResponse } from "./lib/health";
 import { readBoundedRequestText } from "./lib/read-bounded-request";
 import { buildHealthRecord } from "./lib/telemetry/operation-health";
+import { AsyncLocalStorage } from "node:async_hooks";
+import { newNonce, setRequestNonceSource } from "./lib/security/csp-nonce";
 import { withPublicSecurityHeaders } from "./lib/security/public-response";
 import offlineShellHtml from "../public/offline.html?raw";
 
@@ -10,6 +12,10 @@ type ServerEntry = {
 };
 
 let serverEntryPromise: Promise<ServerEntry> | undefined;
+
+/** One random CSP nonce per rendered request; the router reads it when it is created. */
+const requestNonces = new AsyncLocalStorage<string>();
+setRequestNonceSource(() => requestNonces.getStore());
 
 async function getServerEntry(): Promise<ServerEntry> {
   if (!serverEntryPromise) {
@@ -98,12 +104,14 @@ export default {
     }
 
     const started = performance.now();
+    const nonce = newNonce();
     try {
       const handler = await getServerEntry();
-      const response = await handler.fetch(request, env, ctx);
+      const response = await requestNonces.run(nonce, () => handler.fetch(request, env, ctx));
       return withPublicSecurityHeaders(
         await normalizeCatastrophicSsrResponse(response, started),
         url.pathname,
+        nonce,
       );
     } catch {
       recordSsrFailure(started);

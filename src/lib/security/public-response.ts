@@ -1,5 +1,16 @@
 import { isolationHeadersFor } from "./isolation";
 import { getSupabaseBrowserConfiguration } from "@/integrations/supabase/configuration";
+import { THEME_BOOT_SHA256 } from "@/lib/theme-boot";
+
+/**
+ * THE ONLY FIXED INLINE SCRIPTS THE POLICY ALLOWS, BY CONTENT HASH: the first-paint theme
+ * script (`src/lib/theme-boot.ts`) and the reconnect script of `public/offline.html`.
+ * `tests/security/csp.test.ts` recomputes both and fails if either changes alone.
+ */
+export const OFFLINE_RECONNECT_SHA256 = "OqURKA07PiRltn1QDH9QeTqOPeDPTbvECVa99TYkSKg=";
+const FIXED_INLINE_SCRIPTS = [THEME_BOOT_SHA256, OFFLINE_RECONNECT_SHA256].map(
+  (h) => `'sha256-${h}'`,
+);
 
 /**
  * Browser-facing response hardening shared by the launch gate and application.
@@ -8,16 +19,29 @@ import { getSupabaseBrowserConfiguration } from "@/integrations/supabase/configu
  * mistakes. It does not—and must never claim to—disable developer tools or
  * make client code impossible to inspect. Product secrets belong server-side.
  */
-function appCsp(): string {
+export function appCsp(nonce?: string): string {
   return [
     "default-src 'self'",
     "base-uri 'self'",
     "object-src 'none'",
     "frame-ancestors 'none'",
     "form-action 'self'",
-    "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' blob: " +
-      "https://static.cloudflareinsights.com/beacon.min.js " +
+    /*
+     * NO INLINE SCRIPT RUNS UNLESS IT IS ONE OF OURS.
+     *
+     * `'unsafe-inline'` let any injected <script> run. Now an inline script runs only when it
+     * carries this response's random nonce (the router's own rendering scripts) or is one of
+     * the fixed scripts above, by exact hash. Same-origin bundles and the analytics beacon
+     * are still allowed by source.
+     */
+    [
+      "script-src 'self'",
+      ...(nonce ? [`'nonce-${nonce}'`] : []),
+      ...FIXED_INLINE_SCRIPTS,
+      "'wasm-unsafe-eval' blob:",
+      "https://static.cloudflareinsights.com/beacon.min.js",
       "https://static.cloudflareinsights.com/beacon.min.js/",
+    ].join(" "),
     "style-src 'self' 'unsafe-inline'",
     // Nothing OCADE shows comes from another host; an image that could would
     // carry whatever its address was made to say out of the page.
@@ -107,9 +131,9 @@ function connectSources(): string {
   return `connect-src ${sources.join(" ")}`;
 }
 
-function defaultSecurityHeaders(): Readonly<Record<string, string>> {
+function defaultSecurityHeaders(nonce?: string): Readonly<Record<string, string>> {
   return {
-    "content-security-policy": appCsp(),
+    "content-security-policy": appCsp(nonce),
     /*
      * HTTPS ONLY, REMEMBERED BY THE BROWSER.
      *
@@ -154,9 +178,13 @@ function defaultSecurityHeaders(): Readonly<Record<string, string>> {
  * direction: a caller that forgets costs a single-threaded engine, never a
  * severed `window.opener` under a popup.
  */
-export function withPublicSecurityHeaders(response: Response, pathname?: string): Response {
+export function withPublicSecurityHeaders(
+  response: Response,
+  pathname?: string,
+  nonce?: string,
+): Response {
   const headers = new Headers(response.headers);
-  for (const [name, value] of Object.entries(defaultSecurityHeaders())) {
+  for (const [name, value] of Object.entries(defaultSecurityHeaders(nonce))) {
     if (!headers.has(name)) headers.set(name, value);
   }
 
