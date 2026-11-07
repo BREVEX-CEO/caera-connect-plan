@@ -160,6 +160,16 @@ function openTurn(input: LiveInput, url: string): Promise<Response> {
     let stream: ReadableStreamDefaultController<Uint8Array> | undefined;
     const calls = new Map<string, Record<string, unknown>>();
     let sawCall = false;
+    /*
+     * Calls are asynchronous and can arrive after `turnComplete`; only `interactionStatus: IDLE`
+     * means the model is done (Google, Live API docs). So the turn settles 1.5 s after the last
+     * call, at IDLE, or 15 s after a turn that completed without any call.
+     */
+    let settleTimer: ReturnType<typeof setTimeout> | undefined;
+    const settleAfter = (ms: number) => {
+      clearTimeout(settleTimer);
+      settleTimer = setTimeout(() => finish(), ms);
+    };
     let usage: Record<string, number> | undefined;
     const body = new ReadableStream<Uint8Array>({
       start(controller) {
@@ -172,6 +182,7 @@ function openTurn(input: LiveInput, url: string): Promise<Response> {
     const finish = (error?: Error) => {
       if (finished) return;
       finished = true;
+      clearTimeout(settleTimer);
       input.signal.removeEventListener("abort", aborted);
       try {
         socket.close(1000);
@@ -266,6 +277,7 @@ function openTurn(input: LiveInput, url: string): Promise<Response> {
             name: call.name,
             args: isRecord(call.args) ? call.args : {},
           });
+          settleAfter(1_500);
         }
       }
       if (
@@ -294,12 +306,8 @@ function openTurn(input: LiveInput, url: string): Promise<Response> {
         if (typeof said === "string" && said) parts.push({ text: said });
         if (parts.length)
           stream?.enqueue(frame({ candidates: [{ content: { role: "model", parts } }] }));
-        const idle = content.interactionStatus === "IDLE";
-        if (
-          idle ||
-          (content.turnComplete === true && (sawCall || content.interactionStatus === undefined))
-        )
-          return finish();
+        if (content.interactionStatus === "IDLE") return finish();
+        if (content.turnComplete === true) settleAfter(sawCall ? 1_500 : 15_000);
       }
       if (message.goAway !== undefined) finish(new Error("Live session ended by the provider."));
     });
