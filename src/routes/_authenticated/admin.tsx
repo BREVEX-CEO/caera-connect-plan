@@ -37,6 +37,7 @@ import {
   resetCustomerSecondFactor,
   STAFF_ROLE_NAMES,
   suspendCustomer,
+  removeCustomerDevice,
   type MyStaff,
   type StaffRole,
 } from "@/lib/admin/staff.functions";
@@ -421,6 +422,20 @@ function CustomerDetail({
     },
     onError: (error) => toast.error(messageOf(error)),
   });
+  const removeDevice = useMutation({
+    mutationFn: (deviceId: string) =>
+      withProof(() => removeCustomerDevice({ data: { deviceId, reason: why } })),
+    onSuccess: ({ removed }) => {
+      toast[removed ? "success" : "error"](
+        removed
+          ? "Device removed. Its tasks stopped and it can no longer connect."
+          : "That device was already removed.",
+      );
+      setWhy("");
+      void detail.refetch();
+    },
+    onError: (error) => toast.error(messageOf(error)),
+  });
   const validHours = Number.isInteger(Number(hours)) && Number(hours) >= 1 && Number(hours) <= 72;
 
   return (
@@ -437,6 +452,32 @@ function CustomerDetail({
                 ? new Date(detail.data.security.lastSignIn).toLocaleString()
                 : "never"}
             </p>
+          ) : null}
+          {detail.data.devices ? (
+            <ul aria-label="Connected computers" className="space-y-1">
+              {detail.data.devices.length === 0 ? (
+                <li className="text-muted-foreground">No connected computers.</li>
+              ) : null}
+              {detail.data.devices.map((device) => (
+                <li key={device.id} className="flex flex-wrap items-center gap-2">
+                  <span className="text-muted-foreground">
+                    {device.name}
+                    {device.platform ? ` · ${device.platform}` : ""} · last seen{" "}
+                    {device.lastSeenAt ? new Date(device.lastSeenAt).toLocaleString() : "never"}
+                  </span>
+                  {may("devices.manage") && !row.isSelf ? (
+                    <button
+                      type="button"
+                      disabled={!ready(why) || removeDevice.isPending}
+                      onClick={() => removeDevice.mutate(device.id)}
+                      className="h-7 rounded-md border border-destructive/50 px-2 text-destructive disabled:opacity-50"
+                    >
+                      Remove device
+                    </button>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
           ) : null}
           <UsageSummary
             usage={detail.data.usage}
@@ -469,7 +510,7 @@ function CustomerDetail({
           onChanged={() => void detail.refetch()}
         />
       ) : null}
-      {!row.isSelf && (may("sessions.manage") || may("cases.manage")) ? (
+      {!row.isSelf && (may("sessions.manage") || may("cases.manage") || may("devices.manage")) ? (
         <div className="space-y-2 border-t border-border/50 pt-3">
           <Reason value={why} onChange={setWhy} label="Why" />
           <div className="flex flex-wrap items-center gap-2">

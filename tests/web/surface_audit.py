@@ -5,6 +5,11 @@ a non-200 page or broken same-site link, a console error or uncaught page error,
 without exactly one <h1>, a missing <html lang>, an image without alt text, or a button/link
 without an accessible name. Each browser is exercised at desktop and mobile sizes.
 
+It also inventories every visible control (route, kind, accessible name; `--inventory` writes
+it as JSON) and, signed out on the desktop size, presses each distinct button once on a fresh
+load of its page (an option already chosen is not pressed): a button that changes nothing (no navigation, no change to the page, no
+request, no dialog, no new window) is a dead control and fails the audit.
+
     python tests/web/surface_audit.py http://127.0.0.1:8787 [session.json storage-key] --engine webkit
 
 With a session file (a synthetic test account's Supabase session) the browser starts signed
@@ -35,7 +40,57 @@ ACCESSIBILITY = r"""() => ({
         || e.querySelector('img[alt]:not([alt=""]),svg[aria-label],title'));
     }).map(e => e.tagName.toLowerCase()).slice(0, 5),
   links: [...document.querySelectorAll('a[href]')].map(a => a.href),
+  controls: [...document.querySelectorAll(
+      'a[href],button,[role=button],[role=menuitem],[role=tab],[role=switch],[role=checkbox],'
+      + 'input:not([type=hidden]),select,textarea')]
+    .filter(e => e.getClientRects().length && getComputedStyle(e).visibility !== 'hidden')
+    .map(e => ({
+      kind: e.matches('input[type=file]') ? 'file upload' : e.getAttribute('role')
+        || (e.tagName === 'INPUT' ? 'input:' + (e.type || 'text') : e.tagName.toLowerCase()),
+      name: (e.getAttribute('aria-label') || e.innerText || e.title || e.placeholder || e.name || '')
+        .trim().replace(/\s+/g, ' ').slice(0, 80),
+      disabled: e.matches(':disabled') || e.getAttribute('aria-disabled') === 'true',
+      // The option already chosen: pressing it again rightly changes nothing.
+      selected: ['aria-pressed', 'aria-selected', 'aria-checked']
+        .some(attribute => e.getAttribute(attribute) === 'true') || e.hasAttribute('aria-current'),
+    })),
 })"""
+
+# Watches one press: any DOM change, request or URL change after it counts as an effect.
+WATCH = r"""() => {
+  window.__ocadeEffects = 0;
+  new MutationObserver(records => { window.__ocadeEffects += records.length; })
+    .observe(document, {subtree: true, childList: true, attributes: true, characterData: true});
+}"""
+
+
+def dead_buttons(browser, url: str, names: list[str]) -> list[str]:
+    """The named buttons on this page that change nothing when pressed (160)."""
+    dead = []
+    for name in names:
+        page = browser.new_page(viewport={"width": 1366, "height": 900})
+        effects = []
+        page.on("request", lambda _request: effects.append("request"))
+        page.on("dialog", lambda dialog: (effects.append("dialog"), dialog.dismiss()))
+        page.on("popup", lambda popup: (effects.append("popup"), popup.close()))
+        try:
+            page.goto(url, wait_until="networkidle")
+            control = page.get_by_role("button", name=name, exact=True).first
+            if not control.is_visible() or not control.is_enabled():
+                continue
+            page.evaluate(WATCH)
+            effects.clear()
+            before = page.url
+            control.click(timeout=5_000)
+            page.wait_for_timeout(600)
+            changed = page.url != before or effects or page.evaluate("window.__ocadeEffects") > 0
+            if not changed:
+                dead.append(name)
+        except Exception as error:
+            dead.append(f"{name} ({type(error).__name__})")
+        finally:
+            page.close()
+    return dead
 
 
 ENGINES = ("chromium", "firefox", "webkit")
@@ -132,7 +187,7 @@ def first_visit_script_bytes(browser, origin: str) -> int:
 
 
 def main(base: str, session: str | None = None, storage_key: str | None = None,
-         engine: str = "chromium", pwa: bool = False) -> int:
+         engine: str = "chromium", pwa: bool = False, inventory: Path | None = None) -> int:
     origin = site_origin(base)
     if bool(session) != bool(storage_key):
         raise ValueError("provide both the synthetic session file and its storage key")
@@ -140,6 +195,8 @@ def main(base: str, session: str | None = None, storage_key: str | None = None,
         raise ValueError("set the exact disposable audit origin before loading a synthetic session")
     login = session_script(origin, storage_key, Path(session).read_text(encoding="utf-8")) if session else None
     problems: list[str] = []
+    controls: dict[str, list[dict]] = {}
+    pressed: set[str] = set()
     with sync_playwright() as playwright:
         browser = launch_audit_browser(playwright, engine)
         if not login:
@@ -186,6 +243,16 @@ def main(base: str, session: str | None = None, storage_key: str | None = None,
                 problems += [f"{where}: image without alt" for _ in facts["noAlt"]]
                 problems += [f"{where}: {tag} without an accessible name" for tag in facts["unnamed"]]
                 problems += [f"{where}: {error}" for error in errors]
+                path = urlsplit(url).path
+                if path not in controls:
+                    controls[path] = [dict(t) for t in {tuple(c.items()) for c in facts["controls"]}]
+                if name == "desktop" and not login:
+                    # Each distinct button once, where it first appears (headers repeat on every page).
+                    fresh = sorted({c["name"] for c in facts["controls"]
+                                    if c["kind"] == "button" and c["name"] and not c["disabled"] and not c["selected"]} - pressed)
+                    pressed.update(fresh)
+                    problems += [f"{where}: the button '{dead}' does nothing"
+                                 for dead in dead_buttons(browser, url, fresh)]
                 queue.extend(target for link in facts["links"] if (target := route_url(url, link)))
             if pwa:
                 try:
@@ -196,6 +263,9 @@ def main(base: str, session: str | None = None, storage_key: str | None = None,
             print(f"[{engine}/{name}] audited {len(seen)} pages")
             page.close()
         browser.close()
+    if inventory:
+        inventory.write_text(json.dumps({"engine": engine, "routes": controls}, indent=1, sort_keys=True))
+    print(f"[{engine}] {sum(len(c) for c in controls.values())} controls on {len(controls)} routes")
     for problem in problems:
         print(problem)
     return int(bool(problems))
@@ -208,4 +278,5 @@ if __name__ == "__main__":
     parser.add_argument("storage_key", nargs="?")
     parser.add_argument("--engine", choices=ENGINES, default="chromium")
     parser.add_argument("--pwa", action="store_true")
+    parser.add_argument("--inventory", type=Path, default=None)
     sys.exit(main(**vars(parser.parse_args())))

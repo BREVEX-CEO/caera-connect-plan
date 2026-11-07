@@ -82,6 +82,8 @@ const ALL_PERMISSIONS: { id: StaffPermission; name: string }[] = [
   { id: "customers.read", name: "See customers" },
   { id: "usage.read", name: "See usage" },
   { id: "security.read", name: "See account security" },
+  { id: "devices.read", name: "See customers' computers" },
+  { id: "devices.manage", name: "Remove a customer's computer" },
   { id: "sessions.manage", name: "End customer sessions" },
   { id: "grants.manage", name: "Give or take back plans" },
   { id: "health.read", name: "See system health" },

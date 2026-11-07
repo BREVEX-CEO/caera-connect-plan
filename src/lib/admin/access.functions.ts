@@ -59,6 +59,8 @@ export type StaffPermission =
   | "customers.read"
   | "usage.read"
   | "security.read"
+  | "devices.read"
+  | "devices.manage"
   | "sessions.manage"
   | "grants.manage"
   | "health.read"

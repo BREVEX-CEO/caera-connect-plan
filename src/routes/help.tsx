@@ -257,9 +257,10 @@ const QUESTIONS: {
     words: "voice microphone permission speech",
     answer: (
       <p>
-        Allow the microphone for ocade.in in your browser's site settings and press Voice again. If
-        your browser cannot recognise speech, you can still type; if it cannot speak, answers stay
-        as text.
+        Allow the microphone for ocade.in in your browser's site settings and press the microphone
+        (Dictate) again. It listens only for the draft you are dictating, never in the background.
+        If your browser cannot recognise speech, you can still type; if it cannot speak, Read aloud
+        is not offered and answers stay as text.
       </p>
     ),
   },

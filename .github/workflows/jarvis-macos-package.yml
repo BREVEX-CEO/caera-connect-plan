@@ -95,9 +95,15 @@ jobs:
       - name: Native AX ladder (one actual desktop case; no skipped qualification)
         working-directory: device-agent/windows
         run: python -m tests.run_required --tests tests.test_mac_ui.MacUiLadder.test_mac_ladder
-      - name: Build the app with the existing packaging owner
+      - name: Build the app with the existing packaging owner, twice, and require identical files (185)
         working-directory: device-agent/windows/packaging
-        run: python -m PyInstaller --noconfirm --distpath ../dist --workpath ../build ocade-agent.spec
+        env:
+          PYTHONHASHSEED: "0"
+        run: |
+          export SOURCE_DATE_EPOCH="$(git log -1 --format=%ct)"
+          python -m PyInstaller --noconfirm --distpath ../dist --workpath ../build ocade-agent.spec
+          python -m PyInstaller --noconfirm --distpath ../dist2 --workpath ../build2 ocade-agent.spec
+          python compare_builds.py "../dist/OCADE JARVIS.app" "../dist2/OCADE JARVIS.app"
       - name: Independently inspect the actual bundle and run frozen workers without developer PATH
         shell: bash
         working-directory: device-agent/windows

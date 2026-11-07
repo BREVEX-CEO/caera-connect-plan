@@ -78,8 +78,9 @@ def office_inspect_workbook(path: str) -> dict:
 
 @app.tool()
 @_evidence
-def fs_read_text(path: str) -> dict:
-    """The text of a workspace file (any plain-text file, docx, xlsx, pdf), bounded."""
+def fs_read_text(path: str, offset: int | None = None) -> dict:
+    """The text of a workspace file (any plain-text file, docx, xlsx, pdf), 8,000 characters at a
+    time from `offset`, so a long file is read in parts rather than all again (87)."""
     source = resolve(WORKSPACE, path)
     if not source.is_file():
         raise Refused("not_a_file")
@@ -108,7 +109,15 @@ def fs_read_text(path: str) -> dict:
         text = plain_text(source)
         if text is None:
             raise Refused("unsupported_file_type")
-    return {"sha256": sha256(source), "text": text[:8_000], "truncated": len(text) > 8_000}
+    start = max(0, offset or 0)
+    part = text[start:start + 8_000]
+    result = {"sha256": sha256(source), "text": part, "truncated": start + len(part) < len(text)}
+    if start:
+        result["offset"] = start
+    if result["truncated"]:
+        result["nextOffset"] = start + len(part)
+        result["totalCharacters"] = len(text)
+    return result
 
 
 @app.tool()

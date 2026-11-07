@@ -345,6 +345,27 @@ class VerifierKinds(unittest.TestCase):
         self.assertGreater(evidence["measured"][cases[1]["id"]]["changedOutside"], 0)
         self.assertIn("size changed", evidence["measured"][cases[3]["id"]]["error"])
 
+    @unittest.skipUnless(__import__("shutil").which("ffmpeg"), "needs FFmpeg")
+    def test_a_video_edit_is_checked_on_its_frame(self):
+        """A title burned into a video (74): the frame at the given time changed only where asked."""
+        import shutil
+        import subprocess
+
+        ffmpeg = shutil.which("ffmpeg")
+        base = ["-f", "lavfi", "-i", "color=c=blue:size=160x120:rate=10", "-t", "3", "-pix_fmt", "yuv420p"]
+        subprocess.run([ffmpeg, "-v", "error", *base, str(self.root / "clip.mp4")], check=True)
+        out = self.root / "OCADE output"
+        out.mkdir()
+        boxed = "drawbox=x=10:y=10:w=40:h=30:color=yellow:t=fill"
+        subprocess.run([ffmpeg, "-v", "error", *base, "-vf", boxed, str(out / "titled.mp4")], check=True)
+        inside = check("image_changed_within", path="OCADE output/titled.mp4", source="clip.mp4", time=1.5,
+                       region={"x": 5, "y": 5, "width": 50, "height": 40})
+        elsewhere = check("image_changed_within", path="OCADE output/titled.mp4", source="clip.mp4", time=1.5,
+                          region={"x": 100, "y": 70, "width": 50, "height": 40})
+        evidence = self.verify(inside, elsewhere)
+        self.assertEqual([evidence["predicates"][inside["id"]], evidence["predicates"][elsewhere["id"]]],
+                         [True, False], evidence)
+
     def test_a_check_that_cannot_apply_is_invalid_not_failed_work(self):
         (self.root / "notes.txt").write_text("Summary\n")
         (self.root / "OCADE output" / "originals").mkdir(parents=True)

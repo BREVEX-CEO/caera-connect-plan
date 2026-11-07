@@ -34,5 +34,5 @@ and the commercial launch gates (plan.md §20) are still open.
 **Database migrations to apply (staging first)**
 
 All files in `supabase/migrations/` up to and including
-`20261107080533_verifier_checks_ranges_and_image_changes.sql`, in name order. Each has a
+`20261107094238_staff_device_removal_stops_tasks_like_the_owner.sql`, in name order. Each has a
 rollback in `supabase/rollback/`.

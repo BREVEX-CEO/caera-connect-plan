@@ -47,6 +47,11 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 260
+          },
+          "offset": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100000000
           }
         },
         "required": [
@@ -3071,7 +3076,7 @@
                   "maxLength": 200
                 },
                 "kind": {
-                  "description": "params — file_exists {path}: a file with content or a folder with something in it; file_contains {path,text}: the words appear (letter case and spacing ignored); file_parses {path}: a JSON, Python, XML, TOML, INI or CSV file is well-formed for its format (nothing is run); workbook_cell_equals {path,sheet,cell,value}; web_text_contains {url,text}; window_exists {exe,text?}; media_duration {path,value}; media_quality {path,value,width,height}: playable H.264/AAC stereo of exactly value seconds, at least width x height, broadcast loudness, no long black or silent gap; image_size {path,width,height}; scene_render {path}: a .png rendered from a valid saved 3D scene project; script_runnable {path}: a script starts directly on macOS/Linux (#! line, Unix line endings, executable, parses; nothing is run); workbook_formula {path,sheet,cell,value?}: the cell holds a formula, and a real spreadsheet engine recalculating a private copy gets value (the saved result is never trusted); document_headings {path,headings}: each text is a Title/Heading of the Word document or a slide title of the .pptx; local_service_answers {port,text?}: a program on this computer answers http://127.0.0.1:port/ with status 200 (and the text, when given); command_succeeds {command,text?}: a repaired script or program, re-run by the verifier in a throwaway copy of the folder, exits 0 (and prints the text): only a command the person confirmed with shell.run in this task; changes_within {path,value}: an edited file differs from the original OCADE kept of it in at most value paragraphs (Word), cells (Excel) or lines (text), counting changed formatting too, so nothing unrelated was damaged; workbook_range_equals {path,sheet,range,values}: every cell of an A1 range (at most 400 cells) has the row-by-row values, formulas recalculated by a real spreadsheet engine on a private copy, null for an empty cell; image_changed_within {path,source,region?}: the edited image visibly differs from the source image inside region {x,y,width,height} (the whole image when omitted) and is unchanged outside it",
+                  "description": "params — file_exists {path}: a file with content or a folder with something in it; file_contains {path,text}: the words appear (letter case and spacing ignored); file_parses {path}: a JSON, Python, XML, TOML, INI or CSV file is well-formed for its format (nothing is run); workbook_cell_equals {path,sheet,cell,value}; web_text_contains {url,text}; window_exists {exe,text?}; media_duration {path,value}; media_quality {path,value,width,height}: playable H.264/AAC stereo of exactly value seconds, at least width x height, broadcast loudness, no long black or silent gap; image_size {path,width,height}; scene_render {path}: a .png rendered from a valid saved 3D scene project; script_runnable {path}: a script starts directly on macOS/Linux (#! line, Unix line endings, executable, parses; nothing is run); workbook_formula {path,sheet,cell,value?}: the cell holds a formula, and a real spreadsheet engine recalculating a private copy gets value (the saved result is never trusted); document_headings {path,headings}: each text is a Title/Heading of the Word document or a slide title of the .pptx; local_service_answers {port,text?}: a program on this computer answers http://127.0.0.1:port/ with status 200 (and the text, when given); command_succeeds {command,text?}: a repaired script or program, re-run by the verifier in a throwaway copy of the folder, exits 0 (and prints the text): only a command the person confirmed with shell.run in this task; changes_within {path,value}: an edited file differs from the original OCADE kept of it in at most value paragraphs (Word), cells (Excel) or lines (text), counting changed formatting too, so nothing unrelated was damaged; workbook_range_equals {path,sheet,range,values}: every cell of an A1 range (at most 400 cells) has the row-by-row values, formulas recalculated by a real spreadsheet engine on a private copy, null for an empty cell; image_changed_within {path,source,region?,time?}: the edited image visibly differs from the source image inside region {x,y,width,height} (the whole image when omitted) and is unchanged outside it; for a video (path, source or both) the frame at time seconds is compared",
                   "type": "string",
                   "enum": [
                     "file_exists",
@@ -3197,6 +3202,11 @@
                       "type": "string",
                       "minLength": 1,
                       "maxLength": 260
+                    },
+                    "time": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 86400
                     },
                     "region": {
                       "type": "object",

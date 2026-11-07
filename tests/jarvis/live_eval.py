@@ -7,6 +7,12 @@ through scripts/jarvis-live.mjs (real Gemini, staging authority, companion as an
 user), so the reported rate is first-attempt success.
 
     python3 tests/jarvis/live_eval.py --seed 7 --out evidence/<dir> [--only name ...]
+
+Comparison with another assistant or computer-use tool (259): `--external <name>` builds the
+same seeded problems, prints each request and its folder for the operator to give to that
+tool, and scores the result with the same hidden oracle once the operator says it finished.
+The same seed gives every tool identical tasks; the summary records correctness, wall time
+and how many times the operator had to step in. No superiority is claimed without a run.
 """
 
 from __future__ import annotations
@@ -687,6 +693,22 @@ def write_summary(out: Path, seed: int, results: list[dict], commit: str,
     return summary
 
 
+def score_external(name: str, ws: Path, request: str, oracle, ask=input) -> dict:
+    """One task done by another tool: the operator hands it over and reports back (259)."""
+    print(f"\n[{name}] Give this request to the tool, working in {ws}:\n  {request}")
+    started = time.monotonic()
+    answer = ask("When the tool has finished, type how many times you had to step in (0 if none): ").strip()
+    wall = time.monotonic() - started
+    ok, detail = oracle(ws)
+    target_requests = getattr(oracle, "target_requests", None)
+    targets = target_requests() if target_requests else []
+    passed = ok and (target_requests is None or bool(targets)) and \
+        not any(target["correct"] is False for target in targets)
+    return {"task": name, "pass": passed, "category": "pass" if passed else "failed", "detail": detail[:300],
+            "oraclePassed": ok, "elapsedMs": round(wall * 1000), "wallSeconds": round(wall, 1),
+            "interventions": int(answer) if answer.isdigit() else None, "targetSelections": targets}
+
+
 def run_with_oracle(command: list[str], ws: Path, oracle, environment: dict[str, str],
                     timeout: float = 1500) -> tuple[bool, str]:
     """Inspect the result while the companion is alive; no oracle data enters the planner."""
@@ -734,6 +756,7 @@ def main() -> int:
     parser.add_argument("--only", nargs="*")
     parser.add_argument("--selfcheck", action="store_true", help="every oracle must FAIL on the untouched problem")
     parser.add_argument("--pause", type=float, default=60, help="seconds between tasks: respect the shared model quota")
+    parser.add_argument("--external", metavar="TOOL", help="score another assistant on the same tasks (259)")
     args = parser.parse_args()
     selected = args.only or list(GENERATORS)
     if len(selected) != len(set(selected)) or any(name not in GENERATORS for name in selected):
@@ -769,6 +792,19 @@ def main() -> int:
                         os.environ[key] = value
             print(f"{name}: oracle on the untouched problem {'PASSES (broken oracle!)' if ok else 'fails, as it must'}")
             results.append({"task": name, "pass": not ok, "detail": detail[:200]})
+            write_summary(out, args.seed, results, commit, args.selfcheck, len(selected))
+            continue
+        if args.external:
+            try:
+                results.append({"agent": args.external, **score_external(name, ws, request, oracle)})
+            finally:
+                if hasattr(oracle, "cleanup"):
+                    oracle.cleanup()
+                for key, value in previous_environment.items():
+                    if value is None:
+                        os.environ.pop(key, None)
+                    else:
+                        os.environ[key] = value
             write_summary(out, args.seed, results, commit, args.selfcheck, len(selected))
             continue
         report = out / f"{name}.json"

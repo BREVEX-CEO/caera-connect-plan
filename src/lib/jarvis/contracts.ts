@@ -478,11 +478,14 @@ export const OPERATIONS = {
   },
   "fs.read_text": {
     summary:
-      "Read the text of a workspace file: any plain-text file (scripts, configs, CSV, Markdown, JSON…), Word document, spreadsheet cell values or PDF text.",
+      "Read the text of a workspace file: any plain-text file (scripts, configs, CSV, Markdown, JSON…), Word document, spreadsheet cell values or PDF text, 8,000 characters at a time; when `truncated`, read on from `nextOffset`.",
     role: "fs_sandbox",
     capability: "files",
     risk: "read",
-    arguments: z.strictObject({ path: workspacePath }),
+    arguments: z.strictObject({
+      path: workspacePath,
+      offset: z.int().min(0).max(100_000_000).optional(),
+    }),
   },
   "fs.write_text": {
     summary:
@@ -1263,9 +1266,9 @@ export const outcomeCheck = z.object({
         "original OCADE kept of it in at most value paragraphs (Word), cells (Excel) or lines (text), counting " +
         "changed formatting too, so nothing unrelated was damaged; workbook_range_equals {path,sheet,range,values}: " +
         "every cell of an A1 range (at most 400 cells) has the row-by-row values, formulas recalculated by a real " +
-        "spreadsheet engine on a private copy, null for an empty cell; image_changed_within {path,source,region?}: " +
+        "spreadsheet engine on a private copy, null for an empty cell; image_changed_within {path,source,region?,time?}: " +
         "the edited image visibly differs from the source image inside region {x,y,width,height} (the whole image " +
-        "when omitted) and is unchanged outside it",
+        "when omitted) and is unchanged outside it; for a video (path, source or both) the frame at time seconds is compared",
     ),
   params: z
     .strictObject({
@@ -1299,6 +1302,7 @@ export const outcomeCheck = z.object({
         .max(400)
         .optional(),
       source: workspacePath.optional(),
+      time: z.number().min(0).max(86_400).optional(),
       region: z
         .strictObject({
           x: z.int().min(0).max(16383),

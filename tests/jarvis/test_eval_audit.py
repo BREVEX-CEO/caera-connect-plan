@@ -20,6 +20,28 @@ spec.loader.exec_module(evaluation)
 
 
 class EvaluationAudit(unittest.TestCase):
+    def test_another_tool_is_scored_by_the_same_hidden_oracle(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            ws = Path(temporary)
+            request, _grants, oracle = evaluation.markdown_doc(ws, random.Random("7:markdown_doc"))
+            untouched = evaluation.score_external("markdown_doc", ws, request, oracle, ask=lambda _prompt: "2")
+            self.assertFalse(untouched["pass"], "an untouched problem never scores")
+            self.assertEqual(untouched["interventions"], 2)
+            self.assertIsInstance(untouched["elapsedMs"], int)
+            unknown = evaluation.score_external("markdown_doc", ws, request, oracle, ask=lambda _prompt: "")
+            self.assertIsNone(unknown["interventions"], "an unanswered count stays unknown, not zero")
+            from docx import Document
+
+            lines = (ws / "plan.md").read_text().splitlines()
+            document = Document()
+            document.add_heading(lines[0].removeprefix("# "), 0)
+            for line in lines:
+                if line.startswith("## "):
+                    document.add_heading(line.removeprefix("## "), 1)
+            document.save(ws / "plan.docx")
+            done = evaluation.score_external("markdown_doc", ws, request, oracle, ask=lambda _prompt: "0")
+            self.assertTrue(done["pass"], done["detail"])
+
     def test_wrong_then_right_download_keeps_both_actual_choices(self):
         requests = ["/files/old.zip", "/files/new.zip", None]
         before = json.dumps(requests)

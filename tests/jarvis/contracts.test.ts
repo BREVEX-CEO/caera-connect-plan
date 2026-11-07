@@ -139,6 +139,20 @@ test("every operation schema stays inside the provider's schema subset", async (
   }
 });
 
+test("operation schemas are converted once and match a fresh conversion", async () => {
+  const { operationSchema } = await import("../../src/lib/jarvis/planner.server.ts");
+  const { OPERATIONS } = await import("../../src/lib/jarvis/contracts.ts");
+  const { z } = await import("zod");
+  const first = operationSchema("fs.read_text");
+  assert.equal(operationSchema("fs.read_text"), first);
+  assert.deepEqual(first, z.toJSONSchema(OPERATIONS["fs.read_text"].arguments, { io: "input" }));
+  const full = JSON.stringify(operationSchema("scene.render"));
+  const trimmed = JSON.stringify(operationSchema("scene.render", true));
+  assert.ok(full.includes('"interchange"') && !trimmed.includes('"interchange"'));
+  // The no-glTF variant applies only to scene rendering.
+  assert.equal(operationSchema("fs.read_text", true), first);
+});
+
 test("external tools are ranked by their descriptions, not a name table", async () => {
   const { rankBySimilarity } = await import("../../src/lib/jarvis/planner.server.ts");
   // The descriptor, not a name table, decides: change the text and the ranking follows.

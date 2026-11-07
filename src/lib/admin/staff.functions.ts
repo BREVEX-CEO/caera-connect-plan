@@ -337,6 +337,9 @@ export interface CustomerDetail {
     lastSignIn: string | null;
     suspended: boolean;
   } | null;
+  /** With devices.read: the computers still connected to the account (names, never content). */
+  devices:
+    { id: string; name: string; platform: string | null; lastSeenAt: string | null }[] | null;
 }
 
 /**
@@ -351,7 +354,11 @@ export const readCustomer = createServerFn({ method: "GET" })
     await assertStaff(context.supabase, "customers.read");
     const may = async (permission: StaffPermission) =>
       (await context.supabase.rpc("ocade_staff_can", { p_permission: permission })).data === true;
-    const [usage, security] = await Promise.all([may("usage.read"), may("security.read")]);
+    const [usage, security, devices] = await Promise.all([
+      may("usage.read"),
+      may("security.read"),
+      may("devices.read"),
+    ]);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     // A failed read is not an empty history: the whole detail fails and says so.
     const must = <R extends { data: unknown; error: unknown }>(result: R, what: string) => {
@@ -363,7 +370,25 @@ export const readCustomer = createServerFn({ method: "GET" })
       unlimited: null,
       lastUsed: null,
       security: null,
+      devices: null,
     };
+    if (devices) {
+      const rows = must(
+        await supabaseAdmin
+          .from("jarvis_devices")
+          .select("id, name, platform, last_seen_at")
+          .eq("user_id", data.userId)
+          .is("revoked_at", null)
+          .order("created_at"),
+        "devices",
+      );
+      detail.devices = (rows ?? []).map((row) => ({
+        id: row.id,
+        name: row.name,
+        platform: row.platform,
+        lastSeenAt: row.last_seen_at,
+      }));
+    }
     if (usage) {
       // The same reader the customer's own usage screen uses, for both surfaces.
       const surfaces = await Promise.all(
@@ -436,6 +461,30 @@ export const endCustomerSessions = createServerFn({ method: "POST" })
     });
     if (error) throw new Error(staffFailure(error.message));
     return { ended: Number(ended ?? 0) };
+  });
+
+/**
+ * Remove a customer's computer, as when they report it lost or stolen: the database checks
+ * devices.manage, a fresh confirmation and the reason, ends its tasks the way the customer's
+ * own removal does, and records it. Its signatures are refused from then on.
+ */
+export const removeCustomerDevice = createServerFn({ method: "POST" })
+  .middleware([
+    requireAssurance(HIGH_RISK, {
+      proves: (input) =>
+        `remove a device: ${String((input as { deviceId?: unknown } | null)?.deviceId ?? "")
+          .trim()
+          .toLowerCase()}`,
+    }),
+  ])
+  .validator((input) => z.object({ deviceId: uuid, reason }).parse(input))
+  .handler(async ({ data, context }): Promise<{ removed: boolean }> => {
+    const { data: removed, error } = await context.supabase.rpc("ocade_admin_remove_device", {
+      device: data.deviceId,
+      remove_reason: data.reason,
+    });
+    if (error) throw new Error(staffFailure(error.message));
+    return { removed: removed === true };
   });
 
 /**

@@ -41,8 +41,9 @@ or a compromised key; **high** = JARVIS or sign-in unavailable for many customer
      A pause needs `execution.manage`, a recent code and a reason; it applies on the next
      request, and customers see that JARVIS is paused.
 3. **Revoke compromised authority.** A stolen device key: the customer removes the device in
-   Settings → Devices, and its signatures are refused at once (the database function
-   `ocade_admin_remove_device` exists for staff, but the console has no screen for it yet).
+   Settings → Devices, or staff with `devices.manage` remove it in the console (Customers →
+   the account → Remove device, with a recent code and a reason). Its tasks stop, the customer
+   is told, and its signatures are refused at once.
    Stolen customer sessions: _End sessions_. Compromised staff: _Sign all staff out_ and
    remove the member. A leaked server key: rotate it in the hosting provider, then redeploy.
 4. **Preserve minimal evidence.** Health records (`ocade.health` log lines) hold only

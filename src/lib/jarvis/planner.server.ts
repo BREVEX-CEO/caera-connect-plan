@@ -802,8 +802,6 @@ export function previewAttachments(steps: Step[]) {
     .slice(-2);
 }
 
-/** One planning turn for a model-planned task. */
-/** Operations the planner may choose: granted, and runnable with the engines the device reported. */
 /** The person-facing question for checks the verifier said cannot apply, or null. */
 export function invalidChecks(checks: OutcomeCheck[], verified: Record<string, unknown>) {
   const predicates = (verified.predicates ?? {}) as Record<string, unknown>;
@@ -817,6 +815,7 @@ export function invalidChecks(checks: OutcomeCheck[], verified: Record<string, u
   return `The way this result is checked does not fit the work: ${reasons.join("; ")}. Stop this task and ask again, saying how the result should be checked.`;
 }
 
+/** Operations the planner may choose: granted, and runnable with the engines the device reported. */
 export function offeredOperations(grants: string[], engines: string[] | null) {
   return (Object.keys(OPERATIONS) as Operation[]).filter((name) => {
     const spec: { capability: string; engine?: string } = OPERATIONS[name];
@@ -847,6 +846,28 @@ const DEPENDENCY_FAILURES: Record<string, string> = {
   insufficient_storage: "The computer ran out of space during installation.",
 };
 
+/**
+ * Operation argument schemas are fixed for a release, so each is converted once per server
+ * instance instead of on every step (86); a new release starts with an empty map.
+ */
+const operationSchemas = new Map<string, unknown>();
+export function operationSchema(name: Operation, withoutGltf = false): unknown {
+  const withoutInterchange = withoutGltf && name === "scene.render";
+  const key = withoutInterchange ? `${name}:no-interchange` : name;
+  let schema = operationSchemas.get(key);
+  if (schema === undefined) {
+    schema = z.toJSONSchema(
+      withoutInterchange
+        ? OPERATIONS["scene.render"].arguments.omit({ interchange: true })
+        : OPERATIONS[name].arguments,
+      { io: "input" },
+    );
+    operationSchemas.set(key, schema);
+  }
+  return schema;
+}
+
+/** One planning turn for a model-planned task. */
 export async function planStep(input: {
   userId: string;
   objective: string;
@@ -1056,11 +1077,9 @@ export async function planStep(input: {
     ...operations.map((name) => ({
       name: toolName(name),
       description: `${OPERATIONS[name].summary} (${OPERATIONS[name].risk})`,
-      parameters: z.toJSONSchema(
-        name === "scene.render" && !input.engines?.includes("gltf")
-          ? OPERATIONS["scene.render"].arguments.omit({ interchange: true })
-          : OPERATIONS[name].arguments,
-        { io: "input" },
+      parameters: operationSchema(
+        name,
+        name === "scene.render" && !input.engines?.includes("gltf"),
       ),
     })),
     {

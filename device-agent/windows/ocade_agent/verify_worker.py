@@ -572,14 +572,37 @@ def _workbook_formula(path: Path, params: dict, notes: dict) -> bool | str | Non
     return _same(expected, grid[0][0])
 
 
+VIDEO_SUFFIXES = (".mp4", ".mov", ".m4v", ".mkv", ".webm", ".avi")
+
+
+def _picture(path: Path, moment):
+    """An image file, or the decoded frame of a video at `moment` seconds (74), as RGB."""
+    from PIL import Image
+
+    if path.suffix.lower() not in VIDEO_SUFFIXES:
+        with Image.open(path, formats=PASSIVE_IMAGE_FORMATS) as image:
+            return image.convert("RGB")
+    ffmpeg = shutil.which("ffmpeg")
+    if not ffmpeg:
+        raise LookupError("no FFmpeg on this computer to read a video frame")
+    run = subprocess.run([ffmpeg, "-v", "error", *MEDIA_INPUT_OPTIONS, "-ss", str(float(moment or 0)), "-i", str(path),
+                          "-frames:v", "1", "-f", "image2pipe", "-vcodec", "png", "-"],
+                         capture_output=True, timeout=120, stdin=subprocess.DEVNULL)
+    if run.returncode != 0 or not run.stdout:
+        raise ValueError("no frame at that time")
+    with Image.open(io.BytesIO(run.stdout), formats=("PNG",)) as frame:
+        return frame.convert("RGB")
+
+
 VISIBLE = 24  # per-pixel brightness difference (of 255) a person notices
 STRAY_ALLOWED = 0.002  # share of pixels outside the region that may differ (re-encoding noise)
 
 
 def _image_changed_within(path: Path, params: dict, notes: dict) -> bool | str | None:
     """The edited image visibly differs from its source inside the region (the whole image when
-    none is given) and is unchanged outside it, measured on decoded pixels, not file bytes."""
-    from PIL import Image, ImageChops
+    none is given) and is unchanged outside it, measured on decoded pixels, not file bytes. For a
+    video, the frame at `time` seconds is compared (an overlay, title or colour edit, 74)."""
+    from PIL import ImageChops
 
     try:
         source = resolve(WORKSPACE, params["source"])
@@ -588,10 +611,12 @@ def _image_changed_within(path: Path, params: dict, notes: dict) -> bool | str |
     if not source.is_file():
         notes["error"] = "the source image is missing"
         return False
+    moment = params.get("time")
     try:
-        with Image.open(path, formats=PASSIVE_IMAGE_FORMATS) as edited, \
-                Image.open(source, formats=PASSIVE_IMAGE_FORMATS) as original:
-            after, before = edited.convert("RGB"), original.convert("RGB")
+        after, before = _picture(path, moment), _picture(source, moment)
+    except LookupError as missing:
+        notes["error"] = str(missing)
+        return None
     except Exception:
         notes["error"] = "an image could not be decoded"
         return False

@@ -34,6 +34,7 @@
     "jarvis:traceability": "node scripts/jarvis-traceability.mjs",
     "jarvis:no-hardcoded": "node scripts/jarvis-no-hardcoded-journeys.mjs",
     "readiness": "node scripts/launch-readiness.mjs",
+    "model:availability": "node --experimental-strip-types --no-warnings scripts/model-availability.ts",
     "licences:check": "node scripts/licence-inventory.mjs --check",
     "licences:write": "node scripts/licence-inventory.mjs --write"
   },

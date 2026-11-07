@@ -6,6 +6,7 @@
  * storage, they re-pair — no cross-browser correlation, no PII.
  */
 
+// The original product name stays in the key so existing installs keep their ID.
 const KEY = "caera.browser_install_id";
 
 export function getBrowserInstallId(): string {

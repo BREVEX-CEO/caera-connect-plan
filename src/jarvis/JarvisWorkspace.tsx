@@ -32,7 +32,7 @@ import { cn, typedBeforeHydration } from "@/lib/utils";
 import { useJarvisPreferences, readPreferences, writePreferences } from "./preferences";
 import { SectionPanel, TaskPanel, type Section } from "./JarvisPanels";
 import { takeHandOff } from "./bubble-state";
-import { useJarvisDictation } from "./use-voice";
+import { useJarvisDictation, useReadAloud } from "./use-voice";
 import { JARVIS_CONSENT_NEEDED } from "@/lib/jarvis/consent-needed";
 import { MAX_OBJECTIVE_LENGTH, taskObjective } from "@/lib/jarvis/objective";
 import { askOnlineConsent } from "@/lib/intelligence/online-consent-ask";
@@ -73,6 +73,7 @@ export function JarvisWorkspace({
   const [turns, setTurns] = useState<Turn[]>([]);
   const [draft, setDraft] = useState("");
   const composer = useRef<HTMLTextAreaElement>(null);
+  const reader = useReadAloud(prefs.voice);
   const dictation = useJarvisDictation(signedIn, (text) =>
     setDraft((current) => [current, text].filter(Boolean).join(" ").slice(0, MAX_OBJECTIVE_LENGTH)),
   );
@@ -425,6 +426,16 @@ export function JarvisWorkspace({
                 ) : (
                   <div key={turn.id} className="self-stretch text-[15px] leading-relaxed">
                     <Prose text={turn.content} />
+                    {reader.supported ? (
+                      <button
+                        type="button"
+                        aria-pressed={reader.speaking === turn.id}
+                        onClick={() => reader.toggle(turn.id, turn.content)}
+                        className="mt-1 text-xs text-muted-foreground underline-offset-2 hover:underline"
+                      >
+                        {reader.speaking === turn.id ? "Stop reading" : "Read aloud"}
+                      </button>
+                    ) : null}
                   </div>
                 ),
               )}
@@ -497,7 +508,11 @@ export function JarvisWorkspace({
                   aria-label={dictation.state === "idle" ? "Dictate a draft" : "Cancel dictation"}
                   aria-describedby="jarvis-dictation-status"
                   aria-pressed={dictation.state !== "idle"}
-                  onClick={dictation.state === "idle" ? dictation.start : dictation.cancel}
+                  onClick={() => {
+                    if (dictation.state !== "idle") return dictation.cancel();
+                    reader.stop(); // JARVIS stops talking when the person starts to
+                    dictation.start();
+                  }}
                   className="grid h-10 w-10 place-items-center rounded-full text-muted-foreground hover:bg-accent"
                 >
                   <Mic className="h-4 w-4" aria-hidden />

@@ -139,3 +139,51 @@ export function useJarvisDictation(enabled: boolean, onText: (text: string) => v
 
   return { supported, state, error, start, cancel };
 }
+
+/** An answer as it is read aloud: a link's text without its address, and no Markdown marks. */
+export const speakable = (text: string) =>
+  text
+    .replace(/\]\([^)]*\)|[`*_#>|[\]]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+/**
+ * JARVIS reads one answer aloud in the person's chosen voice when asked (155). Pressing again,
+ * starting dictation, leaving the page or hiding the tab stops it at once: nothing speaks or
+ * listens in the background.
+ */
+export function useReadAloud(chosenVoice: string | null) {
+  const [supported, setSupported] = useState(false);
+  const [speaking, setSpeaking] = useState<string | null>(null);
+
+  const stop = useCallback(() => {
+    if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+    setSpeaking(null);
+  }, []);
+
+  useEffect(() => {
+    setSupported("speechSynthesis" in window);
+    const hidden = () => {
+      if (document.hidden) stop();
+    };
+    document.addEventListener("visibilitychange", hidden);
+    return () => {
+      document.removeEventListener("visibilitychange", hidden);
+      if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+    };
+  }, [stop]);
+
+  const toggle = (id: string, text: string) => {
+    if (speaking === id) return stop();
+    const synthesis = window.speechSynthesis;
+    synthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(speakable(text));
+    utterance.lang = document.documentElement.lang || navigator.language || "en";
+    utterance.voice = pickVoice(synthesis.getVoices(), chosenVoice, utterance.lang);
+    utterance.onend = utterance.onerror = () => setSpeaking((now) => (now === id ? null : now));
+    setSpeaking(id);
+    synthesis.speak(utterance);
+  };
+
+  return { supported, speaking, toggle, stop };
+}

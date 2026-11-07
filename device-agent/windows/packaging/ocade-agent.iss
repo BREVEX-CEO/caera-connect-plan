@@ -16,6 +16,11 @@ AppPublisher=CARCC
 DefaultDirName={localappdata}\Programs\OCADE JARVIS
 DefaultGroupName=OCADE JARVIS
 PrivilegesRequired=lowest
+; Windows x64 only (requirement 104). The bundle is x64; 32-bit Windows cannot run it, and
+; Windows on ARM is not a supported target yet (no native build of every dependency), so
+; Setup refuses both with Windows' own message instead of installing something untested.
+ArchitecturesAllowed=x64os
+ArchitecturesInstallIn64BitMode=x64os
 AppMutex=OCADE.Jarvis.Active
 CloseApplications=no
 RestartApplications=no

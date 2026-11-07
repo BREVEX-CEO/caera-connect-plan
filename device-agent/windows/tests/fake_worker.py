@@ -53,7 +53,7 @@ def fs_list(path: str = ".") -> dict:
 
 
 @app.tool()
-def fs_read_text(path: str) -> dict:
+def fs_read_text(path: str, offset: int | None = None) -> dict:
     """Read."""
     return {"text": ""}
 

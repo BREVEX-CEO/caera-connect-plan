@@ -11,6 +11,7 @@ import stat
 import sys
 import tempfile
 import unittest
+import unittest.mock
 from pathlib import Path
 
 import anyio
@@ -169,6 +170,23 @@ class Diagnostics(unittest.TestCase):
             self.assertEqual(absent, {"topic": "registry", "key": "HKCU\\Software\\OCADE-missing-key-test", "exists": False})
         refused = office_worker.system_diagnose(topic="registry", filter="HKCR\\anything")
         self.assertEqual(refused["refused"], "diagnostic_unavailable" if os.name != "nt" else "invalid_registry_key")
+
+
+class LongTextReads(unittest.TestCase):
+    def test_a_long_file_is_read_in_parts(self):
+        from ocade_agent import office_worker
+
+        root = Path(tempfile.mkdtemp())
+        (root / "log.txt").write_text("".join(f"line {n:05d}\n" for n in range(2000)))  # 22,000 characters
+        with unittest.mock.patch.object(office_worker, "WORKSPACE", str(root)):
+            first = office_worker.fs_read_text(path="log.txt")
+            second = office_worker.fs_read_text(path="log.txt", offset=first["nextOffset"])
+            last = office_worker.fs_read_text(path="log.txt", offset=second["nextOffset"])
+        self.assertEqual((first["truncated"], first["nextOffset"], first["totalCharacters"]), (True, 8000, 22000))
+        self.assertEqual(second["offset"], 8000)
+        self.assertFalse(last["truncated"])
+        self.assertNotIn("nextOffset", last)
+        self.assertEqual(first["text"] + second["text"] + last["text"], (root / "log.txt").read_text())
 
 
 class BrowserDiscovery(unittest.TestCase):
