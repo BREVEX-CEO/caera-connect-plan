@@ -44,6 +44,8 @@ class NativeEffectReceipts(unittest.TestCase):
         class Provider:
             current = ""
             missing = False
+            # An ordinary (not password) field, as UI Automation reports it.
+            element_info = type("Info", (), {"element": type("Element", (), {"CurrentIsPassword": False})()})()
             @property
             def iface_value(self): return self
             @property

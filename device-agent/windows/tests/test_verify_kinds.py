@@ -5,6 +5,7 @@ or gamed deliverable would produce (a typed-in total, bold text instead of a hea
 script that still has Windows line endings).
 """
 
+import itertools
 import os
 import sys
 import tempfile
@@ -20,9 +21,12 @@ from ocade_agent.gateway import Gateway
 from tests.test_gateway import intent
 
 
+_ids = itertools.count(1)
+
+
 def check(kind, **params):
-    return {"id": f"{kind}_{len(params)}_{abs(hash(str(params))) % 10_000}", "kind": kind,
-            "description": kind, "params": params}
+    # A counter, not a hash of the parameters: two checks in one call must never share an id.
+    return {"id": f"{kind}_{next(_ids)}", "kind": kind, "description": kind, "params": params}
 
 
 class VerifierKinds(unittest.TestCase):

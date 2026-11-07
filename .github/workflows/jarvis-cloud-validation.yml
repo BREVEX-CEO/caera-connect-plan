@@ -222,8 +222,6 @@ jobs:
           node-version-file: .node-version
           cache: npm
       - run: npm ci --no-audit --no-fund
-      - name: Planner safety and sibling contracts (synthetic provider, loopback only)
-        run: node --experimental-strip-types --no-warnings --test tests/security/*.test.ts tests/jarvis/contracts.test.ts
       - name: Filesystem race regressions (standard library only)
         env:
           PYTHONPATH: device-agent/windows
@@ -271,6 +269,10 @@ jobs:
           python -m pip install reportlab==4.5.1
           python -m playwright install --no-shell chromium
           python -c 'from playwright.sync_api import sync_playwright; p=sync_playwright().start(); print("OCADE_BROWSER_EXECUTABLE=" + p.chromium.executable_path); p.stop()' >> "$GITHUB_ENV"
+      # After the Python runtime: these tests also drive the evaluation and browser-audit helpers.
+      - name: Planner safety and sibling contracts (synthetic provider, loopback only)
+        if: success() || failure()
+        run: node --experimental-strip-types --no-warnings --test tests/security/*.test.ts tests/jarvis/contracts.test.ts
       - name: Media sibling regressions (real files and independent measurements, no skips)
         if: success() || failure()
         working-directory: device-agent/windows
