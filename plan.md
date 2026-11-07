@@ -1,6 +1,6 @@
-# OCADE — Master Engineering Plan (v5)
+# OCADE — Master Engineering Plan (v7)
 
-> **The single authority for OCADE engineering.** Version 6 (coding-first, owner decision O13, 5 November 2026), first issued as version 5 on 2 November 2026, branch `ocade/p00-p22-implementation`. It is the one place for scope, rules, architecture, order, status and acceptance. `AGENTS.md` and `CLAUDE.md` point here at session start. `docs/research/*` hold supporting research, while `docs/DECISIONS.md` and dated `evidence/` folders are history. None of these compete with this file. `phases.md` does not exist.
+> **The single authority for OCADE engineering.** Version 7 (7 November 2026): reorganised so this file holds only outstanding, incomplete, blocked and unverified work; everything completed, with its evidence, is in the linked archive [`docs/archive/plan-v6-2026-11-07.md`](docs/archive/plan-v6-2026-11-07.md). Version 6 (coding-first, owner decision O13, 5 November 2026), first issued as version 5 on 2 November 2026, branch `ocade/p00-p22-implementation`. It is the one place for scope, rules, architecture, order, status and acceptance. `AGENTS.md` and `CLAUDE.md` point here at session start. `docs/research/*` hold supporting research, while `docs/DECISIONS.md` and dated `evidence/` folders are history. None of these compete with this file. `phases.md` does not exist.
 
 | Level | Read when | Sections |
 |---|---|---|
@@ -11,6 +11,7 @@
 | 5 Verification and release | Coding gate (§17) every batch; the rest at the qualification stage, after coding and debloat | §17–§20 |
 | 6 Decision record | Only when a package refers to it, or when challenging a decision | §22–§25, §27 |
 | 7 Traceability (lookup data) | When updating status | Appendices A–E |
+| Archive | Completed work and its evidence (W3, 77 PASS requirements, research dispositions, fixed defects) | [`docs/archive/plan-v6-2026-11-07.md`](docs/archive/plan-v6-2026-11-07.md) |
 
 ---
 
@@ -26,7 +27,9 @@
 
 **Stage order (O13):** C0 coding audit → C1… coding batches until every coding requirement is CODED → integration and compilation fixes → W12 deep debloat and consolidation → final compilation and full GitHub Actions qualification (W13) → owner-directed AI-model comparison and real-PC testing (RPC).
 
-**Current next action: batch C0 (§7): classify every requirement in Appendix E, make every push run only the coding gate (§17), then start batch C1.**
+**Coding stage:** every required ID is coded or classified (Appendix E); C0–C11 are recorded there.
+
+**Current next action:** the owner-directed model comparison (§19.4): 12 real-task evaluations, 4 tasks × configurations A, B and C. The model routes, the live-session transport and the quota discovery are coded (C11) and the four free benchmark applications that can run here are installed and verified; the 12 runs are BLOCKED on the exact items B1–B4 in §19.4. Research into other models, hosting and inference starts only after the 12 runs genuinely finish (O16).
 
 ## 1. What OCADE is
 
@@ -64,13 +67,17 @@ OCADE BY CARCC is an autonomous computer-control agent.
 | O12 | Free, non-deploying GitHub Actions on this branch are approved. CI stays secrets-free and never contacts production. No scheduled automations. |
 | O13 | **Coding first** (owner, 5 November 2026). Finish 100% of the approved coding requirements before comprehensive qualification. During coding, only the lightweight coding gate (§17) applies. Live AI tests, E1–E3 campaigns, benchmark scores, full CI matrices, cloud-computer workflows and real-PC tests never block writing code; they run at the qualification stage, where every original acceptance criterion still applies in full. No coding deadline and no benchmark threshold apply to the coding stage. |
 | O14 | Keep the existing working model integration (O2) unchanged until the owner authorises a replacement. The owner will supply the tasks that compare Gemini 3.8 Live Extended Thinking, Gemma 4 31B and Gemini 3.5 Flash-Lite after coding is complete. Do not run model benchmarks before then. |
+| O15 | **Model comparison** (owner, 7 November 2026): run the same four tasks (§19.4) independently with A = Gemma 4 31B API alone, B = Gemini 3.8 Live Extended Thinking API alone and C = both under one task controller, with identical inputs and criteria, using only free applications (LibreOffice Calc, GIMP, FreeCAD, Blender, DaVinci Resolve Free; no trials or subscriptions) in an authorised isolated environment. The three Gemini keys belong to three separate Google Cloud projects; use them securely within their actual quotas. Application names are benchmark requirements only (O8 holds). |
+| O16 | **Order** (owner, 7 November 2026): finish the 12 real-task evaluations before any research into alternative models, hosting, cloud inference, GitHub model storage or hybrid routing. If credentials, devices, hardware or permissions are missing, prepare what is permitted, record the exact blockers here and stop; never fabricate a result or skip ahead. |
 
 ## 3. Status (update in the same commit as new evidence)
 
 Separate measurements. Never merge them into one percentage.
 
-| Metric | Value (5 Nov 2026) | Source |
+| Metric | Value (7 Nov 2026 unless dated) | Source |
 |---|---|---|
+| **Model comparison (§19.4)** | **0/12 evaluations run** (4 tasks × A, B, C). Harness and routes coded (C11, `c40a2a7`); 4/5 benchmark applications installed and executed headless in the isolated container; all 12 cells BLOCKED (B1 credentials, B2 authorised device, B3 already-open project on Linux, B4 DaVinci Resolve) | §19.4 |
+| Completed work | W3; 77 RUNTIME VERIFIED requirements; 236 research dispositions; fixed defects | [archive](docs/archive/plan-v6-2026-11-07.md) |
 | Coding status (7 Nov 2026) | Every required ID is coded or classified: 77 RUNTIME VERIFIED, 142 BUILDS, 25 QUALIFICATION-ONLY with their harness BUILDS, 20 STANDING; 134–135 optional (O1) NOT CODED. BUILDS is code plus a green coding gate, not runtime proof | Appendix E |
 | Requirements PASS (runtime verified) | **77/266** (28.9%). Unfinished: 189 (154 PARTIAL, 12 FAIL, 5 BLOCKED, 18 UNTESTED) | Appendix A |
 | Architecture concepts PASS | **44/84** (52.4%). Unfinished: 40 (39 PARTIAL, 1 FAIL) | Appendix B, `npm run jarvis:traceability` |
@@ -390,7 +397,6 @@ Journal ─▶ independent verifier ─▶ settlement · deliverables · timing
 | W0 | Green baseline and one ledger | — | IN PROGRESS | Run 99 verifies both Windows repairs at candidate `2d98e0d`; shared Linux gate works in CI. Run 109 at `00cbd9e`: seven jobs green, macOS host not acquired; explicit Windows 2022/2025 and macOS 15 ARM/Intel matrix pending. Previous proof: [run 78](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41547638177) all green at `5796bb8`; ledgers agree (41→43 concepts after W1) | 10, 43, 196, 214–215, 236–238 | 9, 22, 39–41, 44, 82 |
 | W1 | Safety closure and request-bound contract | — | IN PROGRESS | D22 repair published at 04ff4a99; Linux, Windows 2022/2025 and macOS ARM64 pass the actual warm-worker STOP regression and full 162-test suites; complete matrix awaits Intel (`evidence/2026-11-05-local-stop/`).  [run 78](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41547638177): D2, D3, D5, D6, D7 fixed; D4 mitigated (residual → W11); outage visible; M2 recovery qualification `evidence/2026-11-02-recovery/` | 13, 21, 32, 35–41, 66–69, 79–80, 171, 193, 210, 216, 220 | 4–5, 7, 21, 38, 50, 52–57, 61 |
 | W2 | Measurement and pickup speed | — | BLOCKED (code complete) | Nudge, receipt-carried next step, prewarm, key cache green in [run 82](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41797737703)/[run 85](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41806336402). Met: idle pickup p95 502 ms (30 synthetic tasks) and 0.5–0.8 s live on staging Realtime; claim while running p95 53 ms (synthetic), ~0.2 s live. NOT met: unaccounted ≤10% — live 35% (8.5 of 24 s) from this container ~210 ms per database round trip; the production topology (Worker beside the database) is unmeasured: needs A1(b). Large payloads already bounded (16 KB evidence, 60 KB receipt; files by path + sha256) | 81–92, 94, 96 | 2, 42–43, 47–48, 51, 70, 78 |
-| W3 | Capability surface | — | DONE (code) | [run 85](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41806336402) green on all three OSes: `fs.manage` (D17), `job.*` (D18), shell choice (D20), `system.diagnose`, mechanism fallback (concept 37). Live: `crlf_script` and `config_repair` pass first attempt (eval s21, D12) | 28–30, 93, 136–137 | 25–27, 37, 69 |
 | W4 | Accuracy engine and evaluation → E1 | — | IN PROGRESS | Shortlist recall: tuning 100%, held-out 97.1% (< 98%); busy planner resumes itself (D10); D6 residual closed; failure categories, gaming audit, 16 generators; tables read as rows (D9); A1(a) approved and staging credential presence verified; D27 staging boundary repaired and protected authentication/isolation smoke passes (run 41972053886); full 48-task E1 at `00cbd9e` finished: strict 27/48 (56.25%), original oracle 35/48, completed 31/48, gaming 0; target choices absent. Protected candidate/family retests are available without changing the full 48-task denominator (`evidence/2026-11-05-e1-repair/`). Office parsing, interpreter validation, deliverable goal selection and harness fixture/teardown repairs are in qualification (`evidence/2026-11-05-e1/`). E1 partial: 7/8 first-attempt passes at `a6a728f`, gaming 0, stopped at handoff (`evidence/2026-11-04-e1/`); the `log_cause` miss (`invalid_goal`) is fixed in `2dced6b`, not yet measured live | 23, 31, 33–34, 46–57, 60, 63, 65, 166, 197–199, 201–202, 204, 207, 219 | 6, 8, 10, 14–20, 23, 49, 60, 77, 83 |
 | W5 | Professional deliverables and visual fallback → E2 | — | IN PROGRESS | In-place .docx/.xlsx/.pptx edits, new decks, `image.edit`, OTIO project beside every film; verifier: `script_runnable`, `workbook_formula`, `document_headings`, `local_service_answers`, confirmed re-run `command_succeeds`; clicks matched against the inspected image (concept 36). glTF export and independent geometry verification remain coding work; unpublished candidate completion claims are withdrawn. Open: glTF, E2 | 61, 70–75, 77, 211 | 36, 74–76 |
 | W6 | Windows 10/11 | — | IN PROGRESS | Hung and elevated windows refused; per-monitor DPI v2; stale-image click refusal (UIA-013/014 on the runner). Unpublished focus candidate proof does not establish published-branch completion; focus repair remains coding work. Full matrix pending. Open: packaged (UWP) apps, Windows 2022/2025 coverage. Consumer Windows 10/11 proof BLOCKED on A2 | 58–59, 122–130 | 11–12, 28, 32–35, 58–59 |
@@ -404,6 +410,9 @@ Journal ─▶ independent verifier ─▶ settlement · deliverables · timing
 | W14 | Linux (optional) | — | NOT STARTED | optional | 134–135 | — |
 | RPC | Real-PC validation → E5 | W13; A2 | BLOCKED | needs A2 | 121, 133, 209 | — |
 | COM | Commercial prerequisites (§20) | RPC | BLOCKED | owner decisions | 259 | — |
+| MC | Model comparison (§19.4, O15) | C11 | BLOCKED | 0/12 runs; B1–B4 in §19.4 | 23 | — |
+
+**Archived as complete:** W3 Capability surface, DONE (code), with its live evidence (eval s21, run 85) and closed defects D12, D17, D18, D20: [archive §15 and §16](docs/archive/plan-v6-2026-11-07.md).
 
 - **Standing rules (S)**, checked at every release gate: 1–2, 4–9, 11–12, 14–20, 22, 24–27, 42, 64, 95, 174, 183–184, 203, 206, 213, 225–235, 239–242, 244–258, 260–266. Standing concept: 3.
 - **State** is the runtime-verified state. Coding progress lives in Appendix E. A package's prerequisite never blocks coding another package (O13).
@@ -477,32 +486,6 @@ Each package follows the same shape: **Problem → Evidence → Outcome → Cons
   - A forged or replayed nudge causes no effect.
 - **Acceptance:** the targets above are met on Linux and on the Windows/macOS runners; the Workers request budget is calculated and recorded.
 - **Proof:** timing summary JSON (≤50 KB).
-
-### W3 — Capability surface
-- **Problem:** the model must use confirmed shell commands for ordinary file management, and long work cannot run.
-- **Evidence:**
-  - No typed copy/move/rename/mkdir/trash/set-attributes operations (D17); this caused 4 of 9 eval failures.
-  - `shell.run` is capped at 600 s and there is no job tracking (D18).
-  - The shell is PowerShell-only on Windows and `sh`-only on macOS (D20).
-- **Outcome:**
-  - Typed `fs` operations inside granted scope, without per-command confirmation for reversible workspace changes, with originals kept and every operation journaled.
-  - `job.start/status/cancel`.
-  - Read-only `system.*` diagnostics (processes, services, crash events, installed programs, associations, environment).
-  - Explicit shell choice: PowerShell, cmd, sh or zsh.
-  - Automatic mechanism fallback offers the next allowed route with a fresh observation.
-- **Constraints:** deletion goes to the Recycle Bin or Trash; external or destructive effects still need confirmation; jobs are contained (Job Object or process group), have deadlines and obey STOP.
-- **Approach:**
-  - Extend `contracts.ts`, then run `npm run jarvis:protocol`.
-  - Implement in the existing `office_worker.py`/`sandbox.py`, `command_worker.py` and `discovery.py`.
-  - Expose the new operations through the existing shortlist.
-- **Boundaries:** no new worker process unless measurement shows a need; no application names.
-- **Tests:**
-  - Unit and real-worker tests on all three runner OSes.
-  - Kill the agent mid-job: the agent reattaches, or reports the job as `unknown`.
-  - A 30-minute job is stopped correctly.
-  - Scope escape is refused.
-- **Acceptance:** the tests pass; a fresh paced sample of `crlf_script`-class tasks passes on the first attempt; no unconfirmed external effect is possible.
-- **Proof:** run URL; D12, D17, D18 and D20 closed.
 
 ### W4 — Accuracy engine and evaluation loop
 - **Problem:** first-attempt success is 75%, below the 90% target, and is not measured continuously.
@@ -777,6 +760,52 @@ Success = verified complete ÷ eligible attempted. The harness supplies only the
 
 **Free-runner limits:** CPU only, 6-hour jobs. Cycles CPU works headless; Eevee needs EGL/Mesa (unverified). If the render cannot finish, record FAIL or BLOCKED with the measured frame time and validate at RPC.
 
+### 19.4 Owner-directed model comparison — 4 tasks × configurations A, B, C (O15, O16)
+
+**Status: 0 of 12 evaluations run. Nothing below is a result.** The harness and the three model routes are coded (Appendix E 23, C11). Every evaluation cell stays UNTESTED or BLOCKED until a real run at one commit records its evidence here.
+
+**Benchmark applications** (free only, no trials or subscriptions; the names are benchmark requirements, never product logic, O8). Installed and executed in the isolated session container (Ubuntu 24.04, 4 CPU, 15 GB RAM, no GPU) on 7 Nov 2026:
+
+| Application | Version | Licence | Source | Executed here | Platforms (vendor) |
+|---|---|---|---|---|---|
+| LibreOffice Calc | 24.2.7.2 | MPL-2.0 | Ubuntu archive | `soffice --version`; headless recalculation used by the existing office worker | Windows, macOS, Linux |
+| GIMP | 2.10.36 | GPL-3.0+ | Ubuntu archive | batch mode created and saved an `.xcf` with a layer named `Shadow` | Windows, macOS, Linux |
+| FreeCAD | 0.21.2 | LGPL-2.0+ | FreeCAD maintainers' PPA `freecad-stable` (not in the noble archive) | `freecadcmd` built a 4200 × 1900 × 1150 mm solid and saved `.FCStd` | Windows, macOS, Linux |
+| Blender | 4.0.2 | GPL-2.0+ | Ubuntu archive | background Cycles CPU render to PNG (the Ubuntu build has no OpenImageDenoise, so denoising must be off) | Windows, macOS, Linux |
+| DaVinci Resolve Free | — | Blackmagic EULA (free) | — | **BLOCKED**: the download needs Blackmagic's registration form (personal data; not submitted without the owner), and Resolve on Linux needs a discrete GPU with ≥4 GB VRAM (OpenCL 1.2 or CUDA) and 32 GB RAM; this container has no GPU and 15 GB | Windows, macOS, Linux (Rocky 8.6) |
+
+**Tasks** (identical objective text, seeded inputs and hidden oracle for every configuration; the harness supplies only the objective, inputs and scopes, §19.1):
+1. **Calc, speed:** change B7 to 128, recalculate, save and verify. Oracle: B7 = 128; every dependent formula's value equals an independent recalculation; file saved and re-opens. Measure the local execution time apart from model time (target: sub-second local execution).
+2. **GIMP, speed:** in an already-open project, disable the `Shadow` layer, verify the visual change and save. Oracle: the saved project has `Shadow` hidden and every other layer unchanged; the flattened image differs only where `Shadow` contributed. Target: sub-second local execution.
+3. **FreeCAD + Blender + Calc, extreme:** an original, dimensionally consistent electric sports car (body-in-white, chassis, suspension, wheels, interior, materials, renders) plus an editable component spreadsheet. Oracle: the CAD and Blender files re-open; named parts exist; key dimensions (wheelbase, track, overall length/width/height, wheel diameter) agree across CAD, Blender and the spreadsheet within a stated tolerance; renders are non-blank; the spreadsheet's totals recalculate.
+4. **Blender + DaVinci Resolve Free + GIMP, extreme (uses Task 3's car):** a 60 s ± 2 s commercial with audio, an editable timeline, a vertical version and a poster. Midway the wheelbase and suspension change and every dependent artifact must follow; an injected application crash must be recovered without redoing finished work. Oracle: §19.3's technical and structural verdicts, plus the changed dimension found in every dependent file; subjective quality is human review at RPC only.
+
+**Configurations** (server route `GEMINI_MODEL`, never a request value):
+- **A** `gemma-4-31b-it` alone (streamed `generateContent`, function calling, image input; thinking setting retried without one if the model refuses it).
+- **B** `gemini-3.8-live-extended-thinking` alone, over the Live API. Provider facts (Google docs, 7 Nov 2026): native-audio Live models accept only the AUDIO response modality; text is observed through `outputAudioTranscription`; function calls must be `NON_BLOCKING`; thinking levels low/medium/high; 128k context; sessions ≤15 min audio-only. OCADE sends text turns, reads the transcript and the function calls, and discards the audio without playing it. It never claims native text-only output. Known provider risk: a forum report (28 Sep 2026, unanswered) says Extended Thinking emitted no `toolCall` for a `NON_BLOCKING` function on some keys.
+- **C** `gemma-4-31b-it,gemini-3.8-live-extended-thinking`: one task authority and one planner loop; the edge handler (the single controller of model choice) asks the second model only before any output, when the first cannot answer that turn (quota spent, unavailable, request refused). Escalation by verifier outcome is not coded; it is added only if C's results show the need.
+
+**Quota and the three projects:** each key slot is its own Google Cloud project with its own per-model RPM/TPM/RPD. Real limits are read from the provider (`npm run model:availability` for availability and token limits; AI Studio for the project's rate limits; every 429 QuotaFailure is logged per slot and model as `ocade.provider_limit`); none is hardcoded. A quota refusal never moves a request to another project: Google's API terms forbid circumventing documented limits, so pooling the three projects for one workload needs the owner's confirmation with Google first. For fairness each configuration runs against one assigned project (A primary, B secondary, C tertiary), paced to that project's discovered limits. Unpaid-tier terms (Google, 7 Nov 2026): no sensitive or personal data in prompts, which the synthetic fixtures respect; EEA/UK/Swiss customers need the paid service (a COM item).
+
+**Metrics per run:** first-action latency, total time, model calls and tokens (`timing.providerUsage`), CPU/RAM of the companion and each application, interventions, recovery results, oracle verdict, output-quality notes, timestamped intermediate and final screenshots, editable artifacts and the run's commit. Ranking: verified accuracy, then output quality, then completion time, then cost.
+
+**Evaluation matrix:**
+
+| Task | A | B | C |
+|---|---|---|---|
+| 1 Calc | BLOCKED (B1, B2) | BLOCKED (B1, B2) | BLOCKED (B1, B2) |
+| 2 GIMP | BLOCKED (B1, B2, B3) | BLOCKED (B1, B2, B3) | BLOCKED (B1, B2, B3) |
+| 3 FreeCAD + Blender + Calc | BLOCKED (B1, B2) | BLOCKED (B1, B2) | BLOCKED (B1, B2) |
+| 4 Blender + Resolve + GIMP | BLOCKED (B1, B2, B4) | BLOCKED (B1, B2, B4) | BLOCKED (B1, B2, B4) |
+
+**Blockers (exact):**
+- **B1 Credentials.** This container holds no Gemini key. The three keys exist only as staging Edge Function secrets, which cannot be read, and the deployed staging function serves only the default model; changing its `GEMINI_MODEL` or redeploying it is a secret change and a deployment (O11). The permitted route is the session's secure credential form (the network proxy injects the key and the session never sees it). It holds one key per host, so one project at a time: the per-configuration project assignment above then becomes one shared project, paced to its limits.
+- **B2 Authorised consumer device.** OCADE's product platforms are Windows 10/11 and macOS (O1); its desktop control is UIA and AX. This container is Linux, where OCADE has no desktop UI bridge, so tasks that need an already-open application window cannot be driven through the application's UI here. Running the tasks on the owner's computer needs approval A2 with the exact test list; it has not been given. A Linux-container run would be a cloud qualification result, not a real-PC result, and is labelled as such if it is run.
+- **B3 Already-open project.** Editing the GIMP project file while GIMP holds it open would let GIMP's later save overwrite the change (a §12 invariant: later user edits are never overwritten). On Linux this task is expected to end FAIL or BLOCKED rather than be worked around.
+- **B4 DaVinci Resolve Free** cannot be installed or run here (table above).
+
+**Order (O16):** research on alternative free model APIs, architectures, open-weight storage and inference hosting starts only after all 12 evaluations genuinely finish. Preliminary notes gathered before this order are not decisions and are not used.
+
 ## 20. Release gates, approvals and the commercial stage
 
 | Gate | Condition |
@@ -948,6 +977,8 @@ OCADE's intended differentiator is independently proven, editable, locally produ
 
 ## Appendix A — The 266 requirements (verbatim) with status and destination
 
+**Active view:** the 189 requirements that are not yet RUNTIME VERIFIED are listed below, verbatim. The 77 that are (`PASS`) are archived verbatim with their evidence in [archive Appendix A](docs/archive/plan-v6-2026-11-07.md): 1, 2, 4, 5, 6, 9, 11, 12, 14, 15, 17, 18, 19, 20, 21, 22, 24, 25, 26, 27, 30, 36, 39, 41, 42, 43, 47, 53, 64, 79, 80, 84, 89, 93, 94, 95, 102, 109, 136, 137, 141, 145, 154, 171, 173, 174, 178, 183, 184, 196, 198, 203, 213, 225, 234, 239, 240, 241, 244, 245, 246, 248, 249, 250, 251, 252, 253, 254, 256, 257, 258, 260, 261, 262, 263, 265, 266. They stay requirements (O7) and the standing ones are still checked at every gate (§15).
+
 `PASS` here means RUNTIME VERIFIED. Coding status (NOT CODED, CODED, BUILDS) is tracked separately in Appendix E, so a coded requirement is never shown as verified before qualification.
 
 Format: `STATUS` · **destination** — original text. Status source: independent re-audit at `f04228d`, plus W1 promotions of 36, 39, 41, 80, 171 and 216 with [run 78](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41547638177) and `evidence/2026-11-02-recovery/`, and W2/W3 promotions of 30 (mechanism fallback), 94 (live round-trip profile before and after each change) and 137 (shell, engine and diagnostic limits refused before running) with [run 85](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41806336402) (`evidence/2026-11-01-audit/requirements-266.md`, current-review column); it is the conservative lower bound. **S** = standing rule verified at every release gate. **RPC** = needs real-PC validation. **COM** = commercial phase. **W14** = optional Linux; never counted as PASS without evidence and never blocking Windows/macOS release.
@@ -958,65 +989,37 @@ Original preamble (1 November 2026): this owner checklist complements the 84 con
 
 #### Rules and execution requirements
 
-1. `PASS` · **S** — Continue directly from the current OCADE development session. Do not restart the project, repeat completed research unnecessarily, or create another architecture proposal without implementing the required changes.
-2. `PASS` · **S** — Work exclusively on `ocade/p00-p22-implementation` in `BREVEX-CEO/caera-connect-plan`. Never merge into `main`, deploy to production, enable payments, spend money, or access my physical computer without my explicit approval.
 3. `PARTIAL` · **W13** — Your objective is to make **OCADE BY CARCC** a genuinely functional, independently verified, public-ready commercial software product across every officially supported component and platform.
-4. `PASS` · **S** — **Do the actual coding.** Inspect, reproduce, fix, implement, integrate, simplify, test, and independently verify. Documentation alone is not progress.
-5. `PASS` · **S** — Preserve the existing local-first architecture: Gemini intelligence, task supervisor, local Device Agent, trusted Gateway, MCP/STDIO capability workers, execution controller, independent verifier, and customer-facing website.
-6. `PASS` · **S** — Do not rewrite functioning architecture merely to make it appear more advanced. Change architecture only where evidence proves a correctness, security, reliability, performance, scalability, or maintainability benefit.
 7. `PARTIAL` · **S** — Read the current `plan.md`, `CLAUDE.md`, `AGENTS.md`, architecture ledger, prior evidence, tests, repository structure, and relevant implementation files before modifying an existing component.
 8. `PARTIAL` · **S** — Inspect actual Git history, branch HEAD, local changes, staging configuration, package versions, workflows, tests, and unresolved blockers. Treat historical reports as evidence, not as proof of current functionality.
-9. `PASS` · **S** — Preserve all existing authorized changes. Never overwrite another developer's edits, delete important tests, or revert unrelated work.
 10. `PARTIAL` · **W0** — Maintain a verified inventory of every application surface, architectural concept, feature, dependency, security boundary, test, and release requirement.
-11. `PASS` · **S** — Classify every finding as **PASS, PARTIAL, FAIL, BLOCKED, or UNTESTED**. Never label a feature complete solely because code exists.
-12. `PASS` · **S** — Separate confirmed defects from inferred risks, missing functionality, incomplete integration, and insufficient testing.
 13. `PARTIAL` · **W1** — Fix every reproducible critical and high-priority defect. For any unresolved issue, document the exact blocker and keep the release gate closed.
-14. `PASS` · **S** — Do not claim 100% bug-free software. The objective is **100% completion of verified launch requirements, zero known critical safety defects, and at least 90% independently verified success on representative real tasks**.
-15. `PASS` · **S** — Prioritize **P0 safety and correctness → P1 production reliability → P2 performance and polish**. Do not prioritize cosmetic features ahead of broken task execution.
 16. `PARTIAL` · **S** — Implement improvements in small, reversible, reviewable changes with focused regression tests. Run relevant tests after every change and broader tests after integration.
-17. `PASS` · **S** — Use cloud infrastructure for testing first. Only request access to my computer after supported cloud tests pass and real consumer-device testing cannot be completed otherwise.
-18. `PASS` · **S** — Prefer existing free, authorized testing environments and already configured services. Do not create unapproved cloud resources or trigger costs.
-19. `PASS` · **S** — Keep the repository private or public according to its actual authorized configuration. Never change visibility without approval.
-20. `PASS` · **S** — Do not modify production secrets, production data, access policies, or release channels without authorization.
 
 #### Architecture and execution
 
-21. `PASS` · **W1** — Retain **one coherent task-authority system** responsible for task state, permissions, ownership, STOP, takeover, continuation, action dispatch, and truthful completion status.
-22. `PASS` · **S** — Keep Gemini as the configured online planning brain. Do not secretly switch to another model, invent a local JARVIS fallback, or create competing autonomous planners.
 23. `PARTIAL` · **W4** — Preserve the configured model-routing policies and approved provider credentials. Validate actual model availability, quotas, limits, and failure behavior before making model changes.
-24. `PASS` · **S** — Keep capability-based execution. No production code may depend on predefined customer applications, filenames, specific user tasks, demonstration journeys, or hardcoded results.
-25. `PASS` · **S** — **Never hardcode files, answers, browser paths, application names, selectors, commands, expected output documents, or special-case workflows merely to make a test pass.**
-26. `PASS` · **S** — Test fixtures may contain synthetic files and independent expected results, but production logic must solve unfamiliar inputs using general capabilities and observed state.
-27. `PASS` · **S** — Do not replace genuine execution with fake receipts, simulated task completions, generated success messages, or pre-created deliverables.
 28. `PARTIAL` · **W3** — Preserve the intended execution preference: native APIs and object models → supported scripts and CLI → native file/project operations → browser DOM/CDP → Playwright → OS accessibility → vision/coordinates when needed.
 29. `PARTIAL` · **W3** — Choose the fastest reliable mechanism for each step based on actual capabilities, permissions, cost, observability, and failure risk.
-30. `PASS` · **W3** — Add automatic **mechanism fallback** where safe. If DOM interaction fails, inspect available alternatives rather than blindly repeating the same action.
 31. `PARTIAL` · **W4** — Improve the supervisor so it maintains objective, target state, milestones, permissions, available capabilities, current observations, completed actions, unresolved uncertainty, and remaining work.
 32. `PARTIAL` · **W1** — Store durable task state independently of Gemini's conversational context so interruptions and context truncation do not destroy progress.
 33. `PARTIAL` · **W4** — Add a bounded receding-horizon planner: plan enough to act effectively, execute, observe the result, then replan only when necessary.
 34. `PARTIAL` · **W4** — Separate **planning, action execution, result observation, and verification** into explicit interfaces and states.
 35. `PARTIAL` · **W1** — Give every action a unique identifier, task identifier, target identity, permission context, deadline, and observable outcome.
-36. `PASS` · **W1** — Prevent duplicate side effects after retries, server restarts, timeout responses, disconnections, or acknowledgement failures.
 37. `PARTIAL` · **W1** — Preserve receipts distinguishing **executed, verified, refused, failed, cancelled, and outcome unknown**. Never infer success from a dispatched command.
 38. `PARTIAL` · **W1** — Improve persistent journaling, recovery checkpoints, durable action reconciliation, and crash-safe resumption.
-39. `PASS` · **W1** — Do not automatically repeat destructive or externally visible operations when the previous effect is uncertain.
 40. `PARTIAL` · **W1** — Implement reliable ownership fences so STOP, Take Over, revocation, sign-out, device removal, and task cancellation prevent new unauthorized actions.
-41. `PASS` · **W1** — Ensure an in-flight operation either stops safely or reports honestly what may already have changed.
-42. `PASS` · **S** — Keep the Gateway modular. Do not introduce one microservice per tool or turn the 84 architectural concepts into 84 separate services.
-43. `PASS` · **W0** — Establish stable typed contracts between planner, task authority, Gateway, workers, verifier, and user interface.
 44. `PARTIAL` · **W9** — Add version negotiation and compatibility checking between the website/backend, Device Agent, Gateway, and bundled workers.
 45. `PARTIAL` · **W9** — Refuse incompatible components with actionable upgrade instructions rather than continuing unpredictably.
 
 #### Gemini accuracy and grounding
 
 46. `PARTIAL` · **W4** — Fix the demonstrated Python.org wrong-download failure generically. Gemini must distinguish the correct release row, release version, artifact type, platform, architecture, and actual download target.
-47. `PASS` · **W4** — Do not fix that failure by hardcoding Python.org, the current version, a specific download address, page row, CSS selector, or table position.
 48. `PARTIAL` · **W4** — Build or strengthen an evidence-grounded **Target Resolution Layer** that connects model-selected intent to an observed, unambiguous DOM element, accessibility element, file, process, or application window.
 49. `PARTIAL` · **W4** — Assign temporary observation-scoped identities to discovered elements so the model can refer to concrete targets without inventing coordinates or selectors.
 50. `PARTIAL` · **W4** — Preserve useful target metadata: label, role, accessible name, href, text, containing row, nearby headings, bounds, visibility, selected state, and originating observation.
 51. `PARTIAL` · **W4** — When several elements have identical names such as “Download,” use their surrounding table row, version, platform, and related attributes to disambiguate.
 52. `PARTIAL` · **W4** — Require fresh observations before sensitive actions. Reject stale element references when pages, windows, documents, or processes have changed.
-53. `PASS` · **W4** — Prevent Gemini from navigating to unobserved deep URLs when the user's task requires following an authoritative source.
 54. `PARTIAL` · **W4** — Distinguish verified facts from model memory and assumptions. Never report current external facts without an actual observation or valid trusted source.
 55. `PARTIAL` · **W4** — When the source is a complex table, inspect structured rows and columns rather than relying only on a screenshot or an isolated link label.
 56. `PARTIAL` · **W4** — When observations are incomplete, gather targeted additional evidence instead of guessing.
@@ -1027,7 +1030,6 @@ Original preamble (1 November 2026): this owner checklist complements the 84 con
 61. `FAIL` · **W5** — Implement image-based target matching where necessary, with confidence thresholds, stale-image detection, coordinate validation, and post-action observation.
 62. `PARTIAL` · **W8** — Add adversarial tests for duplicate buttons, changing page layouts, dynamic tables, identical filenames, overlapping windows, dialogs, hidden controls, overlays, and redirected downloads.
 63. `PARTIAL` · **W4** — Improve Gemini's ability to recover after clicking the wrong target, detecting the mistake before accepting or overwriting an incorrect result.
-64. `PASS` · **S** — Do not solve model errors by adding an expanding library of special-case prompts for individual websites or applications.
 65. `UNTESTED` · **W4** — Measure target selection accuracy independently by comparing the actual selected object against a hidden expected target.
 
 #### Independent verification
@@ -1045,26 +1047,19 @@ Original preamble (1 November 2026): this owner checklist complements the 84 con
 76. `PARTIAL` · **W8** — Verify browser work by checking actual resulting page state, downloaded artifact, submitted data, or other independently observable effect.
 77. `PARTIAL` · **W5** — Where full automatic verification is impossible, report what was proven, what remains uncertain, and what requires human review.
 78. `PARTIAL` · **W11** — Record evidence references with each important action while protecting customer data and excluding secrets.
-79. `PASS` · **W1** — Keep the verifier isolated from the planner's unverifiable claims and hidden test answer keys.
-80. `PASS` · **W1** — Build regression tests specifically reproducing the false-positive verification and unauthorized source-editing failures already observed.
 
 #### Execution speed and efficiency
 
 81. `PARTIAL` · **W2** — Optimize for **fastest correct completed task**, not fastest unverified click.
 82. `PARTIAL` · **W2** — Instrument planning latency, provider latency, tool startup, execution time, observation time, verification time, retries, and total elapsed task time.
 83. `PARTIAL` · **W2** — Remove unnecessary Gemini calls, repeated tool discovery, redundant context generation, repeated file reads, and excessive screenshots.
-84. `PASS` · **W2** — Batch independent read-only observations where safe, preserving enough output for Gemini to reason correctly.
 85. `PARTIAL` · **W2** — Do not batch dependent writes or risky actions when intermediate verification is necessary.
 86. `PARTIAL` · **W2** — Cache stable capability metadata, unchanged file hashes, tool schemas, and other reusable observations using safe invalidation rules.
 87. `PARTIAL` · **W2** — Use targeted incremental observations rather than re-reading entire files, pages, or tool catalogs on every step.
 88. `PARTIAL` · **W2** — Keep frequently needed workers warm where this measurably improves performance without compromising resource usage or STOP behavior.
-89. `PASS` · **W2** — Add progress and stall detection for repeated actions, repeated errors, no state change, exhausted budgets, and ineffective retries.
 90. `PARTIAL` · **W2** — Limit retries by error category, risk, elapsed time, and remaining task budget.
 91. `PARTIAL` · **W2** — Optimize prompt and context composition without hiding critical observations, permissions, error information, or verification requirements.
 92. `PARTIAL` · **W2** — Parallelize independent safe work only when process, file, window, and browser-target isolation can be guaranteed.
-93. `PASS` · **W3** — Prefer native file operations and direct APIs over simulated clicking whenever equivalent verified results are possible.
-94. `PASS` · **W2** — Profile actual slow paths before optimizing. Benchmark every optimization against the previous implementation.
-95. `PASS` · **S** — Never remove security checks or independent verification merely to make a benchmark faster.
 96. `PARTIAL` · **W2** — Measure median, p95 and p99 latency, model calls per task, retries, token usage, resource consumption, and completed verified outcomes.
 
 #### Dependencies and runtime management
@@ -1074,14 +1069,12 @@ Original preamble (1 November 2026): this owner checklist complements the 84 con
 99. `PARTIAL` · **W9** — Distinguish bundled application dependencies from additional dependencies needed for a particular customer-requested task.
 100. `PARTIAL` · **W9** — Detect installed tools and versions using reliable platform mechanisms rather than assuming a package exists because one executable appears in PATH.
 101. `PARTIAL` · **W9** — Support discovery of relevant runtimes and engines such as Python, Node.js, Java, .NET, FFmpeg, LibreOffice, browser engines, and native application dependencies when tasks require them.
-102. `PASS` · **W9** — Do not bundle every possible programming language or framework unnecessarily. Download optional task-specific dependencies only when actually needed and authorized.
 103. `PARTIAL` · **W9** — Inspect OS version, CPU architecture, package architecture, installation scope, existing versions, permissions, disk space, and network availability before proposing installation.
 104. `UNTESTED` · **W9** — Support x64 and ARM64 where officially targeted. Treat x86 support as a deliberate compatibility decision with actual build/test evidence.
 105. `PARTIAL` · **W9** — Prefer trusted platform package managers, verified vendor distributions, or controlled installation manifests when suitable.
 106. `FAIL` · **W9** — Resolve required package version, operating-system support, architecture, integrity hash, authenticity, compatibility, and applicable licence before installation.
 107. `PARTIAL` · **W9** — Never blindly run commands copied from unknown webpages or untrusted model outputs.
 108. `PARTIAL` · **W9** — Show the exact package, source, version, destination, privileges, expected changes, and security implications before approval.
-109. `PASS` · **W9** — Request administrator elevation only for an authorized operation that truly requires it. Keep normal OCADE operation unelevated.
 110. `UNTESTED` · **W9** — Detect UAC denial, insufficient permissions, missing installation privileges, enterprise policy restrictions, and package-manager failures.
 111. `FAIL` · **W9** — Detect missing DLLs, `.dylib` files, `.so` libraries, incompatible native modules, conflicting versions, missing VC++ runtimes, and broken runtime paths where relevant.
 112. `PARTIAL` · **W9** — Diagnose missing executable paths, environment variables, file associations, registry entries, configuration files, and working directories.
@@ -1114,19 +1107,15 @@ Original preamble (1 November 2026): this owner checklist complements the 84 con
 133. `BLOCKED` · **RPC** — Validate supported Intel and Apple Silicon devices and actual native execution, packaging, and dependency availability.
 134. `PARTIAL` · **W14** — Implement or verify Linux desktop control for explicitly supported X11 and Wayland configurations. Respect compositor and desktop security limitations.
 135. `UNTESTED` · **W14** — Handle Linux desktop portals, user-session permissions, packaging differences, executable paths, shared libraries, and distribution compatibility.
-136. `PASS` · **W3** — Provide platform-specific implementations behind shared capability contracts rather than contaminating the planner with OS-specific hardcoded journeys.
-137. `PASS` · **W3** — If an operation genuinely cannot work on a supported platform, detect the limitation before execution and report it accurately.
 138. `PARTIAL` · **W13** — Do not mark any operating system fully supported until native installation, pairing, execution, STOP, recovery, and independent task verification pass on representative hardware.
 
 #### Browser and application control
 
 139. `PARTIAL` · **W8** — Dynamically discover the actual installed browsers and profiles. Do not assume Chrome, Edge, or a particular profile is available.
 140. `PARTIAL` · **W8** — Bind automation to the authorized browser session, exact tab, origin, and target; never silently act in an unrelated session.
-141. `PASS` · **W8** — Prefer DOM/CDP/Playwright structured operations where possible and use visual control only when required.
 142. `PARTIAL` · **W8** — Detect navigation, popups, downloads, redirects, file pickers, permission prompts, authentication challenges, and dynamic content safely.
 143. `PARTIAL` · **W8** — Respect anti-bot protections, authentication boundaries, website permissions, and security-sensitive user confirmations.
 144. `PARTIAL` · **W8** — Ensure newly encountered applications can be operated through generic discoverable capabilities whenever their interfaces and permissions support it.
-145. `PASS` · **W8** — Test unfamiliar and randomly named applications, files, websites and UI layouts to prove execution is genuinely capability-based.
 
 #### Customer interface and product features
 
@@ -1138,7 +1127,6 @@ Original preamble (1 November 2026): this owner checklist complements the 84 con
 151. `PARTIAL` · **W10** — Display actual operation details in approval dialogs, not vague summaries supplied by Gemini.
 152. `PARTIAL` · **W10** — Ensure STOP, Take Over, Continue, Retry, and Remove Device behave correctly and visibly.
 153. `PARTIAL` · **W10** — Finish file delivery, download, preview, editing, and recovery flows for produced artifacts.
-154. `PASS` · **W10** — Preserve separate behavior for online JARVIS and offline Chat; never silently substitute one for the other.
 155. `UNTESTED` · **W10** — Complete supported voice, interruption, microphone permission, wake-state reporting, and accessibility features without misleading background-listening claims.
 156. `PARTIAL` · **W10** — Validate responsive website and PWA behavior on major desktop and mobile browsers, including accessibility and session recovery.
 157. `UNTESTED` · **W10** — Complete any already-scoped Android companion capabilities and tests only after core architecture and cloud gates pass. Do not create unrelated mobile apps.
@@ -1158,23 +1146,17 @@ Original preamble (1 November 2026): this owner checklist complements the 84 con
 168. `UNTESTED` · **W11** — Enforce TLS, secure headers, safe cookies, CSRF protection, input validation, and appropriate Content Security Policy.
 169. `PARTIAL` · **W11** — Test for XSS, SQL injection, SSRF, path traversal, command injection, unsafe deserialization, insecure direct-object references, and privilege escalation.
 170. `PARTIAL` · **W11** — Threat-model malicious websites, prompt injection in customer files, untrusted MCP tools, malicious downloads, compromised worker processes, and stolen device credentials.
-171. `PASS` · **W1** — Protect local file access through explicit grants, scope enforcement, race-safe writes, version checks, backup behavior, and non-destructive defaults.
 172. `PARTIAL` · **W11** — Verify database backups through actual restoration drills. Test infrastructure recovery, incident handling, and user-visible service failure behavior.
-173. `PASS` · **W11** — Profile real load and scale only as evidence requires. Avoid premature multi-region complexity or unnecessary infrastructure expenses.
 
 #### Security, privacy, and operations
 
-174. `PASS` · **S** — Preserve MFA and all established owner/staff safeguards. Never weaken security merely to make an automated test pass.
 175. `PARTIAL` · **W11** — Keep customer content private and separate from other accounts, support systems, model traces, and unrelated customer sessions.
 176. `PARTIAL` · **W11** — Make logs useful but redact passwords, authorization headers, tokens, API keys, sensitive file contents, and private data.
 177. `PARTIAL` · **W11** — Add structured crash reports, health checks, latency metrics, failure classifications, and diagnostics with privacy-respecting controls.
-178. `PASS` · **W11** — Implement a user-accessible diagnostic report that can explain connection, permission, runtime, dependency, Gateway, browser, and execution failures.
 179. `UNTESTED` · **W11** — Ensure customer data export, account deletion, device revocation, and retention processes operate consistently with published privacy commitments and applicable requirements.
 180. `PARTIAL` · **W11** — Prepare necessary non-payment legal and governance documentation, licence notices, privacy disclosures, Terms of Service, and installation guidance.
 181. `FAIL` · **W11** — Add release notes, troubleshooting documentation, support procedures, incident response, service status communication, and recovery instructions.
 182. `UNTESTED` · **W11** — Verify the commercial redistribution rights of bundled runtimes, dependencies, libraries, models, assets, and external components.
-183. `PASS` · **S** — Keep all payment, checkout, billing, merchant-of-record, and subscription integration work outside this assignment.
-184. `PASS` · **S** — Exclude code-signing certificate acquisition and certificate-signing work from this assignment. Do not compensate by bypassing OS or antivirus security protections.
 
 #### Packaging, updates, and reliability
 
@@ -1192,14 +1174,11 @@ Original preamble (1 November 2026): this owner checklist complements the 84 con
 
 194. `PARTIAL` · **W13** — Build a permanent, versioned test matrix covering every supported OS, CPU architecture, browser, DPI configuration, permission level, and installation scenario.
 195. `PARTIAL` · **W13** — Include unit, protocol, integration, database, security, accessibility, browser, desktop UI, packaging, installer, performance, and disaster-recovery tests.
-196. `PASS` · **W0** — Run existing CI suites and eliminate silently skipped essential tests. Required tests must fail the release gate when their prerequisites are unavailable.
 197. `PARTIAL` · **W4** — Preserve synthetic test fixtures and hidden independent oracles, but never reveal expected customer-task answers to the production planner.
-198. `PASS` · **W4** — Generate randomized test data, application names, filenames, layouts, input values, user instructions, and environmental conditions to detect hardcoding.
 199. `PARTIAL` · **W4** — Include real Gemini-controlled E2E tests rather than only mocked or scripted model responses.
 200. `PARTIAL` · **W13** — Test actual spreadsheet reconciliation, document creation, coding repairs, browser research, file manipulation, image operations, video operations, and general PC tasks through reusable capability interfaces.
 201. `PARTIAL` · **W4** — Select representative tasks from real customer problems; never special-case the examples in production code.
 202. `PARTIAL` · **W4** — Measure first-attempt success, recovery-assisted success, final verified success, intervention frequency, wrong-target incidents, time per task, and model calls.
-203. `PASS` · **S** — Treat the historical 15/24 clean passes as an existing evidence checkpoint, not proof of a current success rate after subsequent fixes.
 204. `PARTIAL` · **W4** — Create larger unseen evaluation sets with varying difficulty and fresh inputs. Prevent repeated retries on known fixtures from artificially raising reported success.
 205. `FAIL` · **W13** — Require at least **90% independently verified real-task success** on the agreed representative launch suite, plus explicit platform-specific reliability gates.
 206. `PARTIAL` · **S** — Require zero known critical security or safety defects, zero unauthorized actions, zero fabricated successes, and zero unresolved release-blocking failures.
@@ -1209,7 +1188,6 @@ Original preamble (1 November 2026): this owner checklist complements the 84 con
 210. `PARTIAL` · **W1** — Perform controlled crash, process-kill, network-loss, interrupted-update, permission-revocation, STOP, takeover, and retry-injection tests.
 211. `PARTIAL` · **W5** — Verify output quality independently, including edits that appear valid but contain incorrect values, missing content, damaged formatting, or altered unrelated files.
 212. `PARTIAL` · **W11** — Review security, privacy, package provenance, and failure recovery before any feature is declared launch-ready.
-213. `PASS` · **S** — Do not delete tests to improve pass rates, reduce validation standards to force a green result, or mark blocked scenarios as passed.
 
 #### Commercial launch readiness: verified 10% milestones
 
@@ -1224,7 +1202,6 @@ Original preamble (1 November 2026): this owner checklist complements the 84 con
 222. `BLOCKED` · **W11** — **80% — Security, infrastructure, and operations:** authorization, privacy, secrets isolation, resilience, observability, backup restoration, support, and operational tests verified.
 223. `BLOCKED` · **W13** — **90% — Platform and performance qualification:** all advertised OS/architecture configurations, installation and runtime compatibility, stress tests, and latency targets verified.
 224. `BLOCKED` · **W13** — **100% — Final commercial release qualification:** unseen real-task acceptance, complete regression matrix, closed-beta validation, all mandatory gates, and zero known critical release blockers verified.
-225. `PASS` · **S** — A milestone earns its full 10% only when every mandatory acceptance condition in that milestone passes with recorded evidence. Otherwise mark it PARTIAL or BLOCKED without awarding unearned percentage points.
 226. `PARTIAL` · **S** — Add granular completion tracking within milestones, but distinguish work completed from launch-gate approval. Do not manipulate weights to show artificially high readiness.
 227. `PARTIAL` · **S** — Calculate the score from actual test artifacts, current commit, verified implementation, and explicit gate criteria. Never generate the percentage using Gemini's subjective opinion.
 228. `PARTIAL` · **S** — Do not automatically start at 0%. Re-evaluate completed work and existing evidence against these milestone gates and calculate the real baseline.
@@ -1233,7 +1210,6 @@ Original preamble (1 November 2026): this owner checklist complements the 84 con
 231. `PARTIAL` · **S** — Track progress at 10% increments, and whenever useful report the exact verified percentage between those checkpoints without pretending it is a success probability.
 232. `PARTIAL` · **S** — At each 10% milestone, report the actual changes made, tests passed, defects fixed, performance impact, remaining work, and whether the next stage is safely unlocked.
 233. `PARTIAL` · **S** — If a regression invalidates previously earned readiness, reduce the score accordingly. Never maintain an inflated historic score.
-234. `PASS` · **S** — **100% readiness means all agreed launch requirements passed**, not a guarantee that software can never encounter an unexpected bug.
 
 #### Implementation workflow and reporting
 
@@ -1241,34 +1217,12 @@ Original preamble (1 November 2026): this owner checklist complements the 84 con
 236. `PARTIAL` · **W0** — Compare current code against every relevant requirement in this prompt and the existing canonical architecture ledger.
 237. `PARTIAL` · **W0** — Create or update a single authoritative implementation backlog, preserving the existing plan and eliminating duplicate issue lists where safe.
 238. `PARTIAL` · **W0** — Record each issue with severity, precise cause, affected module, required change, reproduction steps, acceptance criteria, test location, and current status.
-239. `PASS` · **S** — Immediately prioritize the most consequential verified failures: Gemini grounding, incorrect verification, unsafe edits, incomplete dependency management, and platform readiness.
-240. `PASS` · **S** — Work continuously through the backlog, fixing the root cause rather than adding superficial exceptions or test-specific patches.
-241. `PASS` · **S** — After each meaningful change, run focused tests, resolve failures, and then run the appropriate broader integration suite.
 242. `PARTIAL` · **S** — Before each substantial refactor, measure its expected benefit and preserve functionality, security controls, public interfaces, and regression coverage.
 243. `PARTIAL` · **W12** — Remove dead code, duplicate abstractions, obsolete pathways, unused packages, redundant model prompts, unnecessary background workers, and outdated customer-facing branding only after verifying safe removal.
-244. `PASS` · **S** — Do not pursue arbitrary line-count reduction. Optimize for maintainability, correctness, reliability, and measured performance.
-245. `PASS` · **S** — Preserve the no-hardcoded-apps rule throughout all changes. Generic capabilities must work against new tasks and new applications without further application-specific coding.
-246. `PASS` · **S** — Maintain strict separation between developer tests and customer-distributed runtime artifacts.
 247. `PARTIAL` · **S** — Use the free GitHub Actions environment and disposable test systems intelligently; avoid unnecessary reruns and wasted quota.
-248. `PASS` · **S** — Fix CI failures from their actual logs. Do not blindly rerun identical failing jobs or alter test expectations without evidence that those expectations are incorrect.
-249. `PASS` · **S** — Run all possible tests in cloud environments before requesting any physical-device testing.
-250. `PASS` · **S** — Commit coherent implementation changes to the authorized implementation branch with accurate commit messages and supporting tests. Do not merge, deploy, or publish release artifacts.
-251. `PASS` · **S** — Do not claim missing approvals are implementation blockers unless the work genuinely cannot proceed using authorized, safe alternatives.
-252. `PASS` · **S** — Distinguish work that requires my approval—credentials, real-device access, privileged services, destructive operations, spending, or deployment—from work you can perform independently.
-253. `PASS` · **S** — Do not request approvals unnecessarily. Continue independent coding, fixture generation, test development, analysis, and local/cloud validation wherever safe.
-254. `PASS` · **S** — When genuine owner approval is required, present the exact requested action, why it is necessary, its risks, and the remaining work that can proceed without it.
 255. `PARTIAL` · **S** — Keep a concise live engineering status with: **Current Readiness %, Fixed, Added, Removed, Tests, Speed, Failures, Blockers, Next Work**.
-256. `PASS` · **S** — Provide a full evidence report at meaningful milestones, including actual code changes, commit references, platform coverage, measured task outcomes, and unresolved limitations.
-257. `PASS` · **S** — Never say “fully complete,” “all fixed,” or “ready for public launch” while critical functionality remains blocked, unimplemented, untested, or unsafe.
-258. `PASS` · **S** — Never sacrifice security or verification to achieve higher task success percentages or faster execution times.
 259. `FAIL` · **COM** — Benchmark OCADE against relevant currently available AI assistants and computer-use tools using identical, independently scored tasks. Compare correctness, latency, recovery, customer control, security, privacy, and usability. Do not claim superiority without results.
-260. `PASS` · **S** — Focus on OCADE's competitive advantage: **reliably completing real customer work on the customer's authorized computer, faster and with independently verified results**.
-261. `PASS` · **S** — Maintain launch scope discipline. Do not add unrelated features, unnecessary architectures, speculative integrations, or complex infrastructure that does not improve release readiness.
-262. `PASS` · **S** — Do not stop after preparing a checklist, adding a few regression tests, or obtaining one green CI run. Continue implementing the remaining authorized work and re-evaluating the release gates.
-263. `PASS` · **S** — If an issue is blocked, record it accurately and continue independent tasks from the next highest-priority workstream.
 264. `PARTIAL` · **S** — Work toward full launch-readiness qualification, with every required part implemented, integrated, tested, documented, secure, maintainable, and performant.
-265. `PASS` · **S** — Your final release recommendation must be **GO or NO-GO**, supported by real test results. A NO-GO result is required whenever a mandatory safety or launch gate remains unmet.
-266. `PASS` · **S** — **Do not ask me to repeat settled decisions. Do not replace coding with planning. Do not hardcode task-specific answers. Do not fake success. Fix root causes, optimize execution, verify everything, and report genuine commercial-launch progress in 10% milestones.**
 
 **Start with the actual current repository state, fix the highest-impact existing failures, and continue implementation toward independently verified public commercial readiness.**
 
@@ -1397,157 +1351,34 @@ Status source: `scripts/jarvis-traceability.mjs` / `evidence/2026-11-01-live/arc
 
 ## Appendix C — Research references evaluated (236 ideas)
 
-Sources: `docs/research/OCADE_complete_heading_and_concept_index.md` (A = 143 source headings, B = 30 named components, C = 63 later concepts) and `docs/research/UNIVERSAL_LOCAL_CONTROL_MCP_ROUTING_REFERENCE.md` (U-sections). These are proposals, not evidence. Decisions: KEEP, IMPROVE, REPLACE, ADD, REJECT, ALREADY (already implemented, status per the mapped concept). Status of each idea equals the status of its destination concept or requirement; REJECT items have no runtime work.
-
-| IDs | Idea | Decision | Destination |
-|---|---|---|---|
-| A1, A3, A5, A40, B6, B7, B8, B9; U§9 (DaVinci native MCP) | Application-specific native bridges and creative plugins | REPLACE with generic discovered mechanisms: confirmed command-line/scripting interfaces, file formats, pinned approved external MCP servers. No app-name branches. | W3, concept 46 |
-| A2, A4, A15, A26–A29, A35–A39, A62, A65, B2, B3, B4, B14–B17; U§6, U§12 | Core engines: scoped scripts, filesystem, browser DOM, Windows UIA, macOS AX | ALREADY (fs/office, shell, web, ui_bridge workers) | W3, W6–W8, concepts 26, 27, 28, 29, 30, 41 |
-| B1 (Open Interpreter) | Local code-execution MCP | REPLACE by the existing confirmed, contained `shell.run` | W3 |
-| B5 (Peekaboo) | macOS accessibility MCP | REPLACE by the existing `mac_worker` | W7, concept 29 |
-| A6 | Office and document automation | ALREADY (office worker); deepen verification | W5 |
-| A7, B10, B11, B12 | CRM and cloud-office API connectors | REJECT for launch (OAuth connector scope); use authorised browser sessions | W8; revisit in COM |
-| B13 (TinyFish) | External web-context service | REJECT (external paid dependency, not needed) | — |
-| A8 | Speed versus universality comparison | KEEP as the native-first order | W3, concept 25 |
-| A9, A89, A101, A127, B28 | Single dispatcher; gateway over autonomous agents; five components | ALREADY | concepts 3, 4 |
-| A10 | Multi-agent swarms for context isolation | REJECT swarms; KEEP context isolation through the per-turn shortlist | concepts 6, 15 |
-| A11, A42 | Namespaced tool names | ALREADY | concept 22 |
-| A12, A90, B20 | Locks, semaphores, task IDs, idempotency | ALREADY (IDs, idempotency); IMPROVE locks | W1, W2, concepts 50–52 |
-| A13 | Sandboxing and graceful degradation | ALREADY | concepts 38, 61 |
-| A14, A68, A112, A113, A126, A130 | Architecture C and its claimed superiority | ALREADY (architecture); REJECT superiority claims until benchmarked | concepts 1, 2; requirement 259 |
-| A16–A19, A31, A78 | Discovery before acting; native translation; validation and self-healing | ALREADY (discovery, `system.inspect`); IMPROVE packaged-app discovery | W6, W7, W9, concepts 11, 12, 24 |
-| A20 | Separation of state | ALREADY | concept 7 |
-| A21 | Control without hardcoded application lists | ALREADY (guard) | concept 9 |
-| A22, A30, A32, B23; U§2, U§7 | Professional quality via domain blueprints (vector DB, local creative-director LLM) | IMPROVE: short generic domain guidance in the planner prompt and professional verifier checks; REJECT local LLM and vector DB | W4, W5, concepts 16, 75 |
-| A23, A34, A41, A43, A91, B18; U§3, U§8 | Toolbox router, semantic gatekeeper, embedding router prototype | ALREADY (TF-IDF shortlist); ADD embeddings only if measured recall <98% | W4, concepts 14, 15, 17, 23 |
-| A24, A60, A66, A82, A83, B19; U§4 | stdio “zero latency” | ALREADY (stdio workers); REJECT the zero-latency claim — model and wake time dominate | W2, concepts 42, 43 |
-| A84, A141; U§4 (dual local models) | Local model for speed or cost | REJECT (owner O3; online-only planner) | — |
-| A85, A117, B22 | Deterministic multi-action batching | IMPROVE: read batching, composite primitives and guarded step lists (read/reversible steps only, each with a local `expect` guard; adopted only if E1 shows no accuracy loss) | W4 (guarded step lists), concept 49 |
-| A86 | Background resource management | ADD measurement and limits | W2, W13, concept 78 |
-| A25, A58, A71; U§5 | “Immutable” automation IDs and hidden-window control | REJECT the claims; KEEP structural targeting with revalidation and truthful minimized/hidden handling | W6, W7, concepts 33, 35, 59 |
-| A33, A59; U§11 (infinite loop) | Zero-error self-correction, infinite optimisation | REJECT infinite retries; KEEP bounded repair | concepts 60, 77 |
-| A44, A72 | Closed-loop telemetry verification (read-back) | ALREADY | concept 74 |
-| A45, A46, A51, A52; U§10 | Plain-language explanations and overclaims | REJECT as requirements (explanatory only) | — |
-| A49, A55, A74, A102, A138, A139, A140, B30 | Lines-of-code estimates | REJECT as planning inputs (not measured) | — |
-| A50, A56 | Competitive strategy (context filtering, packaged runtime, verification) | KEEP as hypotheses to benchmark | COM, requirement 259 |
-| A48, A54 | MCP versus native APIs/UIA | KEEP: MCP is the transport; APIs/UIA do the work | concept 41 |
-| A53, A47 | Core backbone versus parts | ALREADY | concepts 41–43 |
-| A57, A61, A69, A115, A116, A136, B21, B27; U§12, U§13 | Receding-horizon actor–critic sense–act–verify loop | ALREADY (bounded loop); REJECT the sub-5 ms cycle claim | W4, concepts 5, 17, 19, 20 |
-| A63, A64, A67 | pywinauto and pyobjc stack, sample controller code | ALREADY (stack); REJECT sample code (illustrative, unsafe) | concepts 28, 29 |
-| A70, A73; U§13 | Live user interference and state pivot | IMPROVE (detect, pause, rebind, never overwrite user edits) | W6, W7, concepts 21, 58 |
-| A75, A76, A131 | UIA limitations; where the architecture loses | KEEP as documented limits and refusal cases | W6, W7 |
-| A77 | Window visibility states | ALREADY (partial) | concept 35 |
-| A79 | Maximum professional depth | IMPROVE through generic scripting/COM/object models | W5, W6 |
-| A80, B26 | Visual anchors / OpenCV last resort | ADD with confidence threshold and post-action check | W5, concept 36 |
-| A81 | Real latency benchmarks | ADD (§18 targets) | W2, concept 78 |
-| A87, A88, A92, A132, A133, A134 | MCP lifecycle, minimal toolbox, instability handling | ALREADY; IMPROVE health/versioning | W9, concepts 39–45 |
-| A93, A94, A95 | Outcome-driven supervision with milestones | IMPROVE (milestones in durable task state) | W4, concept 18 |
-| A96 | Failed action versus lost confirmation | IMPROVE (unknown-effect resolution) | W1, concept 55 |
-| A97 | Professional deliverable verification | IMPROVE | W5, concept 75 |
-| A98 | Safeguards for self-healing | ALREADY | concepts 60, 62 |
-| A99, A100 | Repeated “backend rebuild” labels | REJECT (duplicate labels) | — |
-| A103 | Build versus buy | KEEP (reuse SDKs, Playwright, pywinauto, pyobjc) | — |
-| A104 | Front-end/back-end contract | ALREADY (one generated protocol) | concept 44 |
-| A105 | Simplification and objective metrics | KEEP | W2, W12 |
-| A106, A107, B24 | Runtime sandboxing, ACLs, AppContainer, Job Objects | IMPROVE (Job Objects already used for shell; evaluate least-privilege options) | W11, concept 62 |
-| A108 | STOP, pause, resume | ALREADY | concept 57 |
-| A109 | Absolute window and target context | ALREADY (partial) | concept 33 |
-| A110, A111, A129 | Launch test-suite design | KEEP | W13 |
-| A114 | Retractions of earlier overclaims | KEEP | — |
-| A118–A125, B29 | Seven production scenarios (video, photo, chess/canvas, finance, CAD, cross-app, interruptions) | KEEP as qualification categories | W13 §19 |
-| A128, A142 | Maintenance efficiency, code reduction | KEEP | W12, concept 81 |
-| A135, A137 | Fallback hierarchy, resilient fault handling | IMPROVE (runtime mechanism fallback) | W3, concepts 37, 56, 77 |
-| A143 | Unfinished final heading | REJECT (no content) | — |
-| B25 | Browser profile, OAuth, MFA surfaces | KEEP limits: no secret extraction, person completes challenges | W8, concepts 31, 63 |
-| C1–C10 | Minimal outcome-first UI (centred prompt, collapse on send, one status line, hidden internals, expandable activity, small history, final files, monochrome, small STOP) | KEEP | W10, concept 72 |
-| C11 | Task-adaptive deliverables | KEEP | W5, W10, concept 71 |
-| C12 | Reversible defaults instead of repeated confirmations | IMPROVE (A8) | W4 |
-| C13, C15 | One installer; same-account device discovery and pairing | IMPROVE without granting control by login alone | W9, W10 |
-| C14 | Signed device agent | ALREADY (request signatures); binary signing is COM | concept 65 |
-| C16 | Persistent capability scopes | IMPROVE (purpose and expiry) | W11, concept 67 |
-| C17 | Official Windows elevation only | KEEP | W9 |
-| C18, C23 | Protected payment/secret boundaries; explicit-recipient sends | ALREADY (external-effect confirmation) | W1 |
-| C19 | Google-first product sign-in | KEEP (existing sign-in surface) | W10 |
-| C20, C21, C22 | Existing browser session, reauthentication, MFA/CAPTCHA by the person | KEEP limits | W8 |
-| C24 | Recoverable deletion to Recycle Bin/Trash | ADD | W3 (typed `trash`) |
-| C25 | Secrets vault and token isolation | ALREADY | concept 64 |
-| C26, C46 | Full Windows app catalog incl. packaged apps | IMPROVE | W6, concept 12 |
-| C27, C41 | No hardcoded journeys; capability-first choice | ALREADY | concepts 9, 10 |
-| C28, C48 | Exact PID/HWND/document binding; wrong-window lessons | ALREADY (leases) | concept 33 |
-| C29 | Resize, DPI, multi-monitor | IMPROVE | W6, W7, concept 34 |
-| C30 | Truthful minimized/hidden handling | ALREADY (partial) | concept 35 |
-| C31 | Take-over and conflict handling | IMPROVE | W6, W7, concept 58 |
-| C32 | Native-first order | ALREADY (partial) | concept 25 |
-| C33 | Browser DOM and authorised network calls | ALREADY | concept 30 |
-| C34 | Bounded workspace with provenance | ALREADY | concepts 38, 69 |
-| C35 | Resource-aware scheduler | IMPROVE later (one task per device today) | W2, concept 51 |
-| C36, C37, C38 | Journal, checkpoints, local STOP | ALREADY | concepts 53, 56, 57 |
-| C39 | Bounded receding-horizon planner | ALREADY | concept 19 |
-| C40 | Independent professional verifier | IMPROVE | W5, concept 75 |
-| C42 | Untrusted MCP provenance restrictions | ALREADY (pinning) | concept 46 |
-| C43 | Policy-bound self-install of approved components | ADD | W9 |
-| C44 | No forced local model fallback | ALREADY | standing |
-| C45, C47 | Pairing/runtime checks; correct OS command context | ALREADY (`diagnose`, `system.inspect`) | W9 |
-| C49, C50 | Historical QA results; retired engine | KEEP as history | — |
-| C51, C52, C56, C58, C59, C62 | Evidence classes, cloud-first, no fake deliverables, code ≠ verified, owner GitHub policy, gradual coverage | KEEP as standing rules | S |
-| C53, C54 | Representative benchmark; 90% target with 95%+ ambition | KEEP | W4, W13, R5 |
-| C55 | Zero known critical safety defects | KEEP | R10, concept 84 |
-| C57 | Proof-driven debloating | KEEP | W12 |
-| C60 | MCP invisible to customers | ALREADY | concept 73 |
-| C61 | First vertical slice through the product surface | ALREADY (partial: staging slice to first device step) | W10 |
-| C63 | User effort as a formal metric | ADD | W4, concept 83 |
+All 236 ideas have a disposition (decided, with destination). The full table is archived verbatim in [archive Appendix C](docs/archive/plan-v6-2026-11-07.md); the sources remain `docs/research/OCADE_complete_heading_and_concept_index.md` and `docs/research/UNIVERSAL_LOCAL_CONTROL_MCP_ROUTING_REFERENCE.md`.
 
 ## Appendix D — Defect register (single live list)
+
+**Active view:** open, partial, mitigated, code-fixed (not yet verified on the stated platform) and candidate defects. Fixed defects (D1, D2, D3, D5, D6, D7, D12, D13, D14, D17, D18, D20, D21, D27, D30, D31, D32, D33, D34, D35, D36, D37, D38, D39, D40, D41) and the closed-defect history are archived verbatim in [archive Appendix D](docs/archive/plan-v6-2026-11-07.md); their regression tests stay in the required suites. D22 and D24 stay here: fixed on the hosted runners, not yet on consumer machines.
 
 Severity: CRITICAL = unauthorised action, data loss, secret exposure or wrong-target mutation; HIGH = release-blocking correctness, safety or product failure; MEDIUM; LOW. Sources: run logs and `evidence/2026-11-01-audit/codex-continuation.md`. Record hypothesis → result here so no defect is investigated twice.
 
 | ID | Severity | Defect | Evidence | Status | Package |
 |---|---|---|---|---|---|
-| D1 | HIGH | Branch head red: planner safety, media nested-source containment, gateway result boundary, actor bound-host prevention, rendered-verifier/URL transport, formatting and DB revocation steps fail | [run 70](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41434622666), `f04228d` | FIXED again: run 99 at candidate `2d98e0d` is fully green; exact native exit codes and bounded hung-window probing repair both run 96 failures. See `evidence/2026-11-04-cloud-recovery/run-99.json`. Previous closure: full matrix green in [run 78](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41547638177) (`5796bb8`) | W0 |
-| D2 | HIGH | Anonymous web verification: hidden page content passes; private/off-origin observations accepted; same URL fetched 13 times | run 68 (`82098c2`), seven-method negative suite | FIXED in `b86002c` ([run 74](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41534326454) step 19, 7/7): one script-free render per URL, same-origin GET only, checked hops, budgets, painted-text rules | W1 |
-| D3 | HIGH | Dispatch after browser permission was revoked while the claim was held | run 69 (`61b29b1`) | FIXED by migration `20261102214455_fence_revoked_claims_and_receipt_locks.sql` ([run 74](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41534326454) DB job: held-claim revocation and claim/STOP lock-order cases pass) | W1 |
 | D4 | HIGH (risk) | SSRF, DNS-rebinding and redirect-hop enforcement for verifier fetch and actor browser | Playwright routes never see redirect hops (verified experimentally) | MITIGATED (`b86002c`, `2e9ba47`; green in [run 78](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41547638177)): hop-by-hop navigation checks and request-time re-resolution. Residual (Node's own resolution inside one fetch; a confirmed form POST redirect) moves to the W11 security review | W1, W11 |
-| D5 | HIGH | Unknown effects only fence the task; no resolution flow for the person | concept 55; run 57/58 | FIXED: person-resolution flow (`3938351`), green in [run 78](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41547638177) | W1 |
-| D6 | HIGH | Outcome checks are compiled before anything is observed and are not bound to the request; the model then bends files to match its own guess (3 of 9 eval failures); no guard against edits to unrelated or input files | seeds 11–14 READMEs; requirement 68 | FIXED (`faa52d6`, green in [run 78](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41547638177)): checks fixed after a first look; bound to request/listing/output; gaming guard with randomised regression. Residual closed (`742df24`): changing a check-read file also needs the request to ask for a change, not merely name it | W1 |
-| D7 | MEDIUM | Original-file compare-and-replace and directory-identity concurrency window | codex-continuation (run 53 scope note) | FIXED (`2392efa`, race fixture `11d1939`), green on Linux, Windows and macOS in [run 78](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41547638177) | W1 |
 | D8 | HIGH | Device pickup backs off to 30 s; ~34% of live task time unaccounted | `agent.py` claim loop; eval timing | PARTIAL: pickup fixed (Realtime nudge; idle p95 502 ms synthetic, 0.5–0.8 s live; [run 82](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41797737703)). Unaccounted time live 35%: server database round trips (~210 ms each from this container; key lookups cut 12→1). Remaining: measure in the production topology (A1(b)); fold the replay check into claim/receipt if still above 10% | W2 |
 | D9 | HIGH | First-attempt real-task success 75% (< 90%): invented facts, dense-table row choice (r1c), checks bent to guesses | `evidence/2026-11-01-eval-s11` … `s14` | PARTIAL: invented facts guarded (W1), checks fixed after a first look (W1), dense tables read as rows (`a403bca`); eval s21 9/11 + 1/2 web (harness and two product fixes found); Full E1 at `00cbd9e`: strict 27/48 after completed-task audit, gaming 0. D25/D26 and Office-reader repairs are in qualification; no >=90% claim (`evidence/2026-11-05-e1/`) | W4 |
 | D10 | HIGH | Planner “busy” after ~30–60 calls on the shared free project | `evidence/2026-11-01-eval-s14/README.md` | MITIGATED (`0aa8c3b`): a busy wait records the provider's retry time and the device's next request resumes the task by itself; other waits are never auto-resumed. Daily free quota itself is unchanged (owner decision for paid capacity) | W4 (pacing) |
 | D11 | MEDIUM | Windows web ladder `KeyError 'page'` after a browser/context closed | run 37, `4267c43` | OPEN: original primary `TargetClosedError` recovered; stale-context reproduction fails on Linux in run 106. Fresh-open recovery candidate is in qualification; original browser termination remains unexplained (`evidence/2026-11-04-browser-lifecycle/`) | W8 |
-| D12 | MEDIUM | CRLF script executable flag fix not verified live | eval s11 `crlf_script` | FIXED: passes first attempt live (eval s21, `6e7c8cc`) with typed `fs.manage` | W3 |
-| D13 | MEDIUM | Windows browser-profile owner can remain alive after worker shutdown | runs 63, 77 and 102 | FIXED (ownership edges require the parent to be older than the child, `parent_edges`, `OwnershipGraph` test); Windows 2022, 2025 and the installer lifecycle green in [run 247](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/42391671060). Earlier: run 123 metadata identified PID reuse: a newer console helper PID was mistaken for an older system tree's parent, causing a wait on svchost.exe. Timestamp-bound graph edges and native handle-identity repair are in qualification; stale-parent and snapshot-reuse regressions fail first in run 126. The separate retained-handle leak is repaired. Older failures without identity data remain unverified; no timeout increase or ignored failure (`evidence/2026-11-04-browser-lifecycle/`) | W9 |
-| D14 | LOW | Ledger regeneration restores five retracted PASSs; concept 29 incorrectly BLOCKED | Run 70 traceability regression; [run 45](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41331983365) | FIXED (`e4af84b`, [run 74](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41534326454)): script, ledger and Appendix B agree (41 PASS) | W0 |
 | D15 | LOW | Stale Dependabot PRs target deleted `/jarvis-runtime` | open PRs #88, #90 | OPEN (needs A3) | W12 |
 | D16 | HIGH (risk) | macOS window previews need Screen Recording permission on consumer Macs; CI runner is pre-authorised, so this path is unverified | `mac_worker.py` preview; Apple privacy model | PARTIAL: Screen Recording and Accessibility are detected before use; without Screen Recording controls still work, the picture and image-grounded clicks are refused with a named reason, and diagnose says where to grant it (`7309946`). Consumer Macs still UNTESTED (RPC) | W7 |
-| D17 | HIGH | No typed copy/move/rename/mkdir/trash/set-attributes operations; file management and the executable bit go through confirmed `shell.run` (4 of 9 eval failures) | `src/lib/jarvis/contracts.ts` (35 operations); `crlf_script` in s11–s14 | FIXED: `fs.manage` copy/move/mkdir/trash/set_attributes ([run 85](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41806336402), three OSes) | W3 |
-| D18 | HIGH | `shell.run` capped at 600 s and no tracked long-running job: long renders, exports and installs cannot complete or resume | `contracts.ts` `timeoutSeconds` max 600 | FIXED: `job.start/status/cancel` up to 6 h, deadline/cancel/STOP end the tree; macOS/Linux jobs survive an agent restart, Windows jobs read `lost` after one ([run 85](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41806336402)) | W3 |
 | D19 | MEDIUM | Documents and workbooks cannot be edited in place; presentations and image editing unsupported; video has no open editable timeline; 3D has no open interchange export | `contracts.ts`; `office_worker.py`, `media_worker.py`, `scene_gl.py` | PARTIAL: in-place .docx/.xlsx/.pptx edits, new decks, `image.edit`, OTIO timeline beside every film (`d80ad29`…`9fcdac0`); 3D interchange (glTF) still open | W5 |
-| D20 | LOW | Windows shell is PowerShell only; macOS uses `sh` only | `command_worker.py` | FIXED: powershell/cmd or sh/bash/zsh ([run 85](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41806336402)) | W3 |
-| D21 | LOW | Migrations after `20261030` have no rollback file | `supabase/rollback/` | FIXED: rollbacks for all 12 migrations after 20261030, each proven to restore the exact shape before its migration (function bodies, columns, triggers) and re-apply cleanly (`tests/jarvis/db/rollback-roundtrip.sh`, in `test:jarvis-db`) | W11 |
 | D22 | CRITICAL | Local STOP arriving during a network claim does not fence the returned action | run 41900561913, real warm filesystem MCP worker | FIXED on the hosted runners: the warm-worker STOP regression (`test_agent_recovery`, `OCADE_LOCAL_STOP_CLAIM` with no dispatch) is green on Ubuntu, Windows 2022 and 2025, macOS 15 and macOS 15 Intel in [run 247](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/42391671060); a consumer-computer run remains qualification (`evidence/2026-11-05-local-stop/`) | W1 |
 | D23 | MEDIUM | Socket TimeoutError escapes the claim polling retry loop | run 41900561913, real signed Device client and agent loop | CODE FIXED (transport normalization and resumed-claim budget, `23efef02`); live busy-family retest is qualification (`evidence/2026-11-05-local-stop/`) | W2 |
 | D24 | MEDIUM | macOS frozen Intel startup fails; tee masks the failed checker exit | run 41905297847, job 126838385018 | FIXED on the hosted runner: on macos-15-intel the bundle builds and every frozen worker and the bundled browser start in [package run 26](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/42394586673). Earlier: the bundle built, but no Intel worker initialized. Pipefail repaired at c9ba4442; bounded startup stderr is in qualification. ARM64 actually passes all six frozen workers and its packaged-browser fixture. Intel is not qualified (`evidence/2026-11-05-macos-bundle/`) | W7 |
 
 | D25 | HIGH | script_runnable accepts an escaped or missing interpreter; completed program repairs can still fail | full E1 seeds 22/23 config_repair | CODE FIXED (`fdc5b21`, C1): the verifier checks the real interpreter line and full-file budget and never runs a file-supplied shell; repaired programs are re-run with the confirmed command (`command_succeeds`, `5f6db4d`); the live E1 re-run is qualification | W5 |
 | D26 | MEDIUM | E1 serves fake ZIP bytes, misses checked-transport CA and probes service after STOP teardown | full E1 release_pick and port_conflict; raw reports retained | CODE FIXED (`fdc5b21`, C1): real CRC-valid ZIP archives and the fixture CA in `release_pick`, and the hidden oracle runs before STOP through a checkpoint; the full E1 re-run is qualification (`evidence/2026-11-05-e1/`) | W4 |
-| D27 | CRITICAL | Evaluation oracle and port-conflict fixture inherit the root server environment after dropping privileges | actual root-to-user synthetic credential canary, run 41915577409 | FIXED: positive environment filter published at 40f9ea66; protected staging admin authentication and actual UID/canary smoke pass run 41972053886 at c6858ce9. Owner reports staging credential replacement; revocation is not independently verified and GitHub metadata is unchanged (`evidence/2026-11-05-oracle-isolation/`) | W11 |
 
 | D28 | HIGH | Intel scene rendering publishes a flat image while scene/hash/size checks report success | published aaf3bad3, run 41970810529, Intel job 127061543475 | MITIGATED (`fdc5b21`, C1): a failed WebGL draw or readback and a uniform saved image are refused, so no false success is reported; a correct render on Intel Macs needs that hardware (qualification, `evidence/2026-11-05-intel-render/`) | W5 |
 | D29 | MEDIUM | Intel browser popup classification intermittently omits the off-site closure | unpublished diagnostic run 41971524885, job 127064311487, WEB-009 | CANDIDATE-ONLY; not published-branch proof: empty popups instead of closed_off_site; fixed collector window is a hypothesis, not a confirmed cause. Network binding remains separately tested; no bypass inferred (`evidence/2026-11-05-intel-render/`) | W8 |
-| D30 | HIGH | `workbook_cell_equals` trusted a formula's saved (forgeable) result | forged-cache fixture, `test_a_single_cell_formula_is_recalculated_never_read_from_its_saved_result` | FIXED (`8b5c7c0`): formulas recalculated by a real engine on a private copy | W5 |
-| D31 | HIGH | Third-party MCP output skipped credential redaction | `test_an_untrusted_tool_cannot_leak_a_credential_or_claim_a_status` fails without the fix | FIXED (`8e83352`) | W11 |
-| D32 | HIGH | GPL-3.0 modules (`pymsgbox`, `mouseinfo`) would ship in the commercial installer through pyautogui | `npm run licences:check` | FIXED (`29214d9`): excluded by the spec, which fails the build if they return | W9 |
-| D33 | MEDIUM | Deleting an account could be blocked (`granted_by` RESTRICT) or erase customer cases (`assignee` CASCADE) | `account-deletion.test.sql` fails before the migration | FIXED (`1811137`, migration `20261107083209`) | W11 |
-| D34 | MEDIUM | A site's alert, confirm or prompt was dismissed silently, so the planner never knew it was asked | WEB-017 | FIXED (`c1429b4`): reported as `dialogsDismissed`, never answered yes | W8 |
-| D35 | LOW | Manual CI jobs: TypeScript safety tests ran before their Python runtime; a stale Windows test fake; a hash-collision flake in verifier test ids | run 42340269547 | FIXED (`ca7462f`) | W0 |
-| D36 | MEDIUM | Staff device removal predated the task authority: tasks were marked stopped without a finish time or the person being told, the controller kept, the older second-factor check used, and an admin could remove an owner's computer; the console had no screen for it | `staff-authority.test.sql` fails before the migration | FIXED (migration `20261107094238`, with rollback) | W11 |
-| D37 | HIGH | macOS desktop actions failed outright: the native change observer passed a plain Python function to `AXObserverCreate`, which PyObjC 13 refuses ("Callable argument is not a PyObjC closure"), so `ui.invoke` and `ui.set_value` raised on every Mac | macOS package run 42376668715, MAC-005 | FIXED (callback built with `objc.callbackFor`; `AxEventContract` fails before the fix); the native AX ladder is green on macos-15 and macos-15-intel ([run 25 of the package workflow](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/42391673475)) | W7 |
-| D38 | LOW | Firefox restored the JARVIS composer's text on reload, bringing back a request already handed over or sent | `objective_handoff.py` 4/4 failing in Firefox | FIXED (`404b6ef`, `autocomplete="off"`) | W10 |
-| D39 | LOW | Every page logged a CSP violation in Firefox: zod probed for eval when building each schema | three-engine surface audit, run 242 | FIXED (`404b6ef`, zod jitless before any schema; green in run 245) | W10 |
-| D40 | MEDIUM | The macOS bundle could not be assembled: PyInstaller rewrote and re-signed Chromium's executables one by one, which codesign refuses inside the browser's own .app | macOS package run 42387462652 | FIXED (`4abc340`, `c21c20b`): Chromium is copied untouched with its links; on both Macs the bundle builds twice to identical files and its frozen workers and bundled browser start ([package run 26](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/42394586673)) | W7, W9 |
-| D41 | HIGH | The macOS verifier re-run, reported as filesystem-contained, could write anywhere in the system temporary folders, including the person's own temporary files | `test_a_rerun_is_contained_by_the_strongest_available_isolation` on macos-15, run 42387460272 | FIXED: writes only in the re-run's own scratch folder (copy plus a private TMPDIR); containment test green on macos-15 and macos-15-intel in [run 247](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/42391671060) | W5, W11 |
 
-Closed recently (kept for history): approval arguments clipped at 4000 characters (fixed `43c50ed`, run 64); opaque native/page interactions mislabelled reversible (fixed `43c50ed`); unknown-write replay after resume (fenced `83f3142`, run 58); competing-file overwrite on publication (fixed `897675b`, run 49); installed companion started no worker (fixed `947ceee`); minimized macOS window reported as closed (fixed `a7cf182`).
 
 ## Appendix E — Coding ledger (updated once per coding batch)
 
