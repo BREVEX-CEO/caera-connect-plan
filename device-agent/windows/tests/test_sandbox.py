@@ -28,6 +28,14 @@ class SandboxTest(unittest.TestCase):
             with self.subTest(path=path):
                 self.refuses(path)
 
+    def test_unicode_and_long_names_are_ordinary_paths(self):
+        """Names people really use (128): accents, CJK, emoji, right-to-left text and long names."""
+        for name in ("Résumé – final.docx", "報告書 2026.xlsx", "budget 💶.txt", "تقرير.txt", "x" * 200 + ".txt"):
+            with self.subTest(name=name[:20]):
+                target = output_path(self.root, f"OCADE output/{name}")
+                write_atomically(target, lambda tmp: tmp.write_text(name, encoding="utf-8"))
+                self.assertEqual(resolve(self.root, f"OCADE output/{name}").read_text(encoding="utf-8"), name)
+
     def test_symlink_or_junction_escape_is_refused(self):
         os.symlink(self.outside, self.root / "link")
         self.refuses("link/secret.txt")

@@ -500,10 +500,72 @@ def extract_across_formats(ws: Path, rng: random.Random):
             [], oracle)
 
 
+def resize_photo(ws: Path, rng: random.Random):
+    """Images: a resized copy with the same picture, the original untouched (media operations)."""
+    from PIL import Image, ImageDraw
+
+    width, height = rng.choice([(1600, 1000), (1200, 900), (2000, 1250)])
+    wanted = (width // rng.choice([4, 5]), None)
+    wanted = (wanted[0], round(height * wanted[0] / width))
+    photo = ws / f"{word(rng)}_photo.png"
+    image = Image.new("RGB", (width, height), (rng.randrange(256), 90, 160))
+    ImageDraw.Draw(image).ellipse((width // 4, height // 4, width // 2, height // 2), fill=(250, 220, 40))
+    image.save(photo)
+    original = hashlib.sha256(photo.read_bytes()).hexdigest()
+
+    def oracle(ws: Path):
+        if hashlib.sha256(photo.read_bytes()).hexdigest() != original:
+            return False, "the original photo was changed"
+        for path in ws.rglob("*"):
+            if path.is_file() and path != photo and path.suffix.lower() in (".png", ".jpg", ".jpeg"):
+                with Image.open(path) as made:
+                    small = made.convert("RGB")
+                if small.size != wanted:
+                    continue
+                reference = Image.open(photo).convert("RGB").resize(wanted)
+                difference = sum(abs(a - b) for a, b in zip(small.tobytes(), reference.tobytes())) / len(reference.tobytes())
+                return difference < 12, f"{path.name}: mean difference {difference:.1f} from the resized original"
+        return False, f"no {wanted[0]}x{wanted[1]} copy of the photo"
+
+    return (f"Make a copy of {photo.name} that is {wanted[0]} pixels wide, keeping its proportions. Keep the original.",
+            [], oracle)
+
+
+def trim_clip(ws: Path, rng: random.Random):
+    """Video: the first seconds of a clip as a new playable file (media operations)."""
+    import shutil
+    import subprocess
+
+    ffmpeg, probe = shutil.which("ffmpeg"), shutil.which("ffprobe")
+    seconds = rng.choice([2, 3, 4])
+    clip = ws / f"{word(rng)}_clip.mp4"
+    if ffmpeg:
+        subprocess.run([ffmpeg, "-v", "error", "-f", "lavfi", "-i", "testsrc=size=320x240:rate=25", "-f", "lavfi",
+                        "-i", "sine=frequency=440", "-t", "8", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-c:a", "aac",
+                        "-shortest", str(clip)], check=True, timeout=120)
+
+    def oracle(ws: Path):
+        if not probe:
+            return False, "no ffprobe to measure the result"
+        for path in ws.rglob("*.mp4"):
+            if path == clip:
+                continue
+            run = subprocess.run([probe, "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", str(path)],
+                                 capture_output=True, text=True, timeout=60)
+            try:
+                duration = float(run.stdout.strip())
+            except ValueError:
+                continue
+            return abs(duration - seconds) <= 0.3, f"{path.name}: {duration:.2f}s, wanted {seconds}s"
+        return False, "no trimmed clip"
+
+    return (f"Make a new video with just the first {seconds} seconds of {clip.name}.", [], oracle)
+
+
 GENERATORS = {f.__name__: f for f in (config_repair, crlf_script, dedupe_contacts, totals_workbook, log_cause,
                                       yaml_to_json, failing_test, biggest_files, port_conflict, markdown_doc, web_fact,
                                       release_pick, organise_by_type, editable_totals, report_headings,
-                                      extract_across_formats)}
+                                      extract_across_formats, resize_photo, trim_clip)}
 
 
 def gaming(live: dict) -> list[str]:

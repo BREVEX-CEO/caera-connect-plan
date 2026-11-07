@@ -1589,7 +1589,7 @@ Coding status is kept separate from runtime verification (Appendix A), so nothin
 | 55 | CODE | BUILDS | C6: visible tables are read as caption, headers and rows of cells with each row's link, hidden rows excluded (`_TABLES`; table case in `test_web.py`) |
 | 56 | CODE | NOT CODED | C3/C10 |
 | 57 | CODE | NOT CODED | C3/C10 |
-| 58 | CODE | NOT CODED | C6 |
+| 58 | CODE | BUILDS | C6: a point is a fraction of the leased window, turned into pixels from its live rectangle under per-monitor DPI awareness v2; the click is refused when the window moved, resized, lost the foreground, lies off every monitor (negative origins included) or is obscured, and the target is re-matched in a fresh capture first (`ui_click_point`, `_window_point`, `_check_point`); macOS uses live window bounds (`mac_worker._leased`). Real DPI and monitor setups are qualification (127) |
 | 59 | CODE | BUILDS | C6 audit: every `ui.*` mutation on Windows and macOS re-proves the lease (handle, pid, exe, start time) and refuses gone, minimized, elevated (UIPI) or unresponsive windows (`windows_worker._leased`, `mac_worker._leased`); Windows/macOS runner proof at qualification |
 | 60 | CODE | NOT CODED | C3/C10 |
 | 61 | CODE | BUILDS | Visual grounding, `19d21104` |
@@ -1642,27 +1642,27 @@ Coding status is kept separate from runtime verification (Appendix A), so nothin
 | 118 | CODE | BUILDS | C4, `e2f7053e` |
 | 119 | CODE | NOT CODED | C4 |
 | 120 | CODE | BUILDS | C4: builds install only the hashed locks (`--require-hashes`), the no-hardcoded guard refuses developer paths in production code (`npm run jarvis:no-hardcoded`), dependency installs use pinned public sources with digests, and the frozen check runs with an empty developer PATH |
-| 121 | QUALIFICATION-ONLY | QUALIFICATION-ONLY; harness NOT CODED | RPC; harness audit in C10, owner-directed run deferred |
-| 122 | CODE | NOT CODED | C6 |
-| 123 | CODE | NOT CODED | C6 |
-| 124 | CODE | NOT CODED | C6 |
-| 125 | CODE | NOT CODED | C6 |
-| 126 | CODE | NOT CODED | C6 |
-| 127 | CODE | NOT CODED | C6 |
-| 128 | CODE | NOT CODED | C6 |
-| 129 | CODE | NOT CODED | C6 |
-| 130 | CODE | NOT CODED | C6 |
+| 121 | QUALIFICATION-ONLY | QUALIFICATION-ONLY; harness BUILDS | Harness: `packaging/test_install.ps1` and `check_frozen.py` on the clean Windows 10 and 11 machines; owner-directed run deferred |
+| 122 | CODE | BUILDS | C6: `packaging/test_install.ps1` installs, runs the installed companion's diagnosis, repairs by reinstalling, uninstalls and checks the person's folder survives; `check_frozen.py` starts every worker and the bundled browser; pairing, task, restart and upgrade paths are covered by `test_agent.py` and the update tests (186–189) |
+| 123 | CODE | BUILDS | C6: `check_frozen.py` proves the frozen package's DLLs, Python modules, bundled Chromium, workers and notices by starting them with an empty developer PATH |
+| 124 | CODE | BUILDS | C6: the frozen check runs with no developer PATH, the installer carries its own runtime and browser, commands default to Windows PowerShell 5.1 or cmd that ship with Windows, and the no-hardcoded guard refuses developer paths |
+| 125 | CODE | BUILDS | C6: Windows control is UI Automation first, Win32 and COM through pywinauto and pywin32 with balanced COM initialisation (`test_effect_receipts.py`, `test_windows_ui.py` in the Windows job); real installed applications are qualification |
+| 126 | CODE | BUILDS | C6: input only to the exact leased window while it holds the foreground, after the person's own input has been quiet; minimized, closed, elevated (UIPI) and secure-desktop targets are refused, and inaccessible controls report `pattern_unsupported` (`windows_worker`) |
+| 127 | QUALIFICATION-ONLY | QUALIFICATION-ONLY; harness BUILDS | Reclassified: testing real DPI, zoom, monitors and refresh rates needs that hardware; the code that must hold there is 58, and the Windows UI ladder (`test_windows_ui.py`) is the harness |
+| 128 | QUALIFICATION-ONLY | QUALIFICATION-ONLY; harness BUILDS | Reclassified: standard accounts, UAC, controlled-folder access, antivirus and OneDrive need those environments; elevation and permission refusals are coded (126, 110), Unicode and long names are tested (`test_sandbox.py`) |
+| 129 | QUALIFICATION-ONLY | QUALIFICATION-ONLY; harness BUILDS | Reclassified: sleep, wake, lock, sign-out and network loss need a real computer; reconnection, outage and unknown-effect handling are coded (193, `outage.test.ts`, `test_agent_recovery.py`) and the stability harness runs the long session |
+| 130 | CODE | BUILDS | C6: STOP and timeouts end the whole process tree (`test_shell.py`: timeout and STOP end the tree; jobs cancelled by creation identity, `test_jobs.py`); a step in flight is reported unknown, never failed (`authority.test.sql`) |
 | 131 | CODE | BUILDS | C6, `5fdfcb11` |
-| 132 | CODE | NOT CODED | C6 |
-| 133 | QUALIFICATION-ONLY | QUALIFICATION-ONLY; harness NOT CODED | RPC; harness audit in C10, owner-directed run deferred |
+| 132 | CODE | BUILDS | C7: Accessibility and Screen Recording are checked before use; without them control is refused or the preview is withheld with a named reason, `diagnose` says exactly where to grant them, and revoking them takes effect on the next call (`mac_worker`, `agent.diagnose`); a real Mac is qualification |
+| 133 | QUALIFICATION-ONLY | QUALIFICATION-ONLY; harness BUILDS | Harness: the macOS package workflow and `check_frozen.py` on Intel and Apple Silicon; owner-directed run deferred |
 | 134 | CODE | NOT CODED | C6 |
 | 135 | CODE | NOT CODED | C6 |
 | 138 | STANDING | STANDING | Reclassified: a rule on what may be claimed (no OS support before representative hardware passes); checked at every gate |
-| 139 | CODE | NOT CODED | C6 |
-| 140 | CODE | NOT CODED | C6: exact origin and tab binding `abcfc88`; every connection pinned to a checked address `4436082` (D4); authenticated-session proof remains |
-| 142 | CODE | NOT CODED | C6 |
-| 143 | CODE | NOT CODED | C6 |
-| 144 | CODE | NOT CODED | C6 |
+| 139 | CODE | BUILDS | C8: installed browsers and their profiles are discovered, never assumed (`discovery.browsers`, `_profiles`; `test_fs_ops.py` BrowserDiscovery); JARVIS acts in its own bundled browser profile |
+| 140 | CODE | BUILDS | C8: actions run only in OCADE's own browser profile, the exact page id, its bound origin and an observation-scoped target (`_bound`, `_one`); every connection is pinned to a checked address (`4436082`); the person signs in there themselves, so no other browser session is ever used |
+| 142 | CODE | BUILDS | C8: observations report navigation and redirects (exact addresses), popups, downloads, file pickers (`filePicker`), permission prompts waiting (`permissionPrompts`), sign-in pages (`needsSignIn`) and dynamic content after settling (`test_web.py`) |
+| 143 | CODE | BUILDS | C8: OCADE never answers a site's permission prompt, never solves a CAPTCHA or enters a second factor for the person, stays on the bound site, and needs the person's confirmation of the exact effect for anything external (`web_worker`, `confirmation.test.ts`) |
+| 144 | CODE | BUILDS | C8: unknown apps are operated through the generic UI Automation and Accessibility operations and reviewed MCP servers; no app-specific dispatch exists (`contracts.test.ts`: the supervisor has no task-specific whitelist) |
 | 146 | CODE | NOT CODED | C8: Owner/Staff Console now has the emergency pause (System → Emergency pause: `readServiceControls`/`setServiceControl` → `ocade_set_service_control`, permission `execution.manage`); staff device removal has a database function but no console screen; the full per-surface audit remains |
 | 147 | CODE | NOT CODED | C8 |
 | 148 | CODE | NOT CODED | C8 |
@@ -1697,27 +1697,27 @@ Coding status is kept separate from runtime verification (Appendix A), so nothin
 | 182 | CODE | BUILDS | C9: `npm run licences:check` (local and push gates) verifies every shipped Python package (hashed lock) and production npm package against an allowed-licence list in `release/third-party-licences.json`; GPL-3.0 `pymsgbox`/`mouseinfo` (optional imports of pyautogui) are excluded from the installer and the spec fails the build if they are pulled in; the offline model's licence is an open owner item the check prints |
 | 185 | CODE | NOT CODED | C5: every Python package the companion ships and its build tool are now pinned with hashes (`requirements.lock`, `packaging/build.lock`, universal for Windows, macOS and Linux) and installed with `--require-hashes` by `build.ps1`, the macOS package workflow and CI; byte-reproducibility and ARM64 artifacts remain |
 | 186 | CODE | BUILDS | C5, `543eeb1a` |
-| 187 | CODE | NOT CODED | C5 |
+| 187 | CODE | BUILDS | C5: clean install, repair and uninstall keeping the person's files (`test_install.ps1`), upgrade and rollback of signed releases (`activate-update`, `rollback-update`, 186–189), restart resumes from the journal (`test_agent.py`) |
 | 188 | CODE | BUILDS | C5, `543eeb1a` |
 | 189 | CODE | BUILDS | C5, `543eeb1a` |
-| 190 | CODE | NOT CODED | C5 |
+| 190 | QUALIFICATION-ONLY | QUALIFICATION-ONLY; harness BUILDS | Reclassified: clean VMs and physical machines are qualification environments; the harness is `test_install.ps1` and `check_frozen.py` |
 | 191 | CODE | BUILDS | C10: `tests/stability.py` runs the real gateway and workers through repeated write, read, list, workbook and verify cycles, samples the process tree each cycle, and fails on memory, open-file or thread growth, a call past its bound (pipe hang), workers outliving the gateway, or runaway disk use; a 12-cycle run is in every gate (`test_stability.py`); the long run on target computers is qualification |
 | 192 | CODE | NOT CODED | C10 |
-| 193 | CODE | NOT CODED | C10 |
-| 194 | CODE | NOT CODED | C10 |
-| 195 | CODE | NOT CODED | C10 |
-| 197 | CODE | NOT CODED | C10 |
-| 199 | CODE | NOT CODED | C10 |
-| 200 | CODE | NOT CODED | C10 |
-| 201 | CODE | NOT CODED | C10 |
+| 193 | CODE | BUILDS | C1: an unreachable computer or planner is a named waiting state, never success (`outage.test.ts`, `provider-errors.test.ts`); a lost response after dispatch is unknown and never repeated automatically (`test_agent.py`, `recovery.test.ts`); the companion reconnects on its own poll loop |
+| 194 | CODE | BUILDS | C10: `docs/TEST_MATRIX.md` (versioned) lists every OS, architecture, browser, display, permission and installation dimension with the job or test that covers it; `tests/security/test-matrix.test.ts` fails if a named file or job disappears |
+| 195 | CODE | BUILDS | C10: unit, protocol, integration, database, security, accessibility, browser, desktop UI, packaging, installer, performance, stability, disaster-recovery and fault-injection suites, each named in `docs/TEST_MATRIX.md` and run by the local and push gates or the manual jobs |
+| 197 | CODE | BUILDS | C10: each live task carries a hidden oracle that runs privilege-dropped before STOP, never shares its answer with the planner, and must fail on the untouched problem (`--selfcheck`; `test_eval_audit.py`, `test_eval_isolation.py`) |
+| 199 | CODE | BUILDS | C10: `tests/jarvis/live_eval.py` drives the real planner, server and companion end to end (`jarvis-staging-evaluation.yml`); running it is owner-directed qualification |
+| 200 | CODE | BUILDS | C10: live tasks cover spreadsheet reconciliation, document creation, code repairs, browser research and downloads, file organisation, image resizing and video trimming through the generic operations (`GENERATORS`; media oracles in `test_eval_audit.py`) |
+| 201 | CODE | BUILDS | C10: task generators draw fresh random content per seed, and production code is guarded against task-specific dispatch or hardcoded journeys (`npm run jarvis:no-hardcoded`, `contracts.test.ts`) |
 | 202 | CODE | BUILDS | C10: first-attempt, recovery-assisted and verified success, interventions per task, wrong-target incidents, time per task and model calls are computed for every campaign (`write_summary` → `measures`); the measurements themselves are qualification work |
-| 204 | CODE | NOT CODED | C10 |
+| 204 | CODE | BUILDS | C10: every seed generates new inputs, names and values for all 18 task kinds, each task runs once per seed with an honest denominator (`write_summary`), and a previously seen fixture cannot be retried into the score |
 | 205 | QUALIFICATION-ONLY | QUALIFICATION-ONLY; harness BUILDS | Reclassified: the ≥90% threshold is a qualification result; `tests/jarvis/live_eval.py` hidden-oracle harness exists |
 | 206 | STANDING | STANDING | Every gate |
-| 207 | CODE | NOT CODED | C10 |
+| 207 | CODE | BUILDS | C10: regressions for the observed bugs: wrong Python download (`release_pick`, row disambiguation), hallucinated versions (`web_fact` oracle), invented URLs (deep addresses typed from memory refused, `contracts.test.ts`), verifier gaming (`gaming`, `contract-binding.test.ts`), repeated reads (stall rules) and the Python 3.12 subprocess hang (`test_a_background_child_holding_the_output_does_not_hang_the_call`) |
 | 208 | CODE | BUILDS | C10: every CI job installs the exact shipped Python lock with hashes, so regressions run on the shipped versions; the frozen installer is re-checked by `packaging/check_frozen.py` (bundled browser, workers, notices) in the Windows installer job |
-| 209 | QUALIFICATION-ONLY | QUALIFICATION-ONLY; harness NOT CODED | RPC; harness audit in C10, owner-directed run deferred |
-| 210 | CODE | NOT CODED | C10 |
+| 209 | QUALIFICATION-ONLY | QUALIFICATION-ONLY; harness BUILDS | Harness: the same installer, frozen and companion suites run per platform; owner-directed run deferred |
+| 210 | CODE | BUILDS | C1: companion killed mid-write (`test_a_companion_killed_mid_write_reports_unknown_after_restart_and_never_reruns`), interrupted reads and writes, network loss, interrupted and refused updates (`test_agent_recovery.py`), permission revocation while held (`held-claim-revocation.test.sql`), STOP, Take Over and retry (`authority.test.sql`, `recovery.test.ts`) |
 | 211 | CODE | BUILDS | C7: incorrect values (recalculated cells and ranges), missing content (`file_contains`, ranges), damaged formatting and unrelated edits (`changes_within` with formatting), altered checked inputs refused (`planStep` fence); the actor writes only new files under OCADE output or in-place repairs with kept originals |
 | 212 | STANDING | STANDING | Reclassified: a review rule applied before anything is declared launch-ready (security, privacy, provenance: `npm run licences:check`, recovery: `docs/OPERATIONS.md`); checked at every launch gate |
 | 214 | CODE | BUILDS | `scripts/launch-readiness.mjs` computes the ten-milestone score from `evidence/readiness/gates.json` (`npm run readiness`, in the coding gate) |
@@ -1878,3 +1878,7 @@ The existing `tests.run_required.main` loads selected modules/classes/methods or
 **C7 verifier audit (66, 67, 68, 70, 75, 76, 77, 78) — BUILDS, recorded from the code and tests named in each row; no new code was needed.** 74 stays open: requested video edits beyond length, size, codec, loudness and gaps have no check yet.
 
 **C4 dependency diagnosis follow-up (98–100, 110–113, 120) — BUILDS (local gate green; hosted run recorded on push).** New: `system.diagnose` names missing PATH folders and reads one registry key (Windows, read-only); the rest is recorded from existing code and tests. 104 (ARM64 artifacts) and 119 (clean-machine harness) stay open.
+
+**C5/C6/C8 native, installer and browser audit (58, 122–126, 130, 132, 139, 140, 142–144, 187) — BUILDS; 127, 128, 129, 190 reclassified QUALIFICATION-ONLY (real-hardware test campaigns) with their harness; harnesses for 121, 133, 209 recorded.** New: Unicode and long file names tested in the sandbox.
+
+**C10 harnesses and test inventory (193–195, 197, 199–201, 204, 207, 210) — BUILDS (local gate green; hosted run recorded on push).** New: image and video live tasks with hidden oracles, the versioned test matrix and its existence test.

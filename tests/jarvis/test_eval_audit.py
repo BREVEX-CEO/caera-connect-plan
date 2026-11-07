@@ -57,6 +57,36 @@ class EvaluationAudit(unittest.TestCase):
         self.assertEqual((result["verifiedSuccessRate"], result["firstAttemptSuccessRate"]), (round(8 / 11, 3), round(7 / 11, 3)))
         self.assertIsNone(evaluation.percentile([None, "x"], 50))
 
+    def test_media_oracles_fail_untouched_and_pass_a_real_solution(self):
+        """The image and video tasks (200): each hidden oracle refuses the untouched problem and
+        accepts an independently made correct result."""
+        import shutil
+        import subprocess
+
+        from PIL import Image
+
+        with tempfile.TemporaryDirectory() as temporary:
+            ws = Path(temporary)
+            request, grants, oracle = evaluation.resize_photo(ws, random.Random(5))
+            self.assertEqual(grants, [], "media operations need only the files grant")
+            self.assertFalse(oracle(ws)[0], "untouched problem passed")
+            photo = next(ws.glob("*_photo.png"))
+            width = int(request.split(" pixels wide")[0].rsplit(" ", 1)[1])
+            with Image.open(photo) as image:
+                image.resize((width, round(image.height * width / image.width))).save(ws / "small.png")
+            self.assertTrue(oracle(ws)[0], oracle(ws)[1])
+        if not (shutil.which("ffmpeg") and shutil.which("ffprobe")):
+            return
+        with tempfile.TemporaryDirectory() as temporary:
+            ws = Path(temporary)
+            request, _, oracle = evaluation.trim_clip(ws, random.Random(5))
+            self.assertFalse(oracle(ws)[0], "untouched problem passed")
+            seconds = request.split("first ")[1].split(" seconds")[0]
+            clip = next(ws.glob("*_clip.mp4"))
+            subprocess.run([shutil.which("ffmpeg"), "-v", "error", "-i", str(clip), "-t", seconds, "-c:v", "libx264",
+                            "-c:a", "aac", str(ws / "short.mp4")], check=True, timeout=120)
+            self.assertTrue(oracle(ws)[0], oracle(ws)[1])
+
     def test_pass_requires_authority_proof_and_an_independent_clean_result(self):
         live = {"status": "completed", "checks": [{"id": "a", "state": "passed"}],
                 "timing": {"verifiedAt": "2026-01-01T00:00:00Z"},
