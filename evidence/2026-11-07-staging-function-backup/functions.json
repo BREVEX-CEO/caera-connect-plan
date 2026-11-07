@@ -1,0 +1,30 @@
+{
+  "ocade-intelligence-service": {
+    "id": "c5940164-8b49-4e4a-a47b-2a5fa694c175",
+    "slug": "ocade-intelligence-service",
+    "name": "ocade-intelligence-service",
+    "status": "ACTIVE",
+    "version": 7,
+    "created_at": 1792423796439,
+    "updated_at": 1792440074335,
+    "verify_jwt": false,
+    "import_map": false,
+    "entrypoint_path": "/tmp/user_fn_auyapercxxptziyngycx_c5940164-8b49-4e4a-a47b-2a5fa694c175_4/source/index.ts",
+    "ezbr_sha256": "6c10da27d541b9a83d6ec8a8bd1de3dd105c316024c2817138607dac0c0a6624",
+    "index_ts_sha256": "f8613f165404523cfff5536308209f8819eaf602f0dfceaaaabea9bcf4323da5"
+  },
+  "ocade-intelligence": {
+    "id": "144d491a-837e-4218-aa3b-82110a505eee",
+    "slug": "ocade-intelligence",
+    "name": "ocade-intelligence",
+    "status": "ACTIVE",
+    "version": 7,
+    "created_at": 1792423526272,
+    "updated_at": 1792440013764,
+    "verify_jwt": true,
+    "import_map": false,
+    "entrypoint_path": "/tmp/user_fn_auyapercxxptziyngycx_144d491a-837e-4218-aa3b-82110a505eee_4/source/index.ts",
+    "ezbr_sha256": "3205efbc3a06998afc3eeac0c175b4400ec6ccf121a4355b53bbc02bdcbc8e85",
+    "index_ts_sha256": "0019d0acc73d14b7afea26aead551d935c98a12e7c92dd3c9a2be17d1737515d"
+  }
+}

@@ -450,6 +450,11 @@ export const plannerAccess = {
   },
   serviceUrl: () => process.env.SUPABASE_URL,
   serviceKey: () => process.env.SUPABASE_SERVICE_ROLE_KEY,
+  /**
+   * The intelligence function on that project. Server configuration only: the owner-directed
+   * model comparison (plan.md §19.4) points this at the staging benchmark function.
+   */
+  serviceFunction: () => process.env.OCADE_INTELLIGENCE_FUNCTION || "ocade-intelligence-service",
 };
 
 const measuredUsage = z.object({
@@ -481,7 +486,7 @@ async function callPlanner(input: {
   const started = performance.now();
   let usage: PlannerMeasurement["usage"];
   try {
-    const response = await fetch(`${url}/functions/v1/ocade-intelligence-service`, {
+    const response = await fetch(`${url}/functions/v1/${plannerAccess.serviceFunction()}`, {
       method: "POST",
       headers: {
         "content-type": "application/json",

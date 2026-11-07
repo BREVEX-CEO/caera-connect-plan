@@ -306,8 +306,8 @@ export const boundary: Omit<OnlineHandlerDependencies, "verifyJwt" | "verifyServ
         },
       );
     }
-    if (!modelRoute(GEMINI_MODEL)?.includes(model as never))
-      return new Response(null, { status: 400 });
+    // Any allowlisted standard model; which one serves is the handler's route (deps.model).
+    if (!modelRoute(model)) return new Response(null, { status: 400 });
     if (await servedLive(model, slot, signal)) {
       return liveTurn({ key: PROVIDER_KEYS[slot], model, body, signal });
     }
