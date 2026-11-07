@@ -192,9 +192,9 @@ jobs:
         shell: bash
         run: |
           case "$RUNNER_OS" in
-            Windows) choco list --local-only | grep -iE "libreoffice|gimp|freecad|blender|kdenlive|ffmpeg" ;;
-            macOS) brew list --cask --versions libreoffice gimp freecad blender kdenlive; brew list --versions ffmpeg ;;
-            Linux) dpkg-query -W libreoffice-calc gimp freecad blender kdenlive ffmpeg ;;
+            Windows) choco list | grep -iE "libreoffice|gimp|freecad|blender|kdenlive|ffmpeg" || true ;;
+            macOS) brew list --cask --versions libreoffice gimp freecad blender kdenlive || true; brew list --versions ffmpeg || true ;;
+            Linux) dpkg-query -W libreoffice-calc gimp freecad blender kdenlive ffmpeg || true ;;
           esac
           echo "CapCut: no official Linux build; the Windows/macOS builds need an interactive sign-in, so it is not installed."
       - name: Run the benchmark (server credential in this step only)
