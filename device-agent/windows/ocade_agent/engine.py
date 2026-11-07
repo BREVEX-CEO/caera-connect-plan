@@ -22,6 +22,18 @@ from .sandbox import Refused
 
 TIMEOUT_SECONDS = 120
 
+# The private LibreOffice profile: recalculate every formula when a file is loaded (its default
+# keeps an Excel file's saved results, which can be stale or forged), and run no document macros.
+_LIBREOFFICE_SETTINGS = """<?xml version="1.0" encoding="UTF-8"?>
+<oor:items xmlns:oor="http://openoffice.org/2001/registry" xmlns:xs="http://www.w3.org/2001/XMLSchema">
+<item oor:path="/org.openoffice.Office.Calc/Formula/Load"><prop oor:name="OOXMLRecalcMode" oor:op="fuse"><value>0</value></prop></item>
+<item oor:path="/org.openoffice.Office.Calc/Formula/Load"><prop oor:name="ODFRecalcMode" oor:op="fuse"><value>0</value></prop></item>
+<item oor:path="/org.openoffice.Office.Common/Security/Scripting"><prop oor:name="DisableMacrosExecution" oor:op="fuse"><value>true</value></prop></item>
+<item oor:path="/org.openoffice.Office.Common/Security/Scripting"><prop oor:name="MacroSecurityLevel" oor:op="fuse"><value>3</value></prop></item>
+</oor:items>
+"""
+MSO_AUTOMATION_SECURITY_FORCE_DISABLE = 3  # no macros run in a file opened by automation
+
 
 def _office_com(program: str):
     if sys.platform != "win32":
@@ -70,6 +82,8 @@ def _libreoffice_convert(source: Path, target_format: str, out_dir: Path) -> Pat
         raise Refused("no_office_engine")
     # A private profile, so a person's own open LibreOffice is never touched or locked.
     with tempfile.TemporaryDirectory(prefix="ocade-lo-") as profile:
+        (Path(profile) / "user").mkdir()
+        (Path(profile) / "user" / "registrymodifications.xcu").write_text(_LIBREOFFICE_SETTINGS, encoding="utf-8")
         subprocess.run(
             [
                 executable,
@@ -100,7 +114,9 @@ def recalculate(path: Path) -> str:
         try:
             excel.Visible = False
             excel.DisplayAlerts = False
-            book = excel.Workbooks.Open(str(path))
+            excel.AutomationSecurity = MSO_AUTOMATION_SECURITY_FORCE_DISABLE
+            excel.EnableEvents = False
+            book = excel.Workbooks.Open(str(path), UpdateLinks=0, AddToMru=False)
             excel.CalculateFull()
             book.Save()
             book.Close(False)
@@ -119,7 +135,8 @@ def export_pdf(docx: Path, pdf: Path) -> str:
     if word is not None:
         try:
             word.Visible = False
-            document = word.Documents.Open(str(docx), ReadOnly=True)
+            word.AutomationSecurity = MSO_AUTOMATION_SECURITY_FORCE_DISABLE
+            document = word.Documents.Open(str(docx), ReadOnly=True, AddToRecentFiles=False)
             document.SaveAs2(str(pdf), FileFormat=17)  # wdFormatPDF
             document.Close(False)
         finally:

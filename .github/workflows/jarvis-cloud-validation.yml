@@ -78,7 +78,7 @@ jobs:
         run: |
           python -m pip install reportlab==4.5.1 opentimelineio==0.17.0
           apt_options=(-o Acquire::Retries=1 -o Acquire::http::Timeout=15 -o Acquire::https::Timeout=15)
-          packages=(postgresql-client libreoffice-calc libreoffice-writer ffmpeg glslang-tools)
+          packages=(postgresql-client libreoffice-calc libreoffice-writer ffmpeg glslang-tools bubblewrap)
           if ! sudo timeout --kill-after=5s 40s env DEBIAN_FRONTEND=noninteractive apt-get "${apt_options[@]}" install -y "${packages[@]}"; then
             . /etc/os-release
             test "$ID" = ubuntu

@@ -76,6 +76,36 @@ class VerifierKinds(unittest.TestCase):
         self.assertIn("not a formula", evidence["measured"][typed["id"]]["error"])
 
     @unittest.skipUnless(office_available(), "needs a real office engine")
+    def test_a_forged_saved_result_is_never_trusted(self):
+        """The saved result of =A1+A2 is edited to 999. Only a real recalculation of a private
+        copy decides, and the person's file itself is left exactly as it was."""
+        import re
+        import zipfile
+
+        book = openpyxl.Workbook()
+        sheet = book.active
+        sheet.title = "Totals"
+        sheet["A1"], sheet["A2"], sheet["A3"] = 2, 3, "=A1+A2"
+        plain = self.root / "plain.xlsx"
+        book.save(plain)
+        forged = self.root / "forged.xlsx"
+        with zipfile.ZipFile(plain) as source, zipfile.ZipFile(forged, "w", zipfile.ZIP_DEFLATED) as target:
+            for item in source.infolist():
+                data = source.read(item)
+                if item.filename == "xl/worksheets/sheet1.xml":
+                    data, count = re.subn(rb"(<c r=\"A3\"[^>]*>)(<f>A1\+A2</f>)(<v>[^<]*</v>)?", rb"\1\2<v>999</v>", data)
+                    self.assertEqual(count, 1)
+                target.writestr(item, data)
+        reader = openpyxl.load_workbook(forged, data_only=True)
+        self.assertEqual(reader["Totals"]["A3"].value, 999, "the fixture really carries a forged saved result")
+        before = forged.read_bytes()
+        trusted = check("workbook_formula", path="forged.xlsx", sheet="Totals", cell="A3", value=999)
+        real = check("workbook_formula", path="forged.xlsx", sheet="Totals", cell="A3", value=5)
+        evidence = self.verify(trusted, real)
+        self.assertEqual([evidence["predicates"][trusted["id"]], evidence["predicates"][real["id"]]], [False, True])
+        self.assertEqual(forged.read_bytes(), before, "verification never changes the person's file")
+
+    @unittest.skipUnless(office_available(), "needs a real office engine")
     def test_a_recalculated_formula_must_have_the_expected_result(self):
         async def go():
             async with Gateway(str(self.root)) as gateway:
@@ -148,6 +178,50 @@ class VerifierKinds(unittest.TestCase):
         evidence = self.verify(failed)
         self.assertFalse(evidence["predicates"][failed["id"]], evidence)
         self.assertNotEqual(evidence["measured"][failed["id"]]["exitCode"], 0)
+
+    def test_a_rerun_is_contained_by_the_strongest_available_isolation(self):
+        """Writing outside the throwaway copy and opening a network connection are refused when the
+        computer offers that containment; the level used is always reported, never assumed."""
+        import socket
+        import sys
+        import threading
+
+        outside = Path(tempfile.mkdtemp()) / "outside.txt"
+        listener = socket.socket()
+        listener.bind(("127.0.0.1", 0))
+        listener.listen(1)
+        threading.Thread(target=lambda: listener.accept(), daemon=True).start()
+        port = listener.getsockname()[1]
+        (self.root / "probe.py").write_text(
+            "import socket, sys\n"
+            f"try:\n    open({str(outside)!r}, 'w').write('x'); print('WROTE')\nexcept OSError: print('NOWRITE')\n"
+            f"try:\n    socket.create_connection(('127.0.0.1', {port}), 2); print('NET')\n"
+            "except OSError: print('NONET')\n")
+        python = f'"{sys.executable}"' if sys.platform != "win32" else f'& "{sys.executable}"'
+        probe = check("command_succeeds", command=f"{python} probe.py")
+        try:
+            evidence = self.verify(probe)
+        finally:
+            listener.close()
+        measured = evidence["measured"][probe["id"]]
+        level = measured["containment"]
+        self.assertIn(level, ("filesystem+network", "network", "copy-only"))
+        self.assertTrue(evidence["predicates"][probe["id"]])
+        if "filesystem" in level:
+            self.assertFalse(outside.exists(), "a contained re-run wrote outside its copy")
+        if "network" in level:
+            self.assertIsNone(measured.get("error"))
+        expected_network = "NONET" if "network" in level else "NET"
+        rerun = check("command_succeeds", command=f"{python} probe.py", text=expected_network)
+        self.assertTrue(self.verify(rerun)["predicates"][rerun["id"]], level)
+
+    def test_the_mac_sandbox_allows_writes_only_in_the_copy_and_no_network(self):
+        from ocade_agent.verify_worker import _mac_profile
+
+        profile = _mac_profile(Path('/tmp/odd "name"'))
+        self.assertIn("(deny network*)", profile)
+        self.assertIn('(subpath "/tmp/odd \\"name\\"")', profile.replace("/private", ""))
+        self.assertIn("(deny file-write* (require-not", profile)
 
     def test_shell_scripts_parse_without_running(self):
         marker = self.root / "ran"

@@ -9,6 +9,7 @@ It never writes anything and never declares a task done; the server settles.
 
 from __future__ import annotations
 
+import functools
 import hashlib
 import io
 import json
@@ -16,6 +17,7 @@ import os
 import re
 import shutil
 import subprocess
+import tempfile
 import sys
 from pathlib import Path
 from urllib.parse import urljoin, urlsplit
@@ -456,18 +458,19 @@ def _script_runnable(path: Path, notes: dict) -> bool | None:
     return not problems
 
 
-def _workbook_formula(path: Path, params: dict, notes: dict) -> bool:
-    """The cell holds a formula (the workbook stays editable), and its saved result is the value."""
-    try:
-        def saved_value(data_only):
-            book = openpyxl.load_workbook(path, data_only=data_only, read_only=True, keep_links=False)
-            try:
-                return book[params["sheet"]][params["cell"]].value
-            finally:
-                book.close()
+def _workbook_formula(path: Path, params: dict, notes: dict) -> bool | None:
+    """The cell holds a formula (the workbook stays editable), and a real spreadsheet engine,
+    recalculating a private copy, gets the expected value. The saved result is never trusted:
+    it can be stale or forged. Without an engine the value is unobservable (None)."""
+    def cell(source: Path, data_only: bool):
+        book = openpyxl.load_workbook(source, data_only=data_only, read_only=True, keep_links=False)
+        try:
+            return book[params["sheet"]][params["cell"]].value
+        finally:
+            book.close()
 
-        formula = saved_value(False)
-        result = saved_value(True)
+    try:
+        formula = cell(path, False)
     except Exception:
         return False
     if not (isinstance(formula, str) and formula.startswith("=")):
@@ -476,6 +479,21 @@ def _workbook_formula(path: Path, params: dict, notes: dict) -> bool:
     expected = params.get("value")
     if expected is None:
         return True
+    from .engine import office_available, recalculate
+
+    if not office_available():
+        notes["error"] = "no spreadsheet engine on this computer to recalculate the formula"
+        return None
+    with tempfile.TemporaryDirectory(prefix="ocade-verify-calc-") as folder:
+        copy = Path(folder) / ("recalculated" + path.suffix.lower())
+        shutil.copyfile(path, copy)
+        try:
+            notes["engine"] = recalculate(copy)
+            result = cell(copy, True)
+        except Exception:
+            notes["error"] = "the spreadsheet engine could not recalculate a copy"
+            return None
+    notes["recalculated"] = result if isinstance(result, (int, float, str)) else None
     if type(expected) in (int, float):
         return type(result) in (int, float) and abs(result - expected) < TOLERANCE
     return isinstance(result, str) and result == expected
@@ -504,12 +522,53 @@ def _document_headings(path: Path, params: dict) -> bool:
 COPY_LIMIT = 300_000_000  # bytes of workspace copied for a re-run; larger folders are unobservable
 
 
+OUTPUT_LIMIT = 1_000_000  # bytes of a re-run's output that are read
+
+
+@functools.lru_cache(maxsize=None)
+def _runs(argv: tuple[str, ...]) -> bool:
+    try:
+        return subprocess.run(list(argv), stdin=subprocess.DEVNULL, capture_output=True, timeout=10).returncode == 0
+    except (OSError, subprocess.SubprocessError):
+        return False
+
+
+def _mac_profile(copy: Path) -> str:
+    """No network, and writes only inside the throwaway copy and the system temporary folders."""
+    def quoted(path: str) -> str:
+        return '"' + path.replace("\\", "\\\\").replace('"', '\\"') + '"'
+
+    return ("(version 1)(allow default)(deny network*)"
+            "(deny file-write* (require-not (require-any"
+            f" (subpath {quoted(os.path.realpath(copy))}) (subpath \"/private/var/folders\")"
+            " (subpath \"/private/tmp\") (literal \"/dev/null\") (literal \"/dev/tty\"))))")
+
+
+def _containment(copy: Path) -> tuple[list[str], str]:
+    """The strongest operating-system containment available for a verifier re-run, and its name.
+    Each level is probed on this computer before it is used; the level is always reported."""
+    if sys.platform.startswith("linux"):
+        bwrap = shutil.which("bwrap")
+        base = ("--ro-bind", "/", "/", "--dev", "/dev", "--proc", "/proc", "--unshare-net", "--die-with-parent")
+        if bwrap and _runs((bwrap, *base, "true")):
+            return [bwrap, *base, "--tmpfs", "/tmp", "--bind", str(copy), str(copy), "--unshare-pid",
+                    "--chdir", str(copy), "--"], "filesystem+network"
+        unshare = shutil.which("unshare")
+        if unshare and _runs((unshare, "-rn", "true")):
+            return [unshare, "-rn", "--"], "network"
+    sandbox = shutil.which("sandbox-exec") if sys.platform == "darwin" else None
+    if sandbox:
+        return [sandbox, "-p", _mac_profile(copy)], "filesystem+network"
+    return [], "copy-only"
+
+
 def _command_succeeds(command, text, notes: dict) -> bool | None:
     """Re-run a repaired script or program, as the person confirmed it earlier in the task, in a
-    throwaway copy of the workspace: the person's folder is never changed by verifying. Passes
-    when it exits 0 within two minutes (and prints the text, when given)."""
+    throwaway copy of the workspace: the person's folder is never changed by verifying. The run is
+    contained by the strongest isolation this computer offers (named in `containment`: writes
+    outside the copy and network refused, network refused, or the copy alone). Passes when it
+    exits 0 within two minutes (and prints the text, when given)."""
     import signal
-    import tempfile
 
     if not isinstance(command, str) or not command.strip():
         return False
@@ -523,27 +582,33 @@ def _command_succeeds(command, text, notes: dict) -> bool | None:
         notes["error"] = "workspace too large to copy for a re-run"
         return None
     with tempfile.TemporaryDirectory(prefix="ocade-verify-") as scratch:
-        copy = Path(scratch) / "workspace"
+        copy = Path(os.path.realpath(scratch)) / "workspace"
         shutil.copytree(root, copy, symlinks=True)
         if any(path.is_symlink() or (hasattr(path, "is_junction") and path.is_junction())
                for path in copy.rglob("*")):
             notes["error"] = "workspace links changed during staging"
             return None
-        argv = shell_argv(command, None)
-        process = subprocess.Popen(argv, cwd=copy, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
-                                   stderr=subprocess.STDOUT, start_new_session=sys.platform != "win32",
-                                   creationflags=subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0)
-        try:
-            output, _ = process.communicate(timeout=120)
-        except subprocess.TimeoutExpired:
-            if sys.platform == "win32":
-                subprocess.run(["taskkill", "/T", "/F", "/PID", str(process.pid)], capture_output=True)
-            else:
-                os.killpg(process.pid, signal.SIGKILL)
-            process.communicate()
-            notes["error"] = "did not finish within 120 s"
-            return False
-    printed = output.decode("utf-8", "replace")
+        prefix, notes["containment"] = _containment(copy)
+        argv = prefix + shell_argv(command, None)
+        with tempfile.TemporaryFile() as captured:
+            process = subprocess.Popen(argv, cwd=copy, stdin=subprocess.DEVNULL, stdout=captured,
+                                       stderr=subprocess.STDOUT, start_new_session=sys.platform != "win32",
+                                       creationflags=subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0)
+            try:
+                process.wait(timeout=120)
+            except subprocess.TimeoutExpired:
+                if sys.platform == "win32":
+                    subprocess.run(["taskkill", "/T", "/F", "/PID", str(process.pid)], capture_output=True)
+                else:
+                    os.killpg(process.pid, signal.SIGKILL)
+                process.wait()
+                notes["error"] = "did not finish within 120 s"
+                return False
+            captured.seek(0)
+            output = captured.read(OUTPUT_LIMIT + 1)
+    if len(output) > OUTPUT_LIMIT:
+        notes["outputTruncated"] = True
+    printed = output[:OUTPUT_LIMIT].decode("utf-8", "replace")
     notes["exitCode"] = process.returncode
     wanted = " ".join(str(text or "").split()).casefold()
     matches = wanted in " ".join(printed.split()).casefold()
