@@ -1580,13 +1580,13 @@ Coding status is kept separate from runtime verification (Appendix A), so nothin
 | 44 | CODE | BUILDS | C4, `e2f7053e` |
 | 45 | CODE | BUILDS | C4, `e2f7053e` |
 | 46 | CODE | NOT CODED | C3/C10 |
-| 48 | CODE | NOT CODED | C3/C10 |
-| 49 | CODE | NOT CODED | C3/C10 |
-| 50 | CODE | NOT CODED | C3/C10 |
-| 51 | CODE | NOT CODED | C3/C10 |
-| 52 | CODE | NOT CODED | C3/C10 |
+| 48 | CODE | BUILDS | C6: one target per intent, resolved against what was observed: web controls by observation-scoped selector (`web_worker._one`, stale refused), desktop windows and elements by exact lease (`windows_worker`/`mac_worker`, 59), files by workspace resolution (`sandbox.resolve`), processes by creation identity (`jobs`) |
+| 49 | CODE | BUILDS | C6: each observation issues a random token; every control's selector `[data-ocade="<token>-<n>"]` names that observation only, and an older one is `stale_selector` (`_CONTROLS`, `_one`) |
+| 50 | CODE | BUILDS | C6: control facts carry tag, type, name, label (accessible name, aria-label, title or text), href, role, box (position and size), state (disabled, checked, selected, pressed, expanded, hidden), containing row and nearest heading for repeated labels, and the observation token (`_CONTROLS`; WEB-001b, WEB-015 in `test_web.py`) |
+| 51 | CODE | BUILDS | C6: a repeated label ("Download" per row) carries its row text and section heading, so the planner chooses by version, platform or row (WEB-015, WEB-001b) |
+| 52 | CODE | BUILDS | C6: a selector from an older observation, a page that left its site, or a disconnected element is refused (`stale_selector`, `page_left_site`); desktop actions recheck their exact window lease before input (59) |
 | 54 | CODE | NOT CODED | C3/C10 |
-| 55 | CODE | NOT CODED | C3/C10 |
+| 55 | CODE | BUILDS | C6: visible tables are read as caption, headers and rows of cells with each row's link, hidden rows excluded (`_TABLES`; table case in `test_web.py`) |
 | 56 | CODE | NOT CODED | C3/C10 |
 | 57 | CODE | NOT CODED | C3/C10 |
 | 58 | CODE | NOT CODED | C6 |
@@ -1677,7 +1677,7 @@ Coding status is kept separate from runtime verification (Appendix A), so nothin
 | 158 | QUALIFICATION-ONLY | QUALIFICATION-ONLY; harness BUILDS | Manual WebKit phone and offline-shell audit, `a7c93e1e` |
 | 159 | CODE | NOT CODED | C8 |
 | 160 | CODE | NOT CODED | C8 |
-| 161 | CODE | NOT CODED | C9 |
+| 161 | CODE | BUILDS | C9: task authority (`authority.test.sql`, `milestones`, `effect-resolution`), RLS and privilege over the whole schema (`injection-privilege.test.sql`), sessions (`session-account.test.sql`), staff and owner boundaries with the audit record (`staff-authority.test.sql`: role limits, Primary Owner protected, fresh proof and reason required, removal written with who, whom and why, refusals leave nothing), device ownership (`authority.test.sql`, `device-admission.test.sql`) |
 | 162 | CODE | BUILDS | C9: forged/malformed device IDs `d4185c0`, replay and revocation (`authority.test.sql`); expired tokens refused before any network call and ended sessions or owed second factors refused by the database (`requireSession` → `sessionStanding`, `tests/security/session.test.ts`, `session-account.test.sql`); cross-account stop, take over, resume and device removal refused with the task untouched; duplicate Send, queue key and receipt (`authority.test.sql`) |
 | 163 | CODE | BUILDS | C9, `50f6300e` |
 | 164 | CODE | BUILDS | C2/C9, `50f6300e` |
@@ -1687,11 +1687,11 @@ Coding status is kept separate from runtime verification (Appendix A), so nothin
 | 168 | CODE | BUILDS | C9, `a5b3c25`: per-request CSP nonce (`src/server.ts` → `getRouter`), fixed scripts by hash, no `'unsafe-inline'` scripts; HSTS, canonical HTTPS redirect, CSRF middleware for server functions; OCADE sets no cookies |
 | 169 | CODE | BUILDS | C9: XSS (chat Markdown renderer, `tests/security/injection.test.ts`), SSRF (`isPushService`; actor pin `4436082`), SQL injection and privilege escalation over the whole schema (no dynamic SQL, fixed search_path, no anonymous account function — migration `20261107075756` — RLS on every table, non-staff refused by every staff function: `injection-privilege.test.sql`), command injection and unsafe deserialization (`tests/test_injection.py`), path traversal (`test_sandbox.py`), IDOR (`authority.test.sql`, `session-account.test.sql`) |
 | 170 | CODE | BUILDS | C9: threat model with control and regression test per threat, `docs/SUPPORT_LEGAL_SECURITY.md` §7.1; new controls: third-party MCP output redacted (`Gateway.run`, `test_catalog.py`), downloads keep the system internet mark (`web_download` → `mark_downloaded`, `test_download_mark.py`), off-origin download cancelled and never saved |
-| 172 | CODE | NOT CODED | C9 |
+| 172 | CODE | BUILDS | C9: logical backup restore drill with row-level security and data fingerprint checks and a corrupt-dump refusal (`tests/jarvis/db/restore.sh`, CI database job); 20 migration rollbacks round-trip (`rollback-roundtrip.sh`); outage behaviour (`outage.test.ts`, provider errors); recovery and incident runbook `docs/OPERATIONS.md`. A restore of the hosted backup itself is a qualification step |
 | 175 | CODE | BUILDS | C9: other accounts (RLS, `authority.test.sql`, `session-account.test.sql`), support and staff (no policy or staff function reads content; sharing is the person's time-limited `ocade_support_share`: `injection-privilege.test.sql`), model traces and logs (enumerated health records only, server code logs nothing else: `tests/security/privacy.test.ts`), evidence redaction `c8fbd54` |
 | 176 | CODE | BUILDS | C9, `c8fbd54`: credentials in every receipt's evidence redacted at the gateway result boundary (`Gateway.run` → `redact`), count reported; companion and server logs carry no evidence text |
 | 177 | CODE | BUILDS | C9: structured local crash reports with no messages or contents (`_run_companion` → `record_crash`, shown by `diagnose`, `test_agent.py`), health endpoint `/api/health` (`src/server.ts` → `releaseHealthResponse`), latency buckets and failure classes (`buildHealthRecord`, `privacy.test.ts`) |
-| 179 | CODE | NOT CODED | C9 |
+| 179 | CODE | BUILDS | C9: export and per-class deletion (`account-data.functions.ts` → `data-rights.ts`); every table naming an account is exported or excluded with a reason (`tests/security/data-rights.test.ts`); deleting an account is never blocked and keeps others' records without the identity (migration `20261107083209` fixes a RESTRICT that blocked deleting a staff account and a CASCADE that erased customer cases; `account-deletion.test.sql`); device revocation (`authority.test.sql`); activity retention (`jarvis_purge_expired_activity`) |
 | 180 | CODE | BUILDS | C9: Terms and Privacy pages (`/terms`, `/privacy`, `LegalContent.tsx`), third-party licence notices generated from the inventory (`THIRD_PARTY_NOTICES.md`, shipped inside the installer by `ocade-agent.spec`), installation and troubleshooting guidance in Help; legal review of the final text is an owner action |
 | 181 | CODE | BUILDS | C9: `RELEASE_NOTES.md`; `docs/OPERATIONS.md` (support procedure, incident response with the console emergency pause, status communication, recovery for database, website, companion and tasks); JARVIS troubleshooting in Help (`help.tsx`); a public status page does not exist yet and is named as such |
 | 182 | CODE | BUILDS | C9: `npm run licences:check` (local and push gates) verifies every shipped Python package (hashed lock) and production npm package against an allowed-licence list in `release/third-party-licences.json`; GPL-3.0 `pymsgbox`/`mouseinfo` (optional imports of pyautogui) are excluded from the installer and the spec fails the build if they are pulled in; the offline model's licence is an open owner item the check prints |
@@ -1719,7 +1719,7 @@ Coding status is kept separate from runtime verification (Appendix A), so nothin
 | 209 | QUALIFICATION-ONLY | QUALIFICATION-ONLY; harness NOT CODED | RPC; harness audit in C10, owner-directed run deferred |
 | 210 | CODE | NOT CODED | C10 |
 | 211 | CODE | BUILDS | C7: incorrect values (recalculated cells and ranges), missing content (`file_contains`, ranges), damaged formatting and unrelated edits (`changes_within` with formatting), altered checked inputs refused (`planStep` fence); the actor writes only new files under OCADE output or in-place repairs with kept originals |
-| 212 | CODE | NOT CODED | C9 |
+| 212 | STANDING | STANDING | Reclassified: a review rule applied before anything is declared launch-ready (security, privacy, provenance: `npm run licences:check`, recovery: `docs/OPERATIONS.md`); checked at every launch gate |
 | 214 | CODE | BUILDS | `scripts/launch-readiness.mjs` computes the ten-milestone score from `evidence/readiness/gates.json` (`npm run readiness`, in the coding gate) |
 | 215 | QUALIFICATION-ONLY | QUALIFICATION-ONLY; harness BUILDS (`npm run readiness`) | Reclassified: the repository baseline milestone is earned only by qualification evidence; its code items are tracked under their own IDs |
 | 216 | QUALIFICATION-ONLY | QUALIFICATION-ONLY; harness BUILDS (`npm run readiness`) | Reclassified: the device authority milestone is earned only by qualification evidence; its code items are tracked under their own IDs |
@@ -1870,3 +1870,5 @@ The existing `tests.run_required.main` loads selected modules/classes/methods or
 **C7 range, image and formatting checks; invalid conditions (69, 71, 72, 73, 211) — BUILDS (local gate green; hosted run recorded on push).** New check kinds `workbook_range_equals` and `image_changed_within` (contracts, protocol, `verify_worker`, migration `20261107080533_verifier_checks_ranges_and_image_changes` with rollback). `workbook_cell_equals` no longer trusts a formula's saved result. **Staging prerequisite:** apply `20261107080533`.
 
 **C9/C10 provider errors, secret isolation, licences, operations and locked runtime (166, 167, 180, 181, 182, 208) — BUILDS (local gate green; hosted run recorded on push).** The companion's whole Python dependency tree is now locked with hashes (61 packages); the licence check found two GPL-3.0 modules pulled in by pyautogui and keeps them out of the installer. Manual CI jobs were fixed: the planner-safety job installs Python before the tests that need it, and a stale Windows test fake now models the password-field check.
+
+**C6/C9 targeting metadata, staff authority, deletion and export coverage (48–52, 55, 161, 172, 179; 212 reclassified STANDING) — BUILDS (local gate green; hosted run recorded on push).** Migration `20261107083209_deleting_a_staff_account_keeps_what_they_did` with rollback. **Staging prerequisite:** apply it with the other new migrations.

@@ -253,6 +253,13 @@ class WebLadder(unittest.TestCase):
         with self.subTest("WEB-001 open"):
             self.assertEqual(results["001"]["status"], "observed")
             self.assertEqual(results["001"]["evidence"]["title"], "/")
+        with self.subTest("WEB-001b each control carries where it is and which section it belongs to"):
+            controls = results["001"]["evidence"]["controls"]
+            self.assertTrue(all(len(c["box"]) == 4 and all(isinstance(n, int) for n in c["box"]) for c in controls))
+            nexts = [c for c in controls if c["label"] == "Next"]
+            self.assertEqual([c.get("heading") for c in nexts], ["Section A", "Section A"])
+            self.assertNotIn("heading", next(c for c in controls if c["label"] == "Page one"),
+                             "a unique label needs no section")
         with self.subTest("WEB-002 read matches an independent fetch"):
             insecure = __import__("ssl")._create_unverified_context()  # the fixture's own throwaway cert
             html = urllib.request.urlopen(self.base + "/", context=insecure).read().decode()

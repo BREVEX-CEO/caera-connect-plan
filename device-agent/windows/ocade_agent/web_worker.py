@@ -138,12 +138,35 @@ _CONTROLS = """(token) => {
   labels.forEach(l => { seen[l] = (seen[l] || 0) + 1; });
   const facts = listed.map((e, i) => {
     e.setAttribute('data-ocade', `${token}-${i}`);
-    const row = seen[labels[i]] > 1 ? e.closest('tr,li,[role=row]') : null;
+    const repeated = seen[labels[i]] > 1;
+    const row = repeated ? e.closest('tr,li,[role=row]') : null;
+    const box = e.getBoundingClientRect();
+    // The state a person sees, only when the control has one (W4 target metadata, req 50).
+    const state = [
+      e.disabled || e.getAttribute('aria-disabled') === 'true' ? 'disabled' : '',
+      e.checked || e.getAttribute('aria-checked') === 'true' ? 'checked' : '',
+      e.getAttribute('aria-selected') === 'true' || (e.tagName === 'OPTION' && e.selected) ? 'selected' : '',
+      e.getAttribute('aria-pressed') === 'true' ? 'pressed' : '',
+      e.getAttribute('aria-expanded') === 'true' ? 'expanded' : '',
+      e.offsetParent === null ? 'hidden' : '',
+    ].filter(Boolean);
+    // For a repeated label, the nearest heading before it says which section it belongs to.
+    let heading = null;
+    if (repeated) {
+      const marks = all('h1,h2,h3,h4,[role=heading]');
+      for (const mark of marks) {
+        if (mark.compareDocumentPosition(e) & Node.DOCUMENT_POSITION_FOLLOWING) heading = mark;
+      }
+    }
     return {
       tag: e.tagName.toLowerCase(), type: e.type || '', name: (e.name || '').slice(0, 40),
       label: labels[i],
       selector: `[data-ocade="${token}-${i}"]`,
+      box: [Math.round(box.x), Math.round(box.y), Math.round(box.width), Math.round(box.height)],
+      ...(e.getAttribute('role') ? { role: e.getAttribute('role').slice(0, 20) } : {}),
+      ...(state.length ? { state } : {}),
       ...(row ? { row: flat(row.innerText).slice(0, 120) } : {}),
+      ...(heading ? { heading: flat(heading.innerText).slice(0, 80) } : {}),
       // Preserve exact addresses, including SPA fragments; omit oversize values rather than inventing prefixes.
       ...(e.tagName === 'A' && /^https?:/.test(e.href)
         ? ((e.origin === location.origin ? e.pathname + e.search + e.hash : e.href).length <= 2000
