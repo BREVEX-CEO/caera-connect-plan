@@ -139,47 +139,8 @@ test("every operation schema stays inside the provider's schema subset", async (
   }
 });
 
-test("capability shortlist: descriptor vectors, bounded, continuity, paraphrase-stable", async () => {
-  const { shortlistOperations, offeredOperations, rankBySimilarity } =
-    await import("../../src/lib/jarvis/planner.server.ts");
-  const all = offeredOperations(["files", "browser", "apps", "screen", "computer_control"], null);
-  assert.ok(all.length > 12);
-  const pick = (objective: string, steps: never[] = []) =>
-    shortlistOperations(all, { objective, checks: [], steps });
-  // Different wording, file names and formats reach the same capabilities (metamorphic).
-  for (const objective of [
-    "Make a Word document that states the quarterly status written in note.txt.",
-    "Turn the notes in status-report.md into an editable .docx file",
-    "Write up what draft_7.csv says as a document with headings",
-  ]) {
-    const chosen = pick(objective);
-    assert.ok(chosen.length <= 12, objective);
-    assert.ok(
-      chosen.includes("office.write_document") && chosen.includes("fs.read_text"),
-      `${objective}: ${chosen}`,
-    );
-  }
-  const render = pick("Design a red and black 3D sports car and give me a 4K image of it");
-  assert.ok(render.includes("scene.render") && render.includes("media.preview"), String(render));
-  const film = pick(
-    "Cut a 30 second cinematic advert from car footage with music and sound effects",
-  );
-  assert.ok(
-    ["media.render_timeline", "media.analyze", "media.preview"].every((o) => film.includes(o)),
-    String(film),
-  );
-  // Organising files reaches the typed file operations, not a shell command.
-  const organise = pick("Sort the photos in this folder into one folder per year");
-  assert.ok(organise.includes("fs.manage"), String(organise));
-  // An application nobody listed still reaches the generic desktop capabilities.
-  const app = pick("In the Zorblax Pro window, press the Export button");
-  assert.ok(app.includes("ui.invoke") && app.includes("apps.list"), String(app));
-  // Continuity: an operation already used stays offered with its whole role, even when
-  // neither ranks (a page opened on a website is then clicked).
-  const used = pick("Write a document", [
-    { intent: { operation: "web.close" }, status: "done", receipt: null },
-  ] as never);
-  assert.ok(used.includes("web.close") && used.includes("web.click"), String(used));
+test("external tools are ranked by their descriptions, not a name table", async () => {
+  const { rankBySimilarity } = await import("../../src/lib/jarvis/planner.server.ts");
   // The descriptor, not a name table, decides: change the text and the ranking follows.
   const tools = [
     { id: "a", text: "convert currency amounts between exchange rates" },
@@ -191,7 +152,7 @@ test("capability shortlist: descriptor vectors, bounded, continuity, paraphrase-
 });
 
 test("mechanism fallback: a failed route is followed by a fresh look, then the next route", async () => {
-  const { fallbackRoute, observedSinceFailure, shortlistOperations, offeredOperations } =
+  const { fallbackRoute, observedSinceFailure } =
     await import("../../src/lib/jarvis/planner.server.ts");
   const window = { exe: "fixture.exe", pid: 5, hwnd: 7, started: 11 };
   const step = (operation: string, status: string, receipt: unknown = null) =>
@@ -220,13 +181,6 @@ test("mechanism fallback: a failed route is followed by a fresh look, then the n
   assert.doesNotThrow(() => observedSinceFailure([...failed, fresh], "ui.click_point", { window }));
   // Another mechanism is not held back by a failure on a window.
   assert.doesNotThrow(() => observedSinceFailure(failed, "fs.write_text"));
-  const all = offeredOperations(["files", "browser", "apps", "screen", "computer_control"], null);
-  const offered = shortlistOperations(all, {
-    objective: "Write a report",
-    checks: [],
-    steps: failed,
-  });
-  assert.ok(offered.includes("ui.inspect") && offered.includes("ui.click_point"), String(offered));
   // A command that ran out of time is offered again as a tracked job.
   const slow = [step("shell.run", "done", { status: "observed", evidence: { timedOut: true } })];
   assert.deepEqual(fallbackRoute(slow)?.next, ["job.start"]);

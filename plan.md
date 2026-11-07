@@ -1524,16 +1524,23 @@ Severity: CRITICAL = unauthorised action, data loss, secret exposure or wrong-ta
 | D19 | MEDIUM | Documents and workbooks cannot be edited in place; presentations and image editing unsupported; video has no open editable timeline; 3D has no open interchange export | `contracts.ts`; `office_worker.py`, `media_worker.py`, `scene_gl.py` | PARTIAL: in-place .docx/.xlsx/.pptx edits, new decks, `image.edit`, OTIO timeline beside every film (`d80ad29`…`9fcdac0`); 3D interchange (glTF) still open | W5 |
 | D20 | LOW | Windows shell is PowerShell only; macOS uses `sh` only | `command_worker.py` | FIXED: powershell/cmd or sh/bash/zsh ([run 85](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/41806336402)) | W3 |
 | D21 | LOW | Migrations after `20261030` have no rollback file | `supabase/rollback/` | FIXED: rollbacks for all 12 migrations after 20261030, each proven to restore the exact shape before its migration (function bodies, columns, triggers) and re-apply cleanly (`tests/jarvis/db/rollback-roundtrip.sh`, in `test:jarvis-db`) | W11 |
-| D22 | CRITICAL | Local STOP arriving during a network claim does not fence the returned action | run 41900561913, real warm filesystem MCP worker | Repair published at 04ff4a99; full qualification pending in run 41904905940. Actual post-STOP write reproduced, so the plan's unauthorized-action severity definition applies. Linux regression and full suite pass at 23efef02; M2 remains withdrawn, requirements 88/216 and concept 57 PARTIAL (`evidence/2026-11-05-local-stop/`) | W1 |
-| D23 | MEDIUM | Socket TimeoutError escapes the claim polling retry loop | run 41900561913, real signed Device client and agent loop | OPEN: transport normalization and resumed-claim budget pass Linux preflight at 23efef02; full qualification/live busy-family retest pending (`evidence/2026-11-05-local-stop/`) | W2 |
+| D22 | CRITICAL | Local STOP arriving during a network claim does not fence the returned action | run 41900561913, real warm filesystem MCP worker | CODE FIXED (`04ff4a99`, Linux suite green at `23efef02`); full qualification on Windows and macOS is pending (`evidence/2026-11-05-local-stop/`); severity kept CRITICAL until it passes | W1 |
+| D23 | MEDIUM | Socket TimeoutError escapes the claim polling retry loop | run 41900561913, real signed Device client and agent loop | CODE FIXED (transport normalization and resumed-claim budget, `23efef02`); live busy-family retest is qualification (`evidence/2026-11-05-local-stop/`) | W2 |
 | D24 | MEDIUM | macOS frozen Intel startup fails; tee masks the failed checker exit | run 41905297847, job 126838385018 | OPEN: the bundle builds, but no Intel worker initializes. Pipefail repaired at c9ba4442; bounded startup stderr is in qualification. ARM64 actually passes all six frozen workers and its packaged-browser fixture. Intel is not qualified (`evidence/2026-11-05-macos-bundle/`) | W7 |
 
-| D25 | HIGH | script_runnable accepts an escaped or missing interpreter; completed program repairs can still fail | full E1 seeds 22/23 config_repair | OPEN: actual independent reruns exit 1 despite correct old output. Interpreter-line and full-file budget regressions are in qualification; goal compilation now requests the confirmed invocation, not launch flags alone (`evidence/2026-11-05-e1/`) | W5 |
-| D26 | MEDIUM | E1 serves fake ZIP bytes, misses checked-transport CA and probes service after STOP teardown | full E1 release_pick and port_conflict; raw reports retained | OPEN: real ZIP/CA and parsing repairs in qualification; pre-teardown independent oracle handshake still required. No raw failures removed or rewritten, denominator remains 48 (`evidence/2026-11-05-e1/`) | W4 |
+| D25 | HIGH | script_runnable accepts an escaped or missing interpreter; completed program repairs can still fail | full E1 seeds 22/23 config_repair | CODE FIXED (`fdc5b21`, C1): the verifier checks the real interpreter line and full-file budget and never runs a file-supplied shell; repaired programs are re-run with the confirmed command (`command_succeeds`, `5f6db4d`); the live E1 re-run is qualification | W5 |
+| D26 | MEDIUM | E1 serves fake ZIP bytes, misses checked-transport CA and probes service after STOP teardown | full E1 release_pick and port_conflict; raw reports retained | CODE FIXED (`fdc5b21`, C1): real CRC-valid ZIP archives and the fixture CA in `release_pick`, and the hidden oracle runs before STOP through a checkpoint; the full E1 re-run is qualification (`evidence/2026-11-05-e1/`) | W4 |
 | D27 | CRITICAL | Evaluation oracle and port-conflict fixture inherit the root server environment after dropping privileges | actual root-to-user synthetic credential canary, run 41915577409 | FIXED: positive environment filter published at 40f9ea66; protected staging admin authentication and actual UID/canary smoke pass run 41972053886 at c6858ce9. Owner reports staging credential replacement; revocation is not independently verified and GitHub metadata is unchanged (`evidence/2026-11-05-oracle-isolation/`) | W11 |
 
-| D28 | HIGH | Intel scene rendering publishes a flat image while scene/hash/size checks report success | published aaf3bad3, run 41970810529, Intel job 127061543475 | OPEN: existing independent pixel assertion fails; candidate WebGL error validation now refuses the failed readback. Exact native cause and a correct render still need proof (`evidence/2026-11-05-intel-render/`) | W5 |
+| D28 | HIGH | Intel scene rendering publishes a flat image while scene/hash/size checks report success | published aaf3bad3, run 41970810529, Intel job 127061543475 | MITIGATED (`fdc5b21`, C1): a failed WebGL draw or readback and a uniform saved image are refused, so no false success is reported; a correct render on Intel Macs needs that hardware (qualification, `evidence/2026-11-05-intel-render/`) | W5 |
 | D29 | MEDIUM | Intel browser popup classification intermittently omits the off-site closure | unpublished diagnostic run 41971524885, job 127064311487, WEB-009 | CANDIDATE-ONLY; not published-branch proof: empty popups instead of closed_off_site; fixed collector window is a hypothesis, not a confirmed cause. Network binding remains separately tested; no bypass inferred (`evidence/2026-11-05-intel-render/`) | W8 |
+| D30 | HIGH | `workbook_cell_equals` trusted a formula's saved (forgeable) result | forged-cache fixture, `test_a_single_cell_formula_is_recalculated_never_read_from_its_saved_result` | FIXED (`8b5c7c0`): formulas recalculated by a real engine on a private copy | W5 |
+| D31 | HIGH | Third-party MCP output skipped credential redaction | `test_an_untrusted_tool_cannot_leak_a_credential_or_claim_a_status` fails without the fix | FIXED (`8e83352`) | W11 |
+| D32 | HIGH | GPL-3.0 modules (`pymsgbox`, `mouseinfo`) would ship in the commercial installer through pyautogui | `npm run licences:check` | FIXED (`29214d9`): excluded by the spec, which fails the build if they return | W9 |
+| D33 | MEDIUM | Deleting an account could be blocked (`granted_by` RESTRICT) or erase customer cases (`assignee` CASCADE) | `account-deletion.test.sql` fails before the migration | FIXED (`1811137`, migration `20261107083209`) | W11 |
+| D34 | MEDIUM | A site's alert, confirm or prompt was dismissed silently, so the planner never knew it was asked | WEB-017 | FIXED (`c1429b4`): reported as `dialogsDismissed`, never answered yes | W8 |
+| D35 | LOW | Manual CI jobs: TypeScript safety tests ran before their Python runtime; a stale Windows test fake; a hash-collision flake in verifier test ids | run 42340269547 | FIXED (`ca7462f`) | W0 |
+
 Closed recently (kept for history): approval arguments clipped at 4000 characters (fixed `43c50ed`, run 64); opaque native/page interactions mislabelled reversible (fixed `43c50ed`); unknown-write replay after resume (fenced `83f3142`, run 58); competing-file overwrite on publication (fixed `897675b`, run 49); installed companion started no worker (fixed `947ceee`); minimized macOS window reported as closed (fixed `a7cf182`).
 
 ## Appendix E — Coding ledger (updated once per coding batch)
@@ -1563,8 +1570,8 @@ Coding status is kept separate from runtime verification (Appendix A), so nothin
 | 3 | QUALIFICATION-ONLY | QUALIFICATION-ONLY; harness BUILDS | Reclassified: the whole-product objective is closed only by W13/RPC/COM evidence; its code items are the other IDs |
 | 7 | STANDING | STANDING | Every gate |
 | 8 | STANDING | STANDING | Every gate |
-| 10 | CODE | NOT CODED | C0/C10 |
-| 13 | CODE | NOT CODED | C10 |
+| 10 | CODE | BUILDS | C0/C10: verified inventories that tests keep honest: requirements and coding state (Appendix A, Appendix E), concepts (`npm run jarvis:traceability`), operations and capabilities (`contracts.ts` → `protocol.json`, `jarvis:protocol-check`), dependencies and licences (`requirements.lock`, `npm run licences:check`), security boundaries and threats (`docs/SUPPORT_LEGAL_SECURITY.md` §7.1), tests (`docs/TEST_MATRIX.md`, `test-matrix.test.ts`), release requirements (`npm run readiness`) |
+| 13 | CODE | BUILDS | C0: every reproducible critical or high defect in Appendix D is fixed in code (D30–D34 this session; D22, D23, D25, D26 code-fixed earlier) or mitigated with its exact hardware blocker recorded (D16 consumer Macs, D24 and D28 Intel Macs); the release gate stays closed until their qualification passes |
 | 16 | STANDING | STANDING | Every gate |
 | 23 | QUALIFICATION-ONLY | QUALIFICATION-ONLY; harness NOT CODED | Q; harness audit in C10, owner-directed run deferred |
 | 28 | CODE | BUILDS | C6: the planner prompt orders the routes (typed file, document, media and scene operations; website operations; accessibility after `ui.inspect`; `ui.click_point` last) and the server enforces the tail: a pointer click needs the latest image of the exact window, and a failed mechanism needs a fresh look before the next route (`SYSTEM`, `observedSinceFailure`, `NEXT_ROUTE`; `contracts.test.ts` mechanism fallback) |
@@ -1655,8 +1662,8 @@ Coding status is kept separate from runtime verification (Appendix A), so nothin
 | 131 | CODE | BUILDS | C6, `5fdfcb11` |
 | 132 | CODE | BUILDS | C7: Accessibility and Screen Recording are checked before use; without them control is refused or the preview is withheld with a named reason, `diagnose` says exactly where to grant them, and revoking them takes effect on the next call (`mac_worker`, `agent.diagnose`); a real Mac is qualification |
 | 133 | QUALIFICATION-ONLY | QUALIFICATION-ONLY; harness BUILDS | Harness: the macOS package workflow and `check_frozen.py` on Intel and Apple Silicon; owner-directed run deferred |
-| 134 | CODE | NOT CODED | C6 |
-| 135 | CODE | NOT CODED | C6 |
+| 134 | CODE (optional, O1) | NOT CODED | W14: Linux is optional and never blocks release (O1); Linux is offered no desktop control (`discovery.engines`), so nothing claims it |
+| 135 | CODE (optional, O1) | NOT CODED | W14: Linux is optional and never blocks release (O1); Linux is offered no desktop control (`discovery.engines`), so nothing claims it |
 | 138 | STANDING | STANDING | Reclassified: a rule on what may be claimed (no OS support before representative hardware passes); checked at every gate |
 | 139 | CODE | BUILDS | C8: installed browsers and their profiles are discovered, never assumed (`discovery.browsers`, `_profiles`; `test_fs_ops.py` BrowserDiscovery); JARVIS acts in its own bundled browser profile |
 | 140 | CODE | BUILDS | C8: actions run only in OCADE's own browser profile, the exact page id, its bound origin and an observation-scoped target (`_bound`, `_one`); every connection is pinned to a checked address (`4436082`); the person signs in there themselves, so no other browser session is ever used |
@@ -1702,7 +1709,7 @@ Coding status is kept separate from runtime verification (Appendix A), so nothin
 | 189 | CODE | BUILDS | C5, `543eeb1a` |
 | 190 | QUALIFICATION-ONLY | QUALIFICATION-ONLY; harness BUILDS | Reclassified: clean VMs and physical machines are qualification environments; the harness is `test_install.ps1` and `check_frozen.py` |
 | 191 | CODE | BUILDS | C10: `tests/stability.py` runs the real gateway and workers through repeated write, read, list, workbook and verify cycles, samples the process tree each cycle, and fails on memory, open-file or thread growth, a call past its bound (pipe hang), workers outliving the gateway, or runaway disk use; a 12-cycle run is in every gate (`test_stability.py`); the long run on target computers is qualification |
-| 192 | CODE | NOT CODED | C10 |
+| 192 | QUALIFICATION-ONLY | QUALIFICATION-ONLY; harness BUILDS | Reclassified: low memory, slow storage, limited bandwidth, unstable Wi-Fi and constrained accounts are test environments; the harness is `tests/stability.py` plus the outage and recovery suites |
 | 193 | CODE | BUILDS | C1: an unreachable computer or planner is a named waiting state, never success (`outage.test.ts`, `provider-errors.test.ts`); a lost response after dispatch is unknown and never repeated automatically (`test_agent.py`, `recovery.test.ts`); the companion reconnects on its own poll loop |
 | 194 | CODE | BUILDS | C10: `docs/TEST_MATRIX.md` (versioned) lists every OS, architecture, browser, display, permission and installation dimension with the job or test that covers it; `tests/security/test-matrix.test.ts` fails if a named file or job disappears |
 | 195 | CODE | BUILDS | C10: unit, protocol, integration, database, security, accessibility, browser, desktop UI, packaging, installer, performance, stability, disaster-recovery and fault-injection suites, each named in `docs/TEST_MATRIX.md` and run by the local and push gates or the manual jobs |
@@ -1740,11 +1747,11 @@ Coding status is kept separate from runtime verification (Appendix A), so nothin
 | 232 | STANDING | STANDING | Every gate |
 | 233 | STANDING | STANDING | Every gate |
 | 235 | STANDING | STANDING | Every gate |
-| 236 | CODE | NOT CODED | C0/C10 |
-| 237 | CODE | NOT CODED | C0/C10 |
-| 238 | CODE | NOT CODED | C0/C10 |
+| 236 | CODE | BUILDS | C0: Appendix E compares the code with every requirement, one row per ID with its entry point and test, and is kept current batch by batch |
+| 237 | CODE | BUILDS | C0/W12: one backlog: Appendix D for defects, Appendix E for coding state; the stale `HANDOFF-CODEX.md` second backlog is removed |
+| 238 | CODE | BUILDS | C0: each defect row records severity, cause, evidence (reproduction or failing test), status with commit, and package; each coding row records the entry point, caller and test location |
 | 242 | STANDING | STANDING | Every gate |
-| 243 | CODE | NOT CODED | W12 |
+| 243 | CODE | BUILDS | W12: removed the unused operation shortlist (about 160 lines and its tests; production uses the capability-filtered list), the never-imported `src/lib/error-capture.ts`, the stale `HANDOFF-CODEX.md`, and 52 MB of media from the working tree (kept in history, `evidence/LARGE_FILES.md`); dead-code scans (TypeScript unused locals and parameters, `vulture` on the companion, unreferenced exports and packages) find nothing else |
 | 247 | STANDING | STANDING | Every gate |
 | 255 | STANDING | STANDING | Every gate |
 | 259 | QUALIFICATION-ONLY | QUALIFICATION-ONLY; harness NOT CODED | COM; harness audit in C10, owner-directed run deferred |
@@ -1886,3 +1893,5 @@ The existing `tests.run_required.main` loads selected modules/classes/methods or
 **C6 planner and targeting audit (28, 29, 46, 54, 56, 57, 60, 62, 63) — BUILDS (local gate green; hosted run recorded on push).** New: the browser reports and dismisses a site's alert, confirm and prompt dialogs instead of letting them pass unseen.
 
 **C8 website audit (148, 152, 153, 156, 159; 157 reclassified STANDING) — BUILDS (local gate green; hosted run recorded on push).** New: a first-visit script budget in the surface audit. 146, 147, 155 and 160 stay open.
+
+**C0/W12 ledger, defect register and deep debloat (10, 13, 236–238, 243; 192 reclassified QUALIFICATION-ONLY) — BUILDS (local gate green; hosted run recorded on push).** Appendix D statuses corrected for defects already fixed in code, and this session's defects recorded (D30–D35).

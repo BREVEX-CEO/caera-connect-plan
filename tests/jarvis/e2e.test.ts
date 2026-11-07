@@ -679,7 +679,7 @@ test(
           ),
       };
     };
-    // The request names the chart, so looking at it is a real need (the shortlist ranks by need).
+    // The request names the chart, so looking at it is a real need.
     const objective = "Summarise status.txt and what chart.png shows into a Word note";
     try {
       // No consent: the service refuses with the exact message the page answers by asking;
