@@ -54,7 +54,6 @@ analysis = Analysis(
     pathex=[ROOT],
     datas=[
         (os.path.join(ROOT, "ocade_agent", "protocol.json"), "ocade_agent"),
-        (str(BROWSERS), "playwright-browsers"),
     ]
     # The Word and PowerPoint libraries build new files from their own bundled templates.
     + collect_data_files("docx")
@@ -73,6 +72,27 @@ leaked = sorted({entry[0] for entry in analysis.pure + analysis.binaries
                  if entry[0].split(".")[0] in ("pymsgbox", "mouseinfo")})
 if leaked:
     raise SystemExit(f"GPL modules would ship in the installer: {leaked}")
+
+def untouched(root: Path, prefix: str) -> list:
+    """Files as data and links as links, so the copy is the vendor's tree exactly."""
+    entries = []
+    for folder, folders, files in os.walk(root):
+        for name in folders + files:
+            source = Path(folder, name)
+            dest = str(Path(prefix, source.relative_to(root)))
+            if source.is_symlink():
+                entries.append((dest, os.readlink(source), "SYMLINK"))
+            elif source.is_file():
+                entries.append((dest, str(source), "DATA"))
+        folders[:] = [name for name in folders if not Path(folder, name).is_symlink()]
+    return entries
+
+
+# The bundled Chromium is copied exactly as its vendor built and signed it: added after the
+# analysis, it gets no dependency analysis, no library-path rewriting and no re-signing of its
+# executables one by one (which macOS refuses for a binary inside the browser's own .app), and
+# its frameworks keep their symbolic links.
+browser = untouched(BROWSERS, "playwright-browsers")
 pyz = PYZ(analysis.pure, cipher=block_cipher)
 common = dict(debug=False, strip=False, upx=False)
 if sys.platform == "win32":
@@ -80,8 +100,8 @@ if sys.platform == "win32":
 console = EXE(pyz, analysis.scripts, [], exclude_binaries=True, name="ocade-agent", console=True, **common)
 if sys.platform == "win32":
     background = EXE(pyz, analysis.scripts, [], exclude_binaries=True, name="ocade-agent-bg", console=False, **common)
-    COLLECT(console, background, analysis.binaries, analysis.datas, name="OCADE JARVIS")
+    COLLECT(console, background, analysis.binaries, analysis.datas, browser, name="OCADE JARVIS")
 else:
-    contents = COLLECT(console, analysis.binaries, analysis.datas, name="OCADE JARVIS")
+    contents = COLLECT(console, analysis.binaries, analysis.datas, browser, name="OCADE JARVIS")
     BUNDLE(contents, name="OCADE JARVIS.app", bundle_identifier="in.ocade.jarvis.companion",
            info_plist={"CFBundleShortVersionString": "0.1.0", "CFBundleVersion": "0.1.0"})
