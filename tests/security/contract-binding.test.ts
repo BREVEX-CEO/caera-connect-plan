@@ -122,6 +122,33 @@ test("changing the file a check reads to make it pass is refused", async (t) => 
   assert.equal(allowed.kind, "queue", JSON.stringify(allowed));
 });
 
+test("changing an image comparison's source to match the edit is refused", async (t) => {
+  const state = await provider(t);
+  const source = `photo-${crypto.randomUUID().slice(0, 8)}.png`;
+  const compares: OutcomeCheck = {
+    id: "only_sky",
+    description: "Only the sky is brighter",
+    kind: "image_changed_within",
+    params: { path: "OCADE output/bright.png", source },
+  };
+  const bend: Proposal = {
+    name: "fs_manage",
+    arguments: { action: "trash", path: source },
+  };
+  state.next.push(bend, bend);
+  const refused = await planStep({
+    userId: "u",
+    checks: [compares],
+    grants: ["files"],
+    steps: [],
+    now: new Date("2026-11-02T00:00:00Z"),
+    turnKey: "image-binding",
+    objective: `Make the sky in ${source} brighter and save it as a new file`,
+  });
+  assert.notEqual(refused.kind, "queue", JSON.stringify(refused));
+  assert.match(state.prompts.at(-1)!, /what check only_sky reads/);
+});
+
 test("one rejected goal is answered with the reason and asked once more", async (t) => {
   const state = await provider(t);
   const goal = (checks: unknown) => ({ name: "set_goal", arguments: { checks } });

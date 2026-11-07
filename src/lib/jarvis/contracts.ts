@@ -1239,6 +1239,8 @@ export const outcomeCheck = z.object({
       "local_service_answers",
       "command_succeeds",
       "changes_within",
+      "workbook_range_equals",
+      "image_changed_within",
     ])
     .optional()
     .describe(
@@ -1257,8 +1259,12 @@ export const outcomeCheck = z.object({
         "(and the text, when given); command_succeeds {command,text?}: a repaired script or program, re-run by the " +
         "verifier in a throwaway copy of the folder, exits 0 (and prints the text): only a command the person " +
         "confirmed with shell.run in this task; changes_within {path,value}: an edited file differs from the " +
-        "original OCADE kept of it in at most value paragraphs (Word), cells (Excel) or lines (text), so " +
-        "nothing unrelated was damaged",
+        "original OCADE kept of it in at most value paragraphs (Word), cells (Excel) or lines (text), counting " +
+        "changed formatting too, so nothing unrelated was damaged; workbook_range_equals {path,sheet,range,values}: " +
+        "every cell of an A1 range (at most 400 cells) has the row-by-row values, formulas recalculated by a real " +
+        "spreadsheet engine on a private copy, null for an empty cell; image_changed_within {path,source,region?}: " +
+        "the edited image visibly differs from the source image inside region {x,y,width,height} (the whole image " +
+        "when omitted) and is unchanged outside it",
     ),
   params: z
     .strictObject({
@@ -1277,10 +1283,46 @@ export const outcomeCheck = z.object({
       headings: z.array(z.string().min(1).max(200)).min(1).max(20).optional(),
       port: z.int().min(1024).max(65535).optional(),
       command: z.string().min(1).max(4000).optional(),
+      range: z
+        .string()
+        .regex(/^[A-Z]{1,3}[0-9]{1,7}:[A-Z]{1,3}[0-9]{1,7}$/)
+        .optional(),
+      values: z
+        .array(
+          z
+            .array(z.union([z.string().max(500), z.number(), z.null()]))
+            .min(1)
+            .max(400),
+        )
+        .min(1)
+        .max(400)
+        .optional(),
+      source: workspacePath.optional(),
+      region: z
+        .strictObject({
+          x: z.int().min(0).max(16383),
+          y: z.int().min(0).max(16383),
+          width: z.int().min(1).max(16384),
+          height: z.int().min(1).max(16384),
+        })
+        .optional(),
     })
     .optional(),
 });
 export type OutcomeCheck = z.infer<typeof outcomeCheck>;
+
+/** Rows and columns of an A1 range such as "B2:D10"; reversed corners count the same. */
+function rangeShape(range: string): [number, number] {
+  const [a, b] = range.split(":").map((corner) => {
+    const [, letters, digits] = /^([A-Z]+)([0-9]+)$/.exec(corner)!;
+    const column = [...letters].reduce(
+      (total, letter) => total * 26 + letter.charCodeAt(0) - 64,
+      0,
+    );
+    return [Number(digits), column];
+  });
+  return [Math.abs(a[0] - b[0]) + 1, Math.abs(a[1] - b[1]) + 1];
+}
 
 /** New task acceptance rules must be executable and independently distinguishable. */
 export const taskChecks = z
@@ -1306,6 +1348,8 @@ export const taskChecks = z
       image_size: ["path", "width", "height"],
       scene_render: ["path"],
       changes_within: ["path", "value"],
+      workbook_range_equals: ["path", "sheet", "range", "values"],
+      image_changed_within: ["path", "source"],
     } as const;
     for (const [index, check] of checks.entries()) {
       if (ids.has(check.id))
@@ -1327,6 +1371,24 @@ export const taskChecks = z
           path: [index, "params", "value"],
           message: "duration must be a nonnegative number",
         });
+      if (
+        check.kind === "workbook_range_equals" &&
+        /^[A-Z]{1,3}[0-9]{1,7}:[A-Z]{1,3}[0-9]{1,7}$/.test(check.params.range ?? "") &&
+        Array.isArray(check.params.values)
+      ) {
+        const [rows, columns] = rangeShape(check.params.range as string);
+        const values = check.params.values;
+        if (
+          rows * columns > 400 ||
+          values.length !== rows ||
+          values.some((row) => !Array.isArray(row) || row.length !== columns)
+        )
+          context.addIssue({
+            code: "custom",
+            path: [index, "params", "values"],
+            message: "values must give every cell of the range, row by row, at most 400 cells",
+          });
+      }
       if (
         check.kind === "changes_within" &&
         !(Number.isInteger(check.params.value) && (check.params.value as number) >= 0)

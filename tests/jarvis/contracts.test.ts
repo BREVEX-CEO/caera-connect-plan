@@ -564,3 +564,113 @@ test("a change-scope check needs a file and a whole, nonnegative count", async (
   for (const bad of [-1, 1.5, "1", undefined])
     assert.equal(taskChecks.safeParse(check(bad)).success, false, String(bad));
 });
+
+test("a range check gives every cell of its range, at most 400 cells", async () => {
+  const { taskChecks } = await import("../../src/lib/jarvis/contracts.ts");
+  const check = (range: string, values: unknown) => [
+    {
+      id: "totals",
+      description: "Totals match",
+      kind: "workbook_range_equals",
+      params: { path: "a.xlsx", sheet: "S", range, values },
+    },
+  ];
+  assert.equal(
+    taskChecks.safeParse(
+      check("B2:C3", [
+        [1, "x"],
+        [null, 2.5],
+      ]),
+    ).success,
+    true,
+  );
+  assert.equal(
+    taskChecks.safeParse(
+      check("C3:B2", [
+        [1, 2],
+        [3, 4],
+      ]),
+    ).success,
+    true,
+    "corners in any order",
+  );
+  for (const [range, values] of [
+    ["B2:C3", [[1, 2]]],
+    ["B2:C3", [[1], [2]]],
+    ["A1:A401", Array.from({ length: 401 }, () => [1])],
+    ["B2", [[1]]],
+    [
+      "B2:C3",
+      [
+        [1, true],
+        [2, 3],
+      ],
+    ],
+  ] as const)
+    assert.equal(
+      taskChecks.safeParse(check(range, values)).success,
+      false,
+      `${range} ${JSON.stringify(values)}`,
+    );
+});
+
+test("an image comparison names its source and an optional region inside the image", async () => {
+  const { taskChecks } = await import("../../src/lib/jarvis/contracts.ts");
+  const check = (params: Record<string, unknown>) => [
+    { id: "logo", description: "Only the logo changed", kind: "image_changed_within", params },
+  ];
+  assert.equal(
+    taskChecks.safeParse(check({ path: "OCADE output/b.png", source: "a.png" })).success,
+    true,
+  );
+  assert.equal(
+    taskChecks.safeParse(
+      check({
+        path: "OCADE output/b.png",
+        source: "a.png",
+        region: { x: 0, y: 0, width: 10, height: 5 },
+      }),
+    ).success,
+    true,
+  );
+  assert.equal(
+    taskChecks.safeParse(check({ path: "OCADE output/b.png" })).success,
+    false,
+    "source is required",
+  );
+  assert.equal(
+    taskChecks.safeParse(
+      check({ path: "b.png", source: "a.png", region: { x: 0, y: 0, width: 0, height: 5 } }),
+    ).success,
+    false,
+  );
+  assert.equal(
+    taskChecks.safeParse(
+      check({ path: "b.png", source: "a.png", region: { x: 0, y: 0, width: 1, height: 1, z: 1 } }),
+    ).success,
+    false,
+    "a region has exactly its four fields",
+  );
+});
+
+test("a check that cannot apply asks the person instead of sending the work back", async () => {
+  const { invalidChecks } = await import("../../src/lib/jarvis/planner.server.ts");
+  const checks = [
+    { id: "a", description: "Totals", kind: "workbook_cell_equals", params: { path: "a.csv" } },
+    { id: "b", description: "Saved", kind: "file_exists", params: { path: "b.txt" } },
+  ] as never;
+  assert.equal(
+    invalidChecks(checks, { predicates: { a: false, b: true } }),
+    null,
+    "a false is defective work",
+  );
+  const question = invalidChecks(checks, {
+    predicates: { a: "invalid", b: true },
+    measured: { a: { invalid: "workbook_cell_equals reads .xlsx or .xlsm workbooks" } },
+  });
+  assert.match(
+    question ?? "",
+    /"Totals" \(workbook_cell_equals reads \.xlsx or \.xlsm workbooks\)/,
+  );
+  assert.match(question ?? "", /ask again/);
+});

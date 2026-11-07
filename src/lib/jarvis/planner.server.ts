@@ -850,7 +850,9 @@ export async function compileGoal(
       rejected = "A check needs an app or site that is not in `allowed`.";
     } else {
       const outside = parsed.data.checks.find(
-        (check) => check.params?.path && !bound(check.params.path),
+        (check) =>
+          (check.params?.path && !bound(check.params.path)) ||
+          (check.params?.source && !bound(check.params.source)),
       );
       if (!outside) {
         try {
@@ -970,6 +972,19 @@ export function previewAttachments(steps: Step[]) {
 
 /** One planning turn for a model-planned task. */
 /** Operations the planner may choose: granted, and runnable with the engines the device reported. */
+/** The person-facing question for checks the verifier said cannot apply, or null. */
+export function invalidChecks(checks: OutcomeCheck[], verified: Record<string, unknown>) {
+  const predicates = (verified.predicates ?? {}) as Record<string, unknown>;
+  const measured = (verified.measured ?? {}) as Record<string, { invalid?: unknown }>;
+  const wrong = checks.filter((check) => predicates[check.id] === "invalid");
+  if (!wrong.length) return null;
+  const reasons = wrong.map((check) => {
+    const why = measured[check.id]?.invalid;
+    return `"${check.description}" (${typeof why === "string" ? why.slice(0, 160) : "it does not fit this result"})`;
+  });
+  return `The way this result is checked does not fit the work: ${reasons.join("; ")}. Stop this task and ask again, saying how the result should be checked.`;
+}
+
 export function offeredOperations(grants: string[], engines: string[] | null) {
   return (Object.keys(OPERATIONS) as Operation[]).filter((name) => {
     const spec: { capability: string; engine?: string } = OPERATIONS[name];
@@ -1138,6 +1153,10 @@ export async function planStep(input: {
       ? evidenceOf([last], "verify.checks")
       : undefined;
   if (verified) {
+    // A check that cannot apply to this kind of result is a wrong condition, not defective
+    // work (69): repairing the work cannot satisfy it, so the person is asked instead.
+    const invalid = invalidChecks(checks, verified);
+    if (invalid) return { kind: "wait", reason: invalid };
     const verification = settleChecks(checks, verified);
     const ok = verification.failed.length === 0 && verification.unverified.length === 0;
     const attempts = phaseSteps.filter((step) => step.intent.operation === "verify.checks").length;
@@ -1286,8 +1305,11 @@ export async function planStep(input: {
         typeof fields.path === "string"
           ? workspacePathKey(fields.path)
           : null;
-      for (const check of allChecks) {
-        const path = check.params?.path;
+      // A comparison's source image is read by its check too, so it is fenced the same way.
+      for (const check of allChecks.flatMap((check) =>
+        [check.params?.path, check.params?.source].map((path) => ({ ...check, path })),
+      )) {
+        const path = check.path;
         if (!path) continue;
         const source = workspacePathKey(path);
         if (

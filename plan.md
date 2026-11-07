@@ -1599,11 +1599,11 @@ Coding status is kept separate from runtime verification (Appendix A), so nothin
 | 66 | CODE | NOT CODED | C1/C7 |
 | 67 | CODE | NOT CODED | C1/C7 |
 | 68 | CODE | NOT CODED | C7: `changes_within` catches unrelated edits against the kept original `c8c6123`; source-mutation fences exist; remaining gaming paths to audit |
-| 69 | CODE | NOT CODED | C1/C7 |
+| 69 | CODE | BUILDS | C7: a check that cannot apply to the result (wrong file kind, wrong range shape, region outside the image, a format `changes_within` cannot compare) is `invalid`, not failed work (`verify_worker._invalid`); `planStep` → `invalidChecks` makes the task wait and ask instead of sending the work back for repair |
 | 70 | CODE | NOT CODED | C7: formula recalculation `5f6db4d`; application-level semantics for other formats remain |
-| 71 | CODE | NOT CODED | C7: formulas recalculated by a real engine on a private copy `5f6db4d`; range and structure checks remain |
-| 72 | CODE | NOT CODED | C7: paragraph and slide-text preservation measured by `changes_within` `c8c6123`; layout and style checks remain |
-| 73 | CODE | NOT CODED | C7/C9 |
+| 71 | CODE | BUILDS | C7: formulas recalculated by a real engine on a private copy `5f6db4d`, now also for single cells (`workbook_cell_equals`, never the saved result) and ranges (`workbook_range_equals` {path,sheet,range,values}, ≤400 cells, row-by-row values, structure such as header rows): `_workbook_grid` |
+| 72 | CODE | BUILDS | C7: structure (`document_headings`), contents (`file_contains`, PDF rendered with no blank page), preservation of requested formatting (`changes_within` now compares style, weight, italics, underline, size and font per paragraph and number formats per cell: `_formatted`) |
+| 73 | CODE | BUILDS | C7: file properties (`image_size`), decoded render (`scene_render`, passive formats), requested visible change and nothing else (`image_changed_within` {path,source,region?}: pixels visibly changed inside the region, ≤0.2% stray outside, size kept); the source is fenced against edits like any checked file (`planStep`) |
 | 74 | CODE | NOT CODED | C7/C9 |
 | 75 | CODE | NOT CODED | C7: re-run contained (bubblewrap / user namespace / sandbox-exec / copy) `5f6db4d`; Windows has only the copy |
 | 76 | CODE | NOT CODED | C6 |
@@ -1718,7 +1718,7 @@ Coding status is kept separate from runtime verification (Appendix A), so nothin
 | 208 | CODE | NOT CODED | C10 |
 | 209 | QUALIFICATION-ONLY | QUALIFICATION-ONLY; harness NOT CODED | RPC; harness audit in C10, owner-directed run deferred |
 | 210 | CODE | NOT CODED | C10 |
-| 211 | CODE | NOT CODED | C7: unrelated edits and damaged formulas caught by `changes_within` `c8c6123`, recalculated values `5f6db4d`; formatting damage remains |
+| 211 | CODE | BUILDS | C7: incorrect values (recalculated cells and ranges), missing content (`file_contains`, ranges), damaged formatting and unrelated edits (`changes_within` with formatting), altered checked inputs refused (`planStep` fence); the actor writes only new files under OCADE output or in-place repairs with kept originals |
 | 212 | CODE | NOT CODED | C9 |
 | 214 | CODE | BUILDS | `scripts/launch-readiness.mjs` computes the ten-milestone score from `evidence/readiness/gates.json` (`npm run readiness`, in the coding gate) |
 | 215 | QUALIFICATION-ONLY | QUALIFICATION-ONLY; harness BUILDS (`npm run readiness`) | Reclassified: the repository baseline milestone is earned only by qualification evidence; its code items are tracked under their own IDs |
@@ -1866,3 +1866,5 @@ The existing `tests.run_required.main` loads selected modules/classes/methods or
 **Reclassification (7 November 2026):** 3, 205 and 215–224 are milestone or threshold results and move to QUALIFICATION-ONLY; 138 is a claim rule and moves to STANDING; 214 (the score itself) is coded. No requirement was removed or changed; each still needs its qualification evidence.
 
 **C9 sessions, injection, threats, privacy and crash reports (162, 169, 170, 175, 177) — BUILDS (local gate green; hosted run recorded on push).** New: `src/lib/security/session-standing.ts` (the decision moved out of the middleware so it is testable), migration `20261107075756_signed_out_visitors_call_no_account_functions` with rollback (anonymous callers lost two account-function grants), external MCP output redaction, the download internet mark, local crash reports. **Staging prerequisite:** apply `20261107075756` with the other new migrations before qualification.
+
+**C7 range, image and formatting checks; invalid conditions (69, 71, 72, 73, 211) — BUILDS (local gate green; hosted run recorded on push).** New check kinds `workbook_range_equals` and `image_changed_within` (contracts, protocol, `verify_worker`, migration `20261107080533_verifier_checks_ranges_and_image_changes` with rollback). `workbook_cell_equals` no longer trusts a formula's saved result. **Staging prerequisite:** apply `20261107080533`.

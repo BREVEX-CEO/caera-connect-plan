@@ -105,6 +105,8 @@ def _check(kind: str, params: dict, notes: dict) -> bool | None:
             return False
         if kind == "file_exists":
             return path.stat().st_size > 0
+        if kind == "workbook_cell_equals" and path.suffix.lower() not in WORKBOOKS:
+            return _invalid(notes, "workbook_cell_equals reads .xlsx or .xlsm workbooks")
         if kind == "file_contains":
             text = _text(path)
             if text is None:
@@ -113,23 +115,36 @@ def _check(kind: str, params: dict, notes: dict) -> bool | None:
             wanted, found = (" ".join(t.split()).casefold() for t in (params.get("text", "\0"), text))
             # A PDF must also render with no blank page, not merely carry the words.
             return bool(wanted) and wanted in found and (path.suffix.lower() != ".pdf" or _pdf_renders(path))
-        try:
-            value = openpyxl.load_workbook(path, data_only=True)[params["sheet"]][params["cell"]].value
-        except Exception:
-            return False
-        expected = params.get("value")
-        # Excel booleans are not numbers, and text/number coercion can turn
-        # an incorrect result into a passing acceptance predicate.
-        if type(expected) in (int, float):
-            return type(value) in (int, float) and abs(value - expected) < TOLERANCE
-        return isinstance(expected, str) and isinstance(value, str) and value == expected
-    if kind in ("script_runnable", "workbook_formula", "document_headings", "changes_within"):
+        grid = _workbook_grid(path, params["sheet"], f"{params['cell']}:{params['cell']}", notes)
+        if not isinstance(grid, list):
+            return grid
+        return _same(params.get("value"), grid[0][0])
+    if kind in ("script_runnable", "workbook_formula", "document_headings", "changes_within",
+                "workbook_range_equals", "image_changed_within"):
         try:
             path = resolve(WORKSPACE, params["path"])
         except (Refused, KeyError):
             return False
         if not path.is_file():
             return False
+        if kind in ("workbook_formula", "workbook_range_equals") and path.suffix.lower() not in WORKBOOKS:
+            return _invalid(notes, f"{kind} reads .xlsx or .xlsm workbooks")
+        if kind == "document_headings" and path.suffix.lower() not in (".docx", ".pptx"):
+            return _invalid(notes, "document_headings reads Word .docx documents or PowerPoint .pptx decks")
+        if kind == "workbook_range_equals":
+            grid = _workbook_grid(path, params.get("sheet"), params.get("range"), notes)
+            if not isinstance(grid, list):
+                return grid
+            expected = params.get("values")
+            if (not isinstance(expected, list) or len(expected) != len(grid)
+                    or any(not isinstance(row, list) or len(row) != len(found) for row, found in zip(expected, grid))):
+                return _invalid(notes, "the expected values do not have the shape of the range")
+            wrong = [f"row {r + 1} column {c + 1}" for r, row in enumerate(grid) for c, value in enumerate(row)
+                     if not _same(expected[r][c], value)]
+            notes["mismatched"] = wrong[:5]
+            return not wrong
+        if kind == "image_changed_within":
+            return _image_changed_within(path, params, notes)
         if kind == "changes_within":
             return _changes_within(path, params, notes)
         if kind == "script_runnable":
@@ -460,27 +475,64 @@ def _script_runnable(path: Path, notes: dict) -> bool | None:
     return not problems
 
 
-def _workbook_formula(path: Path, params: dict, notes: dict) -> bool | None:
-    """The cell holds a formula (the workbook stays editable), and a real spreadsheet engine,
-    recalculating a private copy, gets the expected value. The saved result is never trusted:
-    it can be stale or forged. Without an engine the value is unobservable (None)."""
-    def cell(source: Path, data_only: bool):
-        book = openpyxl.load_workbook(source, data_only=data_only, read_only=True, keep_links=False)
-        try:
-            return book[params["sheet"]][params["cell"]].value
-        finally:
-            book.close()
+WORKBOOKS = (".xlsx", ".xlsm")
+RANGE_CELLS = 400
+
+
+def _invalid(notes: dict, reason: str) -> str:
+    """The check itself cannot apply to this file: a wrong condition, not defective work (69)."""
+    notes["invalid"] = reason
+    return "invalid"
+
+
+def _same(expected, value) -> bool:
+    """Excel booleans are not numbers, and text/number coercion can turn an incorrect result
+    into a passing acceptance predicate; null expects an empty cell."""
+    if expected is None:
+        return value is None or value == ""
+    if type(expected) in (int, float):
+        return type(value) in (int, float) and abs(value - expected) < TOLERANCE
+    return isinstance(expected, str) and isinstance(value, str) and value == expected
+
+
+def _grid(source: Path, sheet: str, area: str, data_only: bool) -> list[list]:
+    from openpyxl.utils.cell import range_boundaries
+
+    low_column, low_row, high_column, high_row = range_boundaries(area)
+    book = openpyxl.load_workbook(source, data_only=data_only, read_only=True, keep_links=False)
+    try:
+        rows = book[sheet].iter_rows(min_row=low_row, max_row=high_row, min_col=low_column,
+                                     max_col=high_column, values_only=True)
+        width = high_column - low_column + 1
+        grid = [list(row) + [None] * (width - len(row)) for row in rows]
+        return grid + [[None] * width for _ in range(high_row - low_row + 1 - len(grid))]
+    finally:
+        book.close()
+
+
+def _workbook_grid(path: Path, sheet, area, notes: dict) -> list[list] | bool | str | None:
+    """The values of a range as a person sees them. Typed values are read as written; when any
+    cell holds a formula, a real spreadsheet engine recalculates a private copy and its results
+    are read. The saved result of a formula is never trusted: it can be stale or forged.
+    Without an engine a formula's value is unobservable (None)."""
+    from openpyxl.utils.cell import range_boundaries
 
     try:
-        formula = cell(path, False)
+        low_column, low_row, high_column, high_row = range_boundaries(str(area))
+    except (TypeError, ValueError):
+        return _invalid(notes, "not an A1 range")
+    if (high_column - low_column + 1) * (high_row - low_row + 1) > RANGE_CELLS:
+        return _invalid(notes, f"a range of at most {RANGE_CELLS} cells")
+    try:
+        written = _grid(path, sheet, area, False)
+    except KeyError:
+        notes["error"] = f"the workbook has no sheet named {sheet}"
+        return False
     except Exception:
+        notes["error"] = "the workbook could not be read"
         return False
-    if not (isinstance(formula, str) and formula.startswith("=")):
-        notes["error"] = "a typed-in value, not a formula"
-        return False
-    expected = params.get("value")
-    if expected is None:
-        return True
+    if not any(isinstance(value, str) and value.startswith("=") for row in written for value in row):
+        return written
     from .engine import office_available, recalculate
 
     if not office_available():
@@ -491,14 +543,77 @@ def _workbook_formula(path: Path, params: dict, notes: dict) -> bool | None:
         shutil.copyfile(path, copy)
         try:
             notes["engine"] = recalculate(copy)
-            result = cell(copy, True)
+            grid = _grid(copy, sheet, area, True)
         except Exception:
             notes["error"] = "the spreadsheet engine could not recalculate a copy"
             return None
-    notes["recalculated"] = result if isinstance(result, (int, float, str)) else None
-    if type(expected) in (int, float):
-        return type(result) in (int, float) and abs(result - expected) < TOLERANCE
-    return isinstance(result, str) and result == expected
+    notes["recalculated"] = [[value if isinstance(value, (int, float, str)) else None for value in row]
+                             for row in grid][:5]
+    return grid
+
+
+def _workbook_formula(path: Path, params: dict, notes: dict) -> bool | str | None:
+    """The cell holds a formula (the workbook stays editable), and a real spreadsheet engine,
+    recalculating a private copy, gets the expected value."""
+    try:
+        formula = _grid(path, params["sheet"], f"{params['cell']}:{params['cell']}", False)[0][0]
+    except Exception:
+        return False
+    if not (isinstance(formula, str) and formula.startswith("=")):
+        notes["error"] = "a typed-in value, not a formula"
+        return False
+    expected = params.get("value")
+    if expected is None:
+        return True
+    grid = _workbook_grid(path, params["sheet"], f"{params['cell']}:{params['cell']}", notes)
+    if not isinstance(grid, list):
+        return grid
+    notes["recalculated"] = notes.get("recalculated", [[None]])[0][0]
+    return _same(expected, grid[0][0])
+
+
+VISIBLE = 24  # per-pixel brightness difference (of 255) a person notices
+STRAY_ALLOWED = 0.002  # share of pixels outside the region that may differ (re-encoding noise)
+
+
+def _image_changed_within(path: Path, params: dict, notes: dict) -> bool | str | None:
+    """The edited image visibly differs from its source inside the region (the whole image when
+    none is given) and is unchanged outside it, measured on decoded pixels, not file bytes."""
+    from PIL import Image, ImageChops
+
+    try:
+        source = resolve(WORKSPACE, params["source"])
+    except (Refused, KeyError):
+        return False
+    if not source.is_file():
+        notes["error"] = "the source image is missing"
+        return False
+    try:
+        with Image.open(path, formats=PASSIVE_IMAGE_FORMATS) as edited, \
+                Image.open(source, formats=PASSIVE_IMAGE_FORMATS) as original:
+            after, before = edited.convert("RGB"), original.convert("RGB")
+    except Exception:
+        notes["error"] = "an image could not be decoded"
+        return False
+    if after.size != before.size:
+        notes["error"] = f"size changed from {before.size[0]}x{before.size[1]} to {after.size[0]}x{after.size[1]}"
+        return False
+    width, height = after.size
+    region = params.get("region") or {"x": 0, "y": 0, "width": width, "height": height}
+    box = (region["x"], region["y"], min(width, region["x"] + region["width"]),
+           min(height, region["y"] + region["height"]))
+    if box[0] >= width or box[1] >= height:
+        return _invalid(notes, "the region lies outside the image")
+    changed = ImageChops.difference(after, before).convert("L").point(lambda level: 255 if level > VISIBLE else 0)
+    inside = changed.crop(box).histogram()[255]
+    total = changed.histogram()[255]
+    outside_pixels = width * height - (box[2] - box[0]) * (box[3] - box[1])
+    notes["changedInside"] = inside
+    notes["changedOutside"] = total - inside
+    if inside == 0:
+        notes["error"] = "no visible change where it was asked for"
+        return False
+    return outside_pixels == 0 or (total - inside) <= STRAY_ALLOWED * outside_pixels
 
 
 CHANGE_FILE_LIMIT = 20_000_000  # bytes per side compared by changes_within
@@ -510,19 +625,21 @@ def _units(path: Path) -> tuple[str, list[str] | dict[str, str]]:
     suffix = path.suffix.lower()
     if suffix == ".docx":
         document = Document(io.BytesIO(path.read_bytes()))
-        parts = [p.text for p in document.paragraphs]
-        parts += [cell.text for table in document.tables for row in table.rows for cell in row.cells]
+        parts = [_formatted(p) for p in document.paragraphs]
+        parts += [" | ".join(_formatted(p) for p in cell.paragraphs)
+                  for table in document.tables for row in table.rows for cell in row.cells]
         return "paragraph", parts
     if suffix == ".pptx":
         from pptx import Presentation
 
         deck = Presentation(io.BytesIO(path.read_bytes()))
-        return "slide text", [shape.text_frame.text for slide in deck.slides for shape in slide.shapes
-                              if shape.has_text_frame]
+        return "slide text", [" | ".join(_formatted(p) for p in shape.text_frame.paragraphs)
+                              for slide in deck.slides for shape in slide.shapes if shape.has_text_frame]
     if suffix in (".xlsx", ".xlsm"):
         book = openpyxl.load_workbook(io.BytesIO(path.read_bytes()), read_only=True, keep_links=False)
         try:
-            return "cell", {f"{sheet.title}!{cell.coordinate}": repr(cell.value)
+            return "cell", {f"{sheet.title}!{cell.coordinate}":
+                            f"{cell.value!r} {cell.number_format} b={cell.font.b} i={cell.font.i}"
                             for sheet in book.worksheets for row in sheet.iter_rows() for cell in row
                             if cell.value is not None}
         finally:
@@ -530,7 +647,28 @@ def _units(path: Path) -> tuple[str, list[str] | dict[str, str]]:
     return "line", path.read_bytes().decode("utf-8").splitlines()
 
 
-def _changes_within(path: Path, params: dict, notes: dict) -> bool | None:
+def _formatted(paragraph) -> str:
+    """A paragraph's text with its style and character formatting, so a changed font, size,
+    weight or style counts as a change. Adjacent runs that look the same are merged, because
+    an editor may split runs without changing anything a person can see."""
+    def look(run) -> tuple:
+        font = run.font
+        size = font.size.pt if font.size is not None else None
+        return (font.bold, font.italic, font.underline, size, font.name)
+
+    merged: list[list] = []
+    for run in paragraph.runs:
+        if merged and merged[-1][0] == look(run):
+            merged[-1][1] += run.text
+        else:
+            merged.append([look(run), run.text])
+    style = getattr(getattr(paragraph, "style", None), "name", None) or ""
+    level = getattr(paragraph, "level", 0)
+    body = "".join(f"<{','.join(map(str, look_))}>{text}" for look_, text in merged if text)
+    return f"[{style}{level or ''}] {body}" if merged else f"[{style}{level or ''}] {paragraph.text}"
+
+
+def _changes_within(path: Path, params: dict, notes: dict) -> bool | str | None:
     """The edited file differs from the newest original OCADE kept of it (`OCADE output/originals`)
     in at most `value` units, so an edit did not damage unrelated content. Without a kept
     original the change scope is unobservable (None)."""
@@ -554,6 +692,8 @@ def _changes_within(path: Path, params: dict, notes: dict) -> bool | None:
     try:
         unit, before = _units(original)
         _, after = _units(path)
+    except UnicodeDecodeError:
+        return _invalid(notes, "changes_within compares Word, PowerPoint, Excel and text files")
     except Exception:
         notes["error"] = "the file or its original could not be read to compare"
         return False

@@ -223,6 +223,136 @@ class VerifierKinds(unittest.TestCase):
         self.assertIn('(subpath "/tmp/odd \\"name\\"")', profile.replace("/private", ""))
         self.assertIn("(deny file-write* (require-not", profile)
 
+    @unittest.skipUnless(office_available(), "needs a real office engine")
+    def test_a_single_cell_formula_is_recalculated_never_read_from_its_saved_result(self):
+        import re
+        import zipfile
+
+        book = openpyxl.Workbook()
+        book.active.title = "S"
+        book["S"]["A1"], book["S"]["A2"], book["S"]["A3"], book["S"]["B1"] = 2, 3, "=A1+A2", "Paid"
+        book.save(self.root / "plain.xlsx")
+        with zipfile.ZipFile(self.root / "plain.xlsx") as source, \
+                zipfile.ZipFile(self.root / "forged.xlsx", "w", zipfile.ZIP_DEFLATED) as target:
+            for item in source.infolist():
+                data = source.read(item)
+                if item.filename == "xl/worksheets/sheet1.xml":
+                    data = re.sub(rb"(<c r=\"A3\"[^>]*>)(<f>A1\+A2</f>)(<v>[^<]*</v>)?", rb"\1\2<v>999</v>", data)
+                target.writestr(item, data)
+        forged = check("workbook_cell_equals", path="forged.xlsx", sheet="S", cell="A3", value=999)
+        real = check("workbook_cell_equals", path="forged.xlsx", sheet="S", cell="A3", value=5)
+        typed = check("workbook_cell_equals", path="forged.xlsx", sheet="S", cell="B1", value="Paid")
+        evidence = self.verify(forged, real, typed)
+        self.assertEqual([evidence["predicates"][c["id"]] for c in (forged, real, typed)], [False, True, True])
+
+    def test_a_range_must_hold_every_expected_value(self):
+        book = openpyxl.Workbook()
+        book.active.title = "S"
+        for row in (["Region", "Total"], ["North", 10], ["South", 12.5]):
+            book["S"].append(row)
+        book.save(self.root / "r.xlsx")
+        (self.root / "r.csv").write_text("Region,Total\n")
+        right = check("workbook_range_equals", path="r.xlsx", sheet="S", range="A1:B3",
+                      values=[["Region", "Total"], ["North", 10], ["South", 12.5]])
+        wrong = check("workbook_range_equals", path="r.xlsx", sheet="S", range="A1:B3",
+                      values=[["Region", "Total"], ["North", 10], ["South", 13]])
+        empty = check("workbook_range_equals", path="r.xlsx", sheet="S", range="C1:C2", values=[[None], [None]])
+        shape = check("workbook_range_equals", path="r.xlsx", sheet="S", range="A1:B2", values=[["Region"]])
+        missing = check("workbook_range_equals", path="r.xlsx", sheet="Nope", range="A1:A1", values=[["x"]])
+        csv = check("workbook_range_equals", path="r.csv", sheet="S", range="A1:A1", values=[["Region"]])
+        evidence = self.verify(right, wrong, empty, shape, missing, csv)
+        found = [evidence["predicates"][c["id"]] for c in (right, wrong, empty, shape, missing, csv)]
+        self.assertEqual(found, [True, False, True, "invalid", False, "invalid"])
+        self.assertEqual(evidence["measured"][wrong["id"]]["mismatched"], ["row 3 column 2"])
+        self.assertIn("no sheet named Nope", evidence["measured"][missing["id"]]["error"])
+        self.assertIn(".xlsx", evidence["measured"][csv["id"]]["invalid"])
+
+    @unittest.skipUnless(office_available(), "needs a real office engine")
+    def test_a_range_of_formulas_is_recalculated(self):
+        book = openpyxl.Workbook()
+        book.active.title = "S"
+        book["S"]["A1"], book["S"]["A2"], book["S"]["B1"], book["S"]["B2"] = 2, 3, "=A1*10", "=SUM(A1:A2)"
+        book.save(self.root / "f.xlsx")
+        right = check("workbook_range_equals", path="f.xlsx", sheet="S", range="B1:B2", values=[[20], [5]])
+        evidence = self.verify(right)
+        self.assertTrue(evidence["predicates"][right["id"]], evidence)
+        self.assertIn("engine", evidence["measured"][right["id"]])
+
+    def test_formatting_damage_counts_as_a_change(self):
+        kept = self.root / "OCADE output" / "originals"
+        kept.mkdir(parents=True)
+        document = Document()
+        for text in ("Title", "Body", "Footer"):
+            document.add_paragraph(text)
+        document.save(kept / "d.docx.20261101T000000Z-00.docx")
+        document.paragraphs[0].runs[0].bold = True  # unrelated formatting damage
+        document.paragraphs[1].text = "New body"
+        document.save(self.root / "d.docx")
+        book = openpyxl.Workbook()
+        book.active.title = "S"
+        book["S"]["A1"], book["S"]["A2"] = 1234.5, 7
+        book.save(kept / "m.xlsx.20261101T000000Z-00.xlsx")
+        book["S"]["A1"].number_format = "0%"  # the value is untouched, how it reads is not
+        book["S"]["A2"] = 8
+        book.save(self.root / "m.xlsx")
+        doc, sheet = check("changes_within", path="d.docx", value=1), check("changes_within", path="m.xlsx", value=1)
+        evidence = self.verify(doc, sheet)
+        self.assertEqual([evidence["predicates"][doc["id"]], evidence["predicates"][sheet["id"]]], [False, False])
+        self.assertEqual(evidence["measured"][doc["id"]]["changed"], 2)
+        self.assertEqual(sorted(evidence["measured"][sheet["id"]]["where"]), ["S!A1", "S!A2"])
+
+    def test_split_runs_that_look_the_same_are_not_a_change(self):
+        kept = self.root / "OCADE output" / "originals"
+        kept.mkdir(parents=True)
+        document = Document()
+        document.add_paragraph("Hello world")
+        document.save(kept / "s.docx.20261101T000000Z-00.docx")
+        paragraph = document.paragraphs[0]
+        paragraph.runs[0].text = "Hello "
+        paragraph.add_run("world")
+        document.save(self.root / "s.docx")
+        same = check("changes_within", path="s.docx", value=0)
+        self.assertTrue(self.verify(same)["predicates"][same["id"]])
+
+    def test_an_image_edit_changes_only_its_region(self):
+        from PIL import Image, ImageDraw
+
+        base = Image.new("RGB", (100, 80), (40, 90, 160))
+        base.save(self.root / "photo.png")
+        out = self.root / "OCADE output"
+        out.mkdir()
+        inside = base.copy()
+        ImageDraw.Draw(inside).rectangle((10, 10, 30, 30), fill=(250, 250, 0))
+        inside.save(out / "inside.png")
+        spilled = inside.copy()
+        ImageDraw.Draw(spilled).rectangle((60, 50, 90, 70), fill=(0, 0, 0))
+        spilled.save(out / "spilled.png")
+        base.save(out / "unchanged.png")
+        base.resize((50, 40)).save(out / "smaller.png")
+        region = {"x": 5, "y": 5, "width": 30, "height": 30}
+        cases = [check("image_changed_within", path=f"OCADE output/{name}.png", source="photo.png", region=region)
+                 for name in ("inside", "spilled", "unchanged", "smaller")]
+        whole = check("image_changed_within", path="OCADE output/spilled.png", source="photo.png")
+        outside = check("image_changed_within", path="OCADE output/inside.png", source="photo.png",
+                        region={"x": 500, "y": 0, "width": 5, "height": 5})
+        evidence = self.verify(*cases, whole, outside)
+        found = [evidence["predicates"][c["id"]] for c in (*cases, whole, outside)]
+        self.assertEqual(found, [True, False, False, False, True, "invalid"])
+        self.assertGreater(evidence["measured"][cases[1]["id"]]["changedOutside"], 0)
+        self.assertIn("size changed", evidence["measured"][cases[3]["id"]]["error"])
+
+    def test_a_check_that_cannot_apply_is_invalid_not_failed_work(self):
+        (self.root / "notes.txt").write_text("Summary\n")
+        (self.root / "OCADE output" / "originals").mkdir(parents=True)
+        (self.root / "OCADE output" / "originals" / "logo.png.20261101T000000Z-00.png").write_bytes(b"\x89PNG\xff\xfe")
+        (self.root / "logo.png").write_bytes(b"\x89PNG\xff\xff")
+        headings = check("document_headings", path="notes.txt", headings=["Summary"])
+        cell = check("workbook_cell_equals", path="notes.txt", sheet="S", cell="A1", value=1)
+        scope = check("changes_within", path="logo.png", value=0)
+        evidence = self.verify(headings, cell, scope)
+        self.assertEqual([evidence["predicates"][c["id"]] for c in (headings, cell, scope)], ["invalid"] * 3)
+        self.assertIn("compares Word", evidence["measured"][scope["id"]]["invalid"])
+
     def test_changes_are_measured_against_the_kept_original(self):
         """An edit may touch only what was asked: the edited file is compared with the newest
         original OCADE kept, unit by unit, and unrelated damage fails the check."""
