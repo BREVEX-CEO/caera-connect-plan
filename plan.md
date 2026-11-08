@@ -807,11 +807,16 @@ Success = verified complete ÷ eligible attempted. The harness supplies only the
 
 Verified along the way: real desktop sessions on both runners (timestamped screenshots show Calc with the workbook and GIMP 3.2.6 with the four-layer project, plus a macOS network-permission prompt); OCADE's `apps.list` discovers the installed applications dynamically; real limit discovered: `gemma-4-31b-it` free tier, 16,000 input tokens per minute per project (primary).
 
-**Open after round 4 (next work, in order):**
-1. `invalid_goal` for B: record the validator's rejection reason per attempt in the task report (not logged today), then decide whether the goal prompt or the validator is at fault; never loosen a safety check to pass.
-2. `duplicate_completed`: a turn the service already charged but the planner did not receive (stream cut at the Edge wall clock or a provider failure after settlement) is retried under the same key. Retry under a new key when the first ended without a usable answer, or settle only after the final event is delivered.
-3. Gemma latency: turns of 30–140 s with free-tier TPM 16,000 per project make a multi-step task exceed the runner's patience; measure turns per task and consider a smaller offered-operation list for slow models (§23.4).
-4. Then rerun all 24 and the optional Linux 12.
+**Open after round 4: the architecture review** ([`docs/research/OCADE_ARCHITECTURE_REVIEW_2026-11-08.md`](docs/research/OCADE_ARCHITECTURE_REVIEW_2026-11-08.md), research only, 8 Nov 2026) traces every failure. Its sequence enters this plan through §10 when coding resumes:
+1. Per-turn diagnostics in the task report (attempt key, gate outcome, model, goal-rejection branch, first-byte/total ms).
+2. **Attempt identity** (confirmed root cause of every `duplicate_completed` and the 38 HTTP 409 stalls): the planning-turn key `jarvis-plan:<task>:<controller>:<steps>` is reused by every retry; give each provider attempt its own key and replay a settled answer.
+3. Durable per-model capability record (thinking support, function-call reliability, latency class, TPM), learned from provider responses.
+4. Delta prompts (≤ 3k input tokens per step turn; free-tier Gemma TPM is 16,000).
+5. Plan-first guarded execution as the default for reversible workspace milestones (the existing step lists, §13).
+6. A real hybrid C (compile model ≠ repair model; escalate on verifier failure).
+7. Ask for a missing `app:` grant by name.
+8. Rerun 24; Linux 12 optional.
+The 84 concepts are consolidated into 12 mechanisms there (KEEP 48, IMPROVE 17, MERGE 17, REPLACE 1, REMOVE 1); Appendix B keeps all 84 rows until §10 accepts the change.
 
 Defects fixed during the campaign (each with a test where code changed): 25 s first-byte deadline too short for Gemma (now 60 s, turn 140 s, planner 145 s); Live key refused in the URL and headers unsupported by the Edge runtime (now a single-use ephemeral token minted over REST); Live turn closed before asynchronous calls (now settles at `IDLE` or after the last call); no reason logged for provider failures (`ocade.provider_issue`); harness PATH shadowing, Windows version-step hang, Chocolatey 2 flag, GIMP location, missing `app:` consent in the harness. The benchmark function is at version 6. Text-only model answers are now corrected once under a new key (`b49a517`).
 
