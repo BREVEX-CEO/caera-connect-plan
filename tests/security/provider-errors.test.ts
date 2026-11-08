@@ -132,3 +132,30 @@ test("an unreachable provider is named as unreachable", async (t) => {
   const error = await refusal(compileGoal("u", "Write a note", ["files"]));
   assert.match(error.message, /planner_unreachable/);
 });
+
+test("an answer with no call is asked again once, with a new key, never charged twice", async (t) => {
+  const { state } = await provider(t);
+  const keys: string[] = [];
+  const acquire = plannerAccess.acquirePermit;
+  plannerAccess.acquirePermit = async (user, key) => {
+    keys.push(key);
+    return acquire(user, key);
+  };
+  let answers = 0;
+  state.answer = (response) => {
+    answers++;
+    response.writeHead(200, { "content-type": "text/event-stream" });
+    response.end(
+      answers === 1
+        ? frame({
+            type: "final",
+            response: { backend: "online", stopReason: "end_turn", text: "Sure.", toolCalls: [] },
+          })
+        : frame({ type: "tool_call", call }) + final,
+    );
+  };
+  const goal = await compileGoal("u", "Write a note", ["files"]);
+  assert.equal(answers, 2);
+  assert.equal(new Set(keys).size, 2, "the second ask is a new permit, not a duplicate");
+  assert.ok(goal);
+});

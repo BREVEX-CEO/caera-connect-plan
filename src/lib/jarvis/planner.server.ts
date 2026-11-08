@@ -550,8 +550,10 @@ async function callPlanner(input: {
           const final = z
             .object({
               backend: z.literal("online"),
-              stopReason: z.literal("tool_use"),
-              toolCalls: z.array(proposedCall).min(1).max(MAX_BATCH),
+              // A complete answer with no call (text only) is the model's mistake to correct, not a
+              // broken stream: the callers ask once more with what was wrong (benchmark, 7 Nov 2026).
+              stopReason: z.enum(["tool_use", "end_turn"]),
+              toolCalls: z.array(proposedCall).max(MAX_BATCH),
             })
             .parse(event.response);
           if (JSON.stringify(final.toolCalls) !== JSON.stringify(calls))
@@ -565,7 +567,6 @@ async function callPlanner(input: {
       if (error instanceof PlannerUnavailable) throw error;
       throw new PlannerUnavailable("planner_stream_failed");
     }
-    if (!calls.length) throw new PlannerUnavailable("no_decision");
     return calls.map((call) => ({ name: call.name, args: call.arguments }));
   } finally {
     input.onTimed?.(performance.now() - started, { permitId: permit.id, usage });
@@ -1221,6 +1222,11 @@ export async function planStep(input: {
       tools,
       attachments: input.grants.includes("screen") ? previewAttachments(steps) : [],
     });
+    if (!call) {
+      refusal =
+        "Your last answer had no function call, so OCADE ran nothing. Answer with exactly one call to an offered operation.";
+      continue;
+    }
     if (call.name === "ask") {
       return {
         kind: "block",
