@@ -480,6 +480,8 @@ export type Database = {
           planner_auto_retries: number
           planner_decision_ms: number
           planner_goal_ms: number
+          planner_turn: number
+          planner_turn_until: string | null
           provider_input_calls: number
           provider_input_tokens: number
           provider_output_calls: number
@@ -516,6 +518,8 @@ export type Database = {
           planner_auto_retries?: number
           planner_decision_ms?: number
           planner_goal_ms?: number
+          planner_turn?: number
+          planner_turn_until?: string | null
           provider_input_calls?: number
           provider_input_tokens?: number
           provider_output_calls?: number
@@ -552,6 +556,8 @@ export type Database = {
           planner_auto_retries?: number
           planner_decision_ms?: number
           planner_goal_ms?: number
+          planner_turn?: number
+          planner_turn_until?: string | null
           provider_input_calls?: number
           provider_input_tokens?: number
           provider_output_calls?: number
@@ -1972,6 +1978,19 @@ export type Database = {
       jarvis_paused: {
         Args: never
         Returns: boolean
+      }
+      jarvis_planner_turn: {
+        Args: {
+          p_controller: string
+          p_held?: number
+          p_seconds: number
+          p_task: string
+        }
+        Returns: number
+      }
+      jarvis_planner_turn_end: {
+        Args: { p_answered: boolean; p_task: string; p_turn: number }
+        Returns: undefined
       }
       jarvis_queue_actions: {
         Args: { p_actions: Json; p_controller: string; p_task: string }

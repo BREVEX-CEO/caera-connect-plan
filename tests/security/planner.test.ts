@@ -176,7 +176,7 @@ test("only a complete, matching provider turn may define a goal", async (t) => {
       steps: [],
       grants,
       engines: ["ffmpeg", "office"],
-      turnKey: "operation-offering",
+      permitKey: async () => "operation-offering",
       now: new Date(),
     });
     const expected = Object.entries(OPERATIONS)

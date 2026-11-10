@@ -64,7 +64,7 @@ test("mutations require fresh planning; unknown effects fence resumption", async
     checks,
     grants: ["files"],
     engines: [],
-    turnKey: "recovery",
+    permitKey: async () => "recovery",
     now,
   };
   try {
@@ -389,7 +389,9 @@ test("mutations require fresh planning; unknown effects fence resumption", async
                       mcp: [],
                       steps: [step],
                     }
-                  : null,
+                  : name === "jarvis_planner_turn"
+                    ? 1
+                    : null,
               error: null,
             };
           },

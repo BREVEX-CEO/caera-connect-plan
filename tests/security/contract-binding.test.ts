@@ -98,7 +98,7 @@ test("changing the file a check reads to make it pass is refused", async (t) => 
     grants: ["files"],
     steps: [],
     now,
-    turnKey: "binding",
+    permitKey: async () => "binding",
   };
   state.next.push(bend, bend);
   const refused = await planStep({
@@ -143,7 +143,7 @@ test("changing an image comparison's source to match the edit is refused", async
     grants: ["files"],
     steps: [],
     now: new Date("2026-11-02T00:00:00Z"),
-    turnKey: "image-binding",
+    permitKey: async () => "image-binding",
     objective: `Make the sky in ${source} brighter and save it as a new file`,
   });
   assert.notEqual(refused.kind, "queue", JSON.stringify(refused));

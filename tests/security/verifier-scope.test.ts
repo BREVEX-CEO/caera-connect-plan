@@ -87,7 +87,9 @@ test("verifier queue rechecks permissions and waits after a stale planner snapsh
                       mcp: [],
                       steps: [],
                     }
-                  : null,
+                  : name === "jarvis_planner_turn"
+                    ? 1
+                    : null,
               error:
                 name === "jarvis_queue_actions" && queueError
                   ? { message: queueError }

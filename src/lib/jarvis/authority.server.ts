@@ -44,6 +44,7 @@ import {
   plannerBusy,
   plannerMessage,
   type McpServer,
+  type PermitKey,
   type PlannerMeasurement,
 } from "./planner.server.ts";
 
@@ -278,6 +279,64 @@ export async function advance(admin: Admin, taskId: string, now = new Date()): P
     });
     return;
   }
+  const turn = plannerTurn(admin, taskId, task.controller);
+  try {
+    turn.answered = await decide(admin, { ...task, controller: task.controller }, steps, turn, now);
+  } finally {
+    await turn.end();
+  }
+}
+
+/** A model call may take this long (the planner's own 145 s limit, plus settling its answer). */
+const PLANNER_TURN_SECONDS = 160;
+
+/**
+ * Who may ask the model for this task right now (20261110090000). The first model call takes
+ * the turn; a later call of the same request keeps it. Every call gets a key no other call
+ * ever had, so a retry is never refused as a duplicate of the attempt it replaces.
+ */
+function plannerTurn(admin: Admin, taskId: string, controller: string) {
+  let held: number | null = null;
+  let calls = 0;
+  const turn = {
+    /** The request reached a decision: the next unanswered turn starts its retries afresh. */
+    answered: false,
+    permitKey: async () => {
+      held = await call<number | null>(admin, "jarvis_planner_turn", {
+        p_task: taskId,
+        p_controller: controller,
+        p_seconds: PLANNER_TURN_SECONDS,
+        ...(held === null ? {} : { p_held: held }),
+      });
+      // Another request is asking the model for this task (or it was stopped): that one owns it.
+      if (held === null) throw new PlannerUnavailable("turn_held");
+      calls += 1;
+      return `jarvis-plan:${taskId}:${held}:${calls}`;
+    },
+    end: async () => {
+      if (held === null) return;
+      await call(admin, "jarvis_planner_turn_end", {
+        p_task: taskId,
+        p_turn: held,
+        p_answered: turn.answered,
+      });
+    },
+  };
+  return turn;
+}
+
+/**
+ * One planning decision for a running task, admitted through the database's own fences.
+ * False when the planner gave no answer and the task now waits.
+ */
+async function decide(
+  admin: Admin,
+  task: TaskState & { controller: string },
+  steps: Step[],
+  { permitKey }: { permitKey: PermitKey },
+  now: Date,
+): Promise<boolean> {
+  const taskId = task.id;
   let checks = task.outcome ?? [];
   let plan = task.plan;
   if (!checks.length) {
@@ -294,9 +353,9 @@ export async function advance(admin: Admin, taskId: string, now = new Date()): P
           },
         ] as unknown as Json,
       });
-      return;
+      return true;
     }
-    if (open(look)) return;
+    if (open(look)) return true;
     const goalCalls: TimedPlannerCall[] = [];
     try {
       checks = await compileGoal(
@@ -306,13 +365,13 @@ export async function advance(admin: Admin, taskId: string, now = new Date()): P
         (ms, measurement) => goalCalls.push({ ms, measurement }),
         look.status === "done" ? (look.receipt?.evidence as { entries?: [] }) : null,
         (milestones: Milestone[]) => (plan = milestones),
-        `jarvis-goal:${taskId}:${task.controller}`,
+        permitKey,
       );
     } catch (error) {
       await notePlannerCalls(admin, taskId, "goal", goalCalls);
       if (!(error instanceof PlannerUnavailable)) throw error;
       await plannerWait(admin, taskId, task.controller, error);
-      return;
+      return false;
     }
     await notePlannerCalls(admin, taskId, "goal", goalCalls);
     try {
@@ -328,7 +387,7 @@ export async function advance(admin: Admin, taskId: string, now = new Date()): P
         error instanceof JarvisRefusal &&
         ["stale_controller", "outcome_fixed"].includes(error.code)
       )
-        return;
+        return true;
       throw error;
     }
   }
@@ -348,7 +407,7 @@ export async function advance(admin: Admin, taskId: string, now = new Date()): P
       grants: task.grants,
       mcp: task.mcp ?? [],
       engines: task.engines,
-      turnKey: `jarvis-plan:${taskId}:${task.controller}:${steps.length}`,
+      permitKey,
       now,
       onModelCall: (ms, measurement) => modelCalls.push({ ms, measurement }),
     });
@@ -356,7 +415,7 @@ export async function advance(admin: Admin, taskId: string, now = new Date()): P
     if (!(error instanceof PlannerUnavailable)) throw error;
     await notePlannerCalls(admin, taskId, "decision", modelCalls);
     await plannerWait(admin, taskId, task.controller, error);
-    return;
+    return false;
   }
   // Admission and measurements share the round trip, with rejection handled immediately.
   const noted = notePlannerCalls(admin, taskId, "decision", modelCalls).then(
@@ -446,6 +505,7 @@ export async function advance(admin: Admin, taskId: string, now = new Date()): P
   const [failure, measurement] = await Promise.all([admitted, noted]);
   if (failure) throw failure.error;
   if (!measurement.ok) throw measurement.error;
+  return true;
 }
 
 /** Between 30 s and 15 min: the provider's own Retry-After when it gave one. */
@@ -461,9 +521,9 @@ async function plannerWait(
   controller: string,
   error: PlannerUnavailable,
 ) {
-  // The same planning turn is already being answered (a resent receipt started a second
-  // advance with the same permit key): that turn owns the task, this one changes nothing.
-  if (error.message === "permit_refused") return;
+  // Another request holds this planning turn (a resent receipt, a poll during a long model
+  // call): that one owns the task, this one changes nothing.
+  if (error.message === "turn_held") return;
   if (plannerBusy(error.message)) {
     const wait = Math.min(Math.max(error.retryAfterMs ?? 0, BUSY_RETRY_MS.min), BUSY_RETRY_MS.max);
     await call(admin, "jarvis_task_wait_until", {

@@ -320,11 +320,24 @@ export class PlannerUnavailable extends Error {
   }
 }
 
-/** The planner was only busy (capacity, not consent, allowance or configuration). */
+/**
+ * The turn got no answer for a reason that passes by itself: capacity, or a provider or
+ * transport failure before a complete answer (never consent, allowance, configuration or a
+ * refused request). Benchmark round 4: one broken stream parked a task until a person resumed it.
+ */
 export const plannerBusy = (code: string) =>
-  ["rate_limited", "provider_rate_limited", "provider_unavailable", "online_unavailable"].includes(
-    code,
-  );
+  [
+    "rate_limited",
+    "provider_rate_limited",
+    "provider_unavailable",
+    "online_unavailable",
+    "provider_failed",
+    "empty_response",
+    "planner_stream_incomplete",
+    "planner_stream_failed",
+    "planner_unreachable",
+    "permit_refused",
+  ].includes(code) || /^planner_http_5\d\d$/.test(code);
 
 /** What a person can do about each reason the planner could not answer. */
 export function plannerMessage(code: string): string {
@@ -334,7 +347,10 @@ export function plannerMessage(code: string): string {
     return "The requested outcome needs website or app access that is not allowed on this computer.";
   if (code === "allowance_exhausted")
     return "Your JARVIS allowance is used up until your usage window resets.";
-  if (plannerBusy(code)) return "JARVIS's online planner is busy right now.";
+  if (plannerBusy(code))
+    return /rate_limited|unavailable/.test(code)
+      ? "JARVIS's online planner is busy right now."
+      : `JARVIS's online planner did not answer just now (${code.slice(0, 40)}).`;
   // The reason code lets support (and the evaluation) tell these apart; it reveals nothing private.
   return `JARVIS's online planner is unavailable right now (${code.slice(0, 40)}).`;
 }
@@ -468,6 +484,13 @@ export type PlannerMeasurement = {
 };
 
 type PlannerTiming = (ms: number, measurement: PlannerMeasurement) => void;
+
+/**
+ * A new permit key for the next model call, asked for just before it. No call ever reuses a
+ * key: a permit is settled once, so a reused key cannot be asked again (`duplicate_completed`).
+ * The task authority's key source also holds the planning turn, so it may refuse (`turn_held`).
+ */
+export type PermitKey = () => Promise<string>;
 
 async function callPlanner(input: {
   userId: string;
@@ -624,7 +647,7 @@ export async function compileGoal(
   onTimed?: PlannerTiming,
   observed: { entries?: { name: string; kind: string }[] } | null = null,
   onMilestones?: (milestones: Milestone[]) => void,
-  turnKey = `jarvis-goal:${crypto.randomUUID()}`,
+  permitKey: PermitKey = async () => `jarvis-goal:${crypto.randomUUID()}`,
 ) {
   const seen = new Set((observed?.entries ?? []).map((entry) => entry.name.toLowerCase()));
   const bound = (path: string) =>
@@ -638,7 +661,7 @@ export async function compileGoal(
     const calls = await callPlanner({
       userId,
       onTimed,
-      key: `${turnKey}:${attempt}`,
+      key: await permitKey(),
       system:
         "Turn the person's request into 1-6 checks an independent verifier can evaluate by reading real files " +
         "(paths relative to the JARVIS folder itself: 'my JARVIS folder' is that root, never a subfolder named JARVIS), " +
@@ -887,8 +910,7 @@ export async function planStep(input: {
   mcp?: McpServer[];
   /** Engines the device reported; an operation needing a missing one is not offered. */
   engines?: string[] | null;
-  /** One permit per planning turn: the same turn asked twice is never planned or charged twice. */
-  turnKey: string;
+  permitKey: PermitKey;
   now: Date;
   onModelCall?: PlannerTiming;
 }): Promise<Decision> {
@@ -1206,7 +1228,7 @@ export async function planStep(input: {
   for (let attempt = 0; attempt < 2; attempt += 1) {
     const [call, ...more] = await callPlanner({
       userId: input.userId,
-      key: attempt ? `${input.turnKey}:retry` : input.turnKey,
+      key: await input.permitKey(),
       onTimed: input.onModelCall,
       system: SYSTEM,
       prompt: [

@@ -36,7 +36,7 @@ const base = {
   checks: [check],
   grants: ["files"],
   now,
-  turnKey: "synthetic-verification",
+  permitKey: async () => "synthetic-verification",
 };
 
 test("completion requires proof of the exact, well-formed saved acceptance rules", async (t) => {

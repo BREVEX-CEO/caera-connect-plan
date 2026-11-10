@@ -299,7 +299,7 @@ test("a failed independent check returns to the model for bounded repair", async
       objective: "Write a report",
       checks,
       grants: ["files"],
-      turnKey: "t",
+      permitKey: async () => "t",
       now,
     };
     // The failure goes back to the model, which sees it in its history and can repair.
