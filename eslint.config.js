@@ -19,8 +19,14 @@ export default tseslint.config(
      *
      * They are excluded from version control already; excluding them here just
      * makes the linter agree with the repository about what the source is.
+     *
+     * `evidence` is dated run evidence, never source (Prettier already skips it). Its only
+     * TypeScript is the bundled copy of each deployed staging function, kept byte-exact for
+     * rollback (`evidence/2026-11-07-staging-function-backup`): bundler output is `var`
+     * throughout, and `--fix` would rewrite the copy a rollback depends on. The functions'
+     * real source (`supabase/functions`, `src/lib/intelligence`) stays linted.
      */
-    ignores: [".playwright-mcp/**", "dist", ".output", ".codex/**", ".claude/**"],
+    ignores: [".playwright-mcp/**", "dist", ".output", ".codex/**", ".claude/**", "evidence/**"],
   },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
