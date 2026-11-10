@@ -206,8 +206,125 @@ class WindowsUiLadder(unittest.TestCase):
             self.assertEqual(out["ambiguous"]["errorCode"], "element_ambiguous")
 
 
+LAUNCHER = r"""
+using System; using System.Diagnostics; using System.IO; using System.Reflection;
+class Launch {
+  static void Main(string[] a) {
+    var here = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+    var info = new ProcessStartInfo(Path.Combine(here, "PROGRAM"), a.Length > 0 ? "\"" + a[0] + "\"" : "");
+    info.UseShellExecute = false;
+    var started = Process.Start(info);
+    if (STAYS) started.WaitForExit();
+  }
+}
+"""
+
+
+@unittest.skipUnless(sys.platform == "win32", "needs a Windows desktop")
+class WindowsLauncherApps(unittest.TestCase):
+    """UIA-015/016: an app known only by its Start Menu shortcut, whose shortcut starts a small
+    launcher while another program in the same folder owns the window (as many real apps do).
+    Everything is compiled here under random names; nothing about it is known to the product."""
+
+    def setUp(self):
+        import win32com.client  # type: ignore[import-not-found]
+
+        self.root = Path(tempfile.mkdtemp())
+        (self.root / "note.txt").write_text("")
+        folder = Path(tempfile.mkdtemp())
+        tag = secrets.token_hex(4)
+        self.program = f"ocade-fixture-{tag}.bin"
+        self.launchers = {"stays": f"ocade-stays-{tag}.exe", "exits": f"ocade-exits-{tag}.exe"}
+        csc = Path(os.environ["WINDIR"]) / "Microsoft.NET/Framework64/v4.0.30319/csc.exe"
+
+        def build(name: str, source: str) -> Path:
+            code = folder / (name + ".cs")
+            code.write_text(source)
+            subprocess.run([str(csc), "/nologo", "/target:winexe", f"/out:{folder / name}", str(code)], check=True)
+            return folder / name
+
+        build(self.program, APP)
+        menu = Path(os.environ["APPDATA"]) / "Microsoft/Windows/Start Menu/Programs"
+        shell = win32com.client.Dispatch("WScript.Shell")
+        self.links = []
+        for kind, name in self.launchers.items():
+            built = build(name, LAUNCHER.replace("PROGRAM", self.program).replace("STAYS", "true" if kind == "stays" else "false"))
+            link = menu / f"OCADE fixture {kind} {tag}.lnk"
+            shortcut = shell.CreateShortCut(str(link))
+            shortcut.TargetPath = str(built)
+            shortcut.Save()
+            self.links.append(link)
+        import win32api  # type: ignore[import-not-found]
+
+        win32api.SetCursorPos((300, 300))
+
+    def tearDown(self):
+        for image in (self.program, *self.launchers.values()):
+            subprocess.run(["taskkill", "/F", "/IM", image], capture_output=True)
+        for link in self.links:
+            link.unlink(missing_ok=True)
+
+    def launched(self, kind: str) -> dict:
+        async def steps():
+            out = {}
+            async with Gateway(str(self.root)) as gateway:
+                def run(op, args):
+                    return gateway.run(intent(op, args), gateway.epoch)
+
+                out["list"] = await run("apps.list", {})
+                out["launch"] = await run("apps.launch", {"exe": self.launchers[kind], "open": "note.txt"})
+                if out["launch"]["status"] == "observed":
+                    window = out["launch"]["evidence"]["window"]
+                    out["inspect"] = await run("ui.inspect", {"window": window})
+                    out["listed"] = await run("apps.list", {})
+                    out["set"] = await run("ui.set_value", {"window": window, "element": {"automationId": "noteBox"}, "value": "through the launcher"})
+                    await run("ui.invoke", {"window": window, "element": {"automationId": "saveButton"}})
+            return out
+
+        return anyio.run(steps)
+
+    def check(self, kind: str, expected_exe: str):
+        out = self.launched(kind)
+        with self.subTest("an app with only a Start Menu shortcut is discovered and launched from it"):
+            self.assertIn(self.launchers[kind], [a["exe"] for a in out["list"]["evidence"]["installed"]])
+            self.assertEqual(out["launch"]["status"], "observed", out["launch"])
+        window = out["launch"]["evidence"]["window"]
+        with self.subTest("the window another program in the folder owns is leased under the app's name"):
+            self.assertEqual(window["exe"], expected_exe)
+            listed = [w for w in out["listed"]["evidence"]["windows"] if w["hwnd"] == window["hwnd"]]
+            self.assertEqual([w["exe"] for w in listed], [expected_exe], "apps.list names it the same way")
+        with self.subTest("that lease works: the window is inspected and changed, with the app's real effect"):
+            ids = {e["automationId"] for e in out["inspect"]["evidence"]["elements"]}
+            self.assertTrue({"noteBox", "saveButton"} <= ids, out["inspect"])
+            self.assertTrue(out["set"]["evidence"]["matches"], out["set"])
+            self.assertEqual((self.root / "note.txt").read_text(), "through the launcher")
+
+    def test_a_launcher_that_stays_names_its_programs_windows(self):
+        # UIA-015: the launcher is still the window's parent, so the window is the launcher's app.
+        self.check("stays", self.launchers["stays"])
+
+    def test_a_launcher_that_exits_leaves_the_program_its_own_name(self):
+        # UIA-016: nothing ties the window to the launcher any more; it keeps its program's name.
+        self.check("exits", self.program)
+
 
 class DesktopTargetContract(unittest.TestCase):
+    def test_a_window_is_named_by_the_installed_app_it_belongs_to(self):
+        from ocade_agent.discovery import app_key
+
+        installed = {"suite.exe": {}, "sheets.exe": {}, "other.exe": {}}
+        folder = r"C:\Program Files\Suite\program"
+        # Its own program is an installed app: that is its name, whatever started it.
+        self.assertEqual(app_key(folder + r"\Suite.exe", [r"C:\Windows\explorer.exe"], installed), "suite.exe")
+        # A program an installed launcher in the same folder still runs: the launcher's app.
+        self.assertEqual(app_key(folder + r"\suite.bin", [folder + r"\SUITE.EXE", r"C:\Windows\explorer.exe"], installed), "suite.exe")
+        # The nearest such ancestor wins; one in another folder never lends its name.
+        self.assertEqual(app_key(folder + r"\suite.bin", [r"D:\Else\other.exe", folder + r"\suite.exe"], installed), "suite.exe")
+        self.assertEqual(app_key(folder + r"\suite.bin", [r"D:\Else\other.exe"], installed), "suite.bin")
+        # A sibling shortcut in the folder is not ancestry: no guess between the suite's apps.
+        self.assertEqual(app_key(folder + r"\suite.bin", [], installed), "suite.bin")
+        self.assertEqual(app_key(folder + r"\suite.bin", [folder + r"\helper.exe"], installed), "suite.bin")
+
     def test_protected_control_value_is_never_read_or_returned(self):
         from types import SimpleNamespace
         from ocade_agent import windows_worker

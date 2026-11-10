@@ -58,16 +58,31 @@ def installed_apps(limit: int = 300) -> list[dict]:
         from .mac_worker import installed_apps as mac_apps
 
         return [{"name": a["name"], "exe": a["exe"]} for a in mac_apps(limit)]
+    apps = [{"name": app["name"], "exe": exe} for exe, app in _windows_apps().items() if len(exe) <= 80]
+    return sorted(apps, key=lambda app: app["name"].lower())[:limit]
+
+
+_APPS_FRESH_SECONDS = 30
+_apps_seen: dict = {"at": 0.0, "apps": {}}
+
+
+def _windows_apps() -> dict[str, dict]:
+    """exe -> {name, path}: what a person can launch here, and from where. A Start Menu
+    shortcut's own target is where its app starts; App Paths and packaged apps have no path
+    here (Windows resolves those itself). Remembered briefly: every window identity asks."""
     if sys.platform != "win32":
-        return []
+        return {}
+    import time
     import winreg
 
+    if time.monotonic() - _apps_seen["at"] < _APPS_FRESH_SECONDS and _apps_seen["apps"]:
+        return _apps_seen["apps"]
     import pythoncom  # type: ignore[import-not-found]
     import win32com.client  # type: ignore[import-not-found]
 
     pythoncom.CoInitialize()  # called from worker threads; COM is per thread
     try:
-        found: dict[str, str] = {}
+        found: dict[str, dict] = {}
         shell = win32com.client.Dispatch("WScript.Shell")
         menus = [Path(os.environ.get("APPDATA", "")), Path(os.environ.get("PROGRAMDATA", ""))]
         for root in (m / "Microsoft/Windows/Start Menu/Programs" for m in menus):
@@ -77,7 +92,7 @@ def installed_apps(limit: int = 300) -> list[dict]:
                 except Exception:
                     continue
                 if target.lower().endswith(".exe") and "uninstall" not in link.stem.lower():
-                    found.setdefault(Path(target).name.lower(), link.stem[:120])
+                    found.setdefault(Path(target).name.lower(), {"name": link.stem[:120], "path": target})
         for hive in (winreg.HKEY_CURRENT_USER, winreg.HKEY_LOCAL_MACHINE):
             try:
                 key = winreg.OpenKey(hive, r"Software\Microsoft\Windows\CurrentVersion\App Paths")
@@ -87,14 +102,49 @@ def installed_apps(limit: int = 300) -> list[dict]:
                 for index in range(winreg.QueryInfoKey(key)[0]):
                     name = winreg.EnumKey(key, index)
                     if name.lower().endswith(".exe"):
-                        found.setdefault(name.lower(), Path(name).stem[:120])
+                        found.setdefault(name.lower(), {"name": Path(name).stem[:120], "path": None})
         app_shell = win32com.client.Dispatch("Shell.Application")
         for key, name, _item in _packaged_apps(app_shell):
-            found.setdefault(key, name)
+            found.setdefault(key, {"name": name, "path": None})
     finally:
         pythoncom.CoUninitialize()
-    apps = [{"name": name, "exe": exe} for exe, name in found.items() if len(exe) <= 80]
-    return sorted(apps, key=lambda app: app["name"].lower())[:limit]
+    _apps_seen.update(at=time.monotonic(), apps=found)
+    return found
+
+
+def app_key(image: str, ancestors, installed) -> str:
+    """The installed app a window's process belongs to, as `apps.list` and an `app:` permission
+    name it. Many apps start through a small launcher that stays their parent while another
+    program in the same folder owns the windows; the person knows, starts and allows the
+    launcher. So: the process's own executable when that is an installed app, else its nearest
+    still-running ancestor that is one and lives in the same folder, else its own executable.
+    `ancestors` are executable paths, nearest first. By folder and ancestry only: no app names."""
+    import ntpath
+
+    name = ntpath.basename(image).lower()
+    if name in installed:
+        return name
+    folder = ntpath.dirname(image).lower()
+    for parent in ancestors:
+        candidate = ntpath.basename(parent).lower()
+        if candidate in installed and ntpath.dirname(parent).lower() == folder:
+            return candidate
+    return name
+
+
+def _ancestor_images(pid: int):
+    """Executable paths of a process's running ancestors, nearest first (unreadable ones skipped)."""
+    import psutil
+
+    try:
+        parents = psutil.Process(pid).parents()
+    except psutil.Error:
+        return
+    for parent in parents:
+        try:
+            yield parent.exe()
+        except (psutil.Error, OSError):
+            continue
 
 
 def _packaged_key(aumid: str) -> str:
@@ -188,12 +238,17 @@ def _window_aumid(hwnd: int, pid: int, handle, win32api, win32con, win32process,
 
 
 def app_path(exe: str) -> str | None:
-    """Where Windows would launch `exe` from (App Paths, then PATH)."""
+    """Where Windows would launch `exe` from (its Start Menu shortcut, App Paths, then PATH)."""
     if sys.platform != "win32":
         return None
     import shutil
     import winreg
 
+    # An app found only through its Start Menu shortcut starts from that shortcut's target:
+    # most installers register no App Paths key and add nothing to PATH.
+    shortcut = (_windows_apps().get(exe) or {}).get("path")
+    if shortcut and Path(shortcut).is_file():
+        return shortcut
     for hive in (winreg.HKEY_CURRENT_USER, winreg.HKEY_LOCAL_MACHINE):
         try:
             with winreg.OpenKey(hive, rf"Software\Microsoft\Windows\CurrentVersion\App Paths\{exe}") as key:
@@ -310,13 +365,16 @@ def window_identity(hwnd: int, win32api=None, win32con=None, win32process=None) 
         _, pid = win32process.GetWindowThreadProcessId(hwnd)
         handle = win32api.OpenProcess(win32con.PROCESS_QUERY_LIMITED_INFORMATION, False, pid)
         try:
-            image = ctypes.create_unicode_buffer(1024)
-            size = ctypes.c_ulong(len(image))
-            if not ctypes.windll.kernel32.QueryFullProcessImageNameW(int(handle), 0, image, ctypes.byref(size)):
+            image = _process_image(handle)
+            if not image:
                 return None
-            exe = Path(image.value).name.lower()
+            try:
+                installed = _windows_apps()
+            except Exception:
+                installed = {}  # the app list is unreadable right now: the program's own name
+            exe = app_key(image, _ancestor_images(pid), installed)
             system_root = os.environ.get("WINDIR")
-            hosted = bool(system_root and Path(image.value) == Path(system_root) / "System32" / "ApplicationFrameHost.exe")
+            hosted = bool(system_root and Path(image) == Path(system_root) / "System32" / "ApplicationFrameHost.exe")
             aumid = _window_aumid(hwnd, pid, handle, win32api, win32con, win32process, hosted)
             if aumid:
                 exe = _packaged_key(aumid)
@@ -328,6 +386,35 @@ def window_identity(hwnd: int, win32api=None, win32con=None, win32process=None) 
     except Exception:
         return None
     return {"exe": exe, "pid": pid, "hwnd": int(hwnd), "started": created.timestamp()}
+
+
+def _process_image(handle) -> str | None:
+    """The full path of a process's program, readable with limited query rights."""
+    image = ctypes.create_unicode_buffer(1024)
+    size = ctypes.c_ulong(len(image))
+    if not ctypes.windll.kernel32.QueryFullProcessImageNameW(int(handle), 0, image, ctypes.byref(size)):
+        return None
+    return image.value
+
+
+def window_folder(hwnd: int) -> str | None:
+    """The folder of the program that owns a window (lowercase), or None when it cannot be read."""
+    import ntpath
+
+    import win32api  # type: ignore[import-not-found]
+    import win32con  # type: ignore[import-not-found]
+    import win32process  # type: ignore[import-not-found]
+
+    try:
+        _, pid = win32process.GetWindowThreadProcessId(hwnd)
+        handle = win32api.OpenProcess(win32con.PROCESS_QUERY_LIMITED_INFORMATION, False, pid)
+        try:
+            image = _process_image(handle)
+        finally:
+            win32api.CloseHandle(handle)
+    except Exception:
+        return None
+    return ntpath.dirname(image).lower() if image else None
 
 
 # Reviewed vendor artifacts. The runtime trusts these pinned bytes, never a URL or shell

@@ -17,6 +17,7 @@ STATUS: CODED, UNTESTED — needs a real Windows desktop.
 from __future__ import annotations
 
 import functools
+import ntpath
 import os
 import subprocess
 import sys
@@ -185,6 +186,7 @@ def apps_launch(exe: str, open: str | None = None) -> dict:
     if exe not in {a["exe"] for a in discovery.installed_apps()}:
         raise Refused("app_not_installed")
     before = {w["hwnd"] for w in discovery.open_windows(200)}
+    folder = None
     if exe.startswith("pkg-"):
         if open is not None:
             raise Refused("packaged_app_file_activation_unsupported")
@@ -194,12 +196,16 @@ def apps_launch(exe: str, open: str | None = None) -> dict:
         path = discovery.app_path(exe)
         if not path:
             raise Refused("app_not_installed")
+        folder = ntpath.dirname(path).lower()
         arguments = [path] + ([str(resolve(WORKSPACE, open))] if open else [])
         mark_effect()
         subprocess.Popen(arguments, close_fds=True)  # argument list, no shell
     deadline = time.monotonic() + 20
     while time.monotonic() < deadline:
-        fresh = [w for w in discovery.open_windows(200) if w["exe"] == exe and w["hwnd"] not in before]
+        # The new window is the app's own, or that of the program in the same folder a launcher
+        # handed over to (the launcher may have exited by now, or passed the file to a running copy).
+        fresh = [w for w in discovery.open_windows(200) if w["hwnd"] not in before
+                 and (w["exe"] == exe or (folder is not None and discovery.window_folder(w["hwnd"]) == folder))]
         if len(fresh) > 1:
             raise Refused("window_ambiguous")
         if fresh:
