@@ -768,6 +768,133 @@ function normalizeProviderChunk(
   return events;
 }
 
+/** How one provider turn ended, with whatever it produced until then. */
+interface ProviderTurn {
+  /**
+   * complete: the provider's terminal result arrived and the turn is valid.
+   * refused: the provider refused or stopped it for a reason it named (already forwarded).
+   * empty: complete, but with neither text nor a call.
+   * failed: the stream broke, was cut short or was invalid.
+   */
+  state: "complete" | "refused" | "empty" | "failed";
+  /** The content itself was refused: asking again, or asking another model, never helps. */
+  blocked: boolean;
+  answer: string;
+  toolCalls: NormalizedToolCall[];
+  parts: NormalizedAssistantPart[];
+  usage?: NormalizedUsage;
+}
+
+/**
+ * Read one provider turn to its end. A call is held until the turn ends complete: a turn cut
+ * short or refused after a call must never hand that call to anything that would act on it.
+ * `forward` receives what may be shown while it streams (text, usage, a named refusal).
+ */
+async function readProviderTurn(
+  provider: Response,
+  signal: AbortSignal,
+  options: {
+    /** A text-only answer that met the output cap is a delivered answer (Chat only). */
+    cappedTextIsAnAnswer: boolean;
+    forward(event: IntelligenceEvent): void;
+    report(kind: string): void;
+  },
+): Promise<ProviderTurn> {
+  const turn: ProviderTurn = {
+    state: "failed",
+    blocked: false,
+    answer: "",
+    toolCalls: [],
+    parts: [],
+  };
+  const toolIndex = { value: 0, textSize: 0, signatureSize: 0 };
+  let finishReason: string | undefined;
+  let refused = false;
+  try {
+    if (!provider.body) throw new Error("Provider returned no stream.");
+    for await (const raw of sseData(
+      provider.body,
+      "Provider ended with an incomplete stream event.",
+      signal,
+    )) {
+      const chunk: unknown = JSON.parse(raw);
+      const candidate =
+        isRecord(chunk) && Array.isArray(chunk.candidates) ? chunk.candidates[0] : null;
+      if (
+        finishReason &&
+        isRecord(candidate) &&
+        isRecord(candidate.content) &&
+        Array.isArray(candidate.content.parts) &&
+        candidate.content.parts.length
+      )
+        throw new Error("Provider sent content after its terminal result.");
+      if (isRecord(candidate) && typeof candidate.finishReason === "string") {
+        finishReason = candidate.finishReason;
+      }
+      for (const event of normalizeProviderChunk(chunk, "online", toolIndex, turn.parts)) {
+        if (event.type === "tool_call") {
+          turn.toolCalls.push(event.call);
+          continue;
+        }
+        if (event.type === "token") turn.answer += event.text;
+        if (event.type === "usage") turn.usage = event.usage;
+        if (event.type === "refusal") {
+          refused = true;
+          turn.blocked ||= event.code === "content_blocked";
+          options.report(`refusal_${event.code}_${finishReason ?? "none"}`);
+        }
+        options.forward(event);
+      }
+    }
+    if (refused) {
+      // Refused with its real reason already forwarded: no final answer, and no call is released.
+      turn.state = "refused";
+    } else if (
+      finishReason !== "STOP" &&
+      !(options.cappedTextIsAnAnswer && finishReason === "MAX_TOKENS" && !turn.toolCalls.length)
+    ) {
+      // EOF can land between complete SSE frames. Only the provider's terminal result
+      // closes the turn. JARVIS can also interpret exact tool text, so even a
+      // text-only token-capped turn must never be released as a completed reply.
+      options.report(`finish_${finishReason ?? "none"}`);
+    } else if (!turn.answer.trim() && turn.toolCalls.length === 0) {
+      turn.state = "empty";
+    } else {
+      if (
+        !validParts({ role: "assistant", parts: turn.parts, toolCalls: turn.toolCalls }) ||
+        (turn.toolCalls.length && !validCalls({ role: "assistant", toolCalls: turn.toolCalls }))
+      ) {
+        throw new Error("Provider returned invalid assistant parts.");
+      }
+      signal.throwIfAborted();
+      turn.state = "complete";
+    }
+  } catch {
+    turn.state = "failed";
+    options.report(signal.aborted ? "stream_aborted" : "stream_error");
+  }
+  return turn;
+}
+
+/** The events of a complete turn, in the order every reader of this boundary expects them. */
+function completedTurnEvents(turn: ProviderTurn): IntelligenceEvent[] {
+  return [
+    ...turn.toolCalls.map((call): IntelligenceEvent => ({ type: "tool_call", call })),
+    {
+      type: "final",
+      response: {
+        text: turn.answer,
+        toolCalls: turn.toolCalls,
+        parts: turn.parts,
+        toolResults: [],
+        backend: "online",
+        ...(turn.usage ? { usage: turn.usage } : {}),
+        stopReason: turn.toolCalls.length > 0 ? "tool_use" : "end_turn",
+      },
+    },
+  ];
+}
+
 function normalizedProviderStream(
   provider: Response,
   surface: IntelligencePermit["surface"],
@@ -780,14 +907,7 @@ function normalizedProviderStream(
 ): ReadableStream<Uint8Array> {
   return new ReadableStream<Uint8Array>({
     async start(controller) {
-      let answer = "";
-      let refused = false;
-      let finishReason: string | undefined;
-      let completed = false;
-      const toolCalls: NormalizedToolCall[] = [];
-      const parts: NormalizedAssistantPart[] = [];
-      let usage: NormalizedUsage | undefined;
-      const toolIndex = { value: 0, textSize: 0, signatureSize: 0 };
+      let turn: ProviderTurn | undefined;
       /*
        * THE CLAIMED PERMIT IS SETTLED HERE, however the stream ends.
        * Chat retains its partial-answer policy. JARVIS must complete the provider
@@ -798,61 +918,26 @@ function normalizedProviderStream(
       const settle = async () => {
         if (settled) return;
         settled = true;
-        const anything = completed || (surface === "chat" && answer.trim() !== "");
-        await (anything ? delivered(completed ? toolCalls : []) : undelivered()).catch(
+        const completed = turn?.state === "complete";
+        const anything = completed || (surface === "chat" && Boolean(turn?.answer.trim()));
+        await (anything ? delivered(completed ? turn!.toolCalls : []) : undelivered()).catch(
           () => undefined,
         );
       };
       try {
-        if (!provider.body) throw new Error("Provider returned no stream.");
         controller.enqueue(sse({ type: "status", backend: "online", state: "generating" }));
-        for await (const raw of sseData(
-          provider.body,
-          "Provider ended with an incomplete stream event.",
-          signal,
-        )) {
-          const chunk: unknown = JSON.parse(raw);
-          const candidate =
-            isRecord(chunk) && Array.isArray(chunk.candidates) ? chunk.candidates[0] : null;
-          if (
-            finishReason &&
-            isRecord(candidate) &&
-            isRecord(candidate.content) &&
-            Array.isArray(candidate.content.parts) &&
-            candidate.content.parts.length
-          )
-            throw new Error("Provider sent content after its terminal result.");
-          if (isRecord(candidate) && typeof candidate.finishReason === "string") {
-            finishReason = candidate.finishReason;
-          }
-          for (const event of normalizeProviderChunk(chunk, "online", toolIndex, parts)) {
-            // A call is held until the turn ends complete: a turn cut short or refused
-            // after a call must never hand that call to anything that would act on it.
-            if (event.type === "tool_call") {
-              toolCalls.push(event.call);
-              continue;
-            }
-            if (event.type === "token") answer += event.text;
-            if (event.type === "usage") usage = event.usage;
-            if (event.type === "refusal") {
-              refused = true;
-              report(`refusal_${event.code}_${finishReason ?? "none"}`);
-            }
-            controller.enqueue(sse(event));
-          }
-        }
-        if (refused) {
-          // Refused with its real reason already sent: no final answer, and no call is released.
-        } else if (
-          finishReason !== "STOP" &&
-          !(surface === "chat" && finishReason === "MAX_TOKENS" && toolCalls.length === 0)
-        ) {
-          // EOF can land between complete SSE frames. Only the provider's terminal result
-          // closes the turn. JARVIS can also interpret exact tool text, so even a
-          // text-only token-capped turn must never be released as a completed reply.
-          report(`finish_${finishReason ?? "none"}`);
-          throw new Error("Provider ended before completing the turn.");
-        } else if (!answer.trim() && toolCalls.length === 0) {
+        turn = await readProviderTurn(provider, signal, {
+          cappedTextIsAnAnswer: surface === "chat",
+          forward: (event) => controller.enqueue(sse(event)),
+          report,
+        });
+        if (turn.state === "complete") {
+          const events = completedTurnEvents(turn);
+          for (const call of events.slice(0, -1)) controller.enqueue(sse(call));
+          // Charged by the server before the person is told it is complete.
+          await settle();
+          controller.enqueue(sse(events.at(-1)!));
+        } else if (turn.state === "empty") {
           controller.enqueue(
             sse({
               type: "refusal",
@@ -861,53 +946,31 @@ function normalizedProviderStream(
               retryable: true,
             }),
           );
-        } else {
-          if (
-            !validParts({ role: "assistant", parts, toolCalls }) ||
-            (toolCalls.length && !validCalls({ role: "assistant", toolCalls }))
-          ) {
-            throw new Error("Provider returned invalid assistant parts.");
-          }
-          signal.throwIfAborted();
-          for (const call of toolCalls) controller.enqueue(sse({ type: "tool_call", call }));
-          completed = true;
-          // Charged by the server before the person is told it is complete.
-          await settle();
+        } else if (turn.state === "failed") {
+          const timedOut =
+            signal.reason instanceof DOMException && signal.reason.name === "TimeoutError";
           controller.enqueue(
             sse({
-              type: "final",
-              response: {
-                text: answer,
-                toolCalls,
-                parts,
-                toolResults: [],
-                backend: "online",
-                ...(usage ? { usage } : {}),
-                stopReason: toolCalls.length > 0 ? "tool_use" : "end_turn",
-              },
+              type: "refusal",
+              code: signal.aborted && !timedOut ? "cancelled" : "provider_failed",
+              reason:
+                signal.aborted && !timedOut
+                  ? "Stopped by the user."
+                  : "Online Intelligence stopped before completing the response.",
+              retryable: !signal.aborted && !turn.answer.trim() && turn.toolCalls.length === 0,
             }),
           );
         }
       } catch {
-        report(signal.aborted ? "stream_aborted" : "stream_error");
-        const timedOut =
-          signal.reason instanceof DOMException && signal.reason.name === "TimeoutError";
-        controller.enqueue(
-          sse({
-            type: "refusal",
-            code: signal.aborted && !timedOut ? "cancelled" : "provider_failed",
-            reason:
-              signal.aborted && !timedOut
-                ? "Stopped by the user."
-                : "Online Intelligence stopped before completing the response.",
-            retryable: !signal.aborted && !answer.trim() && toolCalls.length === 0,
-          }),
-        );
+        // The person already left: a stream nobody reads throws on enqueue.
       } finally {
-        // First: a stream the person already left throws on enqueue and close.
         await settle();
         cleanup();
-        controller.close();
+        try {
+          controller.close();
+        } catch {
+          // already closed by the reader
+        }
       }
     },
     cancel(reason) {
@@ -1125,172 +1188,261 @@ async function runOnlineIntelligence(
     controller.signal.throwIfAborted(); // stopped during the claim: no provider is called
 
     /*
-     * THE ROUTE IS TRIED IN ORDER, AND ONLY BEFORE ANY OUTPUT.
+     * THE ROUTE IS TRIED IN ORDER, AND ONLY BEFORE ANYTHING IS DELIVERED.
      * Each model has its own quota and its own attempt budget; the next model is asked only
-     * when this one cannot answer this turn. A model is never switched once a stream begins.
+     * when this one cannot answer this turn. A stream a person is reading is never switched.
+     *
+     * THE SERVICE DOOR'S TURN IS ANSWERED WHOLE OR NOT AT ALL. The planner acts only on a
+     * complete turn, so nothing of a turn that broke midway was ever delivered: it is read to
+     * its end here, and a turn that failed, came back empty or lacks the call the planner
+     * asked for goes to the next model of the route (or, with none left, a failed turn is
+     * asked again within the same budget). Benchmark round 4: failover that stopped at the
+     * first byte made the two-model route behave like its first model alone, and one broken
+     * stream ended a task.
      */
-    models: for (const configured of open) {
-      provider = null;
-      refusedAs = undefined;
-      let thinking = !deps.withoutThinking?.has(configured);
-      let modelAttempts = 0;
-      let slotIndex = 0;
-      while (modelAttempts < MAX_PROVIDER_ATTEMPTS && slotIndex < slots.length) {
-        const slot = slots[slotIndex]!;
-        const attempt = modelAttempts;
-        const last = attempt === MAX_PROVIDER_ATTEMPTS - 1;
-        let response: Response;
-        /*
-         * One key that hangs must not hold the whole request: it has its own
-         * deadline to START answering. Only to start: the timer is cleared the
-         * moment headers arrive, so a long answer is never cut off by it.
-         */
-        const hung = new AbortController();
-        const attemptTimer = setTimeout(
-          () => hung.abort(new DOMException("Provider key timeout", "TimeoutError")),
-          ATTEMPT_TIMEOUT_MS,
-        );
-        try {
-          attempted.slot = slot;
-          attempted.attempts += 1; // counted before the request, so a failed transport counts too
-          modelAttempts += 1;
-          response = await deps.callProvider({
-            model: configured,
-            body: high ? workersAiBody(body, MAX_OUTPUT_TOKENS) : providerBody(body, thinking),
-            signal: AbortSignal.any([controller.signal, hung.signal]),
-            slot,
-          });
-        } catch (cause) {
+    const attemptsOf = new Map<OnlineModelId, number>();
+    let candidates: readonly OnlineModelId[] = open;
+    /** The service door's complete turn; without it the planner gets a refusal, never a part. */
+    let whole: ProviderTurn | undefined;
+    for (;;) {
+      models: for (const configured of candidates) {
+        provider = null;
+        refusedAs = undefined;
+        let thinking = !deps.withoutThinking?.has(configured);
+        let modelAttempts = attemptsOf.get(configured) ?? 0;
+        let slotIndex = 0;
+        while (modelAttempts < MAX_PROVIDER_ATTEMPTS && slotIndex < slots.length) {
+          const slot = slots[slotIndex]!;
+          const attempt = modelAttempts;
+          const last = attempt === MAX_PROVIDER_ATTEMPTS - 1;
+          let response: Response;
           /*
-           * A THROW IS A TRANSPORT FAILURE OF THIS SLOT — unless we asked for
-           * it. An abort is the person leaving or the whole request's deadline,
-           * and trying the next key after that would be spending their
-           * allowance on a request nobody is waiting for. A key that hung or
-           * could not be reached is failed over, within the same budget.
+           * One key that hangs must not hold the whole request: it has its own
+           * deadline to START answering. Only to start: the timer is cleared the
+           * moment headers arrive, so a long answer is never cut off by it.
            */
-          if (controller.signal.aborted) throw cause;
+          const hung = new AbortController();
+          const attemptTimer = setTimeout(
+            () => hung.abort(new DOMException("Provider key timeout", "TimeoutError")),
+            ATTEMPT_TIMEOUT_MS,
+          );
+          try {
+            attempted.slot = slot;
+            attempted.attempts += 1; // counted before the request, so a failed transport counts too
+            modelAttempts += 1;
+            attemptsOf.set(configured, modelAttempts);
+            response = await deps.callProvider({
+              model: configured,
+              body: high ? workersAiBody(body, MAX_OUTPUT_TOKENS) : providerBody(body, thinking),
+              signal: AbortSignal.any([controller.signal, hung.signal]),
+              slot,
+            });
+          } catch (cause) {
+            /*
+             * A THROW IS A TRANSPORT FAILURE OF THIS SLOT — unless we asked for
+             * it. An abort is the person leaving or the whole request's deadline,
+             * and trying the next key after that would be spending their
+             * allowance on a request nobody is waiting for. A key that hung or
+             * could not be reached is failed over, within the same budget.
+             */
+            if (controller.signal.aborted) throw cause;
+            deps.providerIssue?.({
+              model: configured,
+              slot,
+              kind: hung.signal.aborted ? "first_byte_timeout" : "transport",
+            });
+            slotIndex += 1;
+            continue;
+          } finally {
+            clearTimeout(attemptTimer);
+          }
+
+          if (high && response.status === 412) {
+            await response.body?.cancel();
+            return json(503, { error: "high_unavailable" }, origin);
+          }
+          provider = high ? workersAiResponse(response, controller.signal) : response;
+          if (response.ok) {
+            Object.assign(served, { model: configured, slot });
+            break;
+          }
+          // A refusal's provider message, reduced to lowercase words, names what was refused.
+          const said =
+            response.status >= 400 && response.status !== 429
+              ? (
+                  await response
+                    .clone()
+                    .text()
+                    .catch(() => "")
+                )
+                  .toLowerCase()
+                  .replace(/[^a-z_ ]+/g, " ")
+                  .trim()
+                  .replace(/\s+/g, "_")
+                  .slice(0, 80)
+              : "";
           deps.providerIssue?.({
             model: configured,
             slot,
-            kind: hung.signal.aborted ? "first_byte_timeout" : "transport",
+            kind: `status_${response.status}${said ? `_${said}` : ""}`,
           });
-          slotIndex += 1;
-          continue;
-        } finally {
-          clearTimeout(attemptTimer);
-        }
 
-        if (high && response.status === 412) {
-          await response.body?.cancel();
-          return json(503, { error: "high_unavailable" }, origin);
-        }
-        provider = high ? workersAiResponse(response, controller.signal) : response;
-        if (response.ok) {
-          Object.assign(served, { model: configured, slot });
-          break;
-        }
-        // A refusal's provider message, reduced to lowercase words, names what was refused.
-        const said =
-          response.status >= 400 && response.status !== 429
-            ? (
-                await response
-                  .clone()
-                  .text()
-                  .catch(() => "")
-              )
-                .toLowerCase()
-                .replace(/[^a-z_ ]+/g, " ")
-                .trim()
-                .replace(/\s+/g, "_")
-                .slice(0, 80)
-            : "";
-        deps.providerIssue?.({
-          model: configured,
-          slot,
-          kind: `status_${response.status}${said ? `_${said}` : ""}`,
-        });
-
-        /*
-         * A REFUSED ATTEMPT'S BODY IS STILL AN OPEN STREAM: read for its reason where the status
-         * needs one, otherwise cancelled so it does not hold its connection.
-         */
-        if (response.status === 429) {
-          quotaExhausted = true;
-          const detail = await response.text().catch(() => "");
-          const quota = providerQuota(detail, (deps.now ?? Date.now)());
-          for (const limit of quota.limits)
-            deps.discoveredLimit?.({ ...limit, slot, model: configured });
-          const named = providerWait(response, detail);
-          // A spent per-day quota returns at its reset, whatever shorter wait the body suggests.
-          const wait =
-            quota.dailyResetMs !== undefined ? Math.max(named ?? 0, quota.dailyResetMs) : named;
           /*
-           * A WEB SEARCH THE PLAN DOES NOT INCLUDE IS NOT A BUSY PROVIDER.
-           *
-           * On the free tier, grounding with Google Search is "Not available" (Google's pricing
-           * page): every grounded request is a 429 with no time to wait, and JARVIS spent
-           * minutes retrying one as if it were busy (live cloud runs, 13 Oct 2026). Said once,
-           * not retried; it answers again if the plan ever includes it.
+           * A REFUSED ATTEMPT'S BODY IS STILL AN OPEN STREAM: read for its reason where the status
+           * needs one, otherwise cancelled so it does not hold its connection.
            */
-          if (body.research && !wait) {
-            return json(403, { error: "research_unavailable" }, origin);
+          if (response.status === 429) {
+            quotaExhausted = true;
+            const detail = await response.text().catch(() => "");
+            const quota = providerQuota(detail, (deps.now ?? Date.now)());
+            for (const limit of quota.limits)
+              deps.discoveredLimit?.({ ...limit, slot, model: configured });
+            const named = providerWait(response, detail);
+            // A spent per-day quota returns at its reset, whatever shorter wait the body suggests.
+            const wait =
+              quota.dailyResetMs !== undefined ? Math.max(named ?? 0, quota.dailyResetMs) : named;
+            /*
+             * A WEB SEARCH THE PLAN DOES NOT INCLUDE IS NOT A BUSY PROVIDER.
+             *
+             * On the free tier, grounding with Google Search is "Not available" (Google's pricing
+             * page): every grounded request is a 429 with no time to wait, and JARVIS spent
+             * minutes retrying one as if it were busy (live cloud runs, 13 Oct 2026). Said once,
+             * not retried; it answers again if the plan ever includes it.
+             */
+            if (body.research && !wait) {
+              return json(403, { error: "research_unavailable" }, origin);
+            }
+            // Quota belongs to the PROJECT: the same key is retried, never another one. A wait the
+            // provider asks for that is longer than a moment is not slept here, and never cut short.
+            if (wait !== undefined && wait > MAX_INLINE_WAIT_MS) {
+              const seconds = Math.ceil(wait / 1_000);
+              capacityReturnsIn = capacityReturnsIn
+                ? Math.min(capacityReturnsIn, seconds)
+                : seconds;
+              deps.quotaReturnsAt?.set(configured, (deps.now ?? Date.now)() + wait);
+              break;
+            }
+            if (last) break;
+            await sleep(wait ?? backoff(attempt), controller.signal);
+            continue;
           }
-          // Quota belongs to the PROJECT: the same key is retried, never another one. A wait the
-          // provider asks for that is longer than a moment is not slept here, and never cut short.
-          if (wait !== undefined && wait > MAX_INLINE_WAIT_MS) {
-            const seconds = Math.ceil(wait / 1_000);
-            capacityReturnsIn = capacityReturnsIn ? Math.min(capacityReturnsIn, seconds) : seconds;
-            deps.quotaReturnsAt?.set(configured, (deps.now ?? Date.now)() + wait);
-            break;
-          }
-          if (last) break;
-          await sleep(wait ?? backoff(attempt), controller.signal);
-          continue;
-        }
 
-        if (response.status === 400) {
-          // Google reports a bad or expired key as 400: that is THIS key, not the request.
-          const detail = await response.text().catch(() => "");
-          if (/API_KEY_INVALID|API key (not valid|expired)/i.test(detail)) {
+          if (response.status === 400) {
+            // Google reports a bad or expired key as 400: that is THIS key, not the request.
+            const detail = await response.text().catch(() => "");
+            if (/API_KEY_INVALID|API key (not valid|expired)/i.test(detail)) {
+              slotIndex += 1;
+              continue;
+            }
+            // The model does not take this thinking setting: the same request once without one.
+            if (thinking && /thinking/i.test(detail)) {
+              thinking = false;
+              deps.withoutThinking?.add(configured);
+              // Learning what the model accepts is not a failed attempt at the turn itself.
+              modelAttempts -= 1;
+              attemptsOf.set(configured, modelAttempts);
+              continue;
+            }
+            // The request itself was refused by this model: the next model in the route may take it.
+            refusedAs = "provider_rejected_request";
+            continue models;
+          }
+          const wait = providerWait(response);
+          void response.body?.cancel().catch(() => undefined);
+
+          // THIS key is refused: the next one may not be.
+          if (response.status === 401 || response.status === 403) {
             slotIndex += 1;
             continue;
           }
-          // The model does not take this thinking setting: the same request once without one.
-          if (thinking && /thinking/i.test(detail)) {
-            thinking = false;
-            deps.withoutThinking?.add(configured);
+
+          // The provider is overloaded or failing. Every key reaches the same provider, so the same
+          // key is retried, as long as the budget lasts and the provider allows it.
+          if (response.status >= 500) {
+            if (wait !== undefined && wait > MAX_INLINE_WAIT_MS) {
+              const seconds = Math.ceil(wait / 1_000);
+              capacityReturnsIn = capacityReturnsIn
+                ? Math.min(capacityReturnsIn, seconds)
+                : seconds;
+              break;
+            }
+            if (last) break;
+            await sleep(wait ?? backoff(attempt), controller.signal);
             continue;
           }
-          // The request itself was refused by this model: the next model in the route may take it.
-          refusedAs = "provider_rejected_request";
+
+          refusedAs = "provider_unavailable";
           continue models;
         }
-        const wait = providerWait(response);
-        void response.body?.cancel().catch(() => undefined);
-
-        // THIS key is refused: the next one may not be.
-        if (response.status === 401 || response.status === 403) {
-          slotIndex += 1;
-          continue;
-        }
-
-        // The provider is overloaded or failing. Every key reaches the same provider, so the same
-        // key is retried, as long as the budget lasts and the provider allows it.
-        if (response.status >= 500) {
-          if (wait !== undefined && wait > MAX_INLINE_WAIT_MS) {
-            const seconds = Math.ceil(wait / 1_000);
-            capacityReturnsIn = capacityReturnsIn ? Math.min(capacityReturnsIn, seconds) : seconds;
-            break;
-          }
-          if (last) break;
-          await sleep(wait ?? backoff(attempt), controller.signal);
-          continue;
-        }
-
-        refusedAs = "provider_unavailable";
-        continue models;
+        if (provider?.ok) break;
       }
-      if (provider?.ok) break;
+      if (!service || !provider?.ok) break;
+      const turn = await readProviderTurn(provider, controller.signal, {
+        cappedTextIsAnAnswer: false,
+        forward: () => undefined,
+        report: (kind) => deps.providerIssue?.({ ...served, kind }),
+      });
+      controller.signal.throwIfAborted(); // the turn's own deadline, or the caller left
+      // The content itself was refused: no retry and no other model is asked. An earlier
+      // complete answer, if there was one, is still the better thing to hand back.
+      if (turn.blocked) {
+        whole ??= turn;
+        break;
+      }
+      const uncalled =
+        turn.state === "complete" && body.tools.length > 0 && turn.toolCalls.length === 0;
+      if (turn.state === "complete" && !uncalled) {
+        whole = turn;
+        break;
+      }
+      // Complete, but without the call the planner asked for: kept, so the planner can correct
+      // it if no other model does better; the same model is not asked the same thing again.
+      if (uncalled) {
+        deps.providerIssue?.({ ...served, kind: "no_call" });
+        whole ??= turn;
+      }
+      const model = served.model as OnlineModelId;
+      const rest = candidates.slice(candidates.indexOf(model) + 1);
+      if (rest.length) candidates = rest;
+      else if (!uncalled && (attemptsOf.get(model) ?? 0) < MAX_PROVIDER_ATTEMPTS)
+        candidates = [model];
+      else break;
+    }
+
+    if (service && (whole || provider?.ok)) {
+      // A turn that never completed is a provider failure the caller may retry; nothing was delivered.
+      if (!whole) return json(503, { error: "provider_failed" });
+      const events: IntelligenceEvent[] = whole.blocked
+        ? [
+            {
+              type: "refusal",
+              code: "content_blocked",
+              reason: "OCADE can't help with that request. Try asking in a different way.",
+              retryable: false,
+            },
+          ]
+        : completedTurnEvents(whole);
+      if (!whole.blocked) {
+        ended("succeeded");
+        // Charged by the server before the planner is told the turn is complete.
+        await deps
+          .finalizePermit?.({ userId: identity.userId, permit: body.permit })
+          .catch(() => undefined);
+        handedOff = true;
+        cleanup();
+      }
+      return new Response(
+        [{ type: "status", backend: "online", state: "generating" } as const, ...events]
+          .map((event) => `data: ${JSON.stringify(event)}\n\n`)
+          .join(""),
+        {
+          status: 200,
+          headers: {
+            "Content-Type": "text/event-stream; charset=utf-8",
+            "Cache-Control": "no-store, no-transform",
+          },
+        },
+      );
     }
 
     if (!provider?.ok && refusedAs) {

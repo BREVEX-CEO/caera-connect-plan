@@ -146,6 +146,16 @@ function observe(record: ReturnType<typeof buildHealthRecord>): void {
   console.log("ocade.health", JSON.stringify(record));
 }
 
+/*
+ * Why the platform ends this worker (its wall clock, CPU or memory limit; Supabase Edge
+ * Functions "Background Tasks"): the evidence for a planner turn that was cut off mid-stream
+ * (plan.md 19.4, `planner_stream_incomplete`). The platform's own reason word only.
+ */
+addEventListener("beforeunload", (event) => {
+  const reason = (event as unknown as { detail?: { reason?: unknown } }).detail?.reason;
+  console.log("ocade.worker_unload", JSON.stringify({ reason: String(reason).slice(0, 40) }));
+});
+
 /**
  * How the provider serves each model, read from its own model metadata once per instance and
  * per key slot (each slot may be a different project). Unreadable metadata is not cached and

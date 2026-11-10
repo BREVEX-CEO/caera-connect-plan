@@ -61,6 +61,8 @@ test("server and edge code logs only health records", () => {
     'supabase/functions/_shared/boundary.ts: console.log("ocade.provider_limit", JSON.stringify(limit',
     // Why a provider turn failed: model, slot and an enumerated kind (status, finish reason).
     'supabase/functions/_shared/boundary.ts: console.log("ocade.provider_issue", JSON.stringify(issue',
+    // Why the platform ended a worker: its own reason word (wall clock, CPU, memory), nothing else.
+    'supabase/functions/_shared/boundary.ts: console.log("ocade.worker_unload", JSON.stringify({ reason: String(reason',
   ]);
   const offenders: string[] = [];
   for (const path of new Set(server)) {
