@@ -469,7 +469,9 @@ def system_inspect(programs: list[str] | None = None) -> dict:
 
     found = {}
     for name in (programs or [])[:20]:
-        path = shutil.which(name) or discovery.app_path(name if name.lower().endswith(".exe") else f"{name}.exe")
+        # On PATH, or an installed app by the name apps.list gives it (with or without ".exe").
+        path = shutil.which(name) or discovery.app_path(name) or (
+            None if name.lower().endswith(".exe") else discovery.app_path(f"{name}.exe"))
         if path and os.path.isfile(path):
             found[name] = {"path": path[:300], "bytes": os.path.getsize(path), **_file_version(path)}
         else:

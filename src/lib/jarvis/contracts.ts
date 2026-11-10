@@ -793,7 +793,7 @@ export const OPERATIONS = {
   },
   "system.inspect": {
     summary:
-      "Facts about this computer before installing or repairing anything: OS, version, CPU architecture, free disk space in the workspace, and where each named program (for example python, node, ffmpeg, winget, brew) resolves, without running it.",
+      "Facts about this computer before installing or repairing anything: OS, version, CPU architecture, free disk space in the workspace, and where each named program resolves (a command such as python, node, ffmpeg, winget or brew, or an installed app by the exe apps.list gives it), without running it.",
     role: "sys_core",
     capability: "apps",
     risk: "read",

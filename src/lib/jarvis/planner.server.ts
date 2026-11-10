@@ -364,6 +364,8 @@ const SYSTEM = [
   "and ui.click_point only when nothing else can reach the control. Use only apps and sites in `allowed`.",
   "shell.run runs one command the person reads and confirms: use it when no typed operation fits (diagnosing or",
   "repairing the computer, installing software); look before changing anything, and judge its exit code and output.",
+  "When an installed app can do the work from its own command line or scripting mode, write the script with fs.write_text",
+  "and run it with shell.run or job.start, using the program path system.inspect returns for the app's exe.",
   "For a missing prerequisite, call system.dependency. Use system.install_dependency only with its exact proposal.",
   "If it has no approved package, ask the person for manual installation. The independent verifier checks it before work continues.",
   "To change an existing text file, fs.read_text it, then fs.edit_text the exact passages that must change (or",

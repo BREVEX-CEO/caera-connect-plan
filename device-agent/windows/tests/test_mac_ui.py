@@ -169,6 +169,25 @@ class MacUiLadder(unittest.TestCase):
 
 
 class AxEventContract(unittest.TestCase):
+    def test_an_installed_app_resolves_to_the_program_its_bundle_starts(self):
+        """The scripted route needs an app's real program (its command-line mode), found from
+        the bundle by the same name apps.list gives; a random bundle, nothing known in advance."""
+        import plistlib
+        import tempfile
+        from pathlib import Path
+        from unittest.mock import patch
+
+        from ocade_agent import mac_worker
+
+        with tempfile.TemporaryDirectory() as folder:
+            bundle = Path(folder) / "Fixture Studio.app" / "Contents"
+            (bundle / "MacOS").mkdir(parents=True)
+            (bundle / "Info.plist").write_bytes(plistlib.dumps({"CFBundleExecutable": "FixtureStudio"}))
+            with patch.object(mac_worker, "_app_dirs", lambda: [Path(folder)]):
+                [found] = mac_worker.installed_apps()
+        self.assertEqual((found["name"], found["exe"]), ("Fixture Studio", "fixturestudio"))
+        self.assertEqual(found["program"], str(bundle / "MacOS" / "FixtureStudio"), "the bundle's own case")
+
     def test_secure_ax_field_is_redacted_before_value_lookup(self):
         from unittest.mock import patch
         from ocade_agent import mac_worker

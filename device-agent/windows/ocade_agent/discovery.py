@@ -238,7 +238,12 @@ def _window_aumid(hwnd: int, pid: int, handle, win32api, win32con, win32process,
 
 
 def app_path(exe: str) -> str | None:
-    """Where Windows would launch `exe` from (its Start Menu shortcut, App Paths, then PATH)."""
+    """The program an installed app starts, by the name `apps.list` gives it: on Windows its
+    Start Menu shortcut's target, App Paths, then PATH; on macOS its bundle's executable."""
+    if sys.platform == "darwin":
+        from .mac_worker import installed_apps as mac_apps
+
+        return next((a["program"] for a in mac_apps() if a["exe"] == exe.lower()), None)
     if sys.platform != "win32":
         return None
     import shutil

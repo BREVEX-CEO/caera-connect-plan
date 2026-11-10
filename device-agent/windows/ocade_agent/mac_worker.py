@@ -66,7 +66,8 @@ def installed_apps(limit: int = 300) -> list[dict]:
                 continue
             exe = str(info.get("CFBundleExecutable", ""))
             if exe and len(exe) <= 80:
-                found.setdefault(exe.lower(), {"name": bundle.stem[:120], "exe": exe.lower(), "path": str(bundle)})
+                found.setdefault(exe.lower(), {"name": bundle.stem[:120], "exe": exe.lower(), "path": str(bundle),
+                                               "program": str(bundle / "Contents/MacOS" / exe)})
     return sorted(found.values(), key=lambda a: a["name"].lower())[:limit]
 
 
