@@ -80,5 +80,25 @@ class TargetCheck(unittest.TestCase):
         self.assertEqual(resized["reason"], "window_resized")
 
 
+class RegionView(unittest.TestCase):
+    def test_a_region_is_seen_at_the_screens_own_detail(self):
+        # A 16 px control in a 1920 px window is 8 px in the whole-window picture (960 px):
+        # the region keeps every pixel, so it can be made out and then pointed at.
+        shot = window(size=(1920, 1080))
+        part = vision.view(shot, [0.75, 0.5, 1.0, 1.0])
+        self.assertEqual(part.size, (480, 540))
+        self.assertEqual(part.tobytes(), shot.crop((1440, 540, 1920, 1080)).tobytes())
+        self.assertIs(vision.view(shot, None), shot, "without a region, the whole window")
+
+    def test_a_region_that_shows_nothing_usable_is_refused(self):
+        from ocade_agent.sandbox import Refused
+
+        shot = window()
+        for region in ([0.5, 0.5, 0.5, 0.9], [0.9, 0.1, 0.2, 0.9], [0, 0, 1.2, 1], [0, 0, 1], "all",
+                       [0.1, 0.1, 0.12, 0.9], [0, 0, float("nan"), 1]):
+            with self.subTest(region=region), self.assertRaisesRegex(Refused, "region_invalid"):
+                vision.view(shot, region)
+
+
 if __name__ == "__main__":
     unittest.main()

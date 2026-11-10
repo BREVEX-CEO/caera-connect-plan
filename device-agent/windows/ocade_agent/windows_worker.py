@@ -217,9 +217,10 @@ def apps_launch(exe: str, open: str | None = None) -> dict:
 
 @app.tool()
 @_evidence
-def ui_inspect(window: dict) -> dict:
+def ui_inspect(window: dict, region: list | None = None) -> dict:
     """The window's accessible elements, each with its box as window fractions (what
-    ui.click_point takes), and a preview of the window as the screen shows it."""
+    ui.click_point takes), and a preview of the window (or of one `region` of it, at full
+    detail) as the screen shows it."""
     import json
 
     import win32gui  # type: ignore[import-not-found]
@@ -246,8 +247,10 @@ def ui_inspect(window: dict) -> dict:
         _seen.pop(key, None)
         return {"title": title, "elements": elements, "previewUnavailable": "protected_content"}
     shot = ImageGrab.grab(bbox=(left, top, right, bottom), all_screens=True)
-    vision.remember(_seen, key, shot)
-    return {"title": title, "elements": elements, "preview": preview_jpeg(shot, 30_000)}
+    seen = vision.view(shot, region)  # refused before anything is remembered
+    vision.remember(_seen, key, shot)  # a click is always matched against the whole window
+    return {"title": title, "elements": elements, "preview": preview_jpeg(seen, 30_000),
+            **({"previewRegion": list(region)} if region else {})}
 
 
 @app.tool()

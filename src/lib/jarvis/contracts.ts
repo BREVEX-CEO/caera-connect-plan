@@ -871,12 +871,24 @@ export const OPERATIONS = {
   },
   "ui.inspect": {
     summary:
-      "Read and see one open application window: its controls with names, values, state and each one's box as window fractions, plus an image of the window.",
+      "Read and see one open application window: its controls with names, values, state and each one's box as window fractions, plus an image of the window. With `region`, the image is that part of the window at full detail, for controls too small to make out in the whole.",
     engine: "desktop",
     role: "ui_bridge",
     capability: "apps",
     risk: "read",
-    arguments: z.strictObject({ window: windowLease }),
+    arguments: z.strictObject({
+      window: windowLease,
+      region: z
+        .array(z.number().min(0).max(1))
+        .length(4)
+        .refine(([x0, y0, x1, y1]) => x1 - x0 >= 0.05 && y1 - y0 >= 0.05, {
+          message: "a region is [x0, y0, x1, y1] with x0 < x1 and y0 < y1, at least 0.05 each way",
+        })
+        .optional()
+        .describe(
+          "[x0, y0, x1, y1] as window fractions: see only this part, enlarged. A point seen at (u, v) of that image is at x0 + u*(x1-x0), y0 + v*(y1-y0) of the window.",
+        ),
+    }),
     target: (a: { window: { exe: string } }): Target => ({ app: a.window.exe }),
   },
   "ui.invoke": {

@@ -677,3 +677,15 @@ test("keyboard input is one explicit contract: text typed as written, or one nam
   assert.ok(!accepts([{ press: "F13" }]), "beyond the named keys");
   assert.ok(!accepts([{ text: "line\nbreak" }]), "a control character is a key press, never text");
 });
+
+test("a window can be seen whole, or one region of it at full detail", () => {
+  const window = { exe: "fixture.exe", pid: 5, hwnd: 7, started: 11 };
+  const accepts = (region?: unknown) =>
+    OPERATIONS["ui.inspect"].arguments.safeParse({ window, ...(region ? { region } : {}) }).success;
+  assert.ok(accepts());
+  assert.ok(accepts([0.75, 0.5, 1, 1]));
+  assert.ok(!accepts([0.5, 0.5, 0.5, 0.9]), "no width");
+  assert.ok(!accepts([0.9, 0.1, 0.2, 0.9]), "reversed");
+  assert.ok(!accepts([0, 0, 1.2, 1]), "outside the window");
+  assert.ok(!accepts([0, 0, 1]), "three numbers");
+});

@@ -34,6 +34,21 @@ def remember(cache: dict, key: str, shot: Image.Image) -> None:
     cache[key] = (time.monotonic(), shot)
 
 
+def view(shot: Image.Image, region: list | None) -> Image.Image:
+    """The part of a window image the planner asked to see: the whole window, or one region
+    ([x0, y0, x1, y1] as window fractions) at the screen's own detail, so a control too small
+    to make out in the whole-window picture can be read and then pointed at."""
+    if region is None:
+        return shot
+    if (not isinstance(region, (list, tuple)) or len(region) != 4
+            or not all(isinstance(value, (int, float)) and math.isfinite(value) and 0 <= value <= 1 for value in region)):
+        raise Refused("region_invalid")
+    x0, y0, x1, y1 = region
+    if x1 - x0 < 0.05 or y1 - y0 < 0.05:
+        raise Refused("region_invalid")  # too small to show anything a point could be chosen in
+    return shot.crop((round(x0 * shot.width), round(y0 * shot.height), round(x1 * shot.width), round(y1 * shot.height)))
+
+
 def last_observation(cache: dict, key: str) -> Image.Image:
     captured = cache.get(key)
     if captured is None:

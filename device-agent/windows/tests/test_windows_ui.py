@@ -103,6 +103,7 @@ class WindowsUiLadder(unittest.TestCase):
                 out["launch"] = await run("apps.launch", {"exe": self.exe, "open": "note.txt"})
                 window = out["launch"]["evidence"]["window"]
                 out["inspect"] = await run("ui.inspect", {"window": window})
+                out["region"] = await run("ui.inspect", {"window": window, "region": [0, 0, 0.5, 0.5]})
                 box = {"automationId": "noteBox"}
                 out["set"] = await run("ui.set_value", {"window": window, "element": box, "value": "Quarterly GREEN"})
                 out["invoke"] = await run("ui.invoke", {"window": window, "element": {"name": "Save", "controlType": "Button"}})
@@ -177,6 +178,8 @@ class WindowsUiLadder(unittest.TestCase):
             ids = {e["automationId"] for e in out["inspect"]["evidence"]["elements"]}
             self.assertTrue({"noteBox", "saveButton"} <= ids, ids)
             self.assertTrue(out["inspect"].get("preview"), "the window is seen, not only listed")
+            self.assertTrue(out["region"].get("preview"), out["region"])
+            self.assertEqual(out["region"]["evidence"]["previewRegion"], [0, 0, 0.5, 0.5])
         with self.subTest("UIA-005 set value reads back; invoke has the app's real effect"):
             self.assertTrue(out["set"]["evidence"]["matches"], out["set"])
             self.assertEqual(out["invoke"]["status"], "observed", out["invoke"])

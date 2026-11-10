@@ -314,8 +314,9 @@ def apps_launch(exe: str, open: str | None = None) -> dict:
 
 @app.tool()
 @_evidence
-def ui_inspect(window: dict) -> dict:
-    """The window's accessible elements with their boxes (window fractions) and an image of it."""
+def ui_inspect(window: dict, region: list | None = None) -> dict:
+    """The window's accessible elements with their boxes (window fractions) and an image of it
+    (or of one `region` of it, at full detail)."""
     import json
 
     from PIL import ImageGrab
@@ -339,8 +340,10 @@ def ui_inspect(window: dict) -> dict:
         _seen.pop(key, None)
         return {"title": title, "elements": elements, "previewUnavailable": "screen_recording_permission_needed"}
     shot = ImageGrab.grab(bbox=(x, y, x + width, y + height))
-    vision.remember(_seen, key, shot)
-    return {"title": title, "elements": elements, "preview": preview_jpeg(shot, 30_000)}
+    seen = vision.view(shot, region)  # refused before anything is remembered
+    vision.remember(_seen, key, shot)  # a click is always matched against the whole window
+    return {"title": title, "elements": elements, "preview": preview_jpeg(seen, 30_000),
+            **({"previewRegion": list(region)} if region else {})}
 
 
 @app.tool()
