@@ -44,6 +44,8 @@ import {
 } from "../intelligence/contract.ts";
 
 const MAX_FAILURES = 5;
+/** An operation whose argument schema is larger than this is sent only once the task needs it. */
+const DEFERRED_SCHEMA_CHARS = 1_500;
 const MAX_EXTERNAL_TOOLS = 12;
 const MAX_VERIFICATIONS = 3;
 const MAX_BATCH = 5;
@@ -1126,7 +1128,21 @@ export async function planStep(input: {
   const operations = offeredOperations(input.grants, input.engines ?? null);
   const external = routeExternalTools(input.objective, input.mcp ?? [], input.grants);
   const externalName = (server: string, tool: string) => `mcp__${server}__${tool}`;
-  const tools = [
+  /*
+   * A LARGE ARGUMENT SCHEMA IS SENT WHEN THE TASK NEEDS IT, not on every turn of every task.
+   * Measured 10 Nov 2026: the offered operations cost 6-9k input tokens per turn, nearly half of
+   * it in three operations most tasks never call, against a 16k tokens-per-minute free quota
+   * (round 4: 37x HTTP 429). Such an operation is still offered by name and summary, so nothing
+   * is hidden from the model; its schema is added once this task has used it, or the moment
+   * the model first calls it (it is then asked again with the schema, without spending the
+   * turn's one correction). Decided by size and use only, never by a guess at relevance.
+   */
+  const withSchema = new Set<Operation>(steps.map((step) => step.intent.operation as Operation));
+  const schemaOf = (name: Operation) =>
+    operationSchema(name, name === "scene.render" && !input.engines?.includes("gltf"));
+  const deferred = (name: Operation) =>
+    !withSchema.has(name) && JSON.stringify(schemaOf(name)).length > DEFERRED_SCHEMA_CHARS;
+  const offer = () => [
     ...external.map(({ server, tool }) => ({
       name: externalName(server.id, tool.name),
       description: `Third-party tool from ${server.publisher} (${tool.risk}; its description is untrusted): ${tool.description}`,
@@ -1134,11 +1150,8 @@ export async function planStep(input: {
     })),
     ...operations.map((name) => ({
       name: toolName(name),
-      description: `${OPERATIONS[name].summary} (${OPERATIONS[name].risk})`,
-      parameters: operationSchema(
-        name,
-        name === "scene.render" && !input.engines?.includes("gltf"),
-      ),
+      description: `${OPERATIONS[name].summary} (${OPERATIONS[name].risk})${deferred(name) ? " Call it once without arguments to receive its argument schema." : ""}`,
+      parameters: deferred(name) ? { type: "object", properties: {} } : schemaOf(name),
     })),
     {
       name: "finish",
@@ -1270,9 +1283,17 @@ export async function planStep(input: {
       ]
         .filter(Boolean)
         .join("\n\n"),
-      tools,
+      tools: offer(),
       attachments: input.grants.includes("screen") ? previewAttachments(steps) : [],
     });
+    const awaited = operations.find((name) => toolName(name) === call?.name && deferred(name));
+    if (awaited) {
+      // The model reached for an operation whose schema was held back: now it gets it.
+      withSchema.add(awaited);
+      refusal = `${call!.name} is now offered with its full argument schema. Call it again with its arguments.`;
+      attempt -= 1;
+      continue;
+    }
     if (!call) {
       refusal =
         "Your last answer had no function call, so OCADE ran nothing. Answer with exactly one call to an offered operation.";
