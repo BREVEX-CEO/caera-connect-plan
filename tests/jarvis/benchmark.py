@@ -130,6 +130,12 @@ def ocade(ws: Path, request: str, report: Path, configuration: str, minutes: int
     return live, time.monotonic() - started
 
 
+def completed(live: dict) -> bool:
+    """OCADE itself settled the task as completed, after its own independent verification.
+    (Rounds 1-4 compared the task with a step's status, which no task has: no PASS was possible.)"""
+    return live.get("status") == "completed"
+
+
 def files(ws: Path, *suffixes: str) -> list[Path]:
     return sorted(p for p in ws.rglob("*") if p.is_file() and p.suffix.lower() in suffixes)
 
@@ -435,7 +441,7 @@ def main() -> int:
             record["request"] = request
             with Watch(out / name / "screenshots") as watch:
                 live, wall = ocade(ws, request, out / name / "report.json", args.configuration, minutes)
-            if name == "advert" and live.get("status") == "done":
+            if name == "advert" and completed(live):
                 rows = sheet_rows(files(ws, ".xlsx", ".ods")[0]) if files(ws, ".xlsx", ".ods") else []
                 old = labelled(rows, "wheelbase")
                 new = round((old or 2700) + 150)
@@ -452,13 +458,13 @@ def main() -> int:
                 ok2, facts2 = advert_check(ws, changed_at)
                 record["change"] = {"request": change, "status": live2.get("status"), "wallSeconds": round(wall2, 1),
                                     "wheelbaseBefore": old, "wheelbaseAfter": after, "artifactsRebuilt": facts2,
-                                    "crash": crash, "recovered": bool(crash) and live2.get("status") == "done",
-                                    "pass": ok2 and after == new and live2.get("status") == "done",
+                                    "crash": crash, "recovered": bool(crash) and completed(live2),
+                                    "pass": ok2 and after == new and completed(live2),
                                     "timing": live2.get("timing"), "resources": watch2.summary()}
             ok, detail = oracle()
             timing = live.get("timing") or {}
             record.update(
-                pass_=bool(ok and live.get("status") == "done" and record.get("change", {}).get("pass", True)),
+                pass_=bool(ok and completed(live) and record.get("change", {}).get("pass", True)),
                 oraclePassed=ok, detail=detail, status=live.get("status"), blocker=(live.get("blocker") or "")[:400],
                 wallSeconds=round(wall, 1), timing=timing, interventions=len(live.get("confirmations") or []),
                 steps=len(live.get("decisions") or []), resources=watch.summary(),

@@ -18,8 +18,22 @@ spec = importlib.util.spec_from_file_location("live_eval", Path(__file__).with_n
 evaluation = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(evaluation)
 
+benchmark_spec = importlib.util.spec_from_file_location("benchmark", Path(__file__).with_name("benchmark.py"))
+benchmark = importlib.util.module_from_spec(benchmark_spec)
+benchmark_spec.loader.exec_module(benchmark)
+
 
 class EvaluationAudit(unittest.TestCase):
+    def test_the_benchmark_passes_only_a_task_the_authority_completed(self):
+        # Rounds 1-4 compared the task with a step's status ("done"), which no task ever has.
+        self.assertTrue(benchmark.completed({"status": "completed"}))
+        for status in ("done", "running", "waiting", "blocked", "stopped", "failed", None):
+            self.assertFalse(benchmark.completed({"status": status}), status)
+        self.assertFalse(benchmark.completed({}), "no report is never a completed task")
+        self.assertTrue(evaluation.verified_outcome(
+            {"status": "completed", "timing": {"verifiedAt": "t"}, "checks": [{"state": "passed"}]}, True, [], []),
+            "both harnesses use the authority's own word for a completed task")
+
     def test_another_tool_is_scored_by_the_same_hidden_oracle(self):
         with tempfile.TemporaryDirectory() as temporary:
             ws = Path(temporary)
