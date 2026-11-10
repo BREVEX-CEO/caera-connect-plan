@@ -103,7 +103,8 @@ class MacUiLadder(unittest.TestCase):
                 time.sleep(0.5)
                 out["after_invoke"] = self.note()
                 await run("ui.set_value", {"window": window, "element": box, "value": ""})
-                out["keys"] = await run("ui.send_keys", {"window": window, "keys": "typed by keys", "element": box})
+                out["keys"] = await run("ui.send_keys", {"window": window, "element": box, "keys": [
+                    {"text": "typed by keyz"}, {"press": "Backspace"}, {"text": "s"}]})
                 time.sleep(0.5)
                 await run("ui.invoke", {"window": window, "element": {"automationId": "saveButton"}})
                 time.sleep(0.5)

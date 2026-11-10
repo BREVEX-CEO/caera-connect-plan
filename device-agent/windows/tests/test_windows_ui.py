@@ -107,7 +107,9 @@ class WindowsUiLadder(unittest.TestCase):
                 out["set"] = await run("ui.set_value", {"window": window, "element": box, "value": "Quarterly GREEN"})
                 out["invoke"] = await run("ui.invoke", {"window": window, "element": {"name": "Save", "controlType": "Button"}})
                 out["after_invoke"] = self.note()
-                out["keys"] = await run("ui.send_keys", {"window": window, "keys": "{END}+{HOME}{BACKSPACE}typed by keys", "element": box})
+                out["keys"] = await run("ui.send_keys", {"window": window, "element": box, "keys": [
+                    {"press": "End"}, {"press": "Shift+Home"}, {"press": "Backspace"}, {"text": "100% (a+b) ~{typed}^ by keyz"},
+                    {"press": "Backspace"}, {"text": "s"}]})
                 await run("ui.invoke", {"window": window, "element": {"automationId": "saveButton"}})
                 out["after_keys"] = self.note()
                 # The person presses a key: JARVIS's hands pause, then continue once they are quiet.
@@ -181,7 +183,8 @@ class WindowsUiLadder(unittest.TestCase):
             self.assertEqual(out["after_invoke"], "Quarterly GREEN")
         with self.subTest("UIA-006 keys go to the leased foreground window"):
             self.assertEqual(out["keys"]["status"], "observed", out["keys"])
-            self.assertEqual(out["after_keys"], "typed by keys")
+            # Text with every character a keyboard library reads as a command arrives as written.
+            self.assertEqual(out["after_keys"], "100% (a+b) ~{typed}^ by keys")
         with self.subTest("UIA-012 a person's keyboard input pauses mutations until they are quiet"):
             self.assertEqual(out["person"]["errorCode"], "user_active")
             self.assertTrue(out["quiet"]["evidence"]["matches"], out["quiet"])

@@ -26,6 +26,7 @@ import time
 from mcp.server.mcpserver import MCPServer
 
 from . import discovery, vision
+from . import keys as key_contract
 from .sandbox import Refused, guarded, mark_effect, preview_jpeg, resolve
 
 _seen: dict = {}  # the last image ui.inspect captured of each leased window
@@ -302,12 +303,13 @@ def ui_set_value(window: dict, element: dict, value: str) -> dict:
 
 @app.tool()
 @_evidence
-def ui_send_keys(window: dict, keys: str, element: dict | None = None) -> dict:
-    """Type a shortcut or text into the leased window (into `element` when given), only while it holds the foreground."""
+def ui_send_keys(window: dict, keys: list, element: dict | None = None) -> dict:
+    """Type text and press keys in the leased window (in `element` when given), only while it holds the foreground."""
     import win32gui  # type: ignore[import-not-found]
     from pywinauto.keyboard import send_keys  # type: ignore[import-not-found]
     from pywinauto.uia_defines import IUIA  # type: ignore[import-not-found]
 
+    sequence = key_contract.windows_sequence(keys)  # refused here, before anything is focused
     target = _leased(window)
     control = _element(target, element) if element is not None else None
     if control is not None and _password_state(control.element_info.element) is not False:
@@ -331,7 +333,7 @@ def ui_send_keys(window: dict, keys: str, element: dict | None = None) -> dict:
                 raise Refused("focus_lost")
         elif focused.CurrentProcessId != window["pid"]:
             raise Refused("focus_lost")
-        send_keys(keys, pause=0.02, with_spaces=True)  # default drops every space in typed text
+        send_keys(sequence, pause=0.02, with_spaces=True)  # default drops every space in typed text
     finally:
         _own_input["at"] = time.monotonic()
     return {"title": target.window_text()[:200]}

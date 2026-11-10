@@ -27,6 +27,7 @@ from pathlib import Path
 
 from mcp.server.mcpserver import MCPServer
 
+from . import keys as key_contract
 from . import vision
 from .sandbox import Refused, guarded, mark_effect, preview_jpeg, resolve
 
@@ -380,12 +381,15 @@ def ui_set_value(window: dict, element: dict, value: str) -> dict:
 
 @app.tool()
 @_evidence
-def ui_send_keys(window: dict, keys: str, element: dict | None = None) -> dict:
-    """Type text into the leased window (into `element` when given), only while it is frontmost."""
+def ui_send_keys(window: dict, keys: list, element: dict | None = None) -> dict:
+    """Type text and press keys in the leased window (in `element` when given), only while it is frontmost."""
     import ApplicationServices as AX  # type: ignore[import-not-found]
     import CoreFoundation as CF  # type: ignore[import-not-found]
     import Quartz  # type: ignore[import-not-found]
 
+    events = key_contract.mac_events(keys)  # refused here, before anything is focused
+    flags = {"command": Quartz.kCGEventFlagMaskCommand, "control": Quartz.kCGEventFlagMaskControl,
+             "option": Quartz.kCGEventFlagMaskAlternate, "shift": Quartz.kCGEventFlagMaskShift}
     target, _ = _leased(window)
     control = _element(target, element) if element is not None else None
     if control is not None and _protected_control(control):
@@ -401,13 +405,21 @@ def ui_send_keys(window: dict, keys: str, element: dict | None = None) -> dict:
             raise Refused("protected_control")
         if control is not None and not CF.CFEqual(focused, control):
             raise Refused("focus_lost")
-        for character in keys:
-            for down in (True, False):
-                event = Quartz.CGEventCreateKeyboardEvent(None, 0, down)
-                Quartz.CGEventKeyboardSetUnicodeString(event, 1, character)
-                mark_effect()
-                Quartz.CGEventPostToPid(window["pid"], event)
-            time.sleep(0.01)
+        for kind, value, *modifiers in events:
+            # Text goes as characters (whatever the layout); a press as its key with its modifiers.
+            for stroke in (value if kind == "text" else [value]):
+                for down in (True, False):
+                    event = Quartz.CGEventCreateKeyboardEvent(None, 0 if kind == "text" else stroke, down)
+                    if kind == "text":
+                        Quartz.CGEventKeyboardSetUnicodeString(event, 1, stroke)
+                    else:
+                        mask = 0
+                        for name in modifiers[0]:
+                            mask |= flags[name]
+                        Quartz.CGEventSetFlags(event, mask)
+                    mark_effect()
+                    Quartz.CGEventPostToPid(window["pid"], event)
+                time.sleep(0.01)
     finally:
         _own_input["at"] = time.monotonic()
     return {"title": str(_attribute(target, "AXTitle") or "")[:200]}

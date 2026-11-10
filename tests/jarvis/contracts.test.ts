@@ -9,6 +9,7 @@ import {
   actionReceipt,
   deviceRequest,
   intent,
+  OPERATIONS,
   type ActionIntent,
 } from "../../src/lib/jarvis/contracts.ts";
 import { evidenceOf, open, settleChecks, type Step } from "../../src/lib/jarvis/supervisor.ts";
@@ -641,4 +642,21 @@ test("a check that cannot apply asks the person instead of sending the work back
     /"Totals" \(workbook_cell_equals reads \.xlsx or \.xlsm workbooks\)/,
   );
   assert.match(question ?? "", /ask again/);
+});
+
+test("keyboard input is one explicit contract: text typed as written, or one named key press", () => {
+  const window = { exe: "fixture.exe", pid: 5, hwnd: 7, started: 11 };
+  const accepts = (keys: unknown) =>
+    OPERATIONS["ui.send_keys"].arguments.safeParse({ window, keys }).success;
+  assert.ok(accepts([{ press: "Mod+Shift+T" }, { text: "=B7+1 is 100% {x}" }, { press: "Enter" }]));
+  assert.ok(accepts([{ press: "F12" }, { press: "Ctrl+Alt+Delete" }, { press: "a" }]));
+  // The old bare string had no stated syntax: each platform read it differently.
+  assert.ok(!accepts("^s{ENTER}"), "a bare string");
+  assert.ok(!accepts([]), "nothing to send");
+  assert.ok(!accepts([{ text: "a", press: "Enter" }]), "both kinds in one item");
+  assert.ok(!accepts([{}]), "neither kind");
+  assert.ok(!accepts([{ press: "Return" }]), "a key the contract does not name");
+  assert.ok(!accepts([{ press: "Ctrl+" }]), "a modifier without a key");
+  assert.ok(!accepts([{ press: "F13" }]), "beyond the named keys");
+  assert.ok(!accepts([{ text: "line\nbreak" }]), "a control character is a key press, never text");
 });

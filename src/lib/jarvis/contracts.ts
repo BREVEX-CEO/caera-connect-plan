@@ -89,6 +89,35 @@ const element = z
   })
   .refine((e) => e.automationId || e.name, "an element needs an automation id or a name");
 
+/**
+ * One keyboard contract for every desktop (the companion's `keys.py` translates it): text is
+ * typed exactly as written, and a key press is named, so text can never be read as a command
+ * and the planner never needs a platform's own input syntax.
+ */
+const keyItem = z
+  .strictObject({
+    text: z
+      .string()
+      .min(1)
+      .max(200)
+      // eslint-disable-next-line no-control-regex -- a control character is a key press, never text
+      .regex(/^[^\u0000-\u001f\u007f]+$/)
+      .optional()
+      .describe("Characters to type, exactly as written."),
+    press: z
+      .string()
+      .regex(
+        /^(?:(?:Mod|Ctrl|Alt|Shift|Cmd)\+){0,3}(?:[A-Za-z0-9]|F(?:1[0-2]|[1-9])|Enter|Tab|Escape|Backspace|Delete|Space|Home|End|PageUp|PageDown|Up|Down|Left|Right|Insert)$/,
+      )
+      .optional()
+      .describe(
+        "One key, with modifiers: Enter, Tab, Escape, F2, Shift+Tab, Mod+S. Mod is the main shortcut key (Ctrl on Windows, Cmd on macOS).",
+      ),
+  })
+  .refine((item) => (item.text === undefined) !== (item.press === undefined), {
+    message: "each item is either text or press",
+  });
+
 const host = z
   .string()
   .regex(/^[a-z0-9]([a-z0-9.-]{0,251}[a-z0-9])?$/)
@@ -871,14 +900,14 @@ export const OPERATIONS = {
   },
   "ui.send_keys": {
     summary:
-      "Send keyboard keys to an application window: to the given control (focused first), else to whichever control has focus.",
+      "Type text and press keys in an application window: in the given control (focused first), else in whichever control has focus. Each item is {text} (typed exactly as written) or {press} (one key, with modifiers).",
     engine: "desktop",
     role: "ui_bridge",
     capability: "apps",
     risk: "external_effect",
     arguments: z.strictObject({
       window: windowLease,
-      keys: z.string().min(1).max(200),
+      keys: z.array(keyItem).min(1).max(20),
       element: element.optional(),
     }),
     target: (a: { window: { exe: string } }): Target => ({ app: a.window.exe }),

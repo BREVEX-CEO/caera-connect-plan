@@ -2173,9 +2173,27 @@
             "additionalProperties": false
           },
           "keys": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 200
+            "minItems": 1,
+            "maxItems": 20,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "text": {
+                  "description": "Characters to type, exactly as written.",
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                },
+                "press": {
+                  "description": "One key, with modifiers: Enter, Tab, Escape, F2, Shift+Tab, Mod+S. Mod is the main shortcut key (Ctrl on Windows, Cmd on macOS).",
+                  "type": "string",
+                  "pattern": "^(?:(?:Mod|Ctrl|Alt|Shift|Cmd)\\+){0,3}(?:[A-Za-z0-9]|F(?:1[0-2]|[1-9])|Enter|Tab|Escape|Backspace|Delete|Space|Home|End|PageUp|PageDown|Up|Down|Left|Right|Insert)$"
+                }
+              },
+              "additionalProperties": false
+            }
           },
           "element": {
             "type": "object",

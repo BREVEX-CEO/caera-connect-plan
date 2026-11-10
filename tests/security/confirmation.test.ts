@@ -66,7 +66,7 @@ test("native and page interactions cannot declare their unknown effects reversib
     intent("apps.launch", "launch", { exe: window.exe }, deadline),
     intent("ui.invoke", "invoke", { window, element }, deadline),
     intent("ui.set_value", "value", { window, element, value: nonce }, deadline),
-    intent("ui.send_keys", "keys", { window, element, keys: nonce }, deadline),
+    intent("ui.send_keys", "keys", { window, element, keys: [{ text: nonce }] }, deadline),
     intent("ui.click_point", "point", { window, x: 0.5, y: 0.5, expectTitle: nonce }, deadline),
     intent("web.fill", "fill", { page, selector: "#" + nonce, value: nonce }, deadline),
     intent("web.select", "select", { page, selector: "#" + nonce, option: nonce }, deadline),
