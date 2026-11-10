@@ -701,12 +701,20 @@ export async function compileGoal(
     const parsed = z
       .object({ checks: taskChecks, milestones: milestonePlan.optional() })
       .safeParse(calls[0]?.args);
-    let reason: "invalid_goal" | "invalid_goal_scope";
-    if (calls.length !== 1 || calls[0].name !== "set_goal" || !parsed.success) {
-      reason = "invalid_goal";
-      rejected = parsed.success
-        ? "Call set_goal exactly once."
-        : z.prettifyError(parsed.error).slice(0, 600);
+    // The reason names which rule refused the answer (round 4: every Live goal ended as a bare
+    // `invalid_goal`, and nothing recorded whether a call was missing or its checks were wrong).
+    let reason:
+      | "invalid_goal_no_call"
+      | "invalid_goal_call"
+      | "invalid_goal_checks"
+      | "invalid_goal_milestones"
+      | "invalid_goal_scope";
+    if (calls.length !== 1 || calls[0].name !== "set_goal") {
+      reason = calls.length ? "invalid_goal_call" : "invalid_goal_no_call";
+      rejected = "Answer with exactly one function call: set_goal.";
+    } else if (!parsed.success) {
+      reason = "invalid_goal_checks";
+      rejected = z.prettifyError(parsed.error).slice(0, 600);
     } else if (!canVerifyChecks(parsed.data.checks, allowed)) {
       reason = "invalid_goal_scope";
       rejected = "A check needs an app or site that is not in `allowed`.";
@@ -722,7 +730,7 @@ export async function compileGoal(
           onMilestones?.(milestones);
           return parsed.data.checks;
         } catch {
-          reason = "invalid_goal";
+          reason = "invalid_goal_milestones";
           rejected =
             "Milestones must cover every check, and reference only distinct IDs from checks.";
           if (attempt === 2) throw new PlannerUnavailable(reason);

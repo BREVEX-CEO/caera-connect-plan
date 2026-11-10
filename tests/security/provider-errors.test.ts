@@ -159,3 +159,31 @@ test("an answer with no call is asked again once, with a new key, never charged 
   assert.equal(new Set(keys).size, 2, "the second ask is a new permit, not a duplicate");
   assert.ok(goal);
 });
+
+test("a refused goal names the rule that refused it: no call, a wrong call, or invalid checks", async (t) => {
+  const { state } = await provider(t);
+  const answer = (toolCalls: unknown[]) => (response: ServerResponse) => {
+    response.writeHead(200, { "content-type": "text/event-stream" });
+    response.end(
+      toolCalls.map((item) => frame({ type: "tool_call", call: item })).join("") +
+        frame({
+          type: "final",
+          response: {
+            backend: "online",
+            stopReason: toolCalls.length ? "tool_use" : "end_turn",
+            toolCalls,
+          },
+        }),
+    );
+  };
+  for (const [toolCalls, code] of [
+    // Round 4, configuration B: the model spoke and called nothing, twice.
+    [[], "invalid_goal_no_call"],
+    [[{ id: "c1", name: "finish", arguments: {} }], "invalid_goal_call"],
+    [[{ id: "c1", name: "set_goal", arguments: { checks: [{ id: "x" }] } }], "invalid_goal_checks"],
+  ] as const) {
+    state.answer = answer([...toolCalls]);
+    const error = await refusal(compileGoal("u", "Write a note", ["files"]));
+    assert.equal(error.message, code);
+  }
+});
