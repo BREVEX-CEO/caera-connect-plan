@@ -537,6 +537,25 @@ jobs:
         if: runner.os == 'macOS'
         working-directory: device-agent/windows
         run: python -m tests.run_required "needs a Windows desktop" "needs Windows process handles" "needs Windows UI Automation and COM" "needs a display and OCADE_PUBLIC_WEB=1"
+      # Evidence, never a gate: what the real bridge does in real application windows (plan.md 19.4).
+      - name: Install the second "already open" benchmark application for the desktop probe
+        if: runner.os != 'Linux' && matrix.os != 'macos-15-intel' && matrix.os != 'windows-2022'
+        continue-on-error: true
+        shell: bash
+        run: |
+          if [[ "$RUNNER_OS" == Windows ]]; then choco install gimp --yes --no-progress; else brew install --cask gimp; fi
+      - name: Desktop probe (real Calc and GIMP windows through the real bridge; no model, no credential)
+        if: runner.os != 'Linux' && matrix.os != 'macos-15-intel' && matrix.os != 'windows-2022'
+        continue-on-error: true
+        timeout-minutes: 12
+        run: python tests/jarvis/desktop_probe.py --out desktop-probe
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always() && runner.os != 'Linux' && matrix.os != 'macos-15-intel' && matrix.os != 'windows-2022'
+        with:
+          name: desktop-probe-${{ matrix.os }}-${{ github.run_id }}
+          path: desktop-probe
+          if-no-files-found: warn
+          retention-days: 14
       - name: Measure repeated companion startup, receipts and teardown
         if: inputs.stability_iterations > 0
         working-directory: device-agent/windows
