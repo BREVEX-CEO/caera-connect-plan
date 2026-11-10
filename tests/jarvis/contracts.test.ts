@@ -324,6 +324,23 @@ test("a failed independent check returns to the model for bounded repair", async
     ];
     const offeredOnly = await planStep({ ...base, engines: [], steps: [] });
     assert.equal(offeredOnly.kind, "block");
+    // A step in an app the person has not allowed asks for that app by name and waits; the
+    // same step in an allowed app is queued (round 3 ended on a generic permission refusal).
+    reply = [
+      {
+        name: "ui_inspect",
+        arguments: { window: { exe: "studio.exe", pid: 5, hwnd: 7, started: 11 } },
+      },
+    ];
+    const desktop = { ...base, engines: ["desktop"], steps: [] };
+    const unallowed = await planStep({ ...desktop, grants: ["files", "apps", "app:other.exe"] });
+    assert.equal(unallowed.kind, "wait");
+    assert.match(
+      (unallowed as { reason: string }).reason,
+      /the app "studio\.exe".*Nothing was run/,
+    );
+    const allowed = await planStep({ ...desktop, grants: ["files", "apps", "app:studio.exe"] });
+    assert.equal(allowed.kind, "queue");
     // A mutation ends read batching and must be reconsidered after the observed result.
     reply = [
       { name: "fs_read_text", arguments: { path: "a.txt" } },

@@ -855,6 +855,25 @@ export function invalidChecks(checks: OutcomeCheck[], verified: Record<string, u
   return `The way this result is checked does not fit the work: ${reasons.join("; ")}. Stop this task and ask again, saying how the result should be checked.`;
 }
 
+/** What to ask the person to allow when a step's exact target is not granted yet, else null. */
+export function missingGrant(
+  action: { target?: { app?: string; site?: string; mcp?: string } },
+  grants: string[],
+): string | null {
+  const { app, site, mcp } = action.target ?? {};
+  const wanted =
+    app && !grants.includes(`app:${app}`)
+      ? `the app "${app}"`
+      : site && !grants.includes(`site:${site}`)
+        ? `the website "${site}"`
+        : mcp && !grants.includes(`mcp:${mcp}`)
+          ? `the tool server "${mcp}"`
+          : null;
+  return wanted
+    ? `This task needs ${wanted}, which is not allowed on this computer yet. Allow it in JARVIS's permissions for this computer, then continue. Nothing was run.`
+    : null;
+}
+
 /** Operations the planner may choose: granted, and runnable with the engines the device reported. */
 export function offeredOperations(grants: string[], engines: string[] | null) {
   return (Object.keys(OPERATIONS) as Operation[]).filter((name) => {
@@ -1296,6 +1315,10 @@ export async function planStep(input: {
         };
       }
       const first = queued(call.name, call.args, key);
+      // The step needs an app or website the person has not allowed: ask for exactly that one,
+      // by name, and wait. The task continues from here once it is allowed; nothing was run.
+      const missing = missingGrant(first.intent, input.grants);
+      if (missing) return { kind: "wait", reason: missing };
       // Only independent observations may share a turn. Every mutation gets fresh
       // planning after the previous result; a prompt cannot prove write dependencies.
       const batch = [];
