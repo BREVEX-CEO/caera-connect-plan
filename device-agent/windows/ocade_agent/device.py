@@ -118,10 +118,11 @@ class Device:
             },
         )
         try:
-            # A receipt's answer waits for the next planning turn (a model call): give it the
-            # proxy's full 100 s, so a slow turn is not mistaken for a lost receipt and resent.
-            # A claim resuming a busy planner now owns the same bounded planning turn.
-            limit = timeout or (100 if payload["op"] in ("receipt", "claim") else 30)
+            # A receipt's answer waits for the next planning turn (a model call). The server bounds
+            # one call at 145 s (planner.server.ts), so waiting less resent every slow turn's
+            # receipt (benchmark round 2). A resend is harmless now (the turn has one holder), but
+            # it is still a wasted request. A claim resuming a busy planner owns the same turn.
+            limit = timeout or (170 if payload["op"] in ("receipt", "claim") else 30)
             try:
                 with urllib.request.urlopen(request, timeout=limit) as response:
                     status, data = response.status, response.read()
