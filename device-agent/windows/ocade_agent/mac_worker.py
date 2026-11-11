@@ -424,6 +424,12 @@ def ui_send_keys(window: dict, keys: list, element: dict | None = None) -> dict:
             raise Refused("protected_control")
         if control is not None and not CF.CFEqual(focused, control):
             raise Refused("focus_lost")
+        # Keys go to the focused element. When it says it belongs to another window of the app
+        # (an app-modal alert keeps the focus even while the leased window is raised), nothing
+        # is typed: run 43065385915 showed the app's focused window alone does not prove this.
+        owner = _attribute(focused, "AXWindow")
+        if owner is not None and not CF.CFEqual(focused, target) and not CF.CFEqual(owner, target):
+            raise Refused("window_blocked")
         for kind, value, *modifiers in events:
             # Text goes as characters (whatever the layout); a press as its key with its modifiers.
             for stroke in (value if kind == "text" else [value]):
