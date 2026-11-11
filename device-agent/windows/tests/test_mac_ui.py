@@ -138,7 +138,8 @@ class MacUiLadder(unittest.TestCase):
                 out["dialog"] = next((w for w in listed["evidence"]["windows"]
                                       if w["pid"] == window["pid"] and w["hwnd"] != window["hwnd"]), None)
                 if out["dialog"]:
-                    out["answer"] = await run("ui.send_keys", {"window": out["dialog"], "keys": [{"press": "Enter"}]})
+                    lease = {key: out["dialog"][key] for key in ("exe", "pid", "hwnd", "started")}
+                    out["answer"] = await run("ui.send_keys", {"window": lease, "keys": [{"press": "Enter"}]})
                 time.sleep(1)
                 out["after_dialog"] = await run("ui.send_keys", {"window": window, "element": box, "keys": [{"text": "!"}]})
                 out["forged"] = await run("ui.inspect", {"window": window | {"pid": window["pid"] + 4}})

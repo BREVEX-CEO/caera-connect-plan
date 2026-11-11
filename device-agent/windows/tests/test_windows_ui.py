@@ -125,7 +125,8 @@ class WindowsUiLadder(unittest.TestCase):
                 out["dialog"] = next((w for w in listed["evidence"]["windows"]
                                       if w["pid"] == window["pid"] and w["hwnd"] != window["hwnd"]), None)
                 if out["dialog"]:
-                    out["answer"] = await run("ui.send_keys", {"window": out["dialog"], "keys": [{"press": "Enter"}]})
+                    lease = {key: out["dialog"][key] for key in ("exe", "pid", "hwnd", "started")}
+                    out["answer"] = await run("ui.send_keys", {"window": lease, "keys": [{"press": "Enter"}]})
                 time.sleep(1)
                 out["after_dialog"] = await run("ui.set_value", {"window": window, "element": box, "value": "after dialog"})
                 # The person presses a key: JARVIS's hands pause, then continue once they are quiet.
