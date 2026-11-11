@@ -300,7 +300,11 @@ def ui_invoke(window: dict, element: dict) -> dict:
         method = getattr(interface, method_name)
         mark_effect()
         method()
-        return {"pattern": pattern, "after": _describe(wrapper)}
+        try:
+            after = _describe(wrapper)
+        except Exception:  # the control's window closed (a dialog's OK): the pattern call returned
+            after = {"unavailable": True}
+        return {"pattern": pattern, "after": after}
     raise Refused("pattern_unsupported")
 
 
@@ -340,6 +344,7 @@ def ui_send_keys(window: dict, keys: list, element: dict | None = None) -> dict:
     control = _element(target, element) if element is not None else None
     if control is not None and _password_state(control.element_info.element) is not False:
         raise Refused("protected_control")
+    title = target.window_text()[:200]  # read before the keys: they may close it (a dialog's Enter)
     _person_quiet()
     try:
         # Bringing the leased window forward (UI Automation SetFocus, no synthetic input) changes
@@ -366,7 +371,7 @@ def ui_send_keys(window: dict, keys: list, element: dict | None = None) -> dict:
         send_keys(sequence, pause=0.02, with_spaces=True)  # default drops every space in typed text
     finally:
         _own_input["at"] = time.monotonic()
-    return {"title": target.window_text()[:200]}
+    return {"title": title, "windowOpen": bool(win32gui.IsWindow(window["hwnd"]))}
 
 
 def _window_point(rect, x: float, y: float) -> tuple[int, int]:

@@ -40,6 +40,26 @@ class NativeEffectReceipts(unittest.TestCase):
                 pass
         self.assertEqual(calls, ["invoke"], "an uncertain dispatched mutation cannot fall through to a second one")
 
+    def test_a_control_that_closed_its_window_is_still_reported_as_invoked(self):
+        """Pressing a dialog's OK closes the dialog: the control can no longer be described, but
+        the pattern call returned, so the step is observed, never an unknown effect that would
+        stop the task for a person (run 43063439515 hit this with a dialog's Enter)."""
+        from ocade_agent import windows_worker as worker
+        class Provider:
+            def is_enabled(self): return True
+            @property
+            def iface_invoke(self): return self
+            def Invoke(self): pass
+        with patch.object(worker, "_actable", return_value=object()), patch.object(
+            worker, "_element", return_value=Provider()
+        ), patch.object(worker, "_person_quiet"), patch.object(
+            worker, "_describe", side_effect=RuntimeError("element not available")
+        ):
+            result = worker.ui_invoke(window={}, element={"name": "OK"})
+        self.assertEqual(result["pattern"], "invoke")
+        self.assertEqual(result["after"], {"unavailable": True})
+        self.assertNotIn("refused", result)
+
     def test_value_readback_compares_the_complete_value_not_a_preview(self):
         from ocade_agent import windows_worker as worker
         class Provider:
@@ -84,6 +104,7 @@ class NativeEffectReceipts(unittest.TestCase):
         not_applied and the task plans again instead of waiting on an unknown effect."""
         from ocade_agent import windows_worker as worker
         target = unittest.mock.Mock()
+        target.window_text.return_value = "Ledger Note"
         typed = unittest.mock.Mock()
         for owner, code in ((99, "focus_lost"), (7, "window_blocked")):
             with self.subTest(code), patch.object(worker, "_actable", return_value=target), patch.object(
