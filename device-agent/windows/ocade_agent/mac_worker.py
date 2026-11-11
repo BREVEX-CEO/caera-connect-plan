@@ -284,7 +284,8 @@ def _front(pid: int, target) -> None:
     if running is None:
         raise Refused("window_gone")
     ax_app = AX.AXUIElementCreateApplication(pid)
-    mark_effect()
+    # Raising and activating change which window has focus, never what a document holds: not an
+    # effect, so a refusal here changed nothing and is safe to plan again.
     AX.AXUIElementPerformAction(target, "AXRaise")
     AX.AXUIElementSetAttributeValue(ax_app, "AXFrontmost", True)
     running.activateWithOptions_(AppKit.NSApplicationActivateIgnoringOtherApps)
@@ -464,7 +465,6 @@ def ui_click_point(window: dict, x: float, y: float, expectTitle: str) -> dict:
     seen = vision.last_observation(_seen, json.dumps(window, sort_keys=True))
     _person_quiet()
     try:
-        mark_effect()
         _front(window["pid"], target)
         target, (left, top, width, height) = _leased(window)
         shot = ImageGrab.grab(bbox=(left, top, left + width, top + height))
@@ -485,6 +485,7 @@ def ui_click_point(window: dict, x: float, y: float, expectTitle: str) -> dict:
         active = AppKit.NSWorkspace.sharedWorkspace().frontmostApplication()
         if active is None or active.processIdentifier() != window["pid"]:
             raise Refused("focus_lost")
+        mark_effect()
         for kind in (Quartz.kCGEventLeftMouseDown, Quartz.kCGEventLeftMouseUp):
             Quartz.CGEventPost(Quartz.kCGHIDEventTap,
                                Quartz.CGEventCreateMouseEvent(None, kind, point, Quartz.kCGMouseButtonLeft))

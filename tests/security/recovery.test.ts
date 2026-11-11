@@ -443,6 +443,28 @@ test("only the person's answer lifts an unknown-effect fence; the step is never 
   assert.equal(unresolvedEffect([observed]), null, "an observed effect needs no answer");
 });
 
+test("a window that did not come forward changed nothing: the task plans again, no fence", async () => {
+  const { unresolvedEffect } = await import("../../src/lib/jarvis/supervisor.ts");
+  const window = { exe: "notes.exe", pid: 7, hwnd: 5, started: 1 };
+  const keys = intent("ui.send_keys", "keys", { window, keys: [{ text: "x" }] }, deadline);
+  const refused = (
+    errorCode: string,
+    status: "not_applied" | "unknown",
+    maybeChanged: boolean,
+  ): Step => ({
+    intent: keys,
+    status: "failed",
+    receipt: { status, maybeChanged, observedAtUtc: now.toISOString(), evidence: {}, errorCode },
+  });
+  // Before: activation was marked as an effect, so these receipts read "unknown" and every
+  // dialog or focus change stopped the task for a person (desktop probe, plan.md D49).
+  for (const code of ["focus_lost", "window_blocked"]) {
+    assert.equal(unresolvedEffect([refused(code, "not_applied", false)]), null, code);
+  }
+  // The fence itself is unchanged: a key that may have been sent still waits for the person.
+  assert.ok(unresolvedEffect([refused("focus_lost", "unknown", true)]));
+});
+
 test("authority advances a proven milestone through its fenced database function", async () => {
   const second = { ...checks[0], id: "second" };
   const plan = [

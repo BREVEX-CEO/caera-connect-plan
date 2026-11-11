@@ -341,12 +341,15 @@ def ui_send_keys(window: dict, keys: list, element: dict | None = None) -> dict:
     if control is not None and _password_state(control.element_info.element) is not False:
         raise Refused("protected_control")
     _person_quiet()
-    try:  # focusing can itself send input (pywinauto taps Alt to take the foreground)
-        mark_effect()
+    try:
+        # Bringing the leased window forward (UI Automation SetFocus, no synthetic input) changes
+        # which window has focus, never what a document holds, so a refusal here changed nothing
+        # and is safe to plan again; the fence for unknown effects starts with the app's own code.
         target.set_focus()
         if win32gui.GetForegroundWindow() != window["hwnd"]:
             raise _not_in_front(window)
         if control is not None:
+            mark_effect()  # focusing a control runs the app's handlers (a pending edit may commit)
             control.set_focus()
         automation = IUIA().iuia
         focused = automation.GetFocusedElement()
@@ -359,6 +362,7 @@ def ui_send_keys(window: dict, keys: list, element: dict | None = None) -> dict:
                 raise Refused("focus_lost")
         elif focused.CurrentProcessId != window["pid"]:
             raise Refused("focus_lost")
+        mark_effect()
         send_keys(sequence, pause=0.02, with_spaces=True)  # default drops every space in typed text
     finally:
         _own_input["at"] = time.monotonic()
@@ -405,8 +409,7 @@ def ui_click_point(window: dict, x: float, y: float, expectTitle: str) -> dict:
     _person_quiet()
     try:
         if win32gui.GetForegroundWindow() != hwnd:
-            mark_effect()
-            target.set_focus()
+            target.set_focus()  # not an effect: see ui_send_keys
         if win32gui.GetForegroundWindow() != hwnd:
             raise _not_in_front(window)
         target = _leased(window)

@@ -191,6 +191,8 @@ class MacUiLadder(unittest.TestCase):
         with self.subTest("MAC-014 a modal dialog of the app is answered first; nothing is typed past it"):
             self.assertEqual(out["ask"]["status"], "observed", out["ask"])
             self.assertEqual(out["blocked"]["errorCode"], "window_blocked", out["blocked"])
+            # Nothing was typed, so the task plans again instead of waiting on an unknown effect.
+            self.assertEqual((out["blocked"]["status"], out["blocked"]["maybeChanged"]), ("not_applied", False))
             self.assertIsNotNone(out["dialog"], "the dialog is listed as a window of its own")
             self.assertEqual(out["answer"]["status"], "observed", out["answer"])
             self.assertEqual(out["after_dialog"]["status"], "observed", out["after_dialog"])

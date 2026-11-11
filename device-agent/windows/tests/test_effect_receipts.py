@@ -8,6 +8,7 @@ import json
 import sys
 import threading
 import unittest
+import unittest.mock
 import uuid
 from unittest.mock import patch
 
@@ -30,7 +31,7 @@ class NativeEffectReceipts(unittest.TestCase):
             def Select(self): calls.append("select"); raise RuntimeError("provider failed after selecting")
             invoke, toggle, select = Invoke, Toggle, Select
         provider = Provider()
-        with patch.object(worker, "_leased", return_value=object()), patch.object(
+        with patch.object(worker, "_actable", return_value=object()), patch.object(
             worker, "_element", return_value=provider
         ), patch.object(worker, "_person_quiet"):
             try:
@@ -55,13 +56,45 @@ class NativeEffectReceipts(unittest.TestCase):
             with self.subTest(missing=missing):
                 provider = Provider()
                 provider.missing = missing
-                with patch.object(worker, "_leased", return_value=object()), patch.object(
+                with patch.object(worker, "_actable", return_value=object()), patch.object(
                     worker, "_element", return_value=provider
                 ), patch.object(worker, "_person_quiet"), patch.object(
                     worker, "_describe", side_effect=lambda _: {"value": (provider.current or "")[:200]}
                 ):
                     result = worker.ui_set_value(window={}, element={}, value=value)
                 self.assertFalse(result["matches"], "a preview or missing readback must not prove the full requested value")
+
+    def test_a_window_held_by_a_dialog_is_refused_before_anything_is_attempted(self):
+        from ocade_agent import windows_worker as worker
+        element = unittest.mock.Mock()
+        with patch.object(worker, "_leased", return_value=object()), patch(
+            "win32gui.IsWindowEnabled", return_value=False
+        ), patch.object(worker, "_element", element), patch.object(worker, "_person_quiet"):
+            for operation, arguments in (("ui_invoke", {"element": {"name": "Save"}}),
+                                         ("ui_set_value", {"element": {"name": "Note"}, "value": "x"}),
+                                         ("ui_send_keys", {"keys": [{"text": "x"}]})):
+                with self.subTest(operation):
+                    result = getattr(worker, operation)(window={"hwnd": 5, "pid": 7}, **arguments)
+                    self.assertEqual(result, {"refused": "window_blocked", "maybeChanged": False})
+        element.assert_not_called()
+
+    def test_a_window_that_does_not_come_forward_changed_nothing(self):
+        """Bringing a window forward is not an effect: when it does not come forward (another
+        app, or a dialog of its own app, keeps the foreground) no key was sent, so the step is
+        not_applied and the task plans again instead of waiting on an unknown effect."""
+        from ocade_agent import windows_worker as worker
+        target = unittest.mock.Mock()
+        typed = unittest.mock.Mock()
+        for owner, code in ((99, "focus_lost"), (7, "window_blocked")):
+            with self.subTest(code), patch.object(worker, "_actable", return_value=target), patch.object(
+                worker, "_person_quiet"
+            ), patch("win32gui.GetForegroundWindow", return_value=1234), patch(
+                "win32process.GetWindowThreadProcessId", return_value=(1, owner)
+            ), patch("pywinauto.keyboard.send_keys", typed):
+                result = worker.ui_send_keys(window={"hwnd": 5, "pid": 7}, keys=[{"text": "x"}])
+                self.assertEqual(result, {"refused": code, "maybeChanged": False})
+        target.set_focus.assert_called()
+        typed.assert_not_called()
 
     def test_worker_call_balances_its_native_com_initialization(self):
         import pythoncom

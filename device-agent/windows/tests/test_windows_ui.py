@@ -207,7 +207,8 @@ class WindowsUiLadder(unittest.TestCase):
             self.assertEqual(out["ask"]["status"], "observed", out["ask"])
             self.assertEqual((out["blocked_keys"]["status"], out["blocked_keys"]["errorCode"]), ("not_applied", "window_blocked"))
             self.assertFalse(out["blocked_keys"]["maybeChanged"], out["blocked_keys"])
-            self.assertEqual(out["blocked_set"]["errorCode"], "window_blocked")
+            self.assertEqual((out["blocked_set"]["status"], out["blocked_set"]["errorCode"], out["blocked_set"]["maybeChanged"]),
+                             ("not_applied", "window_blocked", False))
             self.assertEqual(out["dialog"]["title"], "Ledger Question", out["dialog"])
             self.assertEqual(out["answer"]["status"], "observed", out["answer"])
             self.assertTrue(out["after_dialog"]["evidence"]["matches"], out["after_dialog"])
