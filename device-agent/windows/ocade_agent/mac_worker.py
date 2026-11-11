@@ -91,11 +91,15 @@ def open_windows(limit: int = 60) -> list[dict]:
     import Quartz  # type: ignore[import-not-found]
 
     windows = []
+    # App windows, and app-modal alerts and panels, which sit above them and hold the app's input
+    # until answered (they must be listed to be leased and answered). Menus, the Dock and
+    # overlays are not app windows.
+    layers = {0, Quartz.CGWindowLevelForKey(Quartz.kCGModalPanelWindowLevelKey)}
     listed = Quartz.CGWindowListCopyWindowInfo(
         Quartz.kCGWindowListOptionOnScreenOnly | Quartz.kCGWindowListExcludeDesktopElements, Quartz.kCGNullWindowID)
     for info in listed or []:
-        if info.get("kCGWindowLayer", 1) != 0:
-            continue  # menus, the Dock and overlays are not app windows
+        if info.get("kCGWindowLayer", 1) not in layers:
+            continue
         pid = int(info["kCGWindowOwnerPID"])
         exe, started = _exe(pid), _started(pid)
         if not exe or started is None:

@@ -349,7 +349,15 @@ def open_windows(limit: int = 60) -> list[dict]:
     windows: list[dict] = []
 
     def visit(hwnd, _):
-        if not win32gui.IsWindowVisible(hwnd) or not win32gui.GetWindowText(hwnd):
+        if not win32gui.IsWindowVisible(hwnd):
+            return True
+        # An untitled window is listed only when another window owns it and it is not a tool
+        # window: that is a dialog (a save-format question often has no title) and it must be
+        # listed to be leased and answered. Other untitled windows are not app windows.
+        if not win32gui.GetWindowText(hwnd) and (
+            not win32gui.GetWindow(hwnd, win32con.GW_OWNER)
+            or win32gui.GetWindowLong(hwnd, win32con.GWL_EXSTYLE) & win32con.WS_EX_TOOLWINDOW
+        ):
             return True
         identity = window_identity(hwnd, win32api, win32con, win32process)
         if identity:

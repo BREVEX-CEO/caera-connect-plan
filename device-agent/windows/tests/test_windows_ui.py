@@ -349,6 +349,32 @@ class WindowsLauncherApps(unittest.TestCase):
         self.check("exits", self.program)
 
 
+@unittest.skipUnless(sys.platform == "win32", "needs a Windows desktop")
+class WindowListing(unittest.TestCase):
+    def test_an_untitled_dialog_is_listed_and_other_untitled_windows_are_not(self):
+        """A save-format question often has no title (desktop probe, LibreOffice on Windows):
+        it was never listed, so a window it blocked could never be answered."""
+        import win32con  # type: ignore[import-not-found]
+
+        from ocade_agent import discovery
+
+        windows = {  # hwnd: (title, owner, extended style)
+            1: ("budget.xlsx", 0, 0),
+            2: ("", 1, 0),  # an owned, untitled dialog
+            3: ("", 0, 0),  # an untitled top-level window: not an app window
+            4: ("", 1, win32con.WS_EX_TOOLWINDOW),  # an owned tool window (a tooltip)
+        }
+        with patch("win32gui.EnumWindows", lambda visit, extra: [visit(hwnd, extra) for hwnd in windows]), patch(
+            "win32gui.IsWindowVisible", return_value=True
+        ), patch("win32gui.GetWindowText", side_effect=lambda hwnd: windows[hwnd][0]), patch(
+            "win32gui.GetWindow", side_effect=lambda hwnd, kind: windows[hwnd][1]
+        ), patch("win32gui.GetWindowLong", side_effect=lambda hwnd, kind: windows[hwnd][2]), patch.object(
+            discovery, "window_identity", side_effect=lambda hwnd, *rest: {"exe": "app.exe", "pid": 7, "hwnd": hwnd, "started": 1}
+        ):
+            listed = discovery.open_windows()
+        self.assertEqual([(w["hwnd"], w["title"]) for w in listed], [(1, "budget.xlsx"), (2, "")])
+
+
 class DesktopTargetContract(unittest.TestCase):
     def test_a_window_is_named_by_the_installed_app_it_belongs_to(self):
         from ocade_agent.discovery import app_key
