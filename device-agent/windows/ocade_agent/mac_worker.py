@@ -260,6 +260,21 @@ def _element(target, element: dict):
     return matches[0]
 
 
+def _actable(window: dict):
+    """`_leased`, and no other window of its app is modal: an app-modal alert takes the app's
+    input while Accessibility still reports the leased window as focused (hosted macOS run
+    43071773075), so such a dialog is answered first, as a window of its own. Refused before
+    anything is attempted."""
+    import ApplicationServices as AX  # type: ignore[import-not-found]
+    import CoreFoundation as CF  # type: ignore[import-not-found]
+
+    target, bounds = _leased(window)
+    for other in _attribute(AX.AXUIElementCreateApplication(window["pid"]), "AXWindows") or []:
+        if not CF.CFEqual(other, target) and _attribute(other, "AXModal"):
+            raise Refused("window_blocked")
+    return target, bounds
+
+
 def _person_quiet() -> None:
     import Quartz  # type: ignore[import-not-found]
 
@@ -368,7 +383,7 @@ def ui_invoke(window: dict, element: dict) -> dict:
     """Press one element through its AX action; no pointer is moved."""
     import ApplicationServices as AX  # type: ignore[import-not-found]
 
-    target, bounds = _leased(window)
+    target, bounds = _actable(window)
     control = _element(target, element)
     _person_quiet()
     with _ax_change_events(window, target, control) as events:
@@ -384,7 +399,7 @@ def ui_set_value(window: dict, element: dict, value: str) -> dict:
     """Set an element's value through AX, then read it back."""
     import ApplicationServices as AX  # type: ignore[import-not-found]
 
-    target, bounds = _leased(window)
+    target, bounds = _actable(window)
     control = _element(target, element)
     if _protected_control(control):
         raise Refused("protected_control")
@@ -409,7 +424,7 @@ def ui_send_keys(window: dict, keys: list, element: dict | None = None) -> dict:
     events = key_contract.mac_events(keys)  # refused here, before anything is focused
     flags = {"command": Quartz.kCGEventFlagMaskCommand, "control": Quartz.kCGEventFlagMaskControl,
              "option": Quartz.kCGEventFlagMaskAlternate, "shift": Quartz.kCGEventFlagMaskShift}
-    target, _ = _leased(window)
+    target, _ = _actable(window)
     control = _element(target, element) if element is not None else None
     if control is not None and _protected_control(control):
         raise Refused("protected_control")
@@ -462,7 +477,7 @@ def ui_click_point(window: dict, x: float, y: float, expectTitle: str) -> dict:
     import Quartz  # type: ignore[import-not-found]
     from PIL import ImageGrab
 
-    target, _ = _leased(window)
+    target, _ = _actable(window)
     title = str(_attribute(target, "AXTitle") or "")[:200]
     if expectTitle not in title:
         raise Refused("unexpected_window")
