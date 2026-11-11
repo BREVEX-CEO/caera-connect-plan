@@ -199,7 +199,17 @@ _ASKED = """(() => {
   wrap(navigator.mediaDevices, 'getUserMedia', (c = {}) => [c.video && 'camera', c.audio && 'microphone'].filter(Boolean));
   wrap(navigator.clipboard, 'readText', ['clipboard-read']);
   wrap(navigator.clipboard, 'read', ['clipboard-read']);
+  // How many windows this frame's script opened, so a click waits for its popup by count.
+  window.__ocadeOpened = 0;
+  const open = window.open;
+  window.open = function (...args) {
+    const opened = open.apply(this, args);
+    if (opened) window.__ocadeOpened += 1;
+    return opened;
+  };
 })()"""
+
+_OPENED = "(element) => element.ownerDocument.defaultView.__ocadeOpened || 0"
 
 _WAITING = """async () => {
   const waiting = [];
@@ -740,6 +750,7 @@ async def web_click(page: dict, selector: str, frame: str | None = None) -> dict
     target = await _one(entry, await _scope(entry, frame), selector)
     current = entry["page"]
     expects_popup = await target.evaluate("(element) => element.target === '_blank'")
+    opened_before = await target.evaluate(_OPENED)
     choosers: list = []
     chooser_arrived = asyncio.Event()
 
@@ -755,8 +766,14 @@ async def web_click(page: dict, selector: str, frame: str | None = None) -> dict
             if not choosers:
                 with anyio.move_on_after(0.25):
                     await chooser_arrived.wait()
-            if expects_popup and not entry["pendingPopups"]:
-                with anyio.move_on_after(5):
+            # A popup's page arrives after the click returns: wait for as many as were opened.
+            try:
+                wanted = max(await target.evaluate(_OPENED) - opened_before, int(expects_popup))
+            except Exception:  # the click navigated away from the element's document
+                wanted = int(expects_popup)
+            with anyio.move_on_after(5):
+                while len(entry["pendingPopups"]) < wanted:
+                    entry["popupArrived"].clear()
                     await entry["popupArrived"].wait()
     finally:
         current.remove_listener("filechooser", chosen)
