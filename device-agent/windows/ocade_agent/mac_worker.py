@@ -269,19 +269,34 @@ def _person_quiet() -> None:
         raise Refused("user_active")
 
 
-def _front(pid: int) -> None:
+def _front(pid: int, target) -> None:
+    """Bring the leased window to the front as its app's focused window, or refuse.
+
+    Since macOS 14 AppKit no longer lets a background process activate another app, so the
+    app is made frontmost and the window raised through Accessibility, which this bridge is
+    already trusted for. If the app comes forward but another of its windows (a dialog) keeps
+    the focus, that window is answered first: keys never go to a window that was not leased."""
     import AppKit  # type: ignore[import-not-found]
+    import ApplicationServices as AX  # type: ignore[import-not-found]
+    import CoreFoundation as CF  # type: ignore[import-not-found]
 
     running = AppKit.NSRunningApplication.runningApplicationWithProcessIdentifier_(pid)
     if running is None:
         raise Refused("window_gone")
+    ax_app = AX.AXUIElementCreateApplication(pid)
     mark_effect()
+    AX.AXUIElementPerformAction(target, "AXRaise")
+    AX.AXUIElementSetAttributeValue(ax_app, "AXFrontmost", True)
     running.activateWithOptions_(AppKit.NSApplicationActivateIgnoringOtherApps)
+    in_front = False
     for _ in range(20):
-        if AppKit.NSWorkspace.sharedWorkspace().frontmostApplication().processIdentifier() == pid:
+        front = AppKit.NSWorkspace.sharedWorkspace().frontmostApplication()
+        in_front = front is not None and front.processIdentifier() == pid
+        focused = _attribute(ax_app, "AXFocusedWindow")
+        if in_front and focused is not None and CF.CFEqual(focused, target):
             return
         time.sleep(0.1)
-    raise Refused("focus_lost")
+    raise Refused("window_blocked" if in_front else "focus_lost")
 
 
 @app.tool()
@@ -399,7 +414,7 @@ def ui_send_keys(window: dict, keys: list, element: dict | None = None) -> dict:
         raise Refused("protected_control")
     _person_quiet()
     try:
-        _front(window["pid"])
+        _front(window["pid"], target)
         if control is not None:
             mark_effect()
             AX.AXUIElementSetAttributeValue(control, "AXFocused", True)
@@ -450,7 +465,7 @@ def ui_click_point(window: dict, x: float, y: float, expectTitle: str) -> dict:
     _person_quiet()
     try:
         mark_effect()
-        _front(window["pid"])
+        _front(window["pid"], target)
         target, (left, top, width, height) = _leased(window)
         shot = ImageGrab.grab(bbox=(left, top, left + width, top + height))
         checked = vision.match(seen, shot, x, y)

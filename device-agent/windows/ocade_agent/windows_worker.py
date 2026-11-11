@@ -62,6 +62,29 @@ def _evidence(fn):
     return wrapped
 
 
+def _actable(window: dict):
+    """`_leased`, and its window takes input: a dialog of its app (a modal one disables its
+    owner) is answered first, as a window of its own. Refused before anything is attempted."""
+    import win32gui  # type: ignore[import-not-found]
+
+    target = _leased(window)
+    if not win32gui.IsWindowEnabled(window["hwnd"]):
+        raise Refused("window_blocked")
+    return target
+
+
+def _not_in_front(window: dict) -> Refused:
+    """Why the leased window did not take the foreground: another window of its own app (a
+    dialog) holds it, or something else does."""
+    import win32gui  # type: ignore[import-not-found]
+    import win32process  # type: ignore[import-not-found]
+
+    front = win32gui.GetForegroundWindow()
+    if front and win32process.GetWindowThreadProcessId(front)[1] == window["pid"]:
+        return Refused("window_blocked")
+    return Refused("focus_lost")
+
+
 def _leased(window: dict):
     """The pywinauto window for an exact, still-valid lease, or a refusal."""
     import win32gui  # type: ignore[import-not-found]
@@ -259,7 +282,7 @@ def ui_invoke(window: dict, element: dict) -> dict:
     """Invoke (or toggle/select) one element through its UIA pattern; no pointer is moved."""
     from pywinauto.uia_defines import NoPatternInterfaceError  # type: ignore[import-not-found]
 
-    wrapper = _element(_leased(window), element)
+    wrapper = _element(_actable(window), element)
     _person_quiet()
     if not wrapper.is_enabled():
         raise Refused("element_disabled")
@@ -287,7 +310,7 @@ def ui_set_value(window: dict, element: dict, value: str) -> dict:
     """Set an element's value through UIA, then read it back."""
     from pywinauto.uia_defines import NoPatternInterfaceError  # type: ignore[import-not-found]
 
-    wrapper = _element(_leased(window), element)
+    wrapper = _element(_actable(window), element)
     if _password_state(wrapper.element_info.element) is not False:
         raise Refused("protected_control")
     _person_quiet()
@@ -313,7 +336,7 @@ def ui_send_keys(window: dict, keys: list, element: dict | None = None) -> dict:
     from pywinauto.uia_defines import IUIA  # type: ignore[import-not-found]
 
     sequence = key_contract.windows_sequence(keys)  # refused here, before anything is focused
-    target = _leased(window)
+    target = _actable(window)
     control = _element(target, element) if element is not None else None
     if control is not None and _password_state(control.element_info.element) is not False:
         raise Refused("protected_control")
@@ -322,7 +345,7 @@ def ui_send_keys(window: dict, keys: list, element: dict | None = None) -> dict:
         mark_effect()
         target.set_focus()
         if win32gui.GetForegroundWindow() != window["hwnd"]:
-            raise Refused("focus_lost")
+            raise _not_in_front(window)
         if control is not None:
             control.set_focus()
         automation = IUIA().iuia
@@ -370,7 +393,7 @@ def ui_click_point(window: dict, x: float, y: float, expectTitle: str) -> dict:
 
     pyautogui.FAILSAFE = True
     pyautogui.failSafeCheck()
-    target = _leased(window)
+    target = _actable(window)
     title = target.window_text()[:200]
     if expectTitle not in title:
         raise Refused("unexpected_window")
@@ -385,7 +408,7 @@ def ui_click_point(window: dict, x: float, y: float, expectTitle: str) -> dict:
             mark_effect()
             target.set_focus()
         if win32gui.GetForegroundWindow() != hwnd:
-            raise Refused("focus_lost")
+            raise _not_in_front(window)
         target = _leased(window)
         rect = win32gui.GetWindowRect(hwnd)
         fresh = ImageGrab.grab(bbox=rect, all_screens=True)

@@ -33,6 +33,9 @@ class Note : Form {
     var save = new Button { Name = "saveButton", Text = "Save", Left = 20, Top = 60, Width = 120, Height = 40 };
     save.Click += (s, e) => File.WriteAllText(path, box.Text);
     Controls.Add(box); Controls.Add(save);
+    // F2 asks a modal question, as many apps do (a first-run welcome, a save-format choice).
+    KeyPreview = true;
+    KeyDown += (s, e) => { if (e.KeyCode == Keys.F2) BeginInvoke((Action)(() => MessageBox.Show(this, "Keep the note?", "Ledger Question"))); };
   }
 }
 """
@@ -113,6 +116,18 @@ class WindowsUiLadder(unittest.TestCase):
                     {"press": "Backspace"}, {"text": "s"}]})
                 await run("ui.invoke", {"window": window, "element": {"automationId": "saveButton"}})
                 out["after_keys"] = self.note()
+                # The app asks a modal question: it is answered as its own window, never typed past.
+                out["ask"] = await run("ui.send_keys", {"window": window, "element": box, "keys": [{"press": "F2"}]})
+                time.sleep(1)
+                out["blocked_keys"] = await run("ui.send_keys", {"window": window, "keys": [{"text": "lost"}]})
+                out["blocked_set"] = await run("ui.set_value", {"window": window, "element": box, "value": "lost"})
+                listed = await run("apps.list", {})
+                out["dialog"] = next((w for w in listed["evidence"]["windows"]
+                                      if w["pid"] == window["pid"] and w["hwnd"] != window["hwnd"]), None)
+                if out["dialog"]:
+                    out["answer"] = await run("ui.send_keys", {"window": out["dialog"], "keys": [{"press": "Enter"}]})
+                time.sleep(1)
+                out["after_dialog"] = await run("ui.set_value", {"window": window, "element": box, "value": "after dialog"})
                 # The person presses a key: JARVIS's hands pause, then continue once they are quiet.
                 import win32api  # type: ignore[import-not-found]
 
@@ -188,6 +203,14 @@ class WindowsUiLadder(unittest.TestCase):
             self.assertEqual(out["keys"]["status"], "observed", out["keys"])
             # Text with every character a keyboard library reads as a command arrives as written.
             self.assertEqual(out["after_keys"], "100% (a+b) ~{typed}^ by keys")
+        with self.subTest("UIA-017 a modal dialog of the app is answered first; nothing is typed past it"):
+            self.assertEqual(out["ask"]["status"], "observed", out["ask"])
+            self.assertEqual((out["blocked_keys"]["status"], out["blocked_keys"]["errorCode"]), ("not_applied", "window_blocked"))
+            self.assertFalse(out["blocked_keys"]["maybeChanged"], out["blocked_keys"])
+            self.assertEqual(out["blocked_set"]["errorCode"], "window_blocked")
+            self.assertEqual(out["dialog"]["title"], "Ledger Question", out["dialog"])
+            self.assertEqual(out["answer"]["status"], "observed", out["answer"])
+            self.assertTrue(out["after_dialog"]["evidence"]["matches"], out["after_dialog"])
         with self.subTest("UIA-012 a person's keyboard input pauses mutations until they are quiet"):
             self.assertEqual(out["person"]["errorCode"], "user_active")
             self.assertTrue(out["quiet"]["evidence"]["matches"], out["quiet"])
@@ -267,8 +290,18 @@ class WindowsLauncherApps(unittest.TestCase):
     def tearDown(self):
         for image in (self.program, *self.launchers.values()):
             subprocess.run(["taskkill", "/F", "/IM", image], capture_output=True)
+        # Explorer reads a new Start Menu shortcut for a moment after it appears and holds it
+        # open without delete sharing; the fixture's own shortcut is removed once it lets go.
+        deadline = time.monotonic() + 30
         for link in self.links:
-            link.unlink(missing_ok=True)
+            while True:
+                try:
+                    link.unlink(missing_ok=True)
+                    break
+                except PermissionError:
+                    if time.monotonic() > deadline:
+                        raise
+                    time.sleep(0.5)
 
     def launched(self, kind: str) -> dict:
         async def steps():

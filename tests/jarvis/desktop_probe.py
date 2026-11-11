@@ -74,17 +74,40 @@ def lease(window: dict) -> dict:
     return {key: window[key] for key in ("exe", "pid", "hwnd", "started")}
 
 
+async def listed(gateway: Gateway, record: dict, text: str) -> tuple[dict, dict | None]:
+    """apps.list until the window titled `text` appears (a large app can take a minute to start)."""
+    deadline = time.monotonic() + 90
+    while True:
+        listing = await probe(gateway, record, "apps.list", "apps.list", {})
+        window = window_titled(listing, text)
+        if window is not None or time.monotonic() > deadline:
+            record["windows"] = [{"exe": w.get("exe"), "title": (w.get("title") or "")[:80]}
+                                 for w in (listing.get("evidence") or {}).get("windows") or []]
+            return listing, window
+        await anyio.sleep(3)
+
+
+async def answer_dialogs(gateway: Gateway, record: dict, listing: dict, window: dict, name: str) -> None:
+    """Other windows of the same app (a first-run welcome, a format question) hold its input:
+    inspect each and dismiss it with Escape, as a planner would, before acting on the window."""
+    others = [w for w in (listing.get("evidence") or {}).get("windows") or []
+              if w.get("pid") == window["pid"] and w.get("hwnd") != window["hwnd"]]
+    record[f"{name}.dialogs"] = [(w.get("title") or "")[:80] for w in others]
+    for index, dialog in enumerate(others[:2]):
+        await probe(gateway, record, f"{name}.inspect.{index}", "ui.inspect", {"window": lease(dialog)})
+        await probe(gateway, record, f"{name}.escape.{index}", "ui.send_keys",
+                    {"window": lease(dialog), "keys": [{"press": "Escape"}]})
+        await anyio.sleep(1)
+
+
 async def calc_stage(record: dict, ws: Path) -> None:
     request, oracle, _minutes = benchmark.calc(ws, random.Random("7:calc"))
     workbook = next(ws.glob("budget_*.xlsx"))
     record["request"] = request
     async with Gateway(str(ws)) as gateway:
-        listing = await probe(gateway, record, "apps.list", "apps.list", {})
+        listing, window = await listed(gateway, record, workbook.name)
         installed = (listing.get("evidence") or {}).get("installed") or []
         record["installedCount"] = len(installed)
-        record["windows"] = [{"exe": w.get("exe"), "title": (w.get("title") or "")[:80]}
-                             for w in (listing.get("evidence") or {}).get("windows") or []]
-        window = window_titled(listing, workbook.name)
         if window is None:
             record["finding"] = "the open workbook's window was not listed"
             return
@@ -92,6 +115,7 @@ async def calc_stage(record: dict, ws: Path) -> None:
         record["exeIsInstalledApp"] = window["exe"] in {a.get("exe") for a in installed}
         await probe(gateway, record, "system.inspect", "system.inspect", {"programs": [window["exe"]]})
         await probe(gateway, record, "ui.inspect", "ui.inspect", {"window": lease(window)})
+        await answer_dialogs(gateway, record, listing, window, "before")
         # A planner's keyboard route: go to the cell by name, type the value, save in place.
         steps = [
             ("keys.cell", [{"press": "Mod+Shift+T"}, {"text": "B7"}, {"press": "Enter"}]),
@@ -109,7 +133,7 @@ async def calc_stage(record: dict, ws: Path) -> None:
         others = [w for w in (after.get("evidence") or {}).get("windows") or []
                   if w.get("pid") == window["pid"] and w.get("hwnd") != window["hwnd"]]
         record["dialogs"] = [(w.get("title") or "")[:80] for w in others]
-        for dialog in others[:1]:
+        for dialog in others[:1]:  # the format question: Enter keeps the workbook's own format
             await probe(gateway, record, "ui.inspect.dialog", "ui.inspect", {"window": lease(dialog)})
             await probe(gateway, record, "keys.keepFormat", "ui.send_keys",
                         {"window": lease(dialog), "keys": [{"press": "Enter"}]})
@@ -126,16 +150,15 @@ async def gimp_stage(record: dict, ws: Path) -> None:
     project = next(ws.glob("poster_*.xcf"))
     record["request"] = request
     async with Gateway(str(ws)) as gateway:
-        listing = await probe(gateway, record, "apps.list", "apps.list", {})
-        record["windows"] = [{"exe": w.get("exe"), "title": (w.get("title") or "")[:80]}
-                             for w in (listing.get("evidence") or {}).get("windows") or []]
-        window = window_titled(listing, project.stem)
+        listing, window = await listed(gateway, record, project.stem)
         if window is None:
             record["finding"] = "the open project's window was not listed"
             return
         record["leasedExe"] = window["exe"]
         await probe(gateway, record, "system.inspect", "system.inspect", {"programs": [window["exe"]]})
         await probe(gateway, record, "ui.inspect", "ui.inspect", {"window": lease(window)})
+        await answer_dialogs(gateway, record, listing, window, "before")
+        await probe(gateway, record, "ui.inspect.after", "ui.inspect", {"window": lease(window)})
 
 
 def main() -> int:

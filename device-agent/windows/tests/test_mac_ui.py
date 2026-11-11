@@ -41,6 +41,12 @@ class Note: NSObject, NSApplicationDelegate {
     window.contentView!.addSubview(save)
     window.makeKeyAndOrderFront(nil)
     NSApp.activate(ignoringOtherApps: true)
+    // F2 asks a modal question, as many apps do (a first-run welcome, a save-format choice).
+    NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
+      if event.keyCode != 120 { return event }
+      DispatchQueue.main.async { let alert = NSAlert(); alert.messageText = "Keep the note?"; alert.runModal() }
+      return nil
+    }
   }
   @objc func save(_ sender: Any) { try? box.stringValue.write(toFile: path, atomically: true, encoding: .utf8) }
 }
@@ -109,6 +115,32 @@ class MacUiLadder(unittest.TestCase):
                 await run("ui.invoke", {"window": window, "element": {"automationId": "saveButton"}})
                 time.sleep(0.5)
                 out["after_keys"] = self.note()
+                # Another app is in front: the keys still reach the leased window, or none are sent.
+                import AppKit  # type: ignore[import-not-found]
+
+                subprocess.run(["open", "-a", "Finder"], check=True)
+                for _ in range(50):
+                    front = AppKit.NSWorkspace.sharedWorkspace().frontmostApplication()
+                    if front is not None and front.bundleIdentifier() == "com.apple.finder":
+                        break
+                    time.sleep(0.1)
+                await run("ui.set_value", {"window": window, "element": box, "value": ""})
+                out["behind"] = await run("ui.send_keys", {"window": window, "element": box, "keys": [{"text": "from behind"}]})
+                time.sleep(0.5)
+                await run("ui.invoke", {"window": window, "element": {"automationId": "saveButton"}})
+                time.sleep(0.5)
+                out["after_behind"] = self.note()
+                # The app asks a modal question: it is answered as its own window, never typed past.
+                out["ask"] = await run("ui.send_keys", {"window": window, "element": box, "keys": [{"press": "F2"}]})
+                time.sleep(1)
+                out["blocked"] = await run("ui.send_keys", {"window": window, "keys": [{"text": "lost"}]})
+                listed = await run("apps.list", {})
+                out["dialog"] = next((w for w in listed["evidence"]["windows"]
+                                      if w["pid"] == window["pid"] and w["hwnd"] != window["hwnd"]), None)
+                if out["dialog"]:
+                    out["answer"] = await run("ui.send_keys", {"window": out["dialog"], "keys": [{"press": "Enter"}]})
+                time.sleep(1)
+                out["after_dialog"] = await run("ui.send_keys", {"window": window, "element": box, "keys": [{"text": "!"}]})
                 out["forged"] = await run("ui.inspect", {"window": window | {"pid": window["pid"] + 4}})
                 out["ambiguous"] = await run("ui.invoke", {"window": window, "element": {}})
 
@@ -153,6 +185,15 @@ class MacUiLadder(unittest.TestCase):
         with self.subTest("MAC-006 typed keys go into the named control"):
             self.assertEqual(out["keys"]["status"], "observed", out["keys"])
             self.assertEqual(out["after_keys"], "typed by keys")
+        with self.subTest("MAC-013 keys reach the leased window when another app was in front"):
+            self.assertEqual(out["behind"]["status"], "observed", out["behind"])
+            self.assertEqual(out["after_behind"], "from behind")
+        with self.subTest("MAC-014 a modal dialog of the app is answered first; nothing is typed past it"):
+            self.assertEqual(out["ask"]["status"], "observed", out["ask"])
+            self.assertEqual(out["blocked"]["errorCode"], "window_blocked", out["blocked"])
+            self.assertIsNotNone(out["dialog"], "the dialog is listed as a window of its own")
+            self.assertEqual(out["answer"]["status"], "observed", out["answer"])
+            self.assertEqual(out["after_dialog"]["status"], "observed", out["after_dialog"])
         with self.subTest("MAC-007 a forged lease is refused"):
             self.assertIn(out["forged"]["errorCode"], ("window_changed",))
         with self.subTest("MAC-008 a click at the inspected box lands"):
