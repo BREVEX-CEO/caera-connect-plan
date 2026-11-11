@@ -118,6 +118,8 @@ interface OnlineRequestBody {
   research?: boolean;
   quality?: IntelligenceQuality;
   highModeAcknowledged?: string;
+  /** Service door only: a repair turn after the independent verifier refused the work. */
+  repair?: boolean;
 }
 
 export interface OnlineHandlerDependencies {
@@ -340,7 +342,8 @@ function parseBody(value: unknown): OnlineRequestBody | null {
     privacy.onlineInferenceConsented !== true ||
     privacy.sealed !== false ||
     (value.quality !== undefined && value.quality !== "standard" && value.quality !== "high") ||
-    (value.quality === "high" && value.highModeAcknowledged !== HIGH_WARNING_VERSION)
+    (value.quality === "high" && value.highModeAcknowledged !== HIGH_WARNING_VERSION) ||
+    (value.repair !== undefined && typeof value.repair !== "boolean")
   ) {
     return null;
   }
@@ -1109,9 +1112,14 @@ async function runOnlineIntelligence(
   // A model whose quota the provider named as spent is not asked until it returns.
   const spentFor = (model: OnlineModelId) =>
     (deps.quotaReturnsAt?.get(model) ?? 0) - (deps.now ?? Date.now)();
-  const open = route!.filter((model) => spentFor(model) <= 0);
+  // A repair turn after the verifier refused the work starts with the route's other model, so a
+  // different model reviews what the first produced (configuration C); the first still stands
+  // behind it. A one-model route and every person's own request keep their order.
+  const ordered =
+    service && body.repair === true && route!.length > 1 ? [...route!.slice(1), route![0]] : route!;
+  const open = ordered.filter((model) => spentFor(model) <= 0);
   if (!open.length) {
-    const retryAfterSeconds = Math.ceil(Math.min(...route!.map(spentFor)) / 1_000);
+    const retryAfterSeconds = Math.ceil(Math.min(...ordered.map(spentFor)) / 1_000);
     return json(429, { error: "provider_unavailable", retryAfterSeconds }, origin);
   }
   const claimed = await deps.claimPermit({ userId: identity.userId, permit: body.permit });

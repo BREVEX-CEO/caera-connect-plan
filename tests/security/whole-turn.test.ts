@@ -16,9 +16,10 @@ const user = "00000000-0000-4000-8000-000000000001";
 const GEMMA = "gemma-4-31b-it";
 const LIVE = "gemini-3.8-live-extended-thinking";
 
-function body(surface: "jarvis" | "chat") {
+function body(surface: "jarvis" | "chat", extra: Record<string, unknown> = {}) {
   const permit = { id: "p1", generationId: "g1", idempotencyKey: "k1", surface, source: "server" };
   return JSON.stringify({
+    ...extra,
     permit,
     generationId: "g1",
     idempotencyKey: "k1",
@@ -37,11 +38,11 @@ function body(surface: "jarvis" | "chat") {
 }
 
 /** OCADE's own server asking for a planning turn. */
-const plannerRequest = () =>
+const plannerRequest = (extra: Record<string, unknown> = {}) =>
   new Request("http://service/", {
     method: "POST",
     headers: { "content-type": "application/json", "x-ocade-user": user },
-    body: body("jarvis"),
+    body: body("jarvis", extra),
   });
 
 const sse = (value: unknown) => `data: ${JSON.stringify(value)}\n\n`;
@@ -121,6 +122,21 @@ test("configuration C: a turn without the call the planner asked for goes to the
   const final = answer.at(-1) as { response: { stopReason: string; toolCalls: unknown[] } };
   assert.equal(final.response.stopReason, "tool_use");
   assert.equal(final.response.toolCalls.length, 1);
+});
+
+test("configuration C: a repair after the verifier refused the work starts with the other model", async () => {
+  const { deps, log } = harness(`${GEMMA},${LIVE}`, () => called());
+  await events(await handleOnlineIntelligence(plannerRequest({ repair: true }), deps));
+  assert.deepEqual(log.calls, [LIVE], "a different model reviews what the first produced");
+  const first = harness(`${GEMMA},${LIVE}`, (model) => (model === LIVE ? broken() : called()));
+  await events(await handleOnlineIntelligence(plannerRequest({ repair: true }), first.deps));
+  assert.deepEqual(first.log.calls, [LIVE, GEMMA], "and the first model still stands behind it");
+  const single = harness(GEMMA, () => called());
+  await events(await handleOnlineIntelligence(plannerRequest({ repair: true }), single.deps));
+  assert.deepEqual(single.log.calls, [GEMMA], "a one-model route is unchanged");
+  const invalid = harness(`${GEMMA},${LIVE}`, () => called());
+  const refused = await handleOnlineIntelligence(plannerRequest({ repair: "yes" }), invalid.deps);
+  assert.equal(refused.status, 400);
 });
 
 test("no model gives a call: the first complete answer goes back for the planner to correct", async () => {
