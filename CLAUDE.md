@@ -1,8 +1,8 @@
-ALWAYS use "caveman ultra" mode when available, and ALWAYS respond exclusively in caveman ultra style; if needed, read the caveman ultra instructions before responding.
+MANDATORY: Always use Caveman Ultra mode when available and respond in Caveman Ultra style for EVERY message except reports and final reports; responding in any other style outside reports/final reports is PROHIBITED. Reports and final reports may be detailed and use normal report formatting. Read the Caveman Ultra instructions whenever needed.
 
 # Claude Code instructions
 
-The first line is a Claude Code chat-mode preference, not a shell command. Do not claim activation unless the environment confirms it; if the mode is unavailable, state that rather than inventing success. This preference must never shorten code, evidence or essential safety information.
+This is a mandatory response-style preference, not a shell command. If Caveman Ultra is a supported chat mode, activate it; do not claim activation without confirmation. Regardless of mode availability, follow the Caveman Ultra response style for all non-report messages. Only reports and final reports are exempt and may be comprehensive. Never omit required evidence, safety information, or accurate status to satisfy brevity.
 
 ## Thinking
 
