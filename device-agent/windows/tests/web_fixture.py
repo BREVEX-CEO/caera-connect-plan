@@ -68,7 +68,9 @@ onblur="document.getElementById('committed').textContent = this.dataset.typed ? 
     "/frame": """<h1>Frame host</h1><iframe id="inner" src="/inner" title="inner"></iframe>""",
     "/inner": """<p>Inside frame</p><input id="inframe" name="inframe">""",
     "/popup": """<h1>Popups</h1><button id="same" onclick="window.open('/pages/1')">Same site</button>
-<button id="other" onclick="window.open('https://localhost:' + location.port + '/pages/2')">Other site</button>""",
+<button id="other" onclick="window.open('https://localhost:' + location.port + '/pages/2')">Other site</button>
+<form target="_blank" action="/pages/1"><button id="form">Form into a new window</button></form>
+<button id="late" onclick="setTimeout(() => window.open('/pages/2'), 600)">Opens a moment later</button>""",
     "/ask": """<h1>Store finder</h1><p>Allow your location to see nearby stores.</p>
 <script>Notification.requestPermission(); navigator.geolocation.getCurrentPosition(() => {}, () => {});</script>""",
     "/confirm": """<h1>Delete account</h1><button id="delete" onclick="document.getElementById('result').textContent = confirm('Delete everything?') ? 'deleted' : 'kept'">Delete</button><p id="result"></p>""",

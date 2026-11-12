@@ -207,9 +207,28 @@ _ASKED = """(() => {
     if (opened) window.__ocadeOpened += 1;
     return opened;
   };
+  // A form that submits into a new window opens one too (counted unless a handler cancelled it).
+  addEventListener('submit', (event) => {
+    const into = event.submitter?.getAttribute('formtarget') || event.target.target;
+    if (into === '_blank' && !event.defaultPrevented) window.__ocadeOpened += 1;
+  });
+  // A short timer a click starts may open its popup a moment later: count it until it has run.
+  window.__ocadePending = 0;
+  let clicking = false;
+  const later = window.setTimeout;
+  addEventListener('click', () => { clicking = true; later(() => { clicking = false; }, 0); }, true);
+  window.setTimeout = function (callback, delay, ...rest) {
+    if (!clicking || typeof callback !== 'function' || (Number(delay) || 0) > 2000)
+      return later.call(this, callback, delay, ...rest);
+    window.__ocadePending += 1;
+    return later.call(this, function (...args) {
+      try { return callback.apply(this, args); } finally { window.__ocadePending -= 1; }
+    }, delay, ...rest);
+  };
 })()"""
 
 _OPENED = "(element) => element.ownerDocument.defaultView.__ocadeOpened || 0"
+_PENDING = "(element) => element.ownerDocument.defaultView.__ocadePending || 0"
 
 _WAITING = """async () => {
   const waiting = [];
@@ -766,8 +785,12 @@ async def web_click(page: dict, selector: str, frame: str | None = None) -> dict
             if not choosers:
                 with anyio.move_on_after(0.25):
                     await chooser_arrived.wait()
-            # A popup's page arrives after the click returns: wait for as many as were opened.
+            # A popup's page arrives after the click returns: wait for as many as were opened,
+            # counting those a short timer started by the click opens once that timer has run.
             try:
+                with anyio.move_on_after(2.5):  # a cleared timer never runs: bounded
+                    while await target.evaluate(_PENDING):
+                        await anyio.sleep(0.05)
                 wanted = max(await target.evaluate(_OPENED) - opened_before, int(expects_popup))
             except Exception:  # the click navigated away from the element's document
                 wanted = int(expects_popup)

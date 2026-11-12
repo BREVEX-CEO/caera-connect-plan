@@ -230,6 +230,10 @@ class WebLadder(unittest.TestCase):
                 await run("web.click", {"page": popup, "selector": "#same"}),
                 await run("web.click", {"page": popup, "selector": "#other"}),
             ]
+            out["009b"] = [
+                await run("web.click", {"page": popup, "selector": "#form"}),
+                await run("web.click", {"page": popup, "selector": "#late"}),
+            ]
             out["010"] = await run("web.open", {"url": base + "/redirect"})
             login = (await run("web.open", {"url": base + "/login"}))["evidence"]
             out["011"] = [login, await run("web.fill", {"page": login["page"], "selector": "#pass", "value": "x"})]
@@ -327,6 +331,9 @@ class WebLadder(unittest.TestCase):
             self.assertEqual(len(same["evidence"]["popups"]), 1)
             self.assertRegex(same["evidence"]["popups"][0], "^[0-9a-f]{12}$")
             self.assertEqual(other["evidence"]["popups"], ["closed_off_site"])
+        with self.subTest("WEB-009b a form into a new window, and a popup opened a moment after the click"):
+            for opened in results["009b"]:
+                self.assertEqual(len(opened["evidence"]["popups"]), 1, opened["evidence"])
         with self.subTest("WEB-010 cross-site redirect refused"):
             self.assertEqual((results["010"]["status"], results["010"]["errorCode"]), ("not_applied", "redirected_off_site"))
         with self.subTest("WEB-011 sign-in is handed to the person"):
