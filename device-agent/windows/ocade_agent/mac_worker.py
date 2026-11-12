@@ -303,20 +303,27 @@ def _front(pid: int, target) -> None:
     if running is None:
         raise Refused("window_gone")
     ax_app = AX.AXUIElementCreateApplication(pid)
+
+    def in_front() -> tuple[bool, bool]:
+        front = AppKit.NSWorkspace.sharedWorkspace().frontmostApplication()
+        app_front = front is not None and front.processIdentifier() == pid
+        focused = _attribute(ax_app, "AXFocusedWindow")
+        return app_front, app_front and focused is not None and CF.CFEqual(focused, target)
+
+    if in_front()[1]:
+        return  # already the frontmost app's focused window: nothing to raise
     # Raising and activating change which window has focus, never what a document holds: not an
     # effect, so a refusal here changed nothing and is safe to plan again.
     AX.AXUIElementPerformAction(target, "AXRaise")
     AX.AXUIElementSetAttributeValue(ax_app, "AXFrontmost", True)
     running.activateWithOptions_(AppKit.NSApplicationActivateIgnoringOtherApps)
-    in_front = False
+    app_front = False
     for _ in range(20):
-        front = AppKit.NSWorkspace.sharedWorkspace().frontmostApplication()
-        in_front = front is not None and front.processIdentifier() == pid
-        focused = _attribute(ax_app, "AXFocusedWindow")
-        if in_front and focused is not None and CF.CFEqual(focused, target):
+        app_front, ready = in_front()
+        if ready:
             return
         time.sleep(0.1)
-    raise Refused("window_blocked" if in_front else "focus_lost")
+    raise Refused("window_blocked" if app_front else "focus_lost")
 
 
 @app.tool()

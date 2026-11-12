@@ -224,3 +224,38 @@ class NativeEffectReceipts(unittest.TestCase):
                 self.assertEqual(record["outcomes"],
                                  [{}, {"refused": "probe_precondition", "maybeChanged": False},
                                   "raised", {}, {}], record)
+
+
+class MacFront(unittest.TestCase):
+    """macOS activation through fake AppKit/Accessibility modules (no Mac needed)."""
+
+    def run_front(self, frontmost_pid, focused):
+        from ocade_agent import mac_worker as worker
+        target, actions = object(), []
+        running = unittest.mock.Mock()
+        running.activateWithOptions_.side_effect = lambda _: actions.append("activate")
+        front = unittest.mock.Mock()
+        front.processIdentifier.return_value = frontmost_pid
+        appkit = unittest.mock.Mock()
+        appkit.NSRunningApplication.runningApplicationWithProcessIdentifier_.return_value = running
+        appkit.NSWorkspace.sharedWorkspace.return_value.frontmostApplication.return_value = front
+        ax = unittest.mock.Mock()
+        ax.AXUIElementPerformAction.side_effect = lambda *_: actions.append("raise")
+        ax.AXUIElementSetAttributeValue.side_effect = lambda *_: actions.append("frontmost")
+        cf = unittest.mock.Mock()
+        cf.CFEqual.side_effect = lambda a, b: a is b
+        modules = {"AppKit": appkit, "ApplicationServices": ax, "CoreFoundation": cf}
+        with patch.dict(sys.modules, modules), \
+                patch.object(worker, "_attribute", lambda _, name: target if focused else None), \
+                patch.object(worker.time, "sleep"):
+            worker._front(42, target)
+        return actions
+
+    def test_a_window_already_in_front_and_focused_is_not_raised_again(self):
+        self.assertEqual(self.run_front(42, focused=True), [])
+
+    def test_a_window_behind_another_app_is_raised_then_refused_if_it_stays_behind(self):
+        from ocade_agent.sandbox import Refused
+        with self.assertRaises(Refused) as refused:
+            self.run_front(7, focused=True)  # another app stays frontmost in the fake
+        self.assertEqual(refused.exception.code, "focus_lost")
