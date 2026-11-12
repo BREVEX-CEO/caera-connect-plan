@@ -72,6 +72,23 @@ class OfficeEdits(unittest.TestCase):
         self.assertEqual(sha256(self.root / "d.docx"), digest)
         self.assertFalse((self.root / "OCADE output" / "originals").exists(), "no original for a refused edit")
 
+    def test_a_document_open_in_an_office_app_is_refused_not_swapped(self):
+        """LibreOffice and Microsoft Office mark an open document with a lock file, not an OS lock:
+        a swap on disk would be overwritten by the app's next save."""
+        for lock in (".~lock.open.docx#", "~$en.docx"):
+            with self.subTest(lock=lock):
+                document = Document()
+                document.add_paragraph("draft")
+                document.save(self.root / "open.docx")
+                digest = sha256(self.root / "open.docx")
+                (self.root / lock).write_text("owner")
+                [refused] = self.run_all([intent("office.edit_document", {
+                    "path": "open.docx", "expectSha256": digest, "edits": [{"find": "draft", "replace": "final"}]})])
+                self.assertEqual(refused["errorCode"], "file_open_in_app", refused)
+                self.assertFalse(refused["maybeChanged"], refused)
+                self.assertEqual(sha256(self.root / "open.docx"), digest)
+                (self.root / lock).unlink()
+
     @unittest.skipUnless(office_available(), "needs a real office engine")
     def test_a_workbook_cell_and_formula_change_in_place(self):
         book = openpyxl.Workbook()

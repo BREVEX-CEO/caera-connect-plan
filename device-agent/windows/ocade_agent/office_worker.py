@@ -198,6 +198,11 @@ def _swap(path: str, expect: str, produce, office: bool) -> tuple[dict, Path, ob
     before = hashlib.sha256(data).hexdigest()
     if before != expect:
         raise Refused("file_changed")  # someone changed it since it was read: read it again
+    # An office app marks an open document with a lock file, not an OS lock (LibreOffice
+    # ".~lock.<name>#", Microsoft Office "~$<name>"): its next save would undo a swap on disk.
+    if any((target.parent / lock).exists()
+           for lock in (f".~lock.{target.name}#", f"~${target.name}", f"~${target.name[2:]}")):
+        raise Refused("file_open_in_app")
     handle, temporary = tempfile.mkstemp(dir=target.parent, prefix=".ocade-", suffix=target.suffix)
     os.close(handle)
     staged = Path(temporary)
