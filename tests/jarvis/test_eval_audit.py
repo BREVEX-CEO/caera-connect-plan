@@ -34,6 +34,12 @@ class EvaluationAudit(unittest.TestCase):
             {"status": "completed", "timing": {"verifiedAt": "t"}, "checks": [{"state": "passed"}]}, True, [], []),
             "both harnesses use the authority's own word for a completed task")
 
+    def test_a_campaign_with_a_failed_task_does_not_exit_green(self):
+        # Run 42427996732: every task FAILED, yet every job reported success.
+        self.assertEqual(benchmark.campaign_exit([{"task": "calc", "pass": True}]), 0)
+        self.assertEqual(benchmark.campaign_exit([{"task": "calc", "pass": True}, {"task": "gimp", "pass": False}]), 1)
+        self.assertEqual(benchmark.campaign_exit([]), 1, "a campaign that ran nothing is not a pass")
+
     def test_another_tool_is_scored_by_the_same_hidden_oracle(self):
         with tempfile.TemporaryDirectory() as temporary:
             ws = Path(temporary)

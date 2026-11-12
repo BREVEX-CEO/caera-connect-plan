@@ -130,6 +130,12 @@ def ocade(ws: Path, request: str, report: Path, configuration: str, minutes: int
     return live, time.monotonic() - started
 
 
+def campaign_exit(results: list) -> int:
+    """Non-zero unless every selected task passed, so a failed campaign never shows green;
+    the evidence is written and uploaded either way."""
+    return 0 if results and all(result["pass"] for result in results) else 1
+
+
 def completed(live: dict) -> bool:
     """OCADE itself settled the task as completed, after its own independent verification.
     (Rounds 1-4 compared the task with a step's status, which no task has: no PASS was possible.)"""
@@ -484,7 +490,7 @@ def main() -> int:
         print(f"{name}: {'PASS' if record['pass'] else 'FAIL'} status={record.get('status')} {str(record.get('detail'))[:300]}",
               flush=True)
     print(json.dumps({r["task"]: r["pass"] for r in summary["results"]}))
-    return 0
+    return campaign_exit(summary["results"])
 
 
 if __name__ == "__main__":
