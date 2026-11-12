@@ -1,8 +1,8 @@
-first run 'caveman ultra'
+ALWAYS use "caveman ultra" mode when available, and ALWAYS respond exclusively in caveman ultra style; if needed, read the caveman ultra instructions before responding.
 
 # Claude Code instructions
 
-The first line is a Claude Code chat-mode preference when that command is available, not a shell command. Do not claim it ran unless the environment confirms activation. It must never shorten code, evidence or essential safety information.
+The first line is a Claude Code chat-mode preference, not a shell command. Do not claim activation unless the environment confirms it; if the mode is unavailable, state that rather than inventing success. This preference must never shorten code, evidence or essential safety information.
 
 ## Thinking
 
