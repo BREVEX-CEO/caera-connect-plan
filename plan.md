@@ -29,7 +29,7 @@
 
 **Coding stage:** every required ID is coded or classified (Appendix E); C0–C11 are recorded there.
 
-**Current next action (10 Nov 2026):** repair after benchmark round 4, then rerun. Batch C12 (§19.4 "Engineering after round 4", Appendix E) fixed the model-loop root causes and the first desktop-bridge defects in code, with tests. Next, in order: (1) read the hosted Windows/macOS matrix and its desktop probe for C12 and fix what it shows (D45, D46, D49); (2) cut model calls and prompt size (D47); (3) deploy the changed boundary to the staging functions and rerun the 24 (needs B1, the owner's per-run approval). Do not run the full campaign while D49 is open.
+**Current next action (model scope updated 12 Nov 2026):** finish reading the latest Windows/macOS matrix and its desktop probe for C12 (D45, D46, D49), reduce model calls and prompt size (D47), and independently qualify **only** `gemini-3.5-flash-lite` and `gemma-4-31b-it` after an explicitly approved staging deployment and per-run B1 approval. The new qualification is 4 tasks × 2 standalone models × 2 mandatory OSes = 16 runs; historical 24-run campaigns remain evidence, not the new routing plan. Do not run the full campaign while D49 is open.
 
 ## 1. What OCADE is
 
@@ -54,7 +54,7 @@ OCADE BY CARCC is an autonomous computer-control agent.
 | # | Decision |
 |---|---|
 | O1 | Windows 10, Windows 11 and macOS are mandatory. Linux is optional and never blocks release. |
-| O2 | Use the existing authorised Gemini model (`gemini-3.5-flash-lite`, `src/lib/intelligence/online-models.ts`) and free capacity. No paid model as a default solution. |
+| O2 | **Only two authorised planner/reasoning models:** `gemini-3.5-flash-lite` (default) and `gemma-4-31b-it` (Gemma 4 31B). Use one model independently per task; no Live planner, mixed-model hybrid, second-model repair/failover, or other planner choice. No paid model as a default solution. Existing runtime code may still expose legacy routes; changing this policy does not prove they have been removed from code. |
 | O3 | No paid infrastructure, purchases or unapproved spending. |
 | O4 | One coding agent. No parallel coding sub-agents. |
 | O5 | Cloud-first. Finish coding and the available cloud qualification before asking for real-PC testing. Never use the owner's physical computer without separate approval. |
@@ -66,9 +66,9 @@ OCADE BY CARCC is an autonomous computer-control agent.
 | O11 | No `main` merge, deployment, payment activation, secret changes, credential exposure or weakened security. |
 | O12 | Free, non-deploying GitHub Actions on this branch are approved. CI stays secrets-free and never contacts production. No scheduled automations. |
 | O13 | **Coding first** (owner, 5 November 2026). Finish 100% of the approved coding requirements before comprehensive qualification. During coding, only the lightweight coding gate (§17) applies. Live AI tests, E1–E3 campaigns, benchmark scores, full CI matrices, cloud-computer workflows and real-PC tests never block writing code; they run at the qualification stage, where every original acceptance criterion still applies in full. No coding deadline and no benchmark threshold apply to the coding stage. |
-| O14 | Keep the existing working model integration (O2) unchanged until the owner authorises a replacement. The owner will supply the tasks that compare Gemini 3.8 Live Extended Thinking, Gemma 4 31B and Gemini 3.5 Flash-Lite after coding is complete. Do not run model benchmarks before then. |
-| O15 | **Model comparison** (owner, 7 November 2026): run the same four tasks (§19.4) independently with A = Gemma 4 31B API alone, B = Gemini 3.8 Live Extended Thinking API alone and C = both under one task controller, with identical inputs and criteria, using only free applications (LibreOffice Calc, GIMP, FreeCAD, Blender, DaVinci Resolve Free; no trials or subscriptions) in an authorised isolated environment. The three Gemini keys belong to three separate Google Cloud projects; use them securely within their actual quotas. Application names are benchmark requirements only (O8 holds). |
-| O16 | **Order** (owner, 7 November 2026): finish the 12 real-task evaluations before any research into alternative models, hosting, cloud inference, GitHub model storage or hybrid routing. If credentials, devices, hardware or permissions are missing, prepare what is permitted, record the exact blockers here and stop; never fabricate a result or skip ahead. |
+| O14 | **Model scope (owner update, 12 November 2026):** the only permitted planner models are Gemini 3.5 Flash-Lite and Gemma 4 31B, each independently. Do not enable or test any retired Live model, hybrid route or other model as a planner. Retain historical benchmark evidence but do not treat obsolete configurations as approved work. Model-routing code, deployment and tests require their own authorised implementation. |
+| O15 | **Two-model comparison (owner update, 12 November 2026):** run the same four tasks (§19.4) independently for `gemini-3.5-flash-lite` and `gemma-4-31b-it` on Windows and macOS (16 mandatory model × OS × task runs), with identical inputs, permissions, oracles and criteria. No option B/C naming and **no hybrid/multi-model task route**. Use only free benchmark apps (LibreOffice Calc, GIMP, FreeCAD, Blender, Kdenlive); no trials or subscriptions. The three Gemini API keys belong to separate Google Cloud projects and must be used only within legitimate per-project quotas; benchmark app names are never hardcoded into product logic (O8). |
+| O16 | **Qualification order (owner update, 12 November 2026):** preserve prior 4-task benchmark rounds as historical evidence. Finish the 16 new standalone-model evaluations only after required code changes, staging approvals, device access and B1 per-run approval. If resources, credentials or permissions are missing, record exact blockers; do not fabricate results. Adding a third model, a Live planner or a hybrid requires a new explicit owner decision. |
 
 ## 3. Status (update in the same commit as new evidence)
 
@@ -410,7 +410,7 @@ Journal ─▶ independent verifier ─▶ settlement · deliverables · timing
 | W14 | Linux (optional) | — | NOT STARTED | optional | 134–135 | — |
 | RPC | Real-PC validation → E5 | W13; A2 | BLOCKED | needs A2 | 121, 133, 209 | — |
 | COM | Commercial prerequisites (§20) | RPC | BLOCKED | owner decisions | 259 | — |
-| MC | Model comparison (§19.4, O15) | C11 | BLOCKED | 0/12 runs; B1–B4 in §19.4 | 23 | — |
+| MC | Two standalone planner-model evaluations (§19.4, O15) | C11 | BLOCKED | **0/16 newly scoped runs verified**; historical three-route campaigns remain 0/24 PASS. Old benchmark route requires an approved change before rerun; B1–B4 apply | 23 | — |
 
 **Archived as complete:** W3 Capability surface, DONE (code), with its live evidence (eval s21, run 85) and closed defects D12, D17, D18, D20: [archive §15 and §16](docs/archive/plan-v6-2026-11-07.md).
 
@@ -760,9 +760,9 @@ Success = verified complete ÷ eligible attempted. The harness supplies only the
 
 **Free-runner limits:** CPU only, 6-hour jobs. Cycles CPU works headless; Eevee needs EGL/Mesa (unverified). If the render cannot finish, record FAIL or BLOCKED with the measured frame time and validate at RPC.
 
-### 19.4 Owner-directed model comparison — 4 tasks × configurations A, B, C (O15, O16)
+### 19.4 Owner-directed model comparison — 4 tasks × 2 standalone models × Windows/macOS (O15, O16)
 
-**Status: 0 of 12 evaluations run. Nothing below is a result.** The harness and the three model routes are coded (Appendix E 23, C11). Every evaluation cell stays UNTESTED or BLOCKED until a real run at one commit records its evidence here.
+**Status: 0 of 16 newly scoped evaluations verified.** Historical experiments used three obsolete configurations; their actual outcomes are preserved in the dated table below but do not count as tests of the new two-model comparison. The current benchmark service/harness still has legacy routes, so the new two-model scope is a **plan**, not an implemented or deployed change; report UNTESTED or BLOCKED until a real run at one commit produces evidence.
 
 **Benchmark applications** (free only, no trials or subscriptions; the names are benchmark requirements, never product logic, O8). Installed and executed in the isolated session container (Ubuntu 24.04, 4 CPU, 15 GB RAM, no GPU) on 7 Nov 2026:
 
@@ -780,23 +780,23 @@ Success = verified complete ÷ eligible attempted. The harness supplies only the
 3. **FreeCAD + Blender + Calc, extreme:** an original, dimensionally consistent electric sports car (body-in-white, chassis, suspension, wheels, interior, materials, renders) plus an editable component spreadsheet. Oracle: the CAD and Blender files re-open; named parts exist; key dimensions (wheelbase, track, overall length/width/height, wheel diameter) agree across CAD, Blender and the spreadsheet within a stated tolerance; renders are non-blank; the spreadsheet's totals recalculate.
 4. **Blender + DaVinci Resolve Free + GIMP, extreme (uses Task 3's car):** a 60 s ± 2 s commercial with audio, an editable timeline, a vertical version and a poster. Midway the wheelbase and suspension change and every dependent artifact must follow; an injected application crash must be recovered without redoing finished work. Oracle: §19.3's technical and structural verdicts, plus the changed dimension found in every dependent file; subjective quality is human review at RPC only.
 
-**Configurations** (server route `GEMINI_MODEL`, never a request value):
-- **A** `gemma-4-31b-it` alone (streamed `generateContent`, function calling, image input; thinking setting retried without one if the model refuses it).
-- **B** `gemini-3.8-live-extended-thinking` alone, over the Live API. Provider facts (Google docs, 7 Nov 2026): native-audio Live models accept only the AUDIO response modality; text is observed through `outputAudioTranscription`; function calls must be `NON_BLOCKING`; thinking levels low/medium/high; 128k context; sessions ≤15 min audio-only. OCADE sends text turns, reads the transcript and the function calls, and discards the audio without playing it. It never claims native text-only output. Known provider risk: a forum report (28 Sep 2026, unanswered) says Extended Thinking emitted no `toolCall` for a `NON_BLOCKING` function on some keys.
-- **C** `gemma-4-31b-it,gemini-3.8-live-extended-thinking`: one task authority and one planner loop; the edge handler (the single controller of model choice) asks the second model only before any output, when the first cannot answer that turn (quota spent, unavailable, request refused). Escalation by verifier outcome is not coded; it is added only if C's results show the need.
+**Only permitted planner models** (server-selected, independently per run; never selected by untrusted request data):
+- **Gemini 3.5 Flash-Lite** — `gemini-3.5-flash-lite`; existing production Standard default, streamed text/tool-calling planner; measure actual tool calls, latency, correctness and quotas rather than assuming success.
+- **Gemma 4 31B** — `gemma-4-31b-it`; independent streamed text/tool-calling planner with image input; its thinking request must be checked against provider support and its measured quota.
+- **No third model and no hybrid.** Each task uses exactly one of the two models for planning, retries and repair. Legacy Live and combined routes are retired from the *approved plan*, not yet removed from runtime source; Gemini Live can remain a separately authorised voice interface, never a planner.
 
-**Quota and the three projects:** each key slot is its own Google Cloud project with its own per-model RPM/TPM/RPD. Real limits are read from the provider (`npm run model:availability` for availability and token limits; AI Studio for the project's rate limits; every 429 QuotaFailure is logged per slot and model as `ocade.provider_limit`); none is hardcoded. A quota refusal never moves a request to another project: Google's API terms forbid circumventing documented limits, so pooling the three projects for one workload needs the owner's confirmation with Google first. As deployed, every configuration uses the primary project first and moves to another key only for a key or outage failure, never for quota; A and B use different models, so their per-model quotas do not compete. Unpaid-tier terms (Google, 7 Nov 2026): no sensitive or personal data in prompts, which the synthetic fixtures respect; EEA/UK/Swiss customers need the paid service (a COM item).
+**Quota and the three projects:** each key slot belongs to its own Google Cloud project with separate per-model RPM/TPM/RPD. Obtain the real limits from provider responses, AI Studio and the existing `npm run model:availability` check; log 429s per slot and model. Do not rotate projects to evade project quota restrictions. Both permitted planners run independently, not as a combined model route. Free-tier data-handling restrictions still apply; do not send sensitive or personal customer data to a tier that forbids it.
 
 **Metrics per run:** first-action latency, total time, model calls and tokens (`timing.providerUsage`), CPU/RAM of the companion and each application, interventions, recovery results, oracle verdict, output-quality notes, timestamped intermediate and final screenshots, editable artifacts and the run's commit. Ranking: verified accuracy, then output quality, then completion time, then cost.
 
-**Owner update (7 Nov 2026, later):** DaVinci Resolve is replaced by Blender's Video Sequencer and Kdenlive; CapCut only where officially available. Mandatory: Windows 4 × 3 = 12 and macOS 4 × 3 = 12 runs; Linux 12 optional, only if quota and runner time remain.
+**Owner update (12 Nov 2026):** DaVinci Resolve has already been replaced for the benchmark by Blender's Video Sequencer and Kdenlive; CapCut only where officially available. Mandatory new comparison: Windows 4 × 2 = 8, macOS 4 × 2 = 8, total **16 runs**. Linux 8 optional, only if quota and runner time remain.
 
 **How the runs reach the models (prepared, verified):**
-- Staging-only function `ocade-intelligence-benchmark` (version 1, deployed 7 Nov 2026 from `ea11c5b`): the same server-only door as `ocade-intelligence-service`, with the route fixed by its path (`/a`, `/b`, `/c`). Probed without credentials: malformed request 400, unknown configuration 404, browser origin 403. The Gemini keys stay in Supabase; the staging `GEMINI_MODEL` secret and the two existing functions are unchanged. Rollback copies of both existing functions (code only, scanned for key shapes): `evidence/2026-11-07-staging-function-backup/`.
-- Runner side: the `benchmark` campaign of `.github/workflows/jarvis-staging-evaluation.yml` (a workflow must exist on the default branch to be dispatched), matrix Windows/macOS (Linux optional) × configuration; `tests/jarvis/benchmark.py` builds inputs, opens Calc/GIMP for the "already open" tasks, runs the real authority and companion (`scripts/jarvis-live.mjs`, now able to start the companion on Windows) and applies the oracles. The repository is public, so GitHub-hosted minutes are free; limits are 6 h per job and macOS concurrency.
+- **Legacy staging implementation (historical, not an approved two-model route):** `ocade-intelligence-benchmark` was deployed with `/a`, `/b`, `/c` server-side configurations, alongside the existing `ocade-intelligence-service`. Its credential-free security smoke returned 400/404/403 for the relevant invalid cases. The staging `GEMINI_MODEL` secret and functions have not been changed by this document edit. Before the new two-model qualification, an independently approved code change must remove the obsolete Live/hybrid routes, expose only the two standalone planner options, update the evaluation harness, and verify the security boundary; do not infer the change already happened. Rollback material: `evidence/2026-11-07-staging-function-backup/`.
+- Runner side: the existing `.github/workflows/jarvis-staging-evaluation.yml` and `tests/jarvis/benchmark.py` drive the real authority and companion, seeded inputs and hidden oracles on hosted Windows/macOS desktops; its **historical three-configuration matrix must be updated** for the newly authorised two standalone models before any new comparison run. The owner approves each protected-environment run. Linux remains optional.
 - Applications on runners: Chocolatey (Windows), Homebrew (macOS) or apt + the FreeCAD PPA (Linux): LibreOffice, GIMP, FreeCAD, Blender, Kdenlive, ffmpeg. CapCut: no Linux build; the Windows/macOS builds need an interactive account sign-in, so it is not installed.
 
-**Evaluation matrix (runs, GitHub-hosted desktops; not consumer PCs):** every run so far FAILED; nothing PASSED.
+**Historical evaluation matrix (obsolete A/B/C routing; evidence retained for audit only, not a current model option):** all runs below FAILED; no task PASSED.
 
 | Run | System × configuration | Tasks | Result | Cause found |
 |---|---|---|---|---|
@@ -813,9 +813,9 @@ Verified along the way: real desktop sessions on both runners (timestamped scree
 3. Durable per-model capability record (thinking support, function-call reliability, latency class, TPM), learned from provider responses.
 4. Delta prompts (≤ 3k input tokens per step turn; free-tier Gemma TPM is 16,000).
 5. Plan-first guarded execution as the default for reversible workspace milestones (the existing step lists, §13).
-6. A real hybrid C (compile model ≠ repair model; escalate on verifier failure).
+6. Current owner policy supersedes the review's proposed mixed-model repair path: both planner models must be evaluated and operated **independently**; no combined/hybrid route.
 7. Ask for a missing `app:` grant by name.
-8. Rerun 24; Linux 12 optional.
+8. Rerun 4 tasks × 2 standalone models × Windows/macOS = **16 new mandatory runs** after explicitly approved implementation and staging deployment; Linux 8 optional. Historical 24-run results are unchanged.
 The 84 concepts are consolidated into 12 mechanisms there (KEEP 48, IMPROVE 17, MERGE 17, REPLACE 1, REMOVE 1); Appendix B keeps all 84 rows until §10 accepts the change.
 
 Defects fixed during the campaign (each with a test where code changed): 25 s first-byte deadline too short for Gemma (now 60 s, turn 140 s, planner 145 s); Live key refused in the URL and headers unsupported by the Edge runtime (now a single-use ephemeral token minted over REST); Live turn closed before asynchronous calls (now settles at `IDLE` or after the last call); no reason logged for provider failures (`ocade.provider_issue`); harness PATH shadowing, Windows version-step hang, Chocolatey 2 flag, GIMP location, missing `app:` consent in the harness. The benchmark function is at version 6. Text-only model answers are now corrected once under a new key (`b49a517`).
@@ -829,7 +829,7 @@ Defects fixed during the campaign (each with a test where code changed): 25 s fi
 | D44 no PASS could be recorded | `benchmark.py` required task status `"done"` (a step status); a completed task is `"completed"` | One `completed()` helper | TESTED: `test_eval_audit`. `92d3dda` |
 | D45 Windows apps not launchable or not grantable | `apps.launch` resolved only App Paths/PATH (shortcut-only apps refused); it waited for a window of the launcher's own executable; a launcher's window was named by a program no person can allow | Shortcut targets are launch paths; a new window of a program in the launched folder is accepted; a window is named by the installed app it belongs to (own program, else nearest running installed ancestor in the same folder) | CODED + unit TESTED (`app_key`); real-desktop cases UIA-015/016 await the hosted Windows run. `b75514b` |
 | D46 keyboard input had no contract | `ui.send_keys` took a bare string: Windows read it as pywinauto commands (text with `+ ^ % ~ ( ) { }` corrupted), macOS could type characters only (no Enter, Tab or shortcut) | `keys` is a list of `{text}` or `{press}` items (`Mod` = Ctrl/Cmd), validated by the server and translated by one module (`keys.py`) for both bridges | CODED + TESTED (KEY-001…006, contract test); real-window cases await the hosted run. `6b914dd` |
-| D48 Live `invalid_goal` (hypothesis) | Unknown which rule refused B's goal | Refusal codes `invalid_goal_no_call`, `_call`, `_checks`, `_milestones`; provider issue `no_call` | TESTED (diagnostic only). `5632e0f` |
+| D48 Retired Live-planner `invalid_goal` (historical diagnostic only) | The legacy Live configuration's goal was refused; the precise validator failure was initially unknown | Additional refusal codes and `no_call` logging were added | Historical diagnostic recorded (`5632e0f`); **no further Live planner evaluation is authorised under current O15** |
 
 Also in C12: CI lint and format gates repaired (`edaf6d2`); an installed app resolves to its program path for the scripted route (`ee93eee`); a missing `app:`/`site:` grant is asked for by name and the task waits (`0e31fd9`); the Edge worker logs the platform's shutdown reason (`ocade.worker_unload`) because Supabase documents the 150 s wall clock as **per worker**, not per request, which is the likely cause of `planner_stream_incomplete` (still a hypothesis until a run shows the log line); a desktop probe drives the real bridge in real Calc and GIMP windows on the hosted matrix without a model (`67d889b`).
 
@@ -839,7 +839,7 @@ Also in C12: CI lint and format gates repaired (`edaf6d2`); an installed app res
 - *Durable per-model capability record (review step 3) deferred.* The thinking refusal costs one fast 400 per cold worker and no longer spends an attempt; a table adds a migration and a cache for under 2% of turn time. Revisit if `ocade.provider_issue` shows it dominating.
 - *Window identity by folder and ancestry, not AppUserModelID.* Testable without Windows internals and names no application. Reverse if the hosted cases show ancestry missing real launchers.
 
-**Still open:** D47 (prompt size: the offered operations alone are 6–9k input tokens per turn, measured from the registry; one model call per effect), D49 (the desktop probe's findings on real Calc and GIMP windows, pending its first run), the three-model facts that need a real run (Live function calls, Gemma turn time after the fixes), and the staging deployment of the changed boundary.
+**Still open:** D47 (offered operations alone contribute 6–9k input tokens per turn and one model call per effect), D49 (desktop probe behaviour in real Calc/GIMP windows), separate **Flash-Lite and Gemma 31B** real-task evaluation after approved runtime changes, and staging deployment of the changed boundary. The former three-model/Live comparison is retired.
 
 **Blockers (exact, current):**
 - **B1 Approval per run.** The runner jobs use the protected environment `SUPABASE_SERVICE_ROLE_KEY`, which needs the owner's "Approve" on each run before the job starts (smoke run [42420339443](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/42420339443) waits for it). No other credential is missing.
@@ -847,7 +847,7 @@ Also in C12: CI lint and format gates repaired (`edaf6d2`); an installed app res
 - **B3 Hardware.** No GPU on standard runners: Blender renders on CPU, so long renders may not finish within 6 h; a task that runs out of time is recorded FAIL with its measured progress.
 - **B4 CapCut** not installed (above); Kdenlive and Blender's Video Sequencer are the editors.
 
-**Order (O16):** research on alternative free model APIs, architectures, open-weight storage and inference hosting starts only after all 12 evaluations genuinely finish. Preliminary notes gathered before this order are not decisions and are not used.
+**Order (O16, superseding the old comparison):** the sole planner qualification is the approved two-model independent benchmark (16 mandatory runs). No research, installation, deployment or invocation of a third planner model or hybrid route without a new owner decision; retain earlier runs as historical evidence.
 
 ## 20. Release gates, approvals and the commercial stage
 
@@ -908,7 +908,7 @@ The milestones in `gates.json` map one-to-one to R1–R10.
 | Failed vs lost acknowledgement | Intent is journaled before dispatch; a missing receipt means `unknown`; reconcile from target state before anything else. |
 | Depth vs latency vs accuracy | Decided per checkpoint by success first, then time. |
 
-## 23. Gemini accuracy and quota strategy (free model)
+## 23. Two-model planner accuracy and quota strategy (Gemini Flash-Lite 3.5 + Gemma 4 31B)
 
 1. **Contract after discovery,** bound to the request.
 2. **Grounding:** facts come only from task observations; unseen deep URLs are refused; "unknown" is an allowed answer.
@@ -917,7 +917,7 @@ The milestones in `gates.json` map one-to-one to R1–R10.
 5. **Fewer turns:** read batching and guarded step lists.
 6. **Repairs:** at most 2, driven by verifier results.
 7. **Error categories** on every failure.
-8. **Thinking-level A/B** (Gemini 3-generation models expose `thinking_level`; verify for the authorised model). Preserve thought signatures across function-call turns.
+8. **Model-specific thinking:** test appropriate supported thinking settings individually on Gemini 3.5 Flash-Lite and Gemma 4 31B. Preserve required thought signatures on supported function-call turns; do not infer a capability from another model.
 9. **Computer-use tool:** if the authorised model offers it on the free tier, evaluate it only as a visual fallback provider.
 10. **Prompt-injection fencing:** untrusted text is labelled.
 11. **Quota:**
@@ -1427,7 +1427,7 @@ Severity: CRITICAL = unauthorised action, data loss, secret exposure or wrong-ta
 | D45 | HIGH | Windows: apps found only by a Start Menu shortcut could not be launched; a launcher's window was never matched and was named by a program no person can allow | Code review of `discovery.py`, `windows_worker.py` | CODED + unit TESTED (`b75514b`); UIA-015/016 on the hosted Windows runners pending | W6 |
 | D46 | HIGH | `ui.send_keys` had no key contract: text corrupted on Windows, no key presses possible on macOS | Code review of both bridges | CODED + TESTED in translation (`6b914dd`); real-window cases on the hosted runners pending | W6, W7 |
 | D47 | MEDIUM | One model call per effect and 6–9k input tokens of offered operations per turn against a 16k tokens/min free quota | Registry measurement 10 Nov 2026; round 4: 37× HTTP 429 | OPEN: quota waits now resume by themselves (D42), so this costs time, not the task | W4 |
-| D48 | MEDIUM | Gemini 3.8 Live Extended Thinking goal turns were refused as `invalid_goal`; whether a call was missing is unverified | Round 4, all 8 B tasks | OPEN (hypothesis): the refusal code and `no_call` log now name the rule (`5632e0f`); needs a run | MC |
+| D48 | MEDIUM (retired) | Legacy Live-planner goals were refused as `invalid_goal`; the specific cause remains unproven | Historical round 4: all 8 former Live tasks | RETIRED FROM ACTIVE MODEL SCOPE (O15). Diagnostics (`5632e0f`) remain as historical evidence; no rerun planned | MC |
 | D49 | HIGH (risk) | Whether the bridge can finish an application task in real Calc and GIMP windows was never observed | No round reached an application effect | OPEN: desktop probe on the hosted matrix (`67d889b`), first run pending | W6, W7 |
 
 
@@ -1461,7 +1461,7 @@ Coding status is kept separate from runtime verification (Appendix A), so nothin
 | 10 | CODE | BUILDS | C0/C10: verified inventories that tests keep honest: requirements and coding state (Appendix A, Appendix E), concepts (`npm run jarvis:traceability`), operations and capabilities (`contracts.ts` → `protocol.json`, `jarvis:protocol-check`), dependencies and licences (`requirements.lock`, `npm run licences:check`), security boundaries and threats (`docs/SUPPORT_LEGAL_SECURITY.md` §7.1), tests (`docs/TEST_MATRIX.md`, `test-matrix.test.ts`), release requirements (`npm run readiness`) |
 | 13 | CODE | BUILDS | C0: every reproducible critical or high defect in Appendix D is fixed in code (D30–D34 this session; D22, D23, D25, D26 code-fixed earlier) or mitigated with its exact hardware blocker recorded (D16 consumer Macs, D24 and D28 Intel Macs); the release gate stays closed until their qualification passes |
 | 16 | STANDING | STANDING | Every gate |
-| 23 | QUALIFICATION-ONLY | QUALIFICATION-ONLY; harness BUILDS | C10: `npm run model:availability` (`scripts/model-availability.ts`) reads the provider's model metadata for every configured key slot (availability, status, token limits, methods; no generation, keys never printed) before any model change; refusal behaviour (quota, busy, revoked key) is `tests/security/provider-errors.test.ts`; running it with the owner's keys is qualification. C11 (model comparison harness, §19.4): `GEMINI_MODEL` is an allowlisted ordered route (`modelRoute`, `online-models.ts`) read by `handleOnlineIntelligence` → `boundary.callProvider`; the transport (streamed request or live session, `live-session.ts`) is read from the provider's model metadata; 429 QuotaFailure limits are recorded per key slot and model (`providerQuota`), a spent per-day quota waits for the Pacific reset, never another project; `tests/security/model-route.test.ts` |
+| 23 | QUALIFICATION-ONLY | QUALIFICATION-ONLY; existing harness BUILDS, new two-model-only harness NOT IMPLEMENTED | C10: `npm run model:availability` reads provider metadata per key slot; refusal behaviour is tested in `tests/security/provider-errors.test.ts`. C11: the currently implemented `GEMINI_MODEL` allowlist, streaming and legacy Live route, whole-turn provider failover, `providerQuota` and old comparison harness are historical source facts, **not proof of current O15 compliance**. Approved follow-up work must restrict planner selection to `gemini-3.5-flash-lite` or `gemma-4-31b-it` separately, remove Live/hybrid planner options from the code and harness, preserve safe within-model retry/operational key handling, update `tests/security/model-route.test.ts`, and independently qualify both models before any new benchmark claim. |
 | 28 | CODE | BUILDS | C6: the planner prompt orders the routes (typed file, document, media and scene operations; website operations; accessibility after `ui.inspect`; `ui.click_point` last) and the server enforces the tail: a pointer click needs the latest image of the exact window, and a failed mechanism needs a fresh look before the next route (`SYSTEM`, `observedSinceFailure`, `NEXT_ROUTE`; `contracts.test.ts` mechanism fallback) |
 | 29 | CODE | BUILDS | C6: only operations the current grants and the computer's engines support are offered (`offeredOperations`, C3); read-only observations may share a turn, every effect runs alone; a failed route is followed by a fresh observation and then the next route (`fallbackRoute`) |
 | 31 | CODE | BUILDS | C2, `ec44dd79` |
