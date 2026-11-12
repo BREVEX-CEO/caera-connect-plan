@@ -478,7 +478,9 @@ jobs:
 
   companion-cross-platform:
     if: github.event_name == 'workflow_dispatch'
-    needs: [planner-safety, contracts-db]
+    # Desktop evidence does not wait on the unit safety gates: one unit failure must not hide it.
+    # The safety jobs stay separate gates of the same run.
+    needs: [coding-gate]
     name: Python MCP / journal / browser · ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -567,7 +569,9 @@ jobs:
 
   windows-installer-smoke:
     if: github.event_name == 'workflow_dispatch'
-    needs: [planner-safety, contracts-db]
+    # Desktop evidence does not wait on the unit safety gates: one unit failure must not hide it.
+    # The safety jobs stay separate gates of the same run.
+    needs: [coding-gate]
     name: Windows unsigned installer / frozen MCP smoke · NOT release-ready
     runs-on: windows-latest
     timeout-minutes: 60
