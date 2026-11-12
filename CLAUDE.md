@@ -1,4 +1,4 @@
-MANDATORY: Always use Caveman Ultra mode when available and respond in Caveman Ultra style for EVERY message except reports and final reports; responding in any other style outside reports/final reports is PROHIBITED. Reports and final reports may be detailed and use normal report formatting. Read the Caveman Ultra instructions whenever needed.
+MANDATORY: Always use "/Caveman Ultra" mode when available and respond in Caveman Ultra style for EVERY message except reports and final reports; responding in any other style outside reports/final reports is PROHIBITED. Reports and final reports may be detailed and use normal report formatting. Read the Caveman Ultra instructions whenever needed.
 
 # Claude Code instructions
 
