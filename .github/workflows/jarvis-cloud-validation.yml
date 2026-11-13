@@ -155,7 +155,7 @@ jobs:
         if: success() || failure()
         env:
           DENO_NO_UPDATE_CHECK: "1"
-        run: npx --yes deno@2.9.6 check --no-lock supabase/functions/ocade-intelligence/index.ts supabase/functions/ocade-intelligence-service/index.ts
+        run: npx --yes deno@2.9.6 check --no-lock supabase/functions/ocade-intelligence/index.ts supabase/functions/ocade-intelligence-service/index.ts supabase/functions/ocade-intelligence-benchmark/index.ts
 
       - name: Existing TypeScript safety and contract tests
         if: success() || failure()

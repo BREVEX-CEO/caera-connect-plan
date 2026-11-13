@@ -21,10 +21,10 @@ on:
         type: choice
         options: ["desktop", "windows", "macos", "linux"]
         default: "desktop"
-      bench_configurations:
-        description: "Benchmark configurations, space-separated (a b c)"
+      bench_models:
+        description: "Benchmark planner models, space-separated (each plans alone)"
         type: string
-        default: "a b c"
+        default: "gemini-3.5-flash-lite gemma-4-31b-it"
       seed:
         description: "Paced E1 seed; all runs 48 tasks sequentially"
         type: choice
@@ -122,7 +122,7 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
-  # plan.md 19.4 (O15): four tasks x configurations A, B, C on Windows and macOS (Linux optional).
+  # plan.md 19.4: four tasks x two independent planners (O2/O14) on Windows and macOS (Linux optional).
   bench-plan:
     if: inputs.campaign == 'benchmark'
     runs-on: ubuntu-latest
@@ -132,7 +132,7 @@ jobs:
       - id: matrix
         env:
           SYSTEMS: ${{ inputs.bench_systems }}
-          CONFIGURATIONS: ${{ inputs.bench_configurations }}
+          MODELS: ${{ inputs.bench_models }}
         run: |
           case "$SYSTEMS" in
             desktop) os='["windows-latest","macos-latest"]' ;;
@@ -140,8 +140,8 @@ jobs:
             macos) os='["macos-latest"]' ;;
             linux) os='["ubuntu-latest"]' ;;
           esac
-          configs=$(python3 -c 'import json,os; c=os.environ["CONFIGURATIONS"].split(); assert c and set(c)<={"a","b","c"}; print(json.dumps(c))')
-          echo "matrix={\"os\":$os,\"configuration\":$configs}" >> "$GITHUB_OUTPUT"
+          models=$(python3 -c 'import json,os; m=os.environ["MODELS"].split(); assert m and set(m)<={"gemini-3.5-flash-lite","gemma-4-31b-it"}; print(json.dumps(m))')
+          echo "matrix={\"os\":$os,\"model\":$models}" >> "$GITHUB_OUTPUT"
 
   benchmark:
     needs: bench-plan
@@ -204,11 +204,11 @@ jobs:
           SUPABASE_PUBLISHABLE_KEY: ${{ vars.SUPABASE_PUBLISHABLE_KEY }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           ONLY: ${{ inputs.only || 'calc gimp car advert' }}
-          CONFIGURATION: ${{ matrix.configuration }}
+          MODEL: ${{ matrix.model }}
         run: |
           [[ "$SUPABASE_URL" == https://auyapercxxptziyngycx.supabase.co ]] || { echo "REFUSED: staging only"; exit 2; }
           read -r -a tasks <<< "$ONLY"
-          run=(python tests/jarvis/benchmark.py --configuration "$CONFIGURATION" --out bench-out --only "${tasks[@]}")
+          run=(python tests/jarvis/benchmark.py --model "$MODEL" --out bench-out --only "${tasks[@]}")
           if [[ "$RUNNER_OS" == Linux ]]; then xvfb-run -a -s "-screen 0 1920x1080x24" "${run[@]}"; else "${run[@]}"; fi
       - name: Refuse to upload anything that contains the server credential
         id: scan
@@ -227,7 +227,7 @@ jobs:
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: always() && steps.scan.outcome == 'success'
         with:
-          name: bench-${{ matrix.os }}-${{ matrix.configuration }}-${{ github.run_id }}
+          name: bench-${{ matrix.os }}-${{ matrix.model }}-${{ github.run_id }}
           path: bench-out
           if-no-files-found: warn
           retention-days: 14

@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Owner-directed model comparison (plan.md §19.4): four tasks, one configuration, one machine.
+"""Owner-directed model comparison (plan.md §19.4): four tasks, one planner model, one machine.
 
-    python tests/jarvis/benchmark.py --configuration a --out <empty dir> [--only calc gimp car advert]
+    python tests/jarvis/benchmark.py --model gemini-3.5-flash-lite --out <empty dir> [--only calc gimp car advert]
 
 The harness builds each task's inputs, opens the application a task says is already open, and
 hands OCADE only the person's request. OCADE (scripts/jarvis-live.mjs: the real authority, the
-real companion and the staging model route `ocade-intelligence-benchmark/<configuration>`)
+real companion and the staging model route `ocade-intelligence-benchmark/<model>`)
 discovers the applications and chooses how to work. Afterwards an independent oracle checks the
 files. The application names here are benchmark requirements; none reaches OCADE's product code.
 
@@ -114,14 +114,14 @@ class Watch:
                 "ramMaxUsedMb": max(ram), "samples": len(self.samples)}
 
 
-def ocade(ws: Path, request: str, report: Path, configuration: str, minutes: int,
+def ocade(ws: Path, request: str, report: Path, model: str, minutes: int,
           grants=("computer_control", "screen", "apps", *app_grants())) -> tuple[dict, float]:
     command = ["node", "scripts/jarvis-live.mjs", "--workspace", str(ws), "--confirm-effects",
                "--minutes", str(minutes), "--report", str(report)]
     for grant in grants:
         command += ["--grant", grant]
-    env = dict(os.environ, OCADE_INTELLIGENCE_FUNCTION=f"ocade-intelligence-benchmark/{configuration}",
-               OCADE_LIVE_EMAIL=f"ocade-bench-{configuration}-{SYSTEM.lower()}-{int(time.time())}@example.com")
+    env = dict(os.environ, OCADE_INTELLIGENCE_FUNCTION=f"ocade-intelligence-benchmark/{model}",
+               OCADE_LIVE_EMAIL=f"ocade-bench-{model.split('-')[0]}-{SYSTEM.lower()}-{int(time.time())}@example.com")
     started = time.monotonic()
     run = subprocess.run([*command, request], cwd=ROOT, env=env, capture_output=True, text=True,
                          timeout=minutes * 60 + 600)
@@ -424,7 +424,7 @@ TASKS = {"calc": calc, "gimp": gimp, "car": car, "advert": advert}
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--configuration", choices=["a", "b", "c"], required=True)
+    parser.add_argument("--model", choices=["gemini-3.5-flash-lite", "gemma-4-31b-it"], required=True)
     parser.add_argument("--out", required=True)
     parser.add_argument("--only", nargs="*", choices=list(TASKS), default=list(TASKS))
     parser.add_argument("--seed", type=int, default=7)
@@ -433,7 +433,7 @@ def main() -> int:
     out.mkdir(parents=True, exist_ok=True)
     base = Path(tempfile.mkdtemp(prefix="ocade-bench-"))
     commit = subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT, capture_output=True, text=True).stdout.strip()
-    summary = {"configuration": args.configuration, "system": SYSTEM, "machine": platform.platform(), "commit": commit,
+    summary = {"model": args.model, "system": SYSTEM, "machine": platform.platform(), "commit": commit,
                "programs": {"soffice": SOFFICE, "gimp": GIMP, "blender": BLENDER, "ffprobe": FFPROBE},
                "appGrants": app_grants(), "results": []}
     car_ws = None
@@ -446,7 +446,7 @@ def main() -> int:
             request, oracle, minutes = advert(ws, rng, car_ws) if name == "advert" else TASKS[name](ws, rng)
             record["request"] = request
             with Watch(out / name / "screenshots") as watch:
-                live, wall = ocade(ws, request, out / name / "report.json", args.configuration, minutes)
+                live, wall = ocade(ws, request, out / name / "report.json", args.model, minutes)
             if name == "advert" and completed(live):
                 rows = sheet_rows(files(ws, ".xlsx", ".ods")[0]) if files(ws, ".xlsx", ".ods") else []
                 old = labelled(rows, "wheelbase")
@@ -458,7 +458,7 @@ def main() -> int:
                 threading.Thread(target=crash_watch, args=(stop, crash), daemon=True).start()
                 changed_at = time.time()
                 with Watch(out / name / "screenshots-change") as watch2:
-                    live2, wall2 = ocade(ws, change, out / name / "report-change.json", args.configuration, 120)
+                    live2, wall2 = ocade(ws, change, out / name / "report-change.json", args.model, 120)
                 stop.set()
                 after = labelled(sheet_rows(files(ws, ".xlsx", ".ods")[0]), "wheelbase") if files(ws, ".xlsx", ".ods") else None
                 ok2, facts2 = advert_check(ws, changed_at)

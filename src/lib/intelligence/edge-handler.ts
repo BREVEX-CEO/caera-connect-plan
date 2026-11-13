@@ -16,7 +16,7 @@ import { SERVICE_USER_HEADER, sseData } from "./contract.ts";
 import {
   HIGH_ONLINE_MODEL,
   PROVIDER_KEY_SLOTS,
-  modelRoute,
+  plannerModel,
   type OnlineModelId,
   type ProviderKeySlot,
 } from "./online-models.ts";
@@ -1094,15 +1094,13 @@ async function runOnlineIntelligence(
   if (service && body.surface !== "jarvis") return json(400, { error: "invalid_request" });
 
   const high = body.quality === "high";
-  // The server's own route (`GEMINI_MODEL`), never the request's: one model, or "a,b" in order.
-  const route: readonly OnlineModelId[] | undefined = high
-    ? [HIGH_ONLINE_MODEL]
-    : modelRoute(deps.model);
+  // The server's own planner (`GEMINI_MODEL`), never the request's: exactly one model per task.
+  const configured: OnlineModelId | undefined = high ? HIGH_ONLINE_MODEL : plannerModel(deps.model);
   if (high && body.research) return json(403, { error: "research_unavailable" }, origin);
   if (high && !(await deps.highAvailable?.(request.signal).catch(() => false))) {
     return json(503, { error: "high_unavailable" }, origin);
   }
-  if (!high && (!deps.providerReady || !route)) {
+  if (!configured || (!high && !deps.providerReady)) {
     return json(503, { error: "online_unavailable" }, origin);
   }
   // Before anything is claimed or sent: the account's own agreement, read on the server.
@@ -1110,17 +1108,13 @@ async function runOnlineIntelligence(
     return json(403, { error: "online_not_consented" }, origin);
   }
   // A model whose quota the provider named as spent is not asked until it returns.
-  const spentFor = (model: OnlineModelId) =>
-    (deps.quotaReturnsAt?.get(model) ?? 0) - (deps.now ?? Date.now)();
-  // A repair turn after the verifier refused the work starts with the route's other model, so a
-  // different model reviews what the first produced (configuration C); the first still stands
-  // behind it. A one-model route and every person's own request keep their order.
-  const ordered =
-    service && body.repair === true && route!.length > 1 ? [...route!.slice(1), route![0]] : route!;
-  const open = ordered.filter((model) => spentFor(model) <= 0);
-  if (!open.length) {
-    const retryAfterSeconds = Math.ceil(Math.min(...ordered.map(spentFor)) / 1_000);
-    return json(429, { error: "provider_unavailable", retryAfterSeconds }, origin);
+  const spentMs = (deps.quotaReturnsAt?.get(configured) ?? 0) - (deps.now ?? Date.now)();
+  if (spentMs > 0) {
+    return json(
+      429,
+      { error: "provider_unavailable", retryAfterSeconds: Math.ceil(spentMs / 1_000) },
+      origin,
+    );
   }
   const claimed = await deps.claimPermit({ userId: identity.userId, permit: body.permit });
   if (!claimed.ok) return json(409, { error: "permit_refused", reason: claimed.reason }, origin);
@@ -1190,199 +1184,185 @@ async function runOnlineIntelligence(
     let provider: Response | null = null;
     let quotaExhausted = false;
     let capacityReturnsIn = 0;
-    /** How the last model that could not answer ended, when that was not capacity. */
+    /** How the model ended when it could not answer, when that was not capacity. */
     let refusedAs: "provider_rejected_request" | "provider_unavailable" | undefined;
     const served = { model: "", slot: "" };
     controller.signal.throwIfAborted(); // stopped during the claim: no provider is called
 
     /*
-     * THE ROUTE IS TRIED IN ORDER, AND ONLY BEFORE ANYTHING IS DELIVERED.
-     * Each model has its own quota and its own attempt budget; the next model is asked only
-     * when this one cannot answer this turn. A stream a person is reading is never switched.
+     * ONE MODEL PER TASK (plan.md O2): its key slots and its own attempt budget, never another
+     * model. A stream a person is reading is never restarted.
      *
      * THE SERVICE DOOR'S TURN IS ANSWERED WHOLE OR NOT AT ALL. The planner acts only on a
      * complete turn, so nothing of a turn that broke midway was ever delivered: it is read to
-     * its end here, and a turn that failed, came back empty or lacks the call the planner
-     * asked for goes to the next model of the route (or, with none left, a failed turn is
-     * asked again within the same budget). Benchmark round 4: failover that stopped at the
-     * first byte made the two-model route behave like its first model alone, and one broken
-     * stream ended a task.
+     * its end here, and a turn that broke is asked again within the same budget (benchmark
+     * round 4: one broken stream ended a task). A complete turn without the call the planner
+     * asked for is handed back for the planner to correct, not asked again.
      */
-    const attemptsOf = new Map<OnlineModelId, number>();
-    let candidates: readonly OnlineModelId[] = open;
+    let modelAttempts = 0;
     /** The service door's complete turn; without it the planner gets a refusal, never a part. */
     let whole: ProviderTurn | undefined;
     for (;;) {
-      models: for (const configured of candidates) {
-        provider = null;
-        refusedAs = undefined;
-        let thinking = !deps.withoutThinking?.has(configured);
-        let modelAttempts = attemptsOf.get(configured) ?? 0;
-        let slotIndex = 0;
-        while (modelAttempts < MAX_PROVIDER_ATTEMPTS && slotIndex < slots.length) {
-          const slot = slots[slotIndex]!;
-          const attempt = modelAttempts;
-          const last = attempt === MAX_PROVIDER_ATTEMPTS - 1;
-          let response: Response;
+      provider = null;
+      refusedAs = undefined;
+      let thinking = !deps.withoutThinking?.has(configured);
+      let slotIndex = 0;
+      while (modelAttempts < MAX_PROVIDER_ATTEMPTS && slotIndex < slots.length) {
+        const slot = slots[slotIndex]!;
+        const attempt = modelAttempts;
+        const last = attempt === MAX_PROVIDER_ATTEMPTS - 1;
+        let response: Response;
+        /*
+         * One key that hangs must not hold the whole request: it has its own
+         * deadline to START answering. Only to start: the timer is cleared the
+         * moment headers arrive, so a long answer is never cut off by it.
+         */
+        const hung = new AbortController();
+        const attemptTimer = setTimeout(
+          () => hung.abort(new DOMException("Provider key timeout", "TimeoutError")),
+          ATTEMPT_TIMEOUT_MS,
+        );
+        try {
+          attempted.slot = slot;
+          attempted.attempts += 1; // counted before the request, so a failed transport counts too
+          modelAttempts += 1;
+          response = await deps.callProvider({
+            model: configured,
+            body: high ? workersAiBody(body, MAX_OUTPUT_TOKENS) : providerBody(body, thinking),
+            signal: AbortSignal.any([controller.signal, hung.signal]),
+            slot,
+          });
+        } catch (cause) {
           /*
-           * One key that hangs must not hold the whole request: it has its own
-           * deadline to START answering. Only to start: the timer is cleared the
-           * moment headers arrive, so a long answer is never cut off by it.
+           * A THROW IS A TRANSPORT FAILURE OF THIS SLOT — unless we asked for
+           * it. An abort is the person leaving or the whole request's deadline,
+           * and trying the next key after that would be spending their
+           * allowance on a request nobody is waiting for. A key that hung or
+           * could not be reached is failed over, within the same budget.
            */
-          const hung = new AbortController();
-          const attemptTimer = setTimeout(
-            () => hung.abort(new DOMException("Provider key timeout", "TimeoutError")),
-            ATTEMPT_TIMEOUT_MS,
-          );
-          try {
-            attempted.slot = slot;
-            attempted.attempts += 1; // counted before the request, so a failed transport counts too
-            modelAttempts += 1;
-            attemptsOf.set(configured, modelAttempts);
-            response = await deps.callProvider({
-              model: configured,
-              body: high ? workersAiBody(body, MAX_OUTPUT_TOKENS) : providerBody(body, thinking),
-              signal: AbortSignal.any([controller.signal, hung.signal]),
-              slot,
-            });
-          } catch (cause) {
-            /*
-             * A THROW IS A TRANSPORT FAILURE OF THIS SLOT — unless we asked for
-             * it. An abort is the person leaving or the whole request's deadline,
-             * and trying the next key after that would be spending their
-             * allowance on a request nobody is waiting for. A key that hung or
-             * could not be reached is failed over, within the same budget.
-             */
-            if (controller.signal.aborted) throw cause;
-            deps.providerIssue?.({
-              model: configured,
-              slot,
-              kind: hung.signal.aborted ? "first_byte_timeout" : "transport",
-            });
-            slotIndex += 1;
-            continue;
-          } finally {
-            clearTimeout(attemptTimer);
-          }
-
-          if (high && response.status === 412) {
-            await response.body?.cancel();
-            return json(503, { error: "high_unavailable" }, origin);
-          }
-          provider = high ? workersAiResponse(response, controller.signal) : response;
-          if (response.ok) {
-            Object.assign(served, { model: configured, slot });
-            break;
-          }
-          // A refusal's provider message, reduced to lowercase words, names what was refused.
-          const said =
-            response.status >= 400 && response.status !== 429
-              ? (
-                  await response
-                    .clone()
-                    .text()
-                    .catch(() => "")
-                )
-                  .toLowerCase()
-                  .replace(/[^a-z_ ]+/g, " ")
-                  .trim()
-                  .replace(/\s+/g, "_")
-                  .slice(0, 80)
-              : "";
+          if (controller.signal.aborted) throw cause;
           deps.providerIssue?.({
             model: configured,
             slot,
-            kind: `status_${response.status}${said ? `_${said}` : ""}`,
+            kind: hung.signal.aborted ? "first_byte_timeout" : "transport",
           });
+          slotIndex += 1;
+          continue;
+        } finally {
+          clearTimeout(attemptTimer);
+        }
 
+        if (high && response.status === 412) {
+          await response.body?.cancel();
+          return json(503, { error: "high_unavailable" }, origin);
+        }
+        provider = high ? workersAiResponse(response, controller.signal) : response;
+        if (response.ok) {
+          Object.assign(served, { model: configured, slot });
+          break;
+        }
+        // A refusal's provider message, reduced to lowercase words, names what was refused.
+        const said =
+          response.status >= 400 && response.status !== 429
+            ? (
+                await response
+                  .clone()
+                  .text()
+                  .catch(() => "")
+              )
+                .toLowerCase()
+                .replace(/[^a-z_ ]+/g, " ")
+                .trim()
+                .replace(/\s+/g, "_")
+                .slice(0, 80)
+            : "";
+        deps.providerIssue?.({
+          model: configured,
+          slot,
+          kind: `status_${response.status}${said ? `_${said}` : ""}`,
+        });
+
+        /*
+         * A REFUSED ATTEMPT'S BODY IS STILL AN OPEN STREAM: read for its reason where the status
+         * needs one, otherwise cancelled so it does not hold its connection.
+         */
+        if (response.status === 429) {
+          quotaExhausted = true;
+          const detail = await response.text().catch(() => "");
+          const quota = providerQuota(detail, (deps.now ?? Date.now)());
+          for (const limit of quota.limits)
+            deps.discoveredLimit?.({ ...limit, slot, model: configured });
+          const named = providerWait(response, detail);
+          // A spent per-day quota returns at its reset, whatever shorter wait the body suggests.
+          const wait =
+            quota.dailyResetMs !== undefined ? Math.max(named ?? 0, quota.dailyResetMs) : named;
           /*
-           * A REFUSED ATTEMPT'S BODY IS STILL AN OPEN STREAM: read for its reason where the status
-           * needs one, otherwise cancelled so it does not hold its connection.
+           * A WEB SEARCH THE PLAN DOES NOT INCLUDE IS NOT A BUSY PROVIDER.
+           *
+           * On the free tier, grounding with Google Search is "Not available" (Google's pricing
+           * page): every grounded request is a 429 with no time to wait, and JARVIS spent
+           * minutes retrying one as if it were busy (live cloud runs, 13 Oct 2026). Said once,
+           * not retried; it answers again if the plan ever includes it.
            */
-          if (response.status === 429) {
-            quotaExhausted = true;
-            const detail = await response.text().catch(() => "");
-            const quota = providerQuota(detail, (deps.now ?? Date.now)());
-            for (const limit of quota.limits)
-              deps.discoveredLimit?.({ ...limit, slot, model: configured });
-            const named = providerWait(response, detail);
-            // A spent per-day quota returns at its reset, whatever shorter wait the body suggests.
-            const wait =
-              quota.dailyResetMs !== undefined ? Math.max(named ?? 0, quota.dailyResetMs) : named;
-            /*
-             * A WEB SEARCH THE PLAN DOES NOT INCLUDE IS NOT A BUSY PROVIDER.
-             *
-             * On the free tier, grounding with Google Search is "Not available" (Google's pricing
-             * page): every grounded request is a 429 with no time to wait, and JARVIS spent
-             * minutes retrying one as if it were busy (live cloud runs, 13 Oct 2026). Said once,
-             * not retried; it answers again if the plan ever includes it.
-             */
-            if (body.research && !wait) {
-              return json(403, { error: "research_unavailable" }, origin);
-            }
-            // Quota belongs to the PROJECT: the same key is retried, never another one. A wait the
-            // provider asks for that is longer than a moment is not slept here, and never cut short.
-            if (wait !== undefined && wait > MAX_INLINE_WAIT_MS) {
-              const seconds = Math.ceil(wait / 1_000);
-              capacityReturnsIn = capacityReturnsIn
-                ? Math.min(capacityReturnsIn, seconds)
-                : seconds;
-              deps.quotaReturnsAt?.set(configured, (deps.now ?? Date.now)() + wait);
-              break;
-            }
-            if (last) break;
-            await sleep(wait ?? backoff(attempt), controller.signal);
-            continue;
+          if (body.research && !wait) {
+            return json(403, { error: "research_unavailable" }, origin);
           }
-
-          if (response.status === 400) {
-            // Google reports a bad or expired key as 400: that is THIS key, not the request.
-            const detail = await response.text().catch(() => "");
-            if (/API_KEY_INVALID|API key (not valid|expired)/i.test(detail)) {
-              slotIndex += 1;
-              continue;
-            }
-            // The model does not take this thinking setting: the same request once without one.
-            if (thinking && /thinking/i.test(detail)) {
-              thinking = false;
-              deps.withoutThinking?.add(configured);
-              // Learning what the model accepts is not a failed attempt at the turn itself.
-              modelAttempts -= 1;
-              attemptsOf.set(configured, modelAttempts);
-              continue;
-            }
-            // The request itself was refused by this model: the next model in the route may take it.
-            refusedAs = "provider_rejected_request";
-            continue models;
+          // Quota belongs to the PROJECT: the same key is retried, never another one. A wait the
+          // provider asks for that is longer than a moment is not slept here, and never cut short.
+          if (wait !== undefined && wait > MAX_INLINE_WAIT_MS) {
+            const seconds = Math.ceil(wait / 1_000);
+            capacityReturnsIn = capacityReturnsIn ? Math.min(capacityReturnsIn, seconds) : seconds;
+            deps.quotaReturnsAt?.set(configured, (deps.now ?? Date.now)() + wait);
+            break;
           }
-          const wait = providerWait(response);
-          void response.body?.cancel().catch(() => undefined);
+          if (last) break;
+          await sleep(wait ?? backoff(attempt), controller.signal);
+          continue;
+        }
 
-          // THIS key is refused: the next one may not be.
-          if (response.status === 401 || response.status === 403) {
+        if (response.status === 400) {
+          // Google reports a bad or expired key as 400: that is THIS key, not the request.
+          const detail = await response.text().catch(() => "");
+          if (/API_KEY_INVALID|API key (not valid|expired)/i.test(detail)) {
             slotIndex += 1;
             continue;
           }
-
-          // The provider is overloaded or failing. Every key reaches the same provider, so the same
-          // key is retried, as long as the budget lasts and the provider allows it.
-          if (response.status >= 500) {
-            if (wait !== undefined && wait > MAX_INLINE_WAIT_MS) {
-              const seconds = Math.ceil(wait / 1_000);
-              capacityReturnsIn = capacityReturnsIn
-                ? Math.min(capacityReturnsIn, seconds)
-                : seconds;
-              break;
-            }
-            if (last) break;
-            await sleep(wait ?? backoff(attempt), controller.signal);
+          // The model does not take this thinking setting: the same request once without one.
+          if (thinking && /thinking/i.test(detail)) {
+            thinking = false;
+            deps.withoutThinking?.add(configured);
+            // Learning what the model accepts is not a failed attempt at the turn itself.
+            modelAttempts -= 1;
             continue;
           }
-
-          refusedAs = "provider_unavailable";
-          continue models;
+          // The request itself was refused by this model: reported as-is.
+          refusedAs = "provider_rejected_request";
+          break;
         }
-        if (provider?.ok) break;
+        const wait = providerWait(response);
+        void response.body?.cancel().catch(() => undefined);
+
+        // THIS key is refused: the next one may not be.
+        if (response.status === 401 || response.status === 403) {
+          slotIndex += 1;
+          continue;
+        }
+
+        // The provider is overloaded or failing. Every key reaches the same provider, so the same
+        // key is retried, as long as the budget lasts and the provider allows it.
+        if (response.status >= 500) {
+          if (wait !== undefined && wait > MAX_INLINE_WAIT_MS) {
+            const seconds = Math.ceil(wait / 1_000);
+            capacityReturnsIn = capacityReturnsIn ? Math.min(capacityReturnsIn, seconds) : seconds;
+            break;
+          }
+          if (last) break;
+          await sleep(wait ?? backoff(attempt), controller.signal);
+          continue;
+        }
+
+        refusedAs = "provider_unavailable";
+        break;
       }
       if (!service || !provider?.ok) break;
       const turn = await readProviderTurn(provider, controller.signal, {
@@ -1391,8 +1371,8 @@ async function runOnlineIntelligence(
         report: (kind) => deps.providerIssue?.({ ...served, kind }),
       });
       controller.signal.throwIfAborted(); // the turn's own deadline, or the caller left
-      // The content itself was refused: no retry and no other model is asked. An earlier
-      // complete answer, if there was one, is still the better thing to hand back.
+      // The content itself was refused: not retried. An earlier complete answer, if there was
+      // one, is still the better thing to hand back.
       if (turn.blocked) {
         whole ??= turn;
         break;
@@ -1403,18 +1383,14 @@ async function runOnlineIntelligence(
         whole = turn;
         break;
       }
-      // Complete, but without the call the planner asked for: kept, so the planner can correct
-      // it if no other model does better; the same model is not asked the same thing again.
+      // Complete, but without the call the planner asked for: handed back for the planner to
+      // correct; the same model is not asked the same thing again.
       if (uncalled) {
         deps.providerIssue?.({ ...served, kind: "no_call" });
         whole ??= turn;
+        break;
       }
-      const model = served.model as OnlineModelId;
-      const rest = candidates.slice(candidates.indexOf(model) + 1);
-      if (rest.length) candidates = rest;
-      else if (!uncalled && (attemptsOf.get(model) ?? 0) < MAX_PROVIDER_ATTEMPTS)
-        candidates = [model];
-      else break;
+      if (modelAttempts >= MAX_PROVIDER_ATTEMPTS) break;
     }
 
     if (service && (whole || provider?.ok)) {

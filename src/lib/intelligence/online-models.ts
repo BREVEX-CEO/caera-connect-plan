@@ -4,40 +4,18 @@
 export const DEFAULT_ONLINE_MODEL = "gemini-3.5-flash-lite";
 export const HIGH_ONLINE_MODEL = "@cf/google/gemma-4-26b-a4b-it";
 /**
- * Models the owner may name for a comparison (O14, 7 Nov 2026: configurations A, B and C in
- * plan.md §19.4). Server configuration only (`GEMINI_MODEL`); the default stays the model above.
- * The list is an allowlist, so a mistyped or paid model can never be selected by configuration.
- * How each one is called (streamed request or a live session) is read from the provider's own
- * model metadata, never assumed from its name.
+ * The independent planners (plan.md O2/O14): Flash-Lite by default, Gemma 4 31B when the server's
+ * `GEMINI_MODEL` names it. Each plans alone. There is no route, no second-model repair and no
+ * failover between models: a model that cannot answer a turn says so honestly.
  */
-export const EVALUATION_ONLINE_MODELS = [
-  "gemma-4-31b-it",
-  "gemini-3.8-live-extended-thinking",
-] as const;
-export const ONLINE_MODEL_CATALOG = [
-  DEFAULT_ONLINE_MODEL,
-  HIGH_ONLINE_MODEL,
-  ...EVALUATION_ONLINE_MODELS,
-] as const;
-export type OnlineModelId = (typeof ONLINE_MODEL_CATALOG)[number];
-/** A standard-quality model the server may route to: the default or an evaluation model. */
-export type StandardModelId = Exclude<OnlineModelId, typeof HIGH_ONLINE_MODEL>;
+export const PLANNER_MODELS = [DEFAULT_ONLINE_MODEL, "gemma-4-31b-it"] as const;
+export type StandardModelId = (typeof PLANNER_MODELS)[number];
+export type OnlineModelId = StandardModelId | typeof HIGH_ONLINE_MODEL;
 
-/**
- * The ordered model route from server configuration: "a" or "a,b". The first model serves;
- * the next is asked only when the one before cannot answer this turn (its quota is spent,
- * it is unavailable, or it refused the request's shape). Undefined when any entry is unknown:
- * a misconfigured route serves nothing rather than something nobody chose.
- */
-export function modelRoute(configured: string | undefined): StandardModelId[] | undefined {
-  const entries = (configured ?? DEFAULT_ONLINE_MODEL)
-    .split(",")
-    .map((entry) => entry.trim())
-    .filter(Boolean);
-  const allowed: readonly string[] = [DEFAULT_ONLINE_MODEL, ...EVALUATION_ONLINE_MODELS];
-  if (!entries.length || entries.some((entry) => !allowed.includes(entry))) return undefined;
-  if (new Set(entries).size !== entries.length) return undefined;
-  return entries as StandardModelId[];
+/** The server's configured planner, or undefined when it names anything else (serves nothing). */
+export function plannerModel(configured: string | undefined): StandardModelId | undefined {
+  const model = (configured ?? DEFAULT_ONLINE_MODEL).trim();
+  return PLANNER_MODELS.find((allowed) => allowed === model);
 }
 
 /**

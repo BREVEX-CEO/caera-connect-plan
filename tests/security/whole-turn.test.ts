@@ -1,8 +1,8 @@
 /**
  * A planner turn is answered whole or not at all (benchmark round 4, plan.md §19.4): the
  * service door reads the provider's turn to its end before anything is delivered, so a turn
- * that breaks midway, comes back empty or lacks the call the planner asked for is asked again
- * or answered by the route's next model, within one bounded budget. A stream a person is
+ * that breaks midway is asked again of the same model within one bounded budget, and one
+ * without the call the planner asked for goes back to the planner (plan.md O2: one model). A stream a person is
  * reading keeps its own rules. Scripted provider only: the boundary's handling, never a model's.
  */
 import assert from "node:assert/strict";
@@ -14,7 +14,6 @@ import {
 
 const user = "00000000-0000-4000-8000-000000000001";
 const GEMMA = "gemma-4-31b-it";
-const LIVE = "gemini-3.8-live-extended-thinking";
 
 function body(surface: "jarvis" | "chat", extra: Record<string, unknown> = {}) {
   const permit = { id: "p1", generationId: "g1", idempotencyKey: "k1", surface, source: "server" };
@@ -101,55 +100,32 @@ test("a planner turn that breaks midway is asked again; only the complete answer
   assert.deepEqual([log.finalized, log.released], [1, 0], "settled once, for the answer");
 });
 
-test("configuration C: the second model answers the turn the first broke after its stream began", async () => {
-  const { deps, log } = harness(`${GEMMA},${LIVE}`, (model) =>
-    model === GEMMA ? broken() : called(),
-  );
-  const answer = await events(await handleOnlineIntelligence(plannerRequest(), deps));
-  // Before: a model was switched only before the first byte, so C behaved like its first model.
-  assert.deepEqual(log.calls, [GEMMA, LIVE]);
-  assert.equal(answer.at(-1)?.type, "final");
-  assert.deepEqual([log.finalized, log.released], [1, 0]);
+test("one model per task: a hybrid or retired route serves nothing and calls no provider", async () => {
+  for (const route of [`${GEMMA},gemini-3.5-flash-lite`, "gemini-3.8-live-extended-thinking"]) {
+    const { deps, log } = harness(route, () => called());
+    const response = await handleOnlineIntelligence(plannerRequest(), deps);
+    assert.equal(response.status, 503, route);
+    assert.deepEqual(await response.json(), { error: "online_unavailable" });
+    assert.deepEqual(log.calls, [], route);
+  }
 });
 
-test("configuration C: a turn without the call the planner asked for goes to the other model", async () => {
-  const { deps, log } = harness(`${LIVE},${GEMMA}`, (model) =>
-    model === LIVE ? spoken("Setting the goal now.") : called(),
-  );
+test("a turn without the call the planner asked for goes back to the planner, not to the model again", async () => {
+  const { deps, log } = harness(GEMMA, () => spoken("Setting the goal now."));
   const answer = await events(await handleOnlineIntelligence(plannerRequest(), deps));
-  assert.deepEqual(log.calls, [LIVE, GEMMA]);
-  assert.deepEqual(log.issues, [`${LIVE}:no_call`], "which model gave no call is recorded");
-  const final = answer.at(-1) as { response: { stopReason: string; toolCalls: unknown[] } };
-  assert.equal(final.response.stopReason, "tool_use");
-  assert.equal(final.response.toolCalls.length, 1);
-});
-
-test("configuration C: a repair after the verifier refused the work starts with the other model", async () => {
-  const { deps, log } = harness(`${GEMMA},${LIVE}`, () => called());
-  await events(await handleOnlineIntelligence(plannerRequest({ repair: true }), deps));
-  assert.deepEqual(log.calls, [LIVE], "a different model reviews what the first produced");
-  const first = harness(`${GEMMA},${LIVE}`, (model) => (model === LIVE ? broken() : called()));
-  await events(await handleOnlineIntelligence(plannerRequest({ repair: true }), first.deps));
-  assert.deepEqual(first.log.calls, [LIVE, GEMMA], "and the first model still stands behind it");
-  const single = harness(GEMMA, () => called());
-  await events(await handleOnlineIntelligence(plannerRequest({ repair: true }), single.deps));
-  assert.deepEqual(single.log.calls, [GEMMA], "a one-model route is unchanged");
-  const invalid = harness(`${GEMMA},${LIVE}`, () => called());
-  const refused = await handleOnlineIntelligence(plannerRequest({ repair: "yes" }), invalid.deps);
-  assert.equal(refused.status, 400);
-});
-
-test("no model gives a call: the first complete answer goes back for the planner to correct", async () => {
-  const { deps, log } = harness(`${GEMMA},${LIVE}`, (model) => spoken(`${model} says hello`));
-  const answer = await events(await handleOnlineIntelligence(plannerRequest(), deps));
-  assert.deepEqual(
-    log.calls,
-    [GEMMA, LIVE],
-    "each model is asked once, never the same thing twice",
-  );
+  assert.deepEqual(log.calls, [GEMMA], "never the same thing twice, never another model");
+  assert.deepEqual(log.issues, [`${GEMMA}:no_call`]);
   const final = answer.at(-1) as { response: { stopReason: string; text: string } };
   assert.equal(final.response.stopReason, "end_turn");
-  assert.equal(final.response.text, `${GEMMA} says hello`);
+  assert.equal(final.response.text, "Setting the goal now.");
+});
+
+test("a repair after the verifier refused the work is the task's own model", async () => {
+  const { deps, log } = harness(GEMMA, () => called());
+  await events(await handleOnlineIntelligence(plannerRequest({ repair: true }), deps));
+  assert.deepEqual(log.calls, [GEMMA]);
+  const refused = await handleOnlineIntelligence(plannerRequest({ repair: "yes" }), deps);
+  assert.equal(refused.status, 400);
 });
 
 test("a turn that never completes is a retryable failure: bounded, nothing delivered, permit released", async () => {
@@ -181,8 +157,8 @@ test("learning that a model takes no thinking setting does not spend the turn's 
   assert.deepEqual(log.calls, ["thinking-refused", GEMMA, GEMMA, GEMMA]);
 });
 
-test("refused content is not retried and no other model is asked", async () => {
-  const { deps, log } = harness(`${GEMMA},${LIVE}`, () => stream(part([], "SAFETY")));
+test("refused content is not retried", async () => {
+  const { deps, log } = harness(GEMMA, () => stream(part([], "SAFETY")));
   const answer = await events(await handleOnlineIntelligence(plannerRequest(), deps));
   assert.deepEqual(log.calls, [GEMMA]);
   const refusal = answer.at(-1) as { type: string; code: string; retryable: boolean };

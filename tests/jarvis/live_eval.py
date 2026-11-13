@@ -314,8 +314,14 @@ def release_pick(ws: Path, rng: random.Random):
     import threading
     from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-    sys.path.insert(0, str(ROOT / "device-agent/windows"))
-    from tests import web_fixture
+    # By file path: the name `tests` also belongs to this repository's own test folder, so
+    # `from tests import web_fixture` resolved to whichever `tests` was imported first.
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location(
+        "ocade_web_fixture", ROOT / "device-agent/windows/tests/web_fixture.py")
+    web_fixture = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(web_fixture)
 
     product = f"{word(rng).title()}{word(rng).title()}"
     rows = []
