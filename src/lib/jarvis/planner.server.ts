@@ -20,6 +20,7 @@ import {
   intent,
   OPERATIONS,
   taskChecks,
+  type ActionIntent,
   type Operation,
   type OutcomeCheck,
 } from "./contracts.ts";
@@ -359,8 +360,10 @@ export function plannerMessage(code: string): string {
 
 const SYSTEM = [
   "You are the planner of OCADE JARVIS, which carries out a person's outcome on their own computer.",
-  "Choose the next function. Only independent read-only observations may share a turn, up to five total.",
-  "Every action that changes state runs alone and needs fresh planning after its result. Prefer, in order:",
+  "Choose the next functions. When you already know several steps in order (for example typing into a control you just",
+  "inspected, then saving), call them together in one turn, up to five; they run in that order and stop at the first",
+  "one that does not apply. A step whose arguments depend on an earlier step's result waits for that result; a step",
+  "the person must confirm, ui.click_point, finish and ask always end the turn. Prefer, in order:",
   "workspace file, document, media and 3D-scene operations, website",
   "operations, then app windows through accessibility (ui.inspect before ui.invoke/ui.set_value/ui.send_keys),",
   "and ui.click_point only when nothing else can reach the control (when it is too small to make out in the",
@@ -934,6 +937,11 @@ export function operationSchema(name: Operation, withoutGltf = false): unknown {
   return schema;
 }
 
+/** Steps that may share one planning turn; see the guarded batch in `planStep`. */
+const UNBATCHED: ReadonlySet<string> = new Set(["verify.checks", "job.status", "job.cancel"]);
+const batchable = (action: ActionIntent) =>
+  action.risk !== "external_effect" && !UNBATCHED.has(action.operation);
+
 /** One planning turn for a model-planned task. */
 export async function planStep(input: {
   userId: string;
@@ -1349,21 +1357,24 @@ export async function planStep(input: {
       // by name, and wait. The task continues from here once it is allowed; nothing was run.
       const missing = missingGrant(first.intent, input.grants);
       if (missing) return { kind: "wait", reason: missing };
-      // Only independent observations may share a turn. Every mutation gets fresh
-      // planning after the previous result; a prompt cannot prove write dependencies.
+      // A GUARDED BATCH (P3): the steps the model chose in this turn run in order, without a
+      // model call between them. Each still passes its own permission check at dispatch and
+      // its own target revalidation on the device, and the first step that does not apply or
+      // whose effect is unknown cancels every step behind it (20261113120000). Never in a
+      // batch: a step that waits for the person, the verifier, jobs, and pointer clicks
+      // (coordinates never survive an earlier change).
       const batch = [];
-      for (const [index, next] of more.entries()) {
-        if (
-          first.intent.risk !== "read" ||
-          phaseDecisions.length + batch.length + 1 >= phase.stepBudget
-        )
-          break;
-        try {
-          const action = queued(next.name, next.args, `${key}-${index + 2}`);
-          if (action.intent.risk !== "read") break;
-          batch.push({ summary: action.summary, intent: action.intent });
-        } catch {
-          break;
+      if (batchable(first.intent)) {
+        for (const [index, next] of more.entries()) {
+          if (phaseDecisions.length + batch.length + 1 >= phase.stepBudget) break;
+          try {
+            const action = queued(next.name, next.args, `${key}-${index + 2}`);
+            if (!batchable(action.intent) || action.intent.operation === "ui.click_point") break;
+            if (missingGrant(action.intent, input.grants)) break;
+            batch.push({ summary: action.summary, intent: action.intent });
+          } catch {
+            break;
+          }
         }
       }
       return { kind: "queue", summary: first.summary, intent: first.intent, more: batch };

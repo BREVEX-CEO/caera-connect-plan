@@ -341,7 +341,7 @@ test("a failed independent check returns to the model for bounded repair", async
     );
     const allowed = await planStep({ ...desktop, grants: ["files", "apps", "app:studio.exe"] });
     assert.equal(allowed.kind, "queue");
-    // A mutation ends read batching and must be reconsidered after the observed result.
+    // A guarded batch takes the reversible write and stops at the step it may not run here.
     reply = [
       { name: "fs_read_text", arguments: { path: "a.txt" } },
       {
@@ -391,7 +391,7 @@ test("a failed independent check returns to the model for bounded repair", async
       assert.equal(batch.intent.operation, "fs.read_text");
       assert.deepEqual(
         batch.more?.map((m) => [m.intent.operation, m.intent.key]),
-        [],
+        [["office.write_document", "s1-2"]],
       );
     }
   } finally {

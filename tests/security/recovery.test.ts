@@ -1,4 +1,9 @@
-/** No mutation batching or automatic repetition of an uncertain earlier effect. */
+/**
+ * Guarded batches (P3): reversible steps chosen in one turn run in order, and the database
+ * cancels the rest at the first one that does not apply (batch-stop.test.sql). Never
+ * batched: steps that wait for the person, pointer clicks, steps lacking a grant. An
+ * uncertain earlier effect is never repeated automatically.
+ */
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
 import { test } from "node:test";
@@ -21,9 +26,11 @@ const checks = [
 const read = { name: "fs_read_text", arguments: { path: `${crypto.randomUUID()}.txt` } };
 const list = { name: "fs_list", arguments: {} };
 const write = { name: "fs_write_text", arguments: { path: output, text: "synthetic output" } };
+const launch = { name: "apps_launch", arguments: { exe: "fixture.exe" } };
+const web = { name: "web_open", arguments: { url: "https://unallowed.example.test/" } };
 type Proposal = { name: string; arguments: Record<string, unknown> };
 
-test("mutations require fresh planning; unknown effects fence resumption", async (t) => {
+test("guarded batches stop before what they may not run; unknown effects fence resumption", async (t) => {
   let proposals: Proposal[] = [list];
   let calls = 0;
   let attachments: { image: string }[] = [];
@@ -62,17 +69,24 @@ test("mutations require fresh planning; unknown effects fence resumption", async
     userId: "u",
     objective: "Create the requested output",
     checks,
-    grants: ["files"],
-    engines: [],
+    grants: ["files", "apps", "app:fixture.exe", "browser"],
+    engines: ["desktop"],
     permitKey: async () => "recovery",
     now,
   };
   try {
     for (const [name, sequence, expectedMore] of [
-      ["read followed by a write", [read, write], 0],
-      ["write followed by another action", [write, list], 0],
-      ["two writes", [write, write], 0],
+      ["read followed by a write", [read, write], 1],
+      ["write followed by another action", [write, list], 1],
+      [
+        "two reversible writes",
+        [write, { ...write, arguments: { ...write.arguments, text: "2" } }],
+        1,
+      ],
       ["independent reads remain batched", [read, list], 1],
+      ["a step that waits for the person ends the batch", [write, launch, list], 0],
+      ["a step that waits for the person is never followed", [launch, list], 0],
+      ["a step lacking its grant ends the batch", [write, web, list], 0],
     ] as const) {
       await t.test(name, async () => {
         proposals = [...sequence];
@@ -201,7 +215,7 @@ test("mutations require fresh planning; unknown effects fence resumption", async
                       controller: "epoch",
                       title: base.objective,
                       outcome: checks,
-                      grants: ["files"],
+                      grants: ["files", "apps", "app:fixture.exe"],
                       engines: [],
                       mcp: [],
                       steps: [
@@ -271,7 +285,7 @@ test("mutations require fresh planning; unknown effects fence resumption", async
                       controller: "epoch",
                       title: base.objective,
                       outcome: checks,
-                      grants: ["files"],
+                      grants: ["files", "apps", "app:fixture.exe"],
                       engines: [],
                       mcp: [],
                       steps: [{ intent: uncertain.intent, status: "failed", receipt: raw }],
@@ -326,7 +340,7 @@ test("mutations require fresh planning; unknown effects fence resumption", async
                       controller: "epoch",
                       title: base.objective,
                       outcome: checks,
-                      grants: ["files"],
+                      grants: ["files", "apps", "app:fixture.exe"],
                       engines: [],
                       mcp: [],
                       steps: [
@@ -384,7 +398,7 @@ test("mutations require fresh planning; unknown effects fence resumption", async
                       controller: "epoch",
                       title: base.objective,
                       outcome: checks,
-                      grants: ["files"],
+                      grants: ["files", "apps", "app:fixture.exe"],
                       engines: [],
                       mcp: [],
                       steps: [step],
@@ -480,7 +494,7 @@ test("authority advances a proven milestone through its fenced database function
     outcome: [checks[0], second],
     plan,
     checkpoint: { milestones: { index: 0, startStep: 0 } },
-    grants: ["files"],
+    grants: ["files", "apps", "app:fixture.exe"],
     steps: [
       {
         intent: intent("verify.checks", "first-proof", { checks }, deadline),
