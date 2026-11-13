@@ -120,14 +120,6 @@ test("a turn without the call the planner asked for goes back to the planner, no
   assert.equal(final.response.text, "Setting the goal now.");
 });
 
-test("a repair after the verifier refused the work is the task's own model", async () => {
-  const { deps, log } = harness(GEMMA, () => called());
-  await events(await handleOnlineIntelligence(plannerRequest({ repair: true }), deps));
-  assert.deepEqual(log.calls, [GEMMA]);
-  const refused = await handleOnlineIntelligence(plannerRequest({ repair: "yes" }), deps);
-  assert.equal(refused.status, 400);
-});
-
 test("a turn that never completes is a retryable failure: bounded, nothing delivered, permit released", async () => {
   const { deps, log } = harness(GEMMA, () => broken());
   const response = await handleOnlineIntelligence(plannerRequest(), deps);

@@ -31,7 +31,6 @@ SHAPES = {
     "halfspace": ("{p}.y", 0),
 }
 PATTERNS = {"none": 0, "carbon": 1, "grille": 2, "brushed": 4}
-OPS = {"union", "smooth_union", "subtract", "smooth_subtract", "intersect"}
 
 
 def f(x: float) -> str:

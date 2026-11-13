@@ -1,5 +1,15 @@
 # OCADE retirement manifest
 
+## W12 deep debloat (Ponytail Ultra) — 13 November 2026
+
+Measured from `99491c3` (session start) to this commit, after P2, P3 and P5 were added:
+
+- **Removed:** `src/lib/intelligence/live-session.ts` (315 lines, the retired Live planner transport) and its boundary probe `servedLive`; `modelRoute`, `EVALUATION_ONLINE_MODELS`, the configuration-C repair reordering and the multi-model loop in `edge-handler.ts`; the planner's `repair` request flag, now read by nothing (the edge door ignores unknown keys, so an older planner still works); `scene_gl.py` `OPS`, never read.
+- **Runtime code** (`src`, `supabase/functions`, companion): +464 / −658 lines, **net −194**, while adding background planning, guarded batches, dialog reporting, element refs and app scope. Tests +468 / −275. SQL +442: two migrations and their exact rollbacks (each carries a full function body, the rollback rule).
+- **Dependencies:** npm 15 + 19 and Python 20, unchanged; nothing added.
+- **Scans with nothing left to cut:** knip (TypeScript) lists 30 exports and 53 types not imported elsewhere, but every one is used inside its own file (0 dead); its 14 "unused files" are Worker, Edge and CLI entry points. vulture at 60 % on the companion: one dead constant (removed), the rest are MCP tools and COM attributes. jscpd: 5 clones, 119 lines (0.23 %), all in Settings/Admin UI sections whose queries differ; merging them would couple unrelated screens.
+- **Kept on purpose:** the evidence folders and documents listed below remain as recorded.
+
 ## W12 deep debloat — 7 November 2026
 
 On `ocade/p00-p22-implementation`, each removal traced to no remaining caller (commit messages name them):

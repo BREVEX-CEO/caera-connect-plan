@@ -511,8 +511,6 @@ async function callPlanner(input: {
   tools: { name: string; description: string; parameters: unknown }[];
   attachments?: ReturnType<typeof previewAttachments>;
   onTimed?: PlannerTiming;
-  /** The verifier refused the work: a two-model route asks its other model first. */
-  repair?: boolean;
 }): Promise<{ name: string; args: Record<string, unknown> }[]> {
   const url = plannerAccess.serviceUrl();
   const serviceKey = plannerAccess.serviceKey();
@@ -544,7 +542,6 @@ async function callPlanner(input: {
           inputSchema: providerSchema(tool.parameters),
         })),
         attachments: input.attachments ?? [],
-        ...(input.repair ? { repair: true } : {}),
         // The service re-reads the account's own consent; this flag alone grants nothing.
         privacy: { onlineInferenceConsented: true, sealed: false },
       }),
@@ -1096,7 +1093,6 @@ export async function planStep(input: {
     (!input.controller || last.controller === input.controller)
       ? evidenceOf([last], "verify.checks")
       : undefined;
-  let repairing = false;
   if (verified) {
     // A check that cannot apply to this kind of result is a wrong condition, not defective
     // work (69): repairing the work cannot satisfy it, so the person is asked instead.
@@ -1104,7 +1100,6 @@ export async function planStep(input: {
     if (invalid) return { kind: "wait", reason: invalid };
     const verification = settleChecks(checks, verified);
     const ok = verification.failed.length === 0 && verification.unverified.length === 0;
-    repairing = !ok;
     const attempts = phaseSteps.filter((step) => step.intent.operation === "verify.checks").length;
     // A failed check goes back to the model with the verifier's evidence for a bounded
     // repair; only a pass, or the last allowed attempt, settles the task.
@@ -1327,7 +1322,6 @@ export async function planStep(input: {
         .join("\n\n"),
       tools: offer(),
       attachments: input.grants.includes("screen") ? previewAttachments(steps) : [],
-      repair: repairing,
     });
     const awaited = operations.find((name) => toolName(name) === call?.name && deferred(name));
     if (awaited) {

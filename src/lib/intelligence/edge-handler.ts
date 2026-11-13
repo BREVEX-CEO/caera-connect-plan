@@ -118,8 +118,6 @@ interface OnlineRequestBody {
   research?: boolean;
   quality?: IntelligenceQuality;
   highModeAcknowledged?: string;
-  /** Service door only: a repair turn after the independent verifier refused the work. */
-  repair?: boolean;
 }
 
 export interface OnlineHandlerDependencies {
@@ -342,8 +340,7 @@ function parseBody(value: unknown): OnlineRequestBody | null {
     privacy.onlineInferenceConsented !== true ||
     privacy.sealed !== false ||
     (value.quality !== undefined && value.quality !== "standard" && value.quality !== "high") ||
-    (value.quality === "high" && value.highModeAcknowledged !== HIGH_WARNING_VERSION) ||
-    (value.repair !== undefined && typeof value.repair !== "boolean")
+    (value.quality === "high" && value.highModeAcknowledged !== HIGH_WARNING_VERSION)
   ) {
     return null;
   }
