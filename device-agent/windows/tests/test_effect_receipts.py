@@ -282,8 +282,8 @@ class MacFront(unittest.TestCase):
             worker._front({"exe": "app", "pid": 42, "hwnd": 1, "started": 5.0}, target)
         return actions
 
-    def test_a_window_already_in_front_and_focused_is_not_raised_again(self):
-        self.assertEqual(self.run_front(42, focused=True), [])
+    def test_a_window_already_in_front_is_still_activated_so_its_dialog_takes_the_keys(self):
+        self.assertEqual(self.run_front(42, focused=True), ["raise", "frontmost", "activate"])
 
     def test_a_window_behind_another_app_is_raised_then_refused_if_it_stays_behind(self):
         from ocade_agent.sandbox import Refused

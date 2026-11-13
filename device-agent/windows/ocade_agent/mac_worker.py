@@ -322,9 +322,9 @@ def _front(window: dict, target) -> None:
         focused = _attribute(ax_app, "AXFocusedWindow")
         return app_front, app_front and focused is not None and CF.CFEqual(focused, target)
 
-    if in_front()[1]:
-        return  # already the frontmost app's focused window: nothing to raise
-    # Raising and activating change which window has focus, never what a document holds: not an
+    # Raised and activated even when already focused: without the activation an app-modal alert
+    # that already holds the focus does not take the keys (hosted macOS run 43475552169, MAC-014,
+    # after 789deae skipped it). Raising and activating change which window has focus, never what a document holds: not an
     # effect, so a refusal here changed nothing and is safe to plan again.
     AX.AXUIElementPerformAction(target, "AXRaise")
     AX.AXUIElementSetAttributeValue(ax_app, "AXFrontmost", True)
