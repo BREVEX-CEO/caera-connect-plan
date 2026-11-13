@@ -623,6 +623,18 @@ class ResultBoundary(unittest.TestCase):
                     changed = default_changed if not flag else flag["maybeChanged"] is not False
                     self.assert_classification(receipt, changed, "boundary_refusal")
 
+    def test_a_blocked_window_refusal_names_its_dialogs_and_nothing_else(self):
+        dialog = {"exe": "calc.exe", "pid": 4, "hwnd": 9, "started": 1.5, "title": "Keep current format?"}
+        receipt, dispatched = self.dispatch("fs.list", {}, self.result(
+            {"refused": "window_blocked", "maybeChanged": False, "dialogs": [dialog] * 9, "secret": "x"}))
+        self.assertEqual(len(dispatched), 1)
+        self.assert_classification(receipt, False, "window_blocked")
+        self.assertEqual(receipt["evidence"]["dialogs"], [dialog] * 5, "at most five, as reported")
+        self.assertNotIn("secret", receipt["evidence"], "only the dialogs travel with a refusal")
+        receipt, _ = self.dispatch("fs.list", {}, self.result(
+            {"refused": "window_blocked", "maybeChanged": False, "dialogs": "not a list"}))
+        self.assertNotIn("dialogs", receipt["evidence"])
+
     def test_malformed_evidence_cannot_erase_an_explicit_or_invalid_change_admission(self):
         for marker in (True, 0, 1, "false", None):
             for content, code in (

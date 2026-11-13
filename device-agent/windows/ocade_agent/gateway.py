@@ -373,7 +373,10 @@ class Gateway:
                 maybe_changed = changed
             else:
                 maybe_changed = uncertain or "maybeChanged" in evidence
-            return timed("unknown" if maybe_changed else "not_applied", maybe_changed,
+            # Only the windows that hold the target (a dialog to answer first) travel with it.
+            dialogs = evidence.get("dialogs")
+            detail = {"dialogs": redact(dialogs[:5])[0]} if isinstance(dialogs, list) else None
+            return timed("unknown" if maybe_changed else "not_applied", maybe_changed, detail,
                          error=str(evidence["refused"])[:60], refused=True)
         if "maybeChanged" in evidence and evidence["maybeChanged"] is not True and evidence["maybeChanged"] is not False:
             return timed("unknown", True, error="malformed_result")

@@ -87,15 +87,22 @@ class NativeEffectReceipts(unittest.TestCase):
     def test_a_window_held_by_a_dialog_is_refused_before_anything_is_attempted(self):
         from ocade_agent import windows_worker as worker
         element = unittest.mock.Mock()
+        dialog = {"exe": "app.exe", "pid": 7, "hwnd": 6, "started": 1.0, "title": "Keep format?"}
+        listed = [dialog, {**dialog, "hwnd": 5}, {**dialog, "pid": 8, "hwnd": 9}]
         with patch.object(worker, "_leased", return_value=object()), patch(
             "win32gui.IsWindowEnabled", return_value=False
-        ), patch.object(worker, "_element", element), patch.object(worker, "_person_quiet"):
+        ), patch.object(worker, "_element", element), patch.object(worker, "_person_quiet"), patch.object(
+            worker.discovery, "open_windows", lambda _limit: listed
+        ):
             for operation, arguments in (("ui_invoke", {"element": {"name": "Save"}}),
                                          ("ui_set_value", {"element": {"name": "Note"}, "value": "x"}),
                                          ("ui_send_keys", {"keys": [{"text": "x"}]})):
                 with self.subTest(operation):
                     result = getattr(worker, operation)(window={"hwnd": 5, "pid": 7}, **arguments)
-                    self.assertEqual(result, {"refused": "window_blocked", "maybeChanged": False})
+                    # The dialog that holds the window is named with its lease; the window
+                    # itself and other apps' windows are not.
+                    self.assertEqual(result, {"refused": "window_blocked", "maybeChanged": False,
+                                              "dialogs": [dialog]})
         element.assert_not_called()
 
     def test_a_window_that_does_not_come_forward_changed_nothing(self):
@@ -111,9 +118,12 @@ class NativeEffectReceipts(unittest.TestCase):
                 worker, "_person_quiet"
             ), patch("win32gui.GetForegroundWindow", return_value=1234), patch(
                 "win32process.GetWindowThreadProcessId", return_value=(1, owner)
-            ), patch("pywinauto.keyboard.send_keys", typed):
+            ), patch("pywinauto.keyboard.send_keys", typed), patch.object(
+                worker.discovery, "open_windows", lambda _limit: []
+            ):
                 result = worker.ui_send_keys(window={"hwnd": 5, "pid": 7}, keys=[{"text": "x"}])
-                self.assertEqual(result, {"refused": code, "maybeChanged": False})
+                expected = {"refused": code, "maybeChanged": False}
+                self.assertEqual(result, expected | ({"dialogs": []} if code == "window_blocked" else {}))
         target.set_focus.assert_called()
         typed.assert_not_called()
 
@@ -229,7 +239,7 @@ class NativeEffectReceipts(unittest.TestCase):
 class MacFront(unittest.TestCase):
     """macOS activation through fake AppKit/Accessibility modules (no Mac needed)."""
 
-    def run_front(self, frontmost_pid, focused):
+    def run_front(self, frontmost_pid, focused, windows=()):
         from ocade_agent import mac_worker as worker
         target, actions = object(), []
         running = unittest.mock.Mock()
@@ -247,8 +257,9 @@ class MacFront(unittest.TestCase):
         modules = {"AppKit": appkit, "ApplicationServices": ax, "CoreFoundation": cf}
         with patch.dict(sys.modules, modules), \
                 patch.object(worker, "_attribute", lambda _, name: target if focused else None), \
-                patch.object(worker.time, "sleep"):
-            worker._front(42, target)
+                patch.object(worker.time, "sleep"), \
+                patch.object(worker, "open_windows", lambda _limit: list(windows)):
+            worker._front({"exe": "app", "pid": 42, "hwnd": 1, "started": 5.0}, target)
         return actions
 
     def test_a_window_already_in_front_and_focused_is_not_raised_again(self):
@@ -259,3 +270,14 @@ class MacFront(unittest.TestCase):
         with self.assertRaises(Refused) as refused:
             self.run_front(7, focused=True)  # another app stays frontmost in the fake
         self.assertEqual(refused.exception.code, "focus_lost")
+
+    def test_a_dialog_that_keeps_the_focus_is_named_with_its_lease(self):
+        from ocade_agent.sandbox import Refused
+        alert = {"exe": "app", "pid": 42, "hwnd": 2, "started": 5.0, "title": "Save?", "bounds": [0, 0, 1, 1]}
+        other_app = {**alert, "pid": 7, "hwnd": 3}
+        itself = {**alert, "hwnd": 1}
+        with self.assertRaises(Refused) as refused:
+            self.run_front(42, focused=False, windows=(alert, other_app, itself))
+        self.assertEqual(refused.exception.code, "window_blocked")
+        self.assertEqual(refused.exception.detail["dialogs"],
+                         [{k: alert[k] for k in ("exe", "pid", "hwnd", "started", "title")}])

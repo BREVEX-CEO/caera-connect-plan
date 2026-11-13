@@ -80,14 +80,25 @@ const windowLease = z.strictObject({
   started: z.number().positive(),
 });
 
-/** An element inside a leased window, found again by what it is, not where it was. */
+/**
+ * An element inside a leased window, found again by what it is, not where it was: by the `ref`
+ * the window's newest ui.inspect gave it (exact, even for a repeated or unnamed label; refused
+ * once the element changed), or by its automation id or name.
+ */
 const element = z
   .strictObject({
+    ref: z
+      .string()
+      .regex(/^e[1-9][0-9]{0,2}$/)
+      .optional(),
     automationId: z.string().max(200).optional(),
     name: z.string().max(200).optional(),
     controlType: z.string().max(40).optional(),
   })
-  .refine((e) => e.automationId || e.name, "an element needs an automation id or a name");
+  .refine(
+    (e) => e.ref || e.automationId || e.name,
+    "an element needs a ref, an automation id or a name",
+  );
 
 /**
  * One keyboard contract for every desktop (the companion's `keys.py` translates it): text is

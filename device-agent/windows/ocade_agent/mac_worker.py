@@ -17,6 +17,7 @@ Security > Accessibility); without it every tool refuses with `accessibility_not
 from __future__ import annotations
 
 import functools
+import json
 import os
 import plistlib
 import subprocess
@@ -28,7 +29,7 @@ from pathlib import Path
 from mcp.server.mcpserver import MCPServer
 
 from . import keys as key_contract
-from . import vision
+from . import refs, vision
 from .sandbox import Refused, guarded, mark_effect, preview_jpeg, resolve
 
 _seen: dict = {}  # the last image ui.inspect captured of each leased window
@@ -248,7 +249,9 @@ def _describe(element, bounds) -> dict:
     return out
 
 
-def _element(target, element: dict):
+def _element(target, element: dict, lease: dict):
+    if element.get("ref"):
+        return refs.recall(json.dumps(lease, sort_keys=True), element, lambda native: _describe(native, (0, 0, 1, 1)))
     wanted = {k: v for k, v in element.items() if v}
     if not wanted:
         raise Refused("element_ambiguous")  # no description would match whatever comes first
@@ -275,8 +278,16 @@ def _actable(window: dict):
     target, bounds = _leased(window)
     for other in _attribute(AX.AXUIElementCreateApplication(window["pid"]), "AXWindows") or []:
         if not CF.CFEqual(other, target) and _attribute(other, "AXModal"):
-            raise Refused("window_blocked")
+            raise _blocked(window)
     return target, bounds
+
+
+def _blocked(window: dict) -> Refused:
+    """`window_blocked`, naming the app's other on-screen windows (the alert or panel to answer
+    first) with their exact leases, so the next turn can inspect and answer it directly."""
+    others = [{k: w[k] for k in ("exe", "pid", "hwnd", "started", "title")} for w in open_windows(60)
+              if w["pid"] == window["pid"] and w["hwnd"] != window["hwnd"]]
+    return Refused("window_blocked", dialogs=others[:5])
 
 
 def _person_quiet() -> None:
@@ -288,7 +299,7 @@ def _person_quiet() -> None:
         raise Refused("user_active")
 
 
-def _front(pid: int, target) -> None:
+def _front(window: dict, target) -> None:
     """Bring the leased window to the front as its app's focused window, or refuse.
 
     Since macOS 14 AppKit no longer lets a background process activate another app, so the
@@ -299,6 +310,7 @@ def _front(pid: int, target) -> None:
     import ApplicationServices as AX  # type: ignore[import-not-found]
     import CoreFoundation as CF  # type: ignore[import-not-found]
 
+    pid = window["pid"]
     running = AppKit.NSRunningApplication.runningApplicationWithProcessIdentifier_(pid)
     if running is None:
         raise Refused("window_gone")
@@ -323,7 +335,7 @@ def _front(pid: int, target) -> None:
         if ready:
             return
         time.sleep(0.1)
-    raise Refused("window_blocked" if app_front else "focus_lost")
+    raise _blocked(window) if app_front else Refused("focus_lost")
 
 
 @app.tool()
@@ -364,16 +376,18 @@ def ui_inspect(window: dict, region: list | None = None) -> dict:
     from PIL import ImageGrab
 
     target, bounds = _leased(window)
-    elements = []
+    found = []
     for candidate in _walk(target):
         described = _describe(candidate, bounds)
         if described["name"] or described["automationId"]:
-            elements.append(described)
-        if len(elements) >= 150 or len(json.dumps(elements)) > 13_000:
+            found.append((candidate, described))
+        if len(found) >= 150 or len(json.dumps([d for _, d in found])) > 12_000:
             break
     x, y, width, height = bounds
     title = str(_attribute(target, "AXTitle") or "")[:200]
     key = json.dumps(window, sort_keys=True)
+    refs.remember(key, found)  # each element gets its ref (e1, e2, ...) for this inspection
+    elements = [described for _, described in found]
     if any(element.get("protected") for element in elements):
         _seen.pop(key, None)
         return {"title": title, "elements": elements, "previewUnavailable": "protected_content"}
@@ -395,7 +409,7 @@ def ui_invoke(window: dict, element: dict) -> dict:
     import ApplicationServices as AX  # type: ignore[import-not-found]
 
     target, bounds = _actable(window)
-    control = _element(target, element)
+    control = _element(target, element, window)
     _person_quiet()
     with _ax_change_events(window, target, control) as events:
         mark_effect()
@@ -411,7 +425,7 @@ def ui_set_value(window: dict, element: dict, value: str) -> dict:
     import ApplicationServices as AX  # type: ignore[import-not-found]
 
     target, bounds = _actable(window)
-    control = _element(target, element)
+    control = _element(target, element, window)
     if _protected_control(control):
         raise Refused("protected_control")
     _person_quiet()
@@ -436,12 +450,12 @@ def ui_send_keys(window: dict, keys: list, element: dict | None = None) -> dict:
     flags = {"command": Quartz.kCGEventFlagMaskCommand, "control": Quartz.kCGEventFlagMaskControl,
              "option": Quartz.kCGEventFlagMaskAlternate, "shift": Quartz.kCGEventFlagMaskShift}
     target, _ = _actable(window)
-    control = _element(target, element) if element is not None else None
+    control = _element(target, element, window) if element is not None else None
     if control is not None and _protected_control(control):
         raise Refused("protected_control")
     _person_quiet()
     try:
-        _front(window["pid"], target)
+        _front(window, target)
         if control is not None:
             mark_effect()
             AX.AXUIElementSetAttributeValue(control, "AXFocused", True)
@@ -455,7 +469,7 @@ def ui_send_keys(window: dict, keys: list, element: dict | None = None) -> dict:
         # is typed: run 43065385915 showed the app's focused window alone does not prove this.
         owner = _attribute(focused, "AXWindow")
         if owner is not None and not CF.CFEqual(focused, target) and not CF.CFEqual(owner, target):
-            raise Refused("window_blocked")
+            raise _blocked(window)
         for kind, value, *modifiers in events:
             # Text goes as characters (whatever the layout); a press as its key with its modifiers.
             for stroke in (value if kind == "text" else [value]):
@@ -497,7 +511,7 @@ def ui_click_point(window: dict, x: float, y: float, expectTitle: str) -> dict:
     seen = vision.last_observation(_seen, json.dumps(window, sort_keys=True))
     _person_quiet()
     try:
-        _front(window["pid"], target)
+        _front(window, target)
         target, (left, top, width, height) = _leased(window)
         shot = ImageGrab.grab(bbox=(left, top, left + width, top + height))
         checked = vision.match(seen, shot, x, y)

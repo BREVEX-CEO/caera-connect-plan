@@ -492,7 +492,11 @@ export function JarvisWorkspace({
                 value={draft}
                 rows={1}
                 maxLength={MAX_OBJECTIVE_LENGTH}
-                placeholder={signedIn ? "What should JARVIS do?" : "Sign in to talk to JARVIS"}
+                placeholder={
+                  signedIn
+                    ? "What should JARVIS do? Name apps with @, e.g. @excel.exe"
+                    : "Sign in to talk to JARVIS"
+                }
                 onChange={(event) => setDraft(event.target.value)}
                 onKeyDown={(event) => {
                   // As in Chat: Enter sends, Shift+Enter is a new line, and an Enter that

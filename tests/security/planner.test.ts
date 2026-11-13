@@ -11,6 +11,7 @@ import {
   planStep,
   plannerAccess,
   PlannerUnavailable,
+  taskApps,
   unseenAddress,
 } from "../../src/lib/jarvis/planner.server.ts";
 import type { Step } from "../../src/lib/jarvis/supervisor.ts";
@@ -198,4 +199,14 @@ test("only a complete, matching provider turn may define a goal", async (t) => {
       server.close((error) => (error ? reject(error) : resolve())),
     );
   }
+});
+
+test("the apps a task names with @ are its scope; naming grants nothing", () => {
+  const grants = ["files", "apps", "app:editor.exe", "app:calc.exe", "app:microsoft excel"];
+  assert.deepEqual(taskApps("Tidy the note in @editor.exe please", grants), ["editor.exe"]);
+  assert.deepEqual(taskApps("Use @Editor.exe, then @calc.exe", grants), ["editor.exe", "calc.exe"]);
+  assert.deepEqual(taskApps("Sum it in @Microsoft Excel now", grants), ["microsoft excel"]);
+  assert.deepEqual(taskApps("Tidy the note in any app", grants), []);
+  assert.deepEqual(taskApps("Mail someone@calc.exe.example later", grants), [], "a longer name");
+  assert.deepEqual(taskApps("Use @paint.exe", grants), [], "not allowed: no scope");
 });

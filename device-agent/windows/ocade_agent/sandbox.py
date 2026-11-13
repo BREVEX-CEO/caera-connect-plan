@@ -47,9 +47,11 @@ os.umask(_UMASK)
 class Refused(Exception):
     """An action asked for something outside the workspace's rules."""
 
-    def __init__(self, code: str):
+    def __init__(self, code: str, **detail):
         super().__init__(code)
         self.code = code
+        # Facts that explain the refusal to the planner, e.g. the `dialogs` that hold a window.
+        self.detail = detail
 
 
 class _EffectScope:
@@ -105,7 +107,7 @@ def guarded(fn):
                 try:
                     result = await fn(*args, **kwargs)
                 except Refused as refusal:
-                    result = {"refused": refusal.code, "maybeChanged": scope.changed}
+                    result = {"refused": refusal.code, "maybeChanged": scope.changed, **refusal.detail}
                 return _tracked_result(result, scope)
             finally:
                 _effect_scope.reset(token)
@@ -120,7 +122,7 @@ def guarded(fn):
             try:
                 result = fn(*args, **kwargs)
             except Refused as refusal:
-                result = {"refused": refusal.code, "maybeChanged": scope.changed}
+                result = {"refused": refusal.code, "maybeChanged": scope.changed, **refusal.detail}
             return _tracked_result(result, scope)
         finally:
             _effect_scope.reset(token)

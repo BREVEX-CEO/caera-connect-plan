@@ -105,7 +105,9 @@ class MacUiLadder(unittest.TestCase):
                 out["inspect"] = await run("ui.inspect", {"window": window})
                 box = {"automationId": "noteBox"}
                 out["set"] = await run("ui.set_value", {"window": window, "element": box, "value": "Quarterly GREEN"})
-                out["invoke"] = await run("ui.invoke", {"window": window, "element": {"automationId": "saveButton"}})
+                # By the ref the inspection gave the button (P5), not by a description.
+                save = next(e["ref"] for e in out["inspect"]["evidence"]["elements"] if e["automationId"] == "saveButton")
+                out["invoke"] = await run("ui.invoke", {"window": window, "element": {"ref": save}})
                 time.sleep(0.5)
                 out["after_invoke"] = self.note()
                 await run("ui.set_value", {"window": window, "element": box, "value": ""})
@@ -195,6 +197,10 @@ class MacUiLadder(unittest.TestCase):
             # Nothing was typed, so the task plans again instead of waiting on an unknown effect.
             self.assertEqual((out["blocked"]["status"], out["blocked"]["maybeChanged"]), ("not_applied", False))
             self.assertIsNotNone(out["dialog"], "the dialog is listed as a window of its own")
+            # The refusal itself names the dialog with its exact lease (P5): no app listing needed.
+            lease = {key: out["dialog"][key] for key in ("exe", "pid", "hwnd", "started")}
+            self.assertIn(lease, [{key: w[key] for key in lease} for w in out["blocked"]["evidence"].get("dialogs", [])],
+                          out["blocked"])
             self.assertEqual(out["answer"]["status"], "observed", out["answer"])
             self.assertEqual(out["after_dialog"]["status"], "observed", out["after_dialog"])
         with self.subTest("MAC-007 a forged lease is refused"):

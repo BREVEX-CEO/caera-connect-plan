@@ -34,10 +34,13 @@ test("guarded batches stop before what they may not run; unknown effects fence r
   let proposals: Proposal[] = [list];
   let calls = 0;
   let attachments: { image: string }[] = [];
+  let lastPrompt = "";
   const server = createServer(async (req, res) => {
     const chunks: Buffer[] = [];
     for await (const chunk of req) chunks.push(chunk);
-    attachments = JSON.parse(Buffer.concat(chunks).toString("utf8")).attachments;
+    const body = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+    attachments = body.attachments;
+    lastPrompt = body.messages.map((message: { content: string }) => message.content).join("\n");
     calls += 1;
     const toolCalls = proposals.map((call, n) => ({ ...call, id: `proposal-${n}` }));
     const frames = [
@@ -95,6 +98,31 @@ test("guarded batches stop before what they may not run; unknown effects fence r
         if (decision.kind === "queue") assert.equal(decision.more?.length ?? 0, expectedMore);
       });
     }
+    await t.test("a task that names its apps sees and uses only those", async () => {
+      const window = (exe: string) => ({ exe, pid: 4, hwnd: 5, started: 6 });
+      const scoped = {
+        ...base,
+        objective: "Tidy the note in @fixture.exe",
+        grants: [...base.grants, "app:other.exe"],
+        steps: [],
+      };
+      proposals = [{ name: "ui_inspect", arguments: { window: window("other.exe") } }];
+      const before = calls;
+      assert.equal((await planStep(scoped)).kind, "block", "an unnamed app is refused twice");
+      assert.equal(calls - before, 2);
+      assert.match(lastPrompt, /limited to the apps the person named \(fixture\.exe\)/);
+      assert.match(lastPrompt, /allowed: \["app:fixture\.exe"\]/);
+      proposals = [
+        { name: "ui_inspect", arguments: { window: window("fixture.exe") } },
+        { name: "ui_inspect", arguments: { window: window("other.exe") } },
+      ];
+      const named = await planStep(scoped);
+      assert.equal(named.kind, "queue");
+      if (named.kind === "queue")
+        assert.equal(named.more?.length, 0, "the unnamed app ends the batch");
+      proposals = [{ name: "ui_inspect", arguments: { window: window("other.exe") } }];
+      assert.equal((await planStep({ ...scoped, objective: "Tidy the note" })).kind, "queue");
+    });
     const uncertain: Step = {
       intent: intent("fs.write_text", "prior", write.arguments, deadline),
       status: "blocked",

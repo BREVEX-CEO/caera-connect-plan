@@ -71,6 +71,8 @@ const REFUSALS: Record<string, string> = {
     "Turn on file access (and any app or website it needs) for that computer first.",
   busy: "That computer or conversation is already running a task. Stop it or wait.",
   queue_full: "That task already has steps waiting. Let them finish before trying again.",
+  app_out_of_scope:
+    "This task is limited to the apps its request names with @. Name the app there, or start a new task.",
   task_not_found: "That task does not exist.",
   unknown_code: "That pairing code is wrong or has expired.",
   too_many_enrollments:
@@ -525,14 +527,17 @@ async function decide(
         ["stale_controller", "milestone_changed"].includes(error.code)
       )
         return;
-      if (error instanceof JarvisRefusal && error.code === "permission_required") {
+      if (
+        error instanceof JarvisRefusal &&
+        (error.code === "permission_required" || error.code === "app_out_of_scope")
+      ) {
         // Grants can change while the planner is running. No action was admitted;
         // keep the saved task resumable after the person restores its permissions.
         try {
           await call(admin, "jarvis_task_wait", {
             p_task: taskId,
             p_controller: task.controller,
-            p_reason: REFUSALS.permission_required,
+            p_reason: REFUSALS[error.code],
           });
         } catch (waitError) {
           if (!(waitError instanceof JarvisRefusal && waitError.code === "stale_controller")) {

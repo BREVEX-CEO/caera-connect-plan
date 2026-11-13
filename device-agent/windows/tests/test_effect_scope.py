@@ -21,6 +21,15 @@ class EffectScopeTest(unittest.TestCase):
         self.assertEqual(inspect.signature(refuse), inspect.signature(refuse.__wrapped__))
         self.assertFalse(inspect.iscoroutinefunction(refuse))
 
+    def test_a_refusal_carries_the_windows_that_explain_it(self):
+        dialog = {"exe": "calc.exe", "pid": 4, "hwnd": 9, "started": 1.5, "title": "Keep format?"}
+
+        @guarded
+        def blocked():
+            raise Refused("window_blocked", dialogs=[dialog])
+
+        self.assertEqual(blocked(), {"refused": "window_blocked", "maybeChanged": False, "dialogs": [dialog]})
+
     def test_unexpected_exception_resets_scope(self):
         @guarded
         def crash():

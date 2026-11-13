@@ -109,7 +109,9 @@ class WindowsUiLadder(unittest.TestCase):
                 out["region"] = await run("ui.inspect", {"window": window, "region": [0, 0, 0.5, 0.5]})
                 box = {"automationId": "noteBox"}
                 out["set"] = await run("ui.set_value", {"window": window, "element": box, "value": "Quarterly GREEN"})
-                out["invoke"] = await run("ui.invoke", {"window": window, "element": {"name": "Save", "controlType": "Button"}})
+                # By the ref the newest inspection gave the button (P5), not by a description.
+                save = next(e["ref"] for e in out["region"]["evidence"]["elements"] if e["automationId"] == "saveButton")
+                out["invoke"] = await run("ui.invoke", {"window": window, "element": {"ref": save}})
                 out["after_invoke"] = self.note()
                 out["keys"] = await run("ui.send_keys", {"window": window, "element": box, "keys": [
                     {"press": "End"}, {"press": "Shift+Home"}, {"press": "Backspace"}, {"text": "100% (a+b) ~{typed}^ by keyz"},
@@ -211,6 +213,10 @@ class WindowsUiLadder(unittest.TestCase):
             self.assertEqual((out["blocked_set"]["status"], out["blocked_set"]["errorCode"], out["blocked_set"]["maybeChanged"]),
                              ("not_applied", "window_blocked", False))
             self.assertEqual(out["dialog"]["title"], "Ledger Question", out["dialog"])
+            # The refusal itself names the dialog with its exact lease (P5): no app listing needed.
+            lease = {key: out["dialog"][key] for key in ("exe", "pid", "hwnd", "started")}
+            self.assertIn(lease, [{key: w[key] for key in lease} for w in out["blocked_keys"]["evidence"].get("dialogs", [])],
+                          out["blocked_keys"])
             self.assertEqual(out["answer"]["status"], "observed", out["answer"])
             self.assertTrue(out["after_dialog"]["evidence"]["matches"], out["after_dialog"])
         with self.subTest("UIA-012 a person's keyboard input pauses mutations until they are quiet"):

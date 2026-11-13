@@ -17,6 +17,7 @@ STATUS: CODED, UNTESTED — needs a real Windows desktop.
 from __future__ import annotations
 
 import functools
+import json
 import ntpath
 import os
 import subprocess
@@ -25,7 +26,7 @@ import time
 
 from mcp.server.mcpserver import MCPServer
 
-from . import discovery, vision
+from . import discovery, refs, vision
 from . import keys as key_contract
 from .sandbox import Refused, guarded, mark_effect, preview_jpeg, resolve
 
@@ -69,8 +70,15 @@ def _actable(window: dict):
 
     target = _leased(window)
     if not win32gui.IsWindowEnabled(window["hwnd"]):
-        raise Refused("window_blocked")
+        raise _blocked(window)
     return target
+
+
+def _blocked(window: dict) -> Refused:
+    """`window_blocked`, naming the app's other open windows (the dialog to answer first) with
+    their exact leases, so the next turn can inspect and answer it without listing apps again."""
+    others = [w for w in discovery.open_windows(60) if w["pid"] == window["pid"] and w["hwnd"] != window["hwnd"]]
+    return Refused("window_blocked", dialogs=others[:5])
 
 
 def _not_in_front(window: dict) -> Refused:
@@ -81,7 +89,7 @@ def _not_in_front(window: dict) -> Refused:
 
     front = win32gui.GetForegroundWindow()
     if front and win32process.GetWindowThreadProcessId(front)[1] == window["pid"]:
-        return Refused("window_blocked")
+        return _blocked(window)
     return Refused("focus_lost")
 
 
@@ -151,8 +159,11 @@ def _person_quiet() -> None:
         raise Refused("user_active")
 
 
-def _element(window, element: dict):
+def _element(window, element: dict, lease: dict):
     from pywinauto.findwindows import ElementAmbiguousError, ElementNotFoundError  # type: ignore[import-not-found]
+
+    if element.get("ref"):
+        return refs.recall(json.dumps(lease, sort_keys=True), element, _describe)
 
     criteria = {
         key: element[name]
@@ -252,7 +263,7 @@ def ui_inspect(window: dict, region: list | None = None) -> dict:
     target = _leased(window)
     left, top, right, bottom = win32gui.GetWindowRect(window["hwnd"])
     width, height = max(1, right - left), max(1, bottom - top)
-    elements = []
+    found = []
     for wrapper in target.descendants()[:150]:
         described = _describe(wrapper)
         if not (described["name"] or described["automationId"]):
@@ -261,10 +272,12 @@ def ui_inspect(window: dict, region: list | None = None) -> dict:
         if box.width() > 0 and box.height() > 0:
             described["box"] = [round((box.left - left) / width, 3), round((box.top - top) / height, 3),
                                 round((box.right - left) / width, 3), round((box.bottom - top) / height, 3)]
-        elements.append(described)
-        if len(json.dumps(elements)) > 13_000:  # the gateway refuses evidence over 16 KB
+        found.append((wrapper, described))
+        if len(json.dumps([d for _, d in found])) > 12_000:  # the gateway refuses evidence over 16 KB
             break
     key = json.dumps(window, sort_keys=True)
+    refs.remember(key, found)  # each element gets its ref (e1, e2, ...) for this inspection
+    elements = [described for _, described in found]
     title = target.window_text()[:200]
     if any(element.get("protected") for element in elements):
         _seen.pop(key, None)
@@ -282,7 +295,7 @@ def ui_invoke(window: dict, element: dict) -> dict:
     """Invoke (or toggle/select) one element through its UIA pattern; no pointer is moved."""
     from pywinauto.uia_defines import NoPatternInterfaceError  # type: ignore[import-not-found]
 
-    wrapper = _element(_actable(window), element)
+    wrapper = _element(_actable(window), element, window)
     _person_quiet()
     if not wrapper.is_enabled():
         raise Refused("element_disabled")
@@ -314,7 +327,7 @@ def ui_set_value(window: dict, element: dict, value: str) -> dict:
     """Set an element's value through UIA, then read it back."""
     from pywinauto.uia_defines import NoPatternInterfaceError  # type: ignore[import-not-found]
 
-    wrapper = _element(_actable(window), element)
+    wrapper = _element(_actable(window), element, window)
     if _password_state(wrapper.element_info.element) is not False:
         raise Refused("protected_control")
     _person_quiet()
@@ -341,7 +354,7 @@ def ui_send_keys(window: dict, keys: list, element: dict | None = None) -> dict:
 
     sequence = key_contract.windows_sequence(keys)  # refused here, before anything is focused
     target = _actable(window)
-    control = _element(target, element) if element is not None else None
+    control = _element(target, element, window) if element is not None else None
     if control is not None and _password_state(control.element_info.element) is not False:
         raise Refused("protected_control")
     title = target.window_text()[:200]  # read before the keys: they may close it (a dialog's Enter)
