@@ -287,6 +287,51 @@ export async function advance(admin: Admin, taskId: string, now = new Date()): P
   }
 }
 
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+
+/** Hands a task to its next planning turn. */
+export type Plan = (taskId: string) => Promise<void>;
+
+type PlannerQueue = { send(body: { taskId: string }): Promise<unknown> };
+
+/**
+ * WHERE A PLANNING TURN RUNS (P2). A model turn takes seconds to minutes; inside the device's
+ * request it held the companion's connection open (up to 170 s) and died with it. Where the
+ * deployment binds the Cloudflare Queue `JARVIS_PLANNER`, the turn runs in its consumer
+ * (`planQueued`, 15 min wall clock) and the database nudges the device when a step is queued.
+ * Without the binding (local runs, tests) the turn runs inline, exactly as before.
+ */
+export function planner(admin: Admin): Plan {
+  const env = (globalThis as { __env__?: Record<string, unknown> }).__env__;
+  const queue = env?.JARVIS_PLANNER as PlannerQueue | undefined;
+  if (queue && typeof queue.send === "function")
+    return (taskId) => queue.send({ taskId }).then(() => undefined);
+  return (taskId) => advance(admin, taskId);
+}
+
+type QueuedMessage = { body: unknown; ack(): void; retry(): void };
+
+/**
+ * The background planner's consumer: one task id per message. A message that names no task is
+ * dropped; a turn that failed is retried by the queue. A retried turn is safe: it re-reads the
+ * task, its fences and the turn lease, so a duplicate changes nothing.
+ */
+export async function planQueued(messages: readonly QueuedMessage[], plan: Plan): Promise<void> {
+  for (const message of messages) {
+    const taskId = (message.body as { taskId?: unknown } | null)?.taskId;
+    if (typeof taskId !== "string" || !UUID.test(taskId)) {
+      message.ack();
+      continue;
+    }
+    try {
+      await plan(taskId);
+      message.ack();
+    } catch {
+      message.retry(); // the queue's own retry count and dead-letter record the failure
+    }
+  }
+}
+
 /** A model call may take this long (the planner's own 145 s limit, plus settling its answer). */
 const PLANNER_TURN_SECONDS = 160;
 
@@ -634,7 +679,7 @@ export async function resumeTask(admin: Admin, userId: string, taskId: string, s
     p_task: taskId,
     ...(sessionId ? { p_session: sessionId } : {}),
   });
-  await advance(admin, taskId);
+  await planner(admin)(taskId);
 }
 
 export async function resolveEffect(
@@ -925,7 +970,6 @@ const deviceKeys = new Map<string, { key: string; until: number }>();
 // protection are decided once, in the database, for every server instance (165).
 const REQUEST_WINDOW_MS = 10_000;
 const DEVICE_REQUEST_BUDGET = 30;
-const DEVICE_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const REQUEST_BUCKETS = 2_048;
 const requestBuckets = new Map<string, { expires: number; count: number }>();
 
@@ -958,6 +1002,7 @@ export async function handleDeviceRequest(
   request: Request,
   source: string,
   now = Date.now(),
+  plan: Plan = planner(admin),
 ): Promise<Reply> {
   if (request.method !== "POST") return refuse(405, "method_not_allowed");
   if (!allowDeviceRequest(`source:${source.slice(0, 64)}`, 240, now)) {
@@ -1018,7 +1063,7 @@ export async function handleDeviceRequest(
       };
     }
 
-    if (!DEVICE_ID.test(deviceId)) return refuse(401, "signature_invalid");
+    if (!UUID.test(deviceId)) return refuse(401, "signature_invalid");
     const cached = deviceKeys.get(deviceId);
     if (!cached || cached.until < now || !(await verifySignature(cached.key, signature, text))) {
       const publicKey = await call<string | null>(admin, "jarvis_device_key", {
@@ -1069,8 +1114,8 @@ export async function handleDeviceRequest(
           p_receipt: parsed.receipt as unknown as Json,
         },
       );
-      await advance(admin, recorded.task_id);
-      // The next step rides on this answer, saving the device a round trip (W2).
+      await plan(recorded.task_id);
+      // The next step rides on this answer when it is already queued (W2).
       const next = await call<Record<string, unknown>>(admin, "jarvis_claim_action", {
         p_device: deviceId,
       });
@@ -1085,13 +1130,13 @@ export async function handleDeviceRequest(
       // A task that waited only for a busy planner and is now due runs again (D10).
       const due = await call<string | null>(admin, "jarvis_resume_due", { p_device: deviceId });
       if (due) {
-        await advance(admin, due);
+        await plan(due);
         state = await call(admin, "jarvis_claim_action", { p_device: deviceId });
       }
     }
     if (!state.paused && state.task?.status === "running" && state.task.id && !state.action) {
       // A milestone can advance without a queued device action.
-      await advance(admin, state.task.id);
+      await plan(state.task.id);
       state = await call(admin, "jarvis_claim_action", { p_device: deviceId });
     }
     return { status: 200, body: state };

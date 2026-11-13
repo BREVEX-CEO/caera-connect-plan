@@ -96,6 +96,16 @@ const milestonePaths: string[] = [];
 const workspace = mkdtempSync(join(tmpdir(), "ocade-ws-"));
 let lastSigned: { headers: Record<string, string>; body: string } | null = null;
 let scriptedService: Server;
+/*
+ * OCADE_E2E_BACKGROUND_PLANNER=1 runs every planning turn after the device's answer, as the
+ * Cloudflare Queue consumer does in production (P2), so the device must find its next step by
+ * nudge or claim. Unset, turns run inside the request (the unbound fallback).
+ */
+const plan =
+  process.env.OCADE_E2E_BACKGROUND_PLANNER === "1"
+    ? async (taskId: string) =>
+        void setImmediate(() => void advance(admin, taskId).catch((error) => console.error(error)))
+    : undefined;
 const originalPlannerAccess = { ...plannerAccess };
 const fixtureOutputs = (prompt: string) => {
   const label = /a third time/.test(prompt) ? "third" : /again/.test(prompt) ? "again" : "first";
@@ -167,10 +177,12 @@ before(async () => {
       headers,
       body: req.method === "POST" ? body : undefined,
     });
-    const reply = await handleDeviceRequest(admin, request, "127.0.0.1").catch((error: Error) => ({
-      status: 500,
-      body: { error: error.message },
-    }));
+    const reply = await handleDeviceRequest(admin, request, "127.0.0.1", Date.now(), plan).catch(
+      (error: Error) => ({
+        status: 500,
+        body: { error: error.message },
+      }),
+    );
     res
       .writeHead(reply.status, { "content-type": "application/json" })
       .end(JSON.stringify(reply.body));

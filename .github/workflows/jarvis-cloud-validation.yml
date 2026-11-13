@@ -162,6 +162,12 @@ jobs:
         env:
           OCADE_CODING_GATE: "1"
         run: node --experimental-strip-types --no-warnings --test tests/security/*.test.ts tests/jarvis/contracts.test.ts tests/jarvis/e2e.test.ts
+      - name: End to end with planning after the device's answer (the production queue shape, P2)
+        if: success() || failure()
+        env:
+          OCADE_CODING_GATE: "1"
+          OCADE_E2E_BACKGROUND_PLANNER: "1"
+        run: node --experimental-strip-types --no-warnings --test tests/jarvis/e2e.test.ts
       - name: Full companion suite (real workers, Chromium on Xvfb; only platform skips allowed)
         if: success() || failure()
         working-directory: device-agent/windows

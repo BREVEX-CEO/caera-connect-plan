@@ -84,3 +84,15 @@ or a compromised key; **high** = JARVIS or sign-in unavailable for many customer
 
 Each release adds an entry to `RELEASE_NOTES.md`: version, date, what changed for customers,
 known limitations, and the database migrations staging and production must apply.
+
+**Background planner queue (once per Cloudflare account, before the first deploy that binds it).**
+`wrangler.json` binds the Cloudflare Queue `ocade-jarvis-planner` as `JARVIS_PLANNER` and consumes
+it in `src/cloudflare-entry.ts`. JARVIS planning turns then run in the consumer instead of inside the
+companion's request. A deploy fails until the queue exists. The owner creates it with:
+
+```bash
+npx wrangler queues create ocade-jarvis-planner
+```
+
+Queues are on the Workers free plan (10,000 operations a day). Without the binding, planning runs
+inline as before.

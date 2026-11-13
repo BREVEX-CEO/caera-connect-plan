@@ -43,6 +43,14 @@ type RuntimeRequest = Request & {
 
 type ScheduledController = { cron: string };
 
+type QueueBatch = {
+  queue: string;
+  messages: { body: unknown; ack(): void; retry(): void }[];
+};
+
+/** The queue `wrangler.json` binds as `JARVIS_PLANNER` and consumes here. */
+const PLANNER_QUEUE = "ocade-jarvis-planner";
+
 const nitroApp = getNitroApp();
 const nitroHooks = getNitroHooks();
 
@@ -155,8 +163,18 @@ export default {
     );
   },
 
-  queue(batch: unknown, env: CloudflareEnvironment, context: WaitUntilContext) {
+  async queue(batch: QueueBatch, env: CloudflareEnvironment, context: WaitUntilContext) {
     setGlobalEnvironment(env);
+    // The background planner (P2): one planning turn per message, inside this consumer's own
+    // wall clock rather than a device's held request. See `planner` in authority.server.ts.
+    if (batch.queue === PLANNER_QUEUE) {
+      const [{ advance, planQueued }, { supabaseAdmin }] = await Promise.all([
+        import("./lib/jarvis/authority.server"),
+        import("./integrations/supabase/client.server"),
+      ]);
+      await planQueued(batch.messages, (taskId) => advance(supabaseAdmin, taskId));
+      return;
+    }
     context.waitUntil(
       nitroHooks.callHook("cloudflare:queue", { batch, event: batch, env, context }) ??
         Promise.resolve(),
