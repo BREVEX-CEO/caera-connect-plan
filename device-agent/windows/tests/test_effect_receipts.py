@@ -84,6 +84,26 @@ class NativeEffectReceipts(unittest.TestCase):
                     result = worker.ui_set_value(window={}, element={}, value=value)
                 self.assertFalse(result["matches"], "a preview or missing readback must not prove the full requested value")
 
+    def test_a_secure_desktop_is_refused_before_the_window_is_touched(self):
+        """UAC or the lock screen holds input: refused as secure_desktop, nothing attempted."""
+        from ocade_agent import windows_worker as worker
+        import win32service  # type: ignore[import-not-found]
+
+        probe = unittest.mock.Mock()
+        with patch("win32gui.IsWindow", probe), patch(
+            "win32service.OpenInputDesktop", side_effect=win32service.error(5, "OpenInputDesktop", "denied")
+        ):
+            result = worker.ui_inspect(window={"exe": "app.exe", "hwnd": 5, "pid": 7, "started": 1.0})
+        self.assertEqual(result, {"refused": "secure_desktop", "maybeChanged": False})
+        probe.assert_not_called()
+        desktop = unittest.mock.Mock()
+        with patch("win32service.OpenInputDesktop", return_value=desktop), patch(
+            "win32service.GetUserObjectInformation", side_effect=["Winlogon", "Default"]
+        ):
+            self.assertTrue(worker._on_secure_desktop())
+            self.assertFalse(worker._on_secure_desktop(), "the person's own desktop")
+        self.assertEqual(desktop.CloseDesktop.call_count, 2)
+
     def test_a_window_held_by_a_dialog_is_refused_before_anything_is_attempted(self):
         from ocade_agent import windows_worker as worker
         element = unittest.mock.Mock()

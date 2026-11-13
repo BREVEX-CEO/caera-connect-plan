@@ -93,11 +93,29 @@ def _not_in_front(window: dict) -> Refused:
     return Refused("focus_lost")
 
 
+def _on_secure_desktop() -> bool:
+    """Whether input now goes to a desktop other than the person's own (a UAC prompt, the lock
+    or sign-in screen). Windows silently drops input there, so nothing is attempted."""
+    import win32con  # type: ignore[import-not-found]
+    import win32service  # type: ignore[import-not-found]
+
+    try:
+        desktop = win32service.OpenInputDesktop(0, False, win32con.MAXIMUM_ALLOWED)
+    except win32service.error:
+        return True  # an input desktop this process may not open is the secure desktop
+    try:
+        return str(win32service.GetUserObjectInformation(desktop, win32con.UOI_NAME)).lower() != "default"
+    finally:
+        desktop.CloseDesktop()
+
+
 def _leased(window: dict):
     """The pywinauto window for an exact, still-valid lease, or a refusal."""
     import win32gui  # type: ignore[import-not-found]
     from pywinauto import Application  # type: ignore[import-not-found]
 
+    if _on_secure_desktop():
+        raise Refused("secure_desktop")
     hwnd = window["hwnd"]
     if not win32gui.IsWindow(hwnd) or not win32gui.IsWindowVisible(hwnd):
         raise Refused("window_gone")
