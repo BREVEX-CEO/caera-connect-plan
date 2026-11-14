@@ -54,7 +54,7 @@ class WindowsTray:
                 callback: self._clicked,
                 win32con.WM_COMMAND: self._command,
                 win32con.WM_CLOSE: self._closing,
-                win32con.WM_DESTROY: lambda *_: win32gui.PostQuitMessage(0),
+                win32con.WM_DESTROY: self._destroyed,
             }
             atom = win32gui.RegisterClass(window_class)
             self.hwnd = win32gui.CreateWindow(atom, "OCADE JARVIS", 0, 0, 0, 0, 0, 0, 0,
@@ -90,6 +90,12 @@ class WindowsTray:
             self.stop_now()
         elif chosen == OPEN_ID and self.website:
             webbrowser.open(self.website)
+        return 0
+
+    def _destroyed(self, hwnd, message, wparam, lparam) -> int:
+        import win32gui  # type: ignore[import-not-found]
+
+        win32gui.PostQuitMessage(0)
         return 0
 
     def _closing(self, hwnd, message, wparam, lparam) -> int:

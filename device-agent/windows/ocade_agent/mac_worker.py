@@ -441,7 +441,7 @@ def ui_wait(window: dict, element: dict, gone: bool = False, timeoutMs: int = 50
 def ui_scroll(window: dict, element: dict, direction: str | None = None, pages: int = 1) -> dict:
     """Scroll through Accessibility, never the pointer (plan v8 11.3): AXScrollToVisible brings
     the element into view; with a direction, the scroll bar of the nearest scroll area at or
-    above it is incremented or decremented `pages` times."""
+    above it moves by `pages` visible pages (its AXValue, 0 to 1)."""
     import ApplicationServices as AX  # type: ignore[import-not-found]
 
     target, bounds = _actable(window)
@@ -452,7 +452,8 @@ def ui_scroll(window: dict, element: dict, direction: str | None = None, pages: 
         if AX.AXUIElementPerformAction(control, "AXScrollToVisible") != 0:
             raise Refused("pattern_unsupported")
         return {"pattern": "scroll_to_visible", "after": _describe(control, bounds)}
-    bar_name = "AXHorizontalScrollBar" if direction in ("left", "right") else "AXVerticalScrollBar"
+    vertical = direction in ("up", "down")
+    bar_name = "AXVerticalScrollBar" if vertical else "AXHorizontalScrollBar"
     area, bar = control, None
     for _ in range(12):  # the element itself, then its ancestors up to the window
         bar = _attribute(area, bar_name)
@@ -461,13 +462,21 @@ def ui_scroll(window: dict, element: dict, direction: str | None = None, pages: 
         area = _attribute(area, "AXParent")
         if area is None:
             break
-    if bar is None:
-        raise Refused("pattern_unsupported")
-    action = "AXIncrement" if direction in ("down", "right") else "AXDecrement"
+    value = _attribute(bar, "AXValue") if bar is not None else None
+    if not isinstance(value, (int, float)):
+        raise Refused("pattern_unsupported")  # nothing was touched
+    # A scroll bar's value runs from 0 to 1; one page is the visible part of what can be scrolled.
+    axis = 1 if vertical else 0
+    view = (_point(_attribute(area, "AXSize")) or (0, 0))[axis]
+    content = max(((_point(_attribute(child, "AXSize")) or (0, 0))[axis]
+                   for child in _attribute(area, "AXChildren") or []
+                   if _attribute(child, "AXRole") != "AXScrollBar"), default=0)
+    page = view / (content - view) if content > view > 0 else 1.0
+    sign = 1 if direction in ("down", "right") else -1
+    target = min(1.0, max(0.0, float(value) + sign * page * max(1, min(pages, 10))))
     mark_effect()
-    for _ in range(max(1, min(pages, 10))):
-        if AX.AXUIElementPerformAction(bar, action) != 0:
-            raise Refused("pattern_unsupported")
+    if AX.AXUIElementSetAttributeValue(bar, "AXValue", target) != 0:
+        raise Refused("pattern_unsupported")
     value = _attribute(bar, "AXValue")
     return {"pattern": "scroll_bar", "position": round(float(value), 3) if isinstance(value, (int, float)) else None}
 

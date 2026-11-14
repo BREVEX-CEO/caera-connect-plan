@@ -289,7 +289,9 @@ class ForgetTaskDataTest(unittest.TestCase):
         home, workspace = Path(tempfile.mkdtemp()), Path(tempfile.mkdtemp())
         (home / "device.json").write_text(json.dumps({"server": "https://x.test", "workspace": str(workspace)}))
         (home / "releases").mkdir()
-        Journal(home / "journal.sqlite").start("a1", {"operation": "fs.list"})
+        journal = Journal(home / "journal.sqlite")
+        journal.start("a1", {"operation": "fs.list"})
+        journal.db.close()  # the companion is not running while its records are forgotten
         (home / "jobs" / "abc123").mkdir(parents=True)
         (home / "crash-reports").mkdir()
         (home / "crash-reports" / "one.json").write_text("{}")
