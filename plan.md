@@ -1646,7 +1646,8 @@ The existing `tests.run_required.main` loads selected modules/classes/methods or
 - Session mode (5.4 part) — `--session-minutes N`: the companion ends after N minutes with no running or waiting task and no unfinished job. The default stays always-ready until the owner decides C4. Tray icon NOT CODED.
 - 11.3 (desktop part) — `ui.scroll`: Windows ScrollItem/Scroll patterns, macOS AXScrollToVisible and the scroll bar's AXIncrement/AXDecrement, never the pointer; fixture cases UIA-020 and MAC-017 added (run only on the hosted Windows/macOS matrix).
 - 11.2 — `mac_worker._expose_tree`: AXManualAccessibility once per process before a lease is matched, then up to 2 s for a window's children; AXEnhancedUserInterface deliberately not set (side effects on other apps). Native-app regression covered by the MAC ladder; an Electron/Chromium tree on the hosted runner is not yet tested.
-- Not coded in this batch: credits-based charging (owner decision), 10.6 Gemma request-shape probe (live), 11.1, 11.4, 11.6 tray, 11.8 updater work, 11.9, P2–P4.
+- 11.1 — `windows_worker._cached_descendants`: one `FindAllBuildCache` call (control view, not off-screen) with a cache request for name, automation id, control type, box, enabled, password and value, at most 150 elements, `omitted` reports the rest; the old walk stays as the fallback when a provider cannot answer the cached query. Proof is the hosted Windows UIA ladder; the 300 ms median target is unmeasured.
+- Not coded in this batch: credits-based charging (owner decision), 10.6 Gemma request-shape probe (live), 11.4, 11.6 tray, 11.8 updater work, 11.9, P2–P4.
 
 
 ---

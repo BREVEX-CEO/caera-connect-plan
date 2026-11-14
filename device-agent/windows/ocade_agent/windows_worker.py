@@ -225,6 +225,48 @@ def _describe(wrapper) -> dict:
     return out
 
 
+INSPECT_LIMIT = 150
+_CACHED = ("Name", "AutomationId", "ControlType", "BoundingRectangle", "IsEnabled", "IsPassword", "ValueValue")
+
+
+def _cached_descendants(target) -> tuple[list, int]:
+    """The window's on-screen control elements and their identity, box, state and value in ONE
+    UI Automation call (FindAllBuildCache with a cache request; plan v8 11.1, the pattern of
+    Microsoft UFO's inspector) instead of a cross-process call per property per element.
+    Returns (wrapper, description, box) for at most INSPECT_LIMIT of them, and how many there were."""
+    from pywinauto.controls.uiawrapper import UIAWrapper  # type: ignore[import-not-found]
+    from pywinauto.uia_defines import IUIA  # type: ignore[import-not-found]
+    from pywinauto.uia_element_info import UIAElementInfo  # type: ignore[import-not-found]
+
+    uia = IUIA()
+    ids = uia.UIA_dll
+    request = uia.iuia.CreateCacheRequest()
+    for name in _CACHED:
+        request.AddProperty(getattr(ids, f"UIA_{name}PropertyId"))
+    condition = uia.iuia.CreateAndCondition(
+        uia.iuia.ControlViewCondition, uia.iuia.CreatePropertyCondition(ids.UIA_IsOffscreenPropertyId, False))
+    elements = target.element_info.element.FindAllBuildCache(ids.TreeScope_Descendants, condition, request)
+    total = elements.Length
+    out = []
+    for index in range(min(total, INSPECT_LIMIT)):
+        element = elements.GetElement(index)
+        protected = bool(element.CachedIsPassword)
+        described = {
+            "name": "Protected text field" if protected else (element.CachedName or "")[:120],
+            "automationId": "" if protected else (element.CachedAutomationId or "")[:120],
+            "controlType": uia.known_control_type_ids.get(element.CachedControlType, element.CachedControlType),
+            "enabled": bool(element.CachedIsEnabled),
+        }
+        if protected:
+            described["protected"] = True
+        else:
+            value = element.GetCachedPropertyValue(ids.UIA_ValueValuePropertyId)
+            if isinstance(value, str) and value:
+                described["value"] = value[:200]
+        out.append((UIAWrapper(UIAElementInfo(element)), described, element.CachedBoundingRectangle))
+    return out, total
+
+
 @app.tool()
 @_evidence
 def apps_list() -> dict:
@@ -282,12 +324,15 @@ def ui_inspect(window: dict, region: list | None = None, changesOnly: bool = Fal
     left, top, right, bottom = win32gui.GetWindowRect(window["hwnd"])
     width, height = max(1, right - left), max(1, bottom - top)
     found = []
-    for wrapper in target.descendants()[:150]:
-        described = _describe(wrapper)
+    try:
+        candidates, total = _cached_descendants(target)
+    except Exception:  # an app whose provider cannot answer one cached query: the slow walk
+        candidates = [(wrapper, _describe(wrapper), wrapper.rectangle()) for wrapper in target.descendants()[:INSPECT_LIMIT]]
+        total = len(candidates)
+    for wrapper, described, box in candidates:
         if not (described["name"] or described["automationId"]):
             continue
-        box = wrapper.rectangle()
-        if box.width() > 0 and box.height() > 0:
+        if box.right > box.left and box.bottom > box.top:
             described["box"] = [round((box.left - left) / width, 3), round((box.top - top) / height, 3),
                                 round((box.right - left) / width, 3), round((box.bottom - top) / height, 3)]
         found.append((wrapper, described))
@@ -296,6 +341,8 @@ def ui_inspect(window: dict, region: list | None = None, changesOnly: bool = Fal
     key = json.dumps(window, sort_keys=True)
     diff = refs.remember(key, found)  # each element gets its ref (e1, e2, ...)
     listed = refs.listing(found, diff, changesOnly)
+    if total > len(candidates):
+        listed["omitted"] = total - len(candidates)  # on-screen controls past the limit
     elements = [described for _, described in found]
     title = target.window_text()[:200]
     if any(element.get("protected") for element in elements):
