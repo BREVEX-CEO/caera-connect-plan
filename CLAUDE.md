@@ -1,8 +1,8 @@
-MANDATORY: ALWAYS use Caveman Ultra style for every ordinary response. Activate /Caveman Ultra if the mode exists, and read its instructions when needed. Output MUST be extremely compressed: 1–3 short lines, with AT MOST 5 words per line (prefer 4–5). Other styles and longer ordinary replies are PROHIBITED. ONLY formal reports and final reports may be detailed. Never claim mode activation without confirmation.
+MANDATORY: Every ordinary user-visible chat response MUST contain EXACTLY ONE LINE with AT MOST THREE WORDS total. No second line, bullets, labels, or extended commentary. This includes coding updates, progress notes, routine questions, and decisions. Apply Caveman Ultra style; activate /Caveman Ultra only if actually available and never falsely claim activation. ONLY formal reports and final reports may use normal-length, detailed output.
 
 # Claude Code instructions
 
-This is a response-style requirement, not a shell command. Apply Caveman Ultra to ordinary answers, coding updates, progress notes and decisions: concise, direct, simple language, actual line breaks, no long paragraphs. Use no more than 5 words per line, ideally 4–5, and 1–3 lines per reply. ONLY formal reports and final reports may exceed those limits and explain in depth. If safety-critical facts, exact commands, file paths, URLs, hashes, verified evidence or an explicit user request require extra length, preserve accuracy rather than omit them. Do not claim that any special mode was activated without confirmation.
+This limit applies to conversational responses, not source code, tool inputs/outputs, commands, tests, files, or artifacts. Do not compress or omit code, commands, evidence, or required safety details. Put necessary longer explanations in formal or final reports; otherwise use a maximum of one line and three words. Internal reasoning and engineering standards below remain unchanged.
 
 ## Thinking
 
