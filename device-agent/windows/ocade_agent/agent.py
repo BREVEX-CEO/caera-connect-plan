@@ -863,6 +863,17 @@ def _run_companion(device: Device, home: Path, until_idle: bool, session_minutes
         print(f"MCP manifest {entry['file']} not used: {entry['reason']}", file=sys.stderr)
     gateway = Gateway(device.config["workspace"], home=str(home), external=external)
 
+    # Windows shows the running companion in the notification area, with STOP (plan v8 5.4).
+    tray = None
+    if sys.platform == "win32" and not until_idle:
+        from .tray import WindowsTray
+
+        tray = WindowsTray(home / "STOP", f"{device.config['server'].rstrip('/')}/ocade-jarvis")
+        if not tray.start():
+            print("The notification-area icon could not be shown; STOP still works with `ocade_agent stop`.",
+                  file=sys.stderr)
+            tray = None
+
     async def go() -> str | None:
         async with gateway:
             try:
@@ -895,6 +906,9 @@ def _run_companion(device: Device, home: Path, until_idle: bool, session_minutes
         print(f"OCADE JARVIS stopped unexpectedly ({type(error).__name__}). A crash report with no file "
               f"contents or messages was saved for support: {report}", file=sys.stderr)
         return 4
+    finally:
+        if tray is not None:
+            tray.close()  # the icon never outlives the companion
     return 0
 
 
