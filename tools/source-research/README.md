@@ -51,6 +51,7 @@ They must also be retained or re-fetched when migrating machines.
    what the trusted consumer received; this process cannot independently observe
    Claude's private context or prove that a tool showed the consumer its entire
    response. Claude must check for tool truncation and never manufacture receipts.
+
 4. Process the entire section. Only **after** processing it, explicitly acknowledge:
 
    ```sh
@@ -61,6 +62,7 @@ They must also be retained or re-fetched when migrating machines.
    approval. Record useful findings in the note with precise references. Do not
    mark a section processed merely because it was offered, displayed, copied, or
    delivered. Acknowledgment is evidence of an assertion, not proof of comprehension.
+
 5. Repeat `session`. Never batch automatic acknowledgments, skip forward, replace
    original text with summaries, read only selected extensions, or claim unread
    sections were examined. An interrupted section is replayed with the same ID and
