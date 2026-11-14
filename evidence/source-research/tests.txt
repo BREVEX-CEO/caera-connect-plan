@@ -1,0 +1,18 @@
+test_atomic_ack_rollback_on_event_failure (test_reader.ResearchTests.test_atomic_ack_rollback_on_event_failure) ... ok
+test_binary_lfs_missing_and_untracked_are_accounted (test_reader.ResearchTests.test_binary_lfs_missing_and_untracked_are_accounted) ... ok
+test_changed_files_invalidate_delivery (test_reader.ResearchTests.test_changed_files_invalidate_delivery) ... ok
+test_empty_and_utf16_files (test_reader.ResearchTests.test_empty_and_utf16_files) ... ok
+test_large_unicode_long_lines_crlf_and_eof (test_reader.ResearchTests.test_large_unicode_long_lines_crlf_and_eof) ... ok
+test_manifest_event_and_section_corruption (test_reader.ResearchTests.test_manifest_event_and_section_corruption) ... ok
+test_missing_duplicate_and_truncated_receipts (test_reader.ResearchTests.test_missing_duplicate_and_truncated_receipts) ... ok
+test_missing_tracked_file (test_reader.ResearchTests.test_missing_tracked_file) ... ok
+test_nested_submodule_pin_and_symlink (test_reader.ResearchTests.test_nested_submodule_pin_and_symlink) ... ok
+test_new_hidden_ignored_and_symlink_to_state_are_inventoried (test_reader.ResearchTests.test_new_hidden_ignored_and_symlink_to_state_are_inventoried) ... ok
+test_refresh_preserves_findings_and_restarts_changed_file (test_reader.ResearchTests.test_refresh_preserves_findings_and_restarts_changed_file) ... ok
+test_resume_delivery_is_not_acknowledgment (test_reader.ResearchTests.test_resume_delivery_is_not_acknowledgment) ... ok
+test_sparse_missing_file_is_read_from_exact_git_blob (test_reader.ResearchTests.test_sparse_missing_file_is_read_from_exact_git_blob) ... ok
+
+----------------------------------------------------------------------
+Ran 13 tests in 1.280s
+
+OK

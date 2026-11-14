@@ -1,0 +1,5557 @@
+{
+  "updated_at": 1794669200.8267014,
+  "repositories": {
+    "1": {
+      "number": 1,
+      "path": "all-repos/microsoft/UFO",
+      "pin": "eae3c0a8d168c47cb10df0652e293e092eda1078",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        },
+        {
+          "step": "lfs",
+          "status": "pass",
+          "returncode": 0,
+          "detail": "Skipping object checkout, Git LFS is not installed for this repository.\nConsider installing it with 'git lfs install'.\n"
+        },
+        {
+          "step": "nested",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        }
+      ]
+    },
+    "2": {
+      "number": 2,
+      "path": "all-repos/sbroenne/mcp-windows",
+      "pin": "36b68634eab6711a179b0419814b3c02126bdea5",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        },
+        {
+          "step": "lfs",
+          "status": "pass",
+          "returncode": 0,
+          "detail": "Skipping object checkout, Git LFS is not installed for this repository.\nConsider installing it with 'git lfs install'.\n"
+        },
+        {
+          "step": "nested",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        }
+      ]
+    },
+    "3": {
+      "number": 3,
+      "path": "all-repos/deploymenttheory/windows-mcp-server",
+      "pin": "3da251abb639b973af6f0c3a4ad23cf2c1cd2746",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        },
+        {
+          "step": "lfs",
+          "status": "pass",
+          "returncode": 0,
+          "detail": "Skipping object checkout, Git LFS is not installed for this repository.\nConsider installing it with 'git lfs install'.\n"
+        },
+        {
+          "step": "nested",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        }
+      ]
+    },
+    "4": {
+      "number": 4,
+      "path": "all-repos/iFurySt/open-computer-use",
+      "pin": "e25be21caa0ea489316f6be6635d2a4766c4cd0b",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        },
+        {
+          "step": "lfs",
+          "status": "pass",
+          "returncode": 0,
+          "detail": "Skipping object checkout, Git LFS is not installed for this repository.\nConsider installing it with 'git lfs install'.\n"
+        },
+        {
+          "step": "nested",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        }
+      ]
+    },
+    "5": {
+      "number": 5,
+      "path": "all-repos/OpenAdaptAI/OpenAdapt",
+      "pin": "d243847de553e737ae18d98f48ecc9dd08bfb3e7",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        },
+        {
+          "step": "lfs",
+          "status": "pass",
+          "returncode": 0,
+          "detail": "Skipping object checkout, Git LFS is not installed for this repository.\nConsider installing it with 'git lfs install'.\n"
+        },
+        {
+          "step": "nested",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        }
+      ]
+    },
+    "6": {
+      "number": 6,
+      "path": "all-repos/HKUDS/CLI-Anything",
+      "pin": "34f519533bc175d2fe287ab8316b0dd99bb9cc43",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        },
+        {
+          "step": "lfs",
+          "status": "pass",
+          "returncode": 0,
+          "detail": "Skipping object checkout, Git LFS is not installed for this repository.\nConsider installing it with 'git lfs install'.\n"
+        },
+        {
+          "step": "nested",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        }
+      ]
+    },
+    "7": {
+      "number": 7,
+      "path": "all-repos/openinterpreter/openinterpreter",
+      "pin": "f09c887041133f52da1155e27d29edd8fa1f516e",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        },
+        {
+          "step": "lfs",
+          "status": "pass",
+          "returncode": 0,
+          "detail": "Skipping object checkout, Git LFS is not installed for this repository.\nConsider installing it with 'git lfs install'.\n"
+        },
+        {
+          "step": "nested",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        }
+      ]
+    },
+    "8": {
+      "number": 8,
+      "path": "all-repos/openinterpreter/interpreter-workstation",
+      "pin": "ebb09d2aab94b83c132c30b19e7eeb0784b3e80e",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        },
+        {
+          "step": "lfs",
+          "status": "pass",
+          "returncode": 0,
+          "detail": "Skipping object checkout, Git LFS is not installed for this repository.\nConsider installing it with 'git lfs install'.\n"
+        },
+        {
+          "step": "nested",
+          "status": "pass",
+          "returncode": 0,
+          "detail": "Submodule path 'apps/interpreter-extension': checked out 'a472e7131e085aec33bfa12d1a44f3188a76c5b8'\nSubmodule path 'apps/interpreter-extension/playwright': checked out 'd36d4155c75471e583b823c8194fc166866da961'\nSubmodule path 'submodules/interpreter-cua': checked out 'c522652d4b11dc9cb50360d0192e7a6e2bab3157'\nSubmodule 'apps/interpreter-extension' (https://github.com/openinterpreter/interpreter-extension.git) registered for path 'apps/interpreter-extension'\nSubmodule 'submodules/interpreter-cua' (https://github.com/openinterpreter/interpreter-cua.git) registered for path 'submodules/interpreter-cua'\nCloning into '/workspace/OCADE/all-repos/openinterpreter/interpreter-workstation/apps/interpreter-extension'...\nCloning into '/workspace/OCADE/all-repos/openinterpreter/interpreter-workstation/submodules/interpreter-cua'...\nSubmodule 'playwright' (https://github.com/remorses/playwright.git) registered for path 'apps/interpreter-extension/playwright'\nCloning into '/workspace/OCADE/all-repos/openinterpreter/interpreter-workstation/apps/interpreter-extension/playwright'...\nFrom https://github.com/remorses/playwright\n * branch            d36d4155c75471e583b823c8194fc166866da961 -> FETCH_HEAD\n"
+        }
+      ]
+    },
+    "9": {
+      "number": 9,
+      "path": "all-repos/QwenLM/Qwen3-VL",
+      "pin": "96588727e44c78b25ba03ea03b8e12f7e64fd0da",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        },
+        {
+          "step": "lfs",
+          "status": "pass",
+          "returncode": 0,
+          "detail": "Skipping object checkout, Git LFS is not installed for this repository.\nConsider installing it with 'git lfs install'.\n"
+        },
+        {
+          "step": "nested",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        }
+      ]
+    },
+    "10": {
+      "number": 10,
+      "path": "all-repos/QwenLM/Qwen-Agent",
+      "pin": "31a4d36d123688581a9e9744427272b33ce940e0",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        },
+        {
+          "step": "lfs",
+          "status": "pass",
+          "returncode": 0,
+          "detail": "Skipping object checkout, Git LFS is not installed for this repository.\nConsider installing it with 'git lfs install'.\n"
+        },
+        {
+          "step": "nested",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        }
+      ]
+    },
+    "11": {
+      "number": 11,
+      "path": "all-repos/microsoft/playwright-cli",
+      "pin": "b21724888b8100b05ef8dee3a92f2bb03bf4dcde",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        },
+        {
+          "step": "lfs",
+          "status": "pass",
+          "returncode": 0,
+          "detail": "Skipping object checkout, Git LFS is not installed for this repository.\nConsider installing it with 'git lfs install'.\n"
+        },
+        {
+          "step": "nested",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        }
+      ]
+    },
+    "12": {
+      "number": 12,
+      "path": "all-repos/web-infra-dev/midscene",
+      "pin": "bcb3498918f25c6484aeec576bed7e489bdee8b8",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        },
+        {
+          "step": "lfs",
+          "status": "pass",
+          "returncode": 0,
+          "detail": "Skipping object checkout, Git LFS is not installed for this repository.\nConsider installing it with 'git lfs install'.\n"
+        },
+        {
+          "step": "nested",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        }
+      ]
+    },
+    "13": {
+      "number": 13,
+      "path": "all-repos/microsoft/magentic-ui",
+      "pin": "d3c9d13c39288257286a66daabf7c5b5fb72ee69",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        },
+        {
+          "step": "lfs",
+          "status": "pass",
+          "returncode": 0,
+          "detail": "Skipping object checkout, Git LFS is not installed for this repository.\nConsider installing it with 'git lfs install'.\n"
+        },
+        {
+          "step": "nested",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        }
+      ]
+    },
+    "14": {
+      "number": 14,
+      "path": "all-repos/temporalio/sdk-typescript",
+      "pin": "4a5ee3476e20bcce0bde088ab035792a298118b5",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        },
+        {
+          "step": "lfs",
+          "status": "pass",
+          "returncode": 0,
+          "detail": "Skipping object checkout, Git LFS is not installed for this repository.\nConsider installing it with 'git lfs install'.\n"
+        },
+        {
+          "step": "nested",
+          "status": "pass",
+          "returncode": 0,
+          "detail": "Submodule path 'packages/core-bridge/sdk-core': checked out 'c675c32469af707e1c979a7b808c70b4a0608b82'\nSubmodule 'sdk-core' (https://github.com/temporalio/sdk-rust.git) registered for path 'packages/core-bridge/sdk-core'\nCloning into '/workspace/OCADE/all-repos/temporalio/sdk-typescript/packages/core-bridge/sdk-core'...\nFrom https://github.com/temporalio/sdk-rust\n * branch            c675c32469af707e1c979a7b808c70b4a0608b82 -> FETCH_HEAD\n"
+        }
+      ]
+    },
+    "15": {
+      "number": 15,
+      "path": "all-repos/NousResearch/hermes-agent",
+      "pin": "005389f78b750749b58f5a5d066956bc117c58b2",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        },
+        {
+          "step": "lfs",
+          "status": "pass",
+          "returncode": 0,
+          "detail": "Skipping object checkout, Git LFS is not installed for this repository.\nConsider installing it with 'git lfs install'.\n"
+        },
+        {
+          "step": "nested",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        }
+      ]
+    },
+    "16": {
+      "number": 16,
+      "path": "all-repos/xlang-ai/OSWorld-V2",
+      "pin": "3f7bee39938c7fc707b6ce81a682066f9ff813cc",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        },
+        {
+          "step": "lfs",
+          "status": "pass",
+          "returncode": 0,
+          "detail": "Skipping object checkout, Git LFS is not installed for this repository.\nConsider installing it with 'git lfs install'.\n"
+        },
+        {
+          "step": "nested",
+          "status": "pass",
+          "returncode": 0,
+          "detail": "Submodule path 'desktop_env/server': checked out 'a3cc3f0c64e463f020d1a44780307e9b46cbcab1'\nSubmodule 'desktop_env/server' (https://github.com/xlang-ai/osworld-server.git) registered for path 'desktop_env/server'\nCloning into '/workspace/OCADE/all-repos/xlang-ai/OSWorld-V2/desktop_env/server'...\nFrom https://github.com/xlang-ai/osworld-server\n * branch            a3cc3f0c64e463f020d1a44780307e9b46cbcab1 -> FETCH_HEAD\n"
+        }
+      ]
+    },
+    "17": {
+      "number": 17,
+      "path": "all-repos/microsoft/markitdown",
+      "pin": "ed178952a6672abdfd35b5f9e76a80b6cefc086e",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        },
+        {
+          "step": "lfs",
+          "status": "pass",
+          "returncode": 0,
+          "detail": "Skipping object checkout, Git LFS is not installed for this repository.\nConsider installing it with 'git lfs install'.\n"
+        },
+        {
+          "step": "nested",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        }
+      ]
+    },
+    "18": {
+      "number": 18,
+      "path": "all-repos/tashfeenahmed/freellmapi",
+      "pin": "730ba7942a7acbfe2d30b20f6f9b6efcd8b5ae04",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        },
+        {
+          "step": "lfs",
+          "status": "pass",
+          "returncode": 0,
+          "detail": "Skipping object checkout, Git LFS is not installed for this repository.\nConsider installing it with 'git lfs install'.\n"
+        },
+        {
+          "step": "nested",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        }
+      ]
+    },
+    "19": {
+      "number": 19,
+      "path": "all-repos/pydantic/pydantic-ai",
+      "pin": "86d9ad923931d600f78bb100d402b9921b2db467",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        },
+        {
+          "step": "lfs",
+          "status": "pass",
+          "returncode": 0,
+          "detail": "Skipping object checkout, Git LFS is not installed for this repository.\nConsider installing it with 'git lfs install'.\n"
+        },
+        {
+          "step": "nested",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        }
+      ]
+    },
+    "20": {
+      "number": 20,
+      "path": "all-repos/huggingface/smolagents",
+      "pin": "96f33faaf028479119ec8d34507b47694cf14e34",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        },
+        {
+          "step": "lfs",
+          "status": "pass",
+          "returncode": 0,
+          "detail": "Skipping object checkout, Git LFS is not installed for this repository.\nConsider installing it with 'git lfs install'.\n"
+        },
+        {
+          "step": "nested",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        }
+      ]
+    },
+    "21": {
+      "number": 21,
+      "path": "all-repos/strands-agents/harness-sdk",
+      "pin": "46cbb8c94c93468cd1f06bbb8fff1e6384c9106f",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        },
+        {
+          "step": "lfs",
+          "status": "pass",
+          "returncode": 0,
+          "detail": "Skipping object checkout, Git LFS is not installed for this repository.\nConsider installing it with 'git lfs install'.\n"
+        },
+        {
+          "step": "nested",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        }
+      ]
+    },
+    "22": {
+      "number": 22,
+      "path": "all-repos/strands-agents/box",
+      "pin": "d5278f29972f7bf2f688e3fa76511d3a29705f33",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        },
+        {
+          "step": "lfs",
+          "status": "pass",
+          "returncode": 0,
+          "detail": "Skipping object checkout, Git LFS is not installed for this repository.\nConsider installing it with 'git lfs install'.\n"
+        },
+        {
+          "step": "nested",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        }
+      ]
+    },
+    "23": {
+      "number": 23,
+      "path": "all-repos/vercel/ai",
+      "pin": "0e8e0543aeda7d4dd4ce6eade0d5b7d5a43644c1",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        },
+        {
+          "step": "lfs",
+          "status": "pass",
+          "returncode": 0,
+          "detail": "Skipping object checkout, Git LFS is not installed for this repository.\nConsider installing it with 'git lfs install'.\n"
+        },
+        {
+          "step": "nested",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        }
+      ]
+    },
+    "24": {
+      "number": 24,
+      "path": "all-repos/microsoft/semantic-kernel",
+      "pin": "ff22ec32ed31096c98ad63376d4ecc9aefe0ff38",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        },
+        {
+          "step": "lfs",
+          "status": "pass",
+          "returncode": 0,
+          "detail": "Skipping object checkout, Git LFS is not installed for this repository.\nConsider installing it with 'git lfs install'.\n"
+        },
+        {
+          "step": "nested",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        }
+      ]
+    },
+    "25": {
+      "number": 25,
+      "path": "all-repos/QwenLM/qwen-code",
+      "pin": "7efeb64b84c47dd59ca63d8816a4cc219e449e03",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        },
+        {
+          "step": "lfs",
+          "status": "pass",
+          "returncode": 0,
+          "detail": "Skipping object checkout, Git LFS is not installed for this repository.\nConsider installing it with 'git lfs install'.\n"
+        },
+        {
+          "step": "nested",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        }
+      ]
+    },
+    "26": {
+      "number": 26,
+      "path": "all-repos/google-gemini/gemini-cli",
+      "pin": "4ed06ed0ddc523a6d356a4ad35ddfea331041888",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        },
+        {
+          "step": "lfs",
+          "status": "pass",
+          "returncode": 0,
+          "detail": "Skipping object checkout, Git LFS is not installed for this repository.\nConsider installing it with 'git lfs install'.\n"
+        },
+        {
+          "step": "nested",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        }
+      ]
+    },
+    "27": {
+      "number": 27,
+      "path": "all-repos/openai/codex",
+      "pin": "b1573f102413e96a6481087922bf425231222dee",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        },
+        {
+          "step": "lfs",
+          "status": "pass",
+          "returncode": 0,
+          "detail": "Skipping object checkout, Git LFS is not installed for this repository.\nConsider installing it with 'git lfs install'.\n"
+        },
+        {
+          "step": "nested",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        }
+      ]
+    },
+    "28": {
+      "number": 28,
+      "path": "all-repos/langchain-ai/open-swe",
+      "pin": "d182338d01fa1f86e8f212080c340171d4b964c2",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        },
+        {
+          "step": "lfs",
+          "status": "pass",
+          "returncode": 0,
+          "detail": "Skipping object checkout, Git LFS is not installed for this repository.\nConsider installing it with 'git lfs install'.\n"
+        },
+        {
+          "step": "nested",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        }
+      ]
+    },
+    "29": {
+      "number": 29,
+      "path": "all-repos/langgenius/dify",
+      "pin": "e07c1f42b94e349ddfaf76f31f356b323f7f288c",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        },
+        {
+          "step": "lfs",
+          "status": "pass",
+          "returncode": 0,
+          "detail": "Skipping object checkout, Git LFS is not installed for this repository.\nConsider installing it with 'git lfs install'.\n"
+        },
+        {
+          "step": "nested",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        }
+      ]
+    },
+    "30": {
+      "number": 30,
+      "path": "all-repos/CopilotKit/CopilotKit",
+      "pin": "7b88608455528bd2dd62752a01cc25b8c917d35c",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        },
+        {
+          "step": "lfs",
+          "status": "pass",
+          "returncode": 0,
+          "detail": "Skipping object checkout, Git LFS is not installed for this repository.\nConsider installing it with 'git lfs install'.\n"
+        },
+        {
+          "step": "nested",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        }
+      ]
+    },
+    "31": {
+      "number": 31,
+      "path": "all-repos/ag2ai/ag2",
+      "pin": "fb3061e061990ef2c81ea5a86984519b227cabee",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        },
+        {
+          "step": "lfs",
+          "status": "pass",
+          "returncode": 0,
+          "detail": "Skipping object checkout, Git LFS is not installed for this repository.\nConsider installing it with 'git lfs install'.\n"
+        },
+        {
+          "step": "nested",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        }
+      ]
+    },
+    "32": {
+      "number": 32,
+      "path": "all-repos/lastmile-ai/mcp-agent",
+      "pin": "f62d849350816588b1c6294e7914bbe4d8b84072",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        },
+        {
+          "step": "lfs",
+          "status": "pass",
+          "returncode": 0,
+          "detail": "Skipping object checkout, Git LFS is not installed for this repository.\nConsider installing it with 'git lfs install'.\n"
+        },
+        {
+          "step": "nested",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        }
+      ]
+    },
+    "33": {
+      "number": 33,
+      "path": "all-repos/mcp-use/mcp-use",
+      "pin": "546081e8242da1e066417cfec7f8816bb018a14d",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        },
+        {
+          "step": "lfs",
+          "status": "pass",
+          "returncode": 0,
+          "detail": "Skipping object checkout, Git LFS is not installed for this repository.\nConsider installing it with 'git lfs install'.\n"
+        },
+        {
+          "step": "nested",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        }
+      ]
+    },
+    "34": {
+      "number": 34,
+      "path": "all-repos/langgenius/dify-sandbox",
+      "pin": "78931c964721dda10f1f2cc06809ec5b4bbbb7a4",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        },
+        {
+          "step": "lfs",
+          "status": "pass",
+          "returncode": 0,
+          "detail": "Skipping object checkout, Git LFS is not installed for this repository.\nConsider installing it with 'git lfs install'.\n"
+        },
+        {
+          "step": "nested",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        }
+      ]
+    },
+    "35": {
+      "number": 35,
+      "path": "all-repos/langgenius/mosoo-agent-driver",
+      "pin": "6aeea449b5260fc32b8d1eb7d0db7ac4d1e0c099",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        },
+        {
+          "step": "lfs",
+          "status": "pass",
+          "returncode": 0,
+          "detail": "Skipping object checkout, Git LFS is not installed for this repository.\nConsider installing it with 'git lfs install'.\n"
+        },
+        {
+          "step": "nested",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        }
+      ]
+    },
+    "36": {
+      "number": 36,
+      "path": "all-repos/mediar-ai/MacosUseSDK",
+      "pin": "a2d7866355bca07faf476c5d180c8664b1992f8c",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        },
+        {
+          "step": "lfs",
+          "status": "pass",
+          "returncode": 0,
+          "detail": "Skipping object checkout, Git LFS is not installed for this repository.\nConsider installing it with 'git lfs install'.\n"
+        },
+        {
+          "step": "nested",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        }
+      ]
+    },
+    "37": {
+      "number": 37,
+      "path": "all-repos/mediar-ai/skillhubz",
+      "pin": "338655e70826d48c6b22e022894566da52761820",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        },
+        {
+          "step": "lfs",
+          "status": "pass",
+          "returncode": 0,
+          "detail": "Skipping object checkout, Git LFS is not installed for this repository.\nConsider installing it with 'git lfs install'.\n"
+        },
+        {
+          "step": "nested",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        }
+      ]
+    },
+    "38": {
+      "number": 38,
+      "path": "all-repos/caramaschiHG/awesome-ai-agents-2026",
+      "pin": "781b695139b8dfa231c0db5fd9cba02ccd518e84",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        },
+        {
+          "step": "lfs",
+          "status": "pass",
+          "returncode": 0,
+          "detail": "Skipping object checkout, Git LFS is not installed for this repository.\nConsider installing it with 'git lfs install'.\n"
+        },
+        {
+          "step": "nested",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        }
+      ]
+    },
+    "39": {
+      "number": 39,
+      "path": "all-repos/0xNyk/awesome-agent-cortex",
+      "pin": "37d3bde550c1c0d71b420c305a40d166909b71b8",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        },
+        {
+          "step": "lfs",
+          "status": "pass",
+          "returncode": 0,
+          "detail": "Skipping object checkout, Git LFS is not installed for this repository.\nConsider installing it with 'git lfs install'.\n"
+        },
+        {
+          "step": "nested",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        }
+      ]
+    },
+    "40": {
+      "number": 40,
+      "path": "all-repos/agentskills/agentskills",
+      "pin": "83021e2be457a9b6679148719c1f6074f0ad975e",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        },
+        {
+          "step": "lfs",
+          "status": "pass",
+          "returncode": 0,
+          "detail": "Skipping object checkout, Git LFS is not installed for this repository.\nConsider installing it with 'git lfs install'.\n"
+        },
+        {
+          "step": "nested",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        }
+      ]
+    },
+    "41": {
+      "number": 41,
+      "path": "all-repos/AI-Architect-Studio/awesome-agent-operating-systems",
+      "pin": "1912dbacd68520b4649f0d96a2343f1194f74dd6",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        },
+        {
+          "step": "lfs",
+          "status": "pass",
+          "returncode": 0,
+          "detail": "Skipping object checkout, Git LFS is not installed for this repository.\nConsider installing it with 'git lfs install'.\n"
+        },
+        {
+          "step": "nested",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        }
+      ]
+    },
+    "43": {
+      "number": 43,
+      "path": "all-repos/anthropics/skills",
+      "pin": "2c5958ecac7cee2b583967a2c4981d0f4a75c579",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        },
+        {
+          "step": "lfs",
+          "status": "pass",
+          "returncode": 0,
+          "detail": "Skipping object checkout, Git LFS is not installed for this repository.\nConsider installing it with 'git lfs install'.\n"
+        },
+        {
+          "step": "nested",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        }
+      ]
+    },
+    "44": {
+      "number": 44,
+      "path": "all-repos/EverMind-AI/SkillCorpus",
+      "pin": "f9099647cf7e236230f4d2949b9016bccf9bdc89",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        },
+        {
+          "step": "lfs",
+          "status": "pass",
+          "returncode": 0,
+          "detail": "Skipping object checkout, Git LFS is not installed for this repository.\nConsider installing it with 'git lfs install'.\n"
+        },
+        {
+          "step": "nested",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        }
+      ]
+    },
+    "45": {
+      "number": 45,
+      "path": "all-repos/gamedev-skills/awesome-gamedev-agent-skills",
+      "pin": "c6ca6c41c839b68319ffc08430b99ab768debc32",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        },
+        {
+          "step": "lfs",
+          "status": "pass",
+          "returncode": 0,
+          "detail": "Skipping object checkout, Git LFS is not installed for this repository.\nConsider installing it with 'git lfs install'.\n"
+        },
+        {
+          "step": "nested",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        }
+      ]
+    },
+    "46": {
+      "number": 46,
+      "path": "all-repos/github/awesome-copilot",
+      "pin": "8ecd5b17f02fe5fbebf35eccd1867265eded811f",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        },
+        {
+          "step": "lfs",
+          "status": "pass",
+          "returncode": 0,
+          "detail": "Skipping object checkout, Git LFS is not installed for this repository.\nConsider installing it with 'git lfs install'.\n"
+        },
+        {
+          "step": "nested",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        }
+      ]
+    },
+    "47": {
+      "number": 47,
+      "path": "all-repos/heilcheng/awesome-agent-skills",
+      "pin": "a92b1f3a9cdf00b056a8cc3247f214a139a95ae3",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        },
+        {
+          "step": "lfs",
+          "status": "pass",
+          "returncode": 0,
+          "detail": "Skipping object checkout, Git LFS is not installed for this repository.\nConsider installing it with 'git lfs install'.\n"
+        },
+        {
+          "step": "nested",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        }
+      ]
+    },
+    "48": {
+      "number": 48,
+      "path": "all-repos/junminhong/awesome-agent-skills",
+      "pin": "f8767e5ea03b22154cf39fd82b1c39e154a6ea9c",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        },
+        {
+          "step": "lfs",
+          "status": "pass",
+          "returncode": 0,
+          "detail": "Skipping object checkout, Git LFS is not installed for this repository.\nConsider installing it with 'git lfs install'.\n"
+        },
+        {
+          "step": "nested",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        }
+      ]
+    },
+    "49": {
+      "number": 49,
+      "path": "all-repos/kaspasejo/AG-skills",
+      "pin": "6f9d6c1d12e693f1216e7f582cc54005feba919c",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        },
+        {
+          "step": "lfs",
+          "status": "pass",
+          "returncode": 0,
+          "detail": "Skipping object checkout, Git LFS is not installed for this repository.\nConsider installing it with 'git lfs install'.\n"
+        },
+        {
+          "step": "nested",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        }
+      ]
+    },
+    "50": {
+      "number": 50,
+      "path": "all-repos/kmjnr/antigravity-agent-skills",
+      "pin": "8692fbc68fd47d6ec46c406545dc3bdccdc79c1a",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        },
+        {
+          "step": "lfs",
+          "status": "pass",
+          "returncode": 0,
+          "detail": "Skipping object checkout, Git LFS is not installed for this repository.\nConsider installing it with 'git lfs install'.\n"
+        },
+        {
+          "step": "nested",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        }
+      ]
+    },
+    "51": {
+      "number": 51,
+      "path": "all-repos/langchain-ai/langchain-skills",
+      "pin": "32d6228affabb653720d6c20187a8a7afc292478",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        },
+        {
+          "step": "lfs",
+          "status": "pass",
+          "returncode": 0,
+          "detail": "Skipping object checkout, Git LFS is not installed for this repository.\nConsider installing it with 'git lfs install'.\n"
+        },
+        {
+          "step": "nested",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        }
+      ]
+    },
+    "52": {
+      "number": 52,
+      "path": "all-repos/libukai/awesome-agent-skills",
+      "pin": "3159af9b36eda650e6e4e7ac7ff8bd59f24f4983",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        },
+        {
+          "step": "lfs",
+          "status": "pass",
+          "returncode": 0,
+          "detail": "Skipping object checkout, Git LFS is not installed for this repository.\nConsider installing it with 'git lfs install'.\n"
+        },
+        {
+          "step": "nested",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        }
+      ]
+    },
+    "53": {
+      "number": 53,
+      "path": "all-repos/linny006/awesome-agent-skills",
+      "pin": "d99f15862c104e8bc8f9ad7dd756330bd4bdd9aa",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        },
+        {
+          "step": "lfs",
+          "status": "pass",
+          "returncode": 0,
+          "detail": "Skipping object checkout, Git LFS is not installed for this repository.\nConsider installing it with 'git lfs install'.\n"
+        },
+        {
+          "step": "nested",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        }
+      ]
+    },
+    "54": {
+      "number": 54,
+      "path": "all-repos/microsoft/SkillOpt",
+      "pin": "45f65ca04f5f6713bca7b9797b495696ba812751",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        },
+        {
+          "step": "lfs",
+          "status": "pass",
+          "returncode": 0,
+          "detail": "Skipping object checkout, Git LFS is not installed for this repository.\nConsider installing it with 'git lfs install'.\n"
+        },
+        {
+          "step": "nested",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        }
+      ]
+    },
+    "55": {
+      "number": 55,
+      "path": "all-repos/obra/superpowers",
+      "pin": "22f0b463e7a5e579904dd6211a520321035526f7",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        },
+        {
+          "step": "lfs",
+          "status": "pass",
+          "returncode": 0,
+          "detail": "Skipping object checkout, Git LFS is not installed for this repository.\nConsider installing it with 'git lfs install'.\n"
+        },
+        {
+          "step": "nested",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        }
+      ]
+    },
+    "56": {
+      "number": 56,
+      "path": "all-repos/philipbankier/awesome-agent-skills",
+      "pin": "699edafb2b7cd99f6fdd412654bee24b0366dc7c",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        },
+        {
+          "step": "lfs",
+          "status": "pass",
+          "returncode": 0,
+          "detail": "Skipping object checkout, Git LFS is not installed for this repository.\nConsider installing it with 'git lfs install'.\n"
+        },
+        {
+          "step": "nested",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        }
+      ]
+    },
+    "57": {
+      "number": 57,
+      "path": "all-repos/Prat011/awesome-llm-skills",
+      "pin": "35e1ea23b6c5f50c420d5591973aa8ad4f2931ff",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        },
+        {
+          "step": "lfs",
+          "status": "pass",
+          "returncode": 0,
+          "detail": "Skipping object checkout, Git LFS is not installed for this repository.\nConsider installing it with 'git lfs install'.\n"
+        },
+        {
+          "step": "nested",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        }
+      ]
+    },
+    "58": {
+      "number": 58,
+      "path": "all-repos/RKiding/Awesome-finance-skills",
+      "pin": "853f09b4d0baae747759ed31e21ed5c5b2316a5f",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        },
+        {
+          "step": "lfs",
+          "status": "pass",
+          "returncode": 0,
+          "detail": "Skipping object checkout, Git LFS is not installed for this repository.\nConsider installing it with 'git lfs install'.\n"
+        },
+        {
+          "step": "nested",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        }
+      ]
+    },
+    "59": {
+      "number": 59,
+      "path": "all-repos/seb1n/awesome-ai-agent-skills",
+      "pin": "75865a5d037a4cdaa7f409a4ec14ab9b0292920b",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        },
+        {
+          "step": "lfs",
+          "status": "pass",
+          "returncode": 0,
+          "detail": "Skipping object checkout, Git LFS is not installed for this repository.\nConsider installing it with 'git lfs install'.\n"
+        },
+        {
+          "step": "nested",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        }
+      ]
+    },
+    "60": {
+      "number": 60,
+      "path": "all-repos/sickn33/agentic-awesome-skills",
+      "pin": "560b762c309d6b96315855d7968727d3bca7df20",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "61": {
+      "number": 61,
+      "path": "all-repos/TerminalSkills/skills",
+      "pin": "42289059901710441bfa8081c08c3a9f36b93f9c",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        },
+        {
+          "step": "lfs",
+          "status": "pass",
+          "returncode": 0,
+          "detail": "Skipping object checkout, Git LFS is not installed for this repository.\nConsider installing it with 'git lfs install'.\n"
+        },
+        {
+          "step": "nested",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        }
+      ]
+    },
+    "62": {
+      "number": 62,
+      "path": "all-repos/vercel-labs/skills",
+      "pin": "b716f9dc2ba36b6aa8f0080615e5a3a6caeac63b",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        },
+        {
+          "step": "lfs",
+          "status": "pass",
+          "returncode": 0,
+          "detail": "Skipping object checkout, Git LFS is not installed for this repository.\nConsider installing it with 'git lfs install'.\n"
+        },
+        {
+          "step": "nested",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        }
+      ]
+    },
+    "63": {
+      "number": 63,
+      "path": "all-repos/VoltAgent/awesome-agent-skills",
+      "pin": "6d483e29da745a010d88974ef6d0e50d15755e9a",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        },
+        {
+          "step": "lfs",
+          "status": "pass",
+          "returncode": 0,
+          "detail": "Skipping object checkout, Git LFS is not installed for this repository.\nConsider installing it with 'git lfs install'.\n"
+        },
+        {
+          "step": "nested",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        }
+      ]
+    },
+    "64": {
+      "number": 64,
+      "path": "all-repos/WenyuChiou/ai-research-skills",
+      "pin": "b3b615748f9050ba16d912dee0369b273fbc1cf0",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        },
+        {
+          "step": "lfs",
+          "status": "pass",
+          "returncode": 0,
+          "detail": "Skipping object checkout, Git LFS is not installed for this repository.\nConsider installing it with 'git lfs install'.\n"
+        },
+        {
+          "step": "nested",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        }
+      ]
+    },
+    "65": {
+      "number": 65,
+      "path": "all-repos/agentscope-ai/agentscope",
+      "pin": "27d8359300f16e44f9d4d7184620480427e067af",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        },
+        {
+          "step": "lfs",
+          "status": "pass",
+          "returncode": 0,
+          "detail": "Skipping object checkout, Git LFS is not installed for this repository.\nConsider installing it with 'git lfs install'.\n"
+        },
+        {
+          "step": "nested",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        }
+      ]
+    },
+    "66": {
+      "number": 66,
+      "path": "all-repos/agno-agi/agno",
+      "pin": "7c3b729667e66282f0d845adbd507ee07242c5eb",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        },
+        {
+          "step": "lfs",
+          "status": "pass",
+          "returncode": 0,
+          "detail": "Skipping object checkout, Git LFS is not installed for this repository.\nConsider installing it with 'git lfs install'.\n"
+        },
+        {
+          "step": "nested",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        }
+      ]
+    },
+    "67": {
+      "number": 67,
+      "path": "all-repos/Aider-AI/aider",
+      "pin": "5dc9490bb35f9729ef2c95d00a19ccd30c26339c",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        },
+        {
+          "step": "lfs",
+          "status": "pass",
+          "returncode": 0,
+          "detail": "Skipping object checkout, Git LFS is not installed for this repository.\nConsider installing it with 'git lfs install'.\n"
+        },
+        {
+          "step": "nested",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        }
+      ]
+    },
+    "68": {
+      "number": 68,
+      "path": "all-repos/aaif-goose/goose",
+      "pin": "2365bc5e898a38133c373eef2d1357416acd66e2",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "pass",
+          "returncode": 0,
+          "detail": ""
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "69": {
+      "number": 69,
+      "path": "all-repos/bytedance/deer-flow",
+      "pin": "085b52b5f39a2dc6ca23f207584763bc17d3950b",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "70": {
+      "number": 70,
+      "path": "all-repos/continuedev/continue",
+      "pin": "5522c6f44ca0ac3528b37244818fbfa39b5af470",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "71": {
+      "number": 71,
+      "path": "all-repos/deepset-ai/haystack",
+      "pin": "4b4346b6d798338d9b43e70115006494012b1756",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "72": {
+      "number": 72,
+      "path": "all-repos/google/adk-js",
+      "pin": "a662b30976d68625a7348f3139bb41806aad7818",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "73": {
+      "number": 73,
+      "path": "all-repos/langchain-ai/deepagents",
+      "pin": "a93aed4bca3a5e4d45bff393e16092222767e6c3",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "74": {
+      "number": 74,
+      "path": "all-repos/langchain-ai/langchain",
+      "pin": "ea17e48f0a4336c920394fd029de99f1568b4c38",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "75": {
+      "number": 75,
+      "path": "all-repos/mastra-ai/mastra",
+      "pin": "7277766d6c967c475675d58ff2d0e5c6d7be7c84",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "76": {
+      "number": 76,
+      "path": "all-repos/microsoft/agent-framework-go",
+      "pin": "2970ef8ead60f174014be894fd94bfdd16e6004f",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "77": {
+      "number": 77,
+      "path": "all-repos/openclaw/openclaw",
+      "pin": "b27440329b4c450ec4c572e40ed338ed98f3d9c7",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "78": {
+      "number": 78,
+      "path": "all-repos/OpenHands/OpenHands",
+      "pin": "830c0459e2f6056ab81e020c22970e782ae1be75",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "79": {
+      "number": 79,
+      "path": "all-repos/Significant-Gravitas/AutoGPT",
+      "pin": "ac4e88888d3838fd5790dff2a85845a654d05024",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "81": {
+      "number": 81,
+      "path": "all-repos/browserbase/stagehand",
+      "pin": "6f2686d792b7f5836b04754e0f6a44db39928592",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "82": {
+      "number": 82,
+      "path": "all-repos/e2b-dev/desktop",
+      "pin": "91f23acaab7312e847596acc44e6f7763f56917f",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "83": {
+      "number": 83,
+      "path": "all-repos/microsoft/OmniParser",
+      "pin": "354021201345a96178360b28733573e27269f2de",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "84": {
+      "number": 84,
+      "path": "all-repos/microsoft/playwright",
+      "pin": "b4d016aadc5cbd2b898a284307975fe73e05483d",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "85": {
+      "number": 85,
+      "path": "all-repos/Skyvern-AI/skyvern",
+      "pin": "a1eda3a24a5681a24eb3cd2d66899b7585ccf9b3",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "86": {
+      "number": 86,
+      "path": "all-repos/SWE-agent/SWE-agent",
+      "pin": "3ea751c087f32b16e039a2233dd6eefecef325d5",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "87": {
+      "number": 87,
+      "path": "all-repos/beam-cloud/beta9",
+      "pin": "fc2aea34e6e884f7fcb7d7082e835340a534a1bf",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "88": {
+      "number": 88,
+      "path": "all-repos/ggml-org/llama.cpp",
+      "pin": "3549c274dc22001d9118713fa56a10085b85de3b",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "89": {
+      "number": 89,
+      "path": "all-repos/Haidra-Org/AI-Horde",
+      "pin": "7411b0de0432bd3eb57b02124608b7421b4fd75c",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "90": {
+      "number": 90,
+      "path": "all-repos/ollama/ollama",
+      "pin": "a5864fcb33969705de3c0ebfedf4b2a16c970bcc",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "91": {
+      "number": 91,
+      "path": "all-repos/QwenLM/Qwen3",
+      "pin": "7a2f61ffc7a20d47efcd2bf97f6f2bf52729042e",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "92": {
+      "number": 92,
+      "path": "all-repos/QwenLM/Qwen3.8",
+      "pin": "2ea10dc725823bf7c3e21ce8557cbe15245132ae",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "93": {
+      "number": 93,
+      "path": "all-repos/a2aproject/A2A",
+      "pin": "4d7cda4b1754ed410e41bf3be7ad9ebc62afe3d3",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "94": {
+      "number": 94,
+      "path": "all-repos/ComposioHQ/composio",
+      "pin": "fdee7595166f8b5dcff026dc609760d1ce82b2e2",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "95": {
+      "number": 95,
+      "path": "all-repos/modelcontextprotocol/inspector",
+      "pin": "488c30d9d16e4993bc548ad298eb7450f5125c93",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "96": {
+      "number": 96,
+      "path": "all-repos/modelcontextprotocol/python-sdk",
+      "pin": "77001c96f9507be0f4d009b83210a384a5e08bda",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "97": {
+      "number": 97,
+      "path": "all-repos/modelcontextprotocol/registry",
+      "pin": "115f85225c9fac5281d8a2dc8551cf49b004d2f9",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "98": {
+      "number": 98,
+      "path": "all-repos/modelcontextprotocol/typescript-sdk",
+      "pin": "919bb8ea88b6e10e72c2f8b6218fad4cfdc40b2c",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "99": {
+      "number": 99,
+      "path": "all-repos/n8n-io/n8n",
+      "pin": "251c44bc5e072afcc3daab3c3d1baf525afd8d41",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "100": {
+      "number": 100,
+      "path": "all-repos/AgentOps-AI/agentops",
+      "pin": "f8e907b92dabe47232978023fdcb01e2a7d4b752",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "101": {
+      "number": 101,
+      "path": "all-repos/cloudflare/agents",
+      "pin": "9b73399c7cee9550c19146b7f76a735a10700ada",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "102": {
+      "number": 102,
+      "path": "all-repos/confident-ai/deepeval",
+      "pin": "34db63dd005ebc9a905c8ef4741ae0687c93c14c",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "103": {
+      "number": 103,
+      "path": "all-repos/e2b-dev/E2B",
+      "pin": "6dc8d5a10aa5db8dc8cf9c4d95fc769d886197fd",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "104": {
+      "number": 104,
+      "path": "all-repos/EleutherAI/lm-evaluation-harness",
+      "pin": "d6de81643928d653435c431bae19945d41d32520",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "105": {
+      "number": 105,
+      "path": "all-repos/getzep/graphiti",
+      "pin": "ed23196506eba8806fae6da831d73fcd2ad714d8",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "106": {
+      "number": 106,
+      "path": "all-repos/harbor-framework/harbor",
+      "pin": "ec6aeab7fe0eb51df52b4e72c524daf5ea9cc5f4",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "107": {
+      "number": 107,
+      "path": "all-repos/kubernetes-sigs/agent-sandbox",
+      "pin": "454d3353e5c26c561dd6de389f32f7f285030e38",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "108": {
+      "number": 108,
+      "path": "all-repos/langfuse/langfuse",
+      "pin": "48a31810e1c6e6a4a589b1eacc5eecc7960c9b87",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "109": {
+      "number": 109,
+      "path": "all-repos/livekit/agents",
+      "pin": "cbb5770c716c70009969cd7fa88e3c3662222ce9",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "110": {
+      "number": 110,
+      "path": "all-repos/mem0ai/mem0",
+      "pin": "f1791daa86d469249c9b002f62644d58a1eb96a0",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "111": {
+      "number": 111,
+      "path": "all-repos/NVIDIA/SkillSpector",
+      "pin": "c81615007d40e86051a302a3cf897f8a05264928",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "112": {
+      "number": 112,
+      "path": "all-repos/openai/evals",
+      "pin": "8eac7a7de5215c907fbddc30efdaf316913eccdd",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "113": {
+      "number": 113,
+      "path": "all-repos/opensandbox-group/OpenSandbox",
+      "pin": "89a2138f95a12d4ab3dc6ed4410f833c2257be97",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "114": {
+      "number": 114,
+      "path": "all-repos/topoteretes/cognee",
+      "pin": "4053f6cc5536757f26a3665eed95c50088e6dc0b",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "115": {
+      "number": 115,
+      "path": "all-repos/truera/trulens",
+      "pin": "32f57106c7f897a05806107737c413e65665fe46",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "116": {
+      "number": 116,
+      "path": "all-repos/browser-use/browser-use",
+      "pin": "e717df1839a2d7368b108de6694f01e9c659b0de",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "117": {
+      "number": 117,
+      "path": "all-repos/browser-use/browser-use-pi",
+      "pin": "4cbc951d661cc9bc9896845a2bb3ccdb6d11d0b6",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "118": {
+      "number": 118,
+      "path": "all-repos/browser-use/vibetest-use",
+      "pin": "fe0b90ac9d6a129ce06f5b53074241a9f205015b",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "119": {
+      "number": 119,
+      "path": "all-repos/iFurySt/open-browser-use",
+      "pin": "97ca258065fc285991c46a65007d823de2996fd9",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "120": {
+      "number": 120,
+      "path": "all-repos/jackwener/OpenCLI",
+      "pin": "9bc5f5ca132ec4d4e48d7ee517d4303bf159e8e8",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "121": {
+      "number": 121,
+      "path": "all-repos/Jeomon/Web-Use",
+      "pin": "36fe04eaedda147225f4149dc115e6d6f5ae6611",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "122": {
+      "number": 122,
+      "path": "all-repos/m1guelpf/browser-agent",
+      "pin": "992245391f0f3e3bb7ca141850f7d79a24549cb8",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "123": {
+      "number": 123,
+      "path": "all-repos/microsoft/CUAWright",
+      "pin": "35dbcf389ce2d9a77eb22f539c79a1274ea53559",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "124": {
+      "number": 124,
+      "path": "all-repos/nanobrowser/nanobrowser",
+      "pin": "6c4c0802a3967cb25e82f1249fcd68e79614c75f",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "125": {
+      "number": 125,
+      "path": "all-repos/SawyerHood/dev-browser",
+      "pin": "520ba5cb4fa2856a501376cd8a62fe54a6576549",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "126": {
+      "number": 126,
+      "path": "all-repos/Tencent/BrowserSkill",
+      "pin": "cfe1f84e6d176264515dc37b98eb4f131419da63",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "127": {
+      "number": 127,
+      "path": "all-repos/the-open-agent/openagent",
+      "pin": "f2338321f65ad7dd65d0749ad0bd95efa7c2c881",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "128": {
+      "number": 128,
+      "path": "all-repos/12britz/awesome-computer-use",
+      "pin": "63161b0428004b939d042c4371a714d3bc19f3a0",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "129": {
+      "number": 129,
+      "path": "all-repos/Arindam200/awesome-ai-apps",
+      "pin": "0e1550f393e0675b4f9542ee077e6813f5035aa2",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "130": {
+      "number": 130,
+      "path": "all-repos/Awesome-llms-labs/awesome-AI-agent-orchestration",
+      "pin": "c783bb29cce56ebd1a7673d2c92916bd272f4ba1",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "131": {
+      "number": 131,
+      "path": "all-repos/Awesome-llms-labs/awesome-ai-agents",
+      "pin": "90685bdc9255a652dff90366b7807360ece0ff9a",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "132": {
+      "number": 132,
+      "path": "all-repos/Awesome-llms-labs/awesome-multi-agents-workflow",
+      "pin": "c692310651e111b784ceff981279101d33ca48e7",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "133": {
+      "number": 133,
+      "path": "all-repos/bradAGI/awesome-cli-coding-agents",
+      "pin": "15f0c8987b6fa3f003a0dc474000b49ff4bf8171",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "134": {
+      "number": 134,
+      "path": "all-repos/bradAGI/awesome-free-inference",
+      "pin": "b7547c3508724e8d1711eaf6a3ae9b9eff06c444",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "135": {
+      "number": 135,
+      "path": "all-repos/dipakkr/awesome-ai-engineering",
+      "pin": "abf786d838c76a3f50e587d38b6354804fcb6bb2",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "136": {
+      "number": 136,
+      "path": "all-repos/ianwieds/awesome-ai-agents",
+      "pin": "fe1ccc5cfa3d9280ae9be885bfb771d4a6f2aab7",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "137": {
+      "number": 137,
+      "path": "all-repos/kaushikb11/awesome-llm-agents",
+      "pin": "a3eb18b7609c642367fe04c96a462f02f2590d10",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "138": {
+      "number": 138,
+      "path": "all-repos/kyrolabs/awesome-agents",
+      "pin": "f8683ffbf6a9b70ac7ddc2bfc1e4898d0e8b9644",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "139": {
+      "number": 139,
+      "path": "all-repos/reacher-z/Awesome-CUA",
+      "pin": "34206d22b1a7e660bd0128ae17a53673ed2b7ed7",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "140": {
+      "number": 140,
+      "path": "all-repos/Shubhamsaboo/awesome-llm-apps",
+      "pin": "ff2016e6b98a81b92a846f39f7050b7337f81695",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "141": {
+      "number": 141,
+      "path": "all-repos/sihyeong/Awesome-LLM-Inference-Engine",
+      "pin": "6193d0ddc9eebe5ad839e7f5aec00d5a1ad39f2c",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "142": {
+      "number": 142,
+      "path": "all-repos/slavakurilyak/awesome-ai-agents",
+      "pin": "a32e86f60db8dd9556218403532264e0794822c4",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "143": {
+      "number": 143,
+      "path": "all-repos/Supersynergy/awesome-ai-agents-2026",
+      "pin": "0dcdf4a82ee58c000ce11e6e7fa196c76ecc01f1",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "144": {
+      "number": 144,
+      "path": "all-repos/xlite-dev/Awesome-LLM-Inference",
+      "pin": "6f142fe782580dc5a85390c677359ea9abeceb41",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "145": {
+      "number": 145,
+      "path": "all-repos/zenrran4nlp/Awesome-LLM-Inference-Serving",
+      "pin": "06159e484c18859ba9da6f221d029fe413a33321",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "146": {
+      "number": 146,
+      "path": "all-repos/12britz/awesome-free-models",
+      "pin": "ad5161feaaf5823a8e40133dba1e5f42d9916123",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "147": {
+      "number": 147,
+      "path": "all-repos/AILookup/free-llm-resources",
+      "pin": "4164eb6e07cbace3a78700411ec0a865ab7168ba",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "148": {
+      "number": 148,
+      "path": "all-repos/arc53/DocsGPT",
+      "pin": "ed108fbfdf4df37ae73b2b868c8a8e9bce9dbd9d",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "149": {
+      "number": 149,
+      "path": "all-repos/BerriAI/litellm",
+      "pin": "ac1cc5111cb26700710a4aafaef18df897634e16",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "150": {
+      "number": 150,
+      "path": "all-repos/ClawLabsAI/free-ai-models",
+      "pin": "aaa600bb9df9e8da2fd8985e838aa321315b5283",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "151": {
+      "number": 151,
+      "path": "all-repos/devanasolver/awesome-free-llm-apis",
+      "pin": "f6722aa4db252db2079254135c355b5c51ff158a",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "152": {
+      "number": 152,
+      "path": "all-repos/golapkamal/Free-LLM-API",
+      "pin": "90c84daab79885cc398a2c74670d13868d037288",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "153": {
+      "number": 153,
+      "path": "all-repos/kaiser-data/free-llm-proxy-router",
+      "pin": "18c9c7073159391bbf380a510dd88b63c9cb8408",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "154": {
+      "number": 154,
+      "path": "all-repos/khushaljethava/freellm-apis",
+      "pin": "f193281e9ce05ff61ba759ed355c9b75ca1d36e6",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "155": {
+      "number": 155,
+      "path": "all-repos/malda231125/free-llm-gateway",
+      "pin": "5d86d4a37a250c34b59fa6fd05bdb1934be94e2e",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "156": {
+      "number": 156,
+      "path": "all-repos/msmarkgu/RelayFreeLLM",
+      "pin": "9a1aabe1905ac1d6b3d48ac492089a0ea9668388",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "157": {
+      "number": 157,
+      "path": "all-repos/Portkey-AI/gateway",
+      "pin": "669825cbe89ee51569918b8f78a9db486fd69dd4",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "158": {
+      "number": 158,
+      "path": "all-repos/reqsgjh/free-coding-agent-models",
+      "pin": "3bccb67d10774a9a13059f04a1494624ba7a9499",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "159": {
+      "number": 159,
+      "path": "all-repos/richbrianx/free-llm-listing",
+      "pin": "fa20d35387424f8f1b1208dd3ba63453a9b9b006",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "160": {
+      "number": 160,
+      "path": "all-repos/shooter2062424/FreeLlmApiBenchmark",
+      "pin": "dd2dec8cf198bda36f5ca4eb54fd58a545975844",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "161": {
+      "number": 161,
+      "path": "all-repos/SidSharma010/free-llm-api-hub",
+      "pin": "ae104f20302899716238b67b289f7445a6ef5fb7",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "162": {
+      "number": 162,
+      "path": "all-repos/spacepirate15/quantum-free-router",
+      "pin": "08ccded39bfafc59105da2756bc355bc64e8a634",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "163": {
+      "number": 163,
+      "path": "all-repos/velo4705/awesome-free-byok-models",
+      "pin": "7e4991093c5f42eafabfaac9d9113abec21ecf48",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "164": {
+      "number": 164,
+      "path": "all-repos/XuexGao/free-llm-router",
+      "pin": "916242dfc10870c61b71584fe3bd2c233babb0c0",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "165": {
+      "number": 165,
+      "path": "all-repos/zebbern/no-cost-ai",
+      "pin": "a1e44647ac7cc17f9ae46963640d401503e3210c",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "166": {
+      "number": 166,
+      "path": "all-repos/b4rtaz/distributed-llama",
+      "pin": "ad662c93a0013f26d9560e383427f0be42d761a2",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "167": {
+      "number": 167,
+      "path": "all-repos/deepseek-ai/DeepSeek-V3",
+      "pin": "9b4e9788e4a3a731f7567338ed15d3ec549ce03b",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "168": {
+      "number": 168,
+      "path": "all-repos/JustVugg/colibri",
+      "pin": "0a5504a1dc64f86fcd0fe7db298b0448c730e7e6",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "169": {
+      "number": 169,
+      "path": "all-repos/Niko1221/Strata",
+      "pin": "13eedf552417a6a791a7d13c6597e24300ee3a09",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "170": {
+      "number": 170,
+      "path": "all-repos/sgl-project/sglang",
+      "pin": "91917942f0addfc272cfd31f4f21b4ef6828dfdd",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "171": {
+      "number": 171,
+      "path": "all-repos/vllm-project/llm-compressor",
+      "pin": "f8a3abb5358765a1864783deb3e38d3e2452912a",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "172": {
+      "number": 172,
+      "path": "all-repos/vllm-project/vllm",
+      "pin": "865cf8c1f2e5a0567fe6789663a5210ef904b57c",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "173": {
+      "number": 173,
+      "path": "all-repos/AIAnytime/Awesome-MCP-Servers",
+      "pin": "f21432dffbb7569e6c8fe119e9c949c791a13711",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "174": {
+      "number": 174,
+      "path": "all-repos/appcypher/awesome-mcp-servers",
+      "pin": "280218b4bba97a49facf929f8012dec5e30384b6",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "175": {
+      "number": 175,
+      "path": "all-repos/archestra-ai/archestra",
+      "pin": "df8a21bce9df33441d19dbdabdbcbce0b535290e",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "176": {
+      "number": 176,
+      "path": "all-repos/awslabs/mcp",
+      "pin": "5d58a6adaf89a056d0c14e732593dceb12e633df",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "177": {
+      "number": 177,
+      "path": "all-repos/BrowserMCP/mcp",
+      "pin": "a51ddc4ee2210b102468a52b114e6f00e5bd206e",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "178": {
+      "number": 178,
+      "path": "all-repos/github/github-mcp-server",
+      "pin": "0663b830582af923e30fb14cb2e10dd3248baa86",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "179": {
+      "number": 179,
+      "path": "all-repos/jaw9c/awesome-remote-mcp-servers",
+      "pin": "66ad71555a558501246c88397ea4ae97830e8c7c",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "180": {
+      "number": 180,
+      "path": "all-repos/microsoft/mcp",
+      "pin": "d97c4ee2b74357c3e4353e30606656c3530fa0c9",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "181": {
+      "number": 181,
+      "path": "all-repos/microsoft/playwright-mcp",
+      "pin": "78eca85361efb545a4c0f59b6140aef0721c5412",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "182": {
+      "number": 182,
+      "path": "all-repos/modelcontextprotocol/modelcontextprotocol",
+      "pin": "0175d20f8b2c49e0402c37c37ed39ae2be47277e",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "183": {
+      "number": 183,
+      "path": "all-repos/punkpeye/awesome-mcp-servers",
+      "pin": "f431a5cd95cebf038e587715635b9d1a0a4d0c02",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "184": {
+      "number": 184,
+      "path": "all-repos/punkpeye/awesome-remote-mcp-servers",
+      "pin": "37c0470e5285023f52b77537eb43b5744cb60418",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "185": {
+      "number": 185,
+      "path": "all-repos/TensorBlock/awesome-mcp-servers",
+      "pin": "fdbfcbfdd6e3ff949bc0f63598cc51040cf8a412",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "186": {
+      "number": 186,
+      "path": "all-repos/wong2/awesome-mcp-servers",
+      "pin": "39eb1d76d76e562657f3c657266a504cea159e23",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "188": {
+      "number": 188,
+      "path": "all-repos/aws-samples/sample-autonomous-cloud-coding-agents",
+      "pin": "c8fcdb082d7783709915a8b7e55155dfede89920",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "189": {
+      "number": 189,
+      "path": "all-repos/camel-ai/camel",
+      "pin": "0366b64bf3609c76f50e396715aab73ba58a930c",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "190": {
+      "number": 190,
+      "path": "all-repos/camunda/camunda",
+      "pin": "3755e7327e2bd2185aeff9b4a73577010fe300d2",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "191": {
+      "number": 191,
+      "path": "all-repos/cline/cline",
+      "pin": "72b3d7140553a733242126e51a7c2e87efe75c64",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "192": {
+      "number": 192,
+      "path": "all-repos/coleam00/Linear-Coding-Agent-Harness",
+      "pin": "c37dc096993011cb0cc48a0afab176cd9c8f2375",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "193": {
+      "number": 193,
+      "path": "all-repos/crewAIInc/crewAI",
+      "pin": "d7dfa0ef5ade793bd48ff7357c6eb45a45294371",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "194": {
+      "number": 194,
+      "path": "all-repos/daveshap/OpenAI_Agent_Swarm",
+      "pin": "020b44e2f1cc9c767abf5ea3acb69696e394f4ec",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "195": {
+      "number": 195,
+      "path": "all-repos/elder-plinius/T3MP3ST",
+      "pin": "29824d5625ede419ac8cdae418c8f4c72c6270f7",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "196": {
+      "number": 196,
+      "path": "all-repos/FoundationAgents/MetaGPT",
+      "pin": "11cdf466d042aece04fc6cfd13b28e1a70341b1f",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "197": {
+      "number": 197,
+      "path": "all-repos/google/adk-python",
+      "pin": "287c0b0e65899b0060efd5672c8f419c1119530d",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "198": {
+      "number": 198,
+      "path": "all-repos/google/ax",
+      "pin": "eac8313392111328560793cc7fe664cf3e7b4e4c",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "199": {
+      "number": 199,
+      "path": "all-repos/HKUDS/DeepCode",
+      "pin": "aa6ed16148719101b994882c94608ae12e88f870",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "200": {
+      "number": 200,
+      "path": "all-repos/Kocoro-lab/Shannon",
+      "pin": "391b619130281502d227a53dd97238c9791bf174",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "201": {
+      "number": 201,
+      "path": "all-repos/kyegomez/swarms",
+      "pin": "3b64d0bded6400f3bad68b20b4b6dbe2965381b1",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "202": {
+      "number": 202,
+      "path": "all-repos/langchain-ai/langgraph",
+      "pin": "08a2016953789a4f579b4d36bd1967941ec62012",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "203": {
+      "number": 203,
+      "path": "all-repos/microsoft/agent-framework",
+      "pin": "92838b60498395142cb8b74693353163e95a0faf",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "204": {
+      "number": 204,
+      "path": "all-repos/microsoft/autogen",
+      "pin": "8390985108cb1e3881f5f7297765758d8ad2540c",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "205": {
+      "number": 205,
+      "path": "all-repos/multica-ai/multica",
+      "pin": "fdfbfcd5e5d30c135255e63ab9af4c52672b7bbc",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "206": {
+      "number": 206,
+      "path": "all-repos/openai/openai-agents-js",
+      "pin": "8aeac0eb255dbdff9adcdc65a0eae638cbcea74f",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "207": {
+      "number": 207,
+      "path": "all-repos/openai/openai-agents-python",
+      "pin": "64fbde5d02b42ae5f9db668eb0184cdb3fc9d775",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "208": {
+      "number": 208,
+      "path": "all-repos/openai/swarm",
+      "pin": "6af0b4caf37dca4526dfd98e9fbd8ce36e7eeb22",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "209": {
+      "number": 209,
+      "path": "all-repos/openai/symphony",
+      "pin": "be10a1b79df723d6d7612b5651c8522704dafb2e",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "210": {
+      "number": 210,
+      "path": "all-repos/PrimeIntellect-ai/prime-agent",
+      "pin": "ad1613303dff0c642b9a95706678559356086107",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "211": {
+      "number": 211,
+      "path": "all-repos/TauricResearch/TradingAgents",
+      "pin": "9fa1196fffbcfd9de5146d2dd2869df84ab99838",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "212": {
+      "number": 212,
+      "path": "all-repos/VRSEN/agency-swarm",
+      "pin": "1bec92f0fc6e8485e53847c6f4a943a847058bff",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "213": {
+      "number": 213,
+      "path": "all-repos/win4r/ClawTeam-OpenClaw",
+      "pin": "1468be4d37e48156ac9285836f27e4dd68bd2307",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "214": {
+      "number": 214,
+      "path": "all-repos/Yeachan-Heo/oh-my-claudecode",
+      "pin": "dec7e4188c0e3de6b92fb3d734ee5c95326021ed",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "215": {
+      "number": 215,
+      "path": "all-repos/agent-sh/computer-use-linux",
+      "pin": "32e20aa99a7797b79b80f23572cab9bb8af5085d",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "216": {
+      "number": 216,
+      "path": "all-repos/bytebot-ai/bytebot",
+      "pin": "3d37894ce07ef8d8b40adc7fd309ad96c2a71313",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "217": {
+      "number": 217,
+      "path": "all-repos/callstack/agent-device",
+      "pin": "d78be6c88715ad80fc658497f23f91c86bf9489b",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "218": {
+      "number": 218,
+      "path": "all-repos/ChinaYiqun/Desktop-Tiny-Agent-Framework",
+      "pin": "6cd8563867f4189233406b92e33c1d53a8e33b55",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "219": {
+      "number": 219,
+      "path": "all-repos/Clevrr-AI/Clevrr-Computer",
+      "pin": "62925bc377e5b6c016c69a76dffc39de903e38a2",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "220": {
+      "number": 220,
+      "path": "all-repos/dddabtc/winremote-mcp",
+      "pin": "a3a18df435f657b092be498cc4c0e576cf40ae36",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "221": {
+      "number": 221,
+      "path": "all-repos/e2b-dev/open-computer-use",
+      "pin": "ee1025911c36e1f28bb3400c7d81170a8482f35d",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "222": {
+      "number": 222,
+      "path": "all-repos/e2b-dev/surf",
+      "pin": "d66db293ac513a98abe1fd5c58a69b5130e4a996",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "223": {
+      "number": 223,
+      "path": "all-repos/firerpa/lamda",
+      "pin": "a980a38130ba00711311e509e3009301e8ff705a",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "224": {
+      "number": 224,
+      "path": "all-repos/kortix-ai/agent-computer-use",
+      "pin": "d67eca2fadffa76c46d448e091b0ec4243e90b59",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "225": {
+      "number": 225,
+      "path": "all-repos/mediar-ai/mcp-server-macos-use",
+      "pin": "205c8880e8c06fa96a3e3a859e6edca728eb6c47",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "226": {
+      "number": 226,
+      "path": "all-repos/mediar-ai/terminator",
+      "pin": "73a381c0c1c33eda55f2c0ecb1d918bf5ec7561a",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "227": {
+      "number": 227,
+      "path": "all-repos/meituan/EvoCUA",
+      "pin": "4a0ad5fd4eb1d5b65966e1c7cc3feaa3b534eadd",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "228": {
+      "number": 228,
+      "path": "all-repos/microsoft/fara",
+      "pin": "a675d6d61c41c47ae87bacefeab22caad18e3e84",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "229": {
+      "number": 229,
+      "path": "all-repos/netease-youdao/LobsterAI",
+      "pin": "ae244dbaf9c8b0b77ea3e667e1934ce0ab49b9cc",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "230": {
+      "number": 230,
+      "path": "all-repos/openai/openai-cua-sample-app",
+      "pin": "6dd34b40acc1d002696ccd41aaf0a1f2f2be290c",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "231": {
+      "number": 231,
+      "path": "all-repos/OthersideAI/self-operating-computer",
+      "pin": "eb8165a2efb1b34d66a28ecebf8ca97ae67cbb79",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "232": {
+      "number": 232,
+      "path": "all-repos/remorses/usecomputer",
+      "pin": "711a429fa4f005c6a53a05c86a5a23a2cf258579",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "233": {
+      "number": 233,
+      "path": "all-repos/showlab/computer_use_ootb",
+      "pin": "21b05ae06de89700b998dc85d8ef64454f0d0291",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "234": {
+      "number": 234,
+      "path": "all-repos/showlab/ShowUI",
+      "pin": "21ed7cb24be0cc877bb8352ee34d58a9aea2c876",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "235": {
+      "number": 235,
+      "path": "all-repos/stablyai/orca",
+      "pin": "508dcb8610871c9504d8e7aba242a4d0ee38d319",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "236": {
+      "number": 236,
+      "path": "all-repos/trycua/acu",
+      "pin": "2a9b3fbdda601d339c5e76095b83b8642a0a04b5",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "237": {
+      "number": 237,
+      "path": "all-repos/trycua/cua",
+      "pin": "b3dafe7f47ab40a5d00c5023855317a2e901c062",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "238": {
+      "number": 238,
+      "path": "all-repos/TurixAI/TuriX-CUA",
+      "pin": "88c777bddfec9796667445873886a3563aa27246",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "239": {
+      "number": 239,
+      "path": "all-repos/vercel-labs/agent-desktop",
+      "pin": "46d2adf885002633b77d5a9956c9464b24f61431",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "240": {
+      "number": 240,
+      "path": "all-repos/vercel-labs/ai-sdk-computer-use",
+      "pin": "ed103da5ebe75112850fbba39872206dd3c439de",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "241": {
+      "number": 241,
+      "path": "all-repos/xlang-ai/OpenCUA",
+      "pin": "dfc91ba89f700d10f26ec50362d308571482ab8b",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "242": {
+      "number": 242,
+      "path": "all-repos/zhoushoujianwork/easyeda-agent",
+      "pin": "af76cd7ea73cd9789a68782cb4ad18d921fd0074",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "243": {
+      "number": 243,
+      "path": "all-repos/simular-ai/Agent-S",
+      "pin": "0fff0e634869dab72027435b4586e62300185d41",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "244": {
+      "number": 244,
+      "path": "all-repos/agentscope-ai/AgentTeams",
+      "pin": "3575b471e8eeb39d305ad7ea54d70dc523619d6d",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "245": {
+      "number": 245,
+      "path": "all-repos/modelcontextprotocol/servers",
+      "pin": "e1dc4b18dbb948921da37f3d4224a628730b43b0",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    },
+    "246": {
+      "number": 246,
+      "path": "all-repos/QwenLM/open-computer-use",
+      "pin": "9b38187273f7b5060df03d3914a09f443015601d",
+      "steps": [
+        {
+          "step": "sparse",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "lfs",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        },
+        {
+          "step": "nested",
+          "status": "blocked",
+          "reason": "Cloud disk has less than 500 MiB free; preserved existing files."
+        }
+      ]
+    }
+  },
+  "verification_base_commit": "e81201f9ea6ca31330b6de5ce72df710224523ed",
+  "source_commit": "6765b20c1c07c67bcf706c3ef73ba66676e7c907",
+  "attempted_complete": true,
+  "materialization_complete": false,
+  "limitations": [
+    "Cloud storage exhausted; reserve blocked remaining operations. No source files deleted.",
+    "This attempt records top-level sparse/LFS/nested operations; nested LFS hydration is separately retried by the committed materializer.",
+    "Passing a download command is not independent file or reading coverage proof."
+  ]
+}

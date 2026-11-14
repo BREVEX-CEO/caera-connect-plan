@@ -1,0 +1,52 @@
+{
+  "status": "BLOCKED / PARTIAL; exhaustive research is not complete",
+  "baseline_commit": "6765b20c1c07c67bcf706c3ef73ba66676e7c907",
+  "code_checks": {
+    "unit_tests": "13 PASS",
+    "syntax": "PASS",
+    "application_logic_modified": false
+  },
+  "materialization": {
+    "repositories_attempted": 243,
+    "complete": false,
+    "steps": {
+      "pass": 197,
+      "blocked": 532
+    }
+  },
+  "inventory": {
+    "original_top_level_pins_verified": 243,
+    "original_top_level_tree_counts": {
+      "tree": 126348,
+      "blob": 762412,
+      "commit": 15
+    },
+    "available_repositories_including_nested_and_ocade": 249,
+    "tracked_file_entries_including_nested_and_ocade": 771394,
+    "full_sizes_sha256_and_line_counts_complete": false,
+    "reason": "Cloud storage below metadata floor; interrupted full scan rolled back; original Git-tree archive is preserved."
+  },
+  "delivery_coverage": {
+    "sections": 0,
+    "complete": false,
+    "total_readable_lines": null
+  },
+  "acknowledged_coverage": {
+    "claude_acknowledgments": 0,
+    "complete": false,
+    "comprehension": "not measured"
+  },
+  "unresolved": [
+    "Insufficient disk for remaining physical checkouts, LFS payloads, nested hydration and full inventory.",
+    "Binary/container/unknown-encoding format handlers are not implemented; these remain explicit blocking exceptions, never waived.",
+    "No real Claude source sections have been delivered or acknowledged."
+  ],
+  "next_command": "python3 tools/source-research/reader.py session",
+  "capacity": {
+    "free_bytes": 151101440,
+    "minimum_inventory_bytes": 857016320,
+    "repositories": 249,
+    "sufficient": false,
+    "tracked_file_entries": 771394
+  }
+}

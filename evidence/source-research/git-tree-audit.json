@@ -1,0 +1,2209 @@
+{
+  "repositories": [
+    {
+      "repository": "all-repos/microsoft/UFO",
+      "pin": "eae3c0a8d168c47cb10df0652e293e092eda1078",
+      "tree_listing_sha256": "f516974a7635fb8813086a98df3da41888b6301cf2192e31d97d402bd0f68c39",
+      "counts": {
+        "tree": 212,
+        "blob": 932
+      }
+    },
+    {
+      "repository": "all-repos/sbroenne/mcp-windows",
+      "pin": "36b68634eab6711a179b0419814b3c02126bdea5",
+      "tree_listing_sha256": "b50471b14db8ff9ee3323bcae9f6a88e5058f4c38fd5ebc48d3b919e94bd5c0b",
+      "counts": {
+        "blob": 632,
+        "tree": 117
+      }
+    },
+    {
+      "repository": "all-repos/deploymenttheory/windows-mcp-server",
+      "pin": "3da251abb639b973af6f0c3a4ad23cf2c1cd2746",
+      "tree_listing_sha256": "4beb885d0c2009a12346211bd55f6ac5a6b601e3f5d29cc01973f4919f91f4d3",
+      "counts": {
+        "blob": 207,
+        "tree": 32
+      }
+    },
+    {
+      "repository": "all-repos/iFurySt/open-computer-use",
+      "pin": "e25be21caa0ea489316f6be6635d2a4766c4cd0b",
+      "tree_listing_sha256": "1e8ce2c2644f9ba49bbc81c5834bed0bbfce6ba2cf1fc4b750cd3867d188d28b",
+      "counts": {
+        "tree": 99,
+        "blob": 842
+      }
+    },
+    {
+      "repository": "all-repos/OpenAdaptAI/OpenAdapt",
+      "pin": "d243847de553e737ae18d98f48ecc9dd08bfb3e7",
+      "tree_listing_sha256": "28d620f74ef27dc67ce481b05fa680e81cd048111020239675c047876082a795",
+      "counts": {
+        "blob": 11709,
+        "tree": 2158
+      }
+    },
+    {
+      "repository": "all-repos/HKUDS/CLI-Anything",
+      "pin": "34f519533bc175d2fe287ab8316b0dd99bb9cc43",
+      "tree_listing_sha256": "b884e5e42668416153f828a1f7f30152439dd3b52f521828760a0b5c53824f28",
+      "counts": {
+        "tree": 710,
+        "blob": 1872
+      }
+    },
+    {
+      "repository": "all-repos/openinterpreter/openinterpreter",
+      "pin": "f09c887041133f52da1155e27d29edd8fa1f516e",
+      "tree_listing_sha256": "6b7948479bcf3e1aed39b2a2884d13370b9ab006ede6195a34422ff0a84f21cc",
+      "counts": {
+        "blob": 8721,
+        "tree": 999
+      }
+    },
+    {
+      "repository": "all-repos/openinterpreter/interpreter-workstation",
+      "pin": "ebb09d2aab94b83c132c30b19e7eeb0784b3e80e",
+      "tree_listing_sha256": "9e4abf0b82de24924331280caff337a080386560bd57c9c752975761ab6744af",
+      "counts": {
+        "blob": 2563,
+        "tree": 327,
+        "commit": 2
+      }
+    },
+    {
+      "repository": "all-repos/QwenLM/Qwen3-VL",
+      "pin": "96588727e44c78b25ba03ea03b8e12f7e64fd0da",
+      "tree_listing_sha256": "78a0d7709e898a19bcc2931e4c90eb575639e80ee60cacae52b0739b00c57681",
+      "counts": {
+        "blob": 154,
+        "tree": 32
+      }
+    },
+    {
+      "repository": "all-repos/QwenLM/Qwen-Agent",
+      "pin": "31a4d36d123688581a9e9744427272b33ce940e0",
+      "tree_listing_sha256": "c061586d56ff958f16afdb5219a934592281b3b737ce6746abe1fc37ab712955",
+      "counts": {
+        "tree": 72,
+        "blob": 345
+      }
+    },
+    {
+      "repository": "all-repos/microsoft/playwright-cli",
+      "pin": "b21724888b8100b05ef8dee3a92f2bb03bf4dcde",
+      "tree_listing_sha256": "587165bfdc0091e67cbfe4318722eefdb0da168626b3a350bc838404f02c3b87",
+      "counts": {
+        "tree": 10,
+        "blob": 36
+      }
+    },
+    {
+      "repository": "all-repos/web-infra-dev/midscene",
+      "pin": "bcb3498918f25c6484aeec576bed7e489bdee8b8",
+      "tree_listing_sha256": "470220ee8853fb349e156212a38c04f301e9b83b66494df096d64f1638843c84",
+      "counts": {
+        "tree": 517,
+        "blob": 3156
+      }
+    },
+    {
+      "repository": "all-repos/microsoft/magentic-ui",
+      "pin": "d3c9d13c39288257286a66daabf7c5b5fb72ee69",
+      "tree_listing_sha256": "70d8a51c59acdf989f5b0612ef704f1790fb993ac180ea61bfe58fb8130bf317",
+      "counts": {
+        "tree": 60,
+        "blob": 387
+      }
+    },
+    {
+      "repository": "all-repos/temporalio/sdk-typescript",
+      "pin": "4a5ee3476e20bcce0bde088ab035792a298118b5",
+      "tree_listing_sha256": "6d4a2668acfb81970a69cd7f47b1b9a24b733cc1150b56b4ccb4ea162bce3945",
+      "counts": {
+        "tree": 164,
+        "blob": 988,
+        "commit": 1
+      }
+    },
+    {
+      "repository": "all-repos/NousResearch/hermes-agent",
+      "pin": "005389f78b750749b58f5a5d066956bc117c58b2",
+      "tree_listing_sha256": "bad549dcfc15ead82f77de30c6c08b8f00ee26e8dcb3bd5123dbf8f9d47696b6",
+      "counts": {
+        "blob": 25842,
+        "tree": 1230
+      }
+    },
+    {
+      "repository": "all-repos/xlang-ai/OSWorld-V2",
+      "pin": "3f7bee39938c7fc707b6ce81a682066f9ff813cc",
+      "tree_listing_sha256": "8588712d3ebe8daa534abd7ea837757da402a80914efcd319a58f91ac43f8d98",
+      "counts": {
+        "tree": 178,
+        "blob": 1266,
+        "commit": 1
+      }
+    },
+    {
+      "repository": "all-repos/microsoft/markitdown",
+      "pin": "ed178952a6672abdfd35b5f9e76a80b6cefc086e",
+      "tree_listing_sha256": "56d56380c947f6df3656b0c9e0e16e2c5369674feef77d5f55719ac2acd76fac",
+      "counts": {
+        "tree": 30,
+        "blob": 197
+      }
+    },
+    {
+      "repository": "all-repos/tashfeenahmed/freellmapi",
+      "pin": "730ba7942a7acbfe2d30b20f6f9b6efcd8b5ae04",
+      "tree_listing_sha256": "d00be98ea6bd83dc60596ddc8118214c5cae623c64a5b6d021d71be96ed8e445",
+      "counts": {
+        "tree": 106,
+        "blob": 1387
+      }
+    },
+    {
+      "repository": "all-repos/pydantic/pydantic-ai",
+      "pin": "86d9ad923931d600f78bb100d402b9921b2db467",
+      "tree_listing_sha256": "d2b299ff0a08bdba0ba0a359c45a9b73373881135cbc5cbced7cb79054d73b6d",
+      "counts": {
+        "tree": 562,
+        "blob": 6014
+      }
+    },
+    {
+      "repository": "all-repos/huggingface/smolagents",
+      "pin": "96f33faaf028479119ec8d34507b47694cf14e34",
+      "tree_listing_sha256": "09f78fcca8e5825eed726939a3556fd781b4e8ce8b3198897982d41e4ca211ca",
+      "counts": {
+        "tree": 40,
+        "blob": 185
+      }
+    },
+    {
+      "repository": "all-repos/strands-agents/harness-sdk",
+      "pin": "46cbb8c94c93468cd1f06bbb8fff1e6384c9106f",
+      "tree_listing_sha256": "da17512982b92bea3945856a98b0352d27773e178af2db5e2891ee204f0760a0",
+      "counts": {
+        "tree": 657,
+        "blob": 3728
+      }
+    },
+    {
+      "repository": "all-repos/strands-agents/box",
+      "pin": "d5278f29972f7bf2f688e3fa76511d3a29705f33",
+      "tree_listing_sha256": "286bdc3b8ad0bec12475f946986271b65c574376bf3f2f7e3cfbbf4195a32af1",
+      "counts": {
+        "tree": 187,
+        "blob": 1134
+      }
+    },
+    {
+      "repository": "all-repos/vercel/ai",
+      "pin": "0e8e0543aeda7d4dd4ce6eade0d5b7d5a43644c1",
+      "tree_listing_sha256": "ccfdd474dc1811fee0b6ff7c090251151268ca4c52c4b482935094ad8e3630e5",
+      "counts": {
+        "tree": 1703,
+        "blob": 10210
+      }
+    },
+    {
+      "repository": "all-repos/microsoft/semantic-kernel",
+      "pin": "ff22ec32ed31096c98ad63376d4ecc9aefe0ff38",
+      "tree_listing_sha256": "a1939c1f299d15b5bf0131c5d94f0de9e3e7392f20e2dff86cfa5cf18af5e2d6",
+      "counts": {
+        "tree": 1217,
+        "blob": 4850
+      }
+    },
+    {
+      "repository": "all-repos/QwenLM/qwen-code",
+      "pin": "7efeb64b84c47dd59ca63d8816a4cc219e449e03",
+      "tree_listing_sha256": "98e198d76a11bca069062902675f5ab5479cbc37058de2306f69387c6b560b9b",
+      "counts": {
+        "blob": 14987,
+        "tree": 1293
+      }
+    },
+    {
+      "repository": "all-repos/google-gemini/gemini-cli",
+      "pin": "4ed06ed0ddc523a6d356a4ad35ddfea331041888",
+      "tree_listing_sha256": "aec3c2bce08b183e05fa3fe1183b1ce9e1e3a2d50d7721deb477a119c3eb2898",
+      "counts": {
+        "tree": 298,
+        "blob": 3057
+      }
+    },
+    {
+      "repository": "all-repos/openai/codex",
+      "pin": "b1573f102413e96a6481087922bf425231222dee",
+      "tree_listing_sha256": "ddf2113ff9e40aab12664adc23648acff70bf82c0401c2795c74434baf2c061a",
+      "counts": {
+        "blob": 10344,
+        "tree": 1082
+      }
+    },
+    {
+      "repository": "all-repos/langchain-ai/open-swe",
+      "pin": "d182338d01fa1f86e8f212080c340171d4b964c2",
+      "tree_listing_sha256": "93eac7aa6e00b9f47a3ad1740a0e1ab18319fdb34e1aaf926166a2454f633c28",
+      "counts": {
+        "tree": 376,
+        "blob": 3436
+      }
+    },
+    {
+      "repository": "all-repos/langgenius/dify",
+      "pin": "e07c1f42b94e349ddfaf76f31f356b323f7f288c",
+      "tree_listing_sha256": "9d051cf35c446050e4144748bed6219f9cc162b841e5d20d1946cda7dab3b051",
+      "counts": {
+        "tree": 3673,
+        "blob": 16114
+      }
+    },
+    {
+      "repository": "all-repos/CopilotKit/CopilotKit",
+      "pin": "7b88608455528bd2dd62752a01cc25b8c917d35c",
+      "tree_listing_sha256": "d294d9a2ac9b78abbb3cc5040eb2b55c8e4c11832558a33d9e888d72619194c4",
+      "counts": {
+        "blob": 24314,
+        "tree": 5537
+      }
+    },
+    {
+      "repository": "all-repos/ag2ai/ag2",
+      "pin": "fb3061e061990ef2c81ea5a86984519b227cabee",
+      "tree_listing_sha256": "8c3deacded3d25b289515c38b3860e4ca835e25446b422a8d9230df2809238d7",
+      "counts": {
+        "blob": 1693,
+        "tree": 260
+      }
+    },
+    {
+      "repository": "all-repos/lastmile-ai/mcp-agent",
+      "pin": "f62d849350816588b1c6294e7914bbe4d8b84072",
+      "tree_listing_sha256": "a4909120061c925f49c2340c8ae91caa3d0421f7f60978a1cce0a98bb0970472",
+      "counts": {
+        "tree": 275,
+        "blob": 1176
+      }
+    },
+    {
+      "repository": "all-repos/mcp-use/mcp-use",
+      "pin": "546081e8242da1e066417cfec7f8816bb018a14d",
+      "tree_listing_sha256": "6aae07f01aecfc99e627bc9b71145ba9a1ed486c287eb23fecfd8f0bd01e4ff0",
+      "counts": {
+        "tree": 524,
+        "blob": 2395
+      }
+    },
+    {
+      "repository": "all-repos/langgenius/dify-sandbox",
+      "pin": "78931c964721dda10f1f2cc06809ec5b4bbbb7a4",
+      "tree_listing_sha256": "fa3811bce25ec4f8d614e924e58565e7ec45d6df986e29c3ce437faef3d9a113",
+      "counts": {
+        "tree": 71,
+        "blob": 201
+      }
+    },
+    {
+      "repository": "all-repos/langgenius/mosoo-agent-driver",
+      "pin": "6aeea449b5260fc32b8d1eb7d0db7ac4d1e0c099",
+      "tree_listing_sha256": "b7dfa5a60fe2f6e268b8911facf3f9dbb503f667e0b0075319c3a82a4315e3f8",
+      "counts": {
+        "blob": 453,
+        "tree": 62
+      }
+    },
+    {
+      "repository": "all-repos/mediar-ai/MacosUseSDK",
+      "pin": "a2d7866355bca07faf476c5d180c8664b1992f8c",
+      "tree_listing_sha256": "e9b46aa1d030eca4a7acec166c500f7920c08a243a0bf524f80b4ddd9259de40",
+      "counts": {
+        "blob": 22,
+        "tree": 10
+      }
+    },
+    {
+      "repository": "all-repos/mediar-ai/skillhubz",
+      "pin": "338655e70826d48c6b22e022894566da52761820",
+      "tree_listing_sha256": "9d099632001d1e5c602e495e0d5aeaf6dd62f350e1c688784c69898a8f6bf131",
+      "counts": {
+        "tree": 492,
+        "blob": 595
+      }
+    },
+    {
+      "repository": "all-repos/caramaschiHG/awesome-ai-agents-2026",
+      "pin": "781b695139b8dfa231c0db5fd9cba02ccd518e84",
+      "tree_listing_sha256": "4f2a63c9e0572edeaa31fa1f55fb12e026a16229f88d0bbb5bc74b4d229d81be",
+      "counts": {
+        "blob": 5,
+        "tree": 1
+      }
+    },
+    {
+      "repository": "all-repos/0xNyk/awesome-agent-cortex",
+      "pin": "37d3bde550c1c0d71b420c305a40d166909b71b8",
+      "tree_listing_sha256": "010b71d8a016848f2aa6cda6dd6c8f78accf85592ecf5efb074856fb1828731e",
+      "counts": {
+        "blob": 86,
+        "tree": 15
+      }
+    },
+    {
+      "repository": "all-repos/agentskills/agentskills",
+      "pin": "83021e2be457a9b6679148719c1f6074f0ad975e",
+      "tree_listing_sha256": "2e3c2faa867fc385aeeb824d03d40cba531911a708dfffdc009500a2879e275f",
+      "counts": {
+        "tree": 59,
+        "blob": 142
+      }
+    },
+    {
+      "repository": "all-repos/AI-Architect-Studio/awesome-agent-operating-systems",
+      "pin": "1912dbacd68520b4649f0d96a2343f1194f74dd6",
+      "tree_listing_sha256": "c24b00cd49e016b91afa0e7d252da340590fd3e7e2234142033ea7283415ed80",
+      "counts": {
+        "blob": 17,
+        "tree": 5
+      }
+    },
+    {
+      "repository": "all-repos/anthropics/skills",
+      "pin": "2c5958ecac7cee2b583967a2c4981d0f4a75c579",
+      "tree_listing_sha256": "42f5fc3e22382d70fe4b275125c574ab5b3ee51be787a1ec68e9f8db080a377e",
+      "counts": {
+        "tree": 96,
+        "blob": 446
+      }
+    },
+    {
+      "repository": "all-repos/EverMind-AI/SkillCorpus",
+      "pin": "f9099647cf7e236230f4d2949b9016bccf9bdc89",
+      "tree_listing_sha256": "047077ea2b259130f681c6264f8d17e0fe5b1a5ba7d821fcd93a6cdd28e41876",
+      "counts": {
+        "tree": 74,
+        "blob": 380
+      }
+    },
+    {
+      "repository": "all-repos/gamedev-skills/awesome-gamedev-agent-skills",
+      "pin": "c6ca6c41c839b68319ffc08430b99ab768debc32",
+      "tree_listing_sha256": "04b1700d44b81ac8266abb0c41a3e248bdcac6c173f419d712b3b232e24ac45b",
+      "counts": {
+        "tree": 209,
+        "blob": 295
+      }
+    },
+    {
+      "repository": "all-repos/github/awesome-copilot",
+      "pin": "8ecd5b17f02fe5fbebf35eccd1867265eded811f",
+      "tree_listing_sha256": "f09acca43636a975c90a8dd54019f7450bd445682aea71244a3ee3fd71e46265",
+      "counts": {
+        "blob": 4175,
+        "tree": 1199
+      }
+    },
+    {
+      "repository": "all-repos/heilcheng/awesome-agent-skills",
+      "pin": "a92b1f3a9cdf00b056a8cc3247f214a139a95ae3",
+      "tree_listing_sha256": "c0216dc291b1c5ed7bfc97c9be82656327b7aeaf7576bae79d6ef35b35ca56d4",
+      "counts": {
+        "tree": 17,
+        "blob": 76
+      }
+    },
+    {
+      "repository": "all-repos/junminhong/awesome-agent-skills",
+      "pin": "f8767e5ea03b22154cf39fd82b1c39e154a6ea9c",
+      "tree_listing_sha256": "d850db7ef51c54ed41d328beb8d74785176bb08f17a1fe2261af5ec1a9822036",
+      "counts": {
+        "tree": 2,
+        "blob": 6
+      }
+    },
+    {
+      "repository": "all-repos/kaspasejo/AG-skills",
+      "pin": "6f9d6c1d12e693f1216e7f582cc54005feba919c",
+      "tree_listing_sha256": "95a36163fc9cf14ee616e30b24f6f4f256b45ce0eff1234f19290291ba633665",
+      "counts": {
+        "blob": 3007,
+        "tree": 1159
+      }
+    },
+    {
+      "repository": "all-repos/kmjnr/antigravity-agent-skills",
+      "pin": "8692fbc68fd47d6ec46c406545dc3bdccdc79c1a",
+      "tree_listing_sha256": "47e8b07028306829e815832fd1a4f012114a9b252f7bd6460b9af1c53685eead",
+      "counts": {
+        "tree": 1745,
+        "blob": 4125
+      }
+    },
+    {
+      "repository": "all-repos/langchain-ai/langchain-skills",
+      "pin": "32d6228affabb653720d6c20187a8a7afc292478",
+      "tree_listing_sha256": "85146c1e4e58900def3750ec2933755fc26ba7b1f8c266337057531f2700464d",
+      "counts": {
+        "tree": 42,
+        "blob": 77
+      }
+    },
+    {
+      "repository": "all-repos/libukai/awesome-agent-skills",
+      "pin": "3159af9b36eda650e6e4e7ac7ff8bd59f24f4983",
+      "tree_listing_sha256": "0893e26ee616a120d059dd543332b924d79480b167ce7450db00944cf2bf3fa5",
+      "counts": {
+        "blob": 32,
+        "tree": 4
+      }
+    },
+    {
+      "repository": "all-repos/linny006/awesome-agent-skills",
+      "pin": "d99f15862c104e8bc8f9ad7dd756330bd4bdd9aa",
+      "tree_listing_sha256": "b30347524740ee743d7266e6e1e08086e17553f7ef0c63bcc2f2f903816b34e2",
+      "counts": {
+        "tree": 3,
+        "blob": 10
+      }
+    },
+    {
+      "repository": "all-repos/microsoft/SkillOpt",
+      "pin": "45f65ca04f5f6713bca7b9797b495696ba812751",
+      "tree_listing_sha256": "3ca5669f63e791253d2e20145c9cbec8caf2f539b28607927effd541cee227a8",
+      "counts": {
+        "tree": 126,
+        "blob": 496
+      }
+    },
+    {
+      "repository": "all-repos/obra/superpowers",
+      "pin": "22f0b463e7a5e579904dd6211a520321035526f7",
+      "tree_listing_sha256": "7964b9d5f9438adef48dc5a5ea79180f067c30fe0ec1c6faaa58f8075f678d53",
+      "counts": {
+        "tree": 72,
+        "blob": 236
+      }
+    },
+    {
+      "repository": "all-repos/philipbankier/awesome-agent-skills",
+      "pin": "699edafb2b7cd99f6fdd412654bee24b0366dc7c",
+      "tree_listing_sha256": "5592aac9817945203c66e2e95a19eafe76d4678d5b1f482f8fd7662cefff1c3b",
+      "counts": {
+        "tree": 12,
+        "blob": 51
+      }
+    },
+    {
+      "repository": "all-repos/Prat011/awesome-llm-skills",
+      "pin": "35e1ea23b6c5f50c420d5591973aa8ad4f2931ff",
+      "tree_listing_sha256": "12759850eff716e7e3f3e8610f77c4f60028323e054d0a7366ce7a8aac1ccdba",
+      "counts": {
+        "blob": 372,
+        "tree": 78
+      }
+    },
+    {
+      "repository": "all-repos/RKiding/Awesome-finance-skills",
+      "pin": "853f09b4d0baae747759ed31e21ed5c5b2316a5f",
+      "tree_listing_sha256": "3066f4349fe17009f5897b1c0cbc794bfbf5845852db50b2cb3e3aeb67bbee0b",
+      "counts": {
+        "blob": 163,
+        "tree": 67
+      }
+    },
+    {
+      "repository": "all-repos/seb1n/awesome-ai-agent-skills",
+      "pin": "75865a5d037a4cdaa7f409a4ec14ab9b0292920b",
+      "tree_listing_sha256": "007779b9b0b8eacfa4376fac58bab459b9c4dab19c93f73026937153567a33c0",
+      "counts": {
+        "tree": 176,
+        "blob": 171
+      }
+    },
+    {
+      "repository": "all-repos/sickn33/agentic-awesome-skills",
+      "pin": "560b762c309d6b96315855d7968727d3bca7df20",
+      "tree_listing_sha256": "efdce024e3725f3e02398962838549e2e0f9ca4a025f477569631468885e4b6b",
+      "counts": {
+        "tree": 14743,
+        "blob": 31044
+      }
+    },
+    {
+      "repository": "all-repos/TerminalSkills/skills",
+      "pin": "42289059901710441bfa8081c08c3a9f36b93f9c",
+      "tree_listing_sha256": "ec6fcbdba1462a8fdefd4199393c235625cea720898a610dfcd1730b1c3b7b56",
+      "counts": {
+        "tree": 1156,
+        "blob": 3277
+      }
+    },
+    {
+      "repository": "all-repos/vercel-labs/skills",
+      "pin": "b716f9dc2ba36b6aa8f0080615e5a3a6caeac63b",
+      "tree_listing_sha256": "07b8c7687ef061fd83850644ea7449a105bd1ebca27722cea567be6ea5e81963",
+      "counts": {
+        "tree": 35,
+        "blob": 217
+      }
+    },
+    {
+      "repository": "all-repos/VoltAgent/awesome-agent-skills",
+      "pin": "6d483e29da745a010d88974ef6d0e50d15755e9a",
+      "tree_listing_sha256": "2affdfc7864d3d8f9233a092c1a543b1b6ab2230cc79cc04545ff2010283a8cd",
+      "counts": {
+        "blob": 4
+      }
+    },
+    {
+      "repository": "all-repos/WenyuChiou/ai-research-skills",
+      "pin": "b3b615748f9050ba16d912dee0369b273fbc1cf0",
+      "tree_listing_sha256": "ceb81c27a4bb6bebf59e4580c86ee2e6405f0c857df1d3c53b10516a5ae65618",
+      "counts": {
+        "tree": 24,
+        "blob": 162
+      }
+    },
+    {
+      "repository": "all-repos/agentscope-ai/agentscope",
+      "pin": "27d8359300f16e44f9d4d7184620480427e067af",
+      "tree_listing_sha256": "129e2021b0983623c4448b7a77bbc595532db31cf1bd6ffafdc548cc62e254ff",
+      "counts": {
+        "tree": 210,
+        "blob": 1314
+      }
+    },
+    {
+      "repository": "all-repos/agno-agi/agno",
+      "pin": "7c3b729667e66282f0d845adbd507ee07242c5eb",
+      "tree_listing_sha256": "56000436b84931ff34b3df73afce3b6860d6559ba0808614df3f57692e94c5cb",
+      "counts": {
+        "blob": 6569,
+        "tree": 904
+      }
+    },
+    {
+      "repository": "all-repos/Aider-AI/aider",
+      "pin": "5dc9490bb35f9729ef2c95d00a19ccd30c26339c",
+      "tree_listing_sha256": "a9d581da39d7edbb7ecc623b3a1c54788fb8157ff73d4b746b56224480bcbdda",
+      "counts": {
+        "blob": 691,
+        "tree": 89
+      }
+    },
+    {
+      "repository": "all-repos/aaif-goose/goose",
+      "pin": "2365bc5e898a38133c373eef2d1357416acd66e2",
+      "tree_listing_sha256": "027089efabc7656a03aa429bfd8112d1d0f77c5f7a39df77430a889be3d0fc02",
+      "counts": {
+        "tree": 508,
+        "blob": 2585
+      }
+    },
+    {
+      "repository": "all-repos/bytedance/deer-flow",
+      "pin": "085b52b5f39a2dc6ca23f207584763bc17d3950b",
+      "tree_listing_sha256": "6fe485c3a04e6fed3f44744b6e42f18ad27d8e3c1939f2296fb60929d949773a",
+      "counts": {
+        "tree": 639,
+        "blob": 4847
+      }
+    },
+    {
+      "repository": "all-repos/continuedev/continue",
+      "pin": "5522c6f44ca0ac3528b37244818fbfa39b5af470",
+      "tree_listing_sha256": "49b634151f5741a63cf2d715ca35a737a21ce41117ae69087a7f83990986b515",
+      "counts": {
+        "tree": 517,
+        "blob": 3058
+      }
+    },
+    {
+      "repository": "all-repos/deepset-ai/haystack",
+      "pin": "4b4346b6d798338d9b43e70115006494012b1756",
+      "tree_listing_sha256": "4176de2ee7ff34dec8f41c2c20e10c590f5710e906f48eaa3e94db6f4b74226d",
+      "counts": {
+        "tree": 1223,
+        "blob": 13601
+      }
+    },
+    {
+      "repository": "all-repos/google/adk-js",
+      "pin": "a662b30976d68625a7348f3139bb41806aad7818",
+      "tree_listing_sha256": "85e949aa206afdeba027f4535a93f7bf89880c486be07613162cabc8ba0ffbb6",
+      "counts": {
+        "blob": 1391,
+        "tree": 386
+      }
+    },
+    {
+      "repository": "all-repos/langchain-ai/deepagents",
+      "pin": "a93aed4bca3a5e4d45bff393e16092222767e6c3",
+      "tree_listing_sha256": "af54ed6ba4a8de178014e7d388a68b6cc10c7791a78310d73463a938582f983a",
+      "counts": {
+        "tree": 365,
+        "blob": 1911
+      }
+    },
+    {
+      "repository": "all-repos/langchain-ai/langchain",
+      "pin": "ea17e48f0a4336c920394fd029de99f1568b4c38",
+      "tree_listing_sha256": "ffbeefa4d12312b822ba7328179332344b5e581a10d6409d9be5161c136a2ee3",
+      "counts": {
+        "tree": 595,
+        "blob": 3300
+      }
+    },
+    {
+      "repository": "all-repos/mastra-ai/mastra",
+      "pin": "7277766d6c967c475675d58ff2d0e5c6d7be7c84",
+      "tree_listing_sha256": "092f8b2022ed806e9d016c78b8e7917c984bb129b54ae71c74f305a762dc5f7a",
+      "counts": {
+        "tree": 3782,
+        "blob": 23625
+      }
+    },
+    {
+      "repository": "all-repos/microsoft/agent-framework-go",
+      "pin": "2970ef8ead60f174014be894fd94bfdd16e6004f",
+      "tree_listing_sha256": "87a192b67b64cb318293d7853000eff97d7e817007e80c49d82c529e776e1af5",
+      "counts": {
+        "blob": 718,
+        "tree": 274
+      }
+    },
+    {
+      "repository": "all-repos/openclaw/openclaw",
+      "pin": "b27440329b4c450ec4c572e40ed338ed98f3d9c7",
+      "tree_listing_sha256": "ec81059880ea963b5cf2f9068c0b2dde4c48ab4bc1d2d51c907c14a8aa7b0e21",
+      "counts": {
+        "tree": 2341,
+        "blob": 65003
+      }
+    },
+    {
+      "repository": "all-repos/OpenHands/OpenHands",
+      "pin": "830c0459e2f6056ab81e020c22970e782ae1be75",
+      "tree_listing_sha256": "237f9dff26ca7bf4203484ebc6eef3637102b2733d3ab1471e9bfc0e7b82bdab",
+      "counts": {
+        "tree": 334,
+        "blob": 2916
+      }
+    },
+    {
+      "repository": "all-repos/Significant-Gravitas/AutoGPT",
+      "pin": "ac4e88888d3838fd5790dff2a85845a654d05024",
+      "tree_listing_sha256": "aad66128d733118d6d38b2e5f9bdfd38d142aa35486fc2e69cc7f1ac2571f90f",
+      "counts": {
+        "tree": 2275,
+        "blob": 11131
+      }
+    },
+    {
+      "repository": "all-repos/browserbase/stagehand",
+      "pin": "6f2686d792b7f5836b04754e0f6a44db39928592",
+      "tree_listing_sha256": "7ef324e37f9b7f63d420fb39830b0c74706b532aad60df8edc254f0e6206cdde",
+      "counts": {
+        "tree": 301,
+        "blob": 1742
+      }
+    },
+    {
+      "repository": "all-repos/e2b-dev/desktop",
+      "pin": "91f23acaab7312e847596acc44e6f7763f56917f",
+      "tree_listing_sha256": "b6c97f7f077d426e9f23a98dc2bc91fb4f970c7f22de7cd38da573aa0b72822f",
+      "counts": {
+        "tree": 12,
+        "blob": 42
+      }
+    },
+    {
+      "repository": "all-repos/microsoft/OmniParser",
+      "pin": "354021201345a96178360b28733573e27269f2de",
+      "tree_listing_sha256": "451c17ace99cd7c4098e1577b535a17a5f3518add2676cfe90fa326433864fab",
+      "counts": {
+        "blob": 78,
+        "tree": 21
+      }
+    },
+    {
+      "repository": "all-repos/microsoft/playwright",
+      "pin": "b4d016aadc5cbd2b898a284307975fe73e05483d",
+      "tree_listing_sha256": "2561b6c29d6b425ee3b0d69d826f9dcba8d9b15ee7726faa5f01c12281f62c9c",
+      "counts": {
+        "tree": 343,
+        "blob": 3149
+      }
+    },
+    {
+      "repository": "all-repos/Skyvern-AI/skyvern",
+      "pin": "a1eda3a24a5681a24eb3cd2d66899b7585ccf9b3",
+      "tree_listing_sha256": "e4d3b43604e1073beea4655d67c1cfca9cc571a82da27b20b9e5b34b42a1df1f",
+      "counts": {
+        "tree": 371,
+        "blob": 5797,
+        "commit": 1
+      }
+    },
+    {
+      "repository": "all-repos/SWE-agent/SWE-agent",
+      "pin": "3ea751c087f32b16e039a2233dd6eefecef325d5",
+      "tree_listing_sha256": "628fc0dc3404b41ff31268e416e4f2d6f2daa38c527a4290b9a5645327695edf",
+      "counts": {
+        "tree": 113,
+        "blob": 409
+      }
+    },
+    {
+      "repository": "all-repos/beam-cloud/beta9",
+      "pin": "fc2aea34e6e884f7fcb7d7082e835340a534a1bf",
+      "tree_listing_sha256": "873a31da583d09267c677ee5c7fe5353004ab84b04c19b0a4c80eeaffb45a129",
+      "counts": {
+        "blob": 1579,
+        "tree": 205
+      }
+    },
+    {
+      "repository": "all-repos/ggml-org/llama.cpp",
+      "pin": "3549c274dc22001d9118713fa56a10085b85de3b",
+      "tree_listing_sha256": "69a623ba7ac1b2808df17919230587329946be01eae4f9f27cfe845c22447f78",
+      "counts": {
+        "blob": 4171,
+        "tree": 399
+      }
+    },
+    {
+      "repository": "all-repos/Haidra-Org/AI-Horde",
+      "pin": "7411b0de0432bd3eb57b02124608b7421b4fd75c",
+      "tree_listing_sha256": "e57690f11ab34ac254a0ff624c31e3b4c71874a37de12e41907ec332fb42937b",
+      "counts": {
+        "blob": 643,
+        "tree": 46,
+        "commit": 1
+      }
+    },
+    {
+      "repository": "all-repos/ollama/ollama",
+      "pin": "a5864fcb33969705de3c0ebfedf4b2a16c970bcc",
+      "tree_listing_sha256": "30a78610eee052f31c88ff2ce410c9d1b692601030c20e9e89def3008b1fa424",
+      "counts": {
+        "blob": 1657,
+        "tree": 203
+      }
+    },
+    {
+      "repository": "all-repos/QwenLM/Qwen3",
+      "pin": "7a2f61ffc7a20d47efcd2bf97f6f2bf52729042e",
+      "tree_listing_sha256": "9c60862ba398ee7c4e985605ca0ff2abc46481c14a6efb96c7fe3e3872eca852",
+      "counts": {
+        "tree": 38,
+        "blob": 104
+      }
+    },
+    {
+      "repository": "all-repos/QwenLM/Qwen3.8",
+      "pin": "2ea10dc725823bf7c3e21ce8557cbe15245132ae",
+      "tree_listing_sha256": "8af3cbfd84499f8e6387c854535a0b3ad8e925fdface3ff6d3114e91611eb912",
+      "counts": {
+        "tree": 3,
+        "blob": 5
+      }
+    },
+    {
+      "repository": "all-repos/a2aproject/A2A",
+      "pin": "4d7cda4b1754ed410e41bf3be7ad9ebc62afe3d3",
+      "tree_listing_sha256": "b6f22bc25395450d86960491264048358c38583fe899a6f2e67f4d5fe853df6c",
+      "counts": {
+        "tree": 58,
+        "blob": 149
+      }
+    },
+    {
+      "repository": "all-repos/ComposioHQ/composio",
+      "pin": "fdee7595166f8b5dcff026dc609760d1ce82b2e2",
+      "tree_listing_sha256": "616be6a75a6f859b66ba3a00076cf4558dcd3ed5aef8cfc32a6051ca1660fabe",
+      "counts": {
+        "tree": 910,
+        "blob": 4031,
+        "commit": 2
+      }
+    },
+    {
+      "repository": "all-repos/modelcontextprotocol/inspector",
+      "pin": "488c30d9d16e4993bc548ad298eb7450f5125c93",
+      "tree_listing_sha256": "0afddb1c22b66a36a5179dd272b0e533eb0fc049d613822ca85c980d874eb55d",
+      "counts": {
+        "tree": 268,
+        "blob": 1852
+      }
+    },
+    {
+      "repository": "all-repos/modelcontextprotocol/python-sdk",
+      "pin": "77001c96f9507be0f4d009b83210a384a5e08bda",
+      "tree_listing_sha256": "d6b9105e32d25f06d6f8629cfc13b7e55a729a905aee140607a42793824c69fc",
+      "counts": {
+        "tree": 295,
+        "blob": 1726
+      }
+    },
+    {
+      "repository": "all-repos/modelcontextprotocol/registry",
+      "pin": "115f85225c9fac5281d8a2dc8551cf49b004d2f9",
+      "tree_listing_sha256": "96214b0aaf3726f2bf8c3313fdde14de99d7f9bf09263212f4ffbe04c95d7bd7",
+      "counts": {
+        "blob": 557,
+        "tree": 80
+      }
+    },
+    {
+      "repository": "all-repos/modelcontextprotocol/typescript-sdk",
+      "pin": "919bb8ea88b6e10e72c2f8b6218fad4cfdc40b2c",
+      "tree_listing_sha256": "f3572e699bf9e7d68a09a842ad1c866c0ca5ca0be6b92601ccad5e74a63f28c5",
+      "counts": {
+        "tree": 353,
+        "blob": 1253
+      }
+    },
+    {
+      "repository": "all-repos/n8n-io/n8n",
+      "pin": "251c44bc5e072afcc3daab3c3d1baf525afd8d41",
+      "tree_listing_sha256": "2334be048a4144343b0a6d930665b34731109fe0d80cf697541d0ae5745c2c27",
+      "counts": {
+        "blob": 34862,
+        "tree": 7612
+      }
+    },
+    {
+      "repository": "all-repos/AgentOps-AI/agentops",
+      "pin": "f8e907b92dabe47232978023fdcb01e2a7d4b752",
+      "tree_listing_sha256": "09d5086b596e376e1da4a20f5839db72e60688555ee1e691383a0bd9bf9921b3",
+      "counts": {
+        "blob": 1531,
+        "tree": 345
+      }
+    },
+    {
+      "repository": "all-repos/cloudflare/agents",
+      "pin": "9b73399c7cee9550c19146b7f76a735a10700ada",
+      "tree_listing_sha256": "6bf6b5199409390529e97adbe8c042829c019820a1a1c0dbe7d00447a1e38656",
+      "counts": {
+        "tree": 574,
+        "blob": 3150
+      }
+    },
+    {
+      "repository": "all-repos/confident-ai/deepeval",
+      "pin": "34db63dd005ebc9a905c8ef4741ae0687c93c14c",
+      "tree_listing_sha256": "78472acc93704145e7ca2fca3f9459df6721af0b1b4cd73c84421bfc189cffcf",
+      "counts": {
+        "tree": 747,
+        "blob": 3200
+      }
+    },
+    {
+      "repository": "all-repos/e2b-dev/E2B",
+      "pin": "6dc8d5a10aa5db8dc8cf9c4d95fc769d886197fd",
+      "tree_listing_sha256": "a251d20999c5dc81c6aa1358eb17dbcd2a430172120fd842d4b1a848029105e0",
+      "counts": {
+        "tree": 292,
+        "blob": 1238
+      }
+    },
+    {
+      "repository": "all-repos/EleutherAI/lm-evaluation-harness",
+      "pin": "d6de81643928d653435c431bae19945d41d32520",
+      "tree_listing_sha256": "67b55f3077738d4d5c13cb901de0ebd64f2b104cb034e3bf82cf9f4ec2735062",
+      "counts": {
+        "tree": 858,
+        "blob": 16415
+      }
+    },
+    {
+      "repository": "all-repos/getzep/graphiti",
+      "pin": "ed23196506eba8806fae6da831d73fcd2ad714d8",
+      "tree_listing_sha256": "28007b9fb044dbddfda9c5b0bb905bb7a66e35c944167b16eb51463629b70d58",
+      "counts": {
+        "blob": 424,
+        "tree": 80
+      }
+    },
+    {
+      "repository": "all-repos/harbor-framework/harbor",
+      "pin": "ec6aeab7fe0eb51df52b4e72c524daf5ea9cc5f4",
+      "tree_listing_sha256": "6a680fc54d33bba5a376fe78d67224057ca693d63360337d894f776caf2f7c93",
+      "counts": {
+        "tree": 1167,
+        "blob": 3770
+      }
+    },
+    {
+      "repository": "all-repos/kubernetes-sigs/agent-sandbox",
+      "pin": "454d3353e5c26c561dd6de389f32f7f285030e38",
+      "tree_listing_sha256": "b82c5d13b327095691b34d06bbf4c6af402dfab853705f9a23e5490824b4d68c",
+      "counts": {
+        "tree": 563,
+        "blob": 1977
+      }
+    },
+    {
+      "repository": "all-repos/langfuse/langfuse",
+      "pin": "48a31810e1c6e6a4a589b1eacc5eecc7960c9b87",
+      "tree_listing_sha256": "e760183eaad5b0d1699eede8320c10b87641dd019fe234785f5291f92a66bb21",
+      "counts": {
+        "tree": 2249,
+        "blob": 8031
+      }
+    },
+    {
+      "repository": "all-repos/livekit/agents",
+      "pin": "cbb5770c716c70009969cd7fa88e3c3662222ce9",
+      "tree_listing_sha256": "26da2b6a9a0cf51e7c55fc644476212a9769e7026d293d5aa212bebe44558b5a",
+      "counts": {
+        "blob": 1689,
+        "tree": 476
+      }
+    },
+    {
+      "repository": "all-repos/mem0ai/mem0",
+      "pin": "f1791daa86d469249c9b002f62644d58a1eb96a0",
+      "tree_listing_sha256": "239329f5a6980e56008c3e87e80ab0844adfda476c1e4733a57a7c6632712d7a",
+      "counts": {
+        "tree": 374,
+        "blob": 1843,
+        "commit": 1
+      }
+    },
+    {
+      "repository": "all-repos/NVIDIA/SkillSpector",
+      "pin": "c81615007d40e86051a302a3cf897f8a05264928",
+      "tree_listing_sha256": "c682eae253f57b8fe659b49596eab1e1b2215cdacf22f2dbee55ae31ce34d764",
+      "counts": {
+        "blob": 582,
+        "tree": 96
+      }
+    },
+    {
+      "repository": "all-repos/openai/evals",
+      "pin": "8eac7a7de5215c907fbddc30efdaf316913eccdd",
+      "tree_listing_sha256": "95590378586080f9fbb1b49fc3c73c58cddd675562de66c9a860895760cd0caf",
+      "counts": {
+        "blob": 1728,
+        "tree": 662
+      }
+    },
+    {
+      "repository": "all-repos/opensandbox-group/OpenSandbox",
+      "pin": "89a2138f95a12d4ab3dc6ed4410f833c2257be97",
+      "tree_listing_sha256": "a5fee7395cccb792941036daa022ef426758242c3ae79a2fa1f9f84fe79cb86e",
+      "counts": {
+        "tree": 610,
+        "blob": 3371
+      }
+    },
+    {
+      "repository": "all-repos/topoteretes/cognee",
+      "pin": "4053f6cc5536757f26a3665eed95c50088e6dc0b",
+      "tree_listing_sha256": "e6534c627c6864fd4db3d8d67291b2552a994a0a19a39193f650ed26cf94c83c",
+      "counts": {
+        "tree": 984,
+        "blob": 5307
+      }
+    },
+    {
+      "repository": "all-repos/truera/trulens",
+      "pin": "32f57106c7f897a05806107737c413e65665fe46",
+      "tree_listing_sha256": "f1c8221374fc69a256c0b5c7425746f6a381bdbebfbd32b79bce6d2f582f1d63",
+      "counts": {
+        "tree": 387,
+        "blob": 1584
+      }
+    },
+    {
+      "repository": "all-repos/browser-use/browser-use",
+      "pin": "e717df1839a2d7368b108de6694f01e9c659b0de",
+      "tree_listing_sha256": "a4efc49f45a9ffd6652f34f1a639ab5691b9718005737d0e90adbe07fbe1df2d",
+      "counts": {
+        "blob": 144,
+        "tree": 30
+      }
+    },
+    {
+      "repository": "all-repos/browser-use/browser-use-pi",
+      "pin": "4cbc951d661cc9bc9896845a2bb3ccdb6d11d0b6",
+      "tree_listing_sha256": "4c55ffddd64774d31a9949ffa112f6f534a9418c6ee8eac15f1e7c439c08ab8b",
+      "counts": {
+        "blob": 90,
+        "tree": 11
+      }
+    },
+    {
+      "repository": "all-repos/browser-use/vibetest-use",
+      "pin": "fe0b90ac9d6a129ce06f5b53074241a9f205015b",
+      "tree_listing_sha256": "b4b8cd54b2e8e151025d5812f60e693693efa1b2552476a2cfec8c6621e0442a",
+      "counts": {
+        "blob": 12,
+        "tree": 2
+      }
+    },
+    {
+      "repository": "all-repos/iFurySt/open-browser-use",
+      "pin": "97ca258065fc285991c46a65007d823de2996fd9",
+      "tree_listing_sha256": "605d1c57877c0bd17157041184a858c42e9ab7d10db53d634a4670134781ca57",
+      "counts": {
+        "blob": 308,
+        "tree": 76
+      }
+    },
+    {
+      "repository": "all-repos/jackwener/OpenCLI",
+      "pin": "9bc5f5ca132ec4d4e48d7ee517d4303bf159e8e8",
+      "tree_listing_sha256": "ec89ccdfc31210e80aa2365466fdf1b827e1e0cb955e8d16c1e8413358b1d870",
+      "counts": {
+        "tree": 244,
+        "blob": 2363
+      }
+    },
+    {
+      "repository": "all-repos/Jeomon/Web-Use",
+      "pin": "36fe04eaedda147225f4149dc115e6d6f5ae6611",
+      "tree_listing_sha256": "dbd1bd882fcdad467a3ba48c062de2de9da00eb1975aa136f0d8986153405c6b",
+      "counts": {
+        "blob": 594,
+        "tree": 196
+      }
+    },
+    {
+      "repository": "all-repos/m1guelpf/browser-agent",
+      "pin": "992245391f0f3e3bb7ca141850f7d79a24549cb8",
+      "tree_listing_sha256": "b69facda615a3bddb90f3c3893a60e8d28f1302a0111dae2936d4790237c7429",
+      "counts": {
+        "blob": 14,
+        "tree": 3
+      }
+    },
+    {
+      "repository": "all-repos/microsoft/CUAWright",
+      "pin": "35dbcf389ce2d9a77eb22f539c79a1274ea53559",
+      "tree_listing_sha256": "a76f3fa99dac075930d113c7205c603ad8b7542b7c2a8770b6f7f467b57a04be",
+      "counts": {
+        "tree": 66,
+        "blob": 199
+      }
+    },
+    {
+      "repository": "all-repos/nanobrowser/nanobrowser",
+      "pin": "6c4c0802a3967cb25e82f1249fcd68e79614c75f",
+      "tree_listing_sha256": "427d661ce8b054db464c068109fdd4e5803a952e2622e971955b17d3422f12ab",
+      "counts": {
+        "blob": 490,
+        "tree": 57
+      }
+    },
+    {
+      "repository": "all-repos/SawyerHood/dev-browser",
+      "pin": "520ba5cb4fa2856a501376cd8a62fe54a6576549",
+      "tree_listing_sha256": "f754d07ef0908d5d2211ac71536ea0e9cad0ced5f7e8a637590cafb8ac215be8",
+      "counts": {
+        "tree": 24,
+        "blob": 99
+      }
+    },
+    {
+      "repository": "all-repos/Tencent/BrowserSkill",
+      "pin": "cfe1f84e6d176264515dc37b98eb4f131419da63",
+      "tree_listing_sha256": "cadbd5198a2fa7125a0b71e64ba7b51ddcad1008077a68a7e44f352cf84f6131",
+      "counts": {
+        "blob": 1223,
+        "tree": 136
+      }
+    },
+    {
+      "repository": "all-repos/the-open-agent/openagent",
+      "pin": "f2338321f65ad7dd65d0749ad0bd95efa7c2c881",
+      "tree_listing_sha256": "0915dfabf635c51fc46250b8fc82e9bc193fb7830cb70de788079268f5a1dc13",
+      "counts": {
+        "blob": 1031,
+        "tree": 151
+      }
+    },
+    {
+      "repository": "all-repos/12britz/awesome-computer-use",
+      "pin": "63161b0428004b939d042c4371a714d3bc19f3a0",
+      "tree_listing_sha256": "4b7d7bf0e200ab829598917437f4dc7e0310ef1823a307e64d7be48c40c3c9f0",
+      "counts": {
+        "blob": 4
+      }
+    },
+    {
+      "repository": "all-repos/Arindam200/awesome-ai-apps",
+      "pin": "0e1550f393e0675b4f9542ee077e6813f5035aa2",
+      "tree_listing_sha256": "3e334298389e737ecbb443e7562a97465435c23eb09928d23f4fd788795e3324",
+      "counts": {
+        "tree": 558,
+        "blob": 2196
+      }
+    },
+    {
+      "repository": "all-repos/Awesome-llms-labs/awesome-AI-agent-orchestration",
+      "pin": "c783bb29cce56ebd1a7673d2c92916bd272f4ba1",
+      "tree_listing_sha256": "e5b15632719557451b1ed73b113221ea7b9fa18d5468fe3093e237ebbeab34f5",
+      "counts": {
+        "tree": 4,
+        "blob": 12
+      }
+    },
+    {
+      "repository": "all-repos/Awesome-llms-labs/awesome-ai-agents",
+      "pin": "90685bdc9255a652dff90366b7807360ece0ff9a",
+      "tree_listing_sha256": "f269b2c932d5b9916c0533334358b2ae622628cb76a5996fb6e86a6016638a5d",
+      "counts": {
+        "tree": 4,
+        "blob": 11
+      }
+    },
+    {
+      "repository": "all-repos/Awesome-llms-labs/awesome-multi-agents-workflow",
+      "pin": "c692310651e111b784ceff981279101d33ca48e7",
+      "tree_listing_sha256": "6999af9b3d1469fd8d3a5709519873e6c660095a5a28a02889ce01753f25581a",
+      "counts": {
+        "tree": 4,
+        "blob": 9
+      }
+    },
+    {
+      "repository": "all-repos/bradAGI/awesome-cli-coding-agents",
+      "pin": "15f0c8987b6fa3f003a0dc474000b49ff4bf8171",
+      "tree_listing_sha256": "e795e36014f28247f25f051ab79f1e9eaa9f7f981df8c83140268acb4db1adab",
+      "counts": {
+        "tree": 3,
+        "blob": 4
+      }
+    },
+    {
+      "repository": "all-repos/bradAGI/awesome-free-inference",
+      "pin": "b7547c3508724e8d1711eaf6a3ae9b9eff06c444",
+      "tree_listing_sha256": "8fab678023ee77ef4c5bba65eb649d536fbb18953697d832eb105dda546db95f",
+      "counts": {
+        "blob": 4
+      }
+    },
+    {
+      "repository": "all-repos/dipakkr/awesome-ai-engineering",
+      "pin": "abf786d838c76a3f50e587d38b6354804fcb6bb2",
+      "tree_listing_sha256": "c42482c7be02cc7ed3769e61da0d344ca863c27286e38ea6a84abee5ea99ea79",
+      "counts": {
+        "blob": 82,
+        "tree": 16
+      }
+    },
+    {
+      "repository": "all-repos/ianwieds/awesome-ai-agents",
+      "pin": "fe1ccc5cfa3d9280ae9be885bfb771d4a6f2aab7",
+      "tree_listing_sha256": "473169939b02f6f2996a4963ab216613aff439abbee1ccba5f44394c877f449f",
+      "counts": {
+        "tree": 8,
+        "blob": 42
+      }
+    },
+    {
+      "repository": "all-repos/kaushikb11/awesome-llm-agents",
+      "pin": "a3eb18b7609c642367fe04c96a462f02f2590d10",
+      "tree_listing_sha256": "434476472b63f29cb5ded9d94206c3f86ecd8f9747556cc06fbb8494637fa920",
+      "counts": {
+        "tree": 5,
+        "blob": 121
+      }
+    },
+    {
+      "repository": "all-repos/kyrolabs/awesome-agents",
+      "pin": "f8683ffbf6a9b70ac7ddc2bfc1e4898d0e8b9644",
+      "tree_listing_sha256": "29f8d1f37991496d24ab26e76b3436c576689d1003315b518e3e673e663807fe",
+      "counts": {
+        "blob": 2
+      }
+    },
+    {
+      "repository": "all-repos/reacher-z/Awesome-CUA",
+      "pin": "34206d22b1a7e660bd0128ae17a53673ed2b7ed7",
+      "tree_listing_sha256": "d1945a751fcaeff65463ffe99077a038f331af55b6108c311aece0745114dcad",
+      "counts": {
+        "tree": 33,
+        "blob": 444
+      }
+    },
+    {
+      "repository": "all-repos/Shubhamsaboo/awesome-llm-apps",
+      "pin": "ff2016e6b98a81b92a846f39f7050b7337f81695",
+      "tree_listing_sha256": "a336468311b7a84d69db85f9fb773f75a683b49077f5de6be086332b7755c1fe",
+      "counts": {
+        "blob": 1992,
+        "tree": 559
+      }
+    },
+    {
+      "repository": "all-repos/sihyeong/Awesome-LLM-Inference-Engine",
+      "pin": "6193d0ddc9eebe5ad839e7f5aec00d5a1ad39f2c",
+      "tree_listing_sha256": "5211058c012c7038fc9fb3e3ced69b586c398f67c01714994fdefeb9b45bfa00",
+      "counts": {
+        "blob": 8,
+        "tree": 1
+      }
+    },
+    {
+      "repository": "all-repos/slavakurilyak/awesome-ai-agents",
+      "pin": "a32e86f60db8dd9556218403532264e0794822c4",
+      "tree_listing_sha256": "45a208773dad4cc7c3f3abdb90b127f8eec15c832d7a57a4859866eb5ae2686a",
+      "counts": {
+        "blob": 32,
+        "tree": 16
+      }
+    },
+    {
+      "repository": "all-repos/Supersynergy/awesome-ai-agents-2026",
+      "pin": "0dcdf4a82ee58c000ce11e6e7fa196c76ecc01f1",
+      "tree_listing_sha256": "81e5411461627c35baf79949144a9eaa37b47e1a73b9a2dd1ef9d4e05be45599",
+      "counts": {
+        "tree": 7,
+        "blob": 34
+      }
+    },
+    {
+      "repository": "all-repos/xlite-dev/Awesome-LLM-Inference",
+      "pin": "6f142fe782580dc5a85390c677359ea9abeceb41",
+      "tree_listing_sha256": "a2d09121c17dcc0ceef0d86ac27dac2c9e6e4cf877be03c06c3d07c7f00db43e",
+      "counts": {
+        "tree": 2,
+        "blob": 5
+      }
+    },
+    {
+      "repository": "all-repos/zenrran4nlp/Awesome-LLM-Inference-Serving",
+      "pin": "06159e484c18859ba9da6f221d029fe413a33321",
+      "tree_listing_sha256": "afdcae767151a3ab698362edd92e06a3f47bdcc65d03a6d4cfd0bea4384c4796",
+      "counts": {
+        "blob": 4,
+        "tree": 1
+      }
+    },
+    {
+      "repository": "all-repos/12britz/awesome-free-models",
+      "pin": "ad5161feaaf5823a8e40133dba1e5f42d9916123",
+      "tree_listing_sha256": "98bb9172f41fff81feac589c16c00cea1b0b628c1241f9044cc4953723a8b431",
+      "counts": {
+        "blob": 8,
+        "tree": 5
+      }
+    },
+    {
+      "repository": "all-repos/AILookup/free-llm-resources",
+      "pin": "4164eb6e07cbace3a78700411ec0a865ab7168ba",
+      "tree_listing_sha256": "eaf22c0b8328f35aa01114b10c8591b7d4f1a6e28224cbdfcff63935136dfc27",
+      "counts": {
+        "blob": 2
+      }
+    },
+    {
+      "repository": "all-repos/arc53/DocsGPT",
+      "pin": "ed108fbfdf4df37ae73b2b868c8a8e9bce9dbd9d",
+      "tree_listing_sha256": "7a7f4fb3d50de6c55aa92ce0e15752d3a9960c8ebc5b4d197918e1d9a733bba2",
+      "counts": {
+        "tree": 306,
+        "blob": 3478
+      }
+    },
+    {
+      "repository": "all-repos/BerriAI/litellm",
+      "pin": "ac1cc5111cb26700710a4aafaef18df897634e16",
+      "tree_listing_sha256": "dcea8c8977384e8053a8e3debc12302c7ec373e68a6c25eb5a029a37e9e1a653",
+      "counts": {
+        "tree": 3065,
+        "blob": 15990
+      }
+    },
+    {
+      "repository": "all-repos/ClawLabsAI/free-ai-models",
+      "pin": "aaa600bb9df9e8da2fd8985e838aa321315b5283",
+      "tree_listing_sha256": "9d9ae35c280d13ef8878ac2fb54832fba0a35f384888d4fc1c000375298bd159",
+      "counts": {
+        "tree": 8,
+        "blob": 212
+      }
+    },
+    {
+      "repository": "all-repos/devanasolver/awesome-free-llm-apis",
+      "pin": "f6722aa4db252db2079254135c355b5c51ff158a",
+      "tree_listing_sha256": "2035292cc0c3bec7ae43b909df5da35b8dbe032121baee1fb292f82ea98c5389",
+      "counts": {
+        "blob": 1
+      }
+    },
+    {
+      "repository": "all-repos/golapkamal/Free-LLM-API",
+      "pin": "90c84daab79885cc398a2c74670d13868d037288",
+      "tree_listing_sha256": "f5ac31f87692dae3b0866956ac37ee5b34f22575d76113078ca9b873f56c1e44",
+      "counts": {
+        "blob": 345,
+        "tree": 44
+      }
+    },
+    {
+      "repository": "all-repos/kaiser-data/free-llm-proxy-router",
+      "pin": "18c9c7073159391bbf380a510dd88b63c9cb8408",
+      "tree_listing_sha256": "aab7762a578e8472f7cb048c0461f44da50e82e6d874af6a6f459cac90a4e24f",
+      "counts": {
+        "blob": 111,
+        "tree": 21
+      }
+    },
+    {
+      "repository": "all-repos/khushaljethava/freellm-apis",
+      "pin": "f193281e9ce05ff61ba759ed355c9b75ca1d36e6",
+      "tree_listing_sha256": "a42465453ec26a234e3d31db6a55439eb8ec330245160a16b3d9241381226be0",
+      "counts": {
+        "tree": 52,
+        "blob": 125
+      }
+    },
+    {
+      "repository": "all-repos/malda231125/free-llm-gateway",
+      "pin": "5d86d4a37a250c34b59fa6fd05bdb1934be94e2e",
+      "tree_listing_sha256": "924650627dbb5b9d6de63523005db377f80b306db916543aeefa0f0b0e63544a",
+      "counts": {
+        "blob": 46,
+        "tree": 17
+      }
+    },
+    {
+      "repository": "all-repos/msmarkgu/RelayFreeLLM",
+      "pin": "9a1aabe1905ac1d6b3d48ac492089a0ea9668388",
+      "tree_listing_sha256": "23a2f0e2b3ba844d381d2a87befe6d7a7ee4722f1d01a4a6bb2134eef4c2a12d",
+      "counts": {
+        "blob": 88,
+        "tree": 10
+      }
+    },
+    {
+      "repository": "all-repos/Portkey-AI/gateway",
+      "pin": "669825cbe89ee51569918b8f78a9db486fd69dd4",
+      "tree_listing_sha256": "3c43e4e1a445e5217d48c0f6fe6f2a9566ceae1ac2ae5424a37d8e84cb29cdb1",
+      "counts": {
+        "blob": 766,
+        "tree": 169
+      }
+    },
+    {
+      "repository": "all-repos/reqsgjh/free-coding-agent-models",
+      "pin": "3bccb67d10774a9a13059f04a1494624ba7a9499",
+      "tree_listing_sha256": "b3e870d88345c59821eefdfc97c08a273b5693e76e3030ab7a79a65994c97ae8",
+      "counts": {
+        "tree": 5,
+        "blob": 83
+      }
+    },
+    {
+      "repository": "all-repos/richbrianx/free-llm-listing",
+      "pin": "fa20d35387424f8f1b1208dd3ba63453a9b9b006",
+      "tree_listing_sha256": "cdb8b44800f9fdd34aa7b130757b2af0cab5a51f4240dc548ec0147b5cb9ae32",
+      "counts": {
+        "tree": 5,
+        "blob": 12
+      }
+    },
+    {
+      "repository": "all-repos/shooter2062424/FreeLlmApiBenchmark",
+      "pin": "dd2dec8cf198bda36f5ca4eb54fd58a545975844",
+      "tree_listing_sha256": "5265212c224af9fc586888544ae21add1421ca366032d0b2f9e427d929d30887",
+      "counts": {
+        "blob": 10,
+        "tree": 1
+      }
+    },
+    {
+      "repository": "all-repos/SidSharma010/free-llm-api-hub",
+      "pin": "ae104f20302899716238b67b289f7445a6ef5fb7",
+      "tree_listing_sha256": "5e0bda999056b66d0712106f2fe3e6cd5d6318e0b302b28557dd51e178f70d51",
+      "counts": {
+        "tree": 6,
+        "blob": 18
+      }
+    },
+    {
+      "repository": "all-repos/spacepirate15/quantum-free-router",
+      "pin": "08ccded39bfafc59105da2756bc355bc64e8a634",
+      "tree_listing_sha256": "b1dd8c1d6b2e4e859b6ba136992d9a315885bf4a158b3fe83ee8632f6545185f",
+      "counts": {
+        "tree": 6,
+        "blob": 26
+      }
+    },
+    {
+      "repository": "all-repos/velo4705/awesome-free-byok-models",
+      "pin": "7e4991093c5f42eafabfaac9d9113abec21ecf48",
+      "tree_listing_sha256": "619f9830fe450b3183fa7417f8f961cd372ed9d33d7a574fd731ed0900204434",
+      "counts": {
+        "blob": 7,
+        "tree": 2
+      }
+    },
+    {
+      "repository": "all-repos/XuexGao/free-llm-router",
+      "pin": "916242dfc10870c61b71584fe3bd2c233babb0c0",
+      "tree_listing_sha256": "b63914de3ab55ac6b15664510c24204642337886915fd1ac4f794f99f23447fa",
+      "counts": {
+        "blob": 100,
+        "tree": 15
+      }
+    },
+    {
+      "repository": "all-repos/zebbern/no-cost-ai",
+      "pin": "a1e44647ac7cc17f9ae46963640d401503e3210c",
+      "tree_listing_sha256": "1f5e6887c078893e83bc7e24703682fc658d1d1719381a6b5113f1dce88fb323",
+      "counts": {
+        "tree": 2,
+        "blob": 3
+      }
+    },
+    {
+      "repository": "all-repos/b4rtaz/distributed-llama",
+      "pin": "ad662c93a0013f26d9560e383427f0be42d761a2",
+      "tree_listing_sha256": "e06142512eedc9891fe328324354fd8e11f6b75c985c003ecd5786f154177a2d",
+      "counts": {
+        "blob": 93,
+        "tree": 12
+      }
+    },
+    {
+      "repository": "all-repos/deepseek-ai/DeepSeek-V3",
+      "pin": "9b4e9788e4a3a731f7567338ed15d3ec549ce03b",
+      "tree_listing_sha256": "4ac0d4b3deca9603cef2e824622a49c09ac1530706ebe295efb2be1011d8c30c",
+      "counts": {
+        "tree": 6,
+        "blob": 20
+      }
+    },
+    {
+      "repository": "all-repos/JustVugg/colibri",
+      "pin": "0a5504a1dc64f86fcd0fe7db298b0448c730e7e6",
+      "tree_listing_sha256": "40fb61be7882248764f2f613605664aad622e0c5d6cebd08a2f3258e4157ca0a",
+      "counts": {
+        "blob": 1697,
+        "tree": 73
+      }
+    },
+    {
+      "repository": "all-repos/Niko1221/Strata",
+      "pin": "13eedf552417a6a791a7d13c6597e24300ee3a09",
+      "tree_listing_sha256": "b77d6752ebdd2abf9dc5160915b7358a6b2a5ef4a78d555489c11d467bcf9372",
+      "counts": {
+        "blob": 6186,
+        "tree": 666
+      }
+    },
+    {
+      "repository": "all-repos/sgl-project/sglang",
+      "pin": "91917942f0addfc272cfd31f4f21b4ef6828dfdd",
+      "tree_listing_sha256": "c45c183fc9bfa5264eecbcaa78977e52a3a97f173f1a6193eaef0ff658af8cba",
+      "counts": {
+        "tree": 1681,
+        "blob": 12537
+      }
+    },
+    {
+      "repository": "all-repos/vllm-project/llm-compressor",
+      "pin": "f8a3abb5358765a1864783deb3e38d3e2452912a",
+      "tree_listing_sha256": "c9c3ea9077eb2de8cdf82d4f2f7ea5b5b2152d6b0878964c31891a9ac5c249e4",
+      "counts": {
+        "tree": 223,
+        "blob": 836
+      }
+    },
+    {
+      "repository": "all-repos/vllm-project/vllm",
+      "pin": "865cf8c1f2e5a0567fe6789663a5210ef904b57c",
+      "tree_listing_sha256": "bd2210f2def003b715e08dd5265985415be702eda33b6f094b94535b1c876301",
+      "counts": {
+        "tree": 1198,
+        "blob": 9326
+      }
+    },
+    {
+      "repository": "all-repos/AIAnytime/Awesome-MCP-Servers",
+      "pin": "f21432dffbb7569e6c8fe119e9c949c791a13711",
+      "tree_listing_sha256": "bd66b64313655a0f3731ad2b736837e52aecfa91819a3e5dd85e3177a819842f",
+      "counts": {
+        "tree": 17,
+        "blob": 388
+      }
+    },
+    {
+      "repository": "all-repos/appcypher/awesome-mcp-servers",
+      "pin": "280218b4bba97a49facf929f8012dec5e30384b6",
+      "tree_listing_sha256": "853510c54ef99b4b27b133e781fa17d6116edd3128dccbb4747722365f17ea77",
+      "counts": {
+        "blob": 3
+      }
+    },
+    {
+      "repository": "all-repos/archestra-ai/archestra",
+      "pin": "df8a21bce9df33441d19dbdabdbcbce0b535290e",
+      "tree_listing_sha256": "a725444d7d366f0632c3d307f4b14896d59ce8e1f77bf9958207ec5d511dfadb",
+      "counts": {
+        "tree": 881,
+        "blob": 11437
+      }
+    },
+    {
+      "repository": "all-repos/awslabs/mcp",
+      "pin": "5d58a6adaf89a056d0c14e732593dceb12e633df",
+      "tree_listing_sha256": "8cea1c5901d279810c3526f0f370f0b6a6eb1008b7d1c05d18c9376ffc582e90",
+      "counts": {
+        "tree": 651,
+        "blob": 3915
+      }
+    },
+    {
+      "repository": "all-repos/BrowserMCP/mcp",
+      "pin": "a51ddc4ee2210b102468a52b114e6f00e5bd206e",
+      "tree_listing_sha256": "96e0e47b89ce7bfaeab5a1933314f3ec2e795168733321a3447a8a808724b67f",
+      "counts": {
+        "tree": 29,
+        "blob": 146
+      }
+    },
+    {
+      "repository": "all-repos/github/github-mcp-server",
+      "pin": "0663b830582af923e30fb14cb2e10dd3248baa86",
+      "tree_listing_sha256": "8f1e6efb4279af7a6717c21a36b9148420b238c0351d3f4a16d2009231d1fc53",
+      "counts": {
+        "blob": 716,
+        "tree": 171
+      }
+    },
+    {
+      "repository": "all-repos/jaw9c/awesome-remote-mcp-servers",
+      "pin": "66ad71555a558501246c88397ea4ae97830e8c7c",
+      "tree_listing_sha256": "49b3e646811644044f1369017d9a9c6f44cf663cd1d5fe148f9c3052df012537",
+      "counts": {
+        "blob": 4
+      }
+    },
+    {
+      "repository": "all-repos/microsoft/mcp",
+      "pin": "d97c4ee2b74357c3e4353e30606656c3530fa0c9",
+      "tree_listing_sha256": "fd195add9513c642d7af7fdcf85ce0d2b6fa4ca63c0cc1d81e9415718735392b",
+      "counts": {
+        "tree": 1699,
+        "blob": 6773
+      }
+    },
+    {
+      "repository": "all-repos/microsoft/playwright-mcp",
+      "pin": "78eca85361efb545a4c0f59b6140aef0721c5412",
+      "tree_listing_sha256": "f75677fdb65ba489293ac828cdd518b1e34dadd3bebdcc2838a3218c8ba4a47a",
+      "counts": {
+        "tree": 11,
+        "blob": 44
+      }
+    },
+    {
+      "repository": "all-repos/modelcontextprotocol/modelcontextprotocol",
+      "pin": "0175d20f8b2c49e0402c37c37ed39ae2be47277e",
+      "tree_listing_sha256": "4d6327c76c84a24defbb3cffeb336021aa259a2b416fa6a60c85519f2c01562d",
+      "counts": {
+        "tree": 366,
+        "blob": 1019
+      }
+    },
+    {
+      "repository": "all-repos/punkpeye/awesome-mcp-servers",
+      "pin": "f431a5cd95cebf038e587715635b9d1a0a4d0c02",
+      "tree_listing_sha256": "bb1a4a53015df1bf2930cb677a675d38e197e42a4fa4d2cfd6bebbe3cbe65a2f",
+      "counts": {
+        "tree": 2,
+        "blob": 12
+      }
+    },
+    {
+      "repository": "all-repos/punkpeye/awesome-remote-mcp-servers",
+      "pin": "37c0470e5285023f52b77537eb43b5744cb60418",
+      "tree_listing_sha256": "d9d34c2e1ac63d296f16eee87be58def183045c910a9eeb05d0ae84e4273feb2",
+      "counts": {
+        "tree": 2,
+        "blob": 6
+      }
+    },
+    {
+      "repository": "all-repos/TensorBlock/awesome-mcp-servers",
+      "pin": "fdbfcbfdd6e3ff949bc0f63598cc51040cf8a412",
+      "tree_listing_sha256": "a2a6bb530b766e467d6287ad420dd38a050c0253ec355759241a49cdcff13502",
+      "counts": {
+        "tree": 30,
+        "blob": 8300
+      }
+    },
+    {
+      "repository": "all-repos/wong2/awesome-mcp-servers",
+      "pin": "39eb1d76d76e562657f3c657266a504cea159e23",
+      "tree_listing_sha256": "6dc5f5e75f8235d002e6ef308d7d92d2c07ee96a3d01fc0e1d602b8d8db38fe4",
+      "counts": {
+        "tree": 3,
+        "blob": 6
+      }
+    },
+    {
+      "repository": "all-repos/aws-samples/sample-autonomous-cloud-coding-agents",
+      "pin": "c8fcdb082d7783709915a8b7e55155dfede89920",
+      "tree_listing_sha256": "10fe22a7599153a8615e1c3ed9fd273681ed07f09eab1685eef17d65fa50f435",
+      "counts": {
+        "tree": 158,
+        "blob": 1233
+      }
+    },
+    {
+      "repository": "all-repos/camel-ai/camel",
+      "pin": "0366b64bf3609c76f50e396715aab73ba58a930c",
+      "tree_listing_sha256": "d00a4074e7d282075e067cdca2ee5ae459d5476ea3e648495fa48643ae40cec3",
+      "counts": {
+        "tree": 265,
+        "blob": 2243
+      }
+    },
+    {
+      "repository": "all-repos/camunda/camunda",
+      "pin": "3755e7327e2bd2185aeff9b4a73577010fe300d2",
+      "tree_listing_sha256": "209ed29626d16923aa691e817f1815ad6b2bf7ea0655a8eba485b77f36b37125",
+      "counts": {
+        "tree": 6878,
+        "blob": 28548
+      }
+    },
+    {
+      "repository": "all-repos/cline/cline",
+      "pin": "72b3d7140553a733242126e51a7c2e87efe75c64",
+      "tree_listing_sha256": "4ac3ee3c5d2b3d0da27b0bbdf33958e403ae424acf87cdd7f6d9c7ae2def586c",
+      "counts": {
+        "tree": 711,
+        "blob": 4470,
+        "commit": 1
+      }
+    },
+    {
+      "repository": "all-repos/coleam00/Linear-Coding-Agent-Harness",
+      "pin": "c37dc096993011cb0cc48a0afab176cd9c8f2375",
+      "tree_listing_sha256": "406e74eb35f63aee1bc537f8545f62e2a19a8ed132765cae55e1f15c77946593",
+      "counts": {
+        "blob": 15,
+        "tree": 1
+      }
+    },
+    {
+      "repository": "all-repos/crewAIInc/crewAI",
+      "pin": "d7dfa0ef5ade793bd48ff7357c6eb45a45294371",
+      "tree_listing_sha256": "198f68d6cc6f1cd49a2c06c6310d042c4b887f6d45d9e4a802ba5f612b00dab9",
+      "counts": {
+        "blob": 45943,
+        "tree": 6804
+      }
+    },
+    {
+      "repository": "all-repos/daveshap/OpenAI_Agent_Swarm",
+      "pin": "020b44e2f1cc9c767abf5ea3acb69696e394f4ec",
+      "tree_listing_sha256": "e8cfb42cfec24a101cabbe55bc0db0a56ae9975d2dc3b115b47efc2e5e0f3ff2",
+      "counts": {
+        "blob": 90,
+        "tree": 23
+      }
+    },
+    {
+      "repository": "all-repos/elder-plinius/T3MP3ST",
+      "pin": "29824d5625ede419ac8cdae418c8f4c72c6270f7",
+      "tree_listing_sha256": "7578e6bfa90eab953cbf86a7ddfb0f035386bdff934461ea508b858aa70fd0d5",
+      "counts": {
+        "tree": 171,
+        "blob": 1836
+      }
+    },
+    {
+      "repository": "all-repos/FoundationAgents/MetaGPT",
+      "pin": "11cdf466d042aece04fc6cfd13b28e1a70341b1f",
+      "tree_listing_sha256": "127253277bfc5f0537f4fe7113a5f138bbb53dc6c5bd850d04711e354e5bdd0d",
+      "counts": {
+        "blob": 1255,
+        "tree": 260
+      }
+    },
+    {
+      "repository": "all-repos/google/adk-python",
+      "pin": "287c0b0e65899b0060efd5672c8f419c1119530d",
+      "tree_listing_sha256": "9be7e87ec7d55a97afc62620b7b00fc023569004bbfe53c6e097065d6b9a5f6d",
+      "counts": {
+        "tree": 814,
+        "blob": 3098
+      }
+    },
+    {
+      "repository": "all-repos/google/ax",
+      "pin": "eac8313392111328560793cc7fe664cf3e7b4e4c",
+      "tree_listing_sha256": "035f21a020ed8767d0c7e576facabcfcda97d821e796590568e80df15ee1144b",
+      "counts": {
+        "tree": 51,
+        "blob": 168
+      }
+    },
+    {
+      "repository": "all-repos/HKUDS/DeepCode",
+      "pin": "aa6ed16148719101b994882c94608ae12e88f870",
+      "tree_listing_sha256": "f6c1734b21838261823db00ecd0250bf45acd091d3802f007624d60c378481ad",
+      "counts": {
+        "blob": 1141,
+        "tree": 140
+      }
+    },
+    {
+      "repository": "all-repos/Kocoro-lab/Shannon",
+      "pin": "391b619130281502d227a53dd97238c9791bf174",
+      "tree_listing_sha256": "32867699ab829403551cd4a91448254292482dcac9a7b7c2e1427d1051403fb3",
+      "counts": {
+        "blob": 979,
+        "tree": 180
+      }
+    },
+    {
+      "repository": "all-repos/kyegomez/swarms",
+      "pin": "3b64d0bded6400f3bad68b20b4b6dbe2965381b1",
+      "tree_listing_sha256": "c74794400321a5f2b963998d92abc49fbbc6b80b5a89782e65040646d000b597",
+      "counts": {
+        "blob": 1274,
+        "tree": 218
+      }
+    },
+    {
+      "repository": "all-repos/langchain-ai/langgraph",
+      "pin": "08a2016953789a4f579b4d36bd1967941ec62012",
+      "tree_listing_sha256": "ebfc56a9de4740170dd62cb71a773a7c70f54c8b63e778ea8de35559a7f42710",
+      "counts": {
+        "tree": 160,
+        "blob": 707
+      }
+    },
+    {
+      "repository": "all-repos/microsoft/agent-framework",
+      "pin": "92838b60498395142cb8b74693353163e95a0faf",
+      "tree_listing_sha256": "d1a2cc15854d0d45f547fb2ca749717aa377b703cf2cb97097352891df4d3d80",
+      "counts": {
+        "tree": 1344,
+        "blob": 5683
+      }
+    },
+    {
+      "repository": "all-repos/microsoft/autogen",
+      "pin": "8390985108cb1e3881f5f7297765758d8ad2540c",
+      "tree_listing_sha256": "a0223626da48c3e0626e285d92d586e6198d7f55faf98c64a861875c56d00adc",
+      "counts": {
+        "tree": 482,
+        "blob": 1837
+      }
+    },
+    {
+      "repository": "all-repos/multica-ai/multica",
+      "pin": "fdfbfcd5e5d30c135255e63ab9af4c52672b7bbc",
+      "tree_listing_sha256": "35dd2c8caa8d00c1dd9ccb1c2863982dd497f886ac1feb11929b4ce379702e71",
+      "counts": {
+        "tree": 556,
+        "blob": 8394
+      }
+    },
+    {
+      "repository": "all-repos/openai/openai-agents-js",
+      "pin": "8aeac0eb255dbdff9adcdc65a0eae638cbcea74f",
+      "tree_listing_sha256": "9b280672355caabc663ecd647ba4046877298ef93aa19a0f5bd72ffe2b85bf26",
+      "counts": {
+        "tree": 312,
+        "blob": 1644
+      }
+    },
+    {
+      "repository": "all-repos/openai/openai-agents-python",
+      "pin": "64fbde5d02b42ae5f9db668eb0184cdb3fc9d775",
+      "tree_listing_sha256": "f68ba5c1901e801d161b1af96ff0d2320750ab844ab00b0ad61da9083608902f",
+      "counts": {
+        "tree": 270,
+        "blob": 1702
+      }
+    },
+    {
+      "repository": "all-repos/openai/swarm",
+      "pin": "6af0b4caf37dca4526dfd98e9fbd8ce36e7eeb22",
+      "tree_listing_sha256": "6f56e88758e391a8a985abe4678ead9f28a4b38117a0428a4b0012dcdc5d48c3",
+      "counts": {
+        "blob": 288,
+        "tree": 44
+      }
+    },
+    {
+      "repository": "all-repos/openai/symphony",
+      "pin": "be10a1b79df723d6d7612b5651c8522704dafb2e",
+      "tree_listing_sha256": "e432e23a89b21ad448c957ada78a021f1ed9307c506b812ec9beebd444f09ddc",
+      "counts": {
+        "tree": 42,
+        "blob": 132
+      }
+    },
+    {
+      "repository": "all-repos/PrimeIntellect-ai/prime-agent",
+      "pin": "ad1613303dff0c642b9a95706678559356086107",
+      "tree_listing_sha256": "baa4824007d3b1ad5427bdc8b563a7100ac7306764e6aadf700863450b4f2cf4",
+      "counts": {
+        "tree": 270,
+        "blob": 1651
+      }
+    },
+    {
+      "repository": "all-repos/TauricResearch/TradingAgents",
+      "pin": "9fa1196fffbcfd9de5146d2dd2869df84ab99838",
+      "tree_listing_sha256": "f69f67202ae9c1a6fb287f7e3cc70e4b07228a38182165804a0d9317f98255d9",
+      "counts": {
+        "blob": 213,
+        "tree": 23
+      }
+    },
+    {
+      "repository": "all-repos/VRSEN/agency-swarm",
+      "pin": "1bec92f0fc6e8485e53847c6f4a943a847058bff",
+      "tree_listing_sha256": "53169ae5c68396f37714a36aca8928f122ebb278470d24cca7fb2c31bfa7f540",
+      "counts": {
+        "tree": 126,
+        "blob": 664
+      }
+    },
+    {
+      "repository": "all-repos/win4r/ClawTeam-OpenClaw",
+      "pin": "1468be4d37e48156ac9285836f27e4dd68bd2307",
+      "tree_listing_sha256": "d742b5bcd41813cea81fd4f89c6c4be236ed50a0ba53c5b5f0a28b4e4003a508",
+      "counts": {
+        "tree": 44,
+        "blob": 233
+      }
+    },
+    {
+      "repository": "all-repos/Yeachan-Heo/oh-my-claudecode",
+      "pin": "dec7e4188c0e3de6b92fb3d734ee5c95326021ed",
+      "tree_listing_sha256": "34b880e3ce5614a07c37ca40a9e390c79cfaba87abf42d32b41133bec363bf3c",
+      "counts": {
+        "tree": 447,
+        "blob": 2586
+      }
+    },
+    {
+      "repository": "all-repos/agent-sh/computer-use-linux",
+      "pin": "32e20aa99a7797b79b80f23572cab9bb8af5085d",
+      "tree_listing_sha256": "d322768030caae0f8694999b3a585296386ee110495ce77c92a4fbe4a63f9646",
+      "counts": {
+        "blob": 155,
+        "tree": 37
+      }
+    },
+    {
+      "repository": "all-repos/bytebot-ai/bytebot",
+      "pin": "3d37894ce07ef8d8b40adc7fd309ad96c2a71313",
+      "tree_listing_sha256": "8ca72d684815a1a85352f41b12b1ca86a581897cf2fba2642f45a98fc7bccd2d",
+      "counts": {
+        "tree": 131,
+        "blob": 345
+      }
+    },
+    {
+      "repository": "all-repos/callstack/agent-device",
+      "pin": "d78be6c88715ad80fc658497f23f91c86bf9489b",
+      "tree_listing_sha256": "fdacdc215c089ccaa5f17f83b308294f5ffacc350a303d87f6a21191be10498b",
+      "counts": {
+        "tree": 527,
+        "blob": 6067
+      }
+    },
+    {
+      "repository": "all-repos/ChinaYiqun/Desktop-Tiny-Agent-Framework",
+      "pin": "6cd8563867f4189233406b92e33c1d53a8e33b55",
+      "tree_listing_sha256": "fc3218bdd849088e8a7d763d9c3a2a58ead2d75eae646ead2d3df6285b2e52d8",
+      "counts": {
+        "blob": 31,
+        "tree": 11
+      }
+    },
+    {
+      "repository": "all-repos/Clevrr-AI/Clevrr-Computer",
+      "pin": "62925bc377e5b6c016c69a76dffc39de903e38a2",
+      "tree_listing_sha256": "4aa5a88119c820b0b2062aac09e7641237ca62a695c29f60832ef4bac387fc69",
+      "counts": {
+        "blob": 21,
+        "tree": 3
+      }
+    },
+    {
+      "repository": "all-repos/dddabtc/winremote-mcp",
+      "pin": "a3a18df435f657b092be498cc4c0e576cf40ae36",
+      "tree_listing_sha256": "1c4b5588d4d8005b69559ea080e94b9b9e494f18d321c0bb3254bc00edde6c26",
+      "counts": {
+        "tree": 11,
+        "blob": 63
+      }
+    },
+    {
+      "repository": "all-repos/e2b-dev/open-computer-use",
+      "pin": "ee1025911c36e1f28bb3400c7d81170a8482f35d",
+      "tree_listing_sha256": "ddaa5e9330fce2d2bc7b891e344c8cae8d16de934d5e8b74e78ee77e0400ccce",
+      "counts": {
+        "blob": 24,
+        "tree": 5
+      }
+    },
+    {
+      "repository": "all-repos/e2b-dev/surf",
+      "pin": "d66db293ac513a98abe1fd5c58a69b5130e4a996",
+      "tree_listing_sha256": "8617b8af784b0e039b7742442666b7974910d454b1ed7351dd1d57d56e50f151",
+      "counts": {
+        "blob": 68,
+        "tree": 13
+      }
+    },
+    {
+      "repository": "all-repos/firerpa/lamda",
+      "pin": "a980a38130ba00711311e509e3009301e8ff705a",
+      "tree_listing_sha256": "553b0b7a6d51a34a215abce655b9cc54b22da48d2f93ec8653bb94a44d9afd7e",
+      "counts": {
+        "blob": 107,
+        "tree": 23
+      }
+    },
+    {
+      "repository": "all-repos/kortix-ai/agent-computer-use",
+      "pin": "d67eca2fadffa76c46d448e091b0ec4243e90b59",
+      "tree_listing_sha256": "87ac741c6b339f520f0bb106b074f505f143a7f4dee5ffb49f90db1d6049a0b8",
+      "counts": {
+        "tree": 69,
+        "blob": 189
+      }
+    },
+    {
+      "repository": "all-repos/mediar-ai/mcp-server-macos-use",
+      "pin": "205c8880e8c06fa96a3e3a859e6edca728eb6c47",
+      "tree_listing_sha256": "c4a47d7ade7b463ba0663c9f8fcf071fd3011c35145590aaf903fc06d938d9b9",
+      "counts": {
+        "blob": 18,
+        "tree": 5
+      }
+    },
+    {
+      "repository": "all-repos/mediar-ai/terminator",
+      "pin": "73a381c0c1c33eda55f2c0ecb1d918bf5ec7561a",
+      "tree_listing_sha256": "cdcc89adf53158d6ed428b1c8cd011dd054fba7daaa705e2256ee690903c848d",
+      "counts": {
+        "tree": 95,
+        "blob": 435
+      }
+    },
+    {
+      "repository": "all-repos/meituan/EvoCUA",
+      "pin": "4a0ad5fd4eb1d5b65966e1c7cc3feaa3b534eadd",
+      "tree_listing_sha256": "13b08d36b21d275b93bcdf2320c961c5c898b81df156e7c0c11c11a3a92c5f7e",
+      "counts": {
+        "blob": 524,
+        "tree": 43
+      }
+    },
+    {
+      "repository": "all-repos/microsoft/fara",
+      "pin": "a675d6d61c41c47ae87bacefeab22caad18e3e84",
+      "tree_listing_sha256": "dfbd5f6e7257792d68c9e110ec2edaeca01186d853e7c05f09089262337d0b10",
+      "counts": {
+        "blob": 174,
+        "tree": 50
+      }
+    },
+    {
+      "repository": "all-repos/netease-youdao/LobsterAI",
+      "pin": "ae244dbaf9c8b0b77ea3e667e1934ce0ab49b9cc",
+      "tree_listing_sha256": "014700d20bba168a9f4c9ee37c86c00562fd9d2da84e15815d72fcbe74e1edd3",
+      "counts": {
+        "blob": 3690,
+        "tree": 499
+      }
+    },
+    {
+      "repository": "all-repos/openai/openai-cua-sample-app",
+      "pin": "6dd34b40acc1d002696ccd41aaf0a1f2f2be290c",
+      "tree_listing_sha256": "2083f161979a92288f4179cd7b1c1a970064c6aa2bf80d1adbe28fd9434d59cc",
+      "counts": {
+        "blob": 161,
+        "tree": 35
+      }
+    },
+    {
+      "repository": "all-repos/OthersideAI/self-operating-computer",
+      "pin": "eb8165a2efb1b34d66a28ecebf8ca97ae67cbb79",
+      "tree_listing_sha256": "9bdbed0822046d9406097a4e0da39b844e5ee7e267b3577d4cf33c62963532f6",
+      "counts": {
+        "tree": 8,
+        "blob": 33
+      }
+    },
+    {
+      "repository": "all-repos/remorses/usecomputer",
+      "pin": "711a429fa4f005c6a53a05c86a5a23a2cf258579",
+      "tree_listing_sha256": "b084408927a52889f52b91020568bb8013da6ca803039cb16583a3cb1d0f4a40",
+      "counts": {
+        "tree": 13,
+        "blob": 47
+      }
+    },
+    {
+      "repository": "all-repos/showlab/computer_use_ootb",
+      "pin": "21b05ae06de89700b998dc85d8ef64454f0d0291",
+      "tree_listing_sha256": "678a3e82e5eb7d825601e2694fd0f5a7ffba2a4a205c5a94ef845796fa0fb20a",
+      "counts": {
+        "blob": 47,
+        "tree": 12
+      }
+    },
+    {
+      "repository": "all-repos/showlab/ShowUI",
+      "pin": "21ed7cb24be0cc877bb8352ee34d58a9aea2c876",
+      "tree_listing_sha256": "4fc753385c576afb4bb973324d5704afc6fde593fc6d0eee79de1cbb7fb29ecc",
+      "counts": {
+        "blob": 84,
+        "tree": 13
+      }
+    },
+    {
+      "repository": "all-repos/stablyai/orca",
+      "pin": "508dcb8610871c9504d8e7aba242a4d0ee38d319",
+      "tree_listing_sha256": "370d1a2767a44e9f5f984efa5bf267dd880ff4fb770e86cee99f67aa6ca01afa",
+      "counts": {
+        "tree": 3851,
+        "blob": 37441
+      }
+    },
+    {
+      "repository": "all-repos/trycua/acu",
+      "pin": "2a9b3fbdda601d339c5e76095b83b8642a0a04b5",
+      "tree_listing_sha256": "7652b8cfc6115b2b57a27513ce2ee816e33b51c80c52795410944c255e4910f6",
+      "counts": {
+        "tree": 2,
+        "blob": 3
+      }
+    },
+    {
+      "repository": "all-repos/trycua/cua",
+      "pin": "b3dafe7f47ab40a5d00c5023855317a2e901c062",
+      "tree_listing_sha256": "76b8fe0ef7a9609785fc03447920c9d52986ea5ed171eeb15e9f40ac9b686f33",
+      "counts": {
+        "tree": 2196,
+        "blob": 11757
+      }
+    },
+    {
+      "repository": "all-repos/TurixAI/TuriX-CUA",
+      "pin": "88c777bddfec9796667445873886a3563aa27246",
+      "tree_listing_sha256": "fe7e945aec74520c4ef881ff7fec6a143e685cfecb19d93a0cb84362187a3608",
+      "counts": {
+        "blob": 47,
+        "tree": 12
+      }
+    },
+    {
+      "repository": "all-repos/vercel-labs/agent-desktop",
+      "pin": "46d2adf885002633b77d5a9956c9464b24f61431",
+      "tree_listing_sha256": "044f64870d384611a2be582137dcbc683803ad354a46aa20531ef7af445d6b9e",
+      "counts": {
+        "tree": 342,
+        "blob": 3800
+      }
+    },
+    {
+      "repository": "all-repos/vercel-labs/ai-sdk-computer-use",
+      "pin": "ed103da5ebe75112850fbba39872206dd3c439de",
+      "tree_listing_sha256": "39375d1968ec77382f32291df0595aaa42711ab7f909411a68a1dd797055161d",
+      "counts": {
+        "blob": 38,
+        "tree": 9
+      }
+    },
+    {
+      "repository": "all-repos/xlang-ai/OpenCUA",
+      "pin": "dfc91ba89f700d10f26ec50362d308571482ab8b",
+      "tree_listing_sha256": "b34b37231887c3e65645398141c6230c699f841d30ffc11f14e8fd6a247ad4f4",
+      "counts": {
+        "blob": 153,
+        "tree": 29,
+        "commit": 1
+      }
+    },
+    {
+      "repository": "all-repos/zhoushoujianwork/easyeda-agent",
+      "pin": "af76cd7ea73cd9789a68782cb4ad18d921fd0074",
+      "tree_listing_sha256": "6489538a3d49b09604b8703efa2ca913692be64babc0bcd5c3af0e478210d46e",
+      "counts": {
+        "tree": 130,
+        "blob": 1625
+      }
+    },
+    {
+      "repository": "all-repos/simular-ai/Agent-S",
+      "pin": "0fff0e634869dab72027435b4586e62300185d41",
+      "tree_listing_sha256": "c2fac9b148d6a0fb69829e824ffcd75e56291969b77e74781767d1602a73bd98",
+      "counts": {
+        "tree": 79,
+        "blob": 357
+      }
+    },
+    {
+      "repository": "all-repos/agentscope-ai/AgentTeams",
+      "pin": "3575b471e8eeb39d305ad7ea54d70dc523619d6d",
+      "tree_listing_sha256": "d019350685332f52d5f49fddb93934be0894ea6d4f1ce8ea1235b7586310ba44",
+      "counts": {
+        "blob": 1565,
+        "tree": 375,
+        "commit": 4
+      }
+    },
+    {
+      "repository": "all-repos/modelcontextprotocol/servers",
+      "pin": "e1dc4b18dbb948921da37f3d4224a628730b43b0",
+      "tree_listing_sha256": "fc41e872ba7f8b1750a9003d0538df36ddb97883198c677972e9f9101dd5345f",
+      "counts": {
+        "tree": 58,
+        "blob": 414
+      }
+    },
+    {
+      "repository": "all-repos/QwenLM/open-computer-use",
+      "pin": "9b38187273f7b5060df03d3914a09f443015601d",
+      "tree_listing_sha256": "d70dda0c7765775313b64a0bfbf1bdb224b94982336967809f0a4843aaccfc7a",
+      "counts": {
+        "blob": 912,
+        "tree": 163
+      }
+    }
+  ],
+  "pins_verified": 243,
+  "total": {
+    "tree": 126348,
+    "blob": 762412,
+    "commit": 15
+  },
+  "ocade_tree": {
+    "pin": "6765b20c1c07c67bcf706c3ef73ba66676e7c907",
+    "tree_listing_sha256": "a2e2cd692219337344cc08278b921f591f8d6b78fb77830bb5998763f0474ce5",
+    "counts": {
+      "tree": 297,
+      "blob": 1069,
+      "commit": 243
+    }
+  },
+  "pinned_git_trees_archive_sha256": "7c64c97834f450cf8fd3501498ea0bb3fc791a864bf5a8bd0b42f09786788b6a"
+}

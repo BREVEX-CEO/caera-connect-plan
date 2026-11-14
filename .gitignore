@@ -39,3 +39,6 @@ device-agent/windows/.build-venv/
 device-agent/windows/build/
 device-agent/windows/dist/
 device-agent/windows/packaging/Output/
+
+# Persistent exhaustive source-research inventory, receipts and private findings.
+.source-research/
