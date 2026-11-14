@@ -1,5 +1,15 @@
 # OCADE retirement manifest
 
+## W12 pass after the 246-repository source review — 14 November 2026
+
+Measured from `8cbc497` to `a89301d`, after C5, C6, C9, C15 and C26–C31 were added:
+
+- **Merged:** the Windows and macOS workers each carried the same 21-line `ui.wait` loop (jscpd clone); it is now `refs.wait_for`, with platform-independent tests (`a89301d`).
+- **Runtime code** (`src`, `supabase/functions`, companion): +385 / −37 lines (net +348) for ten capabilities. Tests +433 / −9. SQL +43: one migration and its rollback.
+- **Dependencies:** npm and Python unchanged; nothing added. Every idea taken from the review was re-implemented with what OCADE already ships (Playwright, python-docx, python-pptx, ctypes/Quartz).
+- **Scans:** knip 6.45.1 flags no export added by this work (its other hits are used inside their own files, as recorded on 13 November). vulture at 60 %: no new hit (MCP tools, COM attributes, the urllib redirect override). jscpd on the companion: the two remaining desktop clones are the platform-specific inspection tails, kept because their capture paths differ.
+- **Rejected as bloat during the review:** a second agent framework, a vector store, provider pooling, a hosted sandbox, a CAPTCHA service and every local model (ledger reasons).
+
 ## W12 deep debloat (Ponytail Ultra) — 13 November 2026
 
 Measured from `99491c3` (session start) to this commit, after P2, P3 and P5 were added:
