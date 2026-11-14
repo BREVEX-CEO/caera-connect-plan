@@ -161,6 +161,49 @@ class IdlePickup(unittest.TestCase):
 
         anyio.run(scenario)
 
+    def test_real_nudges_around_many_tasks_never_drain_the_burst(self):
+        """Every task brings nudges whose claim finds no action (its next step not yet planned,
+        its end): each still shows a change on the server, so none costs a token. Before, ten
+        tasks emptied the bucket and the eleventh waited a minute (e2e timing suite, task 11)."""
+        async def scenario():
+            fake = FakeRealtime()
+            server, channel = await started(fake)
+            states, claims = [{"task": None, "action": None}], []
+
+            class Device:
+                home = Path(tempfile.mkdtemp())
+
+                def request(self, payload):
+                    if payload["op"] == "inventory":
+                        return 200, {"inventory": "recorded", "nudge": channel}
+                    claims.append(payload["op"])
+                    return 200, states[-1]
+
+            home = Path(tempfile.mkdtemp())
+            runner = Agent(Device(), Journal(home / "journal.sqlite"), SimpleNamespace(external={}, prewarm=lambda: None))
+            runner.stop_flag = home / "STOP"
+            with patch.object(agent_module.discovery, "installed_apps", lambda: []), \
+                    patch.object(agent_module.discovery, "engines", lambda: []):
+                async with anyio.create_task_group() as group:
+                    group.start_soon(runner.run)
+                    await until(lambda: runner.nudge is not None and runner.nudge.connected)
+                    await anyio.sleep(0.3)
+                    for n in range(3 * int(agent_module.NUDGE_BURST)):
+                        for status in ("waiting", "completed"):  # planned later, then finished
+                            states.append({"task": {"id": f"t{n}", "status": status}, "action": None})
+                            before = len(claims)
+                            await fake.broadcast("jarvis-t")
+                            await until(lambda: len(claims) > before, 2.0)
+                    before = len(claims)
+                    for _ in range(3 * int(agent_module.NUDGE_BURST)):  # forged: nothing changed
+                        await fake.broadcast("jarvis-t")
+                        await anyio.sleep(0.05)
+                    self.assertLessEqual(len(claims) - before, agent_module.NUDGE_BURST)
+                    group.cancel_scope.cancel()
+            server.close()
+
+        anyio.run(scenario)
+
 
 if __name__ == "__main__":
     unittest.main()

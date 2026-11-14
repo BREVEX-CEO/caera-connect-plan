@@ -134,6 +134,11 @@ class Agent:
         self.device, self.journal, self.gateway = device, journal, gateway
         self.stop_flag = stop_flag or device.home / "STOP"
         self.nudge: Nudge | None = None
+        # The server state the last claim saw (task, its status, its action). A nudge is useful
+        # when the claim it caused sees this change: a forged nudge cannot change server state,
+        # while a real one (new task, next step, STOP, finished) always does.
+        self.seen: tuple | None = None
+        self.news = False
 
     async def pause(self, seconds: float) -> bool:
         if self.nudge is None:
@@ -150,6 +155,9 @@ class Agent:
         status, body = await anyio.to_thread.run_sync(self.device.request, {"op": "claim"})
         if status != 200:
             raise ConnectionError(body.get("error", str(status)))
+        task, action = body.get("task") or {}, body.get("action") or {}
+        seen = (task.get("id"), task.get("status"), action.get("id"))
+        self.news, self.seen = seen != self.seen, seen
         return body
 
     async def _run_watched(self, activity: str, intent: dict) -> dict:
@@ -186,7 +194,7 @@ class Agent:
                     if (state.get("action") or {}).get("id") != activity:
                         break
                     if nudged and self.nudge is not None:
-                        self.nudge.spent(useful=False)
+                        self.nudge.spent(useful=self.news)
                 self.gateway.stop()
                 group.cancel_scope.cancel()
 
@@ -286,7 +294,7 @@ class Agent:
                         raise
                     state = {}
                 if woke and self.nudge is not None:
-                    self.nudge.spent(useful=bool(state.get("action")))
+                    self.nudge.spent(useful=self.news)
             woke = False
             if self.stopped_here():  # STOP may have arrived while the claim was in flight.
                 await anyio.to_thread.run_sync(jobs.cancel_all, str(self.device.home))
