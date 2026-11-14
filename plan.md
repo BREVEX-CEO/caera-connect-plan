@@ -1648,7 +1648,8 @@ The existing `tests.run_required.main` loads selected modules/classes/methods or
 - 11.2 — `mac_worker._expose_tree`: AXManualAccessibility once per process before a lease is matched, then up to 2 s for a window's children; AXEnhancedUserInterface deliberately not set (side effects on other apps). Native-app regression covered by the MAC ladder; an Electron/Chromium tree on the hosted runner is not yet tested.
 - 11.1 — `windows_worker._cached_descendants`: one `FindAllBuildCache` call (control view, not off-screen) with a cache request for name, automation id, control type, box, enabled, password and value, at most 150 elements, `omitted` reports the rest; the old walk stays as the fallback when a provider cannot answer the cached query. Proof is the hosted Windows UIA ladder; the 300 ms median target is unmeasured.
 - 12.3 (companion part) — `ocade_agent forget [--browser-profile]`: under the companion lock, cancels unfinished jobs and removes the action journal, job records and crash reports (and OCADE's own browser profile only when asked); the pairing, installed releases and every file in the JARVIS folder stay (`test_agent.ForgetTaskDataTest`). Server-side JARVIS history deletion from the website is not part of this item yet.
-- Not coded in this batch: credits-based charging (owner decision), 10.6 Gemma request-shape probe (live), 11.4, 11.6 tray, 11.8 updater work, 11.9, P2–P4.
+- 10.6 — the capability record gains `system_instruction`: a model whose 400 says its developer/system instruction is not enabled is asked once more with the instructions at the start of its first user turn, and the refusal is remembered (`model-route.test.ts`). The live probe of what Gemma 4 31B accepts is qualification.
+- Not coded in this batch: credits-based charging (owner decision), 11.4, 11.6 tray, 11.8 updater work, 11.9, P2–P4.
 
 
 ---

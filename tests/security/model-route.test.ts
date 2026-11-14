@@ -218,6 +218,38 @@ test("a JARVIS turn must answer with a call, and every operation carries its com
   });
 });
 
+test("a model that takes no system instruction reads it in the first user turn", async () => {
+  const bodies: Record<string, unknown>[] = [];
+  const refused = new Map<string, Set<ProviderFeature>>();
+  const handler = deps(
+    "gemma-4-31b-it",
+    async ({ body }) => {
+      bodies.push(body);
+      return body.system_instruction
+        ? new Response(
+            '{"error":{"message":"Developer instruction is not enabled for models/gemma"}}',
+            {
+              status: 400,
+            },
+          )
+        : new Response(callChunk, { headers: { "content-type": "text/event-stream" } });
+    },
+    { refused },
+  );
+  assert.equal(
+    (await events(await handleOnlineIntelligence(request(), handler))).at(-1)?.type,
+    "final",
+  );
+  assert.equal(bodies.length, 2);
+  const [first] = bodies[1]!.contents as { role: string; parts: { text?: string }[] }[];
+  assert.equal(first!.role, "user");
+  assert.deepEqual(
+    first!.parts.map((part) => part.text),
+    ["Plan.\n\n", "Do the task."],
+  );
+  assert.ok(refused.get("gemma-4-31b-it")?.has("system_instruction"));
+});
+
 for (const [feature, refusal] of [
   ["forced_call", "Invalid value at 'tool_config.function_calling_config.mode'"],
   ["json_schema", 'Unknown name "parametersJsonSchema" at function_declarations[0]'],

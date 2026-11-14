@@ -403,14 +403,18 @@ function parseBody(value: unknown): OnlineRequestBody | null {
  *   turn is spent on prose (plan v8 10.1).
  * - `json_schema`: each operation's complete JSON Schema (`parametersJsonSchema`) instead of
  *   the provider's smaller OpenAPI subset, so the model sees every rule (plan v8 10.2).
+ * - `system_instruction`: the instructions as a system instruction; a model that refuses it (some
+ *   Gemma releases answer "Developer instruction is not enabled") gets them at the start of the
+ *   first user turn instead, as the Vercel AI SDK does for Gemma (plan v8 10.6).
  */
-export type ProviderFeature = "thinking" | "forced_call" | "json_schema";
+export type ProviderFeature = "thinking" | "forced_call" | "json_schema" | "system_instruction";
 
 /** The words in a provider's 400 that name which setting it refused. */
 const REFUSAL_NAMES: readonly [ProviderFeature, RegExp][] = [
   ["thinking", /thinking/i],
   ["forced_call", /tool_?config|function_?calling_?config|allowed_?function_?names/i],
   ["json_schema", /json_?schema/i],
+  ["system_instruction", /developer instruction|system_?instruction/i],
 ];
 
 /** The setting a refusal names among those the request carried, if any. */
@@ -453,6 +457,7 @@ export function providerSchema(schema: unknown): unknown {
 function sentFeatures(body: OnlineRequestBody, refused: ReadonlySet<ProviderFeature>) {
   const sent = new Set<ProviderFeature>();
   if (!refused.has("thinking")) sent.add("thinking");
+  if (!refused.has("system_instruction")) sent.add("system_instruction");
   if (!body.research && body.tools.length) {
     if (body.surface === "jarvis" && !refused.has("forced_call")) sent.add("forced_call");
     if (!refused.has("json_schema")) sent.add("json_schema");
@@ -527,6 +532,13 @@ function providerBody(
     contents.push({ role: message.role === "assistant" ? "model" : "user", parts });
   }
 
+  // A model that takes no system instruction reads it first in the conversation's first user turn.
+  const firstUser = contents.find((content) => content.role === "user");
+  if (system && !sent.has("system_instruction")) {
+    if (firstUser) firstUser.parts.unshift({ text: `${system}\n\n` });
+    else contents.unshift({ role: "user", parts: [{ text: system }] });
+  }
+
   /*
    * ATTACHMENTS RIDE WITH THE LAST QUESTION, AND THEY ARE LABELLED.
    *
@@ -567,7 +579,9 @@ function providerBody(
      * either/or rather than both: OCADE sends no function declarations today,
      * and a request that carried both would be refused by the provider.
      */
-    ...(system ? { system_instruction: { parts: [{ text: system }] } } : {}),
+    ...(system && sent.has("system_instruction")
+      ? { system_instruction: { parts: [{ text: system }] } }
+      : {}),
     ...(body.research ? { tools: [{ google_search: {} }] } : {}),
     ...(!body.research && body.tools.length
       ? {
