@@ -2004,10 +2004,91 @@
               "minimum": 0,
               "maximum": 1
             }
+          },
+          "changesOnly": {
+            "description": "After an earlier ui.inspect of this window: list only the controls that are new or changed, plus the refs that are gone; every other ref stays as it was.",
+            "type": "boolean"
           }
         },
         "required": [
           "window"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "ui.wait": {
+      "role": "ui_bridge",
+      "capability": "apps",
+      "risk": "read",
+      "seconds": 20,
+      "arguments": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "window": {
+            "type": "object",
+            "properties": {
+              "exe": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9 ._()+-]{1,80}$"
+              },
+              "pid": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              },
+              "hwnd": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              },
+              "started": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              }
+            },
+            "required": [
+              "exe",
+              "pid",
+              "hwnd",
+              "started"
+            ],
+            "additionalProperties": false
+          },
+          "element": {
+            "type": "object",
+            "properties": {
+              "ref": {
+                "type": "string",
+                "pattern": "^e[1-9][0-9]{0,2}$"
+              },
+              "automationId": {
+                "type": "string",
+                "maxLength": 200
+              },
+              "name": {
+                "type": "string",
+                "maxLength": 200
+              },
+              "controlType": {
+                "type": "string",
+                "maxLength": 40
+              }
+            },
+            "additionalProperties": false
+          },
+          "gone": {
+            "type": "boolean"
+          },
+          "timeoutMs": {
+            "type": "integer",
+            "minimum": 100,
+            "maximum": 15000
+          }
+        },
+        "required": [
+          "window",
+          "element"
         ],
         "additionalProperties": false
       }

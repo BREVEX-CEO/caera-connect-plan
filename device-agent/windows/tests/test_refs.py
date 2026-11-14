@@ -1,5 +1,6 @@
-"""Element refs (P5): an action names exactly the element the newest inspection listed, and a
-ref is refused once the element changed, the window was inspected again or it never existed.
+"""Element refs (P5, C5): an action names exactly the element an inspection listed; a unique
+control keeps its ref across inspections, and a ref is refused once its element changed or it
+never existed.
 Pure Python; the native elements are stand-ins, so this runs on every platform."""
 
 import unittest
@@ -14,6 +15,7 @@ class ElementRefs(unittest.TestCase):
         self.listed = [(self.ok, {"name": "OK", "automationId": "", "controlType": "Button"}),
                        (self.again, {"name": "OK", "automationId": "", "controlType": "Button"})]
         self.now = {id(self.ok): dict(self.listed[0][1]), id(self.again): dict(self.listed[1][1])}
+        refs._kept.clear()
         refs.remember("window", self.listed)
 
     def describe(self, native):
@@ -40,10 +42,31 @@ class ElementRefs(unittest.TestCase):
         self.assertEqual(self.refused({"ref": "e1"}, key="other window"), "element_stale")
         self.assertEqual(self.refused({"ref": "e1", "name": "Cancel"}), "element_stale")
 
-    def test_a_new_inspection_replaces_the_old_refs(self):
-        refs.remember("window", [(self.again, {"name": "OK", "automationId": "", "controlType": "Button"})])
-        self.assertIs(refs.recall("window", {"ref": "e1"}, self.describe), self.again)
-        self.assertEqual(self.refused({"ref": "e2"}), "element_stale")
+    def test_a_unique_control_keeps_its_ref_and_a_repeated_label_gets_a_new_one(self):
+        save = object()
+        self.now[id(save)] = {"name": "Save", "automationId": "", "controlType": "Button"}
+        refs.remember("window", [(save, dict(self.now[id(save)]))])  # e3: the counter moves on
+        listed = [(save, dict(self.now[id(save)])), (self.again, dict(self.listed[1][1]))]
+        diff = refs.remember("window", listed)
+        self.assertEqual([d["ref"] for _, d in listed], ["e3", "e4"])
+        self.assertIs(refs.recall("window", {"ref": "e3"}, self.describe), save)
+        self.assertEqual(diff, {"changed": ["e4"], "removed": []})
+        self.assertEqual(self.refused({"ref": "e1"}), "element_stale")  # the two OKs: refs not carried over
+
+    def test_changes_only_lists_new_or_changed_controls_and_the_refs_that_went(self):
+        field, ok = object(), object()
+        first = [(field, {"name": "Name", "automationId": "n", "controlType": "Edit", "value": ""}),
+                 (ok, {"name": "OK", "automationId": "ok", "controlType": "Button", "enabled": True})]
+        self.assertIsNone(refs.remember("dialog", first))
+        again = [(field, {"name": "Name", "automationId": "n", "controlType": "Edit", "value": "Ada"})]
+        diff = refs.remember("dialog", again)
+        self.assertEqual(refs.listing(again, diff, True),
+                         {"elements": [again[0][1]], "removed": ["e2"], "unchanged": 0})
+        same = [(field, {"name": "Name", "automationId": "n", "controlType": "Edit", "value": "Ada"})]
+        listed = refs.listing(same, refs.remember("dialog", same), True)
+        self.assertEqual(listed, {"elements": [], "removed": [], "unchanged": 1})
+        self.assertEqual(refs.listing(same, None, True), {"elements": [same[0][1]]})  # a first look lists all
+        self.assertEqual(refs.listing(same, {"changed": [], "removed": []}, False), {"elements": [same[0][1]]})
 
     def test_only_the_newest_windows_are_kept(self):
         for n in range(9):

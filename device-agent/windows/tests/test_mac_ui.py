@@ -105,6 +105,11 @@ class MacUiLadder(unittest.TestCase):
                 out["inspect"] = await run("ui.inspect", {"window": window})
                 box = {"automationId": "noteBox"}
                 out["set"] = await run("ui.set_value", {"window": window, "element": box, "value": "Quarterly GREEN"})
+                # A second look lists only what changed (C5); every other ref stays as it was.
+                out["changes"] = await run("ui.inspect", {"window": window, "changesOnly": True})
+                out["present"] = await run("ui.wait", {"window": window, "element": {"automationId": "saveButton"}})
+                out["never"] = await run("ui.wait", {"window": window, "element": {"automationId": "neverThere"},
+                                                     "timeoutMs": 400})
                 # By the ref the inspection gave the button (P5), not by a description.
                 save = next(e["ref"] for e in out["inspect"]["evidence"]["elements"] if e["automationId"] == "saveButton")
                 out["invoke"] = await run("ui.invoke", {"window": window, "element": {"ref": save}})
@@ -141,7 +146,9 @@ class MacUiLadder(unittest.TestCase):
                                       if w["pid"] == window["pid"] and w["hwnd"] != window["hwnd"]), None)
                 if out["dialog"]:
                     lease = {key: out["dialog"][key] for key in ("exe", "pid", "hwnd", "started")}
+                    out["dialog_ok"] = await run("ui.wait", {"window": lease, "element": {"name": "OK"}})
                     out["answer"] = await run("ui.send_keys", {"window": lease, "keys": [{"press": "Enter"}]})
+                    out["dialog_gone"] = await run("ui.wait", {"window": lease, "element": {"name": "OK"}, "gone": True})
                 time.sleep(1)
                 out["after_dialog"] = await run("ui.send_keys", {"window": window, "element": box, "keys": [{"text": "!"}]})
                 out["forged"] = await run("ui.inspect", {"window": window | {"pid": window["pid"] + 4}})
@@ -185,6 +192,17 @@ class MacUiLadder(unittest.TestCase):
         with self.subTest("MAC-005 set value reads back; press has the app's real effect"):
             self.assertTrue(out["set"]["evidence"]["matches"], out["set"])
             self.assertEqual(out["after_invoke"], "Quarterly GREEN")
+        with self.subTest("MAC-015 a second look lists only what changed; the button's ref is unchanged (C5)"):
+            changed = {e["automationId"]: e for e in out["changes"]["evidence"]["elements"]}
+            self.assertEqual(changed["noteBox"].get("value"), "Quarterly GREEN", out["changes"])
+            self.assertNotIn("saveButton", changed, out["changes"])
+            self.assertEqual(out["invoke"]["status"], "observed", "the first inspection's ref still worked")
+        with self.subTest("MAC-016 ui.wait returns once a control is there and refuses when it never comes (C6)"):
+            self.assertTrue(out["present"]["evidence"]["met"], out["present"])
+            self.assertEqual((out["never"]["status"], out["never"]["errorCode"], out["never"]["maybeChanged"]),
+                             ("not_applied", "wait_timed_out", False), out["never"])
+            self.assertTrue(out["dialog_ok"]["evidence"]["met"], out["dialog_ok"])
+            self.assertTrue(out["dialog_gone"]["evidence"]["met"], out["dialog_gone"])
         with self.subTest("MAC-006 typed keys go into the named control"):
             self.assertEqual(out["keys"]["status"], "observed", out["keys"])
             self.assertEqual(out["after_keys"], "typed by keys")

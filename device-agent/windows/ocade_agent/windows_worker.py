@@ -269,7 +269,7 @@ def apps_launch(exe: str, open: str | None = None) -> dict:
 
 @app.tool()
 @_evidence
-def ui_inspect(window: dict, region: list | None = None) -> dict:
+def ui_inspect(window: dict, region: list | None = None, changesOnly: bool = False) -> dict:
     """The window's accessible elements, each with its box as window fractions (what
     ui.click_point takes), and a preview of the window (or of one `region` of it, at full
     detail) as the screen shows it."""
@@ -294,17 +294,48 @@ def ui_inspect(window: dict, region: list | None = None) -> dict:
         if len(json.dumps([d for _, d in found])) > 12_000:  # the gateway refuses evidence over 16 KB
             break
     key = json.dumps(window, sort_keys=True)
-    refs.remember(key, found)  # each element gets its ref (e1, e2, ...) for this inspection
+    diff = refs.remember(key, found)  # each element gets its ref (e1, e2, ...)
+    listed = refs.listing(found, diff, changesOnly)
     elements = [described for _, described in found]
     title = target.window_text()[:200]
     if any(element.get("protected") for element in elements):
         _seen.pop(key, None)
-        return {"title": title, "elements": elements, "previewUnavailable": "protected_content"}
+        return {"title": title, **listed, "previewUnavailable": "protected_content"}
     shot = ImageGrab.grab(bbox=(left, top, right, bottom), all_screens=True)
     seen = vision.view(shot, region)  # refused before anything is remembered
     vision.remember(_seen, key, shot)  # a click is always matched against the whole window
-    return {"title": title, "elements": elements, "preview": preview_jpeg(seen, 30_000),
+    return {"title": title, **listed, "preview": preview_jpeg(seen, 30_000),
             **({"previewRegion": list(region)} if region else {})}
+
+
+WAIT_POLL_S = 0.25
+
+
+@app.tool()
+@_evidence
+def ui_wait(window: dict, element: dict, gone: bool = False, timeoutMs: int = 5000) -> dict:
+    """Wait, without acting, until `element` is in the leased window (or with `gone`, until it
+    or the window itself is gone), checking every quarter second for at most `timeoutMs`
+    (mcp-windows' DeterministicWait, re-implemented). Not met in time is a refusal, so the rest
+    of a batch does not run against a screen that never arrived."""
+    started = time.monotonic()
+    while True:
+        try:
+            _element(_leased(window), element, window)
+            present = True
+        except Refused as refusal:
+            if refusal.code == "element_ambiguous":
+                present = True  # more than one: it is there
+            elif refusal.code in ("element_not_found", "element_stale") or (gone and refusal.code == "window_gone"):
+                present = False
+            else:
+                raise
+        waited = round((time.monotonic() - started) * 1000)
+        if present != gone:
+            return {"met": True, "waitedMs": waited}
+        if waited >= timeoutMs:
+            raise Refused("wait_timed_out")
+        time.sleep(min(WAIT_POLL_S, (timeoutMs - waited) / 1000))
 
 
 @app.tool()

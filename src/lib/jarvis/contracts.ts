@@ -82,7 +82,7 @@ const windowLease = z.strictObject({
 
 /**
  * An element inside a leased window, found again by what it is, not where it was: by the `ref`
- * the window's newest ui.inspect gave it (exact, even for a repeated or unnamed label; refused
+ * a ui.inspect of the window gave it (exact, even for a repeated or unnamed label; refused
  * once the element changed), or by its automation id or name.
  */
 const element = z
@@ -899,7 +899,29 @@ export const OPERATIONS = {
         .describe(
           "[x0, y0, x1, y1] as window fractions: see only this part, enlarged. A point seen at (u, v) of that image is at x0 + u*(x1-x0), y0 + v*(y1-y0) of the window.",
         ),
+      changesOnly: z
+        .boolean()
+        .optional()
+        .describe(
+          "After an earlier ui.inspect of this window: list only the controls that are new or changed, plus the refs that are gone; every other ref stays as it was.",
+        ),
     }),
+    target: (a: { window: { exe: string } }): Target => ({ app: a.window.exe }),
+  },
+  "ui.wait": {
+    summary:
+      "Wait, without acting, until a control is in an application window (or with `gone`, until it or the window is gone), for at most timeoutMs. Use it after an action that opens or closes something (a dialog, a progress bar) instead of inspecting again and again; not met in time stops the rest of the turn.",
+    engine: "desktop",
+    role: "ui_bridge",
+    capability: "apps",
+    risk: "read",
+    arguments: z.strictObject({
+      window: windowLease,
+      element,
+      gone: z.boolean().optional(),
+      timeoutMs: z.int().min(100).max(15_000).optional(),
+    }),
+    seconds: 20,
     target: (a: { window: { exe: string } }): Target => ({ app: a.window.exe }),
   },
   "ui.invoke": {

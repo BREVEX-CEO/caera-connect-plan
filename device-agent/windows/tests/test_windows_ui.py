@@ -109,6 +109,11 @@ class WindowsUiLadder(unittest.TestCase):
                 out["region"] = await run("ui.inspect", {"window": window, "region": [0, 0, 0.5, 0.5]})
                 box = {"automationId": "noteBox"}
                 out["set"] = await run("ui.set_value", {"window": window, "element": box, "value": "Quarterly GREEN"})
+                # A second look lists only what changed (C5); every other ref stays as it was.
+                out["changes"] = await run("ui.inspect", {"window": window, "changesOnly": True})
+                out["present"] = await run("ui.wait", {"window": window, "element": {"automationId": "saveButton"}})
+                out["never"] = await run("ui.wait", {"window": window, "element": {"automationId": "neverThere"},
+                                                     "timeoutMs": 400})
                 # By the ref the newest inspection gave the button (P5), not by a description.
                 save = next(e["ref"] for e in out["region"]["evidence"]["elements"] if e["automationId"] == "saveButton")
                 out["invoke"] = await run("ui.invoke", {"window": window, "element": {"ref": save}})
@@ -128,7 +133,9 @@ class WindowsUiLadder(unittest.TestCase):
                                       if w["pid"] == window["pid"] and w["hwnd"] != window["hwnd"]), None)
                 if out["dialog"]:
                     lease = {key: out["dialog"][key] for key in ("exe", "pid", "hwnd", "started")}
+                    out["dialog_ok"] = await run("ui.wait", {"window": lease, "element": {"name": "OK"}})
                     out["answer"] = await run("ui.send_keys", {"window": lease, "keys": [{"press": "Enter"}]})
+                    out["dialog_gone"] = await run("ui.wait", {"window": lease, "element": {"name": "OK"}, "gone": True})
                 time.sleep(1)
                 out["after_dialog"] = await run("ui.set_value", {"window": window, "element": box, "value": "after dialog"})
                 # The person presses a key: JARVIS's hands pause, then continue once they are quiet.
@@ -202,6 +209,21 @@ class WindowsUiLadder(unittest.TestCase):
             self.assertTrue(out["set"]["evidence"]["matches"], out["set"])
             self.assertEqual(out["invoke"]["status"], "observed", out["invoke"])
             self.assertEqual(out["after_invoke"], "Quarterly GREEN")
+        with self.subTest("UIA-018 a second look lists only what changed, and unchanged refs stay valid (C5)"):
+            first = {e["automationId"]: e["ref"] for e in out["inspect"]["evidence"]["elements"]}
+            again = {e["automationId"]: e["ref"] for e in out["region"]["evidence"]["elements"]}
+            self.assertEqual(first["saveButton"], again["saveButton"], "a unique control keeps its ref")
+            changed = {e["automationId"]: e for e in out["changes"]["evidence"]["elements"]}
+            self.assertEqual(changed["noteBox"].get("value"), "Quarterly GREEN", out["changes"])
+            self.assertNotIn("saveButton", changed, out["changes"])
+            self.assertGreater(out["changes"]["evidence"]["unchanged"], 0, out["changes"])
+        with self.subTest("UIA-019 ui.wait returns once a control is there and refuses when it never comes (C6)"):
+            self.assertEqual(out["present"]["status"], "observed", out["present"])
+            self.assertTrue(out["present"]["evidence"]["met"], out["present"])
+            self.assertEqual((out["never"]["status"], out["never"]["errorCode"], out["never"]["maybeChanged"]),
+                             ("not_applied", "wait_timed_out", False), out["never"])
+            self.assertTrue(out["dialog_ok"]["evidence"]["met"], out["dialog_ok"])
+            self.assertTrue(out["dialog_gone"]["evidence"]["met"], out["dialog_gone"])
         with self.subTest("UIA-006 keys go to the leased foreground window"):
             self.assertEqual(out["keys"]["status"], "observed", out["keys"])
             # Text with every character a keyboard library reads as a command arrives as written.

@@ -192,6 +192,9 @@ class WebLadder(unittest.TestCase):
             out["002"] = await run("web.read", {"page": page})
             out["table"] = await run("web.open", {"url": base + "/release-table"})
             out["007"] = await run("web.click", {"page": page, "selector": "text=Page one"})
+            out["settle-open"] = await run("web.open", {"url": base + "/spa"})
+            later = (await run("web.open", {"url": base + "/later"}))["evidence"]["page"]
+            out["settle-click"] = await run("web.click", {"page": later, "selector": "#load"})
             home = (await run("web.open", {"url": base + "/"}))["evidence"]
             second_next = [c for c in home["controls"] if c["label"] == "Next"][1]
             out["big"] = await run("web.read", {"page": (await run("web.open", {"url": base + "/big"}))["evidence"]["page"]})
@@ -307,6 +310,9 @@ class WebLadder(unittest.TestCase):
             self.assertEqual(web_fixture.RECEIVED["uploads"], [{"name": "upload-me.txt", "sha256": expected}])
         with self.subTest("WEB-007 internal navigation"):
             self.assertIn("INV-7", results["007"]["evidence"]["text"])
+        with self.subTest("WEB-018 an observation waits for the requests a page or a click started (C15)"):
+            self.assertIn("Shown 42 rows", results["settle-open"]["evidence"]["text"], results["settle-open"])
+            self.assertIn("Loaded 42 rows", results["settle-click"]["evidence"]["text"], results["settle-click"])
         with self.subTest("WEB-007d a link's address is listed, so it can be opened as seen"):
             links = {c["label"]: c.get("href") for c in results["001"]["evidence"]["controls"]}
             self.assertEqual(links["Page one"], "/pages/1")

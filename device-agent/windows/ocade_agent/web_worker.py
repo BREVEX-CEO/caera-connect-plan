@@ -656,7 +656,37 @@ def _bind(new_page, site: str, origin: tuple[str, str, int] | None = None) -> st
 
     new_page.on("popup", opened)
     new_page.on("dialog", asked)
+    # Requests in flight, for _settle. A stream that never ends (WebSocket, EventSource) is not one.
+    inflight = entry["inflight"] = set()
+    new_page.on("request", lambda r: r.resource_type in ("websocket", "eventsource") or inflight.add(r))
+    new_page.on("requestfinished", lambda r: inflight.discard(r))
+    new_page.on("requestfailed", lambda r: inflight.discard(r))
     return page_id
+
+
+SETTLE_S = 3  # the longest an observation waits for the page to arrive
+_QUIET = """() => new Promise((done) => {
+  let timer = setTimeout(done, 200);
+  new MutationObserver(() => { clearTimeout(timer); timer = setTimeout(done, 200); })
+    .observe(document, { subtree: true, childList: true, attributes: true, characterData: true });
+})"""
+
+
+async def _settle(entry: dict) -> None:
+    """Before a page is observed after it opened or was clicked: the requests it started (fetch,
+    XHR, documents, frames) finish and its DOM stays unchanged for 200 ms, for at most SETTLE_S,
+    so the observation reads the result instead of a half-drawn page (C15; Playwright's own
+    `networkidle` never arrives on a page that keeps a request open, so it is not used)."""
+    with anyio.move_on_after(SETTLE_S):
+        while True:
+            while entry["inflight"]:
+                await anyio.sleep(0.05)
+            try:
+                await entry["page"].evaluate(_QUIET)
+            except Exception:
+                return  # the page navigated or closed: _observe reports what is there
+            if not entry["inflight"]:
+                return
 
 
 async def _collect_popups(entry: dict) -> list[str]:
@@ -707,6 +737,7 @@ async def web_open(url: str) -> dict:
             await _follow(current, origin, url)
             if _origin(current.url) != origin:
                 raise Refused("redirected_off_site")
+            await _settle(_pages[page_id])
     except BaseException:
         _pages.pop(page_id, None)
         _redirects.pop(current, None)
@@ -798,6 +829,7 @@ async def web_click(page: dict, selector: str, frame: str | None = None) -> dict
                 while len(entry["pendingPopups"]) < wanted:
                     entry["popupArrived"].clear()
                     await entry["popupArrived"].wait()
+            await _settle(entry)
     finally:
         current.remove_listener("filechooser", chosen)
         for chooser in choosers:

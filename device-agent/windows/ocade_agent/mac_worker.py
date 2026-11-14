@@ -368,7 +368,7 @@ def apps_launch(exe: str, open: str | None = None) -> dict:
 
 @app.tool()
 @_evidence
-def ui_inspect(window: dict, region: list | None = None) -> dict:
+def ui_inspect(window: dict, region: list | None = None, changesOnly: bool = False) -> dict:
     """The window's accessible elements with their boxes (window fractions) and an image of it
     (or of one `region` of it, at full detail)."""
     import json
@@ -386,20 +386,51 @@ def ui_inspect(window: dict, region: list | None = None) -> dict:
     x, y, width, height = bounds
     title = str(_attribute(target, "AXTitle") or "")[:200]
     key = json.dumps(window, sort_keys=True)
-    refs.remember(key, found)  # each element gets its ref (e1, e2, ...) for this inspection
+    diff = refs.remember(key, found)  # each element gets its ref (e1, e2, ...)
+    listed = refs.listing(found, diff, changesOnly)
     elements = [described for _, described in found]
     if any(element.get("protected") for element in elements):
         _seen.pop(key, None)
-        return {"title": title, "elements": elements, "previewUnavailable": "protected_content"}
+        return {"title": title, **listed, "previewUnavailable": "protected_content"}
     if not _screen_capture_allowed():
         # Controls still work through Accessibility; only the picture needs Screen Recording.
         _seen.pop(key, None)
-        return {"title": title, "elements": elements, "previewUnavailable": "screen_recording_permission_needed"}
+        return {"title": title, **listed, "previewUnavailable": "screen_recording_permission_needed"}
     shot = ImageGrab.grab(bbox=(x, y, x + width, y + height))
     seen = vision.view(shot, region)  # refused before anything is remembered
     vision.remember(_seen, key, shot)  # a click is always matched against the whole window
-    return {"title": title, "elements": elements, "preview": preview_jpeg(seen, 30_000),
+    return {"title": title, **listed, "preview": preview_jpeg(seen, 30_000),
             **({"previewRegion": list(region)} if region else {})}
+
+
+WAIT_POLL_S = 0.25
+
+
+@app.tool()
+@_evidence
+def ui_wait(window: dict, element: dict, gone: bool = False, timeoutMs: int = 5000) -> dict:
+    """Wait, without acting, until `element` is in the leased window (or with `gone`, until it
+    or the window itself is gone), checking every quarter second for at most `timeoutMs`
+    (as the Windows worker does). Not met in time is a refusal, so the rest of a batch does
+    not run against a screen that never arrived."""
+    started = time.monotonic()
+    while True:
+        try:
+            _element(_leased(window)[0], element, window)
+            present = True
+        except Refused as refusal:
+            if refusal.code == "element_ambiguous":
+                present = True  # more than one: it is there
+            elif refusal.code in ("element_not_found", "element_stale") or (gone and refusal.code == "window_gone"):
+                present = False
+            else:
+                raise
+        waited = round((time.monotonic() - started) * 1000)
+        if present != gone:
+            return {"met": True, "waitedMs": waited}
+        if waited >= timeoutMs:
+            raise Refused("wait_timed_out")
+        time.sleep(min(WAIT_POLL_S, (timeoutMs - waited) / 1000))
 
 
 @app.tool()

@@ -21,6 +21,7 @@ import subprocess
 import sys
 import tempfile
 import threading
+import time
 from datetime import datetime, timedelta, timezone
 from email.parser import BytesParser
 from email.policy import default
@@ -43,6 +44,12 @@ onchange="document.getElementById('opened').textContent = 'Opened ' + this.files
 <span contenteditable="true" inputmode="numeric" onkeydown="this.dataset.typed = 1"
 onblur="document.getElementById('committed').textContent = this.dataset.typed ? 'End ' + this.innerText : 'not typed'">20</span>
 <p id="committed"></p>""",
+    # The page's content arrives a second after the click (or after the page itself loaded),
+    # from a request it starts: what an observation must wait for (C15).
+    "/later": """<button id="load" onclick="fetch('/slow').then(r => r.text())
+.then(t => document.getElementById('out').textContent = 'Loaded ' + t + ' rows')">Load</button><p id="out">Nothing yet</p>""",
+    "/spa": """<p id="out">Loading</p><script>fetch('/slow').then(r => r.text())
+.then(t => document.getElementById('out').textContent = 'Shown ' + t + ' rows')</script>""",
     "/big": "<p>" + "Long page text. " * 4000 + "</p>" + "".join(f"<button>Control number {i} with a long label {'x' * 60}</button>" for i in range(200)),
     "/": """<h1>OCADE fixture home</h1><h2>Section A</h2><p id="lead">Quarterly status is GREEN.</p>
 <a href="/pages/1">Page one</a> <a href="/pages/2">Page two</a> <a href="/download">Downloads</a>
@@ -126,6 +133,9 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(_pdf(), "application/pdf", extra={"content-disposition": "attachment; filename=report.pdf"})
         if path == "/redirect":
             return self._send(b"", status=302, extra={"location": f"https://localhost:{self.server.server_port}/pages/1"})
+        if path == "/slow":
+            time.sleep(1)
+            return self._send(b"42", "text/plain")
         if path in PAGES:
             return self._send(f"<!doctype html><title>{path}</title><body>{PAGES[path]}</body>".encode())
         self._send(b"not found", status=404)
