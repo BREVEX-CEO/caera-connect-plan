@@ -119,7 +119,9 @@ class WindowsUiLadder(unittest.TestCase):
                                                              "direction": "down", "pages": 3})
                 out["scroll_up"] = await run("ui.scroll", {"window": window, "element": rows, "direction": "up",
                                                            "pages": 10})
-                out["scroll_into"] = await run("ui.scroll", {"window": window, "element": {"name": "Row 59"}})
+                # Bring a listed item fully into view (off-screen items of a virtualized list are not
+                # in the accessibility tree at all, so only what an inspection lists can be named).
+                out["scroll_into"] = await run("ui.scroll", {"window": window, "element": {"name": "Row 4"}})
                 out["present"] = await run("ui.wait", {"window": window, "element": {"automationId": "saveButton"}})
                 out["never"] = await run("ui.wait", {"window": window, "element": {"automationId": "neverThere"},
                                                      "timeoutMs": 400})
