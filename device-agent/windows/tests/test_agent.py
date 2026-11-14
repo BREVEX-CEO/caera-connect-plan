@@ -277,3 +277,36 @@ class ProcessKillTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ForgetTaskDataTest(unittest.TestCase):
+    """Plan v8 12.3: `ocade_agent forget` removes the companion's task records only."""
+
+    def test_only_task_records_go_and_the_persons_files_stay(self):
+        import os
+        from unittest.mock import patch
+
+        home, workspace = Path(tempfile.mkdtemp()), Path(tempfile.mkdtemp())
+        (home / "device.json").write_text(json.dumps({"server": "https://x.test", "workspace": str(workspace)}))
+        (home / "releases").mkdir()
+        Journal(home / "journal.sqlite").start("a1", {"operation": "fs.list"})
+        (home / "jobs" / "abc123").mkdir(parents=True)
+        (home / "crash-reports").mkdir()
+        (home / "crash-reports" / "one.json").write_text("{}")
+        output = workspace / "OCADE output" / "kept.txt"
+        output.parent.mkdir()
+        output.write_text("the person's result")
+        profile = home / "browser-profile"
+        profile.mkdir()
+        with patch.dict(os.environ, {"OCADE_AGENT_HOME": str(home)}), \
+                patch("ocade_agent.web_worker.PROFILE", profile):
+            self.assertEqual(agent_module.main(["forget"]), 0)
+            self.assertTrue(profile.exists(), "the browser profile goes only when asked")
+            self.assertEqual(agent_module.main(["forget", "--browser-profile"]), 0)
+        self.assertFalse((home / "journal.sqlite").exists())
+        self.assertFalse((home / "jobs").exists())
+        self.assertFalse((home / "crash-reports").exists())
+        self.assertFalse(profile.exists())
+        self.assertTrue((home / "device.json").exists(), "the pairing is kept")
+        self.assertTrue((home / "releases").is_dir(), "installed releases are kept")
+        self.assertEqual(output.read_text(), "the person's result")

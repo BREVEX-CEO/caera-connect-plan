@@ -425,6 +425,32 @@ def diagnose(home: Path, server: str | None, workspace: str | None) -> list[dict
 
 
 
+def forget_task_data(home: Path, browser_profile: bool = False) -> list[str]:
+    """Delete this companion's own JARVIS task records (plan v8 12.3): the action journal, job
+    records and logs, and crash reports; with `browser_profile`, OCADE's own browser profile too.
+    Unfinished jobs are cancelled first. The pairing key, installed releases and the person's
+    files (the JARVIS folder and its 'OCADE output') are never touched."""
+    import shutil
+
+    jobs.cancel_all(str(home))
+    removed = []
+    targets = [home / name for name in ("journal.sqlite", "journal.sqlite-wal", "journal.sqlite-shm")]
+    targets += [jobs.folder(home), home / "crash-reports"]
+    if browser_profile:
+        from .web_worker import PROFILE
+
+        targets.append(PROFILE)
+    for target in targets:
+        if target.is_dir() and not target.is_symlink():
+            shutil.rmtree(target)
+        elif target.exists() or target.is_symlink():
+            target.unlink()
+        else:
+            continue
+        removed.append(target.name)
+    return removed
+
+
 @contextmanager
 def companion_lock(home: Path):
     """Serialise the companion and updates, including interrupted process recovery."""
@@ -699,7 +725,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="ocade_agent")
     parser.add_argument(
         "command", nargs="?", default="run" if getattr(sys, "frozen", False) else None,
-        choices=["enroll", "run", "stop", "worker", "diagnose",
+        choices=["enroll", "run", "stop", "worker", "diagnose", "forget",
                  "activate-update", "rollback-update", "check-update-runtime", "run-activated"],
     )
     parser.add_argument("module", nargs="?", help=argparse.SUPPRESS)
@@ -708,6 +734,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--workspace")
     parser.add_argument("--until-idle", action="store_true")
     parser.add_argument("--no-browser", action="store_true", help="enroll without opening the pairing page")
+    parser.add_argument("--browser-profile", action="store_true",
+                        help="forget: also remove OCADE's own browser profile (its site sign-ins)")
     parser.add_argument("--session-minutes", type=float,
                         help="end after this many minutes with no task, wait or job (session mode)")
     parser.add_argument("--manifest", type=Path)
@@ -742,6 +770,16 @@ def main(argv: list[str] | None = None) -> int:
         if args.module not in set(WORKERS.values()) | {"ocade_agent.job_runner"}:
             return 2
         runpy.run_module(args.module, run_name="__main__")
+        return 0
+    if args.command == "forget":
+        try:
+            with companion_lock(home):
+                removed = forget_task_data(home, args.browser_profile)
+        except RuntimeError as error:
+            print(str(error), file=sys.stderr)
+            return 3
+        print("Removed: " + (", ".join(removed) if removed else "nothing (no JARVIS task data here)"))
+        print("Kept: this computer's pairing, installed releases and every file in your JARVIS folder.")
         return 0
     if args.command == "stop":
         home.mkdir(parents=True, exist_ok=True)
