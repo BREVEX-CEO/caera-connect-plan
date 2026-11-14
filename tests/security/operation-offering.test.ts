@@ -105,8 +105,9 @@ test("a large argument schema is sent once the task needs it; every operation st
     assert.match(first.find((tool) => tool.name === name)!.description, /argument schema/);
   }
   assert.ok(schemaSize(first, "fs_write_text") > 100, "ordinary operations keep their schema");
-  // Before: 23.9k characters (about 6k tokens) of offered operations on every turn.
-  assert.ok(JSON.stringify(first).length < 11_000, `offered ${JSON.stringify(first).length}`);
+  // Before: 23.9k characters (about 6k tokens) of offered operations on every turn. The
+  // complete schemas (plan v8 10.2) stay inside plan v8 10.3's 12,000-character budget.
+  assert.ok(JSON.stringify(first).length < 12_000, `offered ${JSON.stringify(first).length}`);
   assert.ok(schemaSize(second, "image_edit") > 1_500, "the schema arrives when it is called for");
   assert.deepEqual(
     second.find((tool) => tool.name === "scene_render")!.inputSchema.properties,

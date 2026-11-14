@@ -756,10 +756,10 @@ test(
         offered.join(","),
       );
       assert.ok(!offered.some((t) => /^(web_|ui_|apps_|mcp)/.test(t)), offered.join(","));
-      assert.ok(
-        !JSON.stringify(sent.map((s) => s.tools)).includes("additionalProperties"),
-        "schemas normalized for the provider",
-      );
+      // The complete rules reach the service, which picks the shape each model accepts.
+      const schemas = JSON.stringify(sent.map((s) => s.tools));
+      assert.ok(schemas.includes("additionalProperties"), "complete schemas sent");
+      assert.ok(!schemas.includes("$schema"), "no dialect URI spent on every turn");
       assert.match(sent.at(-1)!.prompt, /untrusted data/);
       const run = await agent("run", "--workspace", workspace, "--until-idle");
       assert.equal(run.code, 0, run.out);

@@ -126,7 +126,7 @@ test("operations needing an engine the computer lacks are never offered", async 
 });
 
 test("every operation schema stays inside the provider's schema subset", async () => {
-  const { providerSchema } = await import("../../src/lib/jarvis/planner.server.ts");
+  const { providerSchema } = await import("../../src/lib/intelligence/edge-handler.ts");
   const { OPERATIONS } = await import("../../src/lib/jarvis/contracts.ts");
   const { z } = await import("zod");
   for (const [name, spec] of Object.entries(OPERATIONS)) {
@@ -146,7 +146,10 @@ test("operation schemas are converted once and match a fresh conversion", async 
   const { z } = await import("zod");
   const first = operationSchema("fs.read_text");
   assert.equal(operationSchema("fs.read_text"), first);
-  assert.deepEqual(first, z.toJSONSchema(OPERATIONS["fs.read_text"].arguments, { io: "input" }));
+  const { $schema: _dialect, ...fresh } = z.toJSONSchema(OPERATIONS["fs.read_text"].arguments, {
+    io: "input",
+  });
+  assert.deepEqual(first, fresh);
   const full = JSON.stringify(operationSchema("scene.render"));
   const trimmed = JSON.stringify(operationSchema("scene.render", true));
   assert.ok(full.includes('"interchange"') && !trimmed.includes('"interchange"'));
@@ -417,7 +420,7 @@ test("browser targets are public https sites by name", () => {
 });
 
 test("tool schemas are normalized to what the provider accepts, nothing else changes", async () => {
-  const { providerSchema } = await import("../../src/lib/jarvis/planner.server.ts");
+  const { providerSchema } = await import("../../src/lib/intelligence/edge-handler.ts");
   const normalized = providerSchema({
     $schema: "https://json-schema.org/draft/2020-12/schema",
     type: "object",

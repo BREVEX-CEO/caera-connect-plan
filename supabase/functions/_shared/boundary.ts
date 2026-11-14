@@ -183,7 +183,7 @@ export const boundary: Omit<OnlineHandlerDependencies, "verifyJwt" | "verifyServ
   ),
   providerSlots: CONFIGURED_SLOTS,
   quotaReturnsAt: new Map(),
-  withoutThinking: new Set(),
+  refused: new Map(),
   // A real limit the provider named: logged for the operator (ids and numbers only, never a key).
   discoveredLimit(limit) {
     console.log("ocade.provider_limit", JSON.stringify(limit));

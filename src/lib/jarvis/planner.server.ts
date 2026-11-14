@@ -405,33 +405,6 @@ const SYSTEM = [
   "web.open and web.click already return the page as it is afterwards; web.read only when it may have changed since.",
 ].join(" ");
 
-/**
- * The provider takes an OpenAPI-subset schema: keep what it understands and drop
- * the rest. Arguments are still validated against the full schema afterwards.
- */
-export function providerSchema(schema: unknown): unknown {
-  if (Array.isArray(schema)) return schema.map(providerSchema);
-  if (!schema || typeof schema !== "object") return schema;
-  const out: Record<string, unknown> = {};
-  for (const [key, value] of Object.entries(schema as Record<string, unknown>)) {
-    if (key === "$schema" || key === "additionalProperties" || key === "propertyNames") continue;
-    // No exclusive bounds in the provider's schema: the inclusive one guides the model,
-    // and the server's own validation still enforces the strict bound.
-    if (key === "exclusiveMinimum") out.minimum = value;
-    else if (key === "exclusiveMaximum") out.maximum = value;
-    else if (key === "const") out.enum = [value];
-    else if (key === "properties") {
-      out.properties = Object.fromEntries(
-        Object.entries(value as Record<string, unknown>).map(([name, sub]) => [
-          name,
-          providerSchema(sub),
-        ]),
-      );
-    } else out[key] = providerSchema(value);
-  }
-  return out;
-}
-
 /** How the planner gets its permit and reaches the service; replaced only by tests. */
 export const plannerAccess = {
   /**
@@ -541,7 +514,8 @@ async function callPlanner(input: {
         tools: input.tools.map((tool) => ({
           name: tool.name,
           description: tool.description,
-          inputSchema: providerSchema(tool.parameters),
+          // The complete schema: the service sends it whole to a model that takes it (plan v8 10.2).
+          inputSchema: tool.parameters,
         })),
         attachments: input.attachments ?? [],
         // The service re-reads the account's own consent; this flag alone grants nothing.
@@ -991,12 +965,14 @@ export function operationSchema(name: Operation, withoutGltf = false): unknown {
   const key = withoutInterchange ? `${name}:no-interchange` : name;
   let schema = operationSchemas.get(key);
   if (schema === undefined) {
-    schema = z.toJSONSchema(
+    // The dialect URI tells the model nothing and costs input tokens on every turn.
+    const { $schema: _dialect, ...rules } = z.toJSONSchema(
       withoutInterchange
         ? OPERATIONS["scene.render"].arguments.omit({ interchange: true })
         : OPERATIONS[name].arguments,
       { io: "input" },
     );
+    schema = rules;
     operationSchemas.set(key, schema);
   }
   return schema;

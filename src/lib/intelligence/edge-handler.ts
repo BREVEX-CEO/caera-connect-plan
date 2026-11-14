@@ -170,8 +170,11 @@ export interface OnlineHandlerDependencies {
    * finish reason, timeout kind): the operator's diagnosis, never a prompt, key or answer.
    */
   providerIssue?(issue: { model: string; slot: string; kind: string }): void;
-  /** Models whose provider refused the request's thinking setting: asked again without one. */
-  withoutThinking?: Set<string>;
+  /**
+   * The request settings each model's provider refused (the capability record, plan v8 10.8):
+   * learned from a refusal, then never sent to that model again by this deployment instance.
+   */
+  refused?: Map<string, Set<ProviderFeature>>;
   callProvider(input: {
     model: OnlineModelId;
     body: Record<string, unknown>;
@@ -392,7 +395,75 @@ function parseBody(value: unknown): OnlineRequestBody | null {
   return value as unknown as OnlineRequestBody;
 }
 
-function providerBody(body: OnlineRequestBody, thinking = true): Record<string, unknown> {
+/**
+ * A request setting a model may refuse. Each is sent until that model's provider refuses it,
+ * and the refusal is what teaches OCADE, never a list of model names.
+ * - `thinking`: the thinking level.
+ * - `forced_call`: a JARVIS turn must answer with one of the offered calls (mode ANY), so no
+ *   turn is spent on prose (plan v8 10.1).
+ * - `json_schema`: each operation's complete JSON Schema (`parametersJsonSchema`) instead of
+ *   the provider's smaller OpenAPI subset, so the model sees every rule (plan v8 10.2).
+ */
+export type ProviderFeature = "thinking" | "forced_call" | "json_schema";
+
+/** The words in a provider's 400 that name which setting it refused. */
+const REFUSAL_NAMES: readonly [ProviderFeature, RegExp][] = [
+  ["thinking", /thinking/i],
+  ["forced_call", /tool_?config|function_?calling_?config|allowed_?function_?names/i],
+  ["json_schema", /json_?schema/i],
+];
+
+/** The setting a refusal names among those the request carried, if any. */
+export function refusedFeature(
+  detail: string,
+  sent: ReadonlySet<ProviderFeature>,
+): ProviderFeature | undefined {
+  return REFUSAL_NAMES.find(([feature, words]) => sent.has(feature) && words.test(detail))?.[0];
+}
+
+/**
+ * The provider's OpenAPI-subset schema, for a model that refused the full JSON Schema: keep
+ * what it understands and drop the rest. Arguments are still validated against the full
+ * schema afterwards.
+ */
+export function providerSchema(schema: unknown): unknown {
+  if (Array.isArray(schema)) return schema.map(providerSchema);
+  if (!schema || typeof schema !== "object") return schema;
+  const out: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(schema as Record<string, unknown>)) {
+    if (key === "$schema" || key === "additionalProperties" || key === "propertyNames") continue;
+    // No exclusive bounds in the provider's schema: the inclusive one guides the model,
+    // and the server's own validation still enforces the strict bound.
+    if (key === "exclusiveMinimum") out.minimum = value;
+    else if (key === "exclusiveMaximum") out.maximum = value;
+    else if (key === "const") out.enum = [value];
+    else if (key === "properties") {
+      out.properties = Object.fromEntries(
+        Object.entries(value as Record<string, unknown>).map(([name, sub]) => [
+          name,
+          providerSchema(sub),
+        ]),
+      );
+    } else out[key] = providerSchema(value);
+  }
+  return out;
+}
+
+/** The settings this request carries for a model, given what it has refused. */
+function sentFeatures(body: OnlineRequestBody, refused: ReadonlySet<ProviderFeature>) {
+  const sent = new Set<ProviderFeature>();
+  if (!refused.has("thinking")) sent.add("thinking");
+  if (!body.research && body.tools.length) {
+    if (body.surface === "jarvis" && !refused.has("forced_call")) sent.add("forced_call");
+    if (!refused.has("json_schema")) sent.add("json_schema");
+  }
+  return sent;
+}
+
+function providerBody(
+  body: OnlineRequestBody,
+  sent: ReadonlySet<ProviderFeature>,
+): Record<string, unknown> {
   const system = body.messages
     .filter((message) => message.role === "system")
     .map((message) => message.content)
@@ -481,7 +552,7 @@ function providerBody(body: OnlineRequestBody, thinking = true): Record<string, 
     contents,
     generationConfig: {
       maxOutputTokens: MAX_OUTPUT_TOKENS,
-      ...(thinking ? { thinkingConfig: { thinkingLevel: THINKING_LEVEL } } : {}),
+      ...(sent.has("thinking") ? { thinkingConfig: { thinkingLevel: THINKING_LEVEL } } : {}),
     },
     /*
      * RESEARCH IS THE PROVIDER'S OWN GROUNDED SEARCH.
@@ -502,13 +573,22 @@ function providerBody(body: OnlineRequestBody, thinking = true): Record<string, 
       ? {
           tools: [
             {
-              function_declarations: body.tools.map((tool) => ({
-                name: tool.name,
-                description: tool.description,
-                parameters: tool.inputSchema,
-              })),
+              function_declarations: body.tools.map((tool) => {
+                const { $schema: _dialect, ...schema } = tool.inputSchema;
+                return {
+                  name: tool.name,
+                  description: tool.description,
+                  ...(sent.has("json_schema")
+                    ? { parametersJsonSchema: schema }
+                    : { parameters: providerSchema(schema) }),
+                };
+              }),
             },
           ],
+          // Every JARVIS turn answers with one of the offered calls (`ask` and `finish` included).
+          ...(sent.has("forced_call")
+            ? { toolConfig: { functionCallingConfig: { mode: "ANY" } } }
+            : {}),
         }
       : {}),
   };
@@ -1202,7 +1282,9 @@ async function runOnlineIntelligence(
     for (;;) {
       provider = null;
       refusedAs = undefined;
-      let thinking = !deps.withoutThinking?.has(configured);
+      const refused = deps.refused?.get(configured) ?? new Set<ProviderFeature>();
+      deps.refused?.set(configured, refused);
+      let sent = sentFeatures(body, refused);
       let slotIndex = 0;
       while (modelAttempts < MAX_PROVIDER_ATTEMPTS && slotIndex < slots.length) {
         const slot = slots[slotIndex]!;
@@ -1225,7 +1307,7 @@ async function runOnlineIntelligence(
           modelAttempts += 1;
           response = await deps.callProvider({
             model: configured,
-            body: high ? workersAiBody(body, MAX_OUTPUT_TOKENS) : providerBody(body, thinking),
+            body: high ? workersAiBody(body, MAX_OUTPUT_TOKENS) : providerBody(body, sent),
             signal: AbortSignal.any([controller.signal, hung.signal]),
             slot,
           });
@@ -1324,10 +1406,12 @@ async function runOnlineIntelligence(
             slotIndex += 1;
             continue;
           }
-          // The model does not take this thinking setting: the same request once without one.
-          if (thinking && /thinking/i.test(detail)) {
-            thinking = false;
-            deps.withoutThinking?.add(configured);
+          // The model does not take a setting it was sent: the same request once without it.
+          const feature = refusedFeature(detail, sent);
+          if (feature) {
+            refused.add(feature);
+            sent = sentFeatures(body, refused);
+            deps.providerIssue?.({ model: configured, slot, kind: `refused_${feature}` });
             // Learning what the model accepts is not a failed attempt at the turn itself.
             modelAttempts -= 1;
             continue;

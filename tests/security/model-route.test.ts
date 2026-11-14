@@ -11,6 +11,7 @@ import {
   providerQuota,
   type DiscoveredLimit,
   type OnlineHandlerDependencies,
+  type ProviderFeature,
 } from "../../src/lib/intelligence/edge-handler.ts";
 import { plannerModel } from "../../src/lib/intelligence/online-models.ts";
 
@@ -36,7 +37,18 @@ function request(): Request {
         { role: "system", content: "Plan." },
         { role: "user", content: "Do the task." },
       ],
-      tools: [{ name: "finish", description: "Finish.", inputSchema: { type: "object" } }],
+      tools: [
+        {
+          name: "finish",
+          description: "Finish.",
+          inputSchema: {
+            $schema: "https://json-schema.org/draft/2020-12/schema",
+            type: "object",
+            additionalProperties: false,
+            properties: { why: { const: "done", maxLength: 9 } },
+          },
+        },
+      ],
       attachments: [],
       privacy: { onlineInferenceConsented: true, sealed: false },
     }),
@@ -162,7 +174,7 @@ test("the planner model spent: an honest 429 with the soonest return", async () 
 
 test("a refused thinking setting is retried once without one, and remembered", async () => {
   const bodies: Record<string, unknown>[] = [];
-  const withoutThinking = new Set<string>();
+  const refused = new Map<string, Set<ProviderFeature>>();
   const handler = deps(
     "gemma-4-31b-it",
     async ({ body }) => {
@@ -174,14 +186,106 @@ test("a refused thinking setting is retried once without one, and remembered", a
           })
         : new Response(callChunk, { headers: { "content-type": "text/event-stream" } });
     },
-    { withoutThinking },
+    { refused },
   );
   const answer = await events(await handleOnlineIntelligence(request(), handler));
   assert.equal(answer.at(-1)?.type, "final");
   assert.equal(bodies.length, 2);
-  assert.ok(withoutThinking.has("gemma-4-31b-it"));
+  assert.ok(refused.get("gemma-4-31b-it")?.has("thinking"));
   await events(await handleOnlineIntelligence(request(), handler));
   assert.equal(bodies.length, 3, "remembered: no second refused attempt");
+});
+
+test("a JARVIS turn must answer with a call, and every operation carries its complete schema", async () => {
+  const bodies: Record<string, unknown>[] = [];
+  const handler = deps("gemini-3.5-flash-lite", async ({ body }) => {
+    bodies.push(body);
+    return new Response(callChunk, { headers: { "content-type": "text/event-stream" } });
+  });
+  await events(await handleOnlineIntelligence(request(), handler));
+  const sent = bodies[0]!;
+  assert.deepEqual(sent.toolConfig, { functionCallingConfig: { mode: "ANY" } });
+  const [declaration] = (sent.tools as { function_declarations: Record<string, unknown>[] }[])[0]!
+    .function_declarations;
+  assert.deepEqual(declaration, {
+    name: "finish",
+    description: "Finish.",
+    parametersJsonSchema: {
+      type: "object",
+      additionalProperties: false,
+      properties: { why: { const: "done", maxLength: 9 } },
+    },
+  });
+});
+
+for (const [feature, refusal] of [
+  ["forced_call", "Invalid value at 'tool_config.function_calling_config.mode'"],
+  ["json_schema", 'Unknown name "parametersJsonSchema" at function_declarations[0]'],
+] as const) {
+  test(`a model that refuses ${feature} is asked once without it, and only it`, async () => {
+    const bodies: Record<string, unknown>[] = [];
+    const refused = new Map<string, Set<ProviderFeature>>();
+    const handler = deps(
+      "gemma-4-31b-it",
+      async ({ body }) => {
+        bodies.push(body);
+        const text = JSON.stringify(body);
+        const carries = feature === "forced_call" ? "toolConfig" : "parametersJsonSchema";
+        return text.includes(carries)
+          ? new Response(JSON.stringify({ error: { message: refusal } }), { status: 400 })
+          : new Response(callChunk, { headers: { "content-type": "text/event-stream" } });
+      },
+      { refused },
+    );
+    const answer = await events(await handleOnlineIntelligence(request(), handler));
+    assert.equal(answer.at(-1)?.type, "final");
+    assert.equal(bodies.length, 2, "the refusal is learning, not a spent attempt");
+    assert.deepEqual([...refused.get("gemma-4-31b-it")!], [feature]);
+    const retried = JSON.stringify(bodies[1]);
+    if (feature === "json_schema") {
+      // The provider's subset: the rule a model needs survives, the unsupported words do not.
+      assert.match(
+        retried,
+        /"parameters":\{"type":"object","properties":\{"why":\{"enum":\["done"\]/,
+      );
+      assert.match(retried, /toolConfig/);
+    } else {
+      assert.match(retried, /parametersJsonSchema/);
+      assert.doesNotMatch(retried, /toolConfig/);
+    }
+  });
+}
+
+test("Chat is never forced to call a function", async () => {
+  const bodies: Record<string, unknown>[] = [];
+  const value = JSON.parse(await request().text());
+  value.surface = value.permit.surface = "chat";
+  const origin = "https://ocade.example";
+  const handler = deps(
+    "gemini-3.5-flash-lite",
+    async ({ body }) => {
+      bodies.push(body);
+      return new Response(callChunk, { headers: { "content-type": "text/event-stream" } });
+    },
+    {
+      allowedOrigins: new Set([origin]),
+      verifyService: undefined,
+      verifyJwt: async () => ({ userId: user }),
+      consented: async () => true,
+    },
+  );
+  const response = await handleOnlineIntelligence(
+    new Request("http://browser/", {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: "Bearer t", origin },
+      body: JSON.stringify(value),
+    }),
+    handler,
+  );
+  await response.text();
+  assert.equal(bodies.length, 1, `status ${response.status}`);
+  assert.equal(bodies[0]!.toolConfig, undefined);
+  assert.ok(JSON.stringify(bodies[0]).includes("parametersJsonSchema"));
 });
 
 test("a misconfigured route serves nothing; a rejected request is still reported as such", async () => {

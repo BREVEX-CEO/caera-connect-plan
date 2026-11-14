@@ -130,11 +130,10 @@ test("a turn that never completes is a retryable failure: bounded, nothing deliv
 });
 
 test("learning that a model takes no thinking setting does not spend the turn's attempts", async () => {
-  const withoutThinking = new Set<string>();
   const { deps, log } = harness(GEMMA, () => broken());
   let first = true;
   const scripted = deps.callProvider;
-  deps.withoutThinking = withoutThinking;
+  deps.refused = new Map();
   deps.callProvider = async (input) => {
     if (first) {
       first = false;
