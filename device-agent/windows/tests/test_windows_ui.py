@@ -240,7 +240,7 @@ class WindowsUiLadder(unittest.TestCase):
             self.assertGreater(out["scroll_down"]["evidence"]["verticalPercent"], 0, out["scroll_down"])
             self.assertEqual(out["scroll_up"]["evidence"]["verticalPercent"], 0, out["scroll_up"])
             self.assertEqual(out["scroll_into"]["status"], "observed", out["scroll_into"])
-            self.assertEqual(out["scroll_into"]["evidence"]["pattern"], "scroll_item", out["scroll_into"])
+            self.assertIn(out["scroll_into"]["evidence"]["pattern"], ("scroll_item", "scroll_lines"), out["scroll_into"])
         with self.subTest("UIA-006 keys go to the leased foreground window"):
             self.assertEqual(out["keys"]["status"], "observed", out["keys"])
             # Text with every character a keyboard library reads as a command arrives as written.

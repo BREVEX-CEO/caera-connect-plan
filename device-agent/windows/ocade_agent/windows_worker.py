@@ -373,32 +373,46 @@ def ui_scroll(window: dict, element: dict, direction: str | None = None, pages: 
 
     wrapper = _element(_actable(window), element, window)
     _person_quiet()
+
+    def scroll_area():
+        area = wrapper
+        for _ in range(12):  # the element itself, then its ancestors up to the window
+            try:
+                found = area.iface_scroll
+            except (NoPatternInterfaceError, AttributeError):
+                found = None
+            if found is not None:
+                return area, found
+            area = area.parent()
+            if area is None:
+                break
+        return None, None
+
+    large_decrement, small_decrement, no_amount, large_increment, small_increment = 0, 1, 2, 3, 4
     if direction is None:
         try:
             item = wrapper.iface_scroll_item
         except (NoPatternInterfaceError, AttributeError):
             item = None
-        if item is None:
+        if item is not None:
+            mark_effect()
+            item.ScrollIntoView()
+            return {"pattern": "scroll_item", "after": _describe(wrapper)}
+        # Items without ScrollItem (WinForms lists, for one): line by line until the item's box is
+        # inside its scrollable area's box, at most 60 lines.
+        area, scroll = scroll_area()
+        if scroll is None or area is wrapper:
             raise Refused("pattern_unsupported")
         mark_effect()
-        item.ScrollIntoView()
-        return {"pattern": "scroll_item", "after": _describe(wrapper)}
-    area = wrapper
-    for _ in range(12):  # the element itself, then its ancestors up to the window
-        try:
-            scroll = area.iface_scroll
-        except (NoPatternInterfaceError, AttributeError):
-            scroll = None
-        if scroll is not None:
-            break
-        area = area.parent()
-        if area is None:
-            break
-    else:
-        scroll = None
+        for _ in range(60):
+            box, frame = wrapper.rectangle(), area.rectangle()
+            if box.top >= frame.top and box.bottom <= frame.bottom:
+                return {"pattern": "scroll_lines", "after": _describe(wrapper)}
+            scroll.Scroll(no_amount, small_increment if box.bottom > frame.bottom else small_decrement)
+        raise Refused("element_not_found")
+    area, scroll = scroll_area()
     if scroll is None:
         raise Refused("pattern_unsupported")
-    large_decrement, no_amount, large_increment = 0, 2, 3
     step = large_increment if direction in ("down", "right") else large_decrement
     horizontal = direction in ("left", "right")
     mark_effect()
