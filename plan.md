@@ -1645,7 +1645,8 @@ The existing `tests.run_required.main` loads selected modules/classes/methods or
 - 10.5 (part) — spending ceilings: `modelBudgetReached` before every planner permit (`plannerAccess.acquirePermit`), an account's last 24 hours and every account's month (UTC) against `OCADE_ACCOUNT_DAILY_MODEL_USD` and `OCADE_MONTHLY_MODEL_USD`, estimated from the provider's reported tokens at Flash-Lite's paid prices; migration `20261114230000` (`jarvis_model_tokens`, service role only, with rollback). The owner sets the numbers (Part 19.5); unset means no ceiling. Charging allowances in credits instead of one use per task is NOT CODED (pricing is the owner's decision).
 - Session mode (5.4 part) — `--session-minutes N`: the companion ends after N minutes with no running or waiting task and no unfinished job. The default stays always-ready until the owner decides C4. Tray icon NOT CODED.
 - 11.3 (desktop part) — `ui.scroll`: Windows ScrollItem/Scroll patterns, macOS AXScrollToVisible and the scroll bar's AXIncrement/AXDecrement, never the pointer; fixture cases UIA-020 and MAC-017 added (run only on the hosted Windows/macOS matrix).
-- Not coded in this batch: credits-based charging (owner decision), 10.6 Gemma request-shape probe (live), 11.1, 11.2, 11.4, 11.6 tray, 11.8 updater work, 11.9, P2–P4.
+- 11.2 — `mac_worker._expose_tree`: AXManualAccessibility once per process before a lease is matched, then up to 2 s for a window's children; AXEnhancedUserInterface deliberately not set (side effects on other apps). Native-app regression covered by the MAC ladder; an Electron/Chromium tree on the hosted runner is not yet tested.
+- Not coded in this batch: credits-based charging (owner decision), 10.6 Gemma request-shape probe (live), 11.1, 11.4, 11.6 tray, 11.8 updater work, 11.9, P2–P4.
 
 
 ---

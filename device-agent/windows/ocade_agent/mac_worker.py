@@ -143,6 +143,29 @@ def _screen_capture_allowed() -> bool:
     return bool(preflight()) if preflight else True  # before macOS 10.15 there is no such permission
 
 
+_exposed: set[int] = set()
+
+
+def _expose_tree(application, pid: int) -> None:
+    """Chromium and Electron apps build their accessibility tree only when an assistive client
+    asks (plan v8 11.2): AXManualAccessibility once per process, then up to two seconds for a
+    window to list children. AXEnhancedUserInterface is never set: it also changes how other apps
+    animate and place their windows. A native app refuses the attribute and is unaffected."""
+    import ApplicationServices as AX  # type: ignore[import-not-found]
+
+    if pid in _exposed:
+        return
+    _exposed.add(pid)
+    if AX.AXUIElementSetAttributeValue(application, "AXManualAccessibility", True) != 0:
+        return
+    deadline = time.monotonic() + 2.0
+    while time.monotonic() < deadline:
+        windows = _attribute(application, "AXWindows") or []
+        if any(_attribute(w, "AXChildren") for w in windows):
+            return
+        time.sleep(0.1)
+
+
 def _leased(window: dict):
     """(AX window element, CG bounds) for an exact, still-valid lease, or a refusal."""
     import ApplicationServices as AX  # type: ignore[import-not-found]
@@ -162,7 +185,9 @@ def _leased(window: dict):
         raise Refused("window_changed")
     x, y, width, height = now["bounds"]
     matches = []
-    for candidate in _attribute(AX.AXUIElementCreateApplication(window["pid"]), "AXWindows") or []:
+    application = AX.AXUIElementCreateApplication(window["pid"])
+    _expose_tree(application, window["pid"])
+    for candidate in _attribute(application, "AXWindows") or []:
         if _attribute(candidate, "AXMinimized"):
             continue
         position, size = _point(_attribute(candidate, "AXPosition")), _point(_attribute(candidate, "AXSize"))
