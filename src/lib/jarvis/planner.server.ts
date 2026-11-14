@@ -356,6 +356,10 @@ export function plannerMessage(code: string): string {
     return "JARVIS plans with online intelligence, and you have not agreed to it yet.";
   if (code === "invalid_goal_scope")
     return "The requested outcome needs website or app access that is not allowed on this computer.";
+  if (code === "model_budget_reached")
+    return "JARVIS has reached its spending limit for now, so it asks the model nothing more.";
+  if (code === "model_budget_unknown")
+    return "JARVIS could not check its spending limit, so it asks the model nothing until it can.";
   if (code === "allowance_exhausted")
     return "Your JARVIS allowance is used up until your usage window resets.";
   if (plannerBusy(code))
@@ -415,6 +419,46 @@ const SYSTEM = [
   "and it is offered again with its full argument schema and rules.",
 ].join(" ");
 
+/**
+ * What a million tokens may cost, for the spending ceilings (plan v8 10.5, 18.1): Gemini 3.5
+ * Flash-Lite's paid prices, the higher of the two allowed planners (Gemma 4 has no paid tier), so
+ * an estimate never undercounts.
+ */
+export const MODEL_PRICE_PER_MILLION = { input: 0.3, output: 2.5 } as const;
+
+export type ModelSpend = (
+  userId: string | null,
+  since: Date,
+) => Promise<{ input: number; output: number }>;
+
+/**
+ * Whether one more model call would pass an owner's spending ceiling: an account's spend over the
+ * last 24 hours, or every account's since the start of the month (UTC). Only ceilings the owner
+ * set apply (server configuration, in US dollars); with none set nothing is counted.
+ */
+export async function modelBudgetReached(
+  spend: ModelSpend,
+  userId: string,
+  now: Date,
+  ceilings: { accountDaily?: number; monthly?: number },
+): Promise<boolean> {
+  const dollars = ({ input, output }: { input: number; output: number }) =>
+    (input * MODEL_PRICE_PER_MILLION.input + output * MODEL_PRICE_PER_MILLION.output) / 1_000_000;
+  if (
+    ceilings.accountDaily !== undefined &&
+    dollars(await spend(userId, new Date(now.getTime() - 86_400_000))) >= ceilings.accountDaily
+  )
+    return true;
+  const month = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+  return ceilings.monthly !== undefined && dollars(await spend(null, month)) >= ceilings.monthly;
+}
+
+/** A positive number from server configuration, or undefined when it is not set. */
+const ceiling = (value: string | undefined) => {
+  const parsed = Number(value);
+  return value && Number.isFinite(parsed) && parsed >= 0 ? parsed : undefined;
+};
+
 /** How the planner gets its permit and reaches the service; replaced only by tests. */
 export const plannerAccess = {
   /**
@@ -436,6 +480,22 @@ export const plannerAccess = {
       import("@/lib/commercial/supabase-ledger"),
       import("@/integrations/supabase/client.server"),
     ]);
+    const ceilings = {
+      accountDaily: ceiling(process.env.OCADE_ACCOUNT_DAILY_MODEL_USD),
+      monthly: ceiling(process.env.OCADE_MONTHLY_MODEL_USD),
+    };
+    const spend: ModelSpend = async (user, since) => {
+      const { data, error } = await (
+        supabaseAdmin.rpc as unknown as (
+          f: string,
+          a: Record<string, unknown>,
+        ) => PromiseLike<{ data: unknown; error: unknown }>
+      )("jarvis_model_tokens", { p_user: user, p_since: since.toISOString() });
+      if (error) throw new PlannerUnavailable("model_budget_unknown");
+      return data as { input: number; output: number };
+    };
+    if (await modelBudgetReached(spend, userId, new Date(), ceilings))
+      throw new PlannerUnavailable("model_budget_reached");
     const entitlement = await resolveTierFor(userId);
     const result = await new CommercialGenerationGate(
       supabaseCommercialLedger(supabaseAdmin),

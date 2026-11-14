@@ -32,7 +32,10 @@ class Note : Form {
     var box = new TextBox { Name = "noteBox", AccessibleName = "Note", Left = 20, Top = 20, Width = 360 };
     var save = new Button { Name = "saveButton", Text = "Save", Left = 20, Top = 60, Width = 120, Height = 40 };
     save.Click += (s, e) => File.WriteAllText(path, box.Text);
-    Controls.Add(box); Controls.Add(save);
+    // A list longer than its box: what ui.scroll reaches without the pointer (UIA-020).
+    var rows = new ListBox { Name = "rowsList", Left = 160, Top = 60, Width = 220, Height = 80 };
+    for (int i = 0; i < 60; i++) rows.Items.Add("Row " + i);
+    Controls.Add(box); Controls.Add(save); Controls.Add(rows);
     // F2 asks a modal question, as many apps do (a first-run welcome, a save-format choice).
     KeyPreview = true;
     KeyDown += (s, e) => { if (e.KeyCode == Keys.F2) BeginInvoke((Action)(() => MessageBox.Show(this, "Keep the note?", "Ledger Question"))); };
@@ -111,6 +114,12 @@ class WindowsUiLadder(unittest.TestCase):
                 out["set"] = await run("ui.set_value", {"window": window, "element": box, "value": "Quarterly GREEN"})
                 # A second look lists only what changed (C5); every other ref stays as it was.
                 out["changes"] = await run("ui.inspect", {"window": window, "changesOnly": True})
+                rows = {"automationId": "rowsList"}
+                out["scroll_down"] = await run("ui.scroll", {"window": window, "element": rows,
+                                                             "direction": "down", "pages": 3})
+                out["scroll_up"] = await run("ui.scroll", {"window": window, "element": rows, "direction": "up",
+                                                           "pages": 10})
+                out["scroll_into"] = await run("ui.scroll", {"window": window, "element": {"name": "Row 59"}})
                 out["present"] = await run("ui.wait", {"window": window, "element": {"automationId": "saveButton"}})
                 out["never"] = await run("ui.wait", {"window": window, "element": {"automationId": "neverThere"},
                                                      "timeoutMs": 400})
@@ -224,6 +233,12 @@ class WindowsUiLadder(unittest.TestCase):
                              ("not_applied", "wait_timed_out", False), out["never"])
             self.assertTrue(out["dialog_ok"]["evidence"].get("met"), out["dialog_ok"])
             self.assertTrue(out["dialog_gone"]["evidence"].get("met"), out["dialog_gone"])
+        with self.subTest("UIA-020 ui.scroll moves a list by pages and brings a listed item into view (plan v8 11.3)"):
+            self.assertEqual(out["scroll_down"]["status"], "observed", out["scroll_down"])
+            self.assertGreater(out["scroll_down"]["evidence"]["verticalPercent"], 0, out["scroll_down"])
+            self.assertEqual(out["scroll_up"]["evidence"]["verticalPercent"], 0, out["scroll_up"])
+            self.assertEqual(out["scroll_into"]["status"], "observed", out["scroll_into"])
+            self.assertEqual(out["scroll_into"]["evidence"]["pattern"], "scroll_item", out["scroll_into"])
         with self.subTest("UIA-006 keys go to the leased foreground window"):
             self.assertEqual(out["keys"]["status"], "observed", out["keys"])
             # Text with every character a keyboard library reads as a command arrives as written.

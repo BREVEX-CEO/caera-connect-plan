@@ -413,6 +413,42 @@ def ui_wait(window: dict, element: dict, gone: bool = False, timeoutMs: int = 50
 
 @app.tool()
 @_evidence
+def ui_scroll(window: dict, element: dict, direction: str | None = None, pages: int = 1) -> dict:
+    """Scroll through Accessibility, never the pointer (plan v8 11.3): AXScrollToVisible brings
+    the element into view; with a direction, the scroll bar of the nearest scroll area at or
+    above it is incremented or decremented `pages` times."""
+    import ApplicationServices as AX  # type: ignore[import-not-found]
+
+    target, bounds = _actable(window)
+    control = _element(target, element, window)
+    _person_quiet()
+    if direction is None:
+        mark_effect()
+        if AX.AXUIElementPerformAction(control, "AXScrollToVisible") != 0:
+            raise Refused("pattern_unsupported")
+        return {"pattern": "scroll_to_visible", "after": _describe(control, bounds)}
+    bar_name = "AXHorizontalScrollBar" if direction in ("left", "right") else "AXVerticalScrollBar"
+    area, bar = control, None
+    for _ in range(12):  # the element itself, then its ancestors up to the window
+        bar = _attribute(area, bar_name)
+        if bar is not None:
+            break
+        area = _attribute(area, "AXParent")
+        if area is None:
+            break
+    if bar is None:
+        raise Refused("pattern_unsupported")
+    action = "AXIncrement" if direction in ("down", "right") else "AXDecrement"
+    mark_effect()
+    for _ in range(max(1, min(pages, 10))):
+        if AX.AXUIElementPerformAction(bar, action) != 0:
+            raise Refused("pattern_unsupported")
+    value = _attribute(bar, "AXValue")
+    return {"pattern": "scroll_bar", "position": round(float(value), 3) if isinstance(value, (int, float)) else None}
+
+
+@app.tool()
+@_evidence
 def ui_invoke(window: dict, element: dict) -> dict:
     """Press one element through its AX action; no pointer is moved."""
     import ApplicationServices as AX  # type: ignore[import-not-found]

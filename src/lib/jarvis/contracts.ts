@@ -924,6 +924,21 @@ export const OPERATIONS = {
     seconds: 20,
     target: (a: { window: { exe: string } }): Target => ({ app: a.window.exe }),
   },
+  "ui.scroll": {
+    summary:
+      "Scroll in an application window through accessibility, without moving the pointer: with no direction, bring a listed control into view; with a direction, scroll the control's scrollable area by pages.",
+    engine: "desktop",
+    role: "ui_bridge",
+    capability: "apps",
+    risk: "reversible_write",
+    arguments: z.strictObject({
+      window: windowLease,
+      element,
+      direction: z.enum(["up", "down", "left", "right"]).optional(),
+      pages: z.int().min(1).max(10).optional(),
+    }),
+    target: (a: { window: { exe: string } }): Target => ({ app: a.window.exe }),
+  },
   "ui.invoke": {
     summary:
       "Press or activate a control (button, menu item, link) in an application window by its accessibility identity.",

@@ -318,6 +318,54 @@ def ui_wait(window: dict, element: dict, gone: bool = False, timeoutMs: int = 50
 
 @app.tool()
 @_evidence
+def ui_scroll(window: dict, element: dict, direction: str | None = None, pages: int = 1) -> dict:
+    """Scroll through UI Automation, never the pointer (plan v8 11.3): ScrollItem brings the
+    element into view; with a direction, the nearest Scroll pattern at or above it moves by
+    LargeIncrement or LargeDecrement, `pages` times."""
+    from pywinauto.uia_defines import NoPatternInterfaceError  # type: ignore[import-not-found]
+
+    wrapper = _element(_actable(window), element, window)
+    _person_quiet()
+    if direction is None:
+        try:
+            item = wrapper.iface_scroll_item
+        except (NoPatternInterfaceError, AttributeError):
+            item = None
+        if item is None:
+            raise Refused("pattern_unsupported")
+        mark_effect()
+        item.ScrollIntoView()
+        return {"pattern": "scroll_item", "after": _describe(wrapper)}
+    area = wrapper
+    for _ in range(12):  # the element itself, then its ancestors up to the window
+        try:
+            scroll = area.iface_scroll
+        except (NoPatternInterfaceError, AttributeError):
+            scroll = None
+        if scroll is not None:
+            break
+        area = area.parent()
+        if area is None:
+            break
+    else:
+        scroll = None
+    if scroll is None:
+        raise Refused("pattern_unsupported")
+    large_decrement, no_amount, large_increment = 0, 2, 3
+    step = large_increment if direction in ("down", "right") else large_decrement
+    horizontal = direction in ("left", "right")
+    mark_effect()
+    for _ in range(max(1, min(pages, 10))):
+        scroll.Scroll(step if horizontal else no_amount, no_amount if horizontal else step)
+    return {
+        "pattern": "scroll",
+        "verticalPercent": round(float(scroll.CurrentVerticalScrollPercent), 1),
+        "horizontalPercent": round(float(scroll.CurrentHorizontalScrollPercent), 1),
+    }
+
+
+@app.tool()
+@_evidence
 def ui_invoke(window: dict, element: dict) -> dict:
     """Invoke (or toggle/select) one element through its UIA pattern; no pointer is moved."""
     from pywinauto.uia_defines import NoPatternInterfaceError  # type: ignore[import-not-found]

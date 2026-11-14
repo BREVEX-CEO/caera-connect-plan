@@ -1642,7 +1642,10 @@ The existing `tests.run_required.main` loads selected modules/classes/methods or
 - 13.7 (part) — NAT64 (`64:ff9b::/96`) addresses carrying a private IPv4 are refused by the browser and the verifier fetch (`sandbox.non_public_address`, one check for both); 6to4 and Teredo were already refused.
 - 11.5 — `REPAIR_HINTS` in `planner.server.ts history()`: one generic sentence for 30 real refusal codes.
 - 5.5 / 11.7 (part) — `ocade_agent enroll` prints and opens `/ocade-jarvis?settings=devices#pair=<code>`; the Devices panel fills the code from the fragment and still requires the person to press Pair, with a warning to pair only the computer in front of them. Not browser-tested signed in (needs a staging account).
-- Not coded in this batch: 10.5 cost metering and budget switch (needs the owner's prices and caps, Part 19.5), 10.6 Gemma request-shape probe (live), 11.1, 11.2, `ui.scroll`, 11.4, 11.6 tray, 11.8 updater work, 11.9, P2–P4.
+- 10.5 (part) — spending ceilings: `modelBudgetReached` before every planner permit (`plannerAccess.acquirePermit`), an account's last 24 hours and every account's month (UTC) against `OCADE_ACCOUNT_DAILY_MODEL_USD` and `OCADE_MONTHLY_MODEL_USD`, estimated from the provider's reported tokens at Flash-Lite's paid prices; migration `20261114230000` (`jarvis_model_tokens`, service role only, with rollback). The owner sets the numbers (Part 19.5); unset means no ceiling. Charging allowances in credits instead of one use per task is NOT CODED (pricing is the owner's decision).
+- Session mode (5.4 part) — `--session-minutes N`: the companion ends after N minutes with no running or waiting task and no unfinished job. The default stays always-ready until the owner decides C4. Tray icon NOT CODED.
+- 11.3 (desktop part) — `ui.scroll`: Windows ScrollItem/Scroll patterns, macOS AXScrollToVisible and the scroll bar's AXIncrement/AXDecrement, never the pointer; fixture cases UIA-020 and MAC-017 added (run only on the hosted Windows/macOS matrix).
+- Not coded in this batch: credits-based charging (owner decision), 10.6 Gemma request-shape probe (live), 11.1, 11.2, 11.4, 11.6 tray, 11.8 updater work, 11.9, P2–P4.
 
 
 ---

@@ -231,3 +231,22 @@ test("the closest verified earlier task guides the model; an unrelated one is no
   assert.equal(precedent("Draw a cat in paint", experience), "", "nothing close enough");
   assert.equal(precedent("Total the April invoices", []), "", "no history");
 });
+
+test("model spending ceilings: an account's day and everyone's month, only when set", async () => {
+  const { modelBudgetReached } = await import("../../src/lib/jarvis/planner.server.ts");
+  const now = new Date("2026-11-20T12:00:00Z");
+  const asked: [string | null, string][] = [];
+  // 1M input + 100k output tokens = $0.30 + $0.25 = $0.55 at the conservative paid prices.
+  const spend = async (user: string | null, since: Date) => {
+    asked.push([user, since.toISOString()]);
+    return user ? { input: 1_000_000, output: 100_000 } : { input: 10_000_000, output: 1_000_000 };
+  };
+  assert.equal(await modelBudgetReached(spend, "u", now, {}), false);
+  assert.deepEqual(asked, [], "nothing is counted when no ceiling is set");
+  assert.equal(await modelBudgetReached(spend, "u", now, { accountDaily: 0.56 }), false);
+  assert.equal(await modelBudgetReached(spend, "u", now, { accountDaily: 0.55 }), true);
+  assert.deepEqual(asked.at(-1), ["u", "2026-11-19T12:00:00.000Z"], "the last 24 hours");
+  assert.equal(await modelBudgetReached(spend, "u", now, { monthly: 5.5 }), true);
+  assert.deepEqual(asked.at(-1), [null, "2026-11-01T00:00:00.000Z"], "every account this month");
+  assert.equal(await modelBudgetReached(spend, "u", now, { monthly: 5.51 }), false);
+});

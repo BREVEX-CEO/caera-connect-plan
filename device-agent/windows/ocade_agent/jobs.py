@@ -231,13 +231,18 @@ def cancel(home: str, job: str) -> dict:
     return status(home, job)
 
 
-def cancel_all(home: str) -> list[str]:
-    """Signal every unfinished job immediately; return only confirmed cancellations."""
+def unfinished(home: str) -> list[Path]:
+    """The folders of jobs that have not ended."""
     root = folder(home)
-    active = [
+    return [
         here for here in sorted(root.iterdir())
         if here.name.isalnum() and (here / "spec.json").is_file() and not (here / "exit.json").exists()
     ] if root.is_dir() else []
+
+
+def cancel_all(home: str) -> list[str]:
+    """Signal every unfinished job immediately; return only confirmed cancellations."""
+    active = unfinished(home)
     for here in active:
         (here / "cancel").touch()
     return [here.name for here in active if cancel(home, here.name)["state"] == "cancelled"]

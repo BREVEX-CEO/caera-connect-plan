@@ -205,5 +205,48 @@ class IdlePickup(unittest.TestCase):
         anyio.run(scenario)
 
 
+class SessionMode(unittest.TestCase):
+    """Plan v8 5.4: in session mode the companion ends after its idle period, never while a task
+    runs or waits, nor while a job it started is unfinished."""
+
+    def runner(self, states):
+        class Device:
+            home = Path(tempfile.mkdtemp())
+
+            def request(self, payload):
+                if payload["op"] == "inventory":
+                    return 200, {"inventory": "recorded"}
+                return 200, states.pop(0) if len(states) > 1 else states[0]
+
+        home = Path(tempfile.mkdtemp())
+        runner = Agent(Device(), Journal(home / "journal.sqlite"), SimpleNamespace(external={}, prewarm=lambda: None))
+        runner.stop_flag = home / "STOP"
+        runner.session_idle_seconds = 0.5
+        return runner
+
+    def ended_within(self, runner, seconds):
+        async def scenario():
+            with anyio.move_on_after(seconds) as scope:
+                with patch.object(agent_module.discovery, "installed_apps", lambda: []), \
+                        patch.object(agent_module.discovery, "engines", lambda: []):
+                    await runner.run()
+            return not scope.cancelled_caught
+
+        return anyio.run(scenario)
+
+    def test_an_idle_session_ends(self):
+        self.assertTrue(self.ended_within(self.runner([{"task": None, "action": None}]), 6.0))
+
+    def test_a_waiting_task_or_an_unfinished_job_keeps_it(self):
+        waiting = self.runner([{"task": {"id": "t", "status": "waiting"}, "action": None}])
+        self.assertFalse(self.ended_within(waiting, 4.0))
+        # No task in the answer (an outage): a job is never cancelled then, so it keeps the session.
+        busy = self.runner([{"action": None}])
+        job = agent_module.jobs.folder(str(busy.device.home)) / "abc123"
+        job.mkdir(parents=True)
+        (job / "spec.json").write_text("{}")
+        self.assertFalse(self.ended_within(busy, 4.0))
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -140,6 +140,9 @@ class Agent:
         # while a real one (new task, next step, STOP, finished) always does.
         self.seen: tuple | None = None
         self.news = False
+        # Session mode (plan v8 5.4): with a limit, the companion ends once nothing has run, waited
+        # or been left running as a job for that long. None keeps it ready until it is stopped.
+        self.session_idle_seconds: float | None = None
 
     async def pause(self, seconds: float) -> bool:
         if self.nudge is None:
@@ -278,10 +281,20 @@ class Agent:
         if failure is not None:
             raise failure
 
+    def _session_over(self, status: str | None, quiet_since: float | None) -> tuple[bool, float | None]:
+        """Whether session mode's idle period has passed, and since when the companion is quiet."""
+        if self.session_idle_seconds is None:
+            return False, None
+        if status in ("running", "waiting") or jobs.unfinished(str(self.device.home)):
+            return False, None
+        quiet_since = quiet_since or time.monotonic()
+        return time.monotonic() - quiet_since >= self.session_idle_seconds, quiet_since
+
     async def _loop(self, until_idle: bool) -> None:
         idle = 1.0
         state: dict | None = None
         woke = False
+        quiet_since: float | None = None
         while True:
             if self.stopped_here():
                 await anyio.to_thread.run_sync(jobs.cancel_all, str(self.device.home))
@@ -303,7 +316,7 @@ class Agent:
             if state.get("jobsAllowed") is False:
                 await anyio.to_thread.run_sync(jobs.cancel_all, str(self.device.home))
             if state.get("action"):
-                idle = 1.0
+                idle, quiet_since = 1.0, None
                 state = await self.handle(state["action"])
                 if not state.get("action"):
                     if state.get("jobsAllowed") is False:
@@ -318,6 +331,9 @@ class Agent:
             running = status == "running"
             state = None
             if until_idle and not running:
+                return
+            over, quiet_since = self._session_over(status, quiet_since)
+            if over:
                 return
             nudged = self.nudge is not None and self.nudge.connected
             if running:
@@ -692,6 +708,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--workspace")
     parser.add_argument("--until-idle", action="store_true")
     parser.add_argument("--no-browser", action="store_true", help="enroll without opening the pairing page")
+    parser.add_argument("--session-minutes", type=float,
+                        help="end after this many minutes with no task, wait or job (session mode)")
     parser.add_argument("--manifest", type=Path)
     parser.add_argument("--signature", type=Path)
     parser.add_argument("--archive", type=Path)
@@ -763,15 +781,17 @@ def main(argv: list[str] | None = None) -> int:
             if args.command == "run-activated":
                 if release is None or Path(sys.executable).resolve() != release:
                     raise RuntimeError("The active release changed. Open OCADE again from its installed shortcut.")
-                return _run_companion(device, home, args.until_idle)
+                return _run_companion(device, home, args.until_idle, args.session_minutes)
             if release is None:
-                return _run_companion(device, home, args.until_idle)
+                return _run_companion(device, home, args.until_idle, args.session_minutes)
         # A different frozen bundle needs a fresh bootloader environment.
         import subprocess
 
         launch = [str(release), "run-activated", "--server", server, "--workspace", workspace]
         if args.until_idle:
             launch.append("--until-idle")
+        if args.session_minutes is not None:
+            launch += ["--session-minutes", str(args.session_minutes)]
         return subprocess.call(launch, env={**os.environ, "PYINSTALLER_RESET_ENVIRONMENT": "1"})
     except (OSError, RuntimeError, ValueError) as error:
         print(f"Cannot start the companion: {error}", file=sys.stderr)
@@ -798,7 +818,7 @@ def _select_release(home: Path) -> Path | None:
     return None
 
 
-def _run_companion(device: Device, home: Path, until_idle: bool) -> int:
+def _run_companion(device: Device, home: Path, until_idle: bool, session_minutes: float | None = None) -> int:
     (home / "STOP").unlink(missing_ok=True)  # starting again is the person's decision
     external, rejected = catalog.load(home)
     for entry in rejected:
@@ -808,7 +828,10 @@ def _run_companion(device: Device, home: Path, until_idle: bool) -> int:
     async def go() -> str | None:
         async with gateway:
             try:
-                await Agent(device, Journal(home / "journal.sqlite"), gateway).run(until_idle)
+                agent = Agent(device, Journal(home / "journal.sqlite"), gateway)
+                if session_minutes is not None and session_minutes > 0:
+                    agent.session_idle_seconds = session_minutes * 60
+                await agent.run(until_idle)
             except ConnectionError as error:
                 return str(error)
             except LocalStop:

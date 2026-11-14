@@ -37,8 +37,16 @@ class Note: NSObject, NSApplicationDelegate {
     let save = NSButton(title: "Save", target: self, action: #selector(save(_:)))
     save.frame = NSRect(x: 20, y: 70, width: 120, height: 32)
     save.identifier = NSUserInterfaceItemIdentifier("saveButton")
+    // A text longer than its scroll view: what ui.scroll reaches without the pointer (MAC-017).
+    let rows = NSScrollView(frame: NSRect(x: 160, y: 20, width: 220, height: 90))
+    rows.identifier = NSUserInterfaceItemIdentifier("rowsArea")
+    rows.hasVerticalScroller = true
+    let text = NSTextView(frame: NSRect(x: 0, y: 0, width: 200, height: 90))
+    text.string = (0..<60).map { "Row \\($0)" }.joined(separator: "\\n")
+    rows.documentView = text
     window.contentView!.addSubview(box)
     window.contentView!.addSubview(save)
+    window.contentView!.addSubview(rows)
     window.makeKeyAndOrderFront(nil)
     NSApp.activate(ignoringOtherApps: true)
     // F2 asks a modal question, as many apps do (a first-run welcome, a save-format choice).
@@ -107,6 +115,11 @@ class MacUiLadder(unittest.TestCase):
                 out["set"] = await run("ui.set_value", {"window": window, "element": box, "value": "Quarterly GREEN"})
                 # A second look lists only what changed (C5); every other ref stays as it was.
                 out["changes"] = await run("ui.inspect", {"window": window, "changesOnly": True})
+                rows = {"automationId": "rowsArea"}
+                out["scroll_down"] = await run("ui.scroll", {"window": window, "element": rows,
+                                                             "direction": "down", "pages": 3})
+                out["scroll_up"] = await run("ui.scroll", {"window": window, "element": rows, "direction": "up",
+                                                           "pages": 10})
                 out["present"] = await run("ui.wait", {"window": window, "element": {"automationId": "saveButton"}})
                 out["never"] = await run("ui.wait", {"window": window, "element": {"automationId": "neverThere"},
                                                      "timeoutMs": 400})
@@ -203,6 +216,10 @@ class MacUiLadder(unittest.TestCase):
                              ("not_applied", "wait_timed_out", False), out["never"])
             self.assertTrue(out["dialog_ok"]["evidence"].get("met"), out["dialog_ok"])
             self.assertTrue(out["dialog_gone"]["evidence"].get("met"), out["dialog_gone"])
+        with self.subTest("MAC-017 ui.scroll moves a scroll area by pages (plan v8 11.3)"):
+            self.assertEqual(out["scroll_down"]["status"], "observed", out["scroll_down"])
+            self.assertGreater(out["scroll_down"]["evidence"]["position"], 0, out["scroll_down"])
+            self.assertEqual(out["scroll_up"]["evidence"]["position"], 0, out["scroll_up"])
         with self.subTest("MAC-006 typed keys go into the named control"):
             self.assertEqual(out["keys"]["status"], "observed", out["keys"])
             self.assertEqual(out["after_keys"], "typed by keys")
