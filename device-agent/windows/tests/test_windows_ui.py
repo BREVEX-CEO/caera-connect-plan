@@ -219,11 +219,11 @@ class WindowsUiLadder(unittest.TestCase):
             self.assertGreater(out["changes"]["evidence"]["unchanged"], 0, out["changes"])
         with self.subTest("UIA-019 ui.wait returns once a control is there and refuses when it never comes (C6)"):
             self.assertEqual(out["present"]["status"], "observed", out["present"])
-            self.assertTrue(out["present"]["evidence"]["met"], out["present"])
+            self.assertTrue(out["present"]["evidence"].get("met"), out["present"])
             self.assertEqual((out["never"]["status"], out["never"]["errorCode"], out["never"]["maybeChanged"]),
                              ("not_applied", "wait_timed_out", False), out["never"])
-            self.assertTrue(out["dialog_ok"]["evidence"]["met"], out["dialog_ok"])
-            self.assertTrue(out["dialog_gone"]["evidence"]["met"], out["dialog_gone"])
+            self.assertTrue(out["dialog_ok"]["evidence"].get("met"), out["dialog_ok"])
+            self.assertTrue(out["dialog_gone"]["evidence"].get("met"), out["dialog_gone"])
         with self.subTest("UIA-006 keys go to the leased foreground window"):
             self.assertEqual(out["keys"]["status"], "observed", out["keys"])
             # Text with every character a keyboard library reads as a command arrives as written.

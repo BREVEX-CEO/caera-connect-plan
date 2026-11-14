@@ -198,11 +198,11 @@ class MacUiLadder(unittest.TestCase):
             self.assertNotIn("saveButton", changed, out["changes"])
             self.assertEqual(out["invoke"]["status"], "observed", "the first inspection's ref still worked")
         with self.subTest("MAC-016 ui.wait returns once a control is there and refuses when it never comes (C6)"):
-            self.assertTrue(out["present"]["evidence"]["met"], out["present"])
+            self.assertTrue(out["present"]["evidence"].get("met"), out["present"])
             self.assertEqual((out["never"]["status"], out["never"]["errorCode"], out["never"]["maybeChanged"]),
                              ("not_applied", "wait_timed_out", False), out["never"])
-            self.assertTrue(out["dialog_ok"]["evidence"]["met"], out["dialog_ok"])
-            self.assertTrue(out["dialog_gone"]["evidence"]["met"], out["dialog_gone"])
+            self.assertTrue(out["dialog_ok"]["evidence"].get("met"), out["dialog_ok"])
+            self.assertTrue(out["dialog_gone"]["evidence"].get("met"), out["dialog_gone"])
         with self.subTest("MAC-006 typed keys go into the named control"):
             self.assertEqual(out["keys"]["status"], "observed", out["keys"])
             self.assertEqual(out["after_keys"], "typed by keys")

@@ -112,7 +112,12 @@ def wait_for(find, gone: bool, timeout_ms: int) -> dict:
         except Refused as refusal:
             if refusal.code == "element_ambiguous":
                 present = True  # more than one: it is there
-            elif refusal.code in ("element_not_found", "element_stale") or (gone and refusal.code == "window_gone"):
+            elif refusal.code in ("element_not_found", "element_stale"):
+                present = False
+            elif gone and refusal.code in ("window_gone", "window_changed"):
+                # The leased window no longer exists as leased. A macOS alert that is closing is
+                # still on screen but no longer in its app's AX windows (hosted macOS 15 Intel,
+                # run 43569682787 MAC-016).
                 present = False
             else:
                 raise

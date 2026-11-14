@@ -97,6 +97,7 @@ class WaitFor(unittest.TestCase):
         with unittest.mock.patch.object(refs.time, "sleep"):
             self.assertTrue(refs.wait_for(self.finder(None, "element_stale"), True, 5000)["met"])
             self.assertTrue(refs.wait_for(self.finder(None, "window_gone"), True, 5000)["met"])
+            self.assertTrue(refs.wait_for(self.finder(None, "window_changed"), True, 5000)["met"])
 
     def test_not_met_in_time_is_a_refusal_and_other_refusals_pass_through(self):
         with self.assertRaises(Refused) as caught:
