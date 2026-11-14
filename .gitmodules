@@ -1,0 +1,729 @@
+[submodule "microsoft/UFO"]
+	path = all-repos/microsoft/UFO
+	url = https://github.com/microsoft/UFO.git
+[submodule "sbroenne/mcp-windows"]
+	path = all-repos/sbroenne/mcp-windows
+	url = https://github.com/sbroenne/mcp-windows.git
+[submodule "deploymenttheory/windows-mcp-server"]
+	path = all-repos/deploymenttheory/windows-mcp-server
+	url = https://github.com/deploymenttheory/windows-mcp-server.git
+[submodule "iFurySt/open-computer-use"]
+	path = all-repos/iFurySt/open-computer-use
+	url = https://github.com/iFurySt/open-computer-use.git
+[submodule "OpenAdaptAI/OpenAdapt"]
+	path = all-repos/OpenAdaptAI/OpenAdapt
+	url = https://github.com/OpenAdaptAI/OpenAdapt.git
+[submodule "HKUDS/CLI-Anything"]
+	path = all-repos/HKUDS/CLI-Anything
+	url = https://github.com/HKUDS/CLI-Anything.git
+[submodule "openinterpreter/openinterpreter"]
+	path = all-repos/openinterpreter/openinterpreter
+	url = https://github.com/openinterpreter/openinterpreter.git
+[submodule "openinterpreter/interpreter-workstation"]
+	path = all-repos/openinterpreter/interpreter-workstation
+	url = https://github.com/openinterpreter/interpreter-workstation.git
+[submodule "QwenLM/Qwen3-VL"]
+	path = all-repos/QwenLM/Qwen3-VL
+	url = https://github.com/QwenLM/Qwen3-VL.git
+[submodule "QwenLM/Qwen-Agent"]
+	path = all-repos/QwenLM/Qwen-Agent
+	url = https://github.com/QwenLM/Qwen-Agent.git
+[submodule "microsoft/playwright-cli"]
+	path = all-repos/microsoft/playwright-cli
+	url = https://github.com/microsoft/playwright-cli.git
+[submodule "web-infra-dev/midscene"]
+	path = all-repos/web-infra-dev/midscene
+	url = https://github.com/web-infra-dev/midscene.git
+[submodule "microsoft/magentic-ui"]
+	path = all-repos/microsoft/magentic-ui
+	url = https://github.com/microsoft/magentic-ui.git
+[submodule "temporalio/sdk-typescript"]
+	path = all-repos/temporalio/sdk-typescript
+	url = https://github.com/temporalio/sdk-typescript.git
+[submodule "NousResearch/hermes-agent"]
+	path = all-repos/NousResearch/hermes-agent
+	url = https://github.com/NousResearch/hermes-agent.git
+[submodule "xlang-ai/OSWorld-V2"]
+	path = all-repos/xlang-ai/OSWorld-V2
+	url = https://github.com/xlang-ai/OSWorld-V2.git
+[submodule "microsoft/markitdown"]
+	path = all-repos/microsoft/markitdown
+	url = https://github.com/microsoft/markitdown.git
+[submodule "tashfeenahmed/freellmapi"]
+	path = all-repos/tashfeenahmed/freellmapi
+	url = https://github.com/tashfeenahmed/freellmapi.git
+[submodule "pydantic/pydantic-ai"]
+	path = all-repos/pydantic/pydantic-ai
+	url = https://github.com/pydantic/pydantic-ai.git
+[submodule "huggingface/smolagents"]
+	path = all-repos/huggingface/smolagents
+	url = https://github.com/huggingface/smolagents.git
+[submodule "strands-agents/harness-sdk"]
+	path = all-repos/strands-agents/harness-sdk
+	url = https://github.com/strands-agents/harness-sdk.git
+[submodule "strands-agents/box"]
+	path = all-repos/strands-agents/box
+	url = https://github.com/strands-agents/box.git
+[submodule "vercel/ai"]
+	path = all-repos/vercel/ai
+	url = https://github.com/vercel/ai.git
+[submodule "microsoft/semantic-kernel"]
+	path = all-repos/microsoft/semantic-kernel
+	url = https://github.com/microsoft/semantic-kernel.git
+[submodule "QwenLM/qwen-code"]
+	path = all-repos/QwenLM/qwen-code
+	url = https://github.com/QwenLM/qwen-code.git
+[submodule "google-gemini/gemini-cli"]
+	path = all-repos/google-gemini/gemini-cli
+	url = https://github.com/google-gemini/gemini-cli.git
+[submodule "openai/codex"]
+	path = all-repos/openai/codex
+	url = https://github.com/openai/codex.git
+[submodule "langchain-ai/open-swe"]
+	path = all-repos/langchain-ai/open-swe
+	url = https://github.com/langchain-ai/open-swe.git
+[submodule "langgenius/dify"]
+	path = all-repos/langgenius/dify
+	url = https://github.com/langgenius/dify.git
+[submodule "CopilotKit/CopilotKit"]
+	path = all-repos/CopilotKit/CopilotKit
+	url = https://github.com/CopilotKit/CopilotKit.git
+[submodule "ag2ai/ag2"]
+	path = all-repos/ag2ai/ag2
+	url = https://github.com/ag2ai/ag2.git
+[submodule "lastmile-ai/mcp-agent"]
+	path = all-repos/lastmile-ai/mcp-agent
+	url = https://github.com/lastmile-ai/mcp-agent.git
+[submodule "mcp-use/mcp-use"]
+	path = all-repos/mcp-use/mcp-use
+	url = https://github.com/mcp-use/mcp-use.git
+[submodule "langgenius/dify-sandbox"]
+	path = all-repos/langgenius/dify-sandbox
+	url = https://github.com/langgenius/dify-sandbox.git
+[submodule "langgenius/mosoo-agent-driver"]
+	path = all-repos/langgenius/mosoo-agent-driver
+	url = https://github.com/langgenius/mosoo-agent-driver.git
+[submodule "mediar-ai/MacosUseSDK"]
+	path = all-repos/mediar-ai/MacosUseSDK
+	url = https://github.com/mediar-ai/MacosUseSDK.git
+[submodule "mediar-ai/skillhubz"]
+	path = all-repos/mediar-ai/skillhubz
+	url = https://github.com/mediar-ai/skillhubz.git
+[submodule "caramaschiHG/awesome-ai-agents-2026"]
+	path = all-repos/caramaschiHG/awesome-ai-agents-2026
+	url = https://github.com/caramaschiHG/awesome-ai-agents-2026.git
+[submodule "0xNyk/awesome-agent-cortex"]
+	path = all-repos/0xNyk/awesome-agent-cortex
+	url = https://github.com/0xNyk/awesome-agent-cortex.git
+[submodule "agentskills/agentskills"]
+	path = all-repos/agentskills/agentskills
+	url = https://github.com/agentskills/agentskills.git
+[submodule "AI-Architect-Studio/awesome-agent-operating-systems"]
+	path = all-repos/AI-Architect-Studio/awesome-agent-operating-systems
+	url = https://github.com/AI-Architect-Studio/awesome-agent-operating-systems.git
+[submodule "anthropics/skills"]
+	path = all-repos/anthropics/skills
+	url = https://github.com/anthropics/skills.git
+[submodule "EverMind-AI/SkillCorpus"]
+	path = all-repos/EverMind-AI/SkillCorpus
+	url = https://github.com/EverMind-AI/SkillCorpus.git
+[submodule "gamedev-skills/awesome-gamedev-agent-skills"]
+	path = all-repos/gamedev-skills/awesome-gamedev-agent-skills
+	url = https://github.com/gamedev-skills/awesome-gamedev-agent-skills.git
+[submodule "github/awesome-copilot"]
+	path = all-repos/github/awesome-copilot
+	url = https://github.com/github/awesome-copilot.git
+[submodule "heilcheng/awesome-agent-skills"]
+	path = all-repos/heilcheng/awesome-agent-skills
+	url = https://github.com/heilcheng/awesome-agent-skills.git
+[submodule "junminhong/awesome-agent-skills"]
+	path = all-repos/junminhong/awesome-agent-skills
+	url = https://github.com/junminhong/awesome-agent-skills.git
+[submodule "kaspasejo/AG-skills"]
+	path = all-repos/kaspasejo/AG-skills
+	url = https://github.com/kaspasejo/AG-skills.git
+[submodule "kmjnr/antigravity-agent-skills"]
+	path = all-repos/kmjnr/antigravity-agent-skills
+	url = https://github.com/kmjnr/antigravity-agent-skills.git
+[submodule "langchain-ai/langchain-skills"]
+	path = all-repos/langchain-ai/langchain-skills
+	url = https://github.com/langchain-ai/langchain-skills.git
+[submodule "libukai/awesome-agent-skills"]
+	path = all-repos/libukai/awesome-agent-skills
+	url = https://github.com/libukai/awesome-agent-skills.git
+[submodule "linny006/awesome-agent-skills"]
+	path = all-repos/linny006/awesome-agent-skills
+	url = https://github.com/linny006/awesome-agent-skills.git
+[submodule "microsoft/SkillOpt"]
+	path = all-repos/microsoft/SkillOpt
+	url = https://github.com/microsoft/SkillOpt.git
+[submodule "obra/superpowers"]
+	path = all-repos/obra/superpowers
+	url = https://github.com/obra/superpowers.git
+[submodule "philipbankier/awesome-agent-skills"]
+	path = all-repos/philipbankier/awesome-agent-skills
+	url = https://github.com/philipbankier/awesome-agent-skills.git
+[submodule "Prat011/awesome-llm-skills"]
+	path = all-repos/Prat011/awesome-llm-skills
+	url = https://github.com/Prat011/awesome-llm-skills.git
+[submodule "RKiding/Awesome-finance-skills"]
+	path = all-repos/RKiding/Awesome-finance-skills
+	url = https://github.com/RKiding/Awesome-finance-skills.git
+[submodule "seb1n/awesome-ai-agent-skills"]
+	path = all-repos/seb1n/awesome-ai-agent-skills
+	url = https://github.com/seb1n/awesome-ai-agent-skills.git
+[submodule "sickn33/agentic-awesome-skills"]
+	path = all-repos/sickn33/agentic-awesome-skills
+	url = https://github.com/sickn33/agentic-awesome-skills.git
+[submodule "TerminalSkills/skills"]
+	path = all-repos/TerminalSkills/skills
+	url = https://github.com/TerminalSkills/skills.git
+[submodule "vercel-labs/skills"]
+	path = all-repos/vercel-labs/skills
+	url = https://github.com/vercel-labs/skills.git
+[submodule "VoltAgent/awesome-agent-skills"]
+	path = all-repos/VoltAgent/awesome-agent-skills
+	url = https://github.com/VoltAgent/awesome-agent-skills.git
+[submodule "WenyuChiou/ai-research-skills"]
+	path = all-repos/WenyuChiou/ai-research-skills
+	url = https://github.com/WenyuChiou/ai-research-skills.git
+[submodule "agentscope-ai/agentscope"]
+	path = all-repos/agentscope-ai/agentscope
+	url = https://github.com/agentscope-ai/agentscope.git
+[submodule "agno-agi/agno"]
+	path = all-repos/agno-agi/agno
+	url = https://github.com/agno-agi/agno.git
+[submodule "Aider-AI/aider"]
+	path = all-repos/Aider-AI/aider
+	url = https://github.com/Aider-AI/aider.git
+[submodule "aaif-goose/goose"]
+	path = all-repos/aaif-goose/goose
+	url = https://github.com/aaif-goose/goose.git
+[submodule "bytedance/deer-flow"]
+	path = all-repos/bytedance/deer-flow
+	url = https://github.com/bytedance/deer-flow.git
+[submodule "continuedev/continue"]
+	path = all-repos/continuedev/continue
+	url = https://github.com/continuedev/continue.git
+[submodule "deepset-ai/haystack"]
+	path = all-repos/deepset-ai/haystack
+	url = https://github.com/deepset-ai/haystack.git
+[submodule "google/adk-js"]
+	path = all-repos/google/adk-js
+	url = https://github.com/google/adk-js.git
+[submodule "langchain-ai/deepagents"]
+	path = all-repos/langchain-ai/deepagents
+	url = https://github.com/langchain-ai/deepagents.git
+[submodule "langchain-ai/langchain"]
+	path = all-repos/langchain-ai/langchain
+	url = https://github.com/langchain-ai/langchain.git
+[submodule "mastra-ai/mastra"]
+	path = all-repos/mastra-ai/mastra
+	url = https://github.com/mastra-ai/mastra.git
+[submodule "microsoft/agent-framework-go"]
+	path = all-repos/microsoft/agent-framework-go
+	url = https://github.com/microsoft/agent-framework-go.git
+[submodule "openclaw/openclaw"]
+	path = all-repos/openclaw/openclaw
+	url = https://github.com/openclaw/openclaw.git
+[submodule "OpenHands/OpenHands"]
+	path = all-repos/OpenHands/OpenHands
+	url = https://github.com/OpenHands/OpenHands.git
+[submodule "Significant-Gravitas/AutoGPT"]
+	path = all-repos/Significant-Gravitas/AutoGPT
+	url = https://github.com/Significant-Gravitas/AutoGPT.git
+[submodule "browserbase/stagehand"]
+	path = all-repos/browserbase/stagehand
+	url = https://github.com/browserbase/stagehand.git
+[submodule "e2b-dev/desktop"]
+	path = all-repos/e2b-dev/desktop
+	url = https://github.com/e2b-dev/desktop.git
+[submodule "microsoft/OmniParser"]
+	path = all-repos/microsoft/OmniParser
+	url = https://github.com/microsoft/OmniParser.git
+[submodule "microsoft/playwright"]
+	path = all-repos/microsoft/playwright
+	url = https://github.com/microsoft/playwright.git
+[submodule "Skyvern-AI/skyvern"]
+	path = all-repos/Skyvern-AI/skyvern
+	url = https://github.com/Skyvern-AI/skyvern.git
+[submodule "SWE-agent/SWE-agent"]
+	path = all-repos/SWE-agent/SWE-agent
+	url = https://github.com/SWE-agent/SWE-agent.git
+[submodule "beam-cloud/beta9"]
+	path = all-repos/beam-cloud/beta9
+	url = https://github.com/beam-cloud/beta9.git
+[submodule "ggml-org/llama.cpp"]
+	path = all-repos/ggml-org/llama.cpp
+	url = https://github.com/ggml-org/llama.cpp.git
+[submodule "Haidra-Org/AI-Horde"]
+	path = all-repos/Haidra-Org/AI-Horde
+	url = https://github.com/Haidra-Org/AI-Horde.git
+[submodule "ollama/ollama"]
+	path = all-repos/ollama/ollama
+	url = https://github.com/ollama/ollama.git
+[submodule "QwenLM/Qwen3"]
+	path = all-repos/QwenLM/Qwen3
+	url = https://github.com/QwenLM/Qwen3.git
+[submodule "QwenLM/Qwen3.8"]
+	path = all-repos/QwenLM/Qwen3.8
+	url = https://github.com/QwenLM/Qwen3.8.git
+[submodule "a2aproject/A2A"]
+	path = all-repos/a2aproject/A2A
+	url = https://github.com/a2aproject/A2A.git
+[submodule "ComposioHQ/composio"]
+	path = all-repos/ComposioHQ/composio
+	url = https://github.com/ComposioHQ/composio.git
+[submodule "modelcontextprotocol/inspector"]
+	path = all-repos/modelcontextprotocol/inspector
+	url = https://github.com/modelcontextprotocol/inspector.git
+[submodule "modelcontextprotocol/python-sdk"]
+	path = all-repos/modelcontextprotocol/python-sdk
+	url = https://github.com/modelcontextprotocol/python-sdk.git
+[submodule "modelcontextprotocol/registry"]
+	path = all-repos/modelcontextprotocol/registry
+	url = https://github.com/modelcontextprotocol/registry.git
+[submodule "modelcontextprotocol/typescript-sdk"]
+	path = all-repos/modelcontextprotocol/typescript-sdk
+	url = https://github.com/modelcontextprotocol/typescript-sdk.git
+[submodule "n8n-io/n8n"]
+	path = all-repos/n8n-io/n8n
+	url = https://github.com/n8n-io/n8n.git
+[submodule "AgentOps-AI/agentops"]
+	path = all-repos/AgentOps-AI/agentops
+	url = https://github.com/AgentOps-AI/agentops.git
+[submodule "cloudflare/agents"]
+	path = all-repos/cloudflare/agents
+	url = https://github.com/cloudflare/agents.git
+[submodule "confident-ai/deepeval"]
+	path = all-repos/confident-ai/deepeval
+	url = https://github.com/confident-ai/deepeval.git
+[submodule "e2b-dev/E2B"]
+	path = all-repos/e2b-dev/E2B
+	url = https://github.com/e2b-dev/E2B.git
+[submodule "EleutherAI/lm-evaluation-harness"]
+	path = all-repos/EleutherAI/lm-evaluation-harness
+	url = https://github.com/EleutherAI/lm-evaluation-harness.git
+[submodule "getzep/graphiti"]
+	path = all-repos/getzep/graphiti
+	url = https://github.com/getzep/graphiti.git
+[submodule "harbor-framework/harbor"]
+	path = all-repos/harbor-framework/harbor
+	url = https://github.com/harbor-framework/harbor.git
+[submodule "kubernetes-sigs/agent-sandbox"]
+	path = all-repos/kubernetes-sigs/agent-sandbox
+	url = https://github.com/kubernetes-sigs/agent-sandbox.git
+[submodule "langfuse/langfuse"]
+	path = all-repos/langfuse/langfuse
+	url = https://github.com/langfuse/langfuse.git
+[submodule "livekit/agents"]
+	path = all-repos/livekit/agents
+	url = https://github.com/livekit/agents.git
+[submodule "mem0ai/mem0"]
+	path = all-repos/mem0ai/mem0
+	url = https://github.com/mem0ai/mem0.git
+[submodule "NVIDIA/SkillSpector"]
+	path = all-repos/NVIDIA/SkillSpector
+	url = https://github.com/NVIDIA/SkillSpector.git
+[submodule "openai/evals"]
+	path = all-repos/openai/evals
+	url = https://github.com/openai/evals.git
+[submodule "opensandbox-group/OpenSandbox"]
+	path = all-repos/opensandbox-group/OpenSandbox
+	url = https://github.com/opensandbox-group/OpenSandbox.git
+[submodule "topoteretes/cognee"]
+	path = all-repos/topoteretes/cognee
+	url = https://github.com/topoteretes/cognee.git
+[submodule "truera/trulens"]
+	path = all-repos/truera/trulens
+	url = https://github.com/truera/trulens.git
+[submodule "browser-use/browser-use"]
+	path = all-repos/browser-use/browser-use
+	url = https://github.com/browser-use/browser-use.git
+[submodule "browser-use/browser-use-pi"]
+	path = all-repos/browser-use/browser-use-pi
+	url = https://github.com/browser-use/browser-use-pi.git
+[submodule "browser-use/vibetest-use"]
+	path = all-repos/browser-use/vibetest-use
+	url = https://github.com/browser-use/vibetest-use.git
+[submodule "iFurySt/open-browser-use"]
+	path = all-repos/iFurySt/open-browser-use
+	url = https://github.com/iFurySt/open-browser-use.git
+[submodule "jackwener/OpenCLI"]
+	path = all-repos/jackwener/OpenCLI
+	url = https://github.com/jackwener/OpenCLI.git
+[submodule "Jeomon/Web-Use"]
+	path = all-repos/Jeomon/Web-Use
+	url = https://github.com/Jeomon/Web-Use.git
+[submodule "m1guelpf/browser-agent"]
+	path = all-repos/m1guelpf/browser-agent
+	url = https://github.com/m1guelpf/browser-agent.git
+[submodule "microsoft/CUAWright"]
+	path = all-repos/microsoft/CUAWright
+	url = https://github.com/microsoft/CUAWright.git
+[submodule "nanobrowser/nanobrowser"]
+	path = all-repos/nanobrowser/nanobrowser
+	url = https://github.com/nanobrowser/nanobrowser.git
+[submodule "SawyerHood/dev-browser"]
+	path = all-repos/SawyerHood/dev-browser
+	url = https://github.com/SawyerHood/dev-browser.git
+[submodule "Tencent/BrowserSkill"]
+	path = all-repos/Tencent/BrowserSkill
+	url = https://github.com/Tencent/BrowserSkill.git
+[submodule "the-open-agent/openagent"]
+	path = all-repos/the-open-agent/openagent
+	url = https://github.com/the-open-agent/openagent.git
+[submodule "12britz/awesome-computer-use"]
+	path = all-repos/12britz/awesome-computer-use
+	url = https://github.com/12britz/awesome-computer-use.git
+[submodule "Arindam200/awesome-ai-apps"]
+	path = all-repos/Arindam200/awesome-ai-apps
+	url = https://github.com/Arindam200/awesome-ai-apps.git
+[submodule "Awesome-llms-labs/awesome-AI-agent-orchestration"]
+	path = all-repos/Awesome-llms-labs/awesome-AI-agent-orchestration
+	url = https://github.com/Awesome-llms-labs/awesome-AI-agent-orchestration.git
+[submodule "Awesome-llms-labs/awesome-ai-agents"]
+	path = all-repos/Awesome-llms-labs/awesome-ai-agents
+	url = https://github.com/Awesome-llms-labs/awesome-ai-agents.git
+[submodule "Awesome-llms-labs/awesome-multi-agents-workflow"]
+	path = all-repos/Awesome-llms-labs/awesome-multi-agents-workflow
+	url = https://github.com/Awesome-llms-labs/awesome-multi-agents-workflow.git
+[submodule "bradAGI/awesome-cli-coding-agents"]
+	path = all-repos/bradAGI/awesome-cli-coding-agents
+	url = https://github.com/bradAGI/awesome-cli-coding-agents.git
+[submodule "bradAGI/awesome-free-inference"]
+	path = all-repos/bradAGI/awesome-free-inference
+	url = https://github.com/bradAGI/awesome-free-inference.git
+[submodule "dipakkr/awesome-ai-engineering"]
+	path = all-repos/dipakkr/awesome-ai-engineering
+	url = https://github.com/dipakkr/awesome-ai-engineering.git
+[submodule "ianwieds/awesome-ai-agents"]
+	path = all-repos/ianwieds/awesome-ai-agents
+	url = https://github.com/ianwieds/awesome-ai-agents.git
+[submodule "kaushikb11/awesome-llm-agents"]
+	path = all-repos/kaushikb11/awesome-llm-agents
+	url = https://github.com/kaushikb11/awesome-llm-agents.git
+[submodule "kyrolabs/awesome-agents"]
+	path = all-repos/kyrolabs/awesome-agents
+	url = https://github.com/kyrolabs/awesome-agents.git
+[submodule "reacher-z/Awesome-CUA"]
+	path = all-repos/reacher-z/Awesome-CUA
+	url = https://github.com/reacher-z/Awesome-CUA.git
+[submodule "Shubhamsaboo/awesome-llm-apps"]
+	path = all-repos/Shubhamsaboo/awesome-llm-apps
+	url = https://github.com/Shubhamsaboo/awesome-llm-apps.git
+[submodule "sihyeong/Awesome-LLM-Inference-Engine"]
+	path = all-repos/sihyeong/Awesome-LLM-Inference-Engine
+	url = https://github.com/sihyeong/Awesome-LLM-Inference-Engine.git
+[submodule "slavakurilyak/awesome-ai-agents"]
+	path = all-repos/slavakurilyak/awesome-ai-agents
+	url = https://github.com/slavakurilyak/awesome-ai-agents.git
+[submodule "Supersynergy/awesome-ai-agents-2026"]
+	path = all-repos/Supersynergy/awesome-ai-agents-2026
+	url = https://github.com/Supersynergy/awesome-ai-agents-2026.git
+[submodule "xlite-dev/Awesome-LLM-Inference"]
+	path = all-repos/xlite-dev/Awesome-LLM-Inference
+	url = https://github.com/xlite-dev/Awesome-LLM-Inference.git
+[submodule "zenrran4nlp/Awesome-LLM-Inference-Serving"]
+	path = all-repos/zenrran4nlp/Awesome-LLM-Inference-Serving
+	url = https://github.com/zenrran4nlp/Awesome-LLM-Inference-Serving.git
+[submodule "12britz/awesome-free-models"]
+	path = all-repos/12britz/awesome-free-models
+	url = https://github.com/12britz/awesome-free-models.git
+[submodule "AILookup/free-llm-resources"]
+	path = all-repos/AILookup/free-llm-resources
+	url = https://github.com/AILookup/free-llm-resources.git
+[submodule "arc53/DocsGPT"]
+	path = all-repos/arc53/DocsGPT
+	url = https://github.com/arc53/DocsGPT.git
+[submodule "BerriAI/litellm"]
+	path = all-repos/BerriAI/litellm
+	url = https://github.com/BerriAI/litellm.git
+[submodule "ClawLabsAI/free-ai-models"]
+	path = all-repos/ClawLabsAI/free-ai-models
+	url = https://github.com/ClawLabsAI/free-ai-models.git
+[submodule "devanasolver/awesome-free-llm-apis"]
+	path = all-repos/devanasolver/awesome-free-llm-apis
+	url = https://github.com/devanasolver/awesome-free-llm-apis.git
+[submodule "golapkamal/Free-LLM-API"]
+	path = all-repos/golapkamal/Free-LLM-API
+	url = https://github.com/golapkamal/Free-LLM-API.git
+[submodule "kaiser-data/free-llm-proxy-router"]
+	path = all-repos/kaiser-data/free-llm-proxy-router
+	url = https://github.com/kaiser-data/free-llm-proxy-router.git
+[submodule "khushaljethava/freellm-apis"]
+	path = all-repos/khushaljethava/freellm-apis
+	url = https://github.com/khushaljethava/freellm-apis.git
+[submodule "malda231125/free-llm-gateway"]
+	path = all-repos/malda231125/free-llm-gateway
+	url = https://github.com/malda231125/free-llm-gateway.git
+[submodule "msmarkgu/RelayFreeLLM"]
+	path = all-repos/msmarkgu/RelayFreeLLM
+	url = https://github.com/msmarkgu/RelayFreeLLM.git
+[submodule "Portkey-AI/gateway"]
+	path = all-repos/Portkey-AI/gateway
+	url = https://github.com/Portkey-AI/gateway.git
+[submodule "reqsgjh/free-coding-agent-models"]
+	path = all-repos/reqsgjh/free-coding-agent-models
+	url = https://github.com/reqsgjh/free-coding-agent-models.git
+[submodule "richbrianx/free-llm-listing"]
+	path = all-repos/richbrianx/free-llm-listing
+	url = https://github.com/richbrianx/free-llm-listing.git
+[submodule "shooter2062424/FreeLlmApiBenchmark"]
+	path = all-repos/shooter2062424/FreeLlmApiBenchmark
+	url = https://github.com/shooter2062424/FreeLlmApiBenchmark.git
+[submodule "SidSharma010/free-llm-api-hub"]
+	path = all-repos/SidSharma010/free-llm-api-hub
+	url = https://github.com/SidSharma010/free-llm-api-hub.git
+[submodule "spacepirate15/quantum-free-router"]
+	path = all-repos/spacepirate15/quantum-free-router
+	url = https://github.com/spacepirate15/quantum-free-router.git
+[submodule "velo4705/awesome-free-byok-models"]
+	path = all-repos/velo4705/awesome-free-byok-models
+	url = https://github.com/velo4705/awesome-free-byok-models.git
+[submodule "XuexGao/free-llm-router"]
+	path = all-repos/XuexGao/free-llm-router
+	url = https://github.com/XuexGao/free-llm-router.git
+[submodule "zebbern/no-cost-ai"]
+	path = all-repos/zebbern/no-cost-ai
+	url = https://github.com/zebbern/no-cost-ai.git
+[submodule "b4rtaz/distributed-llama"]
+	path = all-repos/b4rtaz/distributed-llama
+	url = https://github.com/b4rtaz/distributed-llama.git
+[submodule "deepseek-ai/DeepSeek-V3"]
+	path = all-repos/deepseek-ai/DeepSeek-V3
+	url = https://github.com/deepseek-ai/DeepSeek-V3.git
+[submodule "JustVugg/colibri"]
+	path = all-repos/JustVugg/colibri
+	url = https://github.com/JustVugg/colibri.git
+[submodule "Niko1221/Strata"]
+	path = all-repos/Niko1221/Strata
+	url = https://github.com/Niko1221/Strata.git
+[submodule "sgl-project/sglang"]
+	path = all-repos/sgl-project/sglang
+	url = https://github.com/sgl-project/sglang.git
+[submodule "vllm-project/llm-compressor"]
+	path = all-repos/vllm-project/llm-compressor
+	url = https://github.com/vllm-project/llm-compressor.git
+[submodule "vllm-project/vllm"]
+	path = all-repos/vllm-project/vllm
+	url = https://github.com/vllm-project/vllm.git
+[submodule "AIAnytime/Awesome-MCP-Servers"]
+	path = all-repos/AIAnytime/Awesome-MCP-Servers
+	url = https://github.com/AIAnytime/Awesome-MCP-Servers.git
+[submodule "appcypher/awesome-mcp-servers"]
+	path = all-repos/appcypher/awesome-mcp-servers
+	url = https://github.com/appcypher/awesome-mcp-servers.git
+[submodule "archestra-ai/archestra"]
+	path = all-repos/archestra-ai/archestra
+	url = https://github.com/archestra-ai/archestra.git
+[submodule "awslabs/mcp"]
+	path = all-repos/awslabs/mcp
+	url = https://github.com/awslabs/mcp.git
+[submodule "BrowserMCP/mcp"]
+	path = all-repos/BrowserMCP/mcp
+	url = https://github.com/BrowserMCP/mcp.git
+[submodule "github/github-mcp-server"]
+	path = all-repos/github/github-mcp-server
+	url = https://github.com/github/github-mcp-server.git
+[submodule "jaw9c/awesome-remote-mcp-servers"]
+	path = all-repos/jaw9c/awesome-remote-mcp-servers
+	url = https://github.com/jaw9c/awesome-remote-mcp-servers.git
+[submodule "microsoft/mcp"]
+	path = all-repos/microsoft/mcp
+	url = https://github.com/microsoft/mcp.git
+[submodule "microsoft/playwright-mcp"]
+	path = all-repos/microsoft/playwright-mcp
+	url = https://github.com/microsoft/playwright-mcp.git
+[submodule "modelcontextprotocol/modelcontextprotocol"]
+	path = all-repos/modelcontextprotocol/modelcontextprotocol
+	url = https://github.com/modelcontextprotocol/modelcontextprotocol.git
+[submodule "punkpeye/awesome-mcp-servers"]
+	path = all-repos/punkpeye/awesome-mcp-servers
+	url = https://github.com/punkpeye/awesome-mcp-servers.git
+[submodule "punkpeye/awesome-remote-mcp-servers"]
+	path = all-repos/punkpeye/awesome-remote-mcp-servers
+	url = https://github.com/punkpeye/awesome-remote-mcp-servers.git
+[submodule "TensorBlock/awesome-mcp-servers"]
+	path = all-repos/TensorBlock/awesome-mcp-servers
+	url = https://github.com/TensorBlock/awesome-mcp-servers.git
+[submodule "wong2/awesome-mcp-servers"]
+	path = all-repos/wong2/awesome-mcp-servers
+	url = https://github.com/wong2/awesome-mcp-servers.git
+[submodule "aws-samples/sample-autonomous-cloud-coding-agents"]
+	path = all-repos/aws-samples/sample-autonomous-cloud-coding-agents
+	url = https://github.com/aws-samples/sample-autonomous-cloud-coding-agents.git
+[submodule "camel-ai/camel"]
+	path = all-repos/camel-ai/camel
+	url = https://github.com/camel-ai/camel.git
+[submodule "camunda/camunda"]
+	path = all-repos/camunda/camunda
+	url = https://github.com/camunda/camunda.git
+[submodule "cline/cline"]
+	path = all-repos/cline/cline
+	url = https://github.com/cline/cline.git
+[submodule "coleam00/Linear-Coding-Agent-Harness"]
+	path = all-repos/coleam00/Linear-Coding-Agent-Harness
+	url = https://github.com/coleam00/Linear-Coding-Agent-Harness.git
+[submodule "crewAIInc/crewAI"]
+	path = all-repos/crewAIInc/crewAI
+	url = https://github.com/crewAIInc/crewAI.git
+[submodule "daveshap/OpenAI_Agent_Swarm"]
+	path = all-repos/daveshap/OpenAI_Agent_Swarm
+	url = https://github.com/daveshap/OpenAI_Agent_Swarm.git
+[submodule "elder-plinius/T3MP3ST"]
+	path = all-repos/elder-plinius/T3MP3ST
+	url = https://github.com/elder-plinius/T3MP3ST.git
+[submodule "FoundationAgents/MetaGPT"]
+	path = all-repos/FoundationAgents/MetaGPT
+	url = https://github.com/FoundationAgents/MetaGPT.git
+[submodule "google/adk-python"]
+	path = all-repos/google/adk-python
+	url = https://github.com/google/adk-python.git
+[submodule "google/ax"]
+	path = all-repos/google/ax
+	url = https://github.com/google/ax.git
+[submodule "HKUDS/DeepCode"]
+	path = all-repos/HKUDS/DeepCode
+	url = https://github.com/HKUDS/DeepCode.git
+[submodule "Kocoro-lab/Shannon"]
+	path = all-repos/Kocoro-lab/Shannon
+	url = https://github.com/Kocoro-lab/Shannon.git
+[submodule "kyegomez/swarms"]
+	path = all-repos/kyegomez/swarms
+	url = https://github.com/kyegomez/swarms.git
+[submodule "langchain-ai/langgraph"]
+	path = all-repos/langchain-ai/langgraph
+	url = https://github.com/langchain-ai/langgraph.git
+[submodule "microsoft/agent-framework"]
+	path = all-repos/microsoft/agent-framework
+	url = https://github.com/microsoft/agent-framework.git
+[submodule "microsoft/autogen"]
+	path = all-repos/microsoft/autogen
+	url = https://github.com/microsoft/autogen.git
+[submodule "multica-ai/multica"]
+	path = all-repos/multica-ai/multica
+	url = https://github.com/multica-ai/multica.git
+[submodule "openai/openai-agents-js"]
+	path = all-repos/openai/openai-agents-js
+	url = https://github.com/openai/openai-agents-js.git
+[submodule "openai/openai-agents-python"]
+	path = all-repos/openai/openai-agents-python
+	url = https://github.com/openai/openai-agents-python.git
+[submodule "openai/swarm"]
+	path = all-repos/openai/swarm
+	url = https://github.com/openai/swarm.git
+[submodule "openai/symphony"]
+	path = all-repos/openai/symphony
+	url = https://github.com/openai/symphony.git
+[submodule "PrimeIntellect-ai/prime-agent"]
+	path = all-repos/PrimeIntellect-ai/prime-agent
+	url = https://github.com/PrimeIntellect-ai/prime-agent.git
+[submodule "TauricResearch/TradingAgents"]
+	path = all-repos/TauricResearch/TradingAgents
+	url = https://github.com/TauricResearch/TradingAgents.git
+[submodule "VRSEN/agency-swarm"]
+	path = all-repos/VRSEN/agency-swarm
+	url = https://github.com/VRSEN/agency-swarm.git
+[submodule "win4r/ClawTeam-OpenClaw"]
+	path = all-repos/win4r/ClawTeam-OpenClaw
+	url = https://github.com/win4r/ClawTeam-OpenClaw.git
+[submodule "Yeachan-Heo/oh-my-claudecode"]
+	path = all-repos/Yeachan-Heo/oh-my-claudecode
+	url = https://github.com/Yeachan-Heo/oh-my-claudecode.git
+[submodule "agent-sh/computer-use-linux"]
+	path = all-repos/agent-sh/computer-use-linux
+	url = https://github.com/agent-sh/computer-use-linux.git
+[submodule "bytebot-ai/bytebot"]
+	path = all-repos/bytebot-ai/bytebot
+	url = https://github.com/bytebot-ai/bytebot.git
+[submodule "callstack/agent-device"]
+	path = all-repos/callstack/agent-device
+	url = https://github.com/callstack/agent-device.git
+[submodule "ChinaYiqun/Desktop-Tiny-Agent-Framework"]
+	path = all-repos/ChinaYiqun/Desktop-Tiny-Agent-Framework
+	url = https://github.com/ChinaYiqun/Desktop-Tiny-Agent-Framework.git
+[submodule "Clevrr-AI/Clevrr-Computer"]
+	path = all-repos/Clevrr-AI/Clevrr-Computer
+	url = https://github.com/Clevrr-AI/Clevrr-Computer.git
+[submodule "dddabtc/winremote-mcp"]
+	path = all-repos/dddabtc/winremote-mcp
+	url = https://github.com/dddabtc/winremote-mcp.git
+[submodule "e2b-dev/open-computer-use"]
+	path = all-repos/e2b-dev/open-computer-use
+	url = https://github.com/e2b-dev/open-computer-use.git
+[submodule "e2b-dev/surf"]
+	path = all-repos/e2b-dev/surf
+	url = https://github.com/e2b-dev/surf.git
+[submodule "firerpa/lamda"]
+	path = all-repos/firerpa/lamda
+	url = https://github.com/firerpa/lamda.git
+[submodule "kortix-ai/agent-computer-use"]
+	path = all-repos/kortix-ai/agent-computer-use
+	url = https://github.com/kortix-ai/agent-computer-use.git
+[submodule "mediar-ai/mcp-server-macos-use"]
+	path = all-repos/mediar-ai/mcp-server-macos-use
+	url = https://github.com/mediar-ai/mcp-server-macos-use.git
+[submodule "mediar-ai/terminator"]
+	path = all-repos/mediar-ai/terminator
+	url = https://github.com/mediar-ai/terminator.git
+[submodule "meituan/EvoCUA"]
+	path = all-repos/meituan/EvoCUA
+	url = https://github.com/meituan/EvoCUA.git
+[submodule "microsoft/fara"]
+	path = all-repos/microsoft/fara
+	url = https://github.com/microsoft/fara.git
+[submodule "netease-youdao/LobsterAI"]
+	path = all-repos/netease-youdao/LobsterAI
+	url = https://github.com/netease-youdao/LobsterAI.git
+[submodule "openai/openai-cua-sample-app"]
+	path = all-repos/openai/openai-cua-sample-app
+	url = https://github.com/openai/openai-cua-sample-app.git
+[submodule "OthersideAI/self-operating-computer"]
+	path = all-repos/OthersideAI/self-operating-computer
+	url = https://github.com/OthersideAI/self-operating-computer.git
+[submodule "remorses/usecomputer"]
+	path = all-repos/remorses/usecomputer
+	url = https://github.com/remorses/usecomputer.git
+[submodule "showlab/computer_use_ootb"]
+	path = all-repos/showlab/computer_use_ootb
+	url = https://github.com/showlab/computer_use_ootb.git
+[submodule "showlab/ShowUI"]
+	path = all-repos/showlab/ShowUI
+	url = https://github.com/showlab/ShowUI.git
+[submodule "stablyai/orca"]
+	path = all-repos/stablyai/orca
+	url = https://github.com/stablyai/orca.git
+[submodule "trycua/acu"]
+	path = all-repos/trycua/acu
+	url = https://github.com/trycua/acu.git
+[submodule "trycua/cua"]
+	path = all-repos/trycua/cua
+	url = https://github.com/trycua/cua.git
+[submodule "TurixAI/TuriX-CUA"]
+	path = all-repos/TurixAI/TuriX-CUA
+	url = https://github.com/TurixAI/TuriX-CUA.git
+[submodule "vercel-labs/agent-desktop"]
+	path = all-repos/vercel-labs/agent-desktop
+	url = https://github.com/vercel-labs/agent-desktop.git
+[submodule "vercel-labs/ai-sdk-computer-use"]
+	path = all-repos/vercel-labs/ai-sdk-computer-use
+	url = https://github.com/vercel-labs/ai-sdk-computer-use.git
+[submodule "xlang-ai/OpenCUA"]
+	path = all-repos/xlang-ai/OpenCUA
+	url = https://github.com/xlang-ai/OpenCUA.git
+[submodule "zhoushoujianwork/easyeda-agent"]
+	path = all-repos/zhoushoujianwork/easyeda-agent
+	url = https://github.com/zhoushoujianwork/easyeda-agent.git
+[submodule "simular-ai/Agent-S"]
+	path = all-repos/simular-ai/Agent-S
+	url = https://github.com/simular-ai/Agent-S.git
+[submodule "agentscope-ai/AgentTeams"]
+	path = all-repos/agentscope-ai/AgentTeams
+	url = https://github.com/agentscope-ai/AgentTeams.git
+[submodule "modelcontextprotocol/servers"]
+	path = all-repos/modelcontextprotocol/servers
+	url = https://github.com/modelcontextprotocol/servers.git
+[submodule "QwenLM/open-computer-use"]
+	path = all-repos/QwenLM/open-computer-use
+	url = https://github.com/QwenLM/open-computer-use.git
