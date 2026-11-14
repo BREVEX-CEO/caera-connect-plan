@@ -308,34 +308,12 @@ def ui_inspect(window: dict, region: list | None = None, changesOnly: bool = Fal
             **({"previewRegion": list(region)} if region else {})}
 
 
-WAIT_POLL_S = 0.25
-
-
 @app.tool()
 @_evidence
 def ui_wait(window: dict, element: dict, gone: bool = False, timeoutMs: int = 5000) -> dict:
-    """Wait, without acting, until `element` is in the leased window (or with `gone`, until it
-    or the window itself is gone), checking every quarter second for at most `timeoutMs`
-    (mcp-windows' DeterministicWait, re-implemented). Not met in time is a refusal, so the rest
-    of a batch does not run against a screen that never arrived."""
-    started = time.monotonic()
-    while True:
-        try:
-            _element(_leased(window), element, window)
-            present = True
-        except Refused as refusal:
-            if refusal.code == "element_ambiguous":
-                present = True  # more than one: it is there
-            elif refusal.code in ("element_not_found", "element_stale") or (gone and refusal.code == "window_gone"):
-                present = False
-            else:
-                raise
-        waited = round((time.monotonic() - started) * 1000)
-        if present != gone:
-            return {"met": True, "waitedMs": waited}
-        if waited >= timeoutMs:
-            raise Refused("wait_timed_out")
-        time.sleep(min(WAIT_POLL_S, (timeoutMs - waited) / 1000))
+    """Wait, without acting, until `element` is in the leased window, or with `gone` until it
+    or the window is gone (refs.wait_for)."""
+    return refs.wait_for(lambda: _element(_leased(window), element, window), gone, timeoutMs)
 
 
 @app.tool()

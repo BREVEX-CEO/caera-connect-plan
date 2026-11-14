@@ -12,10 +12,13 @@ mcp-windows' SnapshotDiffEngine, re-implemented): the planner may keep using wha
 knows, and `ui.inspect` with `changesOnly` sends only the elements that are new or changed plus
 the refs that are gone. A label that repeats (an "OK" in two rows) gets a new ref every time,
 since nothing proves which of the two an older ref meant.
+
+`wait_for` is `ui.wait` for both desktops (C6): a bounded look for an element, never an action.
 """
 
 from __future__ import annotations
 
+import time
 from collections import Counter
 
 from .sandbox import Refused
@@ -91,3 +94,31 @@ def listing(found: list[tuple[object, dict]], diff: dict | None, changes_only: b
     changed = set(diff["changed"])
     listed = [d for d in elements if d["ref"] in changed]
     return {"elements": listed, "removed": diff["removed"], "unchanged": len(elements) - len(listed)}
+
+
+WAIT_POLL_S = 0.25
+
+
+def wait_for(find, gone: bool, timeout_ms: int) -> dict:
+    """`ui.wait` on both desktops: call `find()` (which finds the element or refuses) every
+    quarter second until the element is there, or with `gone` until it or its window is gone,
+    for at most `timeout_ms` (mcp-windows' DeterministicWait, re-implemented). Not met in time is
+    a refusal, so the rest of a batch does not run against a screen that never arrived."""
+    started = time.monotonic()
+    while True:
+        try:
+            find()
+            present = True
+        except Refused as refusal:
+            if refusal.code == "element_ambiguous":
+                present = True  # more than one: it is there
+            elif refusal.code in ("element_not_found", "element_stale") or (gone and refusal.code == "window_gone"):
+                present = False
+            else:
+                raise
+        waited = round((time.monotonic() - started) * 1000)
+        if present != gone:
+            return {"met": True, "waitedMs": waited}
+        if waited >= timeout_ms:
+            raise Refused("wait_timed_out")
+        time.sleep(min(WAIT_POLL_S, (timeout_ms - waited) / 1000))

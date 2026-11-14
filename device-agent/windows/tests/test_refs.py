@@ -4,6 +4,7 @@ never existed.
 Pure Python; the native elements are stand-ins, so this runs on every platform."""
 
 import unittest
+import unittest.mock
 
 from ocade_agent import refs
 from ocade_agent.sandbox import Refused
@@ -73,6 +74,37 @@ class ElementRefs(unittest.TestCase):
             refs.remember(f"w{n}", [(self.ok, {"name": "OK", "automationId": "", "controlType": "Button"})])
         self.assertEqual(self.refused({"ref": "e1"}, key="w0"), "element_stale")
         self.assertIs(refs.recall("w8", {"ref": "e1"}, self.describe), self.ok)
+
+
+class WaitFor(unittest.TestCase):
+    """C6: ui.wait's loop, with a stand-in for finding the element."""
+
+    def finder(self, *results):
+        calls = iter(results)
+
+        def find():
+            result = next(calls)
+            if result is not None:
+                raise Refused(result)
+        return find
+
+    def test_returns_once_the_element_is_there(self):
+        with unittest.mock.patch.object(refs.time, "sleep"):
+            met = refs.wait_for(self.finder("element_not_found", "element_not_found", None), False, 5000)
+        self.assertTrue(met["met"])
+
+    def test_gone_is_met_when_the_element_or_its_window_goes(self):
+        with unittest.mock.patch.object(refs.time, "sleep"):
+            self.assertTrue(refs.wait_for(self.finder(None, "element_stale"), True, 5000)["met"])
+            self.assertTrue(refs.wait_for(self.finder(None, "window_gone"), True, 5000)["met"])
+
+    def test_not_met_in_time_is_a_refusal_and_other_refusals_pass_through(self):
+        with self.assertRaises(Refused) as caught:
+            refs.wait_for(lambda: (_ for _ in ()).throw(Refused("element_not_found")), False, 300)
+        self.assertEqual(caught.exception.code, "wait_timed_out")
+        with self.assertRaises(Refused) as caught:
+            refs.wait_for(self.finder("window_gone"), False, 5000)  # waiting for it to appear
+        self.assertEqual(caught.exception.code, "window_gone")
 
 
 if __name__ == "__main__":
