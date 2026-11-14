@@ -50,6 +50,13 @@ onblur="document.getElementById('committed').textContent = this.dataset.typed ? 
 .then(t => document.getElementById('out').textContent = 'Loaded ' + t + ' rows')">Load</button><p id="out">Nothing yet</p>""",
     "/spa": """<p id="out">Loading</p><script>fetch('/slow').then(r => r.text())
 .then(t => document.getElementById('out').textContent = 'Shown ' + t + ' rows')</script>""",
+    # A fixed help button that comes last in the page, after many controls below the fold.
+    "/fixed": "<div style='margin-top:3000px'>" + "".join(f"<button>Low {i}</button>" for i in range(90))
+    + "</div><button style='position:fixed;top:10px;left:10px'>Help</button>",
+    "/pay": """<h1>Pay</h1><input id="card" autocomplete="cc-number"><input id="code" name="otp">
+<input id="note" name="note">""",
+    # A request that stays open (a long poll) while the page itself is already there.
+    "/poll": """<p id="out">Ready</p><script>fetch('/hang')</script>""",
     "/big": "<p>" + "Long page text. " * 4000 + "</p>" + "".join(f"<button>Control number {i} with a long label {'x' * 60}</button>" for i in range(200)),
     "/": """<h1>OCADE fixture home</h1><h2>Section A</h2><p id="lead">Quarterly status is GREEN.</p>
 <a href="/pages/1">Page one</a> <a href="/pages/2">Page two</a> <a href="/download">Downloads</a>
@@ -133,6 +140,9 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(_pdf(), "application/pdf", extra={"content-disposition": "attachment; filename=report.pdf"})
         if path == "/redirect":
             return self._send(b"", status=302, extra={"location": f"https://localhost:{self.server.server_port}/pages/1"})
+        if path == "/hang":
+            time.sleep(6)
+            return self._send(b"", "text/plain")
         if path == "/slow":
             time.sleep(1)
             return self._send(b"42", "text/plain")

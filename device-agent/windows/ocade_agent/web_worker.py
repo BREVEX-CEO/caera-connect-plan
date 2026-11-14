@@ -128,8 +128,17 @@ _CONTROLS = """(token) => {
   /*OPEN_ROOTS*/
   all('[data-ocade]').forEach(e => e.removeAttribute('data-ocade'));
   const flat = s => (s || '').replace(/\\s+/g, ' ').trim();
-  const listed = all('a[href],button,input,select,textarea,[contenteditable]:not([contenteditable=false]),[role=button],[role=menuitem],[role=tab],[role=textbox],[role=spinbutton],[role=slider],iframe')
-    .filter(e => e.offsetParent !== null || e.type === 'file').slice(0, 80);
+  // Rendered (a fixed or sticky control has no offsetParent but is on screen), and what is in
+  // view first, so a long page's off-screen controls never push out the ones a person sees
+  // (Web-Use's viewport-first ordering).
+  const shown = e => e.getClientRects().length > 0;
+  const inView = e => {
+    const r = e.getBoundingClientRect();
+    return r.bottom > 0 && r.right > 0 && r.top < innerHeight && r.left < innerWidth;
+  };
+  const candidates = all('a[href],button,input,select,textarea,[contenteditable]:not([contenteditable=false]),[role=button],[role=menuitem],[role=tab],[role=textbox],[role=spinbutton],[role=slider],iframe')
+    .filter(e => shown(e) || e.type === 'file');
+  const listed = [...candidates.filter(inView), ...candidates.filter(e => !inView(e))].slice(0, 80);
   const labels = listed.map(e => {
     const buttonText = e.type === 'submit' || e.type === 'button' ? e.value : '';
     return flat(e.labels?.[0]?.innerText || e.getAttribute('aria-label') || e.title || e.innerText || buttonText).slice(0, 80);
@@ -148,7 +157,7 @@ _CONTROLS = """(token) => {
       e.getAttribute('aria-selected') === 'true' || (e.tagName === 'OPTION' && e.selected) ? 'selected' : '',
       e.getAttribute('aria-pressed') === 'true' ? 'pressed' : '',
       e.getAttribute('aria-expanded') === 'true' ? 'expanded' : '',
-      e.offsetParent === null ? 'hidden' : '',
+      shown(e) ? '' : 'hidden',
     ].filter(Boolean);
     // For a repeated label, the nearest heading before it says which section it belongs to.
     let heading = null;
@@ -656,15 +665,18 @@ def _bind(new_page, site: str, origin: tuple[str, str, int] | None = None) -> st
 
     new_page.on("popup", opened)
     new_page.on("dialog", asked)
-    # Requests in flight, for _settle. A stream that never ends (WebSocket, EventSource) is not one.
-    inflight = entry["inflight"] = set()
-    new_page.on("request", lambda r: r.resource_type in ("websocket", "eventsource") or inflight.add(r))
-    new_page.on("requestfinished", lambda r: inflight.discard(r))
-    new_page.on("requestfailed", lambda r: inflight.discard(r))
+    # Requests in flight and when each started, for _settle. A stream that never ends (WebSocket,
+    # EventSource) is not one.
+    inflight = entry["inflight"] = {}
+    new_page.on("request", lambda r: r.resource_type in ("websocket", "eventsource")
+                or inflight.setdefault(r, time.monotonic()))
+    new_page.on("requestfinished", lambda r: inflight.pop(r, None))
+    new_page.on("requestfailed", lambda r: inflight.pop(r, None))
     return page_id
 
 
 SETTLE_S = 3  # the longest an observation waits for the page to arrive
+LONG_POLL_S = 1.5  # a request open longer than this is a long poll, not the page arriving (browser-use)
 _QUIET = """() => new Promise((done) => {
   let timer = setTimeout(done, 200);
   new MutationObserver(() => { clearTimeout(timer); timer = setTimeout(done, 200); })
@@ -675,17 +687,22 @@ _QUIET = """() => new Promise((done) => {
 async def _settle(entry: dict) -> None:
     """Before a page is observed after it opened or was clicked: the requests it started (fetch,
     XHR, documents, frames) finish and its DOM stays unchanged for 200 ms, for at most SETTLE_S,
-    so the observation reads the result instead of a half-drawn page (C15; Playwright's own
-    `networkidle` never arrives on a page that keeps a request open, so it is not used)."""
+    so the observation reads the result instead of a half-drawn page (C15). A request open for
+    more than LONG_POLL_S is a long poll and is not waited for, which is also why Playwright's
+    own `networkidle` (which never arrives on such a page) is not used."""
+    def loading() -> bool:
+        now = time.monotonic()
+        return any(now - started < LONG_POLL_S for started in entry["inflight"].values())
+
     with anyio.move_on_after(SETTLE_S):
         while True:
-            while entry["inflight"]:
+            while loading():
                 await anyio.sleep(0.05)
             try:
                 await entry["page"].evaluate(_QUIET)
             except Exception:
                 return  # the page navigated or closed: _observe reports what is there
-            if not entry["inflight"]:
+            if not loading():
                 return
 
 
@@ -755,6 +772,25 @@ async def web_read(page: dict) -> dict:
     return await _observe(page["id"])
 
 
+_SECRET_FIELD = """(e) => {
+  const auto = (e.getAttribute('autocomplete') || '').toLowerCase();
+  const named = `${e.getAttribute('name') || ''} ${e.id || ''}`.toLowerCase();
+  return /(^|\\s)(cc-|one-time-code|new-password|current-password)/.test(auto)
+    || /(otp|totp|2fa|cvv|cvc|security.?code)/.test(named);
+}"""
+
+
+def _card_number(value: str) -> bool:
+    """Whether a value is a payment card number: 13-19 digits, a card network's first digit (2-6,
+    so a 00-prefixed phone number is not one) and the Luhn check."""
+    digits = re.sub(r"[ -]", "", value.strip())
+    if not (digits.isdigit() and 13 <= len(digits) <= 19 and digits[0] in "23456"):
+        return False
+    total = sum(int(d) if i % 2 == 0 else (int(d) * 2 - 9 if int(d) > 4 else int(d) * 2)
+                for i, d in enumerate(reversed(digits)))
+    return total % 10 == 0
+
+
 @app.tool()
 @_refusals
 async def web_fill(page: dict, selector: str, value: str, frame: str | None = None) -> dict:
@@ -763,6 +799,8 @@ async def web_fill(page: dict, selector: str, value: str, frame: str | None = No
     field = await _one(entry, await _scope(entry, frame), selector)
     if (await field.get_attribute("type") or "").lower() == "password":
         raise Refused("password_field")  # credentials are the person's to type
+    if await field.evaluate(_SECRET_FIELD) or _card_number(value):
+        raise Refused("secret_field")  # one-time codes and payment details too (nanobrowser's rule)
     async with _browser_interaction(entry):
         if await field.evaluate("e => e.isContentEditable"):
             # The widget listens for keystrokes. Keep both operations bound to this exact field.

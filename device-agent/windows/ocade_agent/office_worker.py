@@ -86,10 +86,7 @@ def fs_read_text(path: str, offset: int | None = None) -> dict:
         raise Refused("not_a_file")
     suffix = source.suffix.lower()
     if suffix == ".docx":
-        document = Document(str(source))
-        text = "\n".join(p.text for p in document.paragraphs) + "\n" + "\n".join(
-            "\t".join(cell.text for cell in row.cells) for table in document.tables for row in table.rows
-        )
+        text = _docx_text(Document(str(source)))
     elif suffix == ".xlsx":
         book = _open_values(source)
         text = "\n".join(
@@ -622,10 +619,37 @@ def _presentation(data: bytes):
     return Presentation(io.BytesIO(data))
 
 
-def _slide_paragraphs(slide) -> list:
-    """Every text paragraph on a slide: text boxes, placeholders, table cells and the notes."""
+def _docx_text(document) -> str:
+    """A document's text in reading order, paragraphs and tables as they come in the body, with
+    headings marked `#`, `##`, ... (markitdown's body-order reading, re-implemented on python-docx)."""
+    from docx.table import Table
+    from docx.text.paragraph import Paragraph
+
+    lines = []
+    for child in document.element.body.iterchildren():
+        if child.tag.endswith("}p"):
+            paragraph = Paragraph(child, document)
+            style = paragraph.style.name if paragraph.style is not None else ""
+            level = style[8:] if style.startswith("Heading ") else ""
+            lines.append(("#" * int(level) + " " if level.isdigit() else "") + paragraph.text)
+        elif child.tag.endswith("}tbl"):
+            lines += ["\t".join(cell.text for cell in row.cells) for row in Table(child, document).rows]
+    return "\n".join(lines)
+
+
+def _shapes_in_order(shapes) -> list:
+    """A slide's shapes top to bottom, then left to right, with grouped shapes opened."""
     found = []
-    for shape in slide.shapes:
+    for shape in sorted(shapes, key=lambda s: (s.top or 0, s.left or 0)):
+        found += _shapes_in_order(shape.shapes) if shape.shape_type == 6 else [shape]  # 6: GROUP
+    return found
+
+
+def _slide_paragraphs(slide) -> list:
+    """Every text paragraph on a slide in reading order: text boxes, placeholders, grouped shapes,
+    table cells and the notes."""
+    found = []
+    for shape in _shapes_in_order(slide.shapes):
         if shape.has_text_frame:
             found += shape.text_frame.paragraphs
         if getattr(shape, "has_table", False) and shape.has_table:

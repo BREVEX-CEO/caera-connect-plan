@@ -28,7 +28,7 @@ from pathlib import Path
 import anyio
 from websockets.asyncio.client import connect as websocket
 
-from . import catalog, discovery, jobs
+from . import catalog, discovery, held_input, jobs
 from .device import Device
 from .gateway import PROTOCOL, WORKERS, Gateway, effect_possible, receipt
 from .journal import Journal
@@ -193,6 +193,9 @@ class Agent:
             group.start_soon(work)
             group.start_soon(watch)
 
+        if "receipt" not in outcome:
+            # Cut off mid-action, its worker now ended: a chord or click it started stays held otherwise.
+            held_input.release_held()
         if jobs_revoked or self.stopped_here():
             await anyio.to_thread.run_sync(jobs.cancel_all, str(self.device.home))
         if "receipt" in outcome:
@@ -808,6 +811,7 @@ def _run_companion(device: Device, home: Path, until_idle: bool) -> int:
             return 3
     except KeyboardInterrupt:
         gateway.stop()
+        held_input.release_held()
         print("Stopped.", file=sys.stderr)
     except Exception as error:
         report = record_crash(home, error)

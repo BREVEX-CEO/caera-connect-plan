@@ -782,6 +782,37 @@ function canVerifyChecks(checks: OutcomeCheck[], grants: string[]): boolean {
  * result of a batch is seen, not only the last); older ones are clipped, so one large page
  * read can never push the whole history out.
  */
+/**
+ * A value cut to about `budget` characters of JSON without breaking its structure (the idea of
+ * cloudflare/agents' tool-output truncation, re-implemented): strings are shortened, and arrays
+ * and objects keep their first entries and say how many were left out. A raw slice of the JSON
+ * text cut a key or a value in half and spent the budget on punctuation.
+ */
+export function clip(value: unknown, budget: number): unknown {
+  if (typeof value === "string")
+    return value.length > budget ? `${value.slice(0, Math.max(0, budget))}…` : value;
+  if (!value || typeof value !== "object") return value;
+  const list = Array.isArray(value);
+  const entries: [string, unknown][] = list
+    ? value.map((item, index) => [String(index), item])
+    : Object.entries(value);
+  const out: Record<string, unknown> = {};
+  const kept: unknown[] = [];
+  let left = budget;
+  for (const [key, item] of entries) {
+    const part = clip(item, Math.max(0, left - key.length - 4));
+    const size = JSON.stringify(part ?? null).length + (list ? 1 : key.length + 4);
+    if (size > left && kept.length > 0) break;
+    kept.push(part);
+    if (!list) out[key] = part;
+    left -= size;
+  }
+  const dropped = entries.length - kept.length;
+  if (list) return dropped ? [...kept, `… ${dropped} more`] : kept;
+  if (dropped) out["…"] = `${dropped} more fields`;
+  return out;
+}
+
 export function history(steps: Step[]): string {
   let fullBudget = NEWEST_OBSERVATION;
   const limits = steps
@@ -806,7 +837,8 @@ export function history(steps: Step[]): string {
       arguments: step.intent.arguments,
       status: step.status,
       observed:
-        observed.length > limit ? `${observed.slice(0, limit)}… (clipped)` : step.receipt?.evidence,
+        observed.length > limit ? clip(step.receipt?.evidence, limit) : step.receipt?.evidence,
+      ...(observed.length > limit ? { clipped: true } : {}),
       error: step.receipt?.errorCode,
       ...(index === steps.length - 1 && route && (route.observe || route.next.length)
         ? {

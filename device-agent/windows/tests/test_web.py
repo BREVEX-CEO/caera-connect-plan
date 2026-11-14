@@ -12,7 +12,9 @@ import os
 import shutil
 import sys
 import tempfile
+import time
 import unittest
+import unittest.mock
 import urllib.request
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -39,6 +41,44 @@ def intent(operation, arguments):
         "arguments": arguments,
         "deadlineUtc": (datetime.now(timezone.utc) + timedelta(minutes=5)).isoformat().replace("+00:00", "Z"),
     }
+
+
+class WebSettle(unittest.TestCase):
+    """C15 without a browser: what _settle waits for, timed with stand-in requests."""
+
+    def settle(self, inflight, finish_after=None):
+        from ocade_agent import web_worker
+
+        class Page:
+            async def evaluate(self, _script):
+                return None  # the DOM is already quiet
+
+        entry = {"page": Page(), "inflight": inflight}
+
+        async def go():
+            async with anyio.create_task_group() as group:
+                if finish_after is not None:
+                    async def finish():
+                        await anyio.sleep(finish_after)
+                        inflight.clear()
+                    group.start_soon(finish)
+                started = time.monotonic()
+                await web_worker._settle(entry)
+                return time.monotonic() - started
+
+        return anyio.run(go)
+
+    def test_a_request_the_page_just_started_is_waited_for(self):
+        self.assertGreaterEqual(self.settle({object(): time.monotonic()}, finish_after=0.4), 0.35)
+
+    def test_a_long_poll_is_not_waited_for(self):
+        self.assertLess(self.settle({object(): time.monotonic() - 2}), 0.3)
+
+    def test_the_wait_is_bounded(self):
+        from ocade_agent import web_worker
+
+        with unittest.mock.patch.object(web_worker, "LONG_POLL_S", 60):
+            self.assertLess(self.settle({object(): time.monotonic()}), web_worker.SETTLE_S + 0.5)
 
 
 class BrowserUnavailable(unittest.TestCase):
@@ -195,6 +235,13 @@ class WebLadder(unittest.TestCase):
             out["settle-open"] = await run("web.open", {"url": base + "/spa"})
             later = (await run("web.open", {"url": base + "/later"}))["evidence"]["page"]
             out["settle-click"] = await run("web.click", {"page": later, "selector": "#load"})
+            out["long-poll"] = await run("web.open", {"url": base + "/poll"})
+            out["fixed"] = await run("web.open", {"url": base + "/fixed"})
+            pay = (await run("web.open", {"url": base + "/pay"}))["evidence"]["page"]
+            out["secrets"] = [await run("web.fill", {"page": pay, "selector": "#card", "value": "x"}),
+                              await run("web.fill", {"page": pay, "selector": "#code", "value": "123456"}),
+                              await run("web.fill", {"page": pay, "selector": "#note", "value": "4111 1111 1111 1111"}),
+                              await run("web.fill", {"page": pay, "selector": "#note", "value": "Call 0044 20 7946 0958"})]
             home = (await run("web.open", {"url": base + "/"}))["evidence"]
             second_next = [c for c in home["controls"] if c["label"] == "Next"][1]
             out["big"] = await run("web.read", {"page": (await run("web.open", {"url": base + "/big"}))["evidence"]["page"]})
@@ -313,6 +360,16 @@ class WebLadder(unittest.TestCase):
         with self.subTest("WEB-018 an observation waits for the requests a page or a click started (C15)"):
             self.assertIn("Shown 42 rows", results["settle-open"]["evidence"]["text"], results["settle-open"])
             self.assertIn("Loaded 42 rows", results["settle-click"]["evidence"]["text"], results["settle-click"])
+        with self.subTest("WEB-018b a page with a long poll is still observed"):
+            self.assertEqual(results["long-poll"]["status"], "observed", results["long-poll"])
+        with self.subTest("WEB-020 a fixed control in view is listed before controls below the fold"):
+            labels = [c["label"] for c in results["fixed"]["evidence"]["controls"]]
+            self.assertEqual(labels[0], "Help", labels[:5])
+            self.assertNotIn("state", results["fixed"]["evidence"]["controls"][0])
+        with self.subTest("WEB-019 one-time codes and payment details are the person's to type"):
+            self.assertEqual([r.get("errorCode") for r in results["secrets"]],
+                             ["secret_field", "secret_field", "secret_field", None], results["secrets"])
+            self.assertFalse(any(r["maybeChanged"] for r in results["secrets"][:3]))
         with self.subTest("WEB-007d a link's address is listed, so it can be opened as seen"):
             links = {c["label"]: c.get("href") for c in results["001"]["evidence"]["controls"]}
             self.assertEqual(links["Page one"], "/pages/1")

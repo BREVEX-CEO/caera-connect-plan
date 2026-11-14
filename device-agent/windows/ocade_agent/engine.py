@@ -90,6 +90,10 @@ def _libreoffice_convert(source: Path, target_format: str, out_dir: Path) -> Pat
                 f"-env:UserInstallation={Path(profile).as_uri()}",
                 "--headless",
                 "--norestore",
+                # No lock files, no start window, no first-run wizard (CLI-Anything's LibreOffice backend).
+                "--nolockcheck",
+                "--nodefault",
+                "--nofirststartwizard",
                 "--convert-to",
                 target_format,
                 "--outdir",

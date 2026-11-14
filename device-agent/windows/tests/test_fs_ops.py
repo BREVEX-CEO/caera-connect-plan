@@ -189,6 +189,35 @@ class LongTextReads(unittest.TestCase):
         self.assertNotIn("nextOffset", last)
         self.assertEqual(first["text"] + second["text"] + last["text"], (root / "log.txt").read_bytes().decode())
 
+    def test_documents_and_decks_read_in_reading_order(self):
+        """A table sits where it is in the body and headings are marked; slide text comes top to
+        bottom with grouped shapes included (markitdown's reading order, re-implemented)."""
+        from docx import Document
+        from pptx import Presentation
+        from pptx.util import Inches
+
+        from ocade_agent import office_worker
+
+        root = Path(tempfile.mkdtemp())
+        document = Document()
+        document.add_heading("Quarter summary", level=1)
+        document.add_paragraph("Before the table.")
+        table = document.add_table(rows=1, cols=2)
+        table.rows[0].cells[0].text, table.rows[0].cells[1].text = "Revenue", "42"
+        document.add_paragraph("After the table.")
+        document.save(root / "report.docx")
+        deck = Presentation()
+        slide = deck.slides.add_slide(deck.slide_layouts[6])
+        slide.shapes.add_textbox(Inches(1), Inches(5), Inches(4), Inches(1)).text_frame.text = "Bottom note"
+        group = slide.shapes.add_group_shape()
+        group.shapes.add_textbox(Inches(1), Inches(1), Inches(4), Inches(1)).text_frame.text = "Grouped title"
+        deck.save(root / "deck.pptx")
+        with unittest.mock.patch.object(office_worker, "WORKSPACE", str(root)):
+            words = office_worker.fs_read_text(path="report.docx")["text"]
+            slides = office_worker.fs_read_text(path="deck.pptx")["text"]
+        self.assertEqual(words, "# Quarter summary\nBefore the table.\nRevenue\t42\nAfter the table.")
+        self.assertEqual(slides, "[slide 1]\nGrouped title\nBottom note")
+
 
 class BrowserDiscovery(unittest.TestCase):
     def test_installed_browsers_are_found_not_assumed(self):

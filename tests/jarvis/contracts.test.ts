@@ -385,7 +385,7 @@ test("a failed independent check returns to the model for bounded repair", async
     });
     await planStep({ ...base, steps: [read("first", "a"), read("huge", "x".repeat(60_000))] });
     assert.match(lastPrompt, /first\.txt/);
-    assert.match(lastPrompt, /huge\.txt.*\(clipped\)/s);
+    assert.match(lastPrompt, /huge\.txt.*"clipped":true/s);
     assert.equal(batch.kind, "queue");
     if (batch.kind === "queue") {
       assert.equal(batch.intent.operation, "fs.read_text");
@@ -470,7 +470,7 @@ test("every result of a batch is seen in full; a repeated pair of steps is a sta
     "the earlier file of the batch was clipped",
   );
   assert.ok(
-    history([read("big.txt", "y".repeat(20_000)), read("a.txt", "z")]).includes("(clipped)"),
+    history([read("big.txt", "y".repeat(20_000)), read("a.txt", "z")]).includes('"clipped":true'),
   );
   const pair = [read("a.py", "a"), read("b.json", "b")];
   assert.equal(stalled([...pair, ...pair]), null);
@@ -688,4 +688,25 @@ test("a window can be seen whole, or one region of it at full detail", () => {
   assert.ok(!accepts([0.9, 0.1, 0.2, 0.9]), "reversed");
   assert.ok(!accepts([0, 0, 1.2, 1]), "outside the window");
   assert.ok(!accepts([0, 0, 1]), "three numbers");
+});
+
+test("an older observation is clipped without breaking its structure", async () => {
+  const { clip } = await import("../../src/lib/jarvis/planner.server.ts");
+  const inspected = {
+    title: "Ledger Note",
+    elements: Array.from({ length: 40 }, (_, i) => ({ ref: `e${i + 1}`, name: `Control ${i}` })),
+    matches: true,
+  };
+  const cut = clip(inspected, 120) as Record<string, unknown>;
+  assert.equal(cut.title, "Ledger Note");
+  assert.ok(Array.isArray(cut.elements));
+  assert.match(String((cut.elements as unknown[]).at(-1)), /^… \d+ more$/);
+  assert.equal(
+    cut["…"],
+    "1 more fields",
+    "the fields that did not fit are counted, never cut in half",
+  );
+  assert.ok(JSON.stringify(cut).length < 220);
+  assert.deepEqual(clip({ matches: true }, 300), { matches: true }, "a small result is unchanged");
+  assert.equal(clip("x".repeat(10), 4), "xxxx…");
 });
