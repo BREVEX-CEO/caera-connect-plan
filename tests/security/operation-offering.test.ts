@@ -15,11 +15,14 @@ type Tool = { name: string; description: string; inputSchema: { properties?: obj
 
 test("a large argument schema is sent once the task needs it; every operation stays offered", async (t) => {
   const asked: Tool[][] = [];
+  const turns: { messages: { content: string }[]; tools: Tool[] }[] = [];
   let script: { name: string; arguments: Record<string, unknown> }[] = [];
   const service = createServer(async (request, response) => {
     const body: Buffer[] = [];
     for await (const chunk of request) body.push(chunk as Buffer);
-    asked.push(JSON.parse(Buffer.concat(body).toString()).tools);
+    const turn = JSON.parse(Buffer.concat(body).toString());
+    turns.push(turn);
+    asked.push(turn.tools);
     const call = { id: `c${asked.length}`, ...script.shift()! };
     response.writeHead(200, { "content-type": "text/event-stream" });
     response.end(
@@ -102,7 +105,7 @@ test("a large argument schema is sent once the task needs it; every operation st
   );
   for (const name of ["image_edit", "scene_render", "media_render_timeline"]) {
     assert.deepEqual(first.find((tool) => tool.name === name)!.inputSchema.properties, {}, name);
-    assert.match(first.find((tool) => tool.name === name)!.description, /argument schema/);
+    assert.match(first.find((tool) => tool.name === name)!.description, /schema on first call/);
   }
   assert.ok(schemaSize(first, "fs_write_text") > 100, "ordinary operations keep their schema");
   // Before: 23.9k characters (about 6k tokens) of offered operations on every turn. The
@@ -131,4 +134,31 @@ test("a large argument schema is sent once the task needs it; every operation st
   assert.equal((await planStep({ ...base, steps: [used] })).kind, "queue");
   assert.equal(asked.length, 1);
   assert.ok(schemaSize(asked[0], "image_edit") > 1_500);
+
+  // A milestone that names its families (plan v8 10.3): only they carry schemas, every other
+  // operation is still offered by name, and the offer is well under the size rule's.
+  asked.length = 0;
+  script = [{ name: "image_edit", arguments: edit }];
+  const plan = [{ description: "Edit", checks: ["out"], stepBudget: 5, families: ["image"] }];
+  assert.equal((await planStep({ ...base, plan, steps: [] })).kind, "queue");
+  const [scoped] = asked;
+  assert.deepEqual(
+    scoped.map((tool) => tool.name),
+    [...granted, "finish", "ask"],
+  );
+  assert.ok(schemaSize(scoped, "image_edit") > 1_500, "the named family is described in full");
+  assert.deepEqual(
+    scoped.find((tool) => tool.name === "fs_write_text")!.inputSchema.properties,
+    {},
+  );
+  assert.ok(
+    JSON.stringify(scoped).length < JSON.stringify(first).length * 0.6,
+    `families offered ${JSON.stringify(scoped).length} of ${JSON.stringify(first).length}`,
+  );
+  // The whole step turn the model reads (instructions, request, history, offered operations):
+  // plan v8 15.3 asks for at most 4,000 input tokens typically, about 16,000 characters.
+  const turn = turns.at(-1)!;
+  const read =
+    turn.messages.map((m) => m.content).join("").length + JSON.stringify(turn.tools).length;
+  assert.ok(read <= 16_000, `a step turn reads ${read} characters`);
 });

@@ -54,6 +54,17 @@ DECLARE
   job_id text := '1234abcd1234abcd';
 BEGIN
   checks := first_check || second_check;
+  -- Plan v8 10.3: a milestone may name bounded operation families, nothing else.
+  PERFORM pg_temp.milestone_assert(
+    public.jarvis_milestone_plan(first_check,
+      '[{"description":"Edit","checks":["first"],"stepBudget":3,"families":["fs","office"]}]')
+      -> 0 -> 'families' = '["fs","office"]', 'families are kept');
+  PERFORM pg_temp.milestone_fails(format('SELECT public.jarvis_milestone_plan(%L, %L)', first_check,
+    '[{"description":"Edit","checks":["first"],"stepBudget":3,"families":["Robert''); DROP"]}]'),
+    'invalid_milestone_plan');
+  PERFORM pg_temp.milestone_fails(format('SELECT public.jarvis_milestone_plan(%L, %L)', first_check,
+    '[{"description":"Edit","checks":["first"],"stepBudget":3,"families":[]}]'),
+    'invalid_milestone_plan');
   PERFORM pg_temp.milestone_assert(
     NOT has_function_privilege('anon', 'public.jarvis_complete_milestone(uuid,uuid,integer)', 'EXECUTE')
     AND NOT has_function_privilege('authenticated', 'public.jarvis_complete_milestone(uuid,uuid,integer)', 'EXECUTE'),

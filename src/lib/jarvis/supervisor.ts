@@ -25,6 +25,14 @@ export interface Step {
 }
 
 /** Ordered work selected by the model; checks always refer to the immutable task contract. */
+/**
+ * The families of operations a planner may offer (the part of an operation name before the dot).
+ * Verification and third-party tools are never chosen by the model this way.
+ */
+export const OPERATION_FAMILIES = [
+  ...new Set(Object.keys(OPERATIONS).map((name) => name.split(".")[0]!)),
+].filter((family) => family !== "verify" && family !== "mcp") as [string, ...string[]];
+
 export const milestonePlan = z
   .array(
     z
@@ -32,6 +40,12 @@ export const milestonePlan = z
         description: z.string().min(1).max(300),
         checks: z.array(z.string().min(1)).min(1).max(10),
         stepBudget: z.number().int().min(1).max(30),
+        /**
+         * What this milestone's work needs, chosen once at goal time (plan v8 10.3): only these
+         * families are offered with their argument schemas; every other operation is still
+         * offered by name and receives its schema the moment the model calls it.
+         */
+        families: z.array(z.enum(OPERATION_FAMILIES)).min(1).max(12).optional(),
       })
       .strict(),
   )
@@ -97,6 +111,7 @@ export function milestoneProgress(
     ...cursor,
     description: milestone?.description ?? "Recheck the complete result",
     stepBudget: milestone?.stepBudget ?? 30,
+    families: milestone?.families,
     checks: milestone ? checks.filter((check) => milestone.checks.includes(check.id)) : checks,
     final: milestone === undefined || milestones.length === 1,
   };
