@@ -109,7 +109,7 @@ test("a planning turn another request holds is left alone: no model call, no wai
     assert.equal(permits, 0, "the model is not asked twice for one turn");
     assert.deepEqual(
       recorded.map((r) => r.name),
-      ["jarvis_task_state", "jarvis_planner_turn"],
+      ["jarvis_task_state", "jarvis_experience", "jarvis_planner_turn"],
       "the task is not parked and nothing is ended that this request never held",
     );
   }));

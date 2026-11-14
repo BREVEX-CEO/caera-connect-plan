@@ -46,6 +46,7 @@ import {
   type McpServer,
   type PermitKey,
   type PlannerMeasurement,
+  type Precedent,
 } from "./planner.server.ts";
 
 export type Admin = Pick<SupabaseClient<Database>, "rpc">;
@@ -453,6 +454,7 @@ async function decide(
       controller: task.controller,
       grants: task.grants,
       mcp: task.mcp ?? [],
+      experience: () => call<Precedent[]>(admin, "jarvis_experience", { p_task: taskId }),
       engines: task.engines,
       permitKey,
       now,

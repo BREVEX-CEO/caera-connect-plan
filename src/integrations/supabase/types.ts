@@ -2028,6 +2028,10 @@ export type Database = {
         Args: { p_task: string }
         Returns: Json
       }
+      jarvis_experience: {
+        Args: { p_task: string }
+        Returns: Json
+      }
       jarvis_submit_receipt: {
         Args: { p_activity: string; p_device: string; p_receipt: Json }
         Returns: {

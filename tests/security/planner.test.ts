@@ -12,6 +12,7 @@ import {
   plannerAccess,
   PlannerUnavailable,
   taskApps,
+  precedent,
   unseenAddress,
 } from "../../src/lib/jarvis/planner.server.ts";
 import type { Step } from "../../src/lib/jarvis/supervisor.ts";
@@ -209,4 +210,24 @@ test("the apps a task names with @ are its scope; naming grants nothing", () => 
   assert.deepEqual(taskApps("Tidy the note in any app", grants), []);
   assert.deepEqual(taskApps("Mail someone@calc.exe.example later", grants), [], "a longer name");
   assert.deepEqual(taskApps("Use @paint.exe", grants), [], "not allowed: no scope");
+});
+
+test("the closest verified earlier task guides the model; an unrelated one is not shown (C9)", () => {
+  const experience = [
+    { title: "Rename the holiday photos by date", route: ["fs.list", "fs.manage"] },
+    {
+      title: "Total the March invoices in excel.exe",
+      route: [
+        "apps.launch excel.exe",
+        "ui.inspect excel.exe",
+        "ui.inspect excel.exe",
+        "verify.checks",
+      ],
+    },
+  ];
+  const line = precedent("Total the April invoices in excel.exe", experience);
+  assert.match(line, /"Total the March invoices in excel\.exe"/);
+  assert.match(line, /apps\.launch excel\.exe -> ui\.inspect excel\.exe -> verify\.checks\./);
+  assert.equal(precedent("Draw a cat in paint", experience), "", "nothing close enough");
+  assert.equal(precedent("Total the April invoices", []), "", "no history");
 });
