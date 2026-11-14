@@ -30,7 +30,9 @@ from mcp.server.mcpserver import MCPServer
 from pypdf import PdfReader
 
 from .jobs import shell_argv
-from .sandbox import MEDIA_INPUT_OPTIONS, OUTPUT_DIR, PASSIVE_IMAGE_FORMATS, Refused, guarded, plain_text, resolve
+from .sandbox import (
+    MEDIA_INPUT_OPTIONS, OUTPUT_DIR, PASSIVE_IMAGE_FORMATS, Refused, guarded, non_public_address, plain_text, resolve,
+)
 
 app = MCPServer("ocade-verifier")
 WORKSPACE = os.environ.get("OCADE_WORKSPACE", "")
@@ -1061,7 +1063,6 @@ def _web_origin(url: str) -> tuple:
 
 def _web_target(url: str) -> tuple:
     """Resolve every address once. The caller connects to one of those exact addresses."""
-    import ipaddress
     import socket
 
     parts = urlsplit(url)
@@ -1078,9 +1079,7 @@ def _web_target(url: str) -> tuple:
         raise Refused("web_url_refused")
     if not private:
         for endpoint in endpoints:
-            address = ipaddress.ip_address(endpoint[4][0].split("%")[0])
-            address = getattr(address, "ipv4_mapped", None) or address
-            if not address.is_global or address.is_multicast or address.is_reserved:
+            if non_public_address(endpoint[4][0].split("%")[0]):
                 raise Refused("web_url_refused")
     return scheme, host, port, endpoints
 

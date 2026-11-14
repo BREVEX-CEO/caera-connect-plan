@@ -16,6 +16,7 @@ resolved here, once, before any file is opened:
 from __future__ import annotations
 
 import functools
+import ipaddress
 import hashlib
 import inspect
 import os
@@ -212,3 +213,21 @@ def preview_jpeg(image, limit: int = PREVIEW_BYTES) -> str:
             if buffer.tell() <= limit:
                 return base64.b64encode(buffer.getvalue()).decode()
         image = image.resize((max(1, image.width * 3 // 4), max(1, image.height * 3 // 4)))
+
+
+NAT64 = ipaddress.ip_network("64:ff9b::/96")
+
+
+def non_public_address(text: str) -> bool:
+    """Whether an address must never be fetched without the owner's private-network flag: not
+    globally routable, multicast or reserved, judged on the IPv4 address a mapped or NAT64
+    address carries (64:ff9b::7f00:1 reaches 127.0.0.1 through a NAT64 gateway, yet Python
+    counts it as global). 6to4 and Teredo forms are already not global."""
+    try:
+        address = ipaddress.ip_address(text)
+    except ValueError:
+        return False
+    if address.version == 6 and address in NAT64:
+        address = ipaddress.IPv4Address(int(address) & 0xFFFFFFFF)
+    address = getattr(address, "ipv4_mapped", None) or address
+    return not address.is_global or address.is_multicast or address.is_reserved

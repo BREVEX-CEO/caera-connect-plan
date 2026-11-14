@@ -20,7 +20,6 @@ external effects the person confirms before they reach here.
 from __future__ import annotations
 
 import asyncio
-import ipaddress
 import json
 import re
 import os
@@ -39,7 +38,7 @@ from urllib.parse import urljoin, urlparse
 import anyio
 from mcp.server.mcpserver import MCPServer
 
-from .sandbox import Refused, guarded as _refusals, mark_effect, output_path, preview_jpeg, resolve, write_atomically
+from .sandbox import Refused, guarded as _refusals, mark_effect, non_public_address, output_path, preview_jpeg, resolve, write_atomically
 
 WORKSPACE = os.environ.get("OCADE_WORKSPACE", "")
 PROFILE = Path(os.environ.get("OCADE_AGENT_HOME") or Path.home() / ".ocade-agent") / "browser-profile"
@@ -267,13 +266,7 @@ def _host(url: str) -> str:
     return origin[1] if origin else ""
 
 
-def _private_address(text: str) -> bool:
-    try:
-        address = ipaddress.ip_address(text)
-    except ValueError:
-        return False
-    address = getattr(address, "ipv4_mapped", None) or address
-    return not address.is_global or address.is_multicast or address.is_reserved
+_private_address = non_public_address
 
 
 def _allowed_url(url: str) -> bool:
@@ -770,6 +763,23 @@ async def web_read(page: dict) -> dict:
     """Read the page as it is now: title, visible text, controls and whether it asks for a sign-in."""
     _bound(page)
     return await _observe(page["id"])
+
+
+@app.tool()
+@_refusals
+async def web_scroll(page: dict, direction: str, screens: int = 1) -> dict:
+    """Scroll by whole screens with the mouse wheel, as a person would, so content that loads on
+    scrolling appears; then the page is observed as it is, with where it now stands."""
+    entry = _bound(page)
+    current = entry["page"]
+    height = await current.evaluate("innerHeight")
+    await current.mouse.wheel(0, (1 if direction == "down" else -1) * height * max(1, min(screens, 10)))
+    await _settle(entry)
+    observed = await _observe(page["id"])
+    observed["scroll"] = await current.evaluate(
+        "({top: Math.round(scrollY), atTop: scrollY <= 0,"
+        " atBottom: Math.ceil(scrollY + innerHeight) >= document.documentElement.scrollHeight})")
+    return observed
 
 
 _SECRET_FIELD = """(e) => {

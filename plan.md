@@ -1629,6 +1629,22 @@ The existing `tests.run_required.main` loads selected modules/classes/methods or
 
 
 
+**P0/P1 batch, plan v8 items 10.0–10.4, 10.9, 10.10, 11.3, 11.5, 5.5 (15 Nov 2026) — TESTED locally (TypeScript security/contract/e2e 219 pass, 1 environment skip; companion 281 tests OK with 36 platform skips; DB 20 groups + 28 rollbacks; e2e timing suite 30/30; `npm run verify:full` 7/7 gates incl. the whole-site build); coding gate green on push at `06ff900`, [run 43643264538](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/43643264538); not RUNTIME VERIFIED against real models; full hosted Windows/macOS matrix not yet run for this batch.**
+- 10.0 — `aff7d90` — Prettier on `tools/source-research/README.md`; coding gate green, [run 43638582310](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/43638582310).
+- 10.1, 10.2 — `f1fd57c` — `edge-handler.ts providerBody`: JARVIS turns send `toolConfig.functionCallingConfig.mode = ANY`; operations go as complete `parametersJsonSchema`; the OpenAPI subset (`providerSchema`, moved from the planner) only for a model that refused it. Chat is never forced.
+- 10.8 — PARTIAL — `f1fd57c` — the per-instance `withoutThinking` set became one capability record `refused` (thinking, forced_call, json_schema), learned from the provider's 400 text, never from model names. Not durable across instances: a table needs a staging migration and regenerated Supabase types (owner/deploy step).
+- W2 defect (new, fixed) — `0aa322a` — the nudge token bucket drained by about one token per task, so from the 11th task every nudge was ignored and pickup fell back to the 60 s poll (the e2e timing suite failed deterministically at task 11). A nudge is now useful when its claim sees the server state change. Synthetic timing: idle pickup p95 410 ms, active pickup p95 295 ms.
+- 10.3, 10.4 — `a0e179c` — `compileGoal` asks every milestone for its operation `families`; `planStep` sends schemas only for those families (others by name, first clause, "schema on first call"); migration `20261114210000` (with rollback) accepts the bounded list. History 24k/16k → 12k/9k characters. Measured on the file-task fixture: offered operations 5,869 characters (10,912 by size alone); the whole step turn 10,890 characters, about 2.7k tokens.
+- 10.9 — `06ff900` — an `expect` call in a multi-call turn guards the call before it; `actionIntent.expect` (at most 3); `gateway.py expectation_unmet` checks the step's own evidence; migration `20261114220000` (with rollback) cancels the rest of the batch on `expectation_unmet`. Hosted STOP-mid-batch proof on Windows/macOS still to run (manual matrix).
+- 10.10 — `06ff900` — a step awaiting approval or an answer shows its summary unclipped; the exact effect was already whole and scrollable (`exactEffect`, 4,000-character test). No browser render test of a 2,000-character command yet.
+- 10.7, 10.11 — already done before this batch (`benchmark.py --model` with the two allowed models; `live-session.ts` deleted in `27a72ce`).
+- 11.3 (web part) — `web.scroll` (read; whole screens with the mouse wheel; returns the page and `scroll.top/atTop/atBottom`); its test loads a row that appears only on scroll. `ui.scroll` for UIA/AX NOT CODED (needs the Windows/macOS runners to test).
+- 13.7 (part) — NAT64 (`64:ff9b::/96`) addresses carrying a private IPv4 are refused by the browser and the verifier fetch (`sandbox.non_public_address`, one check for both); 6to4 and Teredo were already refused.
+- 11.5 — `REPAIR_HINTS` in `planner.server.ts history()`: one generic sentence for 30 real refusal codes.
+- 5.5 / 11.7 (part) — `ocade_agent enroll` prints and opens `/ocade-jarvis?settings=devices#pair=<code>`; the Devices panel fills the code from the fragment and still requires the person to press Pair, with a warning to pair only the computer in front of them. Not browser-tested signed in (needs a staging account).
+- Not coded in this batch: 10.5 cost metering and budget switch (needs the owner's prices and caps, Part 19.5), 10.6 Gemma request-shape probe (live), 11.1, 11.2, `ui.scroll`, 11.4, 11.6 tray, 11.8 updater work, 11.9, P2–P4.
+
+
 ---
 
 ## Appendix F — Preserved complete engineering operating contract from v7

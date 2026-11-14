@@ -166,7 +166,25 @@ export function JarvisAccess() {
     refetchInterval: 30_000,
   });
   const [code, setCode] = useState("");
+  const [linked, setLinked] = useState(false);
   const [pairing, setPairing] = useState(false);
+  /*
+   * THE COMPANION'S LINK FILLS THE CODE IN (plan v8 5.5): `#pair=<code>` after enrolling, so a
+   * signed-in person only confirms. Never paired by the link alone: the code could have come
+   * from someone else's computer, so the person still presses Pair, warned to pair only the
+   * computer in front of them. Read once from the fragment (never sent to a server) and dropped.
+   */
+  useEffect(() => {
+    const linkedCode = /(?:^#|&)pair=([0-9A-Fa-f]{16})(?:&|$)/.exec(window.location.hash)?.[1];
+    if (!linkedCode) return;
+    setCode(linkedCode.toUpperCase());
+    setLinked(true);
+    window.history.replaceState(
+      window.history.state,
+      "",
+      window.location.pathname + window.location.search,
+    );
+  }, []);
   const refresh = () => void queryClient.invalidateQueries({ queryKey: ["jarvis"] });
   return (
     <div className="space-y-4 text-sm">
@@ -214,6 +232,12 @@ export function JarvisAccess() {
           {pairing ? "Pairing…" : "Pair"}
         </button>
       </form>
+      {linked ? (
+        <p role="note" className="text-muted-foreground">
+          The companion filled in its code. Press Pair only if that companion is running on the
+          computer in front of you.
+        </p>
+      ) : null}
       {devices.isError ? (
         <p className="text-muted-foreground">Your computers could not be loaded.</p>
       ) : null}

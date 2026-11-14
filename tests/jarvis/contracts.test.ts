@@ -475,6 +475,14 @@ test("every result of a batch is seen in full; a repeated pair of steps is a sta
   assert.ok(
     history([read("big.txt", "y".repeat(20_000)), read("a.txt", "z")]).includes('"clipped":true'),
   );
+  // A refusal the companion reports arrives with one generic repair hint (plan v8 11.5).
+  const refused = (errorCode: string): Step => ({
+    ...read("c.txt", ""),
+    status: "failed",
+    receipt: { ...read("c.txt", "").receipt!, status: "not_applied", errorCode },
+  });
+  assert.match(history([refused("file_changed")]), /"hint":"the file changed since it was read/);
+  assert.doesNotMatch(history([refused("some_new_code")]), /"hint"/);
   const pair = [read("a.py", "a"), read("b.json", "b")];
   assert.equal(stalled([...pair, ...pair]), null);
   assert.match(stalled([...pair, ...pair, ...pair]) ?? "", /repeating/);

@@ -798,6 +798,48 @@ export function clip(value: unknown, budget: number): unknown {
   return out;
 }
 
+/**
+ * One generic sentence per refusal the companion reports, naming what to do next (plan v8
+ * 11.5), so the model repairs instead of retrying blind. Words about the situation only:
+ * never an application, a selector or an answer.
+ */
+const REPAIR_HINTS: Record<string, string> = {
+  element_stale:
+    "the window changed since it was inspected: inspect it again and use the new element",
+  stale_selector: "the page changed: use a selector from the newest observation of that page",
+  selector_not_found: "read the page again and pick a selector it lists",
+  selector_not_unique: "pick the listed selector whose row matches the request",
+  element_not_found: "inspect the window again; the control may be elsewhere or need scrolling",
+  element_ambiguous: "inspect again and name the element more exactly",
+  window_changed: "inspect the window again before acting on it",
+  window_gone: "list the apps or windows again; the window closed",
+  window_minimized: "the window is minimised: ask the person to restore it",
+  window_blocked: "a dialog blocks the window: answer or close the dialog first",
+  window_ambiguous: "several windows match: name the window exactly from the newest listing",
+  window_not_responding: "the app is not responding: wait with ui.wait, then inspect again",
+  focus_lost:
+    "another window took focus: inspect again; do not repeat a step whose effect is unknown",
+  user_active: "the person is using the computer: wait a moment, then inspect again",
+  stale_image: "the picture is older than the window: take a new preview before clicking",
+  inspect_first: "inspect the target before acting on it",
+  page_gone: "the page closed: open it again from a link already seen",
+  page_left_site: "the page left the allowed site: go back to an allowed page",
+  output_exists: "that output already exists: choose a new name under 'OCADE output/'",
+  file_changed: "the file changed since it was read: read it again and use the new sha256",
+  find_not_unique: "make each find text longer so it occurs exactly once",
+  file_in_use: "another program holds the file: close it there or ask the person",
+  file_open_in_app:
+    "the file is open in an app: change it through that app, or ask the person to close it",
+  path_outside_workspace: "use a path inside the JARVIS folder",
+  write_outside_output: "write new files under 'OCADE output/'",
+  wait_timed_out: "the expected change did not happen: inspect to see what the window shows now",
+  expectation_unmet:
+    "the step ran but its result was not what was expected (see unmet): look again before continuing",
+  batch_stopped: "an earlier step of the same turn did not go as planned, so this one never ran",
+  deadline_passed: "the step expired before it ran: propose it again if it is still needed",
+  timeout: "the step took too long: for long work start a job and follow it",
+};
+
 export function history(steps: Step[]): string {
   let fullBudget = NEWEST_OBSERVATION;
   const limits = steps
@@ -825,6 +867,9 @@ export function history(steps: Step[]): string {
         observed.length > limit ? clip(step.receipt?.evidence, limit) : step.receipt?.evidence,
       ...(observed.length > limit ? { clipped: true } : {}),
       error: step.receipt?.errorCode,
+      ...(step.receipt?.errorCode && Object.hasOwn(REPAIR_HINTS, step.receipt.errorCode)
+        ? { hint: REPAIR_HINTS[step.receipt.errorCode] }
+        : {}),
       ...(index === steps.length - 1 && route && (route.observe || route.next.length)
         ? {
             nextRoute: [

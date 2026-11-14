@@ -87,6 +87,24 @@ class PinnedVerifierTransport(unittest.TestCase):
                 verify_worker._web_fetch("https://user:password@fixture.example/")
             resolver.assert_called_once()
 
+    def test_an_address_that_carries_a_private_ipv4_is_refused(self):
+        """NAT64 (64:ff9b::/96), IPv4-mapped, 6to4 and Teredo forms of a private address are
+        refused like the address itself; Python counts the NAT64 one as global (plan v8 13.7)."""
+        import socket
+        from ocade_agent import verify_worker, web_worker
+        from ocade_agent.sandbox import Refused
+
+        carried = ("64:ff9b::7f00:1", "64:ff9b::a00:1", "::ffff:192.168.0.1", "2002:7f00:1::",
+                   "2001:0:4136:e378:8000:63bf:80ff:fffe")
+        for address in carried:
+            self.assertTrue(web_worker._private_address(address), address)
+            endpoints = [(socket.AF_INET6, socket.SOCK_STREAM, 0, "", (address, 443, 0, 0))]
+            with (patch.dict(os.environ, {"OCADE_ALLOW_PRIVATE_WEB": "0"}),
+                  patch.object(socket, "getaddrinfo", return_value=endpoints)):
+                with self.assertRaisesRegex(Refused, "web_url_refused", msg=address):
+                    verify_worker._web_fetch("https://fixture.example/")
+        self.assertFalse(web_worker._private_address("64:ff9b::808:808"), "a public NAT64 address")
+
 
 @unittest.skipUnless(BROWSER, "needs a display and a Chromium executable")
 class RenderedWebVerification(unittest.TestCase):

@@ -1109,6 +1109,20 @@ export const OPERATIONS = {
     arguments: z.strictObject({ page, selector, path: workspacePath }),
     target: (a: { page: { site: string } }): Target => ({ site: a.page.site }),
   },
+  "web.scroll": {
+    summary:
+      "Scroll an open web page by whole screens (for content that loads as the page is scrolled, or controls beyond the listed ones); returns the page as it is afterwards.",
+    engine: "browser",
+    role: "web_automation",
+    capability: "browser",
+    risk: "read",
+    arguments: z.strictObject({
+      page,
+      direction: z.enum(["down", "up"]),
+      screens: z.int().min(1).max(10).optional(),
+    }),
+    target: (a: { page: { site: string } }): Target => ({ site: a.page.site }),
+  },
   "web.screenshot": {
     summary: "Save a picture of what an open web page shows.",
     engine: "browser",
@@ -1188,7 +1202,6 @@ export const PURE_READ_OPERATIONS = [
 const pureReadOperations: ReadonlySet<string> = new Set(PURE_READ_OPERATIONS);
 const operationNames = Object.keys(OPERATIONS) as [Operation, ...Operation[]];
 
-/** One queued action, as stored in `jarvis_activity.action` and sent to the device. */
 /**
  * What a step's own receipt must show for the steps queued behind it to run (plan v8 10.9): a
  * field of its evidence (a dotted path, list positions as numbers) that equals a value or
@@ -1208,6 +1221,7 @@ export const stepExpectation = z
   );
 export type StepExpectation = z.infer<typeof stepExpectation>;
 
+/** One queued action, as stored in `jarvis_activity.action` and sent to the device. */
 export const actionIntent = z
   .object({
     v: z.literal(PROTOCOL_VERSION),

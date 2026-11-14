@@ -22,6 +22,7 @@ import runpy
 import sys
 import time
 import traceback
+import webbrowser
 from contextlib import contextmanager
 from pathlib import Path
 
@@ -690,6 +691,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--name", default=platform.node() or "My computer")
     parser.add_argument("--workspace")
     parser.add_argument("--until-idle", action="store_true")
+    parser.add_argument("--no-browser", action="store_true", help="enroll without opening the pairing page")
     parser.add_argument("--manifest", type=Path)
     parser.add_argument("--signature", type=Path)
     parser.add_argument("--archive", type=Path)
@@ -748,6 +750,12 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "enroll":
         enrolled = device.enroll(args.name, f"{platform.system()} {platform.release()}"[:60], VERSION)
         print(f"Pairing code: {enrolled['code']}  (type it in OCADE JARVIS within 10 minutes)")
+        # The code rides in the fragment, which the browser never sends to a server; the signed-in
+        # person still confirms it on the website (no email step, plan v8 5.5).
+        link = f"{server.rstrip('/')}/ocade-jarvis?settings=devices#pair={enrolled['code']}"
+        print(f"Or open: {link}")
+        if not args.no_browser and sys.stdout.isatty():
+            webbrowser.open(link)
         return 0
     try:
         with companion_lock(home):

@@ -452,6 +452,35 @@ class WebLadder(unittest.TestCase):
             self.assertNotIn("href", links["Oversized address"])
             self.assertEqual(links["Oversized address"].get("hrefOmitted"), "too_long")
 
+    def test_scrolling_reaches_content_that_loads_on_scroll(self):
+        """Plan v8 11.3: a page that adds rows only when it is scrolled to its end."""
+        token = os.urandom(8).hex()
+        route = "/scroll-" + token
+        web_fixture.PAGES[route] = (
+            "<div style='height:3000px'>Top of the list</div><ul id='rows'></ul><script>"
+            "addEventListener('scroll', () => { if (innerHeight + scrollY >= document.body.scrollHeight - 5"
+            " && !document.getElementById('more')) { const li = document.createElement('li');"
+            " li.innerHTML = '<button id=more>Row " + token + "</button>';"
+            " document.getElementById('rows').append(li); } });</script>"
+        )
+        self.addCleanup(web_fixture.PAGES.pop, route, None)
+
+        async def steps(run, gateway):
+            opened = await run("web.open", {"url": self.base + route})
+            page = opened["evidence"]["page"]
+            down = await run("web.scroll", {"page": page, "direction": "down", "screens": 10})
+            up = await run("web.scroll", {"page": page, "direction": "up", "screens": 10})
+            return opened, down, up
+
+        opened, down, up = self.run_steps(steps)
+        labels = lambda result: [control["label"] for control in result["evidence"]["controls"]]
+        self.assertNotIn("Row " + token, labels(opened))
+        self.assertEqual(down["status"], "observed", down)
+        self.assertIn("Row " + token, labels(down), "the row the scroll loaded is listed")
+        # The new row made the page longer, so it now stands below the top, not at the end.
+        self.assertGreater(down["evidence"]["scroll"]["top"], 0, down["evidence"]["scroll"])
+        self.assertTrue(up["evidence"]["scroll"]["atTop"], up["evidence"]["scroll"])
+
     def test_private_network_refused_without_owner_flag(self):
         async def steps(run, gateway):
             return [await run("web.open", {"url": self.base + "/"}), await run("web.open", {"url": "https://localhost/"})]
