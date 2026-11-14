@@ -19,8 +19,10 @@ import {
   dependencyApproval,
   intent,
   OPERATIONS,
+  stepExpectation,
   taskChecks,
   type ActionIntent,
+  type StepExpectation,
   type Operation,
   type OutcomeCheck,
 } from "./contracts.ts";
@@ -987,6 +989,10 @@ export function operationSchema(name: Operation, withoutGltf = false): unknown {
   return schema;
 }
 
+const { $schema: _expectDialect, ...EXPECT_SCHEMA } = z.toJSONSchema(stepExpectation, {
+  io: "input",
+});
+
 /** How a held-back operation is marked; the system instruction says what to do with it. */
 const HELD_BACK = "schema on first call";
 
@@ -1239,6 +1245,12 @@ export async function planStep(input: {
       parameters: { type: "object", properties: {} },
     },
     {
+      name: "expect",
+      description:
+        "Optional, after an operation call in a turn with several calls: what that call's own result must show for the calls after it to run (a field of its result as a dotted path, list positions as numbers, that equals a value or contains a text). A miss stops the rest.",
+      parameters: EXPECT_SCHEMA,
+    },
+    {
       name: "ask",
       description: "Ask the person one short question, or explain why nothing safe can be done.",
       parameters: {
@@ -1358,7 +1370,7 @@ export async function planStep(input: {
   const guide = precedent(input.objective, (await input.experience?.()) ?? []);
   let refusal = "";
   for (let attempt = 0; attempt < 2; attempt += 1) {
-    const [call, ...more] = await callPlanner({
+    const calls = await callPlanner({
       userId: input.userId,
       key: await input.permitKey(),
       onTimed: input.onModelCall,
@@ -1377,6 +1389,29 @@ export async function planStep(input: {
       tools: offer(),
       attachments: input.grants.includes("screen") ? previewAttachments(steps) : [],
     });
+    /*
+     * An `expect` call guards the call just before it (plan v8 10.9): the companion checks it
+     * against that step's own receipt, and a miss cancels the steps behind it. An expectation
+     * that cannot be read guards nothing, so the batch ends after the step it was meant for.
+     */
+    const grouped: {
+      name: string;
+      args: Record<string, unknown>;
+      expect: StepExpectation[];
+      last?: boolean;
+    }[] = [];
+    for (const proposed of calls) {
+      const previous = grouped.at(-1);
+      if (proposed.name !== "expect") grouped.push({ ...proposed, expect: [] });
+      else if (previous) {
+        const parsed = stepExpectation.safeParse(proposed.args);
+        if (parsed.success && previous.expect.length < 3) previous.expect.push(parsed.data);
+        else previous.last = true;
+      }
+    }
+    const [call, ...more] = grouped;
+    const guarded = (action: ActionIntent, expect: StepExpectation[]) =>
+      expect.length ? { ...action, expect } : action;
     const awaited = operations.find((name) => toolName(name) === call?.name && deferred(name));
     if (awaited) {
       // The model reached for an operation whose schema was held back: now it gets it.
@@ -1426,7 +1461,8 @@ export async function planStep(input: {
           ),
         };
       }
-      const first = queued(call.name, call.args, key);
+      const proposal = queued(call.name, call.args, key);
+      const first = { ...proposal, intent: guarded(proposal.intent, call.expect) };
       if (outside(first.intent)) {
         refusal = `OCADE refused your last proposal (${call.name}) and ran nothing: this task is limited to the apps the person named (${apps.join(", ")}). Use one of them.`;
         continue;
@@ -1442,14 +1478,15 @@ export async function planStep(input: {
       // batch: a step that waits for the person, the verifier, jobs, and pointer clicks
       // (coordinates never survive an earlier change).
       const batch = [];
-      if (batchable(first.intent)) {
+      if (batchable(first.intent) && !call.last) {
         for (const [index, next] of more.entries()) {
           if (phaseDecisions.length + batch.length + 1 >= phase.stepBudget) break;
           try {
             const action = queued(next.name, next.args, `${key}-${index + 2}`);
             if (!batchable(action.intent) || action.intent.operation === "ui.click_point") break;
             if (missingGrant(action.intent, input.grants) || outside(action.intent)) break;
-            batch.push({ summary: action.summary, intent: action.intent });
+            batch.push({ summary: action.summary, intent: guarded(action.intent, next.expect) });
+            if (next.last) break;
           } catch {
             break;
           }

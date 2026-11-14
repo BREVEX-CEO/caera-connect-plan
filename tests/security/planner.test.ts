@@ -191,7 +191,7 @@ test("only a complete, matching provider turn may define a goal", async (t) => {
       )
       .map(([name]) => name.replace(".", "_"));
     assert.ok(expected.length > 12, "the old shortlist would omit at least one tool");
-    assert.deepEqual(offered, [...expected, "finish", "ask"]);
+    assert.deepEqual(offered, [...expected, "finish", "expect", "ask"]);
     assert.equal(decision.kind, "block", "a fabricated, unavailable tool must not queue");
   } finally {
     Object.assign(plannerAccess, saved);

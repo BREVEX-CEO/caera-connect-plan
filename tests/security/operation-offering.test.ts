@@ -100,7 +100,7 @@ test("a large argument schema is sent once the task needs it; every operation st
   const [first, second] = asked;
   assert.deepEqual(
     first.map((tool) => tool.name),
-    [...granted, "finish", "ask"],
+    [...granted, "finish", "expect", "ask"],
     "nothing is hidden: every granted operation is offered by name",
   );
   for (const name of ["image_edit", "scene_render", "media_render_timeline"]) {
@@ -144,7 +144,7 @@ test("a large argument schema is sent once the task needs it; every operation st
   const [scoped] = asked;
   assert.deepEqual(
     scoped.map((tool) => tool.name),
-    [...granted, "finish", "ask"],
+    [...granted, "finish", "expect", "ask"],
   );
   assert.ok(schemaSize(scoped, "image_edit") > 1_500, "the named family is described in full");
   assert.deepEqual(

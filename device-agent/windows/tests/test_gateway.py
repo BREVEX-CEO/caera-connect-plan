@@ -76,6 +76,27 @@ class PackagingContract(unittest.TestCase):
         self.assertIsInstance(result["evidence"]["durationMs"], (int, float))
         self.assertGreaterEqual(result["evidence"]["durationMs"], 0)
 
+    def test_a_step_reports_whether_its_own_result_met_its_expectation(self):
+        """Plan v8 10.9: the guard is read from the step's real evidence on this computer; a miss
+        is an observed step with `expectation_unmet` (the server then stops its batch)."""
+        root = Path(tempfile.mkdtemp())
+        (root / "ledger.csv").write_text("total,12\n", encoding="utf-8")
+        async def run():
+            async with Gateway(str(root)) as gateway:
+                return [await gateway.run(intent("fs.list", {"path": "."}, expect=expect), gateway.epoch)
+                        for expect in ([{"field": "entries", "contains": "ledger.csv"}],
+                                       [{"field": "entries.0.name", "equals": "ledger.csv"}],
+                                       [{"field": "entries", "contains": "missing.csv"}],
+                                       [{"field": "nothing.here", "equals": 1}])]
+        met, exact, missed, absent = anyio.run(run)
+        for result in (met, exact):
+            self.assertEqual(result["status"], "observed", result)
+            self.assertNotIn("errorCode", result)
+        for result, field in ((missed, "entries"), (absent, "nothing.here")):
+            self.assertEqual(result["status"], "observed", result)
+            self.assertEqual(result["errorCode"], "expectation_unmet")
+            self.assertEqual(result["evidence"]["unmet"], field)
+
     def test_prewarmed_workers_spare_the_first_step_its_start_up(self):
         """Started with the gateway (W2): the first file step does not pay worker start-up."""
         root = Path(tempfile.mkdtemp())

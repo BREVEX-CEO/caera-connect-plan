@@ -530,7 +530,10 @@ export function TaskPanel({
             <span className="w-20 shrink-0 text-xs text-muted-foreground">
               {step.disposition ?? step.status.replace("_", " ")}
             </span>
-            <span className="min-w-0 flex-1 truncate">{step.summary}</span>
+            {/* A step the person decides on is never cut short; the rest keep one line. */}
+            <span className={`min-w-0 flex-1 ${step.effect ? "break-words" : "truncate"}`}>
+              {step.summary}
+            </span>
             <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
               {duration(step.durationMs)}
             </span>

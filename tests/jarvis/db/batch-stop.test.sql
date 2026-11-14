@@ -1,4 +1,5 @@
--- P3: a guarded batch stops at its first step that did not apply or whose effect is unknown.
+-- P3: a guarded batch stops at its first step that did not apply, whose effect is unknown, or
+-- whose receipt missed its expectation (plan v8 10.9).
 -- The steps queued behind it are cancelled in the receipt's own transaction and are never
 -- handed out; a step that was observed leaves the rest of its batch queued.
 -- Disposable database only; every account/device is synthetic.
@@ -34,7 +35,8 @@ BEGIN
   INSERT INTO public.jarvis_permissions (user_id, device_id, capability, allowed)
   SELECT v_user, v_device, capability, true FROM unnest(ARRAY['master', 'files']) AS grants(capability);
 
-  FOREACH v_status IN ARRAY ARRAY['observed', 'not_applied', 'unknown'] LOOP
+  -- 'expectation_unmet': observed, but its receipt missed what the planner expected (plan v8 10.9).
+  FOREACH v_status IN ARRAY ARRAY['observed', 'not_applied', 'unknown', 'expectation_unmet'] LOOP
     SELECT * INTO v_task FROM public.jarvis_open_task(v_user, (SELECT conversation_id FROM batch_ids), v_device,
                                                       'Batch ' || v_status, NULL, '[]');
     SELECT jsonb_agg(jsonb_build_object('summary', 'Step ' || n, 'action', jsonb_build_object(
@@ -43,8 +45,10 @@ BEGIN
       INTO v_batch FROM generate_series(1, 3) AS n;
     PERFORM public.jarvis_queue_actions(v_task.task_id, v_task.controller, v_batch);
     v_claimed := (public.jarvis_claim_action(v_device) -> 'action' ->> 'id')::uuid;
-    v_receipt := jsonb_build_object('status', v_status, 'maybeChanged', v_status = 'unknown',
-                                    'observedAtUtc', v_deadline, 'evidence', '{}'::jsonb);
+    v_receipt := jsonb_build_object('status', CASE v_status WHEN 'expectation_unmet' THEN 'observed' ELSE v_status END,
+                                    'maybeChanged', v_status = 'unknown',
+                                    'observedAtUtc', v_deadline, 'evidence', '{}'::jsonb)
+                 || CASE v_status WHEN 'expectation_unmet' THEN '{"errorCode":"expectation_unmet"}'::jsonb ELSE '{}' END;
     PERFORM public.jarvis_submit_receipt(v_device, v_claimed, v_receipt);
     IF v_status = 'observed' THEN
       PERFORM pg_temp.batch_assert((SELECT count(*) = 2 FROM public.jarvis_activity

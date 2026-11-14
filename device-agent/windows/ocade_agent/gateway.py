@@ -81,6 +81,52 @@ def receipt(status: str, maybe_changed: bool, evidence: dict | None = None, erro
     return out
 
 
+def expectation_unmet(expect, evidence: dict) -> str | None:
+    """The first expectation a step's own evidence does not meet (plan v8 10.9), by its field.
+
+    A field is a dotted path; a number selects a list position. `equals` compares the value;
+    `contains` finds text in a string, an equal or text-containing item in a list, or the text
+    anywhere in an object. Malformed expectations count as unmet: a guard nobody can check
+    never lets the next step run."""
+    if not expect:
+        return None
+    if not isinstance(expect, list):
+        return "expect"
+    for item in expect[:3]:
+        field = item.get("field") if isinstance(item, dict) else None
+        if not isinstance(field, str):
+            return "expect"
+        value, found = evidence, True
+        for part in field.split("."):
+            if isinstance(value, dict) and part in value:
+                value = value[part]
+            elif isinstance(value, list) and part.isdigit() and int(part) < len(value):
+                value = value[int(part)]
+            else:
+                found = False
+                break
+        if not found:
+            return field
+        if "equals" in item:
+            if value != item["equals"] or isinstance(value, bool) != isinstance(item["equals"], bool):
+                return field
+            continue
+        text = item.get("contains")
+        if not isinstance(text, str) or not text:
+            return field
+        if isinstance(value, str):
+            met = text in value
+        elif isinstance(value, list):
+            met = any(entry == text or (isinstance(entry, str) and text in entry)
+                      or (isinstance(entry, dict) and text in json.dumps(entry, ensure_ascii=False))
+                      for entry in value)
+        else:
+            met = text in json.dumps(value, ensure_ascii=False)
+        if not met:
+            return field
+    return None
+
+
 class WorkerRejected(Exception):
     pass
 
@@ -392,7 +438,10 @@ class Gateway:
             evidence["redactedValues"] = redacted
         if len(json.dumps(evidence)) > 16_000:
             return timed("unknown" if uncertain else "not_applied", uncertain, error="evidence_too_large")
-        done = timed("observed", uncertain, evidence)
+        unmet = expectation_unmet(intent.get("expect"), evidence)
+        done = timed("observed", uncertain, evidence, "expectation_unmet" if unmet else None)
+        if unmet:
+            done["evidence"]["unmet"] = unmet
         # The server stores a receipt in at most 64 KiB: a preview that would not fit is left
         # out (the planner can still ask for one) rather than leave a receipt nobody can record.
         if preview is not None and len(json.dumps(done)) + len(preview) <= MAX_RECEIPT:

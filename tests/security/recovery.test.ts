@@ -98,6 +98,38 @@ test("guarded batches stop before what they may not run; unknown effects fence r
         if (decision.kind === "queue") assert.equal(decision.more?.length ?? 0, expectedMore);
       });
     }
+    await t.test(
+      "an expectation guards the step before it; one that cannot be read ends the batch",
+      async () => {
+        const sha = { name: "expect", arguments: { field: "sha256", contains: "ab" } };
+        proposals = [
+          read,
+          { name: "expect", arguments: { field: "text", contains: "total" } },
+          write,
+          sha,
+          list,
+        ];
+        const guarded = await planStep({ ...base, steps: [] });
+        assert.equal(guarded.kind, "queue");
+        if (guarded.kind !== "queue") return;
+        assert.deepEqual(guarded.intent.expect, [{ field: "text", contains: "total" }]);
+        assert.deepEqual(
+          guarded.more?.map((step) => [step.intent.operation, step.intent.expect]),
+          [
+            ["fs.write_text", [{ field: "sha256", contains: "ab" }]],
+            ["fs.list", undefined],
+          ],
+        );
+        // Both a value and a text, or no field at all: the guard is unreadable, so nothing after.
+        proposals = [read, { name: "expect", arguments: { equals: 1, contains: "x" } }, list];
+        const cut = await planStep({ ...base, steps: [] });
+        assert.equal(cut.kind, "queue");
+        if (cut.kind === "queue") {
+          assert.equal(cut.intent.expect, undefined);
+          assert.equal(cut.more?.length, 0);
+        }
+      },
+    );
     await t.test("a task that names its apps sees and uses only those", async () => {
       const window = (exe: string) => ({ exe, pid: 4, hwnd: 5, started: 6 });
       const scoped = {

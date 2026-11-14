@@ -1189,6 +1189,25 @@ const pureReadOperations: ReadonlySet<string> = new Set(PURE_READ_OPERATIONS);
 const operationNames = Object.keys(OPERATIONS) as [Operation, ...Operation[]];
 
 /** One queued action, as stored in `jarvis_activity.action` and sent to the device. */
+/**
+ * What a step's own receipt must show for the steps queued behind it to run (plan v8 10.9): a
+ * field of its evidence (a dotted path, list positions as numbers) that equals a value or
+ * contains a text. The companion checks it the moment the step ends; a miss stops the batch.
+ */
+export const stepExpectation = z
+  .strictObject({
+    field: z.string().regex(/^[A-Za-z0-9_]{1,40}(\.[A-Za-z0-9_]{1,40}){0,5}$/),
+    equals: z.union([z.string().max(500), z.number(), z.boolean()]).optional(),
+    contains: z.string().min(1).max(500).optional(),
+  })
+  .refine(
+    (expectation) => (expectation.equals === undefined) !== (expectation.contains === undefined),
+    {
+      message: "exactly one of equals or contains",
+    },
+  );
+export type StepExpectation = z.infer<typeof stepExpectation>;
+
 export const actionIntent = z
   .object({
     v: z.literal(PROTOCOL_VERSION),
@@ -1205,6 +1224,7 @@ export const actionIntent = z
       })
       .optional(),
     deadlineUtc: z.iso.datetime(),
+    expect: z.array(stepExpectation).min(1).max(3).optional(),
   })
   .strict()
   .superRefine((intent, context) => {
