@@ -106,4 +106,5 @@ if sys.platform == "win32":
 else:
     contents = COLLECT(console, analysis.binaries, analysis.datas, browser, name="OCADE JARVIS")
     BUNDLE(contents, name="OCADE JARVIS.app", bundle_identifier="in.ocade.jarvis.companion",
-           info_plist={"CFBundleShortVersionString": "0.1.0", "CFBundleVersion": "0.1.0"})
+           info_plist={"CFBundleShortVersionString": "0.1.0", "CFBundleVersion": "0.1.0",
+                        "LSUIElement": True})

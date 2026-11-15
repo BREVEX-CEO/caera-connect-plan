@@ -725,7 +725,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="ocade_agent")
     parser.add_argument(
         "command", nargs="?", default="run" if getattr(sys, "frozen", False) else None,
-        choices=["enroll", "run", "stop", "worker", "diagnose", "forget",
+        choices=["enroll", "run", "stop", "worker", "diagnose", "forget", "tray",
                  "activate-update", "rollback-update", "check-update-runtime", "run-activated"],
     )
     parser.add_argument("module", nargs="?", help=argparse.SUPPRESS)
@@ -741,10 +741,18 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--manifest", type=Path)
     parser.add_argument("--signature", type=Path)
     parser.add_argument("--archive", type=Path)
+    parser.add_argument("--tray-parent", type=int, help=argparse.SUPPRESS)
+    parser.add_argument("--tray-website", help=argparse.SUPPRESS)
     args = parser.parse_args(argv)
     if args.command is None:
         parser.error("a command is required")
     home = default_home()
+    if args.command == "tray":
+        if sys.platform != "darwin" or args.tray_parent is None:
+            return 3
+        from .tray import run_macos_status
+
+        return run_macos_status(home / "STOP", args.tray_website, args.tray_parent)
     if args.command == "check-update-runtime":
         try:
             anyio.run(_check_update_runtime)
@@ -863,14 +871,15 @@ def _run_companion(device: Device, home: Path, until_idle: bool, session_minutes
         print(f"MCP manifest {entry['file']} not used: {entry['reason']}", file=sys.stderr)
     gateway = Gateway(device.config["workspace"], home=str(home), external=external)
 
-    # Windows shows the running companion in the notification area, with STOP (plan v8 5.4).
+    # A local STOP control is visible on Windows and macOS, independent of the server.
     tray = None
-    if sys.platform == "win32" and not until_idle:
-        from .tray import WindowsTray
+    if not until_idle and sys.platform in ("win32", "darwin"):
+        from .tray import MacTray, WindowsTray
 
-        tray = WindowsTray(home / "STOP", f"{device.config['server'].rstrip('/')}/ocade-jarvis")
+        tray_type = WindowsTray if sys.platform == "win32" else MacTray
+        tray = tray_type(home / "STOP", f"{device.config['server'].rstrip('/')}/ocade-jarvis")
         if not tray.start():
-            print("The notification-area icon could not be shown; STOP still works with `ocade_agent stop`.",
+            print("The companion menu icon could not be shown; STOP still works with `ocade_agent stop`.",
                   file=sys.stderr)
             tray = None
 
