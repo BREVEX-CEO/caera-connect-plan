@@ -203,6 +203,25 @@ jobs:
           }
           JS
 
+  website-build:
+    name: Whole OCADE website · production compile/build · no deployment
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ inputs.candidate_sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - name: Install exact website dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Compile and produce the entire OCADE website
+        run: npm run build
+      # This independent mandatory workflow job runs for every push. It never deploys.
+
   planner-safety:
     if: github.event_name == 'workflow_dispatch'
     name: Planner safety / source formatting · Linux
