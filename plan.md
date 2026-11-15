@@ -659,6 +659,689 @@ In plain terms: the AI may plan a few safe steps at once, and the computer check
 
 14.4. **Never removed:** security checks, permissions, STOP and Take Over, recovery and journaling, independent verification, database compatibility, user data, or a useful test.
 
+## Part 14A. Mandatory five-repository integration, advanced AI-agent architecture and pre-benchmark coding requirements (latest owner scope)
+
+14A.0. **LATEST OWNER SCOPE OVERRIDE (15 November 2026).** OCADE now includes the ENTIRE website and product: JARVIS first, online chat second, offline chat/site/model third, accounts, settings, device companion, help, FAQ, user policy pages and customer workflows. This overrides the earlier JARVIS-only scope, exclusion of all chat work and the narrower model-adapter constraint. Original 266 requirement IDs, 84 architecture concepts, and machine-readable appendices remain intact; do not silently rewrite historical baseline evidence. Finish each mandatory scoped item to CODED and verified GREEN CI before beginning real-task/cloud benchmarks. The older plan paragraphs are historical wherever they conflict; owner override is explicit here.
+
+14A.1. **Five source repositories and integration rules.**
+
+1. **NousResearch Hermes Agent** — https://github.com/NousResearch/hermes-agent — constrained tool programs, delegation, skill learning, checkpointing and model-context efficiency.
+2. **OpenClaw** — https://github.com/openclaw/openclaw — skill security, extension lifecycle, gateway trust, diagnosis and state recovery.
+3. **trycua CUA** — https://github.com/trycua/cua — native computer drivers, action contracts, screen/element grounding, isolated testing and real-device verification.
+4. **Microsoft UFO** — https://github.com/microsoft/UFO — application-aware task graphs, event-driven execution, Windows accessibility optimizations and dependency-aware coordination.
+5. **n8n Nod** — https://github.com/n8n-io/nod — universal provider adapters, secure credentials, learned tasks, approvals, memory, scheduling and connected-app operation.
+
+For each source item below, independently inspect actual upstream source, current version, dependencies, permissions, license/SPDX, model-weight licenses and target Windows/macOS support; identify matching OCADE code and choose **KEEP, IMPROVE, MERGE, ADD, REPLACE, VERIFY or DEFER**. Copy useful, legally compatible code when it is genuinely better, with attribution and license compliance. Never clone every framework into production or create competing task authorities. Each entry must have affected paths, implementation proof, negative tests, independent acceptance evidence, cost/latency comparison and a traceability disposition. Historical recommendations are NOT proof of a current deficiency. One mutation authority and prompt-injection/STOP/approval safeguards remain immutable.
+
+**Catalog accounting:** 62 existing source-derived recommendation entries are preserved below; 10 separate Nod extensions are numbered 63–72. These are **72 tracked entries**, not necessarily 72 unique missing product features because Nodes 53–62 and 63–72 intentionally refine some of the same mechanisms. Maintain one engineering fix per actual gap, with multiple cross-references, avoiding duplicate implementations.
+
+### 14A.2. Detailed five-repository source-integration ledger (items 1–62)
+
+#### REPO-01. Bounded programmatic action batches (`H01`)
+
+**Source repository:** https://github.com/NousResearch/hermes-agent.  **Origin / status / priority:** NousResearch / Hermes Agent — **IMPROVE** — **P1**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** OCADE already provides guarded action batches, reportedly up to five steps, so this is an optimization rather than a missing executor.
+- **What to add, build, improve or deliberately avoid:** Permit the planner to emit a bounded, inspectable operation program for repetitive read/calculate/write steps. Compile it into existing authorized actions; validate each argument, target and checkpoint; stop at the first unexpected effect. Measure against the existing five-action mechanism before adopting Hermes RPC mechanics.
+- **Independent test / finished definition:** On 30 representative repeated workflows, compare p50/p95 time, model calls and first-attempt success to the existing path. Inject STOP, an altered file and a wrong-window event mid-batch; no unauthorized post-STOP effect may occur.
+- **Adoption decision:** Extend the current implementation rather than replace it. Run a before/after acceptance suite and revert if the change increases risk, complexity, error rate or latency without a material customer benefit.
+
+#### REPO-02. Narrow RPC tool bridge (`H02`)
+
+**Source repository:** https://github.com/NousResearch/hermes-agent.  **Origin / status / priority:** NousResearch / Hermes Agent — **PROPOSE** — **P2**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** OCADE has an existing gateway and worker dispatch; a second independent gateway would duplicate authority.
+- **What to add, build, improve or deliberately avoid:** If programmatic execution genuinely helps, expose only a restricted callable interface into OCADE's existing task-authority layer. Enforce allowlists, per-action identity, typed inputs, maximum calls, deadlines, output limits and nonreplayable receipts. Never grant direct OS or secrets access to generated code.
+- **Independent test / finished definition:** A generated batch cannot invoke a tool outside its approved manifest or work after cancellation. Audit logs name every inner effect and its parent task.
+- **Adoption decision:** First search the current repository, tests and runtime logs for an equivalent. If one is present, improve it; if absent, implement the smallest secure extension. Do not claim confirmed absence solely because a filename or feature was not found during this targeted audit.
+
+#### REPO-03. Decision-preserving context compaction (`H03`)
+
+**Source repository:** https://github.com/NousResearch/hermes-agent.  **Origin / status / priority:** NousResearch / Hermes Agent — **IMPROVE** — **P0**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** prior source review says planner.server.ts already clips observations but retains relatively large state and context budgets; reducing characters alone can remove important facts.
+- **What to add, build, improve or deliberately avoid:** Maintain concise objective, recent verified state, available actions, unresolved obligations, permissions and error summaries. Prune duplicate tool output and old screenshots, not authority constraints or task dependencies. Test token savings against unchanged correct decisions.
+- **Independent test / finished definition:** Use a frozen decision-parity corpus with large, multilingual and multi-window tasks. Reject compaction that changes a correct target, permission decision or required action even if it is faster.
+- **Adoption decision:** Extend the current implementation rather than replace it. Run a before/after acceptance suite and revert if the change increases risk, complexity, error rate or latency without a material customer benefit.
+
+#### REPO-04. Pre-mutation checkpoints (`H04`)
+
+**Source repository:** https://github.com/NousResearch/hermes-agent.  **Origin / status / priority:** NousResearch / Hermes Agent — **IMPROVE** — **P2**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** OCADE journals task effects; prior source review does not prove comprehensive checkpoints for every reversible multi-file operation.
+- **What to add, build, improve or deliberately avoid:** Before high-impact editable-file changes, create a task-scoped snapshot or revision record, monitor available disk space and record a restore recipe. Checkpoints must be selective; a large media render must not trigger excessive full copies.
+- **Independent test / finished definition:** Corrupt a spreadsheet, CAD assembly and video project in controlled tests. Restore only the agent's changes without erasing customer edits made afterward; external submissions are never blindly undone.
+- **Adoption decision:** Extend the current implementation rather than replace it. Run a before/after acceptance suite and revert if the change increases risk, complexity, error rate or latency without a material customer benefit.
+
+#### REPO-05. Typed actionable recovery hints (`H05`)
+
+**Source repository:** https://github.com/NousResearch/hermes-agent.  **Origin / status / priority:** NousResearch / Hermes Agent — **IMPROVE** — **P1**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** OCADE already has generic recovery and refusal reasons; Hermes identifies narrower classes of execution faults.
+- **What to add, build, improve or deliberately avoid:** Classify errors into recoverable vs uncertain-effect vs unrecoverable; attach an evidence-based recovery hint and required re-observation. For example, a missing application is different from a failed save with unknown state. Add only classes demonstrated in real logs.
+- **Independent test / finished definition:** Replay real failures, recover without duplicate actions, and preserve unknown-effect quarantines. Test retry ceilings and that STOP overrides recovery.
+- **Adoption decision:** Extend the current implementation rather than replace it. Run a before/after acceptance suite and revert if the change increases risk, complexity, error rate or latency without a material customer benefit.
+
+#### REPO-06. Verified reusable procedure learning (`H06`)
+
+**Source repository:** https://github.com/NousResearch/hermes-agent.  **Origin / status / priority:** NousResearch / Hermes Agent — **IMPROVE** — **P2**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** OCADE's precedent mechanism retrieves similar routes as advice; prior source review says it does not independently replay the prior procedure.
+- **What to add, build, improve or deliberately avoid:** Create opt-in, parameterized recipes only after an external verifier validates output; store preconditions, app capability requirements, permissions, parameter placeholders and expiry conditions. Revalidate target observations on every use, rather than replaying recorded clicks.
+- **Independent test / finished definition:** A recipe works across renamed files and changed window positions, fails safely if prerequisites differ and never reuses another customer's private observations.
+- **Adoption decision:** Extend the current implementation rather than replace it. Run a before/after acceptance suite and revert if the change increases risk, complexity, error rate or latency without a material customer benefit.
+
+#### REPO-07. Parallel subagent delegation for independent thinking (`H07`)
+
+**Source repository:** https://github.com/NousResearch/hermes-agent.  **Origin / status / priority:** NousResearch / Hermes Agent — **EXPERIMENT** — **EXPERIMENT**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** prior research reference explicitly recommends rejecting additional AI agents now because a single authority and two planner models are the existing contract.
+- **What to add, build, improve or deliberately avoid:** Record the owner's newly requested swarm option as an EXPERIMENT, not automatically enabled. Restrict initial delegates to read-only research, independent file inspection or benchmark diagnosis; merge results into one task authority. Compare against a single deterministic script and one planner; use the faster and more reliable implementation.
+- **Independent test / finished definition:** Only permit production use after held-out benchmarks show a material win without doubled cost, conflicting edits, inflated latency or additional authorization risk. The controller must cancel all children upon STOP.
+- **Adoption decision:** Explicit owner-requested experimental capability. Document the conflict with prior two-model/one-controller rules, run side-by-side tests and ask for the necessary model/security/scope approvals before production activation.
+
+#### REPO-08. Remote and container execution backends (`H08`)
+
+**Source repository:** https://github.com/NousResearch/hermes-agent.  **Origin / status / priority:** NousResearch / Hermes Agent — **DEFER** — **DEFER**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** Hermes supports remote tools, SSH and containers. OCADE already has a separate development/CI environment and a native customer companion.
+- **What to add, build, improve or deliberately avoid:** Keep Docker and disposable VMs in developer/CI/cloud test environments. Add optional remote backend abstraction only for authorized tasks that need it; do not impose Docker, hypervisor or Linux installation on each customer.
+- **Independent test / finished definition:** A clean Windows/macOS customer installs just the companion. CI can create a disposable test sandbox and prove that no customer device depends on its engine.
+- **Adoption decision:** Keep the capability out of mandatory launch work unless independent customer need and benchmark data reverse the decision. Prefer eliminating its complexity over copying an unused subsystem.
+
+#### REPO-09. Persistent provider capability knowledge (`H09`)
+
+**Source repository:** https://github.com/NousResearch/hermes-agent.  **Origin / status / priority:** NousResearch / Hermes Agent — **ADD** — **P1**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** source-review evidence source inspection found rejected model parameters cached in an in-memory Map, so incompatibilities are rediscovered after process restarts.
+- **What to add, build, improve or deliberately avoid:** Persist supported model/provider/version/tool-calling settings, response limits, reasoning knobs and rejection evidence in a bounded, versioned registry. Keep caches isolated by provider and deployment, with expiry and negative-result verification.
+- **Independent test / finished definition:** After restart, a known unsupported parameter is not sent again; after a provider upgrade the capability can be reprobed safely. No tenant data leaks through cache keys.
+- **Adoption decision:** Implement the missing bounded capability through an existing OCADE module, preserving the current controller. Copy only small, compatible code after a license/security review; do not import the upstream application wholesale.
+
+#### REPO-10. Deterministic program substitution (`H10`)
+
+**Source repository:** https://github.com/NousResearch/hermes-agent.  **Origin / status / priority:** NousResearch / Hermes Agent — **IMPROVE** — **P1**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** Simple calculations, file normalization and structured transformations do not require generative reasoning on every instruction.
+- **What to add, build, improve or deliberately avoid:** For tasks with a well-defined local operation, use deterministic parsers, native file formats and scripts before model-generated multiagent plans. The AI should choose or describe the goal, not supervise every cell calculation or ordinary filesystem read.
+- **Independent test / finished definition:** Benchmark deterministic route vs model route for accuracy, latency and idempotency; the simple path must win or be removed.
+- **Adoption decision:** Extend the current implementation rather than replace it. Run a before/after acceptance suite and revert if the change increases risk, complexity, error rate or latency without a material customer benefit.
+
+#### REPO-11. Bounded code execution safety (`H11`)
+
+**Source repository:** https://github.com/NousResearch/hermes-agent.  **Origin / status / priority:** NousResearch / Hermes Agent — **IMPROVE** — **P0**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** OCADE has approvals, a command worker and a task authority, but code-driven batches introduce an additional attack surface.
+- **What to add, build, improve or deliberately avoid:** Treat generated source as untrusted. Constrain imports, tools, directories, shell use, execution duration, network destinations and output. Prefer approved high-level operations over general shell access; preserve an evidence receipt for each mutation.
+- **Independent test / finished definition:** Attempt command injection, unauthorized path traversal, network exfiltration, oversize output, infinite loops and cancellation during execution; every case is blocked or terminates cleanly.
+- **Adoption decision:** Extend the current implementation rather than replace it. Run a before/after acceptance suite and revert if the change increases risk, complexity, error rate or latency without a material customer benefit.
+
+#### REPO-12. Multi-turn efficiency and resource-budget evaluation (`H12`)
+
+**Source repository:** https://github.com/NousResearch/hermes-agent.  **Origin / status / priority:** NousResearch / Hermes Agent — **VERIFY** — **P0**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** prior source review identifies large prompts and model response delays; improvements were proposed but no reproducible production latency target is established here.
+- **What to add, build, improve or deliberately avoid:** Create per-task timing spans for prompt assembly, inference, action dispatch, application wait, verifier and recovery. Establish a baseline before adding another executor or model and track token/quota ceilings.
+- **Independent test / finished definition:** Publish task-by-task timing with p50/p95, pass rate, resource usage and cost-equivalent credits. Reject changes that speed up a substep but slow end-to-end completion or lower task success.
+- **Adoption decision:** Keep the existing implementation as the default. Add reproducible verification evidence; do not rebuild a feature that already passes the required tests.
+
+#### REPO-13. Skill discovery, eligibility and refresh (`O13`)
+
+**Source repository:** https://github.com/openclaw/openclaw.  **Origin / status / priority:** OpenClaw — **IMPROVE** — **P2**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** OCADE supports pinned external MCP manifests. OpenClaw demonstrates a richer lifecycle; a second uncontrolled plugin authority is not required.
+- **What to add, build, improve or deliberately avoid:** Extend the existing catalog with trusted source discovery, supported OS/app capabilities, eligibility, dependency checks, version pinning, staged refresh and automatic disable on incompatibility. Every skill must carry a declared permission footprint.
+- **Independent test / finished definition:** A malicious or incompatible skill cannot become active via discovery alone. Refresh preserves user-edited configuration and rollback to the previous verified version.
+- **Adoption decision:** Extend the current implementation rather than replace it. Run a before/after acceptance suite and revert if the change increases risk, complexity, error rate or latency without a material customer benefit.
+
+#### REPO-14. External skill and script security scanner (`O14`)
+
+**Source repository:** https://github.com/openclaw/openclaw.  **Origin / status / priority:** OpenClaw — **ADD** — **P1**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** prior source review confirms pinned schemas but does not show an equivalent full static-content security scan before third-party skills are accepted.
+- **What to add, build, improve or deliberately avoid:** Scan imported scripts, manifests and skill instructions for embedded secrets, prompt injection, dynamic downloads, unsafe shell patterns, hidden network destinations and excessive permissions. Results inform deterministic policy rather than granting AI-based blanket approval.
+- **Independent test / finished definition:** Seed a red-team corpus of benign and malicious packages, measure false positives/negatives, quarantine unsafe packages and require approval for high-risk capabilities.
+- **Adoption decision:** Implement the missing bounded capability through an existing OCADE module, preserving the current controller. Copy only small, compatible code after a license/security review; do not import the upstream application wholesale.
+
+#### REPO-15. Customer-facing companion security diagnostics (`O15`)
+
+**Source repository:** https://github.com/openclaw/openclaw.  **Origin / status / priority:** OpenClaw — **PROPOSE** — **P2**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** OCADE has setup and permission mechanisms, but prior source review requests a clearer customer-readable status of system safety.
+- **What to add, build, improve or deliberately avoid:** Add a device health panel that checks OS accessibility permissions, gateway binding, update integrity, locked-down command execution, browser access, dependencies and risky configuration. Distinguish fixing automatically from explaining how to fix.
+- **Independent test / finished definition:** A new user on Windows and macOS receives accurate actionable explanations for intentionally broken permissions without leaking secrets or demanding irrelevant administrative rights.
+- **Adoption decision:** First search the current repository, tests and runtime logs for an equivalent. If one is present, improve it; if absent, implement the smallest secure extension. Do not claim confirmed absence solely because a filename or feature was not found during this targeted audit.
+
+#### REPO-16. Versioned extension provenance (`O16`)
+
+**Source repository:** https://github.com/openclaw/openclaw.  **Origin / status / priority:** OpenClaw — **IMPROVE** — **P1**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** Pinned MCP manifests cover part of provenance; lifecycle, compatibility and supply-chain proof need broader qualification.
+- **What to add, build, improve or deliberately avoid:** Record source repository, license, version, digest, signed release if available, target OS, permissions, compatible OCADE version, last scan and revocation. Never silently use mutable latest URLs for privileged code.
+- **Independent test / finished definition:** A tampered binary or changed manifest is rejected, an obsolete extension is disabled, and the customer can see why a capability is unavailable.
+- **Adoption decision:** Extend the current implementation rather than replace it. Run a before/after acceptance suite and revert if the change increases risk, complexity, error rate or latency without a material customer benefit.
+
+#### REPO-17. Crash and interrupted-task recovery (`O17`)
+
+**Source repository:** https://github.com/openclaw/openclaw.  **Origin / status / priority:** OpenClaw — **IMPROVE** — **P0**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** OCADE has durable journaling and leases, but prior source review requests adversarial restart tests comparable to OpenClaw.
+- **What to add, build, improve or deliberately avoid:** After a process crash, reconstruct the exact task, authorization generation, in-flight action, external effects and unresolved outputs. Resume only when the last action's outcome is known; otherwise re-observe and request the appropriate approval.
+- **Independent test / finished definition:** Force-kill browser, worker, gateway and planner during save, upload and multi-file operations. No duplicate submission or post-STOP mutation is allowed.
+- **Adoption decision:** Extend the current implementation rather than replace it. Run a before/after acceptance suite and revert if the change increases risk, complexity, error rate or latency without a material customer benefit.
+
+#### REPO-18. Privacy-preserving diagnostic traces (`O18`)
+
+**Source repository:** https://github.com/openclaw/openclaw.  **Origin / status / priority:** OpenClaw — **IMPROVE** — **P0**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** Task logs are necessary for recovery but may contain screenshots, file contents or secrets.
+- **What to add, build, improve or deliberately avoid:** Separate operational metadata from confidential observations. Redact credentials, filenames when appropriate, personal content and private URLs; support time-bound retention and scoped access. Preserve enough evidence to diagnose failures without logging raw secrets.
+- **Independent test / finished definition:** Inject sample passwords and confidential documents; exported logs must not contain recoverable secrets. Recovery must still identify the failed operation and task status.
+- **Adoption decision:** Extend the current implementation rather than replace it. Run a before/after acceptance suite and revert if the change increases risk, complexity, error rate or latency without a material customer benefit.
+
+#### REPO-19. Broad plugin marketplace (`O19`)
+
+**Source repository:** https://github.com/openclaw/openclaw.  **Origin / status / priority:** OpenClaw — **DEFER** — **DEFER**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** prior source review explicitly says copying a huge marketplace is not currently material to OCADE's website-based PC-control goal.
+- **What to add, build, improve or deliberately avoid:** Record the feature in the competitive backlog only. Prefer a small verified set of native capabilities and approved MCP adapters; avoid duplicated plugin managers, arbitrary installers and unsupported channel integrations.
+- **Independent test / finished definition:** No core customer workflow or acceptance metric is blocked by omitting the marketplace. Revisit only when concrete user demand and security coverage justify it.
+- **Adoption decision:** Keep the capability out of mandatory launch work unless independent customer need and benchmark data reverse the decision. Prefer eliminating its complexity over copying an unused subsystem.
+
+#### REPO-20. Messaging-channel integrations (`O20`)
+
+**Source repository:** https://github.com/openclaw/openclaw.  **Origin / status / priority:** OpenClaw — **DEFER** — **DEFER**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** OpenClaw has many messaging channels, but the active OCADE contract is website-first JARVIS control.
+- **What to add, build, improve or deliberately avoid:** Do not add WhatsApp, Telegram or social messaging as task authorities by default. Preserve one web-based permission surface and explicit device pairing. Study messaging only as a future notification channel if customers need it.
+- **Independent test / finished definition:** Core benchmark pass rate and onboarding are unchanged without channels; any future channel cannot independently approve privileged PC operations.
+- **Adoption decision:** Keep the capability out of mandatory launch work unless independent customer need and benchmark data reverse the decision. Prefer eliminating its complexity over copying an unused subsystem.
+
+#### REPO-21. Gateway identity and authorization hardening (`O21`)
+
+**Source repository:** https://github.com/openclaw/openclaw.  **Origin / status / priority:** OpenClaw — **VERIFY** — **P0**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** OCADE already uses a central device gateway, identity and per-task authority; the audit does not prove every reauthentication edge case.
+- **What to add, build, improve or deliberately avoid:** Review device revocation, pairing expiry, replay resistance, local loopback binding, websocket or RPC origin checks, session fencing and device reassignment. Do not build another gateway unless an existing one fails an objective test.
+- **Independent test / finished definition:** An old paired device, stolen session, different account or replayed message cannot resume control; a valid device reconnects without unnecessary email verification.
+- **Adoption decision:** Keep the existing implementation as the default. Add reproducible verification evidence; do not rebuild a feature that already passes the required tests.
+
+#### REPO-22. Resource bounds for MCP manifests and schemas (`O22`)
+
+**Source repository:** https://github.com/openclaw/openclaw.  **Origin / status / priority:** OpenClaw — **ADD** — **P1**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** source-review evidence code inspection of catalog.py found manifest and JSON Schema validation but no complete serialized size and nesting limits.
+- **What to add, build, improve or deliberately avoid:** Enforce maximum manifest bytes, JSON depth, tool count, schema recursion, string lengths, dynamic URL count and per-skill prompt budget. Keep a deterministic error message if a manifest exceeds the limits.
+- **Independent test / finished definition:** Feed nested/cyclic/oversized schemas and hundreds of fake tool entries. Parsing stays within CPU/memory limits, never truncates security-critical descriptions and rejects safely.
+- **Adoption decision:** Implement the missing bounded capability through an existing OCADE module, preserving the current controller. Copy only small, compatible code after a license/security review; do not import the upstream application wholesale.
+
+#### REPO-23. Skill permission scoping and revocation (`O23`)
+
+**Source repository:** https://github.com/openclaw/openclaw.  **Origin / status / priority:** OpenClaw — **IMPROVE** — **P0**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** MCP tool calls are pinned and permissioned, but importing a new skill changes the available action surface.
+- **What to add, build, improve or deliberately avoid:** Require a per-skill permission proposal mapping to file scope, network domains, external publishing and high-risk commands. Bind the approved scope to task identity, display changes and support immediate revocation.
+- **Independent test / finished definition:** A skill that requests broader file access after an update cannot execute until reapproved; revocation cancels dependent pending calls.
+- **Adoption decision:** Extend the current implementation rather than replace it. Run a before/after acceptance suite and revert if the change increases risk, complexity, error rate or latency without a material customer benefit.
+
+#### REPO-24. Trust boundaries for retrieved content and instructions (`O24`)
+
+**Source repository:** https://github.com/openclaw/openclaw.  **Origin / status / priority:** OpenClaw — **IMPROVE** — **P0**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** Untrusted web pages, files and skill instructions may try to redirect the agent. prior source review emphasizes keeping AI interpretation separate from deterministic permission enforcement.
+- **What to add, build, improve or deliberately avoid:** Tag every observation by source and trust, prevent retrieved instructions from altering system policy, distinguish a customer's command from quoted website content, and validate all proposed tool effects.
+- **Independent test / finished definition:** Test hostile web pages that instruct JARVIS to send data or ignore STOP. No unauthorized effect occurs, even if the planner repeats malicious wording.
+- **Adoption decision:** Extend the current implementation rather than replace it. Run a before/after acceptance suite and revert if the change increases risk, complexity, error rate or latency without a material customer benefit.
+
+#### REPO-25. Extension update staging and rollback (`O25`)
+
+**Source repository:** https://github.com/openclaw/openclaw.  **Origin / status / priority:** OpenClaw — **PROPOSE** — **P2**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** The existence of pinned manifests does not prove safe upgrade, rollback and compatibility testing.
+- **What to add, build, improve or deliberately avoid:** Prepare new versions alongside the active version; run health checks and permission diffs, then activate only between tasks. Keep a known-good version available for rollback and preserve evidence of who authorized the update.
+- **Independent test / finished definition:** An update fails mid-install or removes a tool; active task behavior stays stable and the previous extension can be restored without losing user files.
+- **Adoption decision:** First search the current repository, tests and runtime logs for an equivalent. If one is present, improve it; if absent, implement the smallest secure extension. Do not claim confirmed absence solely because a filename or feature was not found during this targeted audit.
+
+#### REPO-26. Least-privilege package execution (`O26`)
+
+**Source repository:** https://github.com/openclaw/openclaw.  **Origin / status / priority:** OpenClaw — **IMPROVE** — **P0**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** A Windows command worker exists, but prior source review notes that a working-directory restriction is not a full OS access boundary.
+- **What to add, build, improve or deliberately avoid:** Use OS-level reduced-privilege process identities, file access controls, named-pipe restrictions and restricted child processes wherever feasible. An external skill does not inherit the full user account authority by default.
+- **Independent test / finished definition:** Attempt to read paths outside an approved workspace and spawn elevated commands; prove denial on clean Windows/macOS test machines, not only mocks.
+- **Adoption decision:** Extend the current implementation rather than replace it. Run a before/after acceptance suite and revert if the change increases risk, complexity, error rate or latency without a material customer benefit.
+
+#### REPO-27. Background accessibility actions (`C27`)
+
+**Source repository:** https://github.com/trycua/cua.  **Origin / status / priority:** trycua / CUA — **PROPOSE** — **P2**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** Cua can sometimes control accessible elements without foreground focus; OCADE uses foreground input on some Windows routes.
+- **What to add, build, improve or deliberately avoid:** Add background actions only for supported, well-identified application APIs or accessibility targets. Never simulate global keyboard input in the background; recheck window and element identity immediately before an effect.
+- **Independent test / finished definition:** Work in two simultaneous windows while a user types in another app. The background action must affect only the approved target and must not steal focus or corrupt the user's typing.
+- **Adoption decision:** First search the current repository, tests and runtime logs for an equivalent. If one is present, improve it; if absent, implement the smallest secure extension. Do not claim confirmed absence solely because a filename or feature was not found during this targeted audit.
+
+#### REPO-28. Rich per-action delivery evidence (`C28`)
+
+**Source repository:** https://github.com/trycua/cua.  **Origin / status / priority:** trycua / CUA — **IMPROVE** — **P1**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** OCADE has receipts and independent verification; CUA adds route, delivery method and effect-confidence metadata.
+- **What to add, build, improve or deliberately avoid:** Extend receipts with attempted mechanism, action ID, target binding, expected effect, observed effect, time spent, retry decision and evidence pointer. Do not duplicate or replace the verifier.
+- **Independent test / finished definition:** A test distinguishes delivered input, observed UI change and verified business outcome, and the record survives a crash with no credential leak.
+- **Adoption decision:** Extend the current implementation rather than replace it. Run a before/after acceptance suite and revert if the change increases risk, complexity, error rate or latency without a material customer benefit.
+
+#### REPO-29. Snapshot-bound element references (`C29`)
+
+**Source repository:** https://github.com/trycua/cua.  **Origin / status / priority:** trycua / CUA — **IMPROVE** — **P0**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** OCADE already has scoped element references; stale references remain a possible failure after window or page changes.
+- **What to add, build, improve or deliberately avoid:** Bind target handles to window generation, observation timestamp, accessibility-tree version and allowed action. Invalidate on navigation, modal transitions, window recreation or app restart; reacquire targets instead of guessing coordinates.
+- **Independent test / finished definition:** A button disappears or a modal replaces it between inspect and click. JARVIS refuses stale target use and re-observes before acting.
+- **Adoption decision:** Extend the current implementation rather than replace it. Run a before/after acceptance suite and revert if the change increases risk, complexity, error rate or latency without a material customer benefit.
+
+#### REPO-30. Postcondition verification of real outcomes (`C30`)
+
+**Source repository:** https://github.com/trycua/cua.  **Origin / status / priority:** trycua / CUA — **VERIFY** — **P0**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** OCADE's receipt plus independent verifier already separates action delivery from completed customer outcomes.
+- **What to add, build, improve or deliberately avoid:** Preserve the existing structure. Expand application-specific independent oracles for spreadsheets, CAD geometry, video timelines and exported files; never call a click or save dialog sufficient proof.
+- **Independent test / finished definition:** Hidden-answer tasks verify the file/state independently after JARVIS finishes. A successful click with wrong final content is marked failed.
+- **Adoption decision:** Keep the existing implementation as the default. Add reproducible verification evidence; do not rebuild a feature that already passes the required tests.
+
+#### REPO-31. Reproducible desktop benchmarks (`C31`)
+
+**Source repository:** https://github.com/trycua/cua.  **Origin / status / priority:** trycua / CUA — **IMPROVE** — **P0**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** OCADE has E1–E4 and 16-run comparisons planned; their qualified pass evidence is incomplete in prior source review.
+- **What to add, build, improve or deliberately avoid:** Version task environments, fixture snapshots, evaluation scripts, oracle criteria, model settings, OS builds and result artifacts. Track first attempt separately from recovery attempts, plus wall-clock task time.
+- **Independent test / finished definition:** A second runner reproduces the same result with the same hash/seed; CI and physical-device claims are not conflated. All required coding gates are green before broad real-task campaigns.
+- **Adoption decision:** Extend the current implementation rather than replace it. Run a before/after acceptance suite and revert if the change increases risk, complexity, error rate or latency without a material customer benefit.
+
+#### REPO-32. Optional isolated desktop test environments (`C32`)
+
+**Source repository:** https://github.com/trycua/cua.  **Origin / status / priority:** trycua / CUA — **IMPROVE** — **P1**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** A local VM/container test environment can contain destructive test fixtures; the customer device must still be controlled natively.
+- **What to add, build, improve or deliberately avoid:** Provision disposable Windows/macOS-compatible cloud test hosts or VMs, snapshot fixtures and inject failures. Keep virtualization strictly a testing/developer capability; do not force customer installation.
+- **Independent test / finished definition:** All destructive fault-injection tests run away from real customer devices. A clean customer installs only OCADE's approved companion, not a general container engine.
+- **Adoption decision:** Extend the current implementation rather than replace it. Run a before/after acceptance suite and revert if the change increases risk, complexity, error rate or latency without a material customer benefit.
+
+#### REPO-33. Additional narrow planner models (`C33`)
+
+**Source repository:** https://github.com/trycua/cua.  **Origin / status / priority:** trycua / CUA — **EXPERIMENT** — **EXPERIMENT**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** prior research reference says specialized form models should be deferred because the approved production planners are two independently tested models.
+- **What to add, build, improve or deliberately avoid:** Record the owner's request to support additional models, but isolate each in an experimental adapter until capability, data handling, correctness, cost and latency checks pass. Do not silently route customer tasks to unapproved models or replace the user's chosen planner mid-task.
+- **Independent test / finished definition:** A candidate model passes held-out forms and complex tasks, tool-schema tests and STOP/security checks before eligibility is approved. Otherwise it remains disabled with a visible reason.
+- **Adoption decision:** Explicit owner-requested experimental capability. Document the conflict with prior two-model/one-controller rules, run side-by-side tests and ask for the necessary model/security/scope approvals before production activation.
+
+#### REPO-34. Foreground focus and input arbitration (`C34`)
+
+**Source repository:** https://github.com/trycua/cua.  **Origin / status / priority:** trycua / CUA — **IMPROVE** — **P0**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** Foreground keyboard/mouse delivery may collide with actual user typing or a second concurrent JARVIS task.
+- **What to add, build, improve or deliberately avoid:** Introduce a per-device input lease: one owner of global input at a time, continuous active-window revalidation, pause-on-human-input policy and immediate STOP fencing. Nonconflicting read-only work can run concurrently.
+- **Independent test / finished definition:** When a user changes focus or types during an automation, no keystroke enters the wrong field. Conflicting jobs queue rather than interleave input.
+- **Adoption decision:** Extend the current implementation rather than replace it. Run a before/after acceptance suite and revert if the change increases risk, complexity, error rate or latency without a material customer benefit.
+
+#### REPO-35. Accessibility tree caching and invalidation (`C35`)
+
+**Source repository:** https://github.com/trycua/cua.  **Origin / status / priority:** trycua / CUA — **IMPROVE** — **P1**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** OCADE has Windows UIA inspection caching; prior research reference explicitly says it is not a missing feature.
+- **What to add, build, improve or deliberately avoid:** Measure cache hit rate and stale-target risk on real apps. Invalidate on window reconstruction, active view changes, process restart and structural mismatch; use incremental snapshots when reliable.
+- **Independent test / finished definition:** Cache reduces p95 inspection latency without increasing wrong-target errors. A deliberately stale tree is detected before modification.
+- **Adoption decision:** Extend the current implementation rather than replace it. Run a before/after acceptance suite and revert if the change increases risk, complexity, error rate or latency without a material customer benefit.
+
+#### REPO-36. Coordinate and display normalization (`C36`)
+
+**Source repository:** https://github.com/trycua/cua.  **Origin / status / priority:** trycua / CUA — **VERIFY** — **P1**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** prior source review doesn't establish complete multi-monitor, mixed-DPI, screen scaling and remote-session coverage.
+- **What to add, build, improve or deliberately avoid:** Validate coordinate transforms among logical pixels, physical pixels, screen origins, window client areas and display scales. Anchor clicks to app/element identity rather than naked coordinates.
+- **Independent test / finished definition:** Run mixed 100%/150%/200% DPI, secondary negative-origin monitor and window movement. There must be no click outside the exact authorized target.
+- **Adoption decision:** Keep the existing implementation as the default. Add reproducible verification evidence; do not rebuild a feature that already passes the required tests.
+
+#### REPO-37. Efficient structural observation before screenshots (`C37`)
+
+**Source repository:** https://github.com/trycua/cua.  **Origin / status / priority:** trycua / CUA — **IMPROVE** — **P0**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** prior source review identifies repeated full page-body reads and custom control snapshots in web_worker.py; this can waste time and context.
+- **What to add, build, improve or deliberately avoid:** Prefer targeted DOM queries, accessibility node diffs and application-native state. Limit screenshots to cases where structured observation fails or cannot express the target. Store observation hashes to avoid resending unchanged state.
+- **Independent test / finished definition:** Benchmark a large complex website. Model input, observation latency and tool calls decrease while preserving task correctness on held-out pages.
+- **Adoption decision:** Extend the current implementation rather than replace it. Run a before/after acceptance suite and revert if the change increases risk, complexity, error rate or latency without a material customer benefit.
+
+#### REPO-38. Vision fallback with verified grounding (`C38`)
+
+**Source repository:** https://github.com/trycua/cua.  **Origin / status / priority:** trycua / CUA — **IMPROVE** — **P1**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** OCADE has visual matching and screenshot-based fallback, but the audit does not prove broad real-app accuracy.
+- **What to add, build, improve or deliberately avoid:** Only when native/DOM/accessibility options fail, crop to relevant window, identify target with confidence and relation to nearby labels, confirm current window, then observe the effect. Avoid silent coordinate reuse.
+- **Independent test / finished definition:** Run GIMP, CAD, complex canvas and custom dialogs on both OSs; test occlusion, theme, zoom, resized windows and malicious lookalike labels.
+- **Adoption decision:** Extend the current implementation rather than replace it. Run a before/after acceptance suite and revert if the change increases risk, complexity, error rate or latency without a material customer benefit.
+
+#### REPO-39. Typed computer-action contracts (`C39`)
+
+**Source repository:** https://github.com/trycua/cua.  **Origin / status / priority:** trycua / CUA — **IMPROVE** — **P1**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** Existing tool calls are schema-validated, but a cross-route semantic contract for observed vs executed outcomes requires complete evidence.
+- **What to add, build, improve or deliberately avoid:** Define a common action descriptor for browser, Windows/macOS accessibility, file operations and visual fallback: target, route, consent scope, precondition, postcondition, effect identity, retry safety and cancellation generation.
+- **Independent test / finished definition:** The same task has consistent receipts regardless of execution route, and schema fuzzing cannot produce unapproved effects.
+- **Adoption decision:** Extend the current implementation rather than replace it. Run a before/after acceptance suite and revert if the change increases risk, complexity, error rate or latency without a material customer benefit.
+
+#### REPO-40. Cross-platform device qualification (`C40`)
+
+**Source repository:** https://github.com/trycua/cua.  **Origin / status / priority:** trycua / CUA — **VERIFY** — **P0**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** Windows 10/11 and macOS are mandatory, Linux optional; prior source review warns hosted simulation does not prove real-device operation.
+- **What to add, build, improve or deliberately avoid:** Create a device and OS matrix for pairing, accessibility permissions, native operations, tray STOP, install/update/remove, unexpected dialogs and recoveries. Keep evidence per platform and CPU architecture.
+- **Independent test / finished definition:** Qualify actual supported Windows/macOS devices, separating cloud host success, mock success and customer-device proof. Zero critical STOP or wrong-window failures.
+- **Adoption decision:** Keep the existing implementation as the default. Add reproducible verification evidence; do not rebuild a feature that already passes the required tests.
+
+#### REPO-41. Dependency-aware task graphs (`U41`)
+
+**Source repository:** https://github.com/microsoft/UFO.  **Origin / status / priority:** Microsoft / UFO — **PROPOSE** — **P2**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** OCADE already has ordered milestones. For complex CAD and video work, precedence between files and exports is more important than simple step order.
+- **What to add, build, improve or deliberately avoid:** Add a lightweight directed acyclic task graph to the existing supervisor with dependencies, prerequisites, cycle checks, side-effect identities and verified completion. Do not add a second swarm coordinator.
+- **Independent test / finished definition:** A car model, component spreadsheet and video export execute in the right order; an intentionally cyclic plan is rejected before any side effect.
+- **Adoption decision:** First search the current repository, tests and runtime logs for an equivalent. If one is present, improve it; if absent, implement the smallest secure extension. Do not claim confirmed absence solely because a filename or feature was not found during this targeted audit.
+
+#### REPO-42. Event-driven wakeups and no wasteful polling (`U42`)
+
+**Source repository:** https://github.com/microsoft/UFO.  **Origin / status / priority:** Microsoft / UFO — **IMPROVE** — **P1**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** prior source review recommends moving from unnecessary polling to event-driven status changes while keeping OCADE's existing durable authority.
+- **What to add, build, improve or deliberately avoid:** Workers should signal completion, blocked approvals and artifact readiness; the supervisor persists state and wakes only eligible tasks. Poll only when an external application offers no event source, with backoff.
+- **Independent test / finished definition:** On long renders, the agent makes few/no model calls while waiting, resumes promptly at completion, and still recovers after a missed event or worker restart.
+- **Adoption decision:** Extend the current implementation rather than replace it. Run a before/after acceptance suite and revert if the change increases risk, complexity, error rate or latency without a material customer benefit.
+
+#### REPO-43. Device-capability-aware task matching (`U43`)
+
+**Source repository:** https://github.com/microsoft/UFO.  **Origin / status / priority:** Microsoft / UFO — **PROPOSE** — **P2**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** The user may own several authorized devices, but their task must not silently move between computers.
+- **What to add, build, improve or deliberately avoid:** Match required software, OS, RAM/GPU, permissions and user-selected device to available capabilities. Show why a task needs a specific machine; require authorization for reassignment.
+- **Independent test / finished definition:** A task demanding a Mac-only app cannot be assigned to an incapable Windows host. No cross-device execution occurs without explicit consent.
+- **Adoption decision:** First search the current repository, tests and runtime logs for an equivalent. If one is present, improve it; if absent, implement the smallest secure extension. Do not claim confirmed absence solely because a filename or feature was not found during this targeted audit.
+
+#### REPO-44. Controlled dependency-aware replanning (`U44`)
+
+**Source repository:** https://github.com/microsoft/UFO.  **Origin / status / priority:** Microsoft / UFO — **IMPROVE** — **P1**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** OCADE already retries/replans after failures, but dependent subtasks must preserve confirmed prior effects.
+- **What to add, build, improve or deliberately avoid:** Replan only incomplete or invalidated graph nodes. Preserve verified finished artifacts, avoid resubmitting external effects, and require a new authorization when task scope changes.
+- **Independent test / finished definition:** Simulate an interrupted 3D export after upstream CAD file completion. Resume without rebuilding unrelated files or duplicating a committed operation.
+- **Adoption decision:** Extend the current implementation rather than replace it. Run a before/after acceptance suite and revert if the change increases risk, complexity, error rate or latency without a material customer benefit.
+
+#### REPO-45. Experience-based safe route reuse (`U45`)
+
+**Source repository:** https://github.com/microsoft/UFO.  **Origin / status / priority:** Microsoft / UFO — **IMPROVE** — **P2**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** OCADE's precedent() helps suggest operation names but not guarded replay of entire paths.
+- **What to add, build, improve or deliberately avoid:** Store preconditions, parameters, app version, authority limits and independently verified outcome evidence with each reusable route. Route reuse can accelerate repeated tasks only when revalidation passes.
+- **Independent test / finished definition:** A verified spreadsheet fix works with a different filename and window; a changed schema causes re-planning rather than blind replay.
+- **Adoption decision:** Extend the current implementation rather than replace it. Run a before/after acceptance suite and revert if the change increases risk, complexity, error rate or latency without a material customer benefit.
+
+#### REPO-46. Windows cached accessibility inspection (`U46`)
+
+**Source repository:** https://github.com/microsoft/UFO.  **Origin / status / priority:** Microsoft / UFO — **VERIFY** — **P0**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** prior research reference locates the FindAllBuildCache-type design in OCADE windows_worker.py at lines 232–269; it is already implemented.
+- **What to add, build, improve or deliberately avoid:** Do not reimplement it. Instrument hits/misses, invalidation cost, scan duration and wrong-target prevention. Improve existing cache only if measured evidence shows an actual bottleneck.
+- **Independent test / finished definition:** Run real Windows app matrices and compare cold/hot inspection latency and accuracy, proving no regression.
+- **Adoption decision:** Keep the existing implementation as the default. Add reproducible verification evidence; do not rebuild a feature that already passes the required tests.
+
+#### REPO-47. Conflicting subtask resource locks (`U47`)
+
+**Source repository:** https://github.com/microsoft/UFO.  **Origin / status / priority:** Microsoft / UFO — **PROPOSE** — **P2**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** Independent work may run concurrently but two jobs cannot modify the same app window or output file safely.
+- **What to add, build, improve or deliberately avoid:** Introduce a single authoritative resource-lock model for app focus, device input, file paths, task output and approval scopes, integrated with the existing supervisor. Acquire locks deterministically to avoid deadlocks.
+- **Independent test / finished definition:** Parallel tasks on distinct files finish safely; competing edits serialize and a crash releases stale leases after fencing the old generation.
+- **Adoption decision:** First search the current repository, tests and runtime logs for an equivalent. If one is present, improve it; if absent, implement the smallest secure extension. Do not claim confirmed absence solely because a filename or feature was not found during this targeted audit.
+
+#### REPO-48. Cycle and dependency validation (`U48`)
+
+**Source repository:** https://github.com/microsoft/UFO.  **Origin / status / priority:** Microsoft / UFO — **PROPOSE** — **P2**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** Task plans can become cyclic when the model incorrectly makes a result depend on itself.
+- **What to add, build, improve or deliberately avoid:** Reject task graphs with cycles, missing prerequisites, impossible device requirements and invalidated output paths before execution. Provide a clear corrective explanation or safe plan repair proposal.
+- **Independent test / finished definition:** Adversarial plans with cycles, missing dependencies or contradictory steps fail before any user-file mutation.
+- **Adoption decision:** First search the current repository, tests and runtime logs for an equivalent. If one is present, improve it; if absent, implement the smallest secure extension. Do not claim confirmed absence solely because a filename or feature was not found during this targeted audit.
+
+#### REPO-49. Persisted long-job continuation (`U49`)
+
+**Source repository:** https://github.com/microsoft/UFO.  **Origin / status / priority:** Microsoft / UFO — **IMPROVE** — **P1**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** The task journal exists, but multi-hour plans span app restarts, exports, user interruptions and provider failures.
+- **What to add, build, improve or deliberately avoid:** Persist progress by verified subtask, include versioned resource requirements and active effect leases, and provide a controlled Resume/Take Over UI. Avoid sending full history back to AI after each reconnection.
+- **Independent test / finished definition:** Kill the agent during a one-hour video export and resume from proven checkpoints without duplicate rendering or lost edits.
+- **Adoption decision:** Extend the current implementation rather than replace it. Run a before/after acceptance suite and revert if the change increases risk, complexity, error rate or latency without a material customer benefit.
+
+#### REPO-50. App-semantic specialist action selection (`U50`)
+
+**Source repository:** https://github.com/microsoft/UFO.  **Origin / status / priority:** Microsoft / UFO — **IMPROVE** — **P1**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** The vision and generic computer controls cannot always distinguish CAD-specific operations from ordinary clicks.
+- **What to add, build, improve or deliberately avoid:** Discover installed application capabilities and choose native CAD/document/media APIs first. Use task graph semantics to select deterministic workers for common operations without hardcoding customer app names or screenshot coordinates.
+- **Independent test / finished definition:** Complete the same geometry, formula and timeline tasks with different installed supported applications, using accurate editable outputs.
+- **Adoption decision:** Extend the current implementation rather than replace it. Run a before/after acceptance suite and revert if the change increases risk, complexity, error rate or latency without a material customer benefit.
+
+#### REPO-51. User-visible dependency and failure explanations (`U51`)
+
+**Source repository:** https://github.com/microsoft/UFO.  **Origin / status / priority:** Microsoft / UFO — **PROPOSE** — **P2**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** Progress indicators may show steps but not why a downstream task is waiting or which output is blocked.
+- **What to add, build, improve or deliberately avoid:** Expose milestone dependencies, exact waiting condition, last verified action, estimated next step only when grounded and user's safe recovery options. Do not invent percentages from planned actions.
+- **Independent test / finished definition:** For a blocked export, user sees the actual unmet source-file requirement; STOP and Resume work without losing audit history.
+- **Adoption decision:** First search the current repository, tests and runtime logs for an equivalent. If one is present, improve it; if absent, implement the smallest secure extension. Do not claim confirmed absence solely because a filename or feature was not found during this targeted audit.
+
+#### REPO-52. Outcome-oriented multi-app qualification (`U52`)
+
+**Source repository:** https://github.com/microsoft/UFO.  **Origin / status / priority:** Microsoft / UFO — **IMPROVE** — **P0**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** prior source review documents incomplete real-world benchmark success and unknown full current-SHA native tests.
+- **What to add, build, improve or deliberately avoid:** Add held-out evaluation suites requiring correct cross-app deliverables, benchmark hashes, first-attempt and retry metrics, errors per action, runtime and real Windows/macOS evidence. Keep CUA evaluation environment isolated from customer files.
+- **Independent test / finished definition:** A second evaluator reproduces strict pass counts on a pinned release candidate; no pass is awarded just because the agent clicked or reported success.
+- **Adoption decision:** Extend the current implementation rather than replace it. Run a before/after acceptance suite and revert if the change increases risk, complexity, error rate or latency without a material customer benefit.
+
+#### REPO-53. Intent-to-authority interpretation (`N53`)
+
+**Source repository:** https://github.com/n8n-io/nod.  **Origin / status / priority:** n8n / Nod — **IMPROVE** — **P0**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** OCADE already has deterministic permission grants but may not fully distinguish what a customer's natural-language request authorizes.
+- **What to add, build, improve or deliberately avoid:** Translate goal intent into an explicit action envelope: target apps/files, allowed reads, mutations, network actions, posting and delegation. Use deterministic policy to enforce it; the model can propose scope but cannot grant it.
+- **Independent test / finished definition:** A task to draft an email cannot send it unless explicitly authorized. Quoted instructions on a website never expand the customer's permission grant.
+- **Adoption decision:** Extend the current implementation rather than replace it. Run a before/after acceptance suite and revert if the change increases risk, complexity, error rate or latency without a material customer benefit.
+
+#### REPO-54. Read/prepare/commit effects separation (`N54`)
+
+**Source repository:** https://github.com/n8n-io/nod.  **Origin / status / priority:** n8n / Nod — **IMPROVE** — **P0**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** Existing approvals may not consistently encode private preparation versus irreversible external submission.
+- **What to add, build, improve or deliberately avoid:** Classify operations as observation, reversible local edit, external commit, credential use or irreversible mutation. Require appropriate confirmation with full untruncated details for externally committing actions.
+- **Independent test / finished definition:** A form can be filled and previewed without being submitted; a later submit is blocked until separately authorized. No misleading truncated approval text.
+- **Adoption decision:** Extend the current implementation rather than replace it. Run a before/after acceptance suite and revert if the change increases risk, complexity, error rate or latency without a material customer benefit.
+
+#### REPO-55. Private credential vault and controlled autofill (`N55`)
+
+**Source repository:** https://github.com/n8n-io/nod.  **Origin / status / priority:** n8n / Nod — **PROPOSE** — **P1**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** The reviewed JARVIS modules did not establish a general encrypted website-credential vault like Nod's.
+- **What to add, build, improve or deliberately avoid:** Use OS secure storage (Windows Credential Manager/macOS Keychain) or another approved encrypted vault; issue short-lived target-bound secret references, never raw password text to model prompts or logs. Autofill only an authorized, origin-verified login form.
+- **Independent test / finished definition:** Injected phishing pages cannot request a credential; model/tool logs contain no password, and revocation prevents further use. Do not import a large vault subsystem unless integration analysis justifies it.
+- **Adoption decision:** First search the current repository, tests and runtime logs for an equivalent. If one is present, improve it; if absent, implement the smallest secure extension. Do not claim confirmed absence solely because a filename or feature was not found during this targeted audit.
+
+#### REPO-56. Learned parameterized customer workflows (`N56`)
+
+**Source repository:** https://github.com/n8n-io/nod.  **Origin / status / priority:** n8n / Nod — **IMPROVE** — **P2**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** OCADE has precedent and experience storage, but automatic durable learned skills are under-verified.
+- **What to add, build, improve or deliberately avoid:** Capture a user-approved reusable workflow only after independent success; separate parameters from observations; include provenance, version, conditions and expiration. Allow user review and deletion.
+- **Independent test / finished definition:** Run a learned weekly spreadsheet process against new input files with no guessed paths; it halts safely on structural changes and never publishes without permission.
+- **Adoption decision:** Extend the current implementation rather than replace it. Run a before/after acceptance suite and revert if the change increases risk, complexity, error rate or latency without a material customer benefit.
+
+#### REPO-57. Protected user-edited skills and instructions (`N57`)
+
+**Source repository:** https://github.com/n8n-io/nod.  **Origin / status / priority:** n8n / Nod — **PROPOSE** — **P2**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** prior source review does not establish robust precedence rules between a user's own edited skill and auto-learned suggestions.
+- **What to add, build, improve or deliberately avoid:** Mark user-authored content as immutable to automated learning unless explicitly reviewed; keep version history and change previews. Auto-generated improvements may be proposed, not silently overwrite preferences.
+- **Independent test / finished definition:** After auto-learning detects a different route, the original user-created skill remains unchanged; rollback restores prior version exactly.
+- **Adoption decision:** First search the current repository, tests and runtime logs for an equivalent. If one is present, improve it; if absent, implement the smallest secure extension. Do not claim confirmed absence solely because a filename or feature was not found during this targeted audit.
+
+#### REPO-58. Memory provenance, consent and deletion (`N58`)
+
+**Source repository:** https://github.com/n8n-io/nod.  **Origin / status / priority:** n8n / Nod — **IMPROVE** — **P2**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** OCADE has an opt-in memory database according to prior code comparison, but source, consent and deletion proof are incomplete.
+- **What to add, build, improve or deliberately avoid:** Attach each memory to its originating task evidence, user consent scope, freshness and privacy label. Use retrieval sparingly and allow correction, export and complete authorized deletion.
+- **Independent test / finished definition:** A false preference is corrected and not resurfaced; deleting an item removes it from retrieval and related cache after the declared retention interval.
+- **Adoption decision:** Extend the current implementation rather than replace it. Run a before/after acceptance suite and revert if the change increases risk, complexity, error rate or latency without a material customer benefit.
+
+#### REPO-59. Customer-facing activity and usage explanation (`N59`)
+
+**Source repository:** https://github.com/n8n-io/nod.  **Origin / status / priority:** n8n / Nod — **IMPROVE** — **P1**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** OCADE already has task receipts and history; the audit calls for clearer explanations of actual actions, errors and approvals.
+- **What to add, build, improve or deliberately avoid:** Expose a timeline of objective, devices, apps touched, commands, permissions, verified output, retries, observed failures, usage and model selection. Keep sensitive values redacted and distinguish attempted from completed effects.
+- **Independent test / finished definition:** A customer can reconstruct what changed without seeing cryptic logs; exported receipts match independent evidence and never expose secrets.
+- **Adoption decision:** Extend the current implementation rather than replace it. Run a before/after acceptance suite and revert if the change increases risk, complexity, error rate or latency without a material customer benefit.
+
+#### REPO-60. Durable scheduled JARVIS work (`N60`)
+
+**Source repository:** https://github.com/n8n-io/nod.  **Origin / status / priority:** n8n / Nod — **DEFER** — **DEFER**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** OCADE has schedule database support, but unattended JARVIS scheduling was excluded by the current owner-approved testing scope.
+- **What to add, build, improve or deliberately avoid:** Preserve planning designs but do not automatically activate cron control of customer PCs. If later approved, use explicit per-schedule task scope, expiry, awake-device checks, one-time occurrence claims and immediate revocation.
+- **Independent test / finished definition:** A recurring task never runs after cancellation or device revocation and never creates duplicate effects after retry; otherwise the scheduler stays disabled.
+- **Adoption decision:** Keep the capability out of mandatory launch work unless independent customer need and benchmark data reverse the decision. Prefer eliminating its complexity over copying an unused subsystem.
+
+#### REPO-61. Proactive event monitoring (`N61`)
+
+**Source repository:** https://github.com/n8n-io/nod.  **Origin / status / priority:** n8n / Nod — **PROPOSE** — **P3**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** Earlier Nod comparison found no equivalent full proactive monitoring in the reviewed OCADE JARVIS flow.
+- **What to add, build, improve or deliberately avoid:** Introduce a future opt-in watch mechanism for permitted app events, changed files or task dependencies. Do not wake agents merely to consume tokens; schedule only actual relevant triggers and protect customer privacy.
+- **Independent test / finished definition:** An approved watched folder change creates at most one scoped task; unapproved files, notifications or credentials are not read or transmitted.
+- **Adoption decision:** First search the current repository, tests and runtime logs for an equivalent. If one is present, improve it; if absent, implement the smallest secure extension. Do not claim confirmed absence solely because a filename or feature was not found during this targeted audit.
+
+#### REPO-62. One-click approved app integrations (`N62`)
+
+**Source repository:** https://github.com/n8n-io/nod.  **Origin / status / priority:** n8n / Nod — **PROPOSE** — **P2**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** OCADE supports MCP adapters but the previous comparison noted a less complete account-connection experience than Nod.
+- **What to add, build, improve or deliberately avoid:** Add a verified connector journey: choose service, review requested scopes, authenticate via provider-owned flow, test access, rotate/revoke and see connection health. Reuse the central MCP authority; do not give third-party connectors silent PC-control rights.
+- **Independent test / finished definition:** A fresh user connects an approved service without copying API keys, revokes it and proves subsequent calls fail. Network and credential limits are tested end to end.
+- **Adoption decision:** First search the current repository, tests and runtime logs for an equivalent. If one is present, improve it; if absent, implement the smallest secure extension. Do not claim confirmed absence solely because a filename or feature was not found during this targeted audit.
+
+## Implementation sequence, relative to the JARVIS coding-first rule
+
+1. **P0: finish correctness and safety foundations first.** Fix authorization intent, STOP/input fencing, command isolation, stale target references, privacy of evidence, trust boundaries, real Windows/macOS qualification readiness, and full current-commit CI. Running tests still require properly authorized environment access.
+2. **P1: improve execution speed without changing owner authority.** Measure model/planner latency, compact context with decision parity, optimize browser observations, bounded code-driven batches, provider capability persistence, event-driven job wakes, richer receipts and credential protection.
+3. **P2: controlled capability additions.** Reusable learned recipes, skill scanning and provenance, secured OAuth integrations, checkpointing, device capability routing, optional task DAG and actionable customer diagnostics. A proposed feature enters the active coding gate only when it solves a specific measured problem.
+4. **P3: optional after reliable release qualification.** Proactive monitoring, unattended scheduling, broad extensions, additional models and swarms stay outside mandatory release unless explicitly approved and independently justified by held-out measurements.
+5. **Benchmark hard gate.** Finish mandatory JARVIS coding and restore complete green website/backend/companion CI on a pinned SHA before full cloud-computer real-task benchmarks. Each failing benchmark reopens coding; repeat the green gate on the new SHA before continuing. Distinguish first-attempt results from repair successes.
+6. **Finish decision.** No 100% production-readiness claim until the full supported customer journey and real-device STOP, permissions, installation, pairing, task completion and verification pass independently. This report does not calculate a new readiness percentage.
+
+
+### 14A.4. Binding implementation classification and precedence
+
+- **Mandatory before benchmarks:** Every item marked P0, P1 or P2 REQUIRED after code inspection; all fixes needed to keep JARVIS, the entire website, online/offline chat, security, customer flows, companion and backend CODED and green. No partial item may be mislabeled complete. Evaluate historically deferred items: if they are unnecessary to launch, record verified DEFER with justification, never silently delete.
+- **Parallel AI-agent system is MANDATORY, not optional.** Replace earlier H07 experimental/defer wording. Implement a single authoritative coordinator that delegates **independent bounded subtasks** to specialist model or deterministic workers while preserving single owner for each computer/window/file mutation. Before delegation, verify it improves latency, quality or capability; keep deterministic code for simple operations. Run dependency graphs, tool-call budgets, scoped permissions, cancellation propagation, bounded agent depth, failure isolation, checkpointing and verified result reconciliation. Benchmark solo against multi-agent execution later; no unlimited uncontrolled agent swarms. Do not use parallel coding agents unless separately approved—the runtime multi-agent requirement is distinct from the established single coding agent restriction.
+- **Universal model compatibility is MANDATORY.** Replace fixed-provider assumptions in adapter design, NOT the existing 16-run baseline. Support capabilities-based configuration for multiple authorized commercial API providers and models; each registered model declares vision, tools, structured schemas, thinking controls, context, token cost, streaming, retry semantics, data-region protections and quota limits. A customer task must have explicit model selection and truthful fallback behavior; no cross-model hidden mutation, automatic substitution of unapproved models, or accidental prompt/secret disclosure. Additional model acceptance requires compatibility/real-task evidence; current Gemini 3.5 Flash-Lite and Gemma 4 31B remain the initial comparison pair, not the only future supported models.
+- **Key pooling and health routing are MANDATORY within legitimate provider terms.** Inspect existing Supabase Edge Functions and authorized GitHub protected environments. Add a secure server-side, encrypted logical key-slot registry with project, provider, model, tenant, permissions, rate-window and spending metadata; check health and automatically choose a valid key for the requested supported provider/model and user. Automatically rotate away from expired/failed keys and apply bounded backoff/circuit breakers. Never send raw API keys to frontend, model prompts or logs. Never rotate keys to circumvent project-level quotas or provider restrictions; multiple keys from one quota project do not multiply its allowance. A secret must first be provisioned by the owner; neither invent secrets nor assume they are readable to tools. Test simultaneous tasks, exhausted quota, revoked keys, wrong-provider selection, isolation, billing safety and safe retry.
+- **Native-first universal PC control remains MANDATORY.** Discover user apps and tools dynamically. Prefer native APIs, file formats and scripts, then DOM/OS accessibility; screenshot vision is the last fallback. Use relevant pieces of all five repositories only when they actually improve correctness or speed. No hardcoded application, UI coordinate, task answer, benchmark oracle, customer credential or task flow.
+- **Customer-side Docker/VMs are NEVER mandatory.** Docker/cloud VMs may help development, CI, isolated tests and explicitly authorized specialist work; packaging and setup on Windows/macOS must not force users to install container tooling. Prove companion cold-start and install time independently.
+
+### 14A.5. Ten additional Nod implementation refinements (items 63–72)
+
+#### REPO-63. Intent-scoped task authorization (Nod extension of N53)
+
+- **Source repository:** https://github.com/n8n-io/nod; related earlier entry: `N53`.
+- **Classification:** P0 REQUIRED. **Customer benefit:** Prevents an apparently helpful AI action from overstepping customer instructions.
+- **Detailed change:** Extend existing task authority to translate natural-language goals into an exact, immutable permission envelope: account, device, named apps/files, allowed reads, local edits, external writes, credential use, duration and revocation. Planner proposals never create permission. Separate inferred intent from granted authority. A document or website must not enlarge that grant.
+- **Acceptance evidence:** Draft an email but never send it; an injected page instruction cannot increase scope; stopping or revoking the task prevents subsequent writes.
+- **Deduplication:** This expands the earlier Nod item rather than creating a second executor or duplicate database.
+
+#### REPO-64. Read, prepare, and commit action tiers (Nod extension of N54)
+
+- **Source repository:** https://github.com/n8n-io/nod; related earlier entry: `N54`.
+- **Classification:** P0 REQUIRED. **Customer benefit:** Avoids accidental irreversible submissions.
+- **Detailed change:** Classify observation, reversible preparation, external commit, credential release and irreversible mutation. Preserve untruncated approval descriptions showing exact target, contents, consequences and rollback availability. A prepared form is not submitted unless the separate commit is authorized. Preserve idempotency and action receipts.
+- **Acceptance evidence:** An approved draft never sends or submits automatically; unknown previous effect blocks blind retry.
+- **Deduplication:** This expands the earlier Nod item rather than creating a second executor or duplicate database.
+
+#### REPO-65. Encrypted, origin-bound credential-use vault (Nod extension of N55)
+
+- **Source repository:** https://github.com/n8n-io/nod; related earlier entry: `N55`.
+- **Classification:** P1 REQUIRED. **Customer benefit:** Allows convenient app access without giving the model control of raw passwords.
+- **Detailed change:** Prefer existing operating-system credential stores or a vetted encrypted server vault. Use short-lived origin/target-bound references rather than model-visible plaintext; validate destination domain and TLS, scope access by user/device, rotate and revoke; scrub prompts, screenshots, exceptions and logs. Do not implement a new vault if an existing secure mechanism is sufficient.
+- **Acceptance evidence:** Phishing page and malicious plugin receive no passwords; revocation takes effect immediately; secret scanning finds no plaintext.
+- **Deduplication:** This expands the earlier Nod item rather than creating a second executor or duplicate database.
+
+#### REPO-66. Reusable independently verified workflows (Nod extension of N56)
+
+- **Source repository:** https://github.com/n8n-io/nod; related earlier entry: `N56`.
+- **Classification:** P2 REQUIRED. **Customer benefit:** Accelerates repeated work with fewer model calls.
+- **Detailed change:** Promote successful task traces into reviewed parameterized skills with version, provenance, app capability requirements, input/output schemas, success oracles and expiration; never save hardcoded user filenames, window positions or selectors as universal instructions. Integrate with existing experience and precedent storage.
+- **Acceptance evidence:** Run the learned spreadsheet workflow on new files and an altered app version without incorrect mutations.
+- **Deduplication:** This expands the earlier Nod item rather than creating a second executor or duplicate database.
+
+#### REPO-67. Protect user-edited skills and rollback (Nod extension of N57)
+
+- **Source repository:** https://github.com/n8n-io/nod; related earlier entry: `N57`.
+- **Classification:** P2 REQUIRED. **Customer benefit:** Keeps the customer in control of how their work is performed.
+- **Detailed change:** Mark authored instructions as customer-owned; automatic learning may suggest a diff but cannot overwrite the original. Keep revision history, approval records, rollback and deletion. Run regression checks after merging a skill improvement.
+- **Acceptance evidence:** Auto-learning retains user-chosen formatting; version restore is byte-equivalent.
+- **Deduplication:** This expands the earlier Nod item rather than creating a second executor or duplicate database.
+
+#### REPO-68. Consent-based long-term memory with provenance (Nod extension of N58)
+
+- **Source repository:** https://github.com/n8n-io/nod; related earlier entry: `N58`.
+- **Classification:** P2 REQUIRED. **Customer benefit:** Reduces repetition without creating a private-data risk.
+- **Detailed change:** Build on current opt-in memory. Store source task, timestamp, confidence, consent, privacy label, correction/deletion controls, scope and retention. Retrieve only necessary relevant entries; prevent cross-account or cross-device leakage. Expire uncertain or outdated facts.
+- **Acceptance evidence:** Correct a deliberately wrong preference and confirm it stays corrected; deletion propagates to retrieval and caches.
+- **Deduplication:** This expands the earlier Nod item rather than creating a second executor or duplicate database.
+
+#### REPO-69. Customer-readable action timeline and receipts (Nod extension of N59)
+
+- **Source repository:** https://github.com/n8n-io/nod; related earlier entry: `N59`.
+- **Classification:** P1 REQUIRED. **Customer benefit:** Builds trust through understandable, truthful progress.
+- **Detailed change:** Translate existing journals into plain-language task objectives, apps accessed, operation attempt versus confirmed effect, approvals, progress, STOP and recovery, verified output links, durations and model usage. Hide internal .py filenames, stack traces, key names or source paths from normal customer views; show them only in restricted redacted developer diagnostics.
+- **Acceptance evidence:** Every timeline item matches an actual signed or journaled event; no false completion or leaked internal path.
+- **Deduplication:** This expands the earlier Nod item rather than creating a second executor or duplicate database.
+
+#### REPO-70. Durable recurrence with explicit authority (Nod extension of N60)
+
+- **Source repository:** https://github.com/n8n-io/nod; related earlier entry: `N60`.
+- **Classification:** P3 CONDITIONAL. **Customer benefit:** Enables recurring work without duplicate or surprise actions.
+- **Detailed change:** Reuse existing schedule tables if unattended tasks are enabled. Each recurrence stores explicit customer opt-in, exact task scope, allowed device, schedule/expiry, one-time occurrence claim, revocation and offline-device behavior. Do not allow automated background control without visible user-granted permission. If this remains intentionally out of active scope, mark it DEFERRED and explain the prerequisite, not falsely complete.
+- **Acceptance evidence:** Cancellation prevents future runs; duplicated event delivery produces only one effect.
+- **Deduplication:** This expands the earlier Nod item rather than creating a second executor or duplicate database.
+
+#### REPO-71. Event-driven proactive monitoring (Nod extension of N61)
+
+- **Source repository:** https://github.com/n8n-io/nod; related earlier entry: `N61`.
+- **Classification:** P3 CONDITIONAL. **Customer benefit:** Allows JARVIS to resume tasks when conditions change.
+- **Detailed change:** Watch authorized events such as a completed export, file arrival or paired-device reconnection through efficient event subscriptions; trigger only once per relevant change, without polling the language model. Require separate customer permissions and cost ceilings, and do not broaden scope to unapproved data.
+- **Acceptance evidence:** Single file event causes one scoped action; stop/revoke disables listener; irrelevant events consume no model calls.
+- **Deduplication:** This expands the earlier Nod item rather than creating a second executor or duplicate database.
+
+#### REPO-72. One-click OAuth and MCP app connections (Nod extension of N62)
+
+- **Source repository:** https://github.com/n8n-io/nod; related earlier entry: `N62`.
+- **Classification:** P2 REQUIRED. **Customer benefit:** Simplifies connecting everyday tools while keeping permissions visible.
+- **Detailed change:** Reuse existing MCP routing. Provide provider authorization flow, precise scopes, official redirects, safe secret storage, connection tests, health/expiry, disconnect and refresh. Never ask customers to paste secrets into chat. Dynamically expose only authenticated and permitted tools to the planner.
+- **Acceptance evidence:** Connect, run a narrow authorized task and disconnect; subsequent access is denied; no credentials appear in logs.
+- **Deduplication:** This expands the earlier Nod item rather than creating a second executor or duplicate database.
+
+
+### 14A.6. Required readiness ledger for the 72 architecture entries
+
+Use one source-of-truth ledger keyed `REPO-01` through `REPO-72`: owner priority, current code path, source link/commit, disposition, exact change, input/output contract, threat model, new tests, real-device dependency, performance baseline and independently verified evidence. Start from the existing 266-ID/84-concept ledgers and **link** to them; never create a competing task authority, separate permissions engine, second secret vault or duplicate execution manager. Deferred items require an explicit signed-off reason. All applicable required and partial entries must be completed and return GREEN code/CI tests before the first benchmark task.
+
+
 ## Part 15. Performance and resource targets (all measured on at least 30 tasks per category; none achieved yet)
 
 15.1. A simple task, with at most three effects, takes at most 15 seconds at the median and 35 seconds at the 95th percentile. The measured median today is 37 seconds across all tasks.
