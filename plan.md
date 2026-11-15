@@ -2,7 +2,7 @@ ALWAYS REPLY LIKE A CAVEMAN: Routine chat/status output must be ONE LINE, maximu
 
 # OCADE BY CARCC — JARVIS & Windows/macOS PC Control Master Plan (v8)
 
-**Owner-authorized JARVIS-only revision, 15 November 2026.** The 900-line owner-provided draft is retained as the basis except for explicitly excluded non-JARVIS functionality and contradictory older process instructions. Detailed original v7 evidence is preserved in the archive. The explanatory sections retain their original wording wherever consistent; legacy machine-readable traceability tables are preserved to avoid breaking their readers. This is a DOCUMENTATION change, not a claim that coding or qualification passed.
+**JARVIS engineering-only scope update, 15 November 2026.** Payment integration, pricing, subscriptions, tax, refund processing and legal-page drafting are DEFERRED and excluded from the active coding/completion denominator. They are preserved only in the archived v7. Keep authentication, task consent, security, customer-data deletion, privacy safeguards and operational controls. Engineering readiness is not commercial launch authorization. **Previously:** Owner-authorized JARVIS-only revision, 15 November 2026. The 900-line owner-provided draft is retained as the basis except for explicitly excluded non-JARVIS functionality and contradictory older process instructions. Detailed original v7 evidence is preserved in the archive. The explanatory sections retain their original wording wherever consistent; legacy machine-readable traceability tables are preserved to avoid breaking their readers. This is a DOCUMENTATION change, not a claim that coding or qualification passed.
 
 ## Part 0. How to read this plan
 
@@ -353,19 +353,21 @@ In plain terms: the measurements so far show Gemma is slow and unreliable on the
 | 33 | Accessibility | UNKNOWN | Automated accessibility audit with no serious findings |
 | 34 | Localisation | UNKNOWN | English first; another language only after owner approval |
 
-8.5. **Global commercial operations, requirements 35 to 43.**
+8.5. **Deferred commercial requirements 35–40 and 42; retained engineering obligations 41 and 43.**
+
+The original exact text for out-of-scope commercial IDs is preserved in `docs/archive/plan-v7-2026-11-14.md`. Do not implement or count these deferred IDs as required JARVIS coding. Retain their identifiers so the 266-ID historical ledger remains traceable.
 
 | # | Requirement | Status | Remaining work |
 |---|---|---|---|
-| 35 | Worldwide payments | NOT CODED | Provider is an owner decision (Part 18) |
-| 36 | Currency | Prices exist in USD, EUR, GBP and INR (VERIFIED) | — |
-| 37 | Subscriptions | Admin grants only | Connect payment events to entitlements |
-| 38 | Secure webhooks | An audit table exists (VERIFIED) | Signature-checked, idempotent endpoint |
-| 39 | Taxes | NOT CODED | Merchant-of-record provider, or GST and export invoices with professional advice |
-| 40 | Refunds | Policy text exists (VERIFIED) | Refund events revoke access |
-| 41 | Cost controls | Counts tasks, not cost (VERIFIED) | Cost-metered credits, daily ceiling, global budget switch |
-| 42 | International profitability | Losses at full use (Part 18) | Caps |
-| 43 | Market restrictions | EEA and UK forbid the free model tier (VERIFIED) | Paid tier for all customer traffic |
+| 35 | Deferred commercial ID | EXCLUDED | None in this JARVIS-only release |
+| 36 | Deferred commercial ID | EXCLUDED | None in this JARVIS-only release |
+| 37 | Deferred commercial ID | EXCLUDED | None in this JARVIS-only release |
+| 38 | Deferred commercial ID | EXCLUDED | None in this JARVIS-only release |
+| 39 | Deferred commercial ID | EXCLUDED | None in this JARVIS-only release |
+| 40 | Deferred commercial ID | EXCLUDED | None in this JARVIS-only release |
+| 41 | AI resource controls | REQUIRED | Budget limits, quota protection, per-account rate controls and secure model access |
+| 42 | Deferred commercial ID | EXCLUDED | None in this JARVIS-only release |
+| 43 | Supported model/data geography | REQUIRED | Confirm provider policy and lawful data handling for test/customer traffic |
 
 8.6. **Security and operations, requirements 44 to 51.**
 
@@ -375,7 +377,7 @@ In plain terms: the measurements so far show Gemma is slow and unreliable on the
 | 45 | Credential isolation | PASSES (LEDGER) | Secret canary in CI |
 | 46 | Backups | PARTIAL | Paid Supabase plan for backups, restore drill |
 | 47 | Monitoring | PARTIAL | Alerts on errors, quota refusals and spending |
-| 48 | Legal compliance | PARTIAL | Update for the paid model, payment provider, DPDP Act and GDPR; professional review |
+| 48 | Deferred policy-page drafting | EXCLUDED | No website policy-page drafting in JARVIS coding; retain privacy and security protections |
 | 49 | Incident response | UNKNOWN | Runbook drill |
 | 50 | Support | PARTIAL | End-to-end ticket test |
 | 51 | Release safety | PARTIAL | Staged release and rollback |
@@ -414,14 +416,14 @@ In plain terms: the measurements so far show Gemma is slow and unreliable on the
 
 8.9. **Owner requirement IDs 74–87 excluded from the active JARVIS scope.** These IDs are retained only as historical cross-references in the archived plan. No implementation, campaign, or acceptance criterion is assigned to them here.
 
-8.10. **Customer data and legal experience, requirements 88 to 92.**
+8.10. **Customer data and task controls, requirements 88 to 92.**
 
 | # | Requirement | Status | Remaining work |
 |---|---|---|---|
 | 88 | Delete JARVIS local task data | PARTIAL | Clear JARVIS session records, temporary files, customer-approved companion workspace data and scoped device caches without removing unrelated customer data |
-| 89 | Delete account | CODED (VERIFIED `erase.server.ts`) | Database test that no rows remain; devices revoked; billing cancelled |
+| 89 | Delete account | CODED (VERIFIED `erase.server.ts`) | Database test that no rows remain and devices and task authority are revoked |
 | 90 | Complete customer lifecycle | — | End-to-end journey test |
-| 91 | Legal dialogs inside the website | Pages exist (VERIFIED routes for terms, privacy and help) | In-site dialogs and versioned consent |
+| 91 | Deferred policy-page work | EXCLUDED | No active coding requirement; retain explicit computer-control consent and privacy safeguards |
 | 92 | Minimal authentication friction | — | Part 5.5 |
 
 8.11. **Testing and reliability, requirements 93 to 101.**
@@ -612,9 +614,9 @@ In plain terms: the AI may plan a few safe steps at once, and the computer check
 
 12.2. **Task and session lifecycle.** A fresh registered user can install the companion, pair without repeated email verification, authorize an exact task, start it from the website, inspect actual execution progress, stop it, resume through a safe revalidation, receive independently verified files, end the session and have the temporary companion exit. The workflow must recover appropriately from browser refresh, sleep and device reconnection.
 
-12.3. **Customer data deletion.** A scoped delete-data request removes only JARVIS-owned local task artifacts and applicable server records after explicit confirmation. Account deletion revokes devices and closes authorized sessions; any retention legally required for commercial records is separately disclosed and handled. A test proves the absence of data that should have been deleted, and never destroys unrelated user files.
+12.3. **Customer data deletion.** A scoped delete-data request removes only JARVIS-owned local task artifacts and applicable server records after explicit confirmation. Account deletion revokes devices and closes authorized sessions. A test proves the absence of data that should have been deleted and never destroys unrelated user files. Existing lawful retention/security obligations are not waived.
 
-12.4. **Legal, help and support experience.** Present readable and versioned terms, privacy, computer-control permissions and support information in accessible in-site dialogs; preserve a record of the accepted version. This is customer-facing implementation, not a substitute for professional legal review.
+12.4. **JARVIS permission, help and support experience.** Present exact task scope, device access, STOP, Take Over, permission changes and support information clearly. Maintain authorization evidence and meaningful privacy controls. Drafting policy pages and commercial documents is excluded from this coding scope.
 
 12.5. **Customer acceptance.** A fresh account on a clean, supported Windows or macOS machine completes a first authorized task end to end without developer assistance, with no dead controls, misleading status or unverified completion. Complete coding and focused tests now; final hosted/real-device qualification belongs to P5.
 
@@ -628,18 +630,7 @@ In plain terms: the AI may plan a few safe steps at once, and the computer check
 
 13.4. **Parallel independent milestones.** Milestones that touch disjoint windows, files or pages run in parallel under the same authority and locks.
 
-13.5. **Payments** (Part 18):
-- checkout;
-- a signature-checked, idempotent webhook using the existing `payment_webhook_audit` table;
-- entitlements written from payment events;
-- renewals and failed-payment recovery;
-- cancellation at the end of the period;
-- refunds that revoke access;
-- invoices and receipts;
-- transaction history;
-- an administrator reconciliation report.
-
-Everything runs in the provider's test mode until the owner approves live payments.
+13.5. **Deferred commercial features.** No checkout, paid entitlements, pricing, subscription management, transaction integrations or related policy-page changes are part of this JARVIS coding campaign. Preserve any existing systems without weakening authentication or security. The historical list is archived in v7.
 
 13.6. **Operations:**
 - backups on a paid Supabase plan, with a timed restore drill;
@@ -655,9 +646,7 @@ Everything runs in the provider's test mode until the owner approves live paymen
 - turn on leaked-password protection in Supabase Auth (VERIFIED: currently disabled, per the Supabase security advisor);
 - as defence in depth, revoke public execute rights from security-definer functions that only the server calls. The advisor lists 36 such functions callable by signed-in users. Spot checks show that the critical ones call `private.ocade_owner_require` or a staff-permission check (VERIFIED for `ocade_revoke_unlimited` and eleven others). The remaining 24 must be checked one by one.
 
-13.8. **Legal:**
-- Update the Terms, Privacy and Refund text in `src/components/legal/LegalContent.tsx` for the paid model tier, the payment provider, retention, deletion, India's Digital Personal Data Protection Act and the GDPR, and show them as dialogs inside the site with versioned consent.
-- A qualified professional must review them; code cannot satisfy this.
+13.8. **Deferred policy content.** Do not implement policy-page or commercial-document updates in this coding campaign. Continue to enforce explicit PC-control consent, safe data handling, privacy controls and technical security requirements.
 
 ## Part 14. Package P4: completion, proof-based debloating and removals
 
@@ -723,35 +712,15 @@ Everything runs in the provider's test mode until the owner approves live paymen
 
 17.4. For EVERY failure, retain the failure evidence; investigate the root cause; implement a general, non-hardcoded correction; rerun coding gates until all green; then rerun the failed task and affected category on the same defined oracle. Never reclassify a retry as first-attempt success. Record commit, environment, actual task duration, model latency, tool usage, corrections and independent verification. Repeat within previously approved safe test permissions and resource limits until required acceptance is achieved or a precise blocker remains.
 
-## Part 18. Commercial model and profitability
+## Part 18. JARVIS operating resources (no commercial integrations)
 
-18.1. **Verified unit costs.** Gemini 3.5 Flash-Lite on the paid tier costs $0.30 per million input tokens and $2.50 per million output tokens; thinking tokens count as output.
+18.1. Complete required JARVIS coding and whole-site compilation using existing authorized resources. No payments, pricing, tax, refunds, subscriptions or legal-page work is an engineering completion prerequisite.
 
-18.2. **Estimated cost per turn and per task.**
-- Assumption: about 1,000 output tokens per turn.
-- Today, a turn costs about $0.0070, and a task with six turns about $0.042.
-- After Package P0, a turn costs about $0.0037, and a task with four turns about $0.015.
+18.2. Keep secure rate limits, legitimate AI quotas, minimal model input, usage ceilings and clearly recorded test resource consumption. Do not bypass project quotas or move customer data into disallowed model tiers.
 
-18.3. **The current allowances lose money at full use** (VERIFIED arithmetic on `usage-policy.ts`). One charge is counted per task.
-- Pro at $28 a month allows about 3,000 tasks a month, costing about $45 after Package P0.
-- Max at $88 a month allows about 30,000, costing about $450.
-- Free allows up to about 100 tasks a day.
+18.3. Missing approved GPU capacity, staging environment, credential access or real-device test permission is reported as a specific qualification blocker rather than patched with fabricated results.
 
-18.4. **Proposed rules** (owner decides the numbers):
-- Worst-case model cost may not exceed 35 percent of the net price.
-- That suggests about 600 tasks a month on Pro, about 1,900 on Max, and a Free trial of 10 tasks a month.
-- Weekly billing plans should be dropped, because the per-charge payment fee matters more on small charges.
-
-18.5. **Unavoidable fixed costs** to disclose before taking money:
-- a paid Supabase plan at about $25 a month, for backups and to avoid pausing;
-- paid Gemini usage;
-- a domain at about $1 a month.
-
-Cloudflare Workers and a transactional email free tier can stay free. At the assumed average use, about two Pro subscribers cover the fixed costs (HYPOTHESIS).
-
-18.6. **Payment provider** (owner decision).
-- First choice: a merchant-of-record provider such as Paddle, because it handles worldwide sales tax, invoices and refunds for a solo India-based founder. Indian-seller eligibility must be confirmed by applying.
-- Fallback: Razorpay subscriptions with international cards and settlement in rupees, where OCADE issues GST and export invoices itself under a letter of undertaking, with a chartered accountant's advice.
+18.4. Keep financial transactions and public paid launch disabled. A separate future owner-approved commercial release plan must restore its own applicable business, privacy and compliance obligations.
 
 ## Part 19. Owner approvals and decisions required
 
@@ -763,7 +732,7 @@ Cloudflare Workers and a transactional email free tier can stay free. At the ass
 
 19.4. Session-mode idle exit time and the always-ready default (conflict C4).
 
-19.5. The payment provider, the application to it, prices and caps.
+19.5. Deferred commercial decisions are outside this coding campaign; no owner decision required now.
 
 19.6. A paid Supabase plan.
 
@@ -777,31 +746,17 @@ Cloudflare Workers and a transactional email free tier can stay free. At the ass
 
 19.11. The original wording of owner requirements 72, 73, 86 and 87.
 
-19.12. Live payments, production deployment and any `main` merge.
+19.12. Production deployment and any `main` merge remain separately approval-gated. No commercial integration or paid activation is authorized.
 
-## Part 20. GO / NO-GO release conditions
+## Part 20. JARVIS engineering GO / NO-GO (paid public launch is out of scope)
 
-20.1. **Today the answer is NO-GO.** Sections 2.2 to 2.12 explain why.
+20.1. Current status is NO-GO for public deployment until runtime evidence is independently verified.
 
-20.2. **A free, invite-only controlled beta** with at most 20 users and capped spending may start only when all of the following hold:
-- ALL mandatory P0–P4 coding and integration work is complete, on a commit with fully green required coding/build CI; the relevant P5 safety and first-task qualifications have subsequently passed.
-- A paid model key with a budget cap is configured.
-- There are zero open critical or high defects.
-- STOP, Take Over and unknown-effect tests pass on hosted Windows and macOS.
-- The legal pages are updated.
-- Support is live.
-- A backup restore drill has been completed.
+20.2. **JARVIS engineering release acceptance (100/100% technical readiness)** requires complete in-scope coding, entire OCADE website and companion compiled, all required GitHub CI green on the identical candidate commit, all critical/security defects resolved, STOP/Take Over and permission gates proven, safe companion installation/upgrade/uninstall, independent deliverable checks, full hosted/real Windows/macOS qualification, benchmark acceptance (including E4 ≥90% first-attempt success) and complete JARVIS customer journeys.
 
-20.3. **A paid public launch** may start only when all of the following hold:
-- Every beta condition holds.
-- Packages P3 and P4 are complete.
-- Payments work end to end in test mode, and the owner has approved live mode.
-- Release gates R1 to R10 of Appendix A pass. This includes E4 at 90 percent or more over at least 100 tasks and three days, and real-computer qualification on all three systems.
-- Measured beta economics stay within the caps of Part 18.
-- Signing warnings are disclosed.
-- `npm run readiness` reports every milestone as passing.
+20.3. **Do not confuse engineering readiness with paid public launch.** A future launch involving paid customers requires separate owner authorization and the relevant commercial/compliance work. Achieving 100/100% JARVIS technical readiness alone does NOT authorize paid deployment.
 
-20.4. Every continuation report shows **Public commercial production readiness: X/100%**, computed from the repository's independently evidenced `npm run readiness` milestone results (historical baseline 10/100, not a fresh measurement). Separately report coding completion and benchmark success counts; never substitute a guess or equate green compilation with production readiness. A claim of 100/100 requires every mandatory gate passed on the release commit, including benchmarks and real-device qualification. See Part 25.
+20.4. In every substantive report show **JARVIS technical readiness: X/100%** with commit and evidence source, separate from overall paid commercial readiness (NOT ASSESSED / deferred). The historical commercial score of 10/100 is not automatically updated or redistributed. Coding complete, CI green and benchmark passes are separate evidence types; never invent percentages.
 
 ## Part 21. Conflicts and unresolved decisions
 
@@ -2063,7 +2018,7 @@ Also in C12: CI lint and format gates repaired (`edaf6d2`); an installed app res
 
 ## Part 23. Mandatory coding-complete GREEN gate BEFORE cloud-computer benchmarks (owner addition)
 
-23.1. Finish 100% of the JARVIS-only, release-mandatory implementation: planner and Gemini/Gemma adapters; task authority; permission fences; complete approvals; STOP/Take Over; Windows/macOS native, browser, accessibility and last-resort vision control; worker/job orchestration; recovery; independent verification; companion installers, upgrades, removal; JARVIS website controls; task data lifecycle; cost protections; security; customer subscription integrations required by the approved commercial scope. Classify out-of-scope IDs explicitly instead of silently dropping them.
+23.1. Finish 100% of the JARVIS-only, release-mandatory implementation: planner and Gemini/Gemma adapters; task authority; permission fences; complete approvals; STOP/Take Over; Windows/macOS native, browser, accessibility and last-resort vision control; worker/job orchestration; recovery; independent verification; companion installers, upgrades and removal; JARVIS website controls; task data lifecycle; model resource protections and security. **Do not code payment/legal-page features.** Classify deferred IDs explicitly and preserve originals in the archived plan.
 
 23.2. `CODED` means the implementation and callers exist; `BUILDS` means affected build, typecheck, lint, formatting, protocol, relevant unit/security tests and database checks are green; `QUALIFIED` means runtime proof, separately. Neither the presence of source code nor green CI alone implies release qualification.
 
@@ -2107,12 +2062,12 @@ Also in C12: CI lint and format gates repaired (`edaf6d2`); an installed app res
 
 25.7. Measure at least 30 tasks per workload category for median/p95 planner latency, time-to-first-action, task completion time, token counts, quota refusals, recoverability, tool-call correctness and verified first-attempt success. Any claimed speedup must compare identical seeds and identical resource constraints and must report failures and statistical uncertainty. No guarantee that software changes can eliminate provider-side inference latency.
 
-## Part 26. Measured commercial production readiness (0–100%) and honest progress (owner addition)
+## Part 26. Measured JARVIS engineering readiness (0–100%) and honest progress (owner addition)
 
-26.1. **Routine chat/status messages:** one single line with no more than two words (Caveman mode). **Final outputs, audits, milestone updates and substantive reports are exempt and may be detailed;** these must start with **Public commercial production readiness: X/100%** from the existing evidence-backed `npm run readiness` output and identify its commit/time. The historical recorded baseline was 10/100; if not rerun on this commit, label it historical. Separately show coding coverage, 266-ID JARVIS-scope statuses, 84-concept verification, passing release conditions, green/pending/failed GitHub checks and independent benchmark results. Never invent a score.
+26.1. **Routine chat/status messages:** one single line with no more than two words (Caveman mode). **Final outputs, audits, milestone updates and substantive reports are exempt and may be detailed;** these must start with **JARVIS engineering readiness: X/100%** only when justified by explicitly defined technical gates and independent evidence tied to a commit/time. Keep `npm run readiness`'s historical 10/100 commercial score separate; do not pretend the old commercial score is comparable to the JARVIS engineering-only scope. Separately show coding coverage, deferred IDs, 84-concept verification, passing technical gates, pending/failed GitHub checks and independent benchmark results. Never invent a score.
 
 26.2. Updating a checklist, writing a plan, compiling source, or completing only simulations is not grounds to raise readiness percentage. Only independently verified gates on the tested commit may change the score. Preserve the established release-gate calculation; do not invent weights or merge code progress with production qualification.
 
 26.3. Report progress at each verified 10% milestone and whenever useful. Say what changed, passed, failed, was excluded with reason, remains blocked, and what must happen next. Maintain distinct `NOT CODED`, `CODED`, `BUILDS`, `RUNTIME VERIFIED`, `PARTIAL`, `FAIL`, `BLOCKED`, and `UNTESTED` states.
 
-26.4. **100/100% and GO** are allowed only after all required JARVIS coding and security checks are green; two-model and E1–E4 evaluations meet their mandatory criteria; Windows 10/11 and macOS receive authorized real-device qualification; customer setup, STOP/Take Over, task recovery, verified deliverables, support, legal and commercial checks pass; there are no unresolved critical/high defects; and all required owner approvals are obtained. Otherwise the answer is NO-GO with the exact unmet conditions.
+26.4. **100/100% JARVIS ENGINEERING GO** is allowed only after all required JARVIS coding and security checks are green; two-model and E1–E4 evaluations meet their mandatory criteria; Windows 10/11 and macOS receive authorized real-device qualification; customer setup, STOP/Take Over, task recovery, verified deliverables and support pass; there are no unresolved critical/high defects; and required technical testing approvals are obtained. Commercial/paid public launch is separately DEFERRED and cannot be represented as complete by this score. Otherwise the answer is NO-GO with exact unmet technical conditions.
