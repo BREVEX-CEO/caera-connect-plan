@@ -73,7 +73,7 @@ In plain terms: OCADE spends almost all of its time waiting for the AI. The AI i
 
 
 
-2.10. **Engineering readiness is not yet independently re-scored on this commit.** Prior general launch-score evidence must not be presented as a JARVIS-only score; recheck installer, companion and real-device gates.
+2.10. **Complete OCADE readiness is not yet independently re-scored on this commit.** Prior historical launch-score evidence must not be presented as a current product-wide score; recheck site, chat, installer, companion, security, online/offline and real-device gates.
 
 2.11. **The coding gate is red on the branch head** (VERIFIED). `npm run format:check` fails on `tools/source-research/README.md`. Everything else passed in this session:
 - `npm ci`, `npm run typecheck`, `npm run lint`, `npm run jarvis:protocol-check` and `npm run jarvis:no-hardcoded`.
@@ -121,14 +121,14 @@ In plain terms: OCADE spends almost all of its time waiting for the AI. The AI i
 
 3.14. **O15 and O16, with updated test-repair autonomy.** Four seeded tasks × two independently selected permitted models × Windows/macOS = 16 mandatory comparisons. Begin only after 100% coding/build gates are green and the protected cloud test environment is legitimately authorized. Once an authorized test scope, credentials, cost ceiling and environment are approved, routine NON-DESTRUCTIVE code fixes and reruns inside that scope require no new discretionary owner approval; platform-required protected-environment approvals, additional cost, deployment, physical-device access, elevated permissions, live payments and other sensitive operations still require the proper authorization. Never bypass required approval controls.
 
-3.15. **New owner instructions recorded on 14 November 2026.** They are binding unless the owner withdraws them:
+3.15. **Prior owner decisions recorded on 14 November 2026, as modified by Parts 14A–14B on 15 November 2026.** All remain binding except where the newer complete-product scope and model/runtime-agent policies explicitly supersede them:
 - No separate browser extension; zero budget for it.
 - Docker only on developer, CI and hosted infrastructure, never required on customer computers.
 - The website is the sole customer interface.
 - The companion is visible, tray-controlled, session-based by default and always stoppable.
 - Pairing without repeated email verification, while keeping secure authentication and revocation.
 - Usage caps lifted for testing accounts, while provider limits, budgets and safety still apply.
-- No tables in `plan.md`.
+- New explanatory plan sections should use points and sentences, not new tables; legacy machine-readable Appendix A–E tables remain required for existing parsers.
 
 ## Part 4. Engineering operating contract (carried over from plan v7 sections 4 to 11, wording kept)
 
@@ -307,7 +307,7 @@ In plain terms: Gemma's practical speed, reliability and suitability for custome
 | 6 | Guarded action batching | PARTIAL (VERIFIED: batches stop on failure but carry no postconditions) | Postconditions |
 | 7 | Autonomous error recovery | PARTIAL | Refusal hints and fault-injection tests |
 | 8 | Long-running tasks | CODED | Proof on hosted Windows and macOS |
-| 9 | Specialised agents | CONFLICT C3 | Recommended meaning: specialised deterministic roles under the one controller (verifier, job runner, dependency manager); no extra model agents |
+| 9 | Specialised agents | OWNER OVERRIDE — REQUIRED | Mandatory bounded runtime multi-agent specialists under one authoritative desktop mutation controller (Parts 14A.4, 14B.1); preserve STOP and independent verification |
 | 10 | Verified skills and MCP tools | PARTIAL | Schema limits now; verified-route replay later |
 | 11 | Model qualification | Harness NOT IMPLEMENTED (LEDGER, requirement 23) | Build the harness |
 | 12 | Capability fallback | Passes at the route level (LEDGER) | Durable per-model capability record |
@@ -421,11 +421,11 @@ The original exact text for out-of-scope IDs is preserved in `docs/archive/plan-
 
 | # | Requirement | Status | Remaining work |
 |---|---|---|---|
-| 93 | Outside this JARVIS/PC-control scope | EXCLUDED | See historical archive; not a release dependency |
+| 93 | Android offline browser qualification | ACTIVE CODING / QUALIFICATION | Implement Android offline website test harness before green gate; actual airplane-mode qualification is LAST benchmark stage under Part 14B.2 |
 | 94 | All 236 research concepts evaluated | PASSES (LEDGER) | — |
 | 95 | Windows/macOS PC-control qualification | QUALIFICATION | Hosted and actual desktop evidence required |
 | 96 | Production evidence | QUALIFICATION | — |
-| 97 | Outside this JARVIS/PC-control scope | EXCLUDED | See historical archive; not a release dependency |
+| 97 | One-click offline setup | ACTIVE REQUIRED | Verified full model download, storage checks, offline-ready state and test harness coded before green gate; network-disconnect proof LAST in Part 17 |
 | 98 | Resource management | — | Part 15 targets |
 | 99 | Companion update integrity | PARTIAL | Updater missing |
 | 100 | Real-device qualification | BLOCKED on A2 | — |
@@ -1531,7 +1531,9 @@ The original design checklists repeat some 30-item and 20-item lists verbatim. T
 
 17.3. Run real-computer qualification on Windows 10, Windows 11 and macOS after approval A2 and completed hosted qualifications.
 
-17.4. For EVERY failure, retain the failure evidence; investigate the root cause; implement a general, non-hardcoded correction; rerun coding gates until all green; then rerun the failed task and affected category on the same defined oracle. Never reclassify a retry as first-attempt success. Record commit, environment, actual task duration, model latency, tool usage, corrections and independent verification. Repeat within previously approved safe test permissions and resource limits until required acceptance is achieved or a precise blocker remains.
+17.4. For EVERY failure, retain the failure evidence; investigate root cause; implement a general, non-hardcoded correction; rerun complete-site coding/build/security gates until all green on the new SHA; then rerun the failed task and affected category on the same defined oracle. Never reclassify a retry as first-attempt success. Record commit, environment, actual task duration, model latency, tool usage, corrections and independent verification. Repeat within approved safe test permissions and resource limits until acceptance or a precise blocker.
+
+17.5. **Required benchmark order, after whole-site GREEN CI:** (1) initial two-model 16-run comparison; (2) JARVIS E1–E4 real-task, cloud Windows/macOS and approved actual-PC qualification; (3) authorized additional-model compatibility tests; (4) online Chat, customer account/device/settings, security and full-site responsive workflows; **(5) LAST: local offline-model download, actual internet-off/browser-reopen website test and offline-chat inference on supported Windows/macOS/Android devices.** A failure returns to coding, requires a fresh all-green full-site SHA and then reruns affected tests. No prior CI-only mock is a real-world pass.
 
 ## Part 18. JARVIS operating resources
 
@@ -2837,7 +2839,7 @@ Also in C12: CI lint and format gates repaired (`edaf6d2`); an installed app res
 
 ## Part 23. Mandatory coding-complete GREEN gate BEFORE cloud-computer benchmarks (owner addition)
 
-23.1. Finish 100% of the JARVIS-only, release-mandatory implementation: planner and Gemini/Gemma adapters; task authority; permission fences; complete approvals; STOP/Take Over; Windows/macOS native, browser, accessibility and last-resort vision control; worker/job orchestration; recovery; independent verification; companion installers, upgrades and removal; JARVIS website controls; task data lifecycle; model resource protections and security.  Classify deferred IDs explicitly and preserve originals in the archived plan.
+23.1. Finish 100% of mandatory implementation for the **ENTIRE OCADE PRODUCT**, in strict order: JARVIS, Windows/macOS companion and native-first PC control first; online Chat and universal API/model adapters second; offline Chat, downloaded local model and cached website third; then full site settings, UX, account/customer journeys, help/policy pages, security, backends, required 72-entry source integration, bounded multi-agent coordination, secret/key health routing, deep debloating and full validation. Include task authority, STOP/Take Over, permission fences, exact approvals, recovery and independent verification throughout. All applicable prior PARTIAL items must be finished or explicitly justified as nonrequired, preserving historical IDs and archived evidence.
 
 23.2. `CODED` means the implementation and callers exist; `BUILDS` means affected build, typecheck, lint, formatting, protocol, relevant unit/security tests and database checks are green; `QUALIFIED` means runtime proof, separately. Neither the presence of source code nor green CI alone implies release qualification.
 
@@ -2847,7 +2849,7 @@ Also in C12: CI lint and format gates repaired (`edaf6d2`); an installed app res
 
 23.5. **Hard gate:** Start NO cloud-computer real-task testing, E1–E4 or model performance benchmark until ALL mandatory OCADE-wide coding is finished, including the applicable Part 14A 72-item integration/partial-items ledger and Part 14B whole-site acceptance tasks,, the whole OCADE website and companion compile/build, every required coding/security/website/companion CI job is COMPLETED GREEN on the SAME final commit SHA (not pending, skipped without justification, or green only on earlier commits), required test secrets/environment are explicitly authorized, and the release evaluation harness is ready. Any subsequent commit invalidates the candidate's previous green proof; reverify the new SHA. A benchmark failure reopens coding, and the entire relevant coding/build gate MUST be green again before reruns.
 
-23.6. Record `Coding completeness: completed required IDs / eligible required IDs × 100%` independently from technical release readiness. Do not manufacture a perfect coding figure merely by marking items out of scope; record the scope-change rationale.
+23.6. Record `Coding completeness: independently completed and tested mandatory full-product items / all applicable full-product mandatory items × 100%` separately from technical release readiness. Include JARVIS, online/offline Chat, full-site UX, security, secret/model integrations and source entries. Historical 266-ID and 84-concept tracking remains intact; reconcile overlap so one physical change is not counted several times. Never manufacture 100% through scope exclusions.
 
 ## Part 24. Autonomous benchmark → general repair → coding-gate → retest loop (owner addition)
 
@@ -2881,7 +2883,7 @@ Also in C12: CI lint and format gates repaired (`edaf6d2`); an installed app res
 
 25.7. Measure at least 30 tasks per workload category for median/p95 planner latency, time-to-first-action, task completion time, token counts, quota refusals, recoverability, tool-call correctness and verified first-attempt success. Any claimed speedup must compare identical seeds and identical resource constraints and must report failures and statistical uncertainty. No guarantee that software changes can eliminate provider-side inference latency.
 
-## Part 26. Measured JARVIS engineering readiness (0–100%) and honest progress (owner addition)
+## Part 26. Measured complete OCADE product readiness (0–100%) and honest progress (owner addition)
 
 26.1. **Routine chat/status messages:** one single line with no more than two words (Caveman mode). **Final outputs, audits, milestone updates and substantive reports are exempt and may be detailed;** these must start with **COMPLETE OCADE product readiness: X/100%** only when justified by explicitly defined technical gates and independent evidence tied to a commit/time. Historical general-release scores are not a validated JARVIS engineering readiness measurement. Separately show coding coverage, deferred IDs, 84-concept verification, passing technical gates, pending/failed GitHub checks and independent benchmark results. Never invent a score.
 
