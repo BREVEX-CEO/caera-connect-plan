@@ -3,7 +3,7 @@ USE THE "UX LAWS AND PRINCIPLES" AT AN EXTREME AND USE THEM ALL EFFECTIVELY. App
 
 # OCADE BY CARCC — Complete Product, JARVIS & Windows/macOS PC Control Master Plan (v10)
 
-**LATEST OWNER UPDATE, 16 NOVEMBER 2026 — READ PART 14F:** The owner additionally requires genuinely concurrent local subagents with distinct, truthful colored virtual cursor identities; fast native app work without taking over the user's mouse; a compact application-attached floating agent bar with role dropdown, live work/progress, STOP, Pin and an ALWAYS-AVAILABLE instruction composer OUTSIDE the dropdown; foreground-safe background operation using the user's own installed licensed applications and compatible add-ons; and a unified OCADE Live Vision Engine combining native app state, OS accessibility, continuous app-scoped video, event/difference detection, multimodal temporal understanding, targeted screenshots, UI parsing and verified workflow replay. These are owner-approved PLAN REQUIREMENTS, not completed software, measured video speeds or proof of universal simultaneous GUI input. Part 14F is authoritative for the new requirements, reference implementations, safety constraints and acceptance tests. The source conversation and uploaded illustrative images/videos are NOT in this repository: do not assume a future coding agent (including Claude) has seen them.
+**LATEST OWNER UPDATE, 16 NOVEMBER 2026 — READ PARTS 14F, 27 AND 28:** The owner additionally requires genuinely concurrent local subagents with distinct, truthful colored virtual cursor identities; fast native app work without taking over the user's mouse; a compact application-attached floating agent bar with role dropdown, live work/progress, STOP, Pin and an ALWAYS-AVAILABLE instruction composer OUTSIDE the dropdown; foreground-safe background operation using the user's own installed licensed applications and compatible add-ons; and a unified OCADE Live Vision Engine combining native app state, OS accessibility, continuous app-scoped video, event/difference detection, multimodal temporal understanding, targeted screenshots, UI parsing and verified workflow replay. These are owner-approved PLAN REQUIREMENTS, not completed software, measured video speeds or proof of universal simultaneous GUI input. Part 14F governs parallel local execution, floating composer and live vision; Part 27 governs the revised 12 features and eight products; Part 28 governs the recovered original 12 transformative features and named technical/product concepts. All are additive, with shared security and verification gates.
 
 **PRIOR OWNER SCOPE, 15 NOVEMBER 2026:** Complete the whole OCADE product before real-task benchmarking: (1) JARVIS/PC control, (2) Online Chat/model integrations, (3) Offline Chat/download/offline website, plus settings, customer accounts, safety, all site UI/UX, Help/FAQ/terms/privacy and production workflows. Integrate six repository sources: the original five-source 72-entry ledger in Part 14A, six-source active collaboration requirements in Part 14D, existing elite improvements in Part 14C, and the 34 UX principles in Part 14B. The prior JARVIS-only and two-model-only implementation scope is superseded, but the two-model 16-run historical test remains the initial model comparison. The earlier plan and legacy traceability appendices are preserved for historical reference; this is DOCUMENTATION only, not evidence that coding or benchmark tests passed.
 
@@ -21,7 +21,7 @@ USE THE "UX LAWS AND PRINCIPLES" AT AN EXTREME AND USE THEM ALL EFFECTIVELY. App
 
 0.4. No section of this plan claims that OCADE is ready for public commercial launch. Part 20 defines exactly when that claim may be made.
 
-0.5. **16 November 2026 ChatGPT-to-repository handoff:** The owner and an assistant discussed and approved the requirements in Part 14F in a SEPARATE CHAT, including illustrative screenshots/videos of fast colored subagent pointers and a compact floating status bar. This conversation is not available to Claude, repository coders or benchmark runners. Treat the self-contained text of Part 14F as the actual specification; never claim the video was frame-by-frame analyzed or that a demonstration's reported 38 agents/11.6 seconds is an OCADE performance benchmark. Distinguish **REQUIRED / DOCUMENTED** from **IMPLEMENTED / TESTED**. No deep-research plugin was run to create this addendum.
+0.5. **Documentation and evidence boundary:** The illustrated examples of fast colored subagent pointers and a compact floating status bar are design direction, not independently measured OCADE performance. Do not hardcode the illustrative 38-agent/11.6-second claim, and do not represent unverified media as frame-by-frame inspected. Distinguish REQUIRED / DOCUMENTED from IMPLEMENTED / TESTED. The detailed product requirements are self-contained in Parts 14F, 27 and 28.
 
 ## Part 1. What OCADE is and what success means
 
@@ -1867,7 +1867,7 @@ Existing docs/PRD.md authority remains exactly SIX Settings groups in settings-p
 
 **Status and authority:** REQUIRED PRODUCT SPECIFICATION, NOT CODED OR BENCHMARK-VERIFIED by this documentation change. This Part adds implementation-grade requirements arising AFTER the previous branch-head commit 03b770d4fc6614e577bd748d1f0628a00e275c03. It complements Part 14D's six-source coordination, Part 14E's account/privacy/composer baseline, Part 5's native-first safety spine and Appendix G.1's 30+4 UX principles. It does not replace them, create an independent permissions system or authorize production deployment. Where older text could imply that only one runtime agent may actually work at a time or that screenshots are the sole source of computer vision, THIS owner update clarifies the intended design.
 
-**Critical handoff to Claude and future implementers:** The owner discussed these decisions with ChatGPT on 16 November 2026, outside this repository. Claude and other coding agents do NOT automatically have that conversation, the user's illustrative images or the two illustrative videos. The examples showed many colored pointer shapes moving rapidly over a repository interface, a small bar resembling “Rebuilt by 38 agents in 11.6s,” and an app-attached floating composer. Those images are PRODUCT DIRECTION, NOT measured OCADE results or proof of how another product internally implements independent OS cursors. Implement the explicit requirements below, not guesses about the media; do not ask the owner to restate already documented decisions. Do not hardcode the examples, app names, 38-agent count, 11.6-second claim, sample roles or demonstration tasks into production logic.
+**Illustrative UI references and implementation boundary:** The examples depict multiple colored pointer shapes over a repository interface, a small status bar resembling “Rebuilt by 38 agents in 11.6s,” and an app-attached floating composer. They are PRODUCT DIRECTION, NOT measured OCADE results or evidence of independent operating-system cursors. Implement the explicit requirements below, not assumptions about a demonstration. Do not hardcode the examples, app names, 38-agent count, 11.6-second claim, sample roles or demonstration tasks into production logic.
 
 ### 14F.1. Non-negotiable user experience and acceptance invariants (P0)
 
@@ -1985,7 +1985,7 @@ Existing docs/PRD.md authority remains exactly SIX Settings groups in settings-p
 
 ### 14F.11. VISION repository references — inspected implementation files and their exact roles (16 Nov 2026)
 
-**Provenance rule:** These are source-code REFERENCE POINTS reviewed through GitHub file reads in the owner's ChatGPT conversation, not code copied into OCADE, not proof of OCADE functionality, and not a claim that the source project already implements the entire proposed pipeline. Re-open current upstream revisions and inspect licenses/compatibility/security before reuse. Preserve links as concrete starting points for Claude; no assumption that Claude saw the conversation.
+**Provenance rule:** These are source-code REFERENCE POINTS from inspected GitHub implementation files, not code copied into OCADE, not proof of OCADE functionality, and not a claim that any source project implements the entire proposed pipeline. Re-open current upstream revisions and inspect licenses, compatibility and security before reuse. Preserve the source links and exact mechanisms as engineering references.
 
 | Repository | Main inspected file / link | Confirmed mechanism to study | Do NOT assume |
 |---|---|---|---|
@@ -2110,7 +2110,7 @@ Existing docs/PRD.md authority remains exactly SIX Settings groups in settings-p
 | Share one capture/video state across parallel agents; lower model overhead | Prior model budget and agent coordination | 14F.9–14F.12, OCV-19/25 | PLAN ADDED bounded fan-out, event filtering and per-agent ROI |
 | Keep one unified execution engine and avoid separate cloud/dual systems | Parts 5, 14C/14D anti-bloat | 14F.2, 14F.16 | ALREADY IN PLAN; explicit non-duplication requirements |
 | Apply UX LAWS AND PRINCIPLES at an extreme, all effectively | Part 14B.4 and Appendix G.1 30+4 | **Literal second line of plan.md**, 14F.1, 14F.4, OCV-28 | PLAN ADDED exact prominent mandate; existing laws retained |
-| Do not assume Claude saw this conversation or uploaded screenshots/videos | No separate-chat handoff | Part 0.5 and Part 14F opening | PLAN ADDED explicit independent handoff and evidence boundary |
+
 
 **Completion audit rule:** The table documents coverage of the owner-approved discussion since the previous commit. It is NOT evidence that a coding agent implemented any new feature. At every later commit, update individual statuses to CODED, TESTED, DEVICE-VERIFIED or BLOCKED only with actual files, CI/run IDs, device conditions and independent proof. Keep the baseline six-source ledger, original requirement IDs, Appendix G.1 UX laws and existing product scope intact.
 
@@ -3576,11 +3576,11 @@ Also in C12: CI lint and format gates repaired (`edaf6d2`); an installed app res
 
 ### 27.0. Source, precedence, explicit coverage and preservation contract
 
-**OWNER-PROVIDED REQUIREMENTS, 16 NOVEMBER 2026:** The owner supplied an exact **Part 1 — Revised 12 additions** and **Part 2 — Revised problem-solving products**, grouping eight use cases into four packages. This section records those requirements as binding PRODUCT DESIGN AND ENGINEERING SCOPE. It is an additive continuation of the post-commit conversation that produced Part 14F. **Do not remove, renumber, silently weaken or replace any older content in Parts 0–26 or Appendices A–H.** Preserve the original 266-ID ledger, 84 concepts, 72-entry integration ledger, UX-01–UX-34, existing task/security architecture, source references, CI gates, no-deployment conditions and historical evidence. This Part 27 is additive; where it clarifies user-facing approval frequency, privacy handling, context discovery, mode selection or package composition, use the newer explicit owner requirements without bypassing the underlying security policy.
+**OWNER-PROVIDED REQUIREMENTS, 16 NOVEMBER 2026:** The owner supplied an exact **Part 1 — Revised 12 additions** and **Part 2 — Revised problem-solving products**, grouping eight use cases into four packages. This section records those requirements as binding PRODUCT DESIGN AND ENGINEERING SCOPE. It is an additive specification alongside Part 14F and the independently catalogued transformative features in Part 28. **Do not remove, renumber, silently weaken or replace any older content in Parts 0–26 or Appendices A–H.** Preserve the original 266-ID ledger, 84 concepts, 72-entry integration ledger, UX-01–UX-34, existing task/security architecture, source references, CI gates, no-deployment conditions and historical evidence. This Part 27 is additive; where it clarifies user-facing approval frequency, privacy handling, context discovery, mode selection or package composition, use the newer explicit owner requirements without bypassing the underlying security policy.
 
-**CRITICAL HANDOFF FOR CLAUDE AND OTHER CODING AGENTS:** These product decisions were made in a separate ChatGPT conversation after previous commit **03b770d4fc6614e577bd748d1f0628a00e275c03**. Claude, future coding agents and repository CI **cannot see or infer that conversation**. The full approved list supplied in the current user message is transcribed below, with implementation detail, safety limits and acceptance criteria. Treat this written plan as the handoff; do not claim to have watched prior videos or read messages outside the repository. Part 14F already covers real parallel subagents, action-backed colored cursors, app-specific floating composer, foreground-safe local work and hybrid live video/semantic vision; those requirements REMAIN binding and are NOT replaced by this section. No Deep Research tool is required or authorized by this update.
 
-**Source-boundary for a possibly DISTINCT earlier list:** The user also refers to an earlier assistant response titled **"12 potentially transformative OCADE features"** and to chats preceding the supplied revised lists. The full verbatim contents of that separately titled earlier response are **not available in the current user message or in the fetched plan.md**. The 12 explicitly pasted REVISED additions are documented exactly here. **Do not fabricate or falsely certify a second, different set of 12 unnamed features as recovered or approved.** If the earlier "12 potentially transformative" list refers to these same 12 revised items, this Part 27 is their definitive revised version; if it refers to 12 additional distinct ideas, request/retrieve that exact source before marking those separate ideas included. Maintain this provenance flag as OPEN SOURCE GAP, not a software implementation defect. Everything actually supplied is fully actionable without waiting for the missing historical wording.
+
+**Original 12-feature inventory reconciled:** The distinct original list titled “12 potentially transformative OCADE features” is now fully itemized and specified in Part 28.1, with exact feature names, inputs, actions, constraints, failure behavior and acceptance criteria. These T12-01–T12-12 features are additional to the revised R12-01–R12-12 in Part 27.2. Use the mapping in Part 28.6 to reuse existing capabilities rather than building duplicate engines.
 
 **Evidence discipline:** OWNER-APPROVED / DOCUMENTED means the owner explicitly supplied the requirement and it is written here. IMPLEMENTED, BUILDS, DEVICE-VERIFIED, SECURITY-VERIFIED and BENCHMARKED require separate code/CI/runtime evidence. A documentation commit alone cannot satisfy any acceptance test. Do not infer current integration support, bank compatibility, phone app availability, model capability or user-granted permissions. This section makes no external-source verification claims.
 
@@ -3804,6 +3804,300 @@ Also in C12: CI lint and format gates repaired (`edaf6d2`); an installed app res
 
 **Owner's corrections preserved exactly:** Live and Background are two dropdown options; avoid repeated approvals for routine work; real authorized bank details can be used for the task but unnecessary sensitive details are withheld from external parties; connect once and continue within authorized tool scope; glass-gradient animated guide with top-right ×; generate simple forms for complex websites/apps; automatic authorized context discovery replaces mandatory Smart Dropzones; passive preview without ordinary approval buttons; historical timeline with real recovery boundaries; user-only habit intelligence; simplification; website/phone/desktop continuity; and **NO AUTONOMOUS PAYMENTS** in the money package.
 
-**Earlier separately titled "12 potentially transformative OCADE features":** The title is known from the owner's request, but a distinct verbatim list is **NOT PRESENT IN THE CURRENT ACCESSIBLE SOURCES**. Do not silently equate it to the revised list or fabricate missing entries. If the owner supplies the earlier 12 list, append an item-by-item reconciliation here with ALREADY COVERED / NEW / REJECTED / SUPERSEDED labels and full engineering detail. Until then, the 12 explicit revised items and all eight products are fully captured; the existence/content of any *additional* 12 items remains unverified.
+**Earlier distinct 12 transformative features — source gap CLOSED:** The original list is now available and specified as T12-01–T12-12 in Part 28.1. Part 28.6 records overlaps with existing Parts 14C, 14E, 14F and 27, while Part 28.5 defines independent tests. The 12 revised features in Part 27.2 remain separate and unchanged.
 
-**No old information removed:** This entire Part 27 was appended after the prior plan. Do not delete prior sections, source citations, historical requirements or CI gates in future implementation passes. New requirements must be traced to existing code and tests, not substituted for past commitments. The user has not approved main-branch merge, deployment, paid service calls, live payments, physical-device access or skipping the coding-complete GREEN gate.
+**Historical preservation:** Parts 0–27, prior ledgers, source references, source citations, benchmark gates and implementation evidence remain preserved except for the owner's explicit removal of separate-chat/Claude-visibility instructions and the necessary correction of the now-resolved missing-list notices. Part 28 is additive. Do not delete prior requirements or replace earlier feature packages. The user has not approved main-branch merge, deployment, paid service calls, live payments, physical-device access or skipping the coding-complete GREEN gate.
+
+## Part 28. Recovered transformative OCADE features, named research concepts and complete engineering contracts — additive post-03b770d4 inventory (16 November 2026)
+
+### 28.0. Scope, precedence, source classification and non-duplication
+
+**Source inventory:** The owner supplied the exact original 12-feature list (OCADE LifeOS, Outcome Autopilot, Problem Radar, Business-in-a-Box, Opportunity Engine, Work Simulation, Proof Passport, Recovery Intelligence, Personal Knowledge Vault, Human Expert Escalation, Verified Skill Network, Time Reclaimed Dashboard), an outline of a 30-idea/5-superproduct business research report, an outline of a 100-feature technical report, and named concepts including SkillForge, CheckPoint, LegacyBridge, Ghost Cursor, Instant Mini-Apps, Anti-Scam Guardian, Skill Marketplace and UI Repair Network. The original 12 were initially presented as STRATEGIC CANDIDATES; the owner's subsequent instruction to add every missing/partial item makes them COMPLETE DOCUMENTED DESIGN REQUIREMENTS for consideration and staged implementation, not a claim of existing working code or permission to launch a marketplace, health product, payment service or regulated advice.
+
+**Relationship to previous scope:** Part 14F remains the binding live-vision/parallel-agent/floating-composer contract; Part 27 remains the binding revised 12-feature and four-package/eight-product contract. Part 28 completes the DISTINCT original transformative 12 and the named research concepts. The original 12 do not replace the revised 12, and the five research product families do not replace the four owner-approved packages. Reuse one task authority, existing Supabase identity/RLS/event journal, native companion, provider/BYOK gateway, capability registry, permissions/effect gate, skill store, verifier and Library. Add schemas/modules only where the current code demonstrably lacks the needed capability; never create a second autonomous execution or billing engine.
+
+**Status language:** DOCUMENTED REQUIREMENT is not IMPLEMENTED. A proposed capability is not an available integration, verified service, approved background monitor, live financial transaction or production-ready feature. P0/P1/P2 are sequencing recommendations subject to existing whole-product release gates, owner approval and technical evidence. No autonomous payments, hidden background surveillance, cross-user memory, unapproved expert referral, unsolicited mass applications or unreviewed third-party executable skills. Apply the literal second-line extreme UX mandate and all 34 named UX laws to every new interaction.
+
+**Source limitation:** The supplied excerpts name all 12 transformative features and several additional concepts but DO NOT contain the complete verbatim 30 individual business ideas, all 100 individual technical ideas, or five add-ons for each of the 30. Do not invent those unseen lists or mark them recovered. The requirements below fully specify EVERY NAMED item available in the supplied excerpts. Any future full report must be compared against this ledger without deleting or duplicating existing work.
+
+### 28.1. ORIGINAL 12 TRANSFORMATIVE FEATURES — full product, architecture, safety and acceptance contracts
+
+#### 28.1.1. T12-01 — OCADE LifeOS (P1; personal administration workspace)
+
+1. **User outcome:** A private, coherent view of unfinished personal administration across documents, deadlines, applications, subscriptions, renewals and tasks. This is a workspace within existing OCADE Chat/JARVIS/Library, not a new OS, independent memory engine or replacement file manager.
+2. **Entry and interface:** Show a compact Today / Upcoming / Waiting / Completed view; group obligations by person, project and urgency; allow search, filters, source links, dismiss, edit, snooze and user-created items. Present one best next action with a transparent reason, not an overwhelming dashboard or forced setup.
+3. **Authorized discovery:** Ingest only user-selected or separately consented sources: connected mail, calendar, cloud storage, local folders, open applications, receipts and forms. Every item records source account/resource, retrieval time, freshness, confidence, owner, visibility and permission scope. A connected service is not permission to index all its contents.
+4. **Normalization:** Deduplicate identical obligations across email, calendar and files; preserve distinct versions and conflicting deadlines; represent due date, timezone, amount (if applicable), required evidence, dependency, responsible person and source of truth. Unknown deadlines remain UNKNOWN, not fabricated.
+5. **Actions:** Prepare checklists, draft forms and messages, request missing information, schedule authorized reminders, launch existing package workflows and link Proof Passports. A LifeOS card is not authority to submit, purchase, cancel, delete or share externally.
+6. **Data and privacy:** Tenant/user-scoped records, encryption, access controls, selective retention and export/delete; household records require explicit per-person grants. Do not infer legal ownership of a shared file from its presence on a device.
+7. **Failures:** Expired account, inaccessible document, stale calendar, duplicate obligation, conflicting sources and missing timezone yield visible uncertainty and an actionable repair path; keep prior verified facts without claiming fresh monitoring.
+8. **Acceptance:** Two test users with overlapping filenames never see each other's cards; duplicate sources yield one obligation with both citations; timezone correction updates reminder; revoked source stops new reads; user can export/delete LifeOS data without deleting unrelated task history.
+
+#### 28.1.2. T12-02 — Outcome Autopilot (P1 after single-task reliability; persistent authorized goals)
+
+1. **User outcome:** Set an ongoing outcome such as “keep invoices followed up weekly” or “prepare required renewal documents” once; OCADE continues only within explicit, revocable scope rather than needing repeated prompts.
+2. **Goal contract:** Store goal ID, desired measurable outcome, permitted source/resource IDs, action classes, recipient/audience, schedule/event triggers, budget and rate limits, quiet hours, expiration, confirmation policy, success check, stop condition and owner. Display the contract in plain language before activation.
+3. **State machine:** DRAFT → AWAITING_AUTHORIZATION → ACTIVE → CHECKING → WORKING → VERIFYING → COMPLETED / PAUSED / BLOCKED / EXPIRED / REVOKED. Recurring goals may return to ACTIVE after a verified cycle; one-off goals do not silently become perpetual subscriptions.
+4. **Triggers:** Time schedule, authorized connector webhook, permitted local change event or user instruction. Deduplicate events by source event ID and observation version; no constant cloud-model polling when an event, cached result or deterministic check suffices.
+5. **Execution:** Reuse the existing task graph, effect gate, skill replay and verifier. Allow harmless in-scope reads/drafts to continue; any new recipient, larger amount, newly sensitive source, irreversible submission or changed grant requires renewed confirmation.
+6. **Cost and autonomy:** Enforce per-run and rolling spend/call ceilings, BYOK ownership, maximum parallelism, failure/retry caps and provider rate limits; stop or ask if a budget would be exceeded. No autonomous payments.
+7. **Visibility:** One compact active-goal list with last check, next check, what changed, verified outcome, cost and Pause/Stop/Revoke. Explain “no change detected” separately from “could not check”.
+8. **Recovery:** On offline device, revoked token, missed schedule or unknown external effect, persist the event and safely resume/reconcile; never replay a consequential action whose outcome is unknown.
+9. **Acceptance:** A recurring invoice task runs once per scheduled cycle, does not duplicate an email on reconnect, obeys quiet hours and recipient scope, pauses on revoked authorization and never exceeds its atomic budget.
+
+#### 28.1.3. T12-03 — Problem Radar (P1; consented proactive detection)
+
+1. **User outcome:** Detect relevant problems before the user notices them: missing documents, approaching deadlines, inconsistent records, failed automations, unverified submissions and expired connections. Offer an evidence-backed fix, or perform a previously authorized low-risk correction.
+2. **Consent boundary:** Explicit per-source monitoring opt-in with exact category, cadence, data retention and alert destination. No covert always-on microphone, full-desktop capture, indiscriminate mail scanning or monitoring of unselected people/accounts.
+3. **Detection engine:** Deterministic rules first (deadline arithmetic, missing required fields, mismatch in invoice totals, stale connection, task-state timeout, checksum changes); use an authorized model only for ambiguous semantic interpretation. Preserve source evidence and confidence.
+4. **Signal model:** Finding ID, rule/version, observed resource, evidence, severity, confidence, first/last seen, duplicate fingerprint, remediation candidate, owner and resolved/snoozed status. Suppress repeat alerts unless severity, evidence or deadline materially changes.
+5. **User experience:** One concise issue card: “what changed / why it matters / evidence / recommended fix / next deadline / fix or dismiss.” Distinguish observed facts from forecasts and speculation. Respect quiet hours and alert-frequency budgets.
+6. **Actions:** Open existing LifeOS item, create Deadline Guardian reminder, propose a Refund/Forms workflow, repair a failed task, or run an already-authorized reversible fix. No new external submission or sensitive disclosure without required confirmation.
+7. **Abuse resistance:** Prompt-injected emails/documents cannot create new monitors, change severity rules, grant access or authorize spending. A false positive must be dismissible and teach the detector only within the user's private preferences.
+8. **Acceptance:** Detect a synthetic missing attachment and impending deadline; suppress duplicates; show exact evidence; reject ungranted folder monitoring; a revoked connector stops checks; uncertain findings never display as confirmed facts.
+
+#### 28.1.4. T12-04 — Business-in-a-Box (P1/P2; coherent small-business operations)
+
+1. **User outcome:** An AI-assisted operations workspace for small businesses using their EXISTING software for invoicing, receivables, reconciliation, client records, onboarding and administration. It packages the approved Business Money Assistant, Business Launch Assistant and relevant forms/ledger workflows; it does not replace those four packages.
+2. **Onboarding:** Identify business entity, jurisdiction, role, connected accounting/CRM/mail/project apps, customer records, currencies, fiscal calendar, invoice numbering and permitted users. Show supported integrations honestly; do not pretend a legacy app has an API.
+3. **Workflows:** Import/reconcile invoices, identify overdue balances, prepare polite collection messages, flag cashflow risks, update authorized CRM records, organize receipts, onboard clients and create verified project workspaces. Link the eight Part 27 products rather than duplicating their engines.
+4. **Shared data:** Normalize customers, invoices, payments received, expenses, tasks, projects, document references and external IDs with provenance and account-scoped versioning. Do not overwrite an accounting system's authoritative ledger without a validated update path.
+5. **Roles and collaboration:** Owner/admin/operator/viewer with per-business and per-resource grants; prevent an employee from inheriting a business owner's personal banking access. Support separation of duties for high-impact actions.
+6. **Financial restrictions:** OCADE may read and prepare permitted financial information but cannot autonomously transfer funds, pay invoices, make purchases or represent estimated cashflow as guaranteed. Sensitive client disclosure and new outbound recipients require appropriate consent.
+7. **Reliability:** Idempotent imports, reconciliation reports, conflict resolution, dry-run previews for bulk edits, checkpoints and source-of-truth readback. Export interoperable records; do not lock users into proprietary unexportable formats.
+8. **Commercial boundary:** Pilot one narrowly defined professional workflow first; do not claim universal accountant replacement, regulatory compliance, guaranteed debt collection or positive ROI without observed evidence.
+9. **Acceptance:** Correctly reconcile paid/partial/disputed invoices, detect duplicate imported receipts, isolate two businesses, create one verified onboarding workspace, block unauthorized mass mail and prove no autonomous payment path exists.
+
+#### 28.1.5. T12-05 — Opportunity Engine (P1/P2; relevant opportunities without spam)
+
+1. **User outcome:** Discover suitable jobs, clients, grants and business opportunities; explain fit; prepare truthful applications or outreach; require the correct authorization before external submission.
+2. **Profile:** User-controlled skills, résumé/portfolio, business capabilities, region, budget, eligibility, preferred sectors, exclusions, availability, desired compensation and application history. Mark inferred preferences as editable suggestions, not verified qualifications.
+3. **Discovery:** Use only permitted public sites and connected accounts; respect platform terms, robots/rate limits and anti-spam rules. Record listing URL, publisher, retrieval date, eligibility criteria, location, deadline and whether the listing is still open.
+4. **Ranking:** Show evidence-backed fit and missing requirements; separate explicit requirements from model inference. Filter duplicates, expired opportunities, scams, paid application traps and previously submitted listings.
+5. **Preparation:** Reuse Job Application Assistant and Live App Generator for resumes, cover letters, grants, proposals and client onboarding drafts. Never invent credentials, references, experience, financial statements or certifications.
+6. **Submission boundary:** External sends, applications, bids, sensitive attachments and any fees follow Part 27 effect policy; default to user review for new recipients and legally consequential attestations. Never buy applications, pay fees or auto-submit high-volume spam.
+7. **Tracking:** Track draft, reviewed, submitted, externally confirmed, response received, closed and unknown states, with real receipts and source references. No “applied” status from a clicked button alone.
+8. **Acceptance:** Reject an expired grant and a fake credential requirement; detect a duplicate job; draft an accurate application; require consent for external submission; preserve a real receipt; stop when source access is revoked.
+
+#### 28.1.6. T12-06 — Work Simulation (P1; safe rehearsal before consequential changes)
+
+1. **User outcome:** Rehearse a potentially destructive or expensive workflow on a copy, preview or safe environment and show the likely differences before modifying real resources.
+2. **Eligibility:** Classify each planned step as pure/read-only, locally copyable, API dry-run capable, sandboxable, externally irreversible or NOT SIMULATABLE. Never claim a real bank transfer, email delivery, government submission or live third-party action was safely simulated when no faithful sandbox exists.
+3. **Simulation plan:** Capture resource identity/version, permissions, dependencies, expected preconditions, predicted side effects, validation checks, cost and rollback limits. Use versioned temporary files, application-native previews, test tenants or provider-supported sandbox endpoints when available.
+4. **Isolation:** No live recipients, payment rails, real production credentials or accidental network writes in a rehearsal. Enforce filesystem/process/network restrictions; explicitly label any simulation that cannot isolate external calls.
+5. **Diff and preview:** Show before/after files, records, UI state, totals, recipients, permissions and expected irreversible effects. Distinguish deterministic verified diffs from AI-predicted or approximate effects.
+6. **Promotion to real execution:** Revalidate actual source revision, target account, grants, recipient, cost and side-effect class immediately before execution. A successful rehearsal is NOT approval to perform a sensitive live effect.
+7. **Failure behavior:** If production differs from the simulated snapshot, invalidate the preview and rerun or ask. On unsupported applications, show “preview unavailable” and rely on narrow direct verification/approval instead of fake certainty.
+8. **Acceptance:** Simulated bulk file rename changes only copies; production files stay byte-identical until approved; a changed source version invalidates simulation; an external payment cannot be marked simulated; replaying a simulation never sends real messages.
+
+#### 28.1.7. T12-07 — Proof Passport (P1; portable verified outcome evidence)
+
+1. **User outcome:** Every completed consequential task may produce a user-inspectable, portable evidence package showing what changed, what was checked, and what remains uncertain. Extend the existing ELITE-04 Customer ProofPack, task journal, verifier and Part 27 timeline; do not create a second unverifiable receipt service.
+2. **Manifest:** Passport ID, task/goal ID, time, executing device/app version where permitted, authorized resource identifiers, source revision/hash, action summary, output hashes, verifier method/version, checks passed/failed, unresolved exceptions, irreversible effects and evidence expiration.
+3. **Evidence types:** Native API readback, filesystem existence/hash and parse checks, browser/API confirmation, official submission receipts, application-specific assertions and user-acknowledged manual verification. Label each with confidence and scope; a screenshot or model narrative alone does not certify completion.
+4. **Export:** Human-readable concise report plus machine-readable versioned JSON manifest and optional redacted artifacts; interoperable download from Library and optional explicit share. Include integrity hashes and, if a trusted signing key exists, verifiable signatures; do not falsely imply a third-party certification.
+5. **Privacy:** Default redaction of bank numbers, addresses, private documents, tokens, child/medical data and unrelated app content. Allow selective disclosure with exact recipient/scope and expiration where supported. Never include raw secrets in public links or signatures.
+6. **Status:** Distinguish VERIFIED, PARTIALLY VERIFIED, FAILED, UNKNOWN EFFECT and USER-ATTESTED. A future app change or deleted artifact must not retroactively imply a previously verified check was still valid.
+7. **Recovery integration:** Passport links to timeline checkpoints and correction runs; a later fix produces a new linked revision rather than silently editing past evidence.
+8. **Acceptance:** Independent verifier recomputes a file hash; manifest cannot say VERIFIED when a check fails; a redacted export contains no sensitive fixture; an altered manifest fails integrity validation; unknown external effect is explicitly UNKNOWN.
+
+#### 28.1.8. T12-08 — Recovery Intelligence (P0/P1; verified checkpoint recovery)
+
+1. **User outcome:** Recover from interrupted, failed or partially completed work without losing verified progress or repeating consequential actions. Extend existing checkpointing, task state machine, idempotency keys, STOP fencing, Time-Travel Timeline and Part 14F parallel coordination.
+2. **Checkpoint contract:** Record task/goal ID, worker and lease owner, causal event sequence, dependency versions, source hashes, external action IDs, preconditions, known side effects, durable outputs, permission epoch and last independently verified state.
+3. **Failure taxonomy:** Crash, timeout, network disconnect, stale window, moved file, changed form, revoked connector, expired OAuth, quota, provider error, user takeover, partial write, uncertain submission and concurrent agent conflict.
+4. **Resume algorithm:** Rehydrate verified facts; reacquire current resource/permission leases; reconcile external effects from authoritative readback; skip completed idempotent steps; replan only affected dependencies; revalidate all stale observations. Unknown irreversible effects require investigation or human confirmation, NEVER blind replay.
+5. **User controls:** Resume, retry safe step, view error, restore supported reversible state, hand off to Live, Stop and export diagnostic receipt. State clearly when restoration is impossible.
+6. **Data integrity:** Transactional/atomic file writes where feasible, temporary output cleanup, rollback only for proven reversible changes, immutable event evidence and no cross-user or cross-device checkpoint reuse without new grants.
+7. **Efficiency:** Avoid re-running already verified expensive model calls/renders; cache by authorized input/version and invalidate on changed dependencies.
+8. **Acceptance:** Inject crash after an email API success but before local acknowledgment; reconcile one send only. Inject two parallel workers on the same file; one conflict must fail safely. STOP/revocation must prevent resumed side effects; verified outputs survive restart.
+
+#### 28.1.9. T12-09 — Personal Knowledge Vault (P1; encrypted user-controlled portable knowledge)
+
+1. **User outcome:** An inspectable, exportable, encrypted history of user-consented documents, preferences, facts, project knowledge and completed work, private to that user. Extend existing Part 14E private memory and Library rather than constructing a separate shadow memory store.
+2. **Ingestion:** Per-source opt-in and explicit source type (uploaded file, selected folder, permitted connector, task result, user-entered note). Record content owner, provenance, observed time, extraction method, confidence, retention class and source permissions.
+3. **Knowledge model:** Separate explicit user facts, inferred preferences, document excerpts, citations and verified task outcomes. Link derived facts back to source versions; avoid silently promoting model guesses into user assertions.
+4. **Retrieval:** Tenant/user RLS enforced before retrieval; least relevant necessary snippets only; source authorization checked again at use time; no mixing personal and business or household knowledge without explicit grants.
+5. **Security:** Encrypt at rest and in transit, isolate keys according to the existing security architecture, minimize raw sensitive payloads, never memorize passwords, PINs, MFA codes, card CVVs or unapproved private banking secrets. Do not assert end-to-end encryption unless the deployed key architecture actually provides it.
+6. **Control:** View why a memory was used, correct, forget, source-disable, export in documented interoperable formats, delete and revoke. Explain backup/retention and deletion limitations honestly.
+7. **Model/provider use:** BYOK and provider privacy rules apply; do not send whole vaults to models by default. Prompt injection inside retrieved documents cannot alter policy or tool authority.
+8. **Acceptance:** Cross-tenant retrieval tests return zero foreign facts; correcting a false preference changes future suggestions; deleted/disabled source stops retrieval; export is readable and complete for permitted records; token/secret fixtures never enter memory.
+
+#### 28.1.10. T12-10 — Human Expert Escalation (P2; explicit qualified specialist handoff)
+
+1. **User outcome:** When a task reaches a regulated, ambiguous or high-stakes boundary, the user may explicitly request an appropriately qualified human specialist while preserving task context. This is an opt-in referral/handoff workflow, not automatic outsourcing.
+2. **Triggers:** User request, unresolved legal/tax/medical/financial interpretation, contested evidence, repeated verifier failure, inaccessible official process or a consequential decision beyond supported AI authority. Clearly state what OCADE can and cannot verify; do not pretend an expert has been engaged.
+3. **Expert discovery:** If a real partner network is ever launched, verify jurisdiction, professional license/credential where relevant, specialty, availability, conflicts of interest, data handling and fees. Until verified partners exist, offer a user-exportable case packet for the professional of their choice.
+4. **Handoff packet:** User-selected summary, goal, relevant redacted documents, source links, timeline, proof checks, open questions and requested deliverable. Preview EXACTLY what will be shared and with whom.
+5. **Consent and cost:** Separate explicit consent to contact/share; display identity, scope, estimated fees and who pays before any action. No surprise charges, automatic appointments, undisclosed referrals or sharing sensitive data based solely on a model recommendation.
+6. **Boundaries:** Human response is advice or evidence, not an unrestricted new tool grant. Record provenance and user review before applying proposed changes; preserve professional confidentiality and jurisdiction-specific requirements.
+7. **Fallback:** No partner, unverified license, unavailable service, declined consent or unresolved conflict must produce an honest export/self-service path, not a fabricated referral or fake expert answer.
+8. **Acceptance:** A mock unlicensed partner is rejected; zero private files leave before consent; a user can exclude a document; quoted fees remain nonbinding until verified; expert response cannot silently execute a bank payment or delete a file.
+
+#### 28.1.11. T12-11 — Verified Skill Network (P1 private / P2 optional sharing)
+
+1. **User outcome:** Convert successful workflows into reusable tested procedures, with optional publication of sanitized skills to others. Extend existing Part 14E Skills, verified-route replay, ELITE-05 Certified Workflow Library and one capability registry.
+2. **Skill schema:** Skill ID/version, author/owner, task intent, parameter types, required app/OS/provider versions, dependencies, requested capabilities, exact permission scopes, cost bounds, action classes, pre/postconditions, supported locales and tests.
+3. **Capture:** Learn from explicit authorized demonstrations or independently verified successful tasks; strip private filenames, account IDs, tokens, prompts containing secrets, user identities and recipient lists. Replace values with typed parameters and resource selectors.
+4. **Verification:** Run synthetic and held-out fixtures, negative permission tests, changed-UI tests, idempotency tests and rollback checks; classify UNVERIFIED, PRIVATE VERIFIED, REVIEWED PUBLIC or QUARANTINED. Publication does not grant automatic trust or execution rights.
+5. **Execution:** Resolve fresh user permissions and current app identity every run; compile deterministic steps when safe; fall back to model reasoning at failed guards. Reject code/tool installation outside the permitted capability sandbox.
+6. **Sharing:** Default private; optional explicit publisher review, license, version signing/integrity, abuse reporting, malware scanning and privacy scrub. No public marketplace or automatic cross-user learning before separate owner approval and security readiness.
+7. **Maintenance:** Detect UI/provider drift, quarantine broken skills, stage repair proposals, regression-test and permit rollback. Never propagate a single user's unverified repair to all users.
+8. **Acceptance:** Private skill replays without repeated model clicks; sanitized export has no fixture secrets; revoked connector blocks a skill; changed selector quarantines rather than misclicks; one user's skill never reads another user's memory.
+
+#### 28.1.12. T12-12 — Time Reclaimed Dashboard (P1; evidence-based value reporting)
+
+1. **User outcome:** Show verified work completed, errors prevented, estimated time reclaimed and actual costs so users can judge OCADE's value. Extend STRAT-05 outcome dashboard and Proof Passport; avoid a separate analytics truth source.
+2. **Metrics:** Completed tasks by verified status, durable artifacts, success/failure/unknown counts, corrections, recoveries, human interventions, actual platform fees, model usage attributable to OCADE where observable and recurring goal outcomes.
+3. **Time saved method:** Establish a user-supplied or independently measured manual baseline per task type; subtract measured OCADE supervision and correction time; show estimate, method, sample size and uncertainty. Do not convert arbitrary agent seconds into guaranteed human hours.
+4. **Errors prevented:** Count only a documented detected error with evidence and a prevented or corrected effect; do not infer a prevented fraud or hypothetical loss from a warning alone.
+5. **Money:** Show actual paid platform charges separately from BYOK vendor charges not visible to OCADE; display estimated external fees only when explicitly labeled. Recovered invoice face value is not OCADE revenue or realized customer savings until verified.
+6. **UX:** Simple Today / Week / Month / All Time with expandable per-task receipts, clear zero/unknown states, CSV export and optional private goal comparisons; no manipulative gamification or inflated “10,000×” claims.
+7. **Privacy:** Tenant/user-specific aggregation, consented analytics, minimal telemetry and controls to disable optional reporting; do not publish individual productivity or family activity.
+8. **Acceptance:** Recompute totals from independently verified task fixtures; a failed task does not count as completed; unknown baseline displays “time saved unavailable”; duplicate retries count once; exported report matches on-screen values.
+
+### 28.2. OTHER NAMED TECHNICAL AND PRODUCT CONCEPTS — fully specified, linked to existing contracts
+
+#### 28.2.1. SkillForge — learn once, execute deterministically (P1)
+
+- **Product behavior:** With explicit recording consent, observe a bounded demonstration in a selected application/window, identify task goal, input parameters, actions and success conditions; show an editable proposed workflow before saving. Provide visible recording status and immediate STOP; no covert whole-desktop recording.
+- **Architecture:** Combine native app/DOM/accessibility events with permitted targeted video evidence from Part 14F; infer stable semantic selectors and parameterized steps, then compile a guarded workflow using ELITE-02. Store user-private skill version, dependency and capability manifest in the existing skill store.
+- **Safety:** Never memorize passwords, OTPs, bank secrets or unapproved recipient data; separate observation consent from future execution authorization; test against changed UI and deny silent privilege expansion.
+- **Acceptance:** A repeated supported workflow replays with fewer model calls, correct new parameters and independently verified output; stale selectors fail closed; a user can edit, disable and delete the learned skill.
+
+#### 28.2.2. CheckPoint — independent effect approval and verified result (P0/P1)
+
+- **Product behavior:** One reusable sensitive-action boundary showing exact operation, affected account/resource, recipient, data, cost, reversibility and approval expiry. Routine preauthorized operations do not cause repeated popups. For material risks use a confirmation channel outside untrusted AI-generated content.
+- **Architecture:** Implement as a presentation of the EXISTING effect gate, STOP epoch, identity/session assurance, task journal and verifier. Connect to Part 27 Smart Approvals, Proof Passport and Recovery Intelligence; no second permissions database.
+- **Safety:** Prompt injection cannot forge consent; stale target, changed amount, changed recipient or expired grant invalidates approval. For money, preserve Part 27 no-autonomous-payments rule.
+- **Acceptance:** One routine 50-step task has no approval spam; one sensitive send is blocked until the real user confirms; altered payload after approval is rejected; verified result matches authoritative readback.
+
+#### 28.2.3. LegacyBridge — reliable operation of older software (P1)
+
+- **Product behavior:** Support authorized installed business/desktop software lacking modern APIs through the user's native companion, supported file import/export, command interfaces, OS accessibility, app scripting and targeted vision. Do not require a VM or replacement cloud desktop.
+- **Adapter contract:** App identity/version, capability list, safe read/write methods, window/session identity, foreground requirement, required license/plugin, expected latency, rollback support, observation source, confidence and test fixture.
+- **Execution policy:** Prefer native files/scripts and semantic UI automation; only use pixel coordinates with fresh window/geometry verification. Shared foreground pointer is leased; Background mode cannot hijack the user's mouse.
+- **Acceptance:** Complete a supported legacy-app fixture using real local software and verify saved output; a version change invalidates unsafe automation; app crash and permission denial recover without unrelated desktop input.
+
+#### 28.2.4. Ghost Cursor — passive preview, not simulated authority (P0)
+
+- **Product behavior:** Reuse Part 27 Passive Ghost Preview and Part 14F colored agent cursor overlays. Show the next intended target and actual agent ownership with a distinct planned/active/verified/blocked visual state. Never render fictional parallel cursor work.
+- **Security:** A ghost preview is not approval; no ordinary-action approval buttons; consequential effects still pass the independent effect gate. Overlays must not intercept user input, leak unrelated windows or steal focus.
+- **Acceptance:** Replan invalidates an old preview; a failed action changes to blocked, not success; two real agents have distinct stable identities; the system cursor remains under the user's control in Background mode.
+
+#### 28.2.5. Instant Mini-Apps — generated task-specific forms (P0/P1)
+
+- **Product behavior:** Alias of Part 27 Live App Generator and Simplification Mode: create a temporary, attractive, accessible form for a complex website or desktop application without claiming the original app was replaced.
+- **Mapping:** Generate typed fields, dependencies, validation, source references, current-value readback and action bindings from authorized app state; preserve required legal disclosures, error messages and the original-view escape.
+- **Safety:** Generated forms cannot silently submit, expand OAuth scopes or bypass provider MFA; map every value to a current target and verify the official result after permitted submission.
+- **Acceptance:** Multi-page conditional form correctly maps required fields; stale mapping blocks submit; screen reader/keyboard use works; the user can switch to original app without losing their draft.
+
+#### 28.2.6. Anti-Scam Guardian — evidence-based safety warnings (P1; opt-in)
+
+- **Product behavior:** Warn about suspicious links, look-alike domains, unexpected recipient/payment-detail changes, credential-harvesting forms, malicious document instructions and anomalous external-sharing requests encountered during an AUTHORIZED OCADE workflow. This is not a blanket promise of fraud prevention.
+- **Detection:** Use domain/account identity, authenticated source provenance, known safe/blocked indicators, changed payee details, link/redirect analysis and explainable rule evidence. Use model reasoning only for ambiguous signals; report uncertainty and false-positive controls.
+- **Intervention:** Pause a suspicious consequential action and show exact evidence and a safe verification path. Do not intercept unrelated browsing or surveil other applications without opt-in. No autonomous money transfers or blanket blocking of legitimate user actions.
+- **Acceptance:** Detect a synthetic invoice payee swap and a look-alike login domain; a trusted but unusual workflow can be reviewed; warning contains source evidence; injected web text cannot suppress checks or authorize sending secrets.
+
+#### 28.2.7. Skill Marketplace — conditional optional distribution (P2, NOT approved launch)
+
+- **Product behavior:** A potential catalog for reviewed reusable skills with clear compatibility, publisher, permissions, price (if any), evidence, support and update history. The existing Plugins/Skills directory remains the default UI; do not create a second store or assume a public marketplace is already available.
+- **Governance:** Owner approval, actual demand, publisher verification, licensing/IP review, malware/secret scanning, signed/versioned manifests, independent fixture tests, refund/support policy and secure payment integration are prerequisites to any public paid offering.
+- **Safety:** No arbitrary downloaded code with unrestricted filesystem/network rights; each installation requires user-scoped grants; revocation, quarantine and incident response must work.
+- **Acceptance:** Unreviewed skill cannot publish; revoked permission blocks execution; malicious manifest is rejected; compatibility and price are never fabricated. This is a conditional research/design track, not a production release requirement until approved.
+
+#### 28.2.8. UI Repair Network — safely adapt broken workflows (P2)
+
+- **Product behavior:** Detect when a previously verified workflow fails because an app layout/selector/version changed; propose a locally tested repair and, optionally, distribute a sanitized generalized fix after review.
+- **Repair pipeline:** Detect drift → quarantine old skill → observe current authorized UI → propose new semantic selector/action → run negative and positive regression fixtures → verify real postconditions → version and stage release → monitor and roll back.
+- **Privacy and security:** Never upload user screenshots, secrets, private URLs or account-specific selectors to other users. Do not assume a successful fix for one account/locale/OS works universally; require compatibility signatures and consent for sharing.
+- **Acceptance:** Changed-site fixture quarantines unsafe automation; repaired skill passes held-out tests; a private user's repair does not expose their data; failed staged update rolls back without duplicate effects.
+
+#### 28.2.9. Smart Screen Understanding and dynamic @ picker — named technical priorities (P0)
+
+- **Vision:** Implement Part 14F V01–V10 hybrid perception: native app state, DOM/CDP, accessibility, app-scoped continuous window capture, event/diff gating, selective temporal model analysis, targeted screenshots, OCR parsing and verified replay. One bounded observation stream serves concurrent agents; no requirement to send every local video frame to a cloud model.
+- **Context picker:** Reuse Part 14E authorized @ catalog for apps, individual windows/tabs, files, folders, agents and tools. Show exact account/window identity, permissions, freshness and availability; typed @ chips do not grant new access.
+- **Acceptance:** Correct app/window target under focus changes, zero denied-resource suggestions, stale-frame refusal, truthful frame/model cost separation, no extra model calls for unchanged frames and successful independently verified saved output.
+
+#### 28.2.10. Independent approvals, Background Control and five technical-report priority corrections (P0)
+
+- **Five source priorities, all covered by binding contracts:** Smart screen understanding → Part 14F; learn/replay workflows → ELITE-02/SkillForge; background computer control → Part 14F and Part 27 Live/Background; independent approval system → CheckPoint/Part 27 Smart Approvals; dynamic @ picker → Part 14E/28.2.9.
+- **Unified acceptance:** A task can execute authorized native operations in Background without disturbing active keyboard/mouse use, uses only fresh permitted context, resumes after a safe interruption, and requests confirmation only for the correct consequential boundary.
+
+### 28.3. RESEARCH PRODUCT FAMILIES AND BUSINESS IDEAS — distinct from approved packages
+
+The earlier 30-idea business research excerpt describes FIVE possible broad families: **personal protection, business cash management, workflow automation, healthcare administration and enterprise security**. These are RESEARCH FAMILIES, not a mandate to replace Part 27's four packages or create five separate backends. Implement only scoped, lawful, validated use cases on the unified engine.
+
+1. **Personal protection:** Organize subscription/renewal/claims issues, detect consented deadline and scam signals, prepare evidence-backed remedies and show user-controlled next steps. Reuse LifeOS, Problem Radar, Deadline Guardian, Refund Assistant and Anti-Scam Guardian. Do not cancel contracts or share sensitive documents without applicable approval.
+2. **Business cash management:** Reuse Invoice Recovery, Cashflow Guardian, Micro-Business Ledger and Business-in-a-Box; connect real permitted records, show uncertainty, prevent duplicate reminders and NEVER autonomously move money.
+3. **Workflow automation:** Reuse SkillForge, Verified Skill Network, LegacyBridge, Outcome Autopilot, Proof Passport and Recovery Intelligence. Optimize verified cost and completion, not decorative agent counts or raw model throughput.
+4. **Healthcare administration:** Possible future paperwork, scheduling, claims and document organization only with jurisdiction-specific privacy review, explicit user authorization and qualified partner boundaries. Do not diagnose, prescribe, alter treatment, expose family medical data or claim regulated compliance without separate review and approval. This is NOT a currently authorized product launch.
+5. **Enterprise security:** Possible future policy-aware access, verified audit trails, connector least privilege, tenant isolation, safe incident handoff and administrative approvals. Do not introduce intrusive employee surveillance, unrestricted monitoring or a second enterprise permissions engine.
+
+**Named economic problems from the excerpts:** unpaid invoices, wasted subscriptions, business expenses, repetitive work, missed opportunities, fragmented legacy software, forms/claims and administrative overhead. Each proposed vertical must have a real user, observable outcome, permission contract, data-source feasibility, measurable cost-to-verified-success and a narrow pilot before expansion. The original suggested initial wedge was overdue small-business invoices; this is a strategic recommendation to validate, not a guarantee or an instruction to drop other approved OCADE scope.
+
+**Research brief retained as research, NOT fabricated inventory:** Evaluate 30 candidate ideas and five supporting add-ons per idea, group into five proposed superproducts, rank demand/profitability/feasibility/ease/defensibility, compare competitors, select one narrow launch wedge, and model December 2026–December 2036 development, distribution, pricing and economics. The excerpt does NOT provide the 30 names or 150 individual add-ons. Do not claim they have been transcribed or invent source-specific approval.
+
+**Financial hypotheses are not facts:** The earlier report's illustrative annual-revenue cases (2027 $12 million, 2031 $1.25 billion, 2036 $14.8 billion), proposed AI cost reduction for one complex workflow ($10.50 to about $0.06), and suggested $71–84 billion annual revenue to support a hypothetical trillion-dollar valuation depend on unverified assumptions. Never present them as achieved OCADE results, operating budgets, guaranteed pricing or implementation acceptance gates. A 2026 market survey claim is context to independently verify before external publication, not an engineering requirement.
+
+### 28.4. Unified implementation architecture, interfaces, security and UX
+
+1. **One authority:** Existing authenticated user/device/task/permission graph is the only source of action authority. All new features call the same capability registry, effect classifier, scoped grants, STOP epoch, task/event journal, model gateway, native companion and verifier. A plugin result, discovered opportunity, memory, skill, monitor or expert packet cannot expand those grants.
+2. **Common records:** Extend existing schemas, after inspecting current migrations, with typed concepts for OutcomeGoal, TriggerSubscription, RadarFinding, LifeObligation, OpportunityRecord, SimulationRun, ProofPassport, RecoveryCheckpoint, KnowledgeSource, ExpertHandoff, SkillVersion and ValueMetric. Prefer additive migrations, tenant/user keys, RLS, source-version hashes, encrypted sensitive fields and idempotency keys; never assume these tables already exist.
+3. **Provenance:** Every decision records the exact authorized source, observed version/time, deterministic rule or model interpretation, confidence, permission and verifier. Unknown is a first-class state. Distinguish planned, simulated, executed, externally confirmed and independently verified.
+4. **Resource arbitration:** Genuinely parallel independent work is allowed only with resource leases and version checks. No simultaneous unarbitrated mutation of one ordinary OS pointer, app window, file or external transaction. Share one app observation engine per authorized session; avoid duplicate capture/model calls across subagents.
+5. **Automation limits:** Persistent goals and monitors need explicit scope, schedules, rate/spend budgets, retention, user pause/revoke and expiry. No silent perpetual authority, no surprise payments, no cross-account data blending, no indefinite background video collection.
+6. **Sensitive effects:** Read/fill authorized real bank data when necessary; minimize external disclosure; money movement, irreversible deletion, sensitive external sharing, legally binding attestations and new recipients require the appropriate independent approval. Never bypass provider MFA, OS permission prompts or account authorization.
+7. **Portable evidence:** Proof Passport and Time Reclaimed Dashboard derive from the SAME verified event stream; the timeline and recovery engine reuse immutable evidence, not untrusted model narration. A simulated action never counts as a completed action.
+8. **Skill safety:** SkillForge capture → parameterized deterministic compiler → local/private verification → guarded execution → drift quarantine → optional sanitized publication. Skill Marketplace/UI Repair Network are P2 conditional paths with explicit governance and separate owner approval before release.
+9. **Expert and regulated boundaries:** Human Expert Escalation is opt-in, real-person and credential-verified where required. Healthcare administration, legal/tax interpretation, financial products and enterprise surveillance require additional jurisdictional, privacy and product reviews; no implicit regulatory certification.
+10. **User experience:** Apply all UX-01–UX-34 at an extreme: one clear next step, progressive disclosure, fast discoverability, minimal interruptions, visible STOP and permissions, meaningful error recovery, truthful status, accessible keyboard/screen reader/touch, reduced motion, responsive mobile/web/desktop handoff, no dark patterns.
+11. **Cost and performance:** Measure wall-clock time to verified outcome, actual model calls/tokens, local CPU/GPU, capture FPS versus analyzed FPS, failed/duplicate external effects, user interruptions, human corrections and provider spend. Targets must be measured on authorized representative tasks; never assert the earlier illustrative numbers as achieved.
+12. **No silent platform expansion:** Do not automatically launch a public skill store, create a native mobile app, hire specialists, provision paid infrastructure, add payment processing, start healthcare operations or change pricing solely because these features are specified. Each needs explicit implementation approval and existing release gates.
+
+### 28.5. Independent acceptance suite and fault-injection matrix (DOCUMENTED, NOT RUN)
+
+- **T01 LifeOS:** Deduplicate obligations from two authorized sources, preserve both citations, isolate users and correct timezone/permission changes.
+- **T02 Outcome Autopilot:** Two scheduled cycles execute only once each; revoke and budget exhaustion stop new effects; unknown external outcome does not retry blindly.
+- **T03 Problem Radar:** Detect missing evidence/deadline with source, suppress repeat notifications and reject an unconsented monitored folder.
+- **T04 Business-in-a-Box:** Two businesses remain isolated; invoice/ledger/onboarding work uses existing four packages; no autonomous payment.
+- **T05 Opportunity Engine:** Correctly reject expired, duplicate and scam listings; never invent applicant qualifications or submit without required consent.
+- **T06 Work Simulation:** Production hashes remain unchanged in rehearsal; stale inputs invalidate preview; irreversible third-party effects are labeled NOT SIMULATABLE.
+- **T07 Proof Passport:** Independent verifier reproduces hashes/checks; redacted export contains no secret; tampering invalidates integrity; UNKNOWN never becomes VERIFIED.
+- **T08 Recovery Intelligence:** Crash, reconnect, duplicated events, stale UI and revoked grant produce no duplicate irreversible effects or unauthorized writes.
+- **T09 Personal Knowledge Vault:** Cross-user RLS negative tests, opt-in source gating, correction/export/delete, secret fixture exclusion and model-context minimization.
+- **T10 Human Expert Escalation:** Unlicensed/unavailable expert fallback; exact consented packet; no data or money sent before explicit approval.
+- **T11 Verified Skill Network:** Changed-app quarantine, secret-free sanitized export, scoped replay and cross-user noninterference; no unapproved executable publication.
+- **T12 Time Reclaimed Dashboard:** Every visible value recomputes from evidence; missing baseline shows UNKNOWN; retry duplication cannot inflate work or time saved.
+- **X01 SkillForge:** User-approved demonstration yields typed, editable, independently verified replay; STOP halts capture and execution.
+- **X02 CheckPoint:** Ordinary actions proceed with one scoped grant; changed recipient/amount invalidates a sensitive approval; separate verifier confirms actual effect.
+- **X03 LegacyBridge:** Supported native app fixture completes without focus theft; stale version/geometry and app crash fail closed.
+- **X04 Ghost Cursor / Instant Mini-Apps:** Overlay shows real state and never grants authority; generated forms preserve required fields, legal disclosures and original view.
+- **X05 Anti-Scam Guardian:** Synthetic changed bank recipient and look-alike site trigger evidence-based warning; false positive can be reviewed.
+- **X06 Skill Marketplace / UI Repair Network:** Unreviewed skill cannot publish; user data is scrubbed; failed repair is quarantined and reversible.
+- **X07 Background / Vision / @ picker:** Independent concurrent tasks retain correct resource identity; no unauthorized screen capture, frame leakage, false 30-FPS model claims or desktop focus theft.
+- **X08 Cross-cutting:** Prompt-injected sources cannot modify grants; device loss/STOP/revocation fences all workers; OAuth/OS permission expiration is honest; no unauthorized financial effects; accessible mobile/web/desktop UI passes relevant WCAG 2.2 checks.
+- **X09 Evidence gate:** Report exact source commit, test fixture, OS/app version, run ID, passed/failed checks and remaining blockers. This documentation addition alone changes no implementation status, readiness percentage, deployment permission or real-world benchmark result.
+
+### 28.6. Complete source-to-plan coverage ledger and no-duplication map
+
+| Original named feature | New full contract | Existing architecture reused | Documentation coverage |
+|---|---|---|---|
+| 1. OCADE LifeOS | T12-01 / 28.1.1 | Part 14E memory, Library; Part 27 family/admin | COMPLETE |
+| 2. Outcome Autopilot | T12-02 / 28.1.2 | Existing task authority, scheduling, Part 27 habits | COMPLETE |
+| 3. Problem Radar | T12-03 / 28.1.3 | Existing event monitoring; Deadline Guardian | COMPLETE |
+| 4. Business-in-a-Box | T12-04 / 28.1.4 | Part 27 four packages/eight products | COMPLETE |
+| 5. Opportunity Engine | T12-05 / 28.1.5 | Part 27 Job Application Assistant and Live App | COMPLETE |
+| 6. Work Simulation | T12-06 / 28.1.6 | Existing verifier, checkpoints and resource versioning | COMPLETE |
+| 7. Proof Passport | T12-07 / 28.1.7 | ELITE-04 ProofPack, timeline, verifier | COMPLETE |
+| 8. Recovery Intelligence | T12-08 / 28.1.8 | Checkpoints, STOP, idempotency, Part 27 timeline | COMPLETE |
+| 9. Personal Knowledge Vault | T12-09 / 28.1.9 | Part 14E user-only memory and Library | COMPLETE |
+| 10. Human Expert Escalation | T12-10 / 28.1.10 | Existing calibrated uncertainty; new opt-in handoff | COMPLETE |
+| 11. Verified Skill Network | T12-11 / 28.1.11 | Part 14E Skills, ELITE-05, guarded replay | COMPLETE |
+| 12. Time Reclaimed Dashboard | T12-12 / 28.1.12 | STRAT-05 outcome dashboard, Proof Passport | COMPLETE |
+
+**Additional named technical concepts:** SkillForge, CheckPoint, LegacyBridge, Ghost Cursor, Instant Mini-Apps, Anti-Scam Guardian, Skill Marketplace, UI Repair Network, Smart Screen Understanding, dynamic @ picker, Background Control and independent approvals are ALL explicitly specified in Part 28.2, with security boundaries and acceptance tests. The five broad research families and the 30/100-idea research brief are in Part 28.3. The already-approved revised 12 and eight products remain detailed in Part 27; the 10 live-vision architectures and inspected GitHub references remain in Part 14F.
+
+**Remaining source limitation, NOT an unfinished named feature:** Only summaries of the full 30-idea and 100-feature research reports were supplied. Their unprovided individual entries, per-idea five add-ons, complete 2026–2036 business model and full underlying research cannot be verified or reproduced from excerpts. The named requirements above are fully specified; additional unseen ideas are neither invented nor marked complete.
+
+**Implementation status:** All entries in this Part are DOCUMENTED and NOT CODE-VERIFIED. Future agents must implement and test against the existing coding-complete, security, physical-device and deployment gates before claiming any feature works.
