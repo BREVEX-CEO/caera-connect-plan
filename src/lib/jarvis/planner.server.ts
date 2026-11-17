@@ -1188,6 +1188,19 @@ const batchable = (action: ActionIntent) =>
 
 /** One planning turn for a model-planned task. */
 /**
+ * What a step does, in the person's words (plan 14B.3.2): the operation's own first clause and
+ * the file, website or app it is for, never a tool identifier.
+ */
+export function stepSummary(operation: Operation, args: Record<string, unknown>): string {
+  const what = OPERATIONS[operation].summary.split(/[.;:(]/)[0]!.trim();
+  const page = args.page as { site?: unknown } | undefined;
+  const on = [args.output, args.path, args.url, page?.site, args.app, args.window].find(
+    (value): value is string => typeof value === "string" && value.length > 0,
+  );
+  return (on ? `${what}: ${on}` : what).slice(0, 160);
+}
+
+/**
  * One specialist analyst: the complete results of the steps it was given (bounded), one
  * question, one answer. A specialist that cannot answer says so; it never fails the turn.
  */
@@ -1581,7 +1594,7 @@ export async function planStep(input: {
     }
     return {
       operation,
-      summary: `${operation.replace(/^\w+\./, "").replace(/_/g, " ")}`,
+      summary: stepSummary(operation, args as Record<string, unknown>),
       // Long renders get their own bound; everything else keeps the ten-minute deadline.
       intent: intent(
         operation,

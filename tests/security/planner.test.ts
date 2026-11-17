@@ -373,3 +373,17 @@ test("the coordinator's specialists answer in parallel from complete results, an
     );
   }
 });
+
+test("a step is described in the person's words, never by a tool identifier", async () => {
+  const { stepSummary } = await import("../../src/lib/jarvis/planner.server.ts");
+  assert.equal(
+    stepSummary("fs.write_text", { path: "OCADE output/total.txt", text: "x" }),
+    "Write a new plain-text file: OCADE output/total.txt",
+  );
+  assert.equal(
+    stepSummary("web.read", { page: { id: "p1", site: "example.com" } }),
+    "Read the visible text, links and form fields of an open web page: example.com",
+  );
+  for (const name of Object.keys(OPERATIONS))
+    assert.doesNotMatch(stepSummary(name as never, {}), /[a-z]+[._][a-z_]+\b|\.py|\.ts/, name);
+});
