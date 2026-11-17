@@ -22,7 +22,7 @@ import {
 
 const user = "00000000-0000-4000-8000-000000000001";
 
-function request(): Request {
+function request(attachments: unknown[] = []): Request {
   const permit = {
     id: "p1",
     generationId: "g1",
@@ -54,7 +54,7 @@ function request(): Request {
           },
         },
       ],
-      attachments: [],
+      attachments,
       privacy: { onlineInferenceConsented: true, sealed: false },
     }),
   });
@@ -482,4 +482,97 @@ test("a key its provider refused is tried last on later turns, never dropped", a
   now += 11 * 60_000;
   await events(await handleOnlineIntelligence(request(), handler));
   assert.deepEqual(asked.slice(3), ["primary", "secondary"], "asked again after its rest");
+});
+
+const screenshot = { name: "step-1.jpg", mime: "image/jpeg", sizeBytes: 3, image: "AAAA" };
+
+test("a model that takes images is sent the screenshot, and the planner is told it sees", async () => {
+  const bodies: string[] = [];
+  const handler = deps("gemma-4-31b-it", async ({ body }) => {
+    bodies.push(JSON.stringify(body));
+    return new Response(callChunk, { headers: { "content-type": "text/event-stream" } });
+  });
+  const response = await handleOnlineIntelligence(request([screenshot]), handler);
+  assert.equal(response.headers.get("x-ocade-vision"), "images");
+  await events(response);
+  assert.match(bodies[0]!, /inline_data/);
+});
+
+test("an undeclared OpenAI-compatible model is text-only: the image is withheld, never guessed", async () => {
+  const bodies: string[] = [];
+  const handler = deps(
+    "some/text-model",
+    async ({ body }) => {
+      bodies.push(JSON.stringify(body));
+      return new Response(
+        sse({
+          choices: [
+            {
+              index: 0,
+              delta: {
+                tool_calls: [
+                  {
+                    index: 0,
+                    id: "c1",
+                    type: "function",
+                    function: { name: "finish", arguments: "{}" },
+                  },
+                ],
+              },
+            },
+          ],
+        }) + sse({ choices: [{ index: 0, delta: {}, finish_reason: "tool_calls" }] }),
+        { headers: { "content-type": "text/event-stream" } },
+      );
+    },
+    { protocol: "openai" },
+  );
+  const response = await handleOnlineIntelligence(request([screenshot]), handler);
+  assert.equal(response.headers.get("x-ocade-vision"), "none");
+  await events(response);
+  assert.doesNotMatch(bodies[0]!, /image_url|AAAA/);
+  assert.match(bodies[0]!, /image withheld: this model cannot see images/);
+  const declared = deps(
+    "some/vision-model",
+    async ({ body }) => {
+      bodies.push(JSON.stringify(body));
+      return new Response("", { status: 503 });
+    },
+    { protocol: "openai", vision: true },
+  );
+  await handleOnlineIntelligence(request([screenshot]), declared);
+  assert.match(bodies.at(-1)!, /image_url/, "an operator-declared vision model is sent the image");
+});
+
+test("a model whose provider refuses images learns it once and is then told it cannot see", async () => {
+  const bodies: string[] = [];
+  const learned: string[] = [];
+  const handler = deps(
+    "gemma-4-31b-it",
+    async ({ body }) => {
+      const text = JSON.stringify(body);
+      bodies.push(text);
+      return text.includes("inline_data")
+        ? new Response(
+            JSON.stringify({ error: { message: "Image input modality is not enabled" } }),
+            {
+              status: 400,
+            },
+          )
+        : new Response(callChunk, { headers: { "content-type": "text/event-stream" } });
+    },
+    {
+      refused: new Map(),
+      capabilities: {
+        load: async () => [],
+        learn: async (model, feature) => void learned.push(`${model}:${feature}`),
+      },
+    },
+  );
+  const response = await handleOnlineIntelligence(request([screenshot]), handler);
+  assert.equal(response.headers.get("x-ocade-vision"), "none");
+  assert.equal((await events(response)).at(-1)?.type, "final");
+  assert.equal(bodies.length, 2);
+  assert.doesNotMatch(bodies[1]!, /inline_data/);
+  assert.deepEqual(learned, ["gemma-4-31b-it:vision"]);
 });

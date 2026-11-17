@@ -13,6 +13,9 @@ SET LOCAL ROLE service_role;
 SELECT public.ocade_learn_provider_refusal('example.test/model-a', 'thinking');
 SELECT public.ocade_learn_provider_refusal('example.test/model-a', 'thinking');
 SELECT public.ocade_learn_provider_refusal('example.test/model-a', 'forced_call');
+SELECT public.ocade_learn_provider_refusal('example.test/model-c', 'vision');
+SELECT pg_temp.refusal_assert(public.ocade_provider_refusals('example.test/model-c') = ARRAY['vision'],
+  'a model that refused images is remembered as text-only');
 SELECT pg_temp.refusal_assert(public.ocade_provider_refusals('example.test/model-a') = ARRAY['forced_call', 'thinking'],
   'both learned settings are read back once each');
 SELECT pg_temp.refusal_assert(public.ocade_provider_refusals('example.test/model-b') = '{}', 'another model refused nothing');

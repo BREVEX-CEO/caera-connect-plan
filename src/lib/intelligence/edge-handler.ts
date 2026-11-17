@@ -132,6 +132,12 @@ export interface OnlineHandlerDependencies {
   model?: string;
   /** How the planner's provider is spoken to; Google's generateContent when absent. */
   protocol?: ProviderProtocol;
+  /**
+   * Whether the server's model takes images (`OCADE_MODEL_VISION`). Undeclared, only Google's own
+   * API is taken to see (every model it serves accepts images); a model behind any other protocol
+   * is treated as text-only until its operator says otherwise. Unknown never becomes "sees".
+   */
+  vision?: boolean;
   now?: () => number;
   sleep?: (ms: number, signal: AbortSignal) => Promise<void>;
   verifyJwt(token: string): Promise<{ userId: string } | null>;
@@ -423,7 +429,8 @@ function parseBody(value: unknown): OnlineRequestBody | null {
  *   Gemma releases answer "Developer instruction is not enabled") gets them at the start of the
  *   first user turn instead, as the Vercel AI SDK does for Gemma (plan v8 10.6).
  */
-export type ProviderFeature = "thinking" | "forced_call" | "json_schema" | "system_instruction";
+export type ProviderFeature =
+  "thinking" | "forced_call" | "json_schema" | "system_instruction" | "vision";
 
 /** The words in a provider's 400 that name which setting it refused. */
 const REFUSAL_NAMES: readonly [ProviderFeature, RegExp][] = [
@@ -431,6 +438,7 @@ const REFUSAL_NAMES: readonly [ProviderFeature, RegExp][] = [
   ["forced_call", /tool_?config|function_?calling_?config|allowed_?function_?names|tool_?choice/i],
   ["json_schema", /json_?schema/i],
   ["system_instruction", /developer instruction|system_?instruction|system (role|message|prompt)/i],
+  ["vision", /image|vision|multimodal|inline_?data/i],
 ];
 
 /** The setting a refusal names among those the request carried, if any. */
@@ -469,14 +477,40 @@ export function providerSchema(schema: unknown): unknown {
   return out;
 }
 
+/**
+ * THE REQUEST A TEXT-ONLY MODEL GETS: each image is replaced by a plain note that it was withheld,
+ * so the model is told it cannot see it instead of being left to guess what it shows.
+ */
+export function withoutImages(body: OnlineRequestBody): OnlineRequestBody {
+  if (!body.attachments.some((attachment) => attachment.image)) return body;
+  return {
+    ...body,
+    attachments: body.attachments.map((attachment) =>
+      attachment.image
+        ? {
+            name: attachment.name,
+            mime: "text/plain",
+            sizeBytes: 0,
+            text:
+              "[image withheld: this model cannot see images. Do not guess what it shows; use " +
+              "text, structure and recognised text instead.]",
+          }
+        : attachment,
+    ),
+  };
+}
+
 /** The settings this request carries for a model, given what it has refused. */
 export function sentFeatures(
-  body: Pick<OnlineRequestBody, "research" | "tools" | "surface">,
+  body: Pick<OnlineRequestBody, "research" | "tools" | "surface"> &
+    Partial<Pick<OnlineRequestBody, "attachments">>,
   refused: ReadonlySet<ProviderFeature>,
 ) {
   const sent = new Set<ProviderFeature>();
   if (!refused.has("thinking")) sent.add("thinking");
   if (!refused.has("system_instruction")) sent.add("system_instruction");
+  if (!refused.has("vision") && body.attachments?.some((attachment) => attachment.image))
+    sent.add("vision");
   if (!body.research && body.tools.length) {
     if (body.surface === "jarvis" && !refused.has("forced_call")) sent.add("forced_call");
     if (!refused.has("json_schema")) sent.add("json_schema");
@@ -1304,6 +1338,9 @@ async function runOnlineIntelligence(
     const refuseKey = (slot: ProviderKeySlot) =>
       deps.keyRefusedUntil?.set(slot, (deps.now ?? Date.now)() + KEY_REST_MS);
     let provider: Response | null = null;
+    // Images reach only a model that takes them; the planner is told which it was (x-ocade-vision).
+    const sees = deps.vision ?? !openai;
+    let blind = !sees;
     let quotaExhausted = false;
     let capacityReturnsIn = 0;
     /** How the model ended when it could not answer, when that was not capacity. */
@@ -1337,6 +1374,7 @@ async function runOnlineIntelligence(
         deps.refused?.set(configured, refused);
       }
       let sent = sentFeatures(body, refused);
+      blind = !sees || refused.has("vision");
       let slotIndex = 0;
       while (modelAttempts < MAX_PROVIDER_ATTEMPTS && slotIndex < slots.length) {
         const slot = slots[slotIndex]!;
@@ -1359,17 +1397,18 @@ async function runOnlineIntelligence(
             : "additional";
           attempted.attempts += 1; // counted before the request, so a failed transport counts too
           modelAttempts += 1;
+          const shown = blind ? withoutImages(body) : body;
           response = await deps.callProvider({
             model: configured,
             body: high
-              ? workersAiBody(body, MAX_OUTPUT_TOKENS)
+              ? workersAiBody(shown, MAX_OUTPUT_TOKENS)
               : openai
                 ? workersAiBody(
                     sent.has("json_schema")
-                      ? body
+                      ? shown
                       : {
-                          ...body,
-                          tools: body.tools.map((tool) => ({
+                          ...shown,
+                          tools: shown.tools.map((tool) => ({
                             ...tool,
                             inputSchema: providerSchema(
                               tool.inputSchema,
@@ -1380,7 +1419,7 @@ async function runOnlineIntelligence(
                     configured,
                     sent,
                   )
-                : providerBody(body, sent),
+                : providerBody(shown, sent),
             signal: AbortSignal.any([controller.signal, hung.signal]),
             slot,
           });
@@ -1485,6 +1524,7 @@ async function runOnlineIntelligence(
           if (feature) {
             refused.add(feature);
             sent = sentFeatures(body, refused);
+            blind = !sees || refused.has("vision");
             void deps.capabilities?.learn(configured, feature).catch(() => undefined);
             deps.providerIssue?.({ model: configured, slot, kind: `refused_${feature}` });
             // Learning what the model accepts is not a failed attempt at the turn itself.
@@ -1581,6 +1621,7 @@ async function runOnlineIntelligence(
           headers: {
             "Content-Type": "text/event-stream; charset=utf-8",
             "Cache-Control": "no-store, no-transform",
+            "x-ocade-vision": blind ? "none" : "images",
           },
         },
       );

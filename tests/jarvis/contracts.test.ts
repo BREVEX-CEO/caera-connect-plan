@@ -197,6 +197,24 @@ test("mechanism fallback: a failed route is followed by a fresh look, then the n
     preview: "dGVzdA==",
   });
   assert.doesNotThrow(() => observedSinceFailure([...failed, fresh], "ui.click_point", { window }));
+  // A model that cannot see images is never offered, nor allowed, a pointer click (threat O-02).
+  const { plannerSight, offeredOperations } =
+    await import("../../src/lib/jarvis/planner.server.ts");
+  plannerSight.blind = true;
+  try {
+    assert.throws(
+      () => observedSinceFailure([...failed, fresh], "ui.click_point", { window }),
+      /cannot see images/,
+    );
+    assert.ok(
+      !offeredOperations(["computer_control", "screen"], ["desktop"]).includes("ui.click_point"),
+    );
+  } finally {
+    plannerSight.blind = false;
+  }
+  assert.ok(
+    offeredOperations(["computer_control", "screen"], ["desktop"]).includes("ui.click_point"),
+  );
   // Another mechanism is not held back by a failure on a window.
   assert.doesNotThrow(() => observedSinceFailure(failed, "fs.write_text"));
   // A command that ran out of time is offered again as a tracked job.

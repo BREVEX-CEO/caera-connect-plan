@@ -126,7 +126,9 @@ export function createOnlineIntelligenceTransport(
           : config.configured
             ? "This device is offline."
             : "OCADE is not configured on this deployment.",
-        capabilities: { text: available, tools: available, vision: available },
+        // Whether the server's model sees images is the server's to say per model (threat O-01):
+        // reachability proves nothing about it, so it is not claimed here.
+        capabilities: { text: available, tools: available, vision: false },
       };
     },
     async *stream(request): AsyncIterable<IntelligenceEvent> {

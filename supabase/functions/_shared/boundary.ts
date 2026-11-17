@@ -225,6 +225,8 @@ export const boundary: Omit<OnlineHandlerDependencies, "verifyJwt" | "verifyServ
   observe,
   model: PLANNER_MODEL,
   protocol: PROVIDER?.protocol,
+  // OCADE_MODEL_VISION=yes|no: whether the model takes images; unset, the protocol decides.
+  vision: { yes: true, no: false }[Deno.env.get("OCADE_MODEL_VISION")?.trim() ?? ""],
   async consented(userId) {
     const response = await fetch(
       `${SUPABASE_URL}/rest/v1/profiles?id=eq.${encodeURIComponent(userId)}&select=online_ai_consent_at,online_ai_consent_version`,
