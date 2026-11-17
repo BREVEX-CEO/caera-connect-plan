@@ -158,7 +158,7 @@ const selector = z
   .min(1)
   .max(500)
   .describe(
-    "A control's `selector` exactly as web.open/web.read listed it, or, for visible text that is not listed (a menu item, say), a Playwright selector such as 'text=Save >> visible=true'",
+    "A control's `@ref` (the start of its line in `controls`) exactly as the newest web.open/web.read listed it, or, for visible text that is not listed (a menu item, say), a Playwright selector such as 'text=Save >> visible=true'",
   );
 
 type Target = { app?: string; site?: string; mcp?: string };

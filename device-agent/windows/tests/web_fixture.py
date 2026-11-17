@@ -244,3 +244,36 @@ def browser_wrapper(chrome: str, pin: str) -> str:
     script.write_text(f'#!/bin/sh\nexec "{chrome}" --no-sandbox --ignore-certificate-errors-spki-list={pin} "$@"\n')
     script.chmod(0o755)
     return str(script)
+
+
+_CONTROL_LINE = None
+
+
+def controls(evidence: dict) -> list[dict]:
+    """The controls of a web observation as facts, parsed from their lines (`_control_line`)."""
+    import json
+    import re
+
+    global _CONTROL_LINE
+    _CONTROL_LINE = _CONTROL_LINE or re.compile(
+        r'^(?P<selector>@[0-9a-f]+-\d+) (?P<kind>\S+) (?P<label>"(?:[^"\\]|\\.)*")'
+        r'(?: name=(?P<name>"(?:[^"\\]|\\.)*"))?(?: \[(?P<state>[a-z,]+)\])?'
+        r'(?: in (?P<row>"(?:[^"\\]|\\.)*"))?(?: under (?P<heading>"(?:[^"\\]|\\.)*"))?'
+        r' box=(?P<box>-?\d+,-?\d+,-?\d+,-?\d+)(?: -> (?P<href>.+))?$')
+    facts = []
+    for line in evidence["controls"]:
+        match = _CONTROL_LINE.match(line)
+        assert match, line
+        fact = {"selector": match["selector"], "kind": match["kind"], "label": json.loads(match["label"]),
+                "box": [int(n) for n in match["box"].split(",")]}
+        for key in ("name", "row", "heading"):
+            if match[key]:
+                fact[key] = json.loads(match[key])
+        if match["state"]:
+            fact["state"] = match["state"].split(",")
+        if match["href"] == "(address too long)":
+            fact["hrefOmitted"] = "too_long"
+        elif match["href"]:
+            fact["href"] = match["href"]
+        facts.append(fact)
+    return facts

@@ -211,7 +211,7 @@ class ActorRequestScope(unittest.TestCase):
             opened = await run("web.open", {"url": url})
             self.assertEqual(opened["status"], "observed", opened)
             evidence = opened["evidence"]
-            link = next(control for control in evidence["controls"] if control.get("href") == trap.url)
+            link = next(control for control in web_fixture.controls(evidence) if control.get("href") == trap.url)
             return await run("web.click", {"page": evidence["page"], "selector": link["selector"]})
 
         receipt = self.run_steps(steps)
@@ -226,7 +226,7 @@ class ActorRequestScope(unittest.TestCase):
             opened = await run("web.open", {"url": url})
             self.assertEqual(opened["status"], "observed", opened)
             evidence = opened["evidence"]
-            link = next(control for control in evidence["controls"] if control.get("href") == trap.url)
+            link = next(control for control in web_fixture.controls(evidence) if control.get("href") == trap.url)
             return await run("web.click", {"page": evidence["page"], "selector": link["selector"]})
 
         receipt = self.run_steps(steps)

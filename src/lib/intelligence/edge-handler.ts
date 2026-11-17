@@ -103,6 +103,8 @@ const BLOCKED_FINISH = new Set(["SAFETY", "RECITATION", "BLOCKLIST", "PROHIBITED
  * redundancy, not more quota, so a failover spends from the same three.
  */
 const MAX_PROVIDER_ATTEMPTS = 3;
+/** How long a key its provider refused is tried after the others. */
+const KEY_REST_MS = 10 * 60_000;
 /** A provider wait longer than this is not slept here: the caller is told when to ask again. */
 const MAX_INLINE_WAIT_MS = 2_000;
 
@@ -158,6 +160,8 @@ export interface OnlineHandlerDependencies {
    * empty means the caller has not said, and one primary attempt is made.
    */
   providerSlots?: readonly ProviderKeySlot[];
+  /** Until when each key its provider refused (401, 403, invalid key) is tried last. */
+  keyRefusedUntil?: Map<ProviderKeySlot, number>;
   /**
    * When each model's project quota returns, as the provider last named it (ms since epoch).
    * The deployment holds one for its instance, so a request inside a named wait is answered
@@ -1284,11 +1288,21 @@ async function runOnlineIntelligence(
      * response is ok; the stream is handed off after it, and nothing here runs
      * again once a single token has reached the person.
      */
-    const slots: readonly ProviderKeySlot[] = high
+    const configuredSlots: readonly ProviderKeySlot[] = high
       ? ["primary"]
       : deps.providerSlots && deps.providerSlots.length > 0
         ? deps.providerSlots
         : [PROVIDER_KEY_SLOTS[0]];
+    // A key its provider refused recently is tried last, not first (a circuit breaker per key):
+    // healthy keys keep their order, and a refused key is still tried when no other is left.
+    const nowMs = (deps.now ?? Date.now)();
+    const resting = (slot: ProviderKeySlot) => (deps.keyRefusedUntil?.get(slot) ?? 0) > nowMs;
+    const slots = [
+      ...configuredSlots.filter((slot) => !resting(slot)),
+      ...configuredSlots.filter(resting),
+    ];
+    const refuseKey = (slot: ProviderKeySlot) =>
+      deps.keyRefusedUntil?.set(slot, (deps.now ?? Date.now)() + KEY_REST_MS);
     let provider: Response | null = null;
     let quotaExhausted = false;
     let capacityReturnsIn = 0;
@@ -1462,6 +1476,7 @@ async function runOnlineIntelligence(
           // Google reports a bad or expired key as 400: that is THIS key, not the request.
           const detail = await response.text().catch(() => "");
           if (/API_KEY_INVALID|API key (not valid|expired)/i.test(detail)) {
+            refuseKey(slot);
             slotIndex += 1;
             continue;
           }
@@ -1485,6 +1500,7 @@ async function runOnlineIntelligence(
 
         // THIS key is refused: the next one may not be.
         if (response.status === 401 || response.status === 403) {
+          refuseKey(slot);
           slotIndex += 1;
           continue;
         }

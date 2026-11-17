@@ -497,12 +497,21 @@ test("a deep address typed from memory is refused; home pages and seen links are
       status: "observed",
       maybeChanged: false,
       observedAtUtc: now.toISOString(),
-      evidence: { controls: [{ label: "Python 3.15.2", href: "/downloads/release/python-3152/" }] },
+      evidence: {
+        controls: [
+          { label: "Python 3.15.2", href: "/downloads/release/python-3152/" },
+          // The companion's control line (web_worker `_control_line`).
+          '@ab12cd34-1 a "Python 3.14.9" box=1,2,3,4 -> /downloads/release/python-3149/',
+        ],
+      },
     },
   };
   assert.doesNotThrow(() => unseenAddress("https://www.python.org/", "", []));
   assert.doesNotThrow(() =>
     unseenAddress("https://www.python.org/downloads/release/python-3152/", "", [page]),
+  );
+  assert.doesNotThrow(() =>
+    unseenAddress("https://www.python.org/downloads/release/python-3149/", "", [page]),
   );
   assert.doesNotThrow(() =>
     unseenAddress(

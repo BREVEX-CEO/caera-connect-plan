@@ -460,3 +460,26 @@ test("a misconfigured route serves nothing; a rejected request is still reported
   assert.equal(rejected.status, 400);
   assert.deepEqual(await rejected.json(), { error: "provider_rejected_request" });
 });
+
+test("a key its provider refused is tried last on later turns, never dropped", async () => {
+  const keyRefusedUntil = new Map<string, number>();
+  const asked: string[] = [];
+  let now = 1_000;
+  const handler = deps(
+    "gemini-3.5-flash-lite",
+    async ({ slot }) => {
+      asked.push(slot);
+      return slot === "primary"
+        ? new Response(null, { status: 403 })
+        : new Response(callChunk, { headers: { "content-type": "text/event-stream" } });
+    },
+    { keyRefusedUntil, now: () => now },
+  );
+  await events(await handleOnlineIntelligence(request(), handler));
+  assert.deepEqual(asked, ["primary", "secondary"]);
+  await events(await handleOnlineIntelligence(request(), handler));
+  assert.deepEqual(asked.slice(2), ["secondary"], "the healthy key first");
+  now += 11 * 60_000;
+  await events(await handleOnlineIntelligence(request(), handler));
+  assert.deepEqual(asked.slice(3), ["primary", "secondary"], "asked again after its rest");
+});

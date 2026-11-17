@@ -116,7 +116,9 @@ _TABLES = """() => {
       headers,
       rows: rows.slice(0, 25).map((row) => {
         const link = row.querySelector('a[href]');
-        return { cells: [...row.cells].slice(0, 8).map(cell), ...(link ? { link: link.href.slice(0, 300) } : {}) };
+        const href = link && (link.origin === location.origin ? link.pathname + link.search + link.hash : link.href);
+        // One line a row: its cells, then where its first link goes.
+        return [...row.cells].slice(0, 8).map(cell).join(' | ') + (href ? ` -> ${href.slice(0, 300)}` : '');
       }),
       totalRows: rows.length,
     };
@@ -169,7 +171,7 @@ _CONTROLS = """(token) => {
     return {
       tag: e.tagName.toLowerCase(), type: e.type || '', name: (e.name || '').slice(0, 40),
       label: labels[i],
-      selector: `[data-ocade="${token}-${i}"]`,
+      selector: `@${token}-${i}`,
       box: [Math.round(box.x), Math.round(box.y), Math.round(box.width), Math.round(box.height)],
       ...(e.getAttribute('role') ? { role: e.getAttribute('role').slice(0, 20) } : {}),
       ...(state.length ? { state } : {}),
@@ -531,7 +533,7 @@ async def _scope(entry: dict, frame: str | None):
 
 async def _one(entry: dict, scope, selector: str):
     """Resolve a live element under this tab's observation lease."""
-    observed = re.fullmatch(r'\[data-ocade="([0-9a-f]+)-\d+"\]', selector)
+    observed = re.fullmatch(r"@([0-9a-f]+)-\d+", selector)
     if observed and (observed.group(1) != entry.get("token") or scope is not entry["page"]):
         raise Refused("stale_selector")
     if observed:
@@ -555,13 +557,36 @@ async def _one(entry: dict, scope, selector: str):
     return target
 
 
+def _control_line(control: dict) -> str:
+    """One control as one line, its reference first (plan v8 11.4: the accessible facts a person
+    sees, about half the size of the same facts as JSON objects):
+    `@ref kind "label" [name=..] [state] in "row" under "heading" box=x,y,w,h -> href`."""
+    tag, kind = control["tag"], control.get("type") or ""
+    parts = [control["selector"], control.get("role") or (f"{tag}:{kind}" if tag == "input" and kind else tag),
+             json.dumps(control["label"], ensure_ascii=False)]
+    if control.get("name"):
+        parts.append(f"name={json.dumps(control['name'], ensure_ascii=False)}")
+    if control.get("state"):
+        parts.append("[" + ",".join(control["state"]) + "]")
+    if control.get("row"):
+        parts.append(f"in {json.dumps(control['row'], ensure_ascii=False)}")
+    if control.get("heading"):
+        parts.append(f"under {json.dumps(control['heading'], ensure_ascii=False)}")
+    parts.append("box=" + ",".join(map(str, control["box"])))
+    if control.get("href"):
+        parts.append(f"-> {control['href']}")
+    elif control.get("hrefOmitted"):
+        parts.append("-> (address too long)")
+    return " ".join(parts)
+
+
 async def _observe(page_id: str) -> dict:
     entry = _pages[page_id]
     current = entry["page"]
     if _origin(current.url) != entry["origin"]:
         raise Refused("page_left_site")
     text = await current.inner_text("body", timeout=10_000)
-    token = secrets.token_hex(8)
+    token = secrets.token_hex(4)
     snapshot = await current.evaluate_handle(_CONTROLS, token)
     facts = await snapshot.get_property("facts")
     nodes = await snapshot.get_property("nodes")
@@ -584,7 +609,7 @@ async def _observe(page_id: str) -> dict:
         "page": {"id": page_id, "site": entry["site"]},
         **({"url": current.url} if len(current.url) <= 2000 else {"urlOmitted": "too_long"}),
         "title": (await current.title())[:200],
-        "controls": [control for control in controls if control["selector"] in entry["controls"]],
+        "controls": [_control_line(control) for control in controls if control["selector"] in entry["controls"]],
         "tables": await current.evaluate(_TABLES),
         "text": text[:TEXT_LIMIT],
         # A sign-in or challenge is the person's to complete in the OCADE browser window.

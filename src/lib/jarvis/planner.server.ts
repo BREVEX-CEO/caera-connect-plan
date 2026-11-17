@@ -187,8 +187,14 @@ export function unseenAddress(url: unknown, objective: string, steps: Step[]) {
     if (base.href === parsed.href) return;
     if (!Array.isArray(observed.controls)) continue;
     for (const control of observed.controls) {
-      if (!control || typeof control !== "object" || typeof control.href !== "string") continue;
-      if (address(control.href, base.href)?.href === parsed.href) return;
+      // A control line ends with ` -> <href>` (web_worker `_control_line`); older receipts hold objects.
+      const href =
+        typeof control === "string"
+          ? / -> (\S+)$/.exec(control)?.[1]
+          : control && typeof control === "object" && typeof control.href === "string"
+            ? control.href
+            : undefined;
+      if (href && address(href, base.href)?.href === parsed.href) return;
     }
   }
   throw new Error(
@@ -411,8 +417,9 @@ const SYSTEM = [
   "When the outcome says how the work is to be done (for example in a web browser), do it that way.",
   "On a website, follow the links a page lists (web.open the address in a link's `href`; a path is on the same",
   "site) instead of typing addresses you have not seen in this task, and",
-  "act on a control by the exact `selector` the newest observation of that page listed (older ones are refused);",
-  "when a label repeats, its `row` (the table row or list item it sits in) tells which one fits the request; to see a page",
+  'a web page\'s `controls` are lines `@ref kind "label" [state] in "row" under "heading" box=x,y,w,h -> href`;',
+  "act on one by passing its `@ref` from the newest observation of that page as `selector` (older ones are refused);",
+  "when a label repeats, its `in` row (the table row or list item it sits in) tells which one fits the request; to see a page",
   "(for example one drawn on a canvas), web.screenshot it to a new file and look at that with media.preview.",
   "web.open and web.click already return the page as it is afterwards; web.read only when it may have changed since.",
   "An operation marked 'schema on first call' is offered without its arguments: call it once without arguments",

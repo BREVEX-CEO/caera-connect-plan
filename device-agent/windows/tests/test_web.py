@@ -205,7 +205,7 @@ class WebLadder(unittest.TestCase):
         async def steps(run, gateway):
             opened = await run("web.open", {"url": self.base + route})
             self.assertEqual(opened["status"], "observed", opened)
-            link = next(control for control in opened["evidence"]["controls"] if control.get("href") == download_route)
+            link = next(control for control in web_fixture.controls(opened["evidence"]) if control.get("href") == download_route)
             return await run("web.download", {"page": opened["evidence"]["page"], "selector": link["selector"], "output": output})
         try:
             with patch.object(web_fixture.Handler, "do_GET", respond):
@@ -243,17 +243,17 @@ class WebLadder(unittest.TestCase):
                               await run("web.fill", {"page": pay, "selector": "#note", "value": "4111 1111 1111 1111"}),
                               await run("web.fill", {"page": pay, "selector": "#note", "value": "Call 0044 20 7946 0958"})]
             home = (await run("web.open", {"url": base + "/"}))["evidence"]
-            second_next = [c for c in home["controls"] if c["label"] == "Next"][1]
+            second_next = [c for c in web_fixture.controls(home) if c["label"] == "Next"][1]
             out["big"] = await run("web.read", {"page": (await run("web.open", {"url": base + "/big"}))["evidence"]["page"]})
             app = (await run("web.open", {"url": base + "/app"}))["evidence"]
-            hidden = next(c for c in app["controls"] if c["type"] == "file")
+            hidden = next(c for c in web_fixture.controls(app) if c["kind"] == "input:file")
             out["picker"] = await run("web.click", {"page": app["page"], "selector": "text=Open file"})
             out["ask"] = await run("web.open", {"url": base + "/ask"})
             # The click observed the page again, so its selectors are the current ones.
-            hidden = next(c for c in out["picker"]["evidence"]["controls"] if c["type"] == "file")
+            hidden = next(c for c in web_fixture.controls(out["picker"]["evidence"]) if c["kind"] == "input:file")
             out["app"] = await run("web.upload", {"page": app["page"], "selector": hidden["selector"], "path": "upload-me.txt"})
             out["app-read"] = await run("web.read", {"page": app["page"]})
-            editable = next(c for c in out["app-read"]["evidence"]["controls"] if c["tag"] == "span")
+            editable = next(c for c in web_fixture.controls(out["app-read"]["evidence"]) if c["kind"] == "span")
             out["editable"] = await run("web.fill", {"page": app["page"], "selector": editable["selector"], "value": "8"})
             out["editable-read"] = await run("web.read", {"page": app["page"]})
             out["007b"] = await run("web.click", {"page": home["page"], "selector": second_next["selector"]})
@@ -295,11 +295,11 @@ class WebLadder(unittest.TestCase):
             opened_releases = await run("web.open", {"url": base + "/releases"})
             assert "page" in opened_releases["evidence"], opened_releases  # the refusal, if any, is the evidence
             releases = opened_releases["evidence"]
-            out["rows"] = releases["controls"]
+            out["rows"] = web_fixture.controls(releases)
             await run("web.read", {"page": releases["page"]})  # a newer observation
-            out["stale"] = await run("web.click", {"page": releases["page"], "selector": releases["controls"][0]["selector"]})
+            out["stale"] = await run("web.click", {"page": releases["page"], "selector": web_fixture.controls(releases)[0]["selector"]})
             confirm = (await run("web.open", {"url": base + "/confirm"}))["evidence"]
-            delete = next(c for c in confirm["controls"] if c["label"] == "Delete")
+            delete = next(c for c in web_fixture.controls(confirm) if c["label"] == "Delete")
             out["dialog"] = await run("web.click", {"page": confirm["page"], "selector": delete["selector"]})
             return out
 
@@ -311,7 +311,7 @@ class WebLadder(unittest.TestCase):
             self.assertEqual(results["001"]["status"], "observed")
             self.assertEqual(results["001"]["evidence"]["title"], "/")
         with self.subTest("WEB-001b each control carries where it is and which section it belongs to"):
-            controls = results["001"]["evidence"]["controls"]
+            controls = web_fixture.controls(results["001"]["evidence"])
             self.assertTrue(all(len(c["box"]) == 4 and all(isinstance(n, int) for n in c["box"]) for c in controls))
             nexts = [c for c in controls if c["label"] == "Next"]
             self.assertEqual([c.get("heading") for c in nexts], ["Section A", "Section A"])
@@ -332,8 +332,8 @@ class WebLadder(unittest.TestCase):
                              [{"page": results["001"]["evidence"]["page"], "title": "/"}])
             [table] = results["table"]["evidence"]["tables"]  # rows keep their cells, links and headers
             self.assertEqual(table["headers"], ["Version", "Date", "Status"])
-            self.assertEqual(table["rows"][0]["cells"][:3], ["6.19.6", "2026-01-13", "stable"])
-            self.assertTrue(table["rows"][1]["link"].endswith("/pages/2"))
+            self.assertEqual(table["rows"][0].split(" | ")[:3], ["6.19.6", "2026-01-13", "stable"])
+            self.assertTrue(table["rows"][1].endswith(" -> /pages/2"), table["rows"][1])
             self.assertEqual(table["totalRows"], 2, "a hidden row is not read as data")
             text = results["002"]["evidence"]["text"]
             for expected in ("OCADE fixture home", "Quarterly status is GREEN.", "Section A"):
@@ -363,15 +363,15 @@ class WebLadder(unittest.TestCase):
         with self.subTest("WEB-018b a page with a long poll is still observed"):
             self.assertEqual(results["long-poll"]["status"], "observed", results["long-poll"])
         with self.subTest("WEB-020 a fixed control in view is listed before controls below the fold"):
-            labels = [c["label"] for c in results["fixed"]["evidence"]["controls"]]
+            labels = [c["label"] for c in web_fixture.controls(results["fixed"]["evidence"])]
             self.assertEqual(labels[0], "Help", labels[:5])
-            self.assertNotIn("state", results["fixed"]["evidence"]["controls"][0])
+            self.assertNotIn("state", web_fixture.controls(results["fixed"]["evidence"])[0])
         with self.subTest("WEB-019 one-time codes and payment details are the person's to type"):
             self.assertEqual([r.get("errorCode") for r in results["secrets"]],
                              ["secret_field", "secret_field", "secret_field", None], results["secrets"])
             self.assertFalse(any(r["maybeChanged"] for r in results["secrets"][:3]))
         with self.subTest("WEB-007d a link's address is listed, so it can be opened as seen"):
-            links = {c["label"]: c.get("href") for c in results["001"]["evidence"]["controls"]}
+            links = {c["label"]: c.get("href") for c in web_fixture.controls(results["001"]["evidence"])}
             self.assertEqual(links["Page one"], "/pages/1")
         with self.subTest("WEB-007c a click carries a preview of the page afterwards"):
             self.assertTrue(results["007b"].get("preview"))
@@ -445,7 +445,7 @@ class WebLadder(unittest.TestCase):
         observed = result["evidence"]
         with self.subTest("page address is not truncated"):
             self.assertEqual(observed["url"], self.base + route)
-        links = {control["label"]: control for control in observed["controls"]}
+        links = {control["label"]: control for control in web_fixture.controls(observed)}
         with self.subTest("link address and SPA fragment remain exact"):
             self.assertEqual(links["Known address"]["href"], known)
         with self.subTest("over-limit addresses are omitted explicitly"):
@@ -473,7 +473,7 @@ class WebLadder(unittest.TestCase):
             return opened, down, up
 
         opened, down, up = self.run_steps(steps)
-        labels = lambda result: [control["label"] for control in result["evidence"]["controls"]]
+        labels = lambda result: [control["label"] for control in web_fixture.controls(result["evidence"])]
         self.assertNotIn("Row " + token, labels(opened))
         self.assertEqual(down["status"], "observed", down)
         self.assertIn("Row " + token, labels(down), "the row the scroll loaded is listed")
@@ -534,7 +534,7 @@ class BrowserObservationContract(unittest.TestCase):
 
         async def checks():
             page = object()
-            selector = '[data-ocade="ab12-0"]'
+            selector = "@ab12-0"
             element = SimpleNamespace(evaluate=AsyncMock(return_value=True))
             observed = {"token": "ab12", "page": page, "controls": {selector: element}}
             self.assertIs(await _one(observed, page, selector), element)

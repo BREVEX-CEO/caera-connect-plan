@@ -197,6 +197,7 @@ export const boundary: Omit<OnlineHandlerDependencies, "verifyJwt" | "verifyServ
   ),
   providerSlots: CONFIGURED_SLOTS,
   quotaReturnsAt: new Map(),
+  keyRefusedUntil: new Map(),
   refused: new Map(),
   // Kept per provider host and model, for every instance (20261117090000).
   capabilities: {
