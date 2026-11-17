@@ -266,7 +266,6 @@ def run_restricted(module: str) -> None:
         return
     import subprocess
 
-    import ntsecuritycon  # type: ignore[import-not-found]
     import win32api  # type: ignore[import-not-found]
     import win32con  # type: ignore[import-not-found]
     import win32event  # type: ignore[import-not-found]
@@ -275,9 +274,8 @@ def run_restricted(module: str) -> None:
     import win32security  # type: ignore[import-not-found]
 
     me = win32api.GetCurrentProcess()
-    token = win32security.OpenProcessToken(me, ntsecuritycon.TOKEN_DUPLICATE | ntsecuritycon.TOKEN_QUERY
-                                           | ntsecuritycon.TOKEN_ASSIGN_PRIMARY | ntsecuritycon.TOKEN_ADJUST_DEFAULT
-                                           | ntsecuritycon.TOKEN_ADJUST_SESSIONID)
+    # TOKEN_ASSIGN_PRIMARY | TOKEN_DUPLICATE | TOKEN_QUERY | TOKEN_ADJUST_DEFAULT | TOKEN_ADJUST_SESSIONID
+    token = win32security.OpenProcessToken(me, 0x0001 | 0x0002 | 0x0008 | 0x0080 | 0x0100)
     if _restricted(token):
         return
     admins = win32security.ConvertStringSidToSid(_ADMINISTRATORS)
