@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "@tanstack/react-router";
 import {
   CreditCard,
+  KeyRound,
   MonitorSmartphone,
   Moon,
   ShieldCheck,
@@ -31,14 +32,16 @@ import { DataControlsSection } from "./DataControlsSection";
 import { NotificationsSection } from "./NotificationsSection";
 import { UsageSection } from "./UsageSection";
 import { BillingSection } from "./BillingSection";
+import { ByokSection } from "./ByokSection";
 import { Action, Row, Toggle } from "./rows";
 import { DELETE_CONFIRMATION, deleteMyAccount } from "@/lib/account.functions";
 import type { SettingsCategory } from "./settings-panel";
 
 /*
- * FIVE CATEGORIES (owner, 21 Oct). Preferences holds appearance, voice, memory and
- * notifications; Devices holds the computers JARVIS works on and what each may do; data
- * controls and sessions are privacy and security; the allowance and the plan are billing.
+ * SIX CATEGORIES (owner, 21 Oct; BYOK added 15 Nov). Preferences holds appearance, voice, memory
+ * and notifications; Devices holds the computers JARVIS works on and what each may do; data
+ * controls and sessions are privacy and security; the allowance and the plan are billing; BYOK
+ * holds the person's own model keys and which source serves Chat and JARVIS.
  */
 const CATEGORIES: { id: SettingsCategory; label: string; icon: typeof User }[] = [
   { id: "account", label: "Account", icon: User },
@@ -46,6 +49,7 @@ const CATEGORIES: { id: SettingsCategory; label: string; icon: typeof User }[] =
   { id: "devices", label: "Devices", icon: MonitorSmartphone },
   { id: "privacy", label: "Privacy & Security", icon: ShieldCheck },
   { id: "billing", label: "Billing & Usage", icon: CreditCard },
+  { id: "byok", label: "BYOK", icon: KeyRound },
 ];
 
 export default function SettingsDialog({
@@ -152,6 +156,7 @@ export default function SettingsDialog({
                   <BillingSection />
                 </>
               ) : null}
+              {category === "byok" ? <ByokSection /> : null}
             </>
           )}
         </div>

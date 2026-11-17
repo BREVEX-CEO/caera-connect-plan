@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { intakeRefusal } from "./intake";
 import { z } from "zod";
 import { requireSession } from "@/lib/security/session-middleware";
 import { imageMediaType, isMediaType } from "@/lib/media-type";
@@ -129,6 +130,9 @@ export const addLibraryItem = createServerFn({ method: "POST" })
     if (bytes.byteLength > LIBRARY_MAX_BYTES) {
       throw new Error("That file is larger than OCADE can keep in your library.");
     }
+    // Nothing that can run or carry code is kept (threat O-04): refused before anything is stored.
+    const refused = intakeRefusal(bytes, data.name);
+    if (refused) throw new Error(refused.reason);
 
     /*
      * WHAT THE BYTES ARE, NOT WHAT THE CALLER SAID THEY WERE.

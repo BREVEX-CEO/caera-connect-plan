@@ -30,24 +30,24 @@ The single worst systemic risk is **cross-account data leakage combined with una
 
 ## Confirmed code limitations / verification gaps (not exploit claims)
 
-| ID | Finding | Evidence classification | Source | Required intervention |
-|---|---|---|---|---|
-| O-01 | Capability advertisement too broad: Online probe sets vision equal to service reachability rather than proving per-model image support. | Code observed | [source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/ocade/p00-p22-implementation/src/lib/intelligence/online-client.ts) | Introduce source+model+version capability probes; unknown must not become true. |
-| O-02 | Image attachments lack model prequalification: Recent image previews are assembled as attachments without verifying the planner model supports vision. | Code observed | [source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/ocade/p00-p22-implementation/src/lib/jarvis/planner.server.ts) | Gate preview image by capability and consent; use native/DOM/AX/ROI OCR or approved auxiliary vision. |
-| O-03 | BYOK settings not implemented as specified: Sixth BYOK category, encrypted vault and per-tenant selected-source gateway are marked target/not coded. | Documentation explicit | [source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/ocade/p00-p22-implementation/docs/PRD.md) | Implement end-to-end source-binding, key storage, authentication, quota reporting and negative tests. |
-| O-04 | Upload path has no observed malware verdict: Reviewed library handler checks byte signature for images and stores files as octet-stream; no scanner/quarantine verdict is visible in this path. | Scoped source inspection | [source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/ocade/p00-p22-implementation/src/lib/library/library.functions.ts) | Quarantine all untrusted uploads; malware scan and CDR where applicable; no preview/execute/share before clean verdict. |
-| O-05 | MCP static scanner insufficient alone: Pattern scanner identifies some risky manifest/script text but cannot prove a tool process harmless. | Code observed | [source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/ocade/p00-p22-implementation/device-agent/windows/ocade_agent/catalog.py) | Enforce runtime filesystem/network/seccomp/AppContainer-style boundaries and per-action effects. |
-| O-06 | Full OS command isolation remains partial: Ledger reports macOS commands not sandboxed and Windows restricted-token limitations. | Ledger explicit | [source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/ocade/p00-p22-implementation/docs/JARVIS_REPO_LEDGER.md) | Keep shell approval-gated and implement/test OS-level containment with realistic adversarial fixtures. |
-| O-07 | Parallel executor not implemented: Coordinator delegates bounded analysis questions; specialists cannot independently act on desktop. | Code observed | [source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/ocade/p00-p22-implementation/src/lib/jarvis/planner.server.ts) | Separate authenticated DAG worker leases with independent verifier and STOP fencing; no competing permission owner. |
-| O-08 | Model switching is not autonomous cross-model recovery: Gateway intentionally uses one model per task and rotates key slots for limited failure classes, not arbitrary new model. | Code observed | [source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/ocade/p00-p22-implementation/src/lib/intelligence/edge-handler.ts) | Provide explicit per-user opt-in fallback policy; requalification and checkpoint boundary before switching. |
-| O-09 | Model-quality evaluation not established: No customer-computer runtime proof or real-model benchmark was reported in the implementation ledger. | Ledger explicit | [source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/ocade/p00-p22-implementation/docs/JARVIS_REPO_LEDGER.md) | Run seeded cross-platform weak-model and malicious-tool evaluations; record first-attempt verified pass rate. |
-| O-10 | Cross-tenant leak not demonstrated, nor cleared by static code: Owner-based RLS exists; static inspection cannot establish zero leaks across all routes, caches and agents. | Scope limit | [source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/ocade/p00-p22-implementation/supabase/migrations/20260912090000_one_library_for_everything_a_person_keeps.sql) | Run two-tenant/three-role matrix against every data path, storage URL, memory cache and task execution. |
-| O-11 | Quota and paid-access hardening needs adversarial proof: Server-side permits exist but browser tampering, replay and complex cancellation races require live negative tests. | Scope limit | [source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/ocade/p00-p22-implementation/src/lib/commercial/generation-gate.ts) | Use replay/race harness, assert no backend call without signed durable permit; meter actual costs. |
-| O-12 | Earlier CI result is not current-head proof: Prior green CI referenced an older coding commit; later plan/PRD commits changed branch head. | Commit-context verified | [source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/ocade/p00-p22-implementation/docs/JARVIS_REPO_LEDGER.md) | Tie all reports to exact current SHA; rerun current required CI and qualification. |
-| O-13 | Vision fallback only patch-matches existing image: Template patch similarity helps stale click detection; it does not identify semantic meaning of image-only controls. | Code observed | [source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/ocade/p00-p22-implementation/device-agent/windows/ocade_agent/vision.py) | Local visual parser/semantic grounding with explicit uncertainty; no false claims of model vision. |
-| O-14 | User-owned backend URL is potential SSRF/exfil boundary: BYOK Base URL is planned; no completed gateway is visible from the PRD. | Threat surface | [source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/ocade/p00-p22-implementation/docs/PRD.md) | Restrict URL schemes, DNS resolutions, redirects, internal addresses and data transfer scopes. |
-| O-15 | Library can store arbitrary file content as inert object: File intake sends non-image object bytes to private storage as application/octet-stream; inert storage alone does not scan malware. | Code observed | [source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/ocade/p00-p22-implementation/src/lib/library/library.functions.ts) | Quarantine/download isolation, file analysis and prohibit automatic execution. |
-| O-16 | External plugin secure update lifecycle absent: REPO-25 marks third-party MCP extension update staging/rollback NOT CODED. | Ledger explicit | [source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/ocade/p00-p22-implementation/docs/JARVIS_REPO_LEDGER.md) | Signed update channel and security review of any changed privileges. |
+| ID   | Finding                                                                                                                                                                                         | Evidence classification  | Source                                                                                                                                                                        | Required intervention                                                                                                   |
+| ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| O-01 | Capability advertisement too broad: Online probe sets vision equal to service reachability rather than proving per-model image support.                                                         | Code observed            | [source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/ocade/p00-p22-implementation/src/lib/intelligence/online-client.ts)                                            | Introduce source+model+version capability probes; unknown must not become true.                                         |
+| O-02 | Image attachments lack model prequalification: Recent image previews are assembled as attachments without verifying the planner model supports vision.                                          | Code observed            | [source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/ocade/p00-p22-implementation/src/lib/jarvis/planner.server.ts)                                                 | Gate preview image by capability and consent; use native/DOM/AX/ROI OCR or approved auxiliary vision.                   |
+| O-03 | BYOK settings not implemented as specified: Sixth BYOK category, encrypted vault and per-tenant selected-source gateway are marked target/not coded.                                            | Documentation explicit   | [source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/ocade/p00-p22-implementation/docs/PRD.md)                                                                      | Implement end-to-end source-binding, key storage, authentication, quota reporting and negative tests.                   |
+| O-04 | Upload path has no observed malware verdict: Reviewed library handler checks byte signature for images and stores files as octet-stream; no scanner/quarantine verdict is visible in this path. | Scoped source inspection | [source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/ocade/p00-p22-implementation/src/lib/library/library.functions.ts)                                             | Quarantine all untrusted uploads; malware scan and CDR where applicable; no preview/execute/share before clean verdict. |
+| O-05 | MCP static scanner insufficient alone: Pattern scanner identifies some risky manifest/script text but cannot prove a tool process harmless.                                                     | Code observed            | [source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/ocade/p00-p22-implementation/device-agent/windows/ocade_agent/catalog.py)                                      | Enforce runtime filesystem/network/seccomp/AppContainer-style boundaries and per-action effects.                        |
+| O-06 | Full OS command isolation remains partial: Ledger reports macOS commands not sandboxed and Windows restricted-token limitations.                                                                | Ledger explicit          | [source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/ocade/p00-p22-implementation/docs/JARVIS_REPO_LEDGER.md)                                                       | Keep shell approval-gated and implement/test OS-level containment with realistic adversarial fixtures.                  |
+| O-07 | Parallel executor not implemented: Coordinator delegates bounded analysis questions; specialists cannot independently act on desktop.                                                           | Code observed            | [source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/ocade/p00-p22-implementation/src/lib/jarvis/planner.server.ts)                                                 | Separate authenticated DAG worker leases with independent verifier and STOP fencing; no competing permission owner.     |
+| O-08 | Model switching is not autonomous cross-model recovery: Gateway intentionally uses one model per task and rotates key slots for limited failure classes, not arbitrary new model.               | Code observed            | [source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/ocade/p00-p22-implementation/src/lib/intelligence/edge-handler.ts)                                             | Provide explicit per-user opt-in fallback policy; requalification and checkpoint boundary before switching.             |
+| O-09 | Model-quality evaluation not established: No customer-computer runtime proof or real-model benchmark was reported in the implementation ledger.                                                 | Ledger explicit          | [source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/ocade/p00-p22-implementation/docs/JARVIS_REPO_LEDGER.md)                                                       | Run seeded cross-platform weak-model and malicious-tool evaluations; record first-attempt verified pass rate.           |
+| O-10 | Cross-tenant leak not demonstrated, nor cleared by static code: Owner-based RLS exists; static inspection cannot establish zero leaks across all routes, caches and agents.                     | Scope limit              | [source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/ocade/p00-p22-implementation/supabase/migrations/20260912090000_one_library_for_everything_a_person_keeps.sql) | Run two-tenant/three-role matrix against every data path, storage URL, memory cache and task execution.                 |
+| O-11 | Quota and paid-access hardening needs adversarial proof: Server-side permits exist but browser tampering, replay and complex cancellation races require live negative tests.                    | Scope limit              | [source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/ocade/p00-p22-implementation/src/lib/commercial/generation-gate.ts)                                            | Use replay/race harness, assert no backend call without signed durable permit; meter actual costs.                      |
+| O-12 | Earlier CI result is not current-head proof: Prior green CI referenced an older coding commit; later plan/PRD commits changed branch head.                                                      | Commit-context verified  | [source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/ocade/p00-p22-implementation/docs/JARVIS_REPO_LEDGER.md)                                                       | Tie all reports to exact current SHA; rerun current required CI and qualification.                                      |
+| O-13 | Vision fallback only patch-matches existing image: Template patch similarity helps stale click detection; it does not identify semantic meaning of image-only controls.                         | Code observed            | [source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/ocade/p00-p22-implementation/device-agent/windows/ocade_agent/vision.py)                                       | Local visual parser/semantic grounding with explicit uncertainty; no false claims of model vision.                      |
+| O-14 | User-owned backend URL is potential SSRF/exfil boundary: BYOK Base URL is planned; no completed gateway is visible from the PRD.                                                                | Threat surface           | [source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/ocade/p00-p22-implementation/docs/PRD.md)                                                                      | Restrict URL schemes, DNS resolutions, redirects, internal addresses and data transfer scopes.                          |
+| O-15 | Library can store arbitrary file content as inert object: File intake sends non-image object bytes to private storage as application/octet-stream; inert storage alone does not scan malware.   | Code observed            | [source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/ocade/p00-p22-implementation/src/lib/library/library.functions.ts)                                             | Quarantine/download isolation, file analysis and prohibit automatic execution.                                          |
+| O-16 | External plugin secure update lifecycle absent: REPO-25 marks third-party MCP extension update staging/rollback NOT CODED.                                                                      | Ledger explicit          | [source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/ocade/p00-p22-implementation/docs/JARVIS_REPO_LEDGER.md)                                                       | Signed update channel and security review of any changed privileges.                                                    |
 
 ## Hardening sequence (priority, with stop/go proof)
 
@@ -69,16 +69,17 @@ The single worst systemic risk is **cross-account data leakage combined with una
 
 ## Six reference repositories: mechanisms, limits and OCADE choice
 
-| Repository | Adopt | Do not assume |
-|---|---|---|
-| [OpenClaw](https://github.com/openclaw/openclaw/blob/main/docs/tools/browser/configuration.md) | Vision model fallback returns text for text-only planner; distinguish preview from actual AI understanding. | Configured remote vision model implies consent/cost; image passthrough is not safe when text-only. |
-| [Hermes](https://github.com/NousResearch/hermes-agent/blob/main/agent/image_routing.py) | Per-provider/model image routing, explicit auxiliary vision and dynamic capability probes. | A model catalog is not sufficient proof of particular key/endpoint behavior. |
-| [CUA](https://github.com/trycua/cua/blob/main/docs/content/docs/cua-driver/concepts/how-cua-driver-works.mdx) | Accessibility-first, local visual region parsing, capture-id/TTL binding, action effect semantics. | Screen capture does not independently verify that an app saved correctly. |
-| [UFO](https://github.com/microsoft/UFO/blob/main/documents/docs/ufo2/core_features/control_detection/overview.md) | Windows UI Automation + optional OmniParser hybrid for controls not exposed semantically. | Visual boxes alone do not grant authority or guarantee target correctness. |
-| [Nod](https://github.com/n8n-io/nod/blob/main/src/providers/agent-browser/index.ts) | Browser snapshot, versioned references, secret redaction and private-context restrictions. | A browser snapshot is not a full security policy or native OS isolation. |
-| [Ruflo](https://github.com/ruvnet/ruflo/blob/main/plugins/ruflo-browser/README.md) | Session/trajectory journaling, replay/drift diff, scanner/quarantine, secret handling. | Signature scans cannot replace trusted execution and independent verification. |
+| Repository                                                                                                        | Adopt                                                                                                       | Do not assume                                                                                      |
+| ----------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| [OpenClaw](https://github.com/openclaw/openclaw/blob/main/docs/tools/browser/configuration.md)                    | Vision model fallback returns text for text-only planner; distinguish preview from actual AI understanding. | Configured remote vision model implies consent/cost; image passthrough is not safe when text-only. |
+| [Hermes](https://github.com/NousResearch/hermes-agent/blob/main/agent/image_routing.py)                           | Per-provider/model image routing, explicit auxiliary vision and dynamic capability probes.                  | A model catalog is not sufficient proof of particular key/endpoint behavior.                       |
+| [CUA](https://github.com/trycua/cua/blob/main/docs/content/docs/cua-driver/concepts/how-cua-driver-works.mdx)     | Accessibility-first, local visual region parsing, capture-id/TTL binding, action effect semantics.          | Screen capture does not independently verify that an app saved correctly.                          |
+| [UFO](https://github.com/microsoft/UFO/blob/main/documents/docs/ufo2/core_features/control_detection/overview.md) | Windows UI Automation + optional OmniParser hybrid for controls not exposed semantically.                   | Visual boxes alone do not grant authority or guarantee target correctness.                         |
+| [Nod](https://github.com/n8n-io/nod/blob/main/src/providers/agent-browser/index.ts)                               | Browser snapshot, versioned references, secret redaction and private-context restrictions.                  | A browser snapshot is not a full security policy or native OS isolation.                           |
+| [Ruflo](https://github.com/ruvnet/ruflo/blob/main/plugins/ruflo-browser/README.md)                                | Session/trajectory journaling, replay/drift diff, scanner/quarantine, secret handling.                      | Signature scans cannot replace trusted execution and independent verification.                     |
 
 ## Standards that govern the decisions
+
 - [OWASP ASVS 5.0, authorization V8.4.1](https://github.com/OWASP/ASVS/blob/master/5.0/en/0x17-V8-Authorization.md) — multi-tenant isolation
 - [OWASP API Security Top 10](https://api-security.owasp.org/editions/2023/en/0x11-t10/) — object authorization, property authorization, rate limits
 - [OWASP File Upload Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/File_Upload_Cheat_Sheet.html) — file intake controls, AV and CDR
@@ -87,6 +88,7 @@ The single worst systemic risk is **cross-account data leakage combined with una
 ## Root weakness register: 192 unique hypotheses
 
 ### AUTH: Authentication and account recovery (8 roots; 48 negative tests)
+
 **Source anchor:** [src/lib/auth/throttle.ts](https://github.com/BREVEX-CEO/caera-connect-plan/blob/ocade/p00-p22-implementation/src/lib/auth/throttle.ts); **reference:** [Nod](https://github.com/n8n-io/nod/blob/main/src/providers/agent-browser/index.ts).
 
 - **AUTH-01** — Risk: Password recovery link can be reused after successful recovery. **Mitigation:** Single-use token redemption, rotation of all sessions and replay-negative test.
@@ -99,6 +101,7 @@ The single worst systemic risk is **cross-account data leakage combined with una
 - **AUTH-08** — Risk: OAuth provider email can be treated as identity without provider assurance. **Mitigation:** Verify issuer, audience, email-verification semantics and account linking approval.
 
 ### SESSION: Sessions, MFA, revocation and CSRF (8 roots; 48 negative tests)
+
 **Source anchor:** [src/lib/security/session-standing.ts](https://github.com/BREVEX-CEO/caera-connect-plan/blob/ocade/p00-p22-implementation/src/lib/security/session-standing.ts); **reference:** [Nod](https://github.com/n8n-io/nod/blob/main/src/providers/agent-browser/index.ts).
 
 - **SESSION-01** — Risk: Revoked sessions can continue action dispatch. **Mitigation:** Check current server session standing and cancellation generation at every effect.
@@ -111,6 +114,7 @@ The single worst systemic risk is **cross-account data leakage combined with una
 - **SESSION-08** — Risk: Session invalidation race can leave one last queued job. **Mitigation:** Atomic revoke plus queue and executor fencing before actual side effect.
 
 ### TENANT: Cross-user data and account isolation (8 roots; 48 negative tests)
+
 **Source anchor:** [supabase/migrations/20260912090000_one_library_for_everything_a_person_keeps.sql](https://github.com/BREVEX-CEO/caera-connect-plan/blob/ocade/p00-p22-implementation/supabase/migrations/20260912090000_one_library_for_everything_a_person_keeps.sql); **reference:** [Nod](https://github.com/n8n-io/nod/blob/main/src/providers/agent-browser/index.ts).
 
 - **TENANT-01** — Risk: Object ID access can cross tenant boundary despite authentication. **Mitigation:** Recheck actor and owner on every server query and storage read.
@@ -123,6 +127,7 @@ The single worst systemic risk is **cross-account data leakage combined with una
 - **TENANT-08** — Risk: A customer may share a link whose permissions outlive revocation. **Mitigation:** Short-lived token, revocation lookup and object-specific sharing policy.
 
 ### DB: Database policy, SQL and server privilege (8 roots; 48 negative tests)
+
 **Source anchor:** [supabase/migrations/20261030120000_jarvis_task_authority.sql](https://github.com/BREVEX-CEO/caera-connect-plan/blob/ocade/p00-p22-implementation/supabase/migrations/20261030120000_jarvis_task_authority.sql); **reference:** [Ruflo](https://github.com/ruvnet/ruflo/blob/main/plugins/ruflo-browser/README.md).
 
 - **DB-01** — Risk: RLS policy added for SELECT but forgotten for INSERT or UPDATE. **Mitigation:** Enumerate every verb and role; database role-matrix denial tests.
@@ -135,6 +140,7 @@ The single worst systemic risk is **cross-account data leakage combined with una
 - **DB-08** — Risk: Data deletion can leave foreign-key orphan or tombstone leakage. **Mitigation:** Verified cascade/retention policy, orphan scans and deletion audit receipts.
 
 ### UPLOAD: Library upload, preview and file download (8 roots; 48 negative tests)
+
 **Source anchor:** [src/lib/library/library.functions.ts](https://github.com/BREVEX-CEO/caera-connect-plan/blob/ocade/p00-p22-implementation/src/lib/library/library.functions.ts); **reference:** [Nod](https://github.com/n8n-io/nod/blob/main/src/providers/agent-browser/index.ts).
 
 - **UPLOAD-01** — Risk: Uploaded executable disguised as an image can reach a customer. **Mitigation:** Quarantine, byte sniffing, allowlist, anti-malware scan and inert download.
@@ -147,6 +153,7 @@ The single worst systemic risk is **cross-account data leakage combined with una
 - **UPLOAD-08** — Risk: Malicious filename or Unicode confusable can mislead UI and logs. **Mitigation:** Display escaping, normalized comparison and safe server-side generated paths.
 
 ### MALWARE: Malware, macro, parser and file supply-chain (8 roots; 48 negative tests)
+
 **Source anchor:** [src/lib/library/library.functions.ts](https://github.com/BREVEX-CEO/caera-connect-plan/blob/ocade/p00-p22-implementation/src/lib/library/library.functions.ts); **reference:** [CUA](https://github.com/trycua/cua/blob/main/docs/content/docs/cua-driver/concepts/how-cua-driver-works.mdx).
 
 - **MALWARE-01** — Risk: Scan-on-upload may miss malware introduced through generated artifact pipeline. **Mitigation:** Every ingress and egress gets quarantine state and policy scan.
@@ -159,6 +166,7 @@ The single worst systemic risk is **cross-account data leakage combined with una
 - **MALWARE-08** — Risk: Antivirus false positive may delete customer work. **Mitigation:** Non-destructive quarantine, appeal and reversible recovery.
 
 ### MCP: Malicious MCP tools, extensions and plugins (8 roots; 48 negative tests)
+
 **Source anchor:** [device-agent/windows/ocade_agent/catalog.py](https://github.com/BREVEX-CEO/caera-connect-plan/blob/ocade/p00-p22-implementation/device-agent/windows/ocade_agent/catalog.py); **reference:** [Ruflo](https://github.com/ruvnet/ruflo/blob/main/plugins/ruflo-browser/README.md).
 
 - **MCP-01** — Risk: Plugin can exfiltrate files despite declaring read risk. **Mitigation:** OS sandbox with no ambient filesystem/network access and per-tool grants.
@@ -171,6 +179,7 @@ The single worst systemic risk is **cross-account data leakage combined with una
 - **MCP-08** — Risk: Plugin update can bypass prior approval and install dangerous behavior. **Mitigation:** Signed version pin, staged review, rollback and renewed consent after privilege changes.
 
 ### SUPPLY: Third-party dependency and release supply-chain (8 roots; 48 negative tests)
+
 **Source anchor:** [.github/workflows/ci.yml](https://github.com/BREVEX-CEO/caera-connect-plan/blob/ocade/p00-p22-implementation/.github/workflows/ci.yml); **reference:** [Ruflo](https://github.com/ruvnet/ruflo/blob/main/plugins/ruflo-browser/README.md).
 
 - **SUPPLY-01** — Risk: Unpinned dependency can change behavior unexpectedly. **Mitigation:** Lockfile, digest pin, protected reproducible releases and review.
@@ -183,6 +192,7 @@ The single worst systemic risk is **cross-account data leakage combined with una
 - **SUPPLY-08** — Risk: Compromised upstream package can poison release tests. **Mitigation:** Independent validation environment and artifact integrity verification.
 
 ### BYOK: Customer BYOK and secret custody (8 roots; 48 negative tests)
+
 **Source anchor:** [docs/PRD.md](https://github.com/BREVEX-CEO/caera-connect-plan/blob/ocade/p00-p22-implementation/docs/PRD.md); **reference:** [Hermes](https://github.com/NousResearch/hermes-agent/blob/main/agent/image_routing.py).
 
 - **BYOK-01** — Risk: BYOK key can leak through UI, logs, exports or browser extension. **Mitigation:** Server-side encrypted vault, masked UI, no key echo and redaction tests.
@@ -195,6 +205,7 @@ The single worst systemic risk is **cross-account data leakage combined with una
 - **BYOK-08** — Risk: Key rotation during in-flight calls can cause double charge or ambiguous status. **Mitigation:** Request source lease, per-call source receipt and versioned revoke cancellation.
 
 ### MODEL: Weak models, vision, tool use and hallucination (8 roots; 48 negative tests)
+
 **Source anchor:** [src/lib/intelligence/online-client.ts](https://github.com/BREVEX-CEO/caera-connect-plan/blob/ocade/p00-p22-implementation/src/lib/intelligence/online-client.ts); **reference:** [Hermes](https://github.com/NousResearch/hermes-agent/blob/main/agent/image_routing.py).
 
 - **MODEL-01** — Risk: Online availability can be mistaken for image modality availability. **Mitigation:** Probe exact model modalities rather than network reachability.
@@ -207,6 +218,7 @@ The single worst systemic risk is **cross-account data leakage combined with una
 - **MODEL-08** — Risk: Model quality can degrade after provider swaps or silent version updates. **Mitigation:** Provider/model fingerprint, qualification suite and versioned acceptance gates.
 
 ### QUOTA: Quota exhaustion, cost, switching and fallback (8 roots; 48 negative tests)
+
 **Source anchor:** [src/lib/intelligence/edge-handler.ts](https://github.com/BREVEX-CEO/caera-connect-plan/blob/ocade/p00-p22-implementation/src/lib/intelligence/edge-handler.ts); **reference:** [OpenClaw](https://github.com/openclaw/openclaw/blob/main/docs/tools/browser/configuration.md).
 
 - **QUOTA-01** — Risk: Quota exhaustion can interrupt non-idempotent multi-step workflow. **Mitigation:** Checkpoint before model calls, bound attempts, reconcile effects before resume.
@@ -219,6 +231,7 @@ The single worst systemic risk is **cross-account data leakage combined with una
 - **QUOTA-08** — Risk: User could abuse regenerate/cancel race to mint extra free calls. **Mitigation:** Server-side atomic generation keys, replay protection and periodic audit.
 
 ### PLANNER: Planner, prompting, untrusted context and tools (8 roots; 48 negative tests)
+
 **Source anchor:** [src/lib/jarvis/planner.server.ts](https://github.com/BREVEX-CEO/caera-connect-plan/blob/ocade/p00-p22-implementation/src/lib/jarvis/planner.server.ts); **reference:** [Hermes](https://github.com/NousResearch/hermes-agent/blob/main/agent/image_routing.py).
 
 - **PLANNER-01** — Risk: Untrusted retrieved text can override objective in model reasoning. **Mitigation:** Explicit source/authority separation and tool gating independent of prompt.
@@ -231,6 +244,7 @@ The single worst systemic risk is **cross-account data leakage combined with una
 - **PLANNER-08** — Risk: Model result can produce unsafe HTML, command or script. **Mitigation:** Contextual escaping, no implicit execution and least-privilege sandbox.
 
 ### AGENTS: Parallel agent races, delegation and quality (8 roots; 48 negative tests)
+
 **Source anchor:** [src/lib/jarvis/planner.server.ts](https://github.com/BREVEX-CEO/caera-connect-plan/blob/ocade/p00-p22-implementation/src/lib/jarvis/planner.server.ts); **reference:** [Ruflo](https://github.com/ruvnet/ruflo/blob/main/plugins/ruflo-browser/README.md).
 
 - **AGENTS-01** — Risk: Two agents can modify same object without serialization. **Mitigation:** Resource-scoped read/write leases and revisioned transactional writes.
@@ -243,6 +257,7 @@ The single worst systemic risk is **cross-account data leakage combined with una
 - **AGENTS-08** — Risk: Parallel workers can overwhelm resource budgets and starve foreground user. **Mitigation:** Admission control with CPU/GPU/VRAM quotas and priority inversion safeguards.
 
 ### DESKTOP: Native Windows/macOS computer control (8 roots; 48 negative tests)
+
 **Source anchor:** [device-agent/windows/ocade_agent/windows_worker.py](https://github.com/BREVEX-CEO/caera-connect-plan/blob/ocade/p00-p22-implementation/device-agent/windows/ocade_agent/windows_worker.py); **reference:** [CUA](https://github.com/trycua/cua/blob/main/docs/content/docs/cua-driver/concepts/how-cua-driver-works.mdx).
 
 - **DESKTOP-01** — Risk: Stale coordinate can click destructive unrelated button. **Mitigation:** Bind coordinate to fresh capture and verify target identity before effect.
@@ -255,6 +270,7 @@ The single worst systemic risk is **cross-account data leakage combined with una
 - **DESKTOP-08** — Risk: Local STOP can fail if model, server or gateway is unavailable. **Mitigation:** Independent offline STOP path, durable fencing and recovery proof.
 
 ### BROWSER: Browser, DOM, navigation and web automation (8 roots; 48 negative tests)
+
 **Source anchor:** [device-agent/windows/ocade_agent/web_worker.py](https://github.com/BREVEX-CEO/caera-connect-plan/blob/ocade/p00-p22-implementation/device-agent/windows/ocade_agent/web_worker.py); **reference:** [Nod](https://github.com/n8n-io/nod/blob/main/src/providers/agent-browser/index.ts).
 
 - **BROWSER-01** — Risk: Browser action can target a stale or duplicated selector, including a previously learned workflow replayed after an app/site update. **Mitigation:** Check fresh ref/version, unique target and current app/site identity before every mutation; requalify saved procedures and quarantine workflows whose targets or effects have drifted.
@@ -267,6 +283,7 @@ The single worst systemic risk is **cross-account data leakage combined with una
 - **BROWSER-08** — Risk: Browser state can be hijacked through shared cookies/profile. **Mitigation:** Per-user authenticated browser contexts and secure session lifecycle.
 
 ### VERIFY: Independent verification, evidence and misleading success (8 roots; 48 negative tests)
+
 **Source anchor:** [src/lib/jarvis/supervisor.ts](https://github.com/BREVEX-CEO/caera-connect-plan/blob/ocade/p00-p22-implementation/src/lib/jarvis/supervisor.ts); **reference:** [CUA](https://github.com/trycua/cua/blob/main/docs/content/docs/cua-driver/concepts/how-cua-driver-works.mdx).
 
 - **VERIFY-01** — Risk: File-exists check can pass a wrong or empty deliverable. **Mitigation:** Check content, format, semantics and independent open/recompute.
@@ -279,6 +296,7 @@ The single worst systemic risk is **cross-account data leakage combined with una
 - **VERIFY-08** — Risk: User-visible success can precede underlying transaction commit. **Mitigation:** Final confirmation only after durable state and receipt reconciliation.
 
 ### EFFECT: External effects: payment, send, deletion and publish (8 roots; 48 negative tests)
+
 **Source anchor:** [src/lib/jarvis/authority.server.ts](https://github.com/BREVEX-CEO/caera-connect-plan/blob/ocade/p00-p22-implementation/src/lib/jarvis/authority.server.ts); **reference:** [CUA](https://github.com/trycua/cua/blob/main/docs/content/docs/cua-driver/concepts/how-cua-driver-works.mdx).
 
 - **EFFECT-01** — Risk: Transaction can be repeated after ambiguous timeout. **Mitigation:** External idempotency key, reconcile remote receipt and require safe recovery.
@@ -291,6 +309,7 @@ The single worst systemic risk is **cross-account data leakage combined with una
 - **EFFECT-08** — Risk: Remote service may accept request twice despite local deduplication. **Mitigation:** Use provider idempotency contract or reconciliation before any retry.
 
 ### BILLING: Plans, entitlements, payments and free-tier abuse (8 roots; 48 negative tests)
+
 **Source anchor:** [src/lib/commercial/generation-gate.ts](https://github.com/BREVEX-CEO/caera-connect-plan/blob/ocade/p00-p22-implementation/src/lib/commercial/generation-gate.ts); **reference:** [Ruflo](https://github.com/ruvnet/ruflo/blob/main/plugins/ruflo-browser/README.md).
 
 - **BILLING-01** — Risk: Client-side plan selection can be forged to unlock paid features. **Mitigation:** Server-owned entitlements from verified payment state.
@@ -303,6 +322,7 @@ The single worst systemic risk is **cross-account data leakage combined with una
 - **BILLING-08** — Risk: Refund or chargeback can leave active paid access. **Mitigation:** Verified reversal events, grace policy and bounded revocation.
 
 ### OFFLINE: Offline computation, reconnect and data consistency (8 roots; 48 negative tests)
+
 **Source anchor:** [src/lib/commercial/offline-lease.server.ts](https://github.com/BREVEX-CEO/caera-connect-plan/blob/ocade/p00-p22-implementation/src/lib/commercial/offline-lease.server.ts); **reference:** [CUA](https://github.com/trycua/cua/blob/main/docs/content/docs/cua-driver/concepts/how-cua-driver-works.mdx).
 
 - **OFFLINE-01** — Risk: Offline usage can bypass quota when clocks roll backward. **Mitigation:** Signed monotonic counters and server reconciliation.
@@ -315,6 +335,7 @@ The single worst systemic risk is **cross-account data leakage combined with una
 - **OFFLINE-08** — Risk: Time skew can break signed lease and action ordering. **Mitigation:** Monotonic sequence, trusted server time at issue and tolerance bounds.
 
 ### ADMIN: Staff, admin, support and emergency access (8 roots; 48 negative tests)
+
 **Source anchor:** [src/routes/_authenticated/admin.tsx](https://github.com/BREVEX-CEO/caera-connect-plan/blob/ocade/p00-p22-implementation/src/routes/_authenticated/admin.tsx); **reference:** [Ruflo](https://github.com/ruvnet/ruflo/blob/main/plugins/ruflo-browser/README.md).
 
 - **ADMIN-01** — Risk: Staff role check can trust unverified client claims. **Mitigation:** Backend role lookup and action-specific authorization.
@@ -327,6 +348,7 @@ The single worst systemic risk is **cross-account data leakage combined with una
 - **ADMIN-08** — Risk: Security logs can omit failed or blocked admin operations. **Mitigation:** Append-only audit event coverage and alert on unusual privilege attempts.
 
 ### FRONTEND: Frontend, DevTools, XSS and reverse engineering (8 roots; 48 negative tests)
+
 **Source anchor:** [src/lib/security/csp-nonce.ts](https://github.com/BREVEX-CEO/caera-connect-plan/blob/ocade/p00-p22-implementation/src/lib/security/csp-nonce.ts); **reference:** [Nod](https://github.com/n8n-io/nod/blob/main/src/providers/agent-browser/index.ts).
 
 - **FRONTEND-01** — Risk: Developer Tools can remove a visual paywall. **Mitigation:** Treat browser as hostile; enforce all entitlements server-side.
@@ -339,6 +361,7 @@ The single worst systemic risk is **cross-account data leakage combined with una
 - **FRONTEND-08** — Risk: Obfuscation or hidden button can create false security belief. **Mitigation:** Trust no client-provided plan or role; automated tamper-resistant API tests.
 
 ### PRIVACY: Privacy, memory, deletion, backup and retention (8 roots; 48 negative tests)
+
 **Source anchor:** [src/lib/library/tombstones.server.ts](https://github.com/BREVEX-CEO/caera-connect-plan/blob/ocade/p00-p22-implementation/src/lib/library/tombstones.server.ts); **reference:** [Ruflo](https://github.com/ruvnet/ruflo/blob/main/plugins/ruflo-browser/README.md).
 
 - **PRIVACY-01** — Risk: Account deletion can leave bytes in storage or pending tombstone. **Mitigation:** Durable deletion queue, tombstone retries and eventual purge proof.
@@ -351,6 +374,7 @@ The single worst systemic risk is **cross-account data leakage combined with una
 - **PRIVACY-08** — Risk: Backups may retain erased data beyond stated deletion window. **Mitigation:** Document backup limits, crypto-erasure policy and restore-time deletion replay.
 
 ### OPS: CI, deployment, migration and incident operations (8 roots; 48 negative tests)
+
 **Source anchor:** [.github/workflows/ci.yml](https://github.com/BREVEX-CEO/caera-connect-plan/blob/ocade/p00-p22-implementation/.github/workflows/ci.yml); **reference:** [Ruflo](https://github.com/ruvnet/ruflo/blob/main/plugins/ruflo-browser/README.md).
 
 - **OPS-01** — Risk: Green CI on earlier SHA can be misreported as production readiness. **Mitigation:** Artifact-to-SHA attestations and same-SHA mandatory gate.
@@ -363,6 +387,7 @@ The single worst systemic risk is **cross-account data leakage combined with una
 - **OPS-08** — Risk: An outage can trap tasks with partial external effects. **Mitigation:** Durable incident mode, pause admission and deterministic reconciliation.
 
 ### RELIABILITY: Abuse resistance, performance and user experience (8 roots; 48 negative tests)
+
 **Source anchor:** [src/lib/intelligence/edge-handler.ts](https://github.com/BREVEX-CEO/caera-connect-plan/blob/ocade/p00-p22-implementation/src/lib/intelligence/edge-handler.ts); **reference:** [OpenClaw](https://github.com/openclaw/openclaw/blob/main/docs/tools/browser/configuration.md).
 
 - **RELIABILITY-01** — Risk: Tiny repeated requests can exhaust database and gateway capacity. **Mitigation:** Multi-dimensional quotas, admission control and rate alert.

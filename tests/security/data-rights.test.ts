@@ -21,6 +21,10 @@ const NOT_EXPORTED: Record<string, string> = {
   ocade_device_usage_leases: "offline-usage leases; removed with the account",
   ocade_support_cases: "staff case records about the account; removed with it",
   ocade_support_shares: "time-limited shares the person made; removed with the account",
+  byok_connections:
+    "the person's own model connections: listed and deleted one by one in Settings > BYOK; a key is never exported; removed with the account, keys included",
+  byok_choices:
+    "which source serves Chat and JARVIS, shown in Settings > BYOK; removed with the account",
 };
 
 test("every table that names an account is exported or excluded with a reason", () => {

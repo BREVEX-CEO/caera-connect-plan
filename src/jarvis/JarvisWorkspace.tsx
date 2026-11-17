@@ -24,6 +24,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { useSession } from "@/lib/session";
+import { ModelSource } from "@/components/settings/ModelSource";
 import { useFollowBottom } from "@/lib/use-follow-bottom";
 import { Prose } from "@/components/chat/MessageList";
 import { useSettingsPanel } from "@/components/settings/settings-panel";
@@ -567,6 +568,11 @@ export function JarvisWorkspace({
                   </button>
                 ) : null}
               </p>
+            ) : null}
+            {user ? (
+              <div className="mt-2 flex justify-end">
+                <ModelSource surface="jarvis" />
+              </div>
             ) : null}
           </div>
         </div>

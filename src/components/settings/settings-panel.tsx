@@ -26,7 +26,14 @@ import {
 const loadDialog = () => import("./settings-dialog");
 const SettingsDialog = lazy(loadDialog);
 
-const SETTINGS_CATEGORIES = ["account", "preferences", "devices", "privacy", "billing"] as const;
+const SETTINGS_CATEGORIES = [
+  "account",
+  "preferences",
+  "devices",
+  "privacy",
+  "billing",
+  "byok",
+] as const;
 /** Older links name the parts Preferences now holds. */
 const MERGED: Record<string, SettingsCategory> = {
   appearance: "preferences",

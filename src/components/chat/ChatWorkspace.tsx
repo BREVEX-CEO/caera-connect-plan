@@ -1,4 +1,5 @@
 import { HighConfirm, QualityControl } from "@/lib/intelligence/QualityControl";
+import { ModelSource } from "@/components/settings/ModelSource";
 import { useIntelligenceQuality } from "@/lib/intelligence/use-intelligence-quality";
 /**
  * THE PRODUCT HOME.
@@ -575,6 +576,7 @@ export function ChatWorkspace() {
                       disabled={chat.busy}
                     />
                   ) : null}
+                  {choice === "online" && user ? <ModelSource surface="chat" /> : null}
 
                   {/* Each option that is on shows as a chip; its x turns it off. */}
                   {[

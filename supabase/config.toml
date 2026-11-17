@@ -7,3 +7,6 @@ verify_jwt = true
 # check cannot read: the function authorizes the caller itself.
 [functions.ocade-intelligence-service]
 verify_jwt = false
+
+[functions.ocade-byok]
+verify_jwt = true

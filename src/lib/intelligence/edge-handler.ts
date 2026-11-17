@@ -123,6 +123,31 @@ interface OnlineRequestBody {
   highModeAcknowledged?: string;
 }
 
+/**
+ * A CUSTOMER'S OWN CONNECTION (BYOK, plan 14B.1A/B). When a person chose one for this surface,
+ * every model call of the turn goes to it and to nothing else: no OCADE key, no other customer's
+ * key, no other model. Its key stays with the deployment (`boundary.ts`); the handler sees only
+ * this description.
+ */
+export interface CustomerRoute {
+  /** Null when the chosen connection was deleted: refused until the person chooses again. */
+  id: string | null;
+  enabled: boolean;
+  status: string;
+  protocol: ProviderProtocol;
+  model: string;
+  /** What its last test proved; null is unknown and is treated as text-only. */
+  seesImages: boolean | null;
+}
+
+/** Why a customer's connection could not answer, as the person is told it. */
+const CUSTOMER_REFUSALS: Record<string, string> = {
+  invalid: "byok_invalid",
+  credits_unavailable: "byok_credits_unavailable",
+  incompatible: "byok_incompatible",
+  blocked: "byok_blocked",
+};
+
 export interface OnlineHandlerDependencies {
   allowedOrigins: ReadonlySet<string>;
   providerReady: boolean;
@@ -197,12 +222,34 @@ export interface OnlineHandlerDependencies {
     load(model: string): Promise<readonly ProviderFeature[]>;
     learn(model: string, feature: ProviderFeature): Promise<void>;
   };
+  /**
+   * The customer's own connections. `route` answers null when OCADE's models serve this surface,
+   * and throws when the choice cannot be read (then nothing is sent: an unread choice is never
+   * taken to be OCADE's). `bind` marks the turn's permit as served by the customer's key, so it
+   * is not charged to OCADE's allowance; `record` keeps what a call proved about the connection.
+   */
+  byok?: {
+    /** A JARVIS turn of a task uses the task's own source (`permit` names the turn). */
+    route(
+      userId: string,
+      surface: "chat" | "jarvis",
+      permit: OnlineRequestBody["permit"],
+    ): Promise<CustomerRoute | null>;
+    bind(
+      userId: string,
+      permit: OnlineRequestBody["permit"],
+      connectionId: string,
+    ): Promise<boolean>;
+    record(userId: string, connectionId: string, status: string): Promise<void>;
+  };
   callProvider(input: {
     model: OnlineModelId;
     body: Record<string, unknown>;
     signal: AbortSignal;
     /** Which key to present. The handler decides; the caller holds the keys. */
     slot: ProviderKeySlot;
+    /** The customer's connection this call goes to, instead of any OCADE key. */
+    customer?: CustomerRoute;
   }): Promise<Response>;
   /**
    * Where one structured health record per request goes.
@@ -225,7 +272,7 @@ export interface OnlineHandlerDependencies {
   releasePermit?(input: { userId: string; permit: IntelligencePermit }): Promise<void>;
 }
 
-function json(status: number, body: Record<string, unknown>, origin?: string): Response {
+export function json(status: number, body: Record<string, unknown>, origin?: string): Response {
   return new Response(JSON.stringify(body), {
     status,
     headers: {
@@ -236,7 +283,7 @@ function json(status: number, body: Record<string, unknown>, origin?: string): R
   });
 }
 
-function cors(origin: string): Record<string, string> {
+export function cors(origin: string): Record<string, string> {
   return {
     "Access-Control-Allow-Origin": origin,
     Vary: "Origin",
@@ -266,7 +313,7 @@ export async function isServiceKey(
   return matched;
 }
 
-function bearer(request: Request): string | null {
+export function bearer(request: Request): string | null {
   const value = request.headers.get("authorization") ?? "";
   const match = /^Bearer\s+([^\s]+)$/i.exec(value);
   return match?.[1] ?? null;
@@ -1237,16 +1284,45 @@ async function runOnlineIntelligence(
   // The server door exists for JARVIS work on a computer, and for nothing else.
   if (service && body.surface !== "jarvis") return json(400, { error: "invalid_request" });
 
-  const high = body.quality === "high";
-  // The server's own planner (`GEMINI_MODEL`), never the request's: exactly one model per task.
-  const configured: OnlineModelId | undefined = high ? HIGH_ONLINE_MODEL : plannerModel(deps.model);
+  /*
+   * THE SOURCE IS THE PERSON'S CHOICE, READ ON THE SERVER (plan 14B.1B.1). A customer connection
+   * chosen for this surface serves the whole turn; a choice that cannot be read sends nothing.
+   */
+  let customer: CustomerRoute | null = null;
+  try {
+    customer =
+      (await deps.byok?.route(
+        identity.userId,
+        body.surface === "jarvis" ? "jarvis" : "chat",
+        body.permit,
+      )) ?? null;
+  } catch {
+    return json(503, { error: "byok_unavailable" }, origin);
+  }
+  if (customer) {
+    const refusal = !customer.id
+      ? "byok_missing"
+      : !customer.enabled
+        ? "byok_disabled"
+        : CUSTOMER_REFUSALS[customer.status];
+    if (refusal) return json(409, { error: refusal }, origin);
+  }
+  const high = !customer && body.quality === "high";
+  // The server's own planner (`GEMINI_MODEL`) or the customer's, never the request's: one model.
+  const configured: OnlineModelId | undefined = customer
+    ? plannerModel(customer.model)
+    : high
+      ? HIGH_ONLINE_MODEL
+      : plannerModel(deps.model);
   // Grounded research is Google's own search: no other protocol has it.
-  const openai = high || deps.protocol === "openai";
+  const openai = high || (customer ? customer.protocol : deps.protocol) === "openai";
+  /** Where this model's quota and refusals are kept: per customer connection, never shared. */
+  const record = customer ? `customer:${customer.id}` : configured;
   if (openai && body.research) return json(403, { error: "research_unavailable" }, origin);
   if (high && !(await deps.highAvailable?.(request.signal).catch(() => false))) {
     return json(503, { error: "high_unavailable" }, origin);
   }
-  if (!configured || (!high && !deps.providerReady)) {
+  if (!configured || (!high && !customer && !deps.providerReady)) {
     return json(503, { error: "online_unavailable" }, origin);
   }
   // Before anything is claimed or sent: the account's own agreement, read on the server.
@@ -1254,7 +1330,7 @@ async function runOnlineIntelligence(
     return json(403, { error: "online_not_consented" }, origin);
   }
   // A model whose quota the provider named as spent is not asked until it returns.
-  const spentMs = (deps.quotaReturnsAt?.get(configured) ?? 0) - (deps.now ?? Date.now)();
+  const spentMs = (deps.quotaReturnsAt?.get(record!) ?? 0) - (deps.now ?? Date.now)();
   if (spentMs > 0) {
     return json(
       429,
@@ -1264,6 +1340,16 @@ async function runOnlineIntelligence(
   }
   const claimed = await deps.claimPermit({ userId: identity.userId, permit: body.permit });
   if (!claimed.ok) return json(409, { error: "permit_refused", reason: claimed.reason }, origin);
+  // Served by the customer's key: the permit says so before any call, or nothing is sent.
+  if (
+    customer &&
+    !(await deps.byok!.bind(identity.userId, body.permit, customer.id!).catch(() => false))
+  ) {
+    await deps
+      .releasePermit?.({ userId: identity.userId, permit: body.permit })
+      .catch(() => undefined);
+    return json(503, { error: "byok_unavailable" }, origin);
+  }
 
   const controller = new AbortController();
   const abort = () => controller.abort(request.signal.reason);
@@ -1322,11 +1408,13 @@ async function runOnlineIntelligence(
      * response is ok; the stream is handed off after it, and nothing here runs
      * again once a single token has reached the person.
      */
-    const configuredSlots: readonly ProviderKeySlot[] = high
-      ? ["primary"]
-      : deps.providerSlots && deps.providerSlots.length > 0
-        ? deps.providerSlots
-        : [PROVIDER_KEY_SLOTS[0]];
+    const configuredSlots: readonly ProviderKeySlot[] = customer
+      ? ["customer"]
+      : high
+        ? ["primary"]
+        : deps.providerSlots && deps.providerSlots.length > 0
+          ? deps.providerSlots
+          : [PROVIDER_KEY_SLOTS[0]];
     // A key its provider refused recently is tried last, not first (a circuit breaker per key):
     // healthy keys keep their order, and a refused key is still tried when no other is left.
     const nowMs = (deps.now ?? Date.now)();
@@ -1339,9 +1427,11 @@ async function runOnlineIntelligence(
       deps.keyRefusedUntil?.set(slot, (deps.now ?? Date.now)() + KEY_REST_MS);
     let provider: Response | null = null;
     // Images reach only a model that takes them; the planner is told which it was (x-ocade-vision).
-    const sees = deps.vision ?? !openai;
+    const sees = customer ? customer.seesImages === true : (deps.vision ?? !openai);
     let blind = !sees;
     let quotaExhausted = false;
+    /** What the customer's connection was found to be when it could not answer. */
+    let customerFailed: string | undefined;
     let capacityReturnsIn = 0;
     /** How the model ended when it could not answer, when that was not capacity. */
     let refusedAs: "provider_rejected_request" | "provider_unavailable" | undefined;
@@ -1364,14 +1454,14 @@ async function runOnlineIntelligence(
     for (;;) {
       provider = null;
       refusedAs = undefined;
-      let refused = deps.refused?.get(configured);
+      let refused = deps.refused?.get(record!);
       if (!refused) {
         refused = new Set(
-          high
+          high || customer
             ? []
             : await (deps.capabilities?.load(configured) ?? Promise.resolve([])).catch(() => []),
         );
-        deps.refused?.set(configured, refused);
+        deps.refused?.set(record!, refused);
       }
       let sent = sentFeatures(body, refused);
       blind = !sees || refused.has("vision");
@@ -1422,6 +1512,7 @@ async function runOnlineIntelligence(
                 : providerBody(shown, sent),
             signal: AbortSignal.any([controller.signal, hung.signal]),
             slot,
+            ...(customer ? { customer } : {}),
           });
         } catch (cause) {
           /*
@@ -1450,6 +1541,10 @@ async function runOnlineIntelligence(
         provider = openai ? workersAiResponse(response, controller.signal) : response;
         if (response.ok) {
           Object.assign(served, { model: configured, slot });
+          if (customer && customer.status !== "connected")
+            void deps
+              .byok!.record(identity.userId, customer.id!, "connected")
+              .catch(() => undefined);
           break;
         }
         // A refusal's provider message, reduced to lowercase words, names what was refused.
@@ -1481,6 +1576,7 @@ async function runOnlineIntelligence(
           quotaExhausted = true;
           const detail = await response.text().catch(() => "");
           const quota = providerQuota(detail, (deps.now ?? Date.now)());
+          customerFailed = quota.dailyResetMs !== undefined ? "quota_exhausted" : "rate_limited";
           for (const limit of quota.limits)
             deps.discoveredLimit?.({ ...limit, slot, model: configured });
           const named = providerWait(response, detail);
@@ -1503,7 +1599,7 @@ async function runOnlineIntelligence(
           if (wait !== undefined && wait > MAX_INLINE_WAIT_MS) {
             const seconds = Math.ceil(wait / 1_000);
             capacityReturnsIn = capacityReturnsIn ? Math.min(capacityReturnsIn, seconds) : seconds;
-            deps.quotaReturnsAt?.set(configured, (deps.now ?? Date.now)() + wait);
+            deps.quotaReturnsAt?.set(record!, (deps.now ?? Date.now)() + wait);
             break;
           }
           if (last) break;
@@ -1515,6 +1611,10 @@ async function runOnlineIntelligence(
           // Google reports a bad or expired key as 400: that is THIS key, not the request.
           const detail = await response.text().catch(() => "");
           if (/API_KEY_INVALID|API key (not valid|expired)/i.test(detail)) {
+            if (customer) {
+              customerFailed = "invalid";
+              break;
+            }
             refuseKey(slot);
             slotIndex += 1;
             continue;
@@ -1525,7 +1625,8 @@ async function runOnlineIntelligence(
             refused.add(feature);
             sent = sentFeatures(body, refused);
             blind = !sees || refused.has("vision");
-            void deps.capabilities?.learn(configured, feature).catch(() => undefined);
+            if (!customer)
+              void deps.capabilities?.learn(configured, feature).catch(() => undefined);
             deps.providerIssue?.({ model: configured, slot, kind: `refused_${feature}` });
             // Learning what the model accepts is not a failed attempt at the turn itself.
             modelAttempts -= 1;
@@ -1540,6 +1641,10 @@ async function runOnlineIntelligence(
 
         // THIS key is refused: the next one may not be.
         if (response.status === 401 || response.status === 403) {
+          if (customer) {
+            customerFailed = "invalid";
+            break;
+          }
           refuseKey(slot);
           slotIndex += 1;
           continue;
@@ -1558,6 +1663,11 @@ async function runOnlineIntelligence(
           continue;
         }
 
+        // 421 is the deployment's own refusal to dial an address that is not public.
+        if (customer)
+          customerFailed = { 402: "credits_unavailable", 404: "incompatible", 421: "blocked" }[
+            response.status
+          ];
         refusedAs = "provider_unavailable";
         break;
       }
@@ -1627,6 +1737,26 @@ async function runOnlineIntelligence(
       );
     }
 
+    /*
+     * THE CUSTOMER'S CONNECTION ANSWERS FOR ITSELF (plan 14B.1B.5): what its provider said, under
+     * its own name, and never an OCADE key in its place.
+     */
+    if (customer && !provider?.ok) {
+      const status =
+        customerFailed ??
+        (refusedAs === "provider_rejected_request" ? "rejected_request" : "unreachable");
+      if (status !== "rejected_request")
+        void deps.byok!.record(identity.userId, customer.id!, status).catch(() => undefined);
+      return json(
+        status === "rate_limited" || status === "quota_exhausted" ? 429 : 502,
+        {
+          error: `byok_${status}`,
+          connection: customer.id,
+          ...(capacityReturnsIn ? { retryAfterSeconds: capacityReturnsIn } : {}),
+        },
+        origin,
+      );
+    }
     if (!provider?.ok && refusedAs) {
       return json(
         refusedAs === "provider_rejected_request" ? 400 : 503,

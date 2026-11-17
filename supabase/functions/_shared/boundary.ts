@@ -2,8 +2,10 @@ import { highIncluded } from "./workers-ai.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.110.7";
 import {
   isServiceKey,
+  type CustomerRoute,
   type OnlineHandlerDependencies,
 } from "../../../src/lib/intelligence/edge-handler.ts";
+import { gatewayAddress, resolvesPublic } from "../../../src/lib/intelligence/gateway-address.ts";
 import { SERVICE_USER_HEADER } from "../../../src/lib/intelligence/contract.ts";
 import { ONLINE_CONSENT_VERSION } from "../../../src/lib/intelligence/online-consent-version.ts";
 import { buildHealthRecord } from "../../../src/lib/telemetry/operation-health.ts";
@@ -61,7 +63,7 @@ const CF_ACCOUNT = Deno.env.get("CLOUDFLARE_ACCOUNT_ID") ?? "";
 const CF_TOKEN = Deno.env.get("CLOUDFLARE_WORKERS_AI_TOKEN") ?? "";
 // Billing eligibility and inference use separately scoped credentials; neither substitutes for the other.
 const CF_BILLING_TOKEN = Deno.env.get("CLOUDFLARE_BILLING_READ_TOKEN") ?? "";
-const allowedOrigins = new Set(
+export const allowedOrigins = new Set(
   (Deno.env.get("OCADE_ALLOWED_ORIGINS") ?? "")
     .split(",")
     .map((value) => value.trim())
@@ -168,6 +170,118 @@ async function rpc(name: string, body: Record<string, unknown>): Promise<unknown
   return response.ok ? await response.json().catch(() => undefined) : undefined;
 }
 
+/*
+ * A CUSTOMER'S KEY STAYS IN THIS FILE (plan 14B.1A.5). Read from Vault for one request through a
+ * server-only database function, held against the route object the handler is given, and sent only
+ * as a header to the customer's own checked address. Never logged, returned or stored elsewhere.
+ */
+const CUSTOMER_KEYS = new WeakMap<CustomerRoute, { endpoint: string; key: string }>();
+
+interface ByokRow {
+  id: string | null;
+  enabled: boolean;
+  status: string;
+  protocol: "gemini" | "openai";
+  endpoint: string;
+  model: string;
+  sees_images: boolean | null;
+  secret: string | null;
+}
+
+/** The person's connection: the one named, or the one chosen for a surface (null: none chosen). */
+export async function customerRoute(
+  userId: string,
+  connectionId: string | null,
+  surface: "chat" | "jarvis" | null,
+  /** A JARVIS turn: the source of the task its permit belongs to, else the current choice. */
+  turn?: string,
+): Promise<CustomerRoute | null> {
+  const answer = turn
+    ? await rpc("ocade_byok_route_for_turn", { p_user_id: userId, p_idempotency_key: turn })
+    : await rpc("ocade_byok_route", {
+        p_user_id: userId,
+        p_connection_id: connectionId,
+        p_surface: surface,
+      });
+  // Unreadable is not "none chosen": the caller sends nothing rather than guess OCADE's keys.
+  if (!Array.isArray(answer)) throw new Error("byok_unavailable");
+  const row = answer[0] as ByokRow | undefined;
+  if (!row) return null;
+  const route: CustomerRoute = {
+    id: row.id,
+    enabled: row.enabled,
+    status: row.status,
+    protocol: row.protocol,
+    model: row.model,
+    seesImages: row.sees_images,
+  };
+  if (row.secret) CUSTOMER_KEYS.set(route, { endpoint: row.endpoint, key: row.secret });
+  return route;
+}
+
+/**
+ * One request to a customer's own address, after the address and every IP it resolves to are
+ * checked (plan 14B.1B.7). Redirects are refused; the platform checks the certificate.
+ */
+export async function customerFetch(
+  route: CustomerRoute,
+  path: string,
+  body: unknown,
+  signal: AbortSignal,
+): Promise<Response> {
+  const held = CUSTOMER_KEYS.get(route);
+  const address = held ? gatewayAddress(held.endpoint) : null;
+  if (!held || !address?.ok) return new Response(null, { status: 421 });
+  const resolve = (host: string, type: "A" | "AAAA") => Deno.resolveDns(host, type);
+  if (!(await resolvesPublic(address.host, resolve))) return new Response(null, { status: 421 });
+  const headers: Record<string, string> =
+    route.protocol === "openai"
+      ? { Authorization: `Bearer ${held.key}` }
+      : { "x-goog-api-key": held.key };
+  return fetch(`${address.url}${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...headers },
+    body: JSON.stringify(body),
+    redirect: "error",
+    signal,
+  });
+}
+
+/** The path a model call takes on a provider's API, by protocol. */
+export function modelPath(protocol: "gemini" | "openai", model: string, stream: boolean): string {
+  return protocol === "openai"
+    ? "/chat/completions"
+    : `/models/${encodeURIComponent(model)}:${stream ? "streamGenerateContent?alt=sse" : "generateContent"}`;
+}
+
+/**
+ * A server-only database function that must answer: its refusal comes back as the database's
+ * own condition (`check_violation`, `no_data_found`), anything else as unavailable.
+ */
+export async function rpcOrThrow(name: string, body: Record<string, unknown>): Promise<unknown> {
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${name}`, {
+    method: "POST",
+    headers: {
+      apikey: SUPABASE_SERVICE_ROLE_KEY,
+      "Content-Type": "application/json",
+      ...(!SUPABASE_SERVICE_ROLE_KEY.startsWith("sb_secret_")
+        ? { Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}` }
+        : {}),
+    },
+    body: JSON.stringify(body),
+  });
+  const answer = await response.json().catch(() => undefined);
+  if (response.ok) return answer;
+  const sqlState = (answer as { code?: string } | undefined)?.code;
+  const code =
+    sqlState === "23514"
+      ? "check_violation"
+      : sqlState === "P0002"
+        ? "no_data_found"
+        : "unavailable";
+  throw Object.assign(new Error(code), { code });
+}
+
 /** A signed-in person's session, asked of Supabase Auth itself. */
 export async function verifyUserJwt(token: string): Promise<{ userId: string } | null> {
   const auth = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
@@ -223,6 +337,29 @@ export const boundary: Omit<OnlineHandlerDependencies, "verifyJwt" | "verifyServ
   highAvailable: async (signal) =>
     Boolean(CF_TOKEN) && (await highIncluded(CF_ACCOUNT, CF_BILLING_TOKEN, signal)),
   observe,
+  byok: {
+    route: (userId, surface, permit) =>
+      surface === "jarvis"
+        ? customerRoute(userId, null, null, permit.idempotencyKey)
+        : customerRoute(userId, null, surface),
+    async bind(userId, permit, connectionId) {
+      const answer = await rpc("ocade_bind_permit_to_customer_key", {
+        p_user_id: userId,
+        p_idempotency_key: permit.idempotencyKey,
+        p_connection_id: connectionId,
+      });
+      return answer === true;
+    },
+    async record(userId, connectionId, status) {
+      await rpc("ocade_byok_record", {
+        p_user_id: userId,
+        p_connection_id: connectionId,
+        p_status: status,
+        p_sees_images: null,
+        p_calls_tools: null,
+      });
+    },
+  },
   model: PLANNER_MODEL,
   protocol: PROVIDER?.protocol,
   // OCADE_MODEL_VISION=yes|no: whether the model takes images; unset, the protocol decides.
@@ -302,7 +439,12 @@ export const boundary: Omit<OnlineHandlerDependencies, "verifyJwt" | "verifyServ
       p_reason: "transport_ended_without_output",
     });
   },
-  async callProvider({ model, body, signal, slot }) {
+  async callProvider({ model, body, signal, slot, customer }) {
+    // The customer's own connection: only its key, only its checked address (421: refused there).
+    if (customer) {
+      if (!plannerModel(model)) return new Response(null, { status: 400 });
+      return customerFetch(customer, modelPath(customer.protocol, model, true), body, signal);
+    }
     if (model === HIGH_ONLINE_MODEL) {
       // Recheck immediately before every dispatch, including retries. Never trust browser flags.
       if (!CF_TOKEN || !(await highIncluded(CF_ACCOUNT, CF_BILLING_TOKEN, signal))) {

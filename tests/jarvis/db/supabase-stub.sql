@@ -88,3 +88,20 @@ CREATE TABLE realtime.sent (topic text, event text, payload jsonb, private boole
 CREATE FUNCTION realtime.send(payload jsonb, event text, topic text, private boolean DEFAULT true)
 RETURNS void LANGUAGE sql AS $$ INSERT INTO realtime.sent (topic, event, payload, private)
   VALUES (topic, event, payload, private) $$;
+
+-- Supabase Vault: the hosted extension encrypts `secret`; this stand-in keeps the same interface.
+CREATE SCHEMA vault;
+CREATE TABLE vault.secrets (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), name text UNIQUE,
+  description text NOT NULL DEFAULT '', secret text NOT NULL, created_at timestamptz DEFAULT now());
+CREATE FUNCTION vault.create_secret(new_secret text, new_name text DEFAULT NULL,
+  new_description text DEFAULT '', new_key_id uuid DEFAULT NULL)
+RETURNS uuid LANGUAGE sql AS $$
+  INSERT INTO vault.secrets (secret, name, description) VALUES (new_secret, new_name, new_description)
+  RETURNING id $$;
+CREATE FUNCTION vault.update_secret(secret_id uuid, new_secret text DEFAULT NULL,
+  new_name text DEFAULT NULL, new_description text DEFAULT NULL, new_key_id uuid DEFAULT NULL)
+RETURNS void LANGUAGE sql AS $$
+  UPDATE vault.secrets SET secret = coalesce(new_secret, secret), name = coalesce(new_name, name),
+    description = coalesce(new_description, description) WHERE id = secret_id $$;
+CREATE VIEW vault.decrypted_secrets AS SELECT *, secret AS decrypted_secret FROM vault.secrets;
+REVOKE ALL ON SCHEMA vault FROM PUBLIC;

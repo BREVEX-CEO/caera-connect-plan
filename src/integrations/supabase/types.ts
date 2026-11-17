@@ -95,6 +95,89 @@ export type Database = {
           },
         ]
       }
+      byok_choices: {
+        Row: {
+          chosen_at: string
+          connection_id: string | null
+          surface: string
+          user_id: string
+        }
+        Insert: {
+          chosen_at?: string
+          connection_id?: string | null
+          surface: string
+          user_id: string
+        }
+        Update: {
+          chosen_at?: string
+          connection_id?: string | null
+          surface?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "byok_choices_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "byok_connections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      byok_connections: {
+        Row: {
+          alias: string
+          calls_tools: boolean | null
+          checked_at: string | null
+          created_at: string
+          enabled: boolean
+          endpoint: string
+          fingerprint: string
+          id: string
+          model: string
+          protocol: string
+          secret_id: string
+          sees_images: boolean | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          alias: string
+          calls_tools?: boolean | null
+          checked_at?: string | null
+          created_at?: string
+          enabled?: boolean
+          endpoint: string
+          fingerprint: string
+          id?: string
+          model: string
+          protocol: string
+          secret_id: string
+          sees_images?: boolean | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          alias?: string
+          calls_tools?: boolean | null
+          checked_at?: string | null
+          created_at?: string
+          enabled?: boolean
+          endpoint?: string
+          fingerprint?: string
+          id?: string
+          model?: string
+          protocol?: string
+          secret_id?: string
+          sees_images?: boolean | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       compliance_audit_log: {
         Row: {
           action: string
@@ -472,6 +555,8 @@ export type Database = {
           live_frame: string | null
           live_frame_at: string | null
           model_calls: number
+          model_connection: string | null
+          model_customer_key: boolean
           model_metric_ids: string[]
           model_ms: number
           outcome: Json | null
@@ -510,6 +595,8 @@ export type Database = {
           live_frame?: string | null
           live_frame_at?: string | null
           model_calls?: number
+          model_connection?: string | null
+          model_customer_key?: boolean
           model_metric_ids?: string[]
           model_ms?: number
           outcome?: Json | null
@@ -548,6 +635,8 @@ export type Database = {
           live_frame?: string | null
           live_frame_at?: string | null
           model_calls?: number
+          model_connection?: string | null
+          model_customer_key?: boolean
           model_metric_ids?: string[]
           model_ms?: number
           outcome?: Json | null
@@ -905,6 +994,8 @@ export type Database = {
       ocade_generation_permits: {
         Row: {
           charged_hundredths: number | null
+          customer_connection: string | null
+          customer_key: boolean
           expires_at: string
           finalized_at: string | null
           generation_id: string
@@ -929,6 +1020,8 @@ export type Database = {
         }
         Insert: {
           charged_hundredths?: number | null
+          customer_connection?: string | null
+          customer_key?: boolean
           expires_at: string
           finalized_at?: string | null
           generation_id: string
@@ -953,6 +1046,8 @@ export type Database = {
         }
         Update: {
           charged_hundredths?: number | null
+          customer_connection?: string | null
+          customer_key?: boolean
           expires_at?: string
           finalized_at?: string | null
           generation_id?: string
