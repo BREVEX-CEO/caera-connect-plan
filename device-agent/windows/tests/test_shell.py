@@ -87,7 +87,7 @@ class Shell(unittest.TestCase):
         with self.subTest("SHELL-004 its effect is real and checked on disk"):
             self.assertEqual((self.root / "fixed.txt").read_text().strip(), "repaired")
 
-    @unittest.skipUnless(WINDOWS, "the restricted token is the Windows containment (plan v8 11.9)")
+    @unittest.skipUnless(WINDOWS, "needs a Windows desktop")
     def test_commands_and_jobs_hold_no_privileges(self):
         [privileges, groups] = self.run_steps({"command": "whoami /priv /fo csv"}, {"command": "whoami /groups /fo csv"})
         held = {row.split(",")[0].strip('"') for row in privileges["evidence"]["stdout"].splitlines()[1:] if row}

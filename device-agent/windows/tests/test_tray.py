@@ -30,7 +30,7 @@ class WindowsTrayTest(unittest.TestCase):
         self.assertFalse(win32gui.IsWindow(tray.hwnd), "the icon's window is gone")
 
 
-@unittest.skipUnless(sys.platform == "darwin", "needs a macOS desktop")
+@unittest.skipUnless(sys.platform == "darwin", "needs a Mac desktop with Accessibility granted")
 class MacTrayDesktopTest(unittest.TestCase):
     def test_the_menu_bar_item_shows_its_stop_writes_the_local_stop_and_close_ends_it(self):
         """Pressed through accessibility, as a person's click would be (a hosted macOS runner)."""
