@@ -407,7 +407,9 @@ def diagnose(home: Path, server: str | None, workspace: str | None) -> list[dict
     for entry in rejected:
         check(f"mcp:{entry['file']}", False, f"manifest not used: {entry['reason']}")
     for manifest in external.values():
-        check(f"mcp:{manifest['id']}", manifest["state"] == "trusted", manifest["state"])
+        check(f"mcp:{manifest['id']}", manifest["state"] == "trusted",
+              manifest["state"] + (f" ({', '.join(manifest['findings'])}; review its files, then list them"
+                                   " in reviewedFindings)" if manifest.get("findings") else ""))
 
     async def workers() -> None:
         async with Gateway(workspace or tempfile.mkdtemp(), home=str(home)) as gateway:

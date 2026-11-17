@@ -48,6 +48,8 @@ MANIFEST_SCHEMA = {
                       "additionalProperties": {"type": "string", "pattern": "^[0-9a-f]{64}$"}},
         "platforms": {"type": "array", "items": {"enum": ["win32", "linux", "darwin"]}, "minItems": 1},
         "timeoutSeconds": {"type": "number", "minimum": 1, "maximum": 300},
+        # Scanner findings the device owner reviewed and accepts for exactly these pinned files.
+        "reviewedFindings": {"type": "array", "maxItems": 20, "items": {"type": "string", "maxLength": 40}},
         "tools": {
             "type": "array",
             "minItems": 1,
@@ -81,6 +83,42 @@ def _depth(value, level: int = 0) -> int:
         return level
     children = value.values() if isinstance(value, dict) else value if isinstance(value, list) else ()
     return max((_depth(child, level + 1) for child in children), default=level)
+
+
+# A static scan before an external server is trusted (plan 14A REPO-14): deterministic patterns
+# over its tool descriptions, arguments and pinned script files. A finding quarantines the
+# server until the owner reviews it (`reviewedFindings`); nothing here asks a model.
+SCRIPT_BYTES = 1024 * 1024
+_FINDINGS = {
+    "embedded_secret": r"(?i)(?:api[_-]?key|secret|token|password)\s*[:=]\s*['\"][^'\"\s]{12,}"
+                       r"|\bsk-[A-Za-z0-9_-]{20,}|\bAKIA[0-9A-Z]{16}\b|-----BEGIN [A-Z ]*PRIVATE KEY-----",
+    "download_and_run": r"(?i)(?:curl|wget)[^\n|]*\|\s*(?:sudo\s+)?(?:ba|z)?sh\b"
+                        r"|(?:iwr|invoke-webrequest|downloadstring)[^\n]*\|\s*(?:iex|invoke-expression)"
+                        r"|powershell[^\n]*\s-e(?:nc(?:odedcommand)?)?\s",
+    "dynamic_code": r"(?:exec|eval)\s*\([^)\n]*(?:b64decode|base64|urlopen|requests\.get|atob|fromCharCode)",
+    "hidden_destination": r"(?i)\b(?:https?|wss?)://(?:\d{1,3}\.){3}\d{1,3}\b",
+    "prompt_injection": r"(?i)ignore (?:all |any )?(?:previous|prior|above) instructions|disregard (?:the|your) "
+                        r"(?:rules|instructions)|you are now\b|reveal (?:the|your) system prompt"
+                        r"|do not (?:tell|inform) the (?:user|person)",
+}
+_UNDERSTATED = r"(?i)\b(?:delet|remov|send|sends|sent|e-?mail|upload|post|publish|pay|purchas|transfer|overwrit)"
+
+
+def scan(manifest: dict) -> list[str]:
+    """What the static scan found in a manifest and its pinned scripts, as finding codes."""
+    import re
+
+    texts = [json.dumps(manifest.get("args", [])), manifest["command"]]
+    texts += [tool["description"] for tool in manifest["tools"]]
+    for arg in manifest.get("args", []):
+        path = Path(arg)
+        if path.is_file() and path.stat().st_size <= SCRIPT_BYTES:
+            texts.append(path.read_bytes().decode("utf-8", errors="replace"))
+    found = {code for code, pattern in _FINDINGS.items() if any(re.search(pattern, text) for text in texts)}
+    # A tool that calls itself a read but describes changing or sending things.
+    if any(tool["risk"] == "read" and re.search(_UNDERSTATED, tool["description"]) for tool in manifest["tools"]):
+        found.add("risk_understated")
+    return sorted(found)
 
 
 _MANIFEST = jsonschema.Draft202012Validator(MANIFEST_SCHEMA)
@@ -150,6 +188,10 @@ def load(home: Path) -> tuple[dict[str, dict], list[dict]]:
             else "pin_mismatch" if not pins_hold(manifest)
             else "trusted"
         )
+        if manifest["state"] == "trusted":
+            manifest["findings"] = [code for code in scan(manifest) if code not in manifest.get("reviewedFindings", [])]
+            if manifest["findings"]:
+                manifest["state"] = "quarantined"
         accepted[manifest["id"]] = manifest
     return accepted, rejected
 

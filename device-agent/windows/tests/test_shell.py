@@ -88,6 +88,16 @@ class Shell(unittest.TestCase):
             self.assertEqual((self.root / "fixed.txt").read_text().strip(), "repaired")
 
     @unittest.skipUnless(WINDOWS, "the restricted token is the Windows containment (plan v8 11.9)")
+    def test_a_restricted_copy_starts_on_the_same_standard_handles(self):
+        import subprocess
+
+        run = subprocess.run(
+            [sys.executable, "-c", "from ocade_agent.sandbox import run_restricted; run_restricted('platform')"],
+            capture_output=True, text=True, timeout=60, cwd=Path(__file__).resolve().parents[1])
+        self.assertEqual(run.returncode, 0, run)
+        self.assertIn("Windows", run.stdout, run)
+
+    @unittest.skipUnless(WINDOWS, "the restricted token is the Windows containment (plan v8 11.9)")
     def test_commands_and_jobs_never_hold_administrator_rights_or_privileges(self):
         [privileges, groups] = self.run_steps({"command": "whoami /priv /fo csv"}, {"command": "whoami /groups /fo csv"})
         held = {row.split(",")[0].strip('"') for row in privileges["evidence"]["stdout"].splitlines()[1:] if row}
