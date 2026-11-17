@@ -2429,6 +2429,22 @@ The existing `tests.run_required.main` loads selected modules/classes/methods or
 - Not coded in this batch: credits-based charging (owner decision), 11.6 tray, 11.8 updater work, 11.9, P2–P4.
 
 
+
+**17 Nov 2026 batch — owner instruction of 17 Nov (step 1 items, model-agnostic planner, exit after task, multi-agent coordinator, security). TESTED locally (TypeScript 218/218, companion 295 tests with 17 platform skips, DB 21 groups and 31 rollbacks, website build with secret canary); hosted Windows/macOS runs were still being repaired at the time of writing (see the final report). Not RUNTIME VERIFIED against real models or customer computers.**
+
+- 11.6 macOS — the owner's `MacTray` (status-bar process, STOP writes the local STOP file) kept; a hosted test presses its STOP item through accessibility (`test_tray.MacTrayDesktopTest`).
+- 11.8 — `diagnose` reports the selected release and its integrity; `packaging/test_update.py` drives the FROZEN companion with a runner-only key through signed upgrade, refused replay and forgery, second upgrade, rollback, damaged-release fallback and rollback to base (Windows installer smoke between install and uninstall; macOS bundle job). Two real defects found by the macOS job and fixed: link targets compared with an unresolved root (`/var` vs `/private/var`), and release extraction held to the workspace's 260-character path rule.
+- 11.9 — `sandbox.run_restricted`: the command worker and the verifier (so `shell.run`, jobs and verifier re-runs) run as a restricted copy: every privilege removed except change-notify, Administrators deny-only, kill-on-close job. Where the desktop admits the person only through Administrators (hosted runner: STATUS_DLL_INIT_FAILED), the copy keeps the group and loses only the privileges; `OCADE_RESTRICTED` names the level.
+- 11.4 — web observations list controls as compact lines with a short `@ref` (`_control_line`); 23–45% smaller observations on six fixture pages, the long page fits 80 controls plus 4.5k characters of text in the same bound (66 controls and no text before). Playwright aria snapshots not adopted (unbounded on long pages).
+- 10.8 / REPO-09 — the capability record persists (`private.provider_refusals`, migration `20261117090000` with rollback and DB test): read once per instance, saved when learned, forgotten after 30 days.
+- Model-agnostic planner (owner, 17 Nov; plan 14A.4) — `OCADE_MODEL_PROTOCOL` gemini|openai, `OCADE_MODEL_ENDPOINT` (HTTPS), `OCADE_MODEL`, one to eight keys in `OCADE_MODEL_API_KEYS` (older `GEMINI_*` still read); the OpenAI-compatible adapter now serves the planner (`tool_choice: required`, full JSON Schema, `reasoning_effort`, system text folded when refused). A key its provider refused rests for ten minutes behind the healthy keys; quota never rotates keys. Spending ceilings use `OCADE_MODEL_USD_PER_MILLION_INPUT/_OUTPUT` when set.
+- C4 resolved by the owner — the companion ends two minutes after its task finishes (30 minutes when no task comes); `--always-on` and the installer's optional Always-On task keep it ready (the sign-in start exists only with Always-On).
+- 14A.4 multi-agent — the planner is the one coordinator; `delegate` hands up to three questions about earlier steps' complete results to parallel specialist analysts (answer only, depth one); `OCADE_JARVIS_SPECIALISTS=0` is the single-agent comparison.
+- 14B.3.2 — step summaries in the person's words with their file, site or app.
+- 13.7 / REPO-22 / REPO-14 / KEY-03/05 — bounded MCP manifests and schemas; a static scan quarantines risky external servers until reviewed; the website build fails if a server-secret canary reaches the bundle or log.
+- Ledger of the 72 source-integration entries: `docs/JARVIS_REPO_LEDGER.md` (39 CODED, 12 PARTIAL, 8 NOT CODED, 1 OWNER, 12 DEFER proposed).
+- Staging prerequisite before any benchmark: migrations `20261113120000` to `20261117090000` (seven) are not applied on staging (`auyapercxxptziyngycx` ends at `20261110073022`), and the intelligence functions must be redeployed there.
+
 ---
 
 ## Appendix F — Preserved complete engineering operating contract from v7
