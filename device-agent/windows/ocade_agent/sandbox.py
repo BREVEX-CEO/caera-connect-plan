@@ -234,68 +234,31 @@ def non_public_address(text: str) -> bool:
     return not address.is_global or address.is_multicast or address.is_reserved
 
 
-_ADMINISTRATORS = "S-1-5-32-544"
-_DISABLE_MAX_PRIVILEGE = 0x1
-_DLL_INIT_FAILED = 0xC0000142  # what a process that may not open its desktop exits with
+_SE_PRIVILEGE_REMOVED = 0x4
 
 
 def run_restricted(module: str) -> None:
     """Windows (plan v8 11.9): this worker, and so every command, tracked job and verifier re-run
-    it starts, runs under a restricted copy of the person's token: every privilege removed except
-    change-notify, and Administrators deny-only, so a confirmed command never acts with
-    administrator rights even when the companion was started elevated (the restricted-token idea of
-    OpenAI Codex's Windows sandbox, kept to what does not break ordinary user-folder work).
+    it starts (children inherit the token), gives up every privilege except change-notify for
+    good: no backup/restore bypass of file permissions, no debugging other processes, no taking
+    ownership, no driver loading, no shutdown, even when the companion was started elevated.
 
-    Where the desktop admits the person only through the Administrators group (a hosted CI runner
-    is one), a process without it cannot even start (STATUS_DLL_INIT_FAILED); there the copy keeps
-    the group and loses only the privileges, and `OCADE_RESTRICTED` says which applies.
-
-    The first, unrestricted process starts its restricted copy on the same standard handles, inside
-    a kill-on-close job object, and only waits: when the gateway ends it (STOP), the copy and
-    everything the copy started end with it. Elsewhere, and in the copy itself, a no-op.
+    Removed in place with AdjustTokenPrivileges, not by starting a copy under a restricted token:
+    on the hosted Windows runner such a copy cannot open its desktop (STATUS_DLL_INIT_FAILED,
+    runs 44054092410 and 44054536677). Group membership is unchanged, so an elevated companion's
+    commands still have its Administrators group; a person's ordinary (not elevated) session
+    already holds that group deny-only. `module` names the caller, for the reason only.
     """
-    if sys.platform != "win32" or os.environ.get("OCADE_RESTRICTED"):
+    if sys.platform != "win32":
         return
-    import subprocess
-
     import win32api  # type: ignore[import-not-found]
-    import win32con  # type: ignore[import-not-found]
-    import win32event  # type: ignore[import-not-found]
-    import win32job  # type: ignore[import-not-found]
-    import win32process  # type: ignore[import-not-found]
     import win32security  # type: ignore[import-not-found]
 
-    me = win32api.GetCurrentProcess()
-    # TOKEN_ASSIGN_PRIMARY | TOKEN_DUPLICATE | TOKEN_QUERY | TOKEN_ADJUST_DEFAULT | TOKEN_ADJUST_SESSIONID
-    token = win32security.OpenProcessToken(me, 0x0001 | 0x0002 | 0x0008 | 0x0080 | 0x0100)
-    admins = win32security.ConvertStringSidToSid(_ADMINISTRATORS)
-    job = win32job.CreateJobObject(None, "")
-    limits = win32job.QueryInformationJobObject(job, win32job.JobObjectExtendedLimitInformation)
-    limits["BasicLimitInformation"]["LimitFlags"] = win32job.JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
-    win32job.SetInformationJobObject(job, win32job.JobObjectExtendedLimitInformation, limits)
-    win32job.AssignProcessToJobObject(job, me)
-    startup = win32process.STARTUPINFO()
-    startup.dwFlags = win32con.STARTF_USESTDHANDLES
-
-    def inherited(which: int):
-        handle = win32api.GetStdHandle(which)
-        return win32api.DuplicateHandle(me, handle, me, 0, True, win32con.DUPLICATE_SAME_ACCESS) if handle else None
-
-    startup.hStdInput, startup.hStdOutput, startup.hStdError = (inherited(which) for which in (
-        win32api.STD_INPUT_HANDLE, win32api.STD_OUTPUT_HANDLE, win32api.STD_ERROR_HANDLE))
-    argv = [sys.executable, *sys.argv[1:]] if getattr(sys, "frozen", False) else [sys.executable, "-s", "-m", module]
-    for level in ("privileges,administrators", "privileges"):
-        restricted = win32security.CreateRestrictedToken(
-            token, _DISABLE_MAX_PRIVILEGE, [(admins, 0)] if "administrators" in level else None, None, None)
-        process, thread, _, _ = win32process.CreateProcessAsUser(
-            restricted, None, subprocess.list2cmdline(argv), None, None, True,
-            win32process.CREATE_NO_WINDOW | win32process.CREATE_UNICODE_ENVIRONMENT,
-            {**os.environ, "OCADE_RESTRICTED": level}, os.getcwd(), startup)
-        win32api.CloseHandle(thread)
-        # A desktop refusal ends the copy before it reads anything, within moments.
-        if (win32event.WaitForSingleObject(process, 500) == win32event.WAIT_TIMEOUT
-                or win32process.GetExitCodeProcess(process) != _DLL_INIT_FAILED):
-            break
-    win32event.WaitForSingleObject(process, win32event.INFINITE)
-    code = win32process.GetExitCodeProcess(process)
-    os._exit(code if code < 2 ** 31 else 1)
+    # TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY
+    token = win32security.OpenProcessToken(win32api.GetCurrentProcess(), 0x0020 | 0x0008)
+    keep = win32security.LookupPrivilegeValue(None, "SeChangeNotifyPrivilege")
+    held = win32security.GetTokenInformation(token, win32security.TokenPrivileges)
+    removed = [(luid, _SE_PRIVILEGE_REMOVED) for luid, _ in held if luid != keep]
+    if removed:
+        win32security.AdjustTokenPrivileges(token, False, removed)
+    os.environ["OCADE_RESTRICTED"] = "privileges"

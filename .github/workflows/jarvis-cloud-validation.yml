@@ -384,7 +384,7 @@ jobs:
         run: python -m tests.run_required --tests tests.test_effect_receipts --tests tests.test_quiescence
       - name: Native exit status, independent rerun and suspended-window regressions
         working-directory: device-agent/windows
-        run: python -m tests.run_required --tests tests.test_shell.Shell.test_a_restricted_copy_starts_on_the_same_standard_handles --tests tests.test_shell.Shell.test_commands_and_jobs_never_hold_administrator_rights_or_privileges --tests tests.test_shell.Shell.test_native_exit_codes_and_later_shell_results_are_preserved --tests tests.test_verify_kinds.VerifierKinds.test_a_repaired_program_is_rerun_in_a_throwaway_copy --tests tests.test_verify_kinds.VerifierKinds.test_a_native_success_cannot_mask_a_later_shell_error --tests tests.test_windows_ui.WindowsUiLadder.test_ui_ladder
+        run: python -m tests.run_required --tests tests.test_shell.Shell.test_commands_and_jobs_hold_no_privileges --tests tests.test_shell.Shell.test_native_exit_codes_and_later_shell_results_are_preserved --tests tests.test_verify_kinds.VerifierKinds.test_a_repaired_program_is_rerun_in_a_throwaway_copy --tests tests.test_verify_kinds.VerifierKinds.test_a_native_success_cannot_mask_a_later_shell_error --tests tests.test_windows_ui.WindowsUiLadder.test_ui_ladder
 
   database-safety:
     if: github.event_name == 'workflow_dispatch'
