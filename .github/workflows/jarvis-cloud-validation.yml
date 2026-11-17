@@ -218,8 +218,26 @@ jobs:
           cache: npm
       - name: Install exact website dependencies
         run: npm ci --no-audit --no-fund
-      - name: Compile and produce the entire OCADE website
-        run: npm run build
+      - name: Compile and produce the entire OCADE website, with server secrets set to a canary
+        # Plan v8 13.7 / KEY-03, KEY-05: every server-only secret name holds a random canary
+        # while building; neither the canary nor a secret shape may reach the public bundle.
+        run: |
+          canary="ocade-canary-$(openssl rand -hex 16)"
+          echo "::add-mask::$canary"
+          echo "OCADE_SECRET_CANARY=$canary" >> "$GITHUB_ENV"
+          for name in SUPABASE_SERVICE_ROLE_KEY SUPABASE_SECRET_KEY OCADE_MODEL_API_KEYS \
+            GEMINI_API_KEY_PRIMARY GEMINI_API_KEY_SECONDARY GEMINI_API_KEY_TERTIARY \
+            CLOUDFLARE_WORKERS_AI_TOKEN OCADE_LEASE_SIGNING_PRIVATE_KEY; do
+            export "$name=$canary"
+          done
+          npm run build 2>&1 | tee "$RUNNER_TEMP/build.log"
+      - name: The canary and secret-shaped strings are absent from the public bundle and build log
+        run: |
+          if grep -rlF "$OCADE_SECRET_CANARY" .output/public "$RUNNER_TEMP/build.log"; then
+            echo "A server secret reached the public bundle or the build log." >&2
+            exit 1
+          fi
+          npm run -s audit:secrets
       # This independent mandatory workflow job runs for every push. It never deploys.
 
   planner-safety:

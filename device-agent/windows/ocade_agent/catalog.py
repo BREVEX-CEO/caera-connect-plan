@@ -68,6 +68,21 @@ MANIFEST_SCHEMA = {
 }
 
 
+# Resource bounds (plan v8 13.7, REPO-22): a manifest, and each tool's input schema, small and
+# shallow enough that reading it, sending it to the planner and validating calls against it can
+# never exhaust memory, the model's context or the validator's recursion.
+MANIFEST_BYTES = 256 * 1024
+SCHEMA_BYTES = 16 * 1024
+SCHEMA_DEPTH = 8
+
+
+def _depth(value, level: int = 0) -> int:
+    if level > SCHEMA_DEPTH:
+        return level
+    children = value.values() if isinstance(value, dict) else value if isinstance(value, list) else ()
+    return max((_depth(child, level + 1) for child in children), default=level)
+
+
 _MANIFEST = jsonschema.Draft202012Validator(MANIFEST_SCHEMA)
 _META = jsonschema.Draft202012Validator(jsonschema.Draft202012Validator.META_SCHEMA)
 
@@ -109,12 +124,18 @@ def load(home: Path) -> tuple[dict[str, dict], list[dict]]:
     rejected: list[dict] = []
     for path in sorted((home / "mcp").glob("*.json")) if (home / "mcp").is_dir() else []:
         try:
+            if path.stat().st_size > MANIFEST_BYTES:
+                raise ValueError("manifest_too_large")
             manifest = json.loads(path.read_text(encoding="utf-8"))
             _MANIFEST.validate(manifest)
             names = [tool["name"] for tool in manifest["tools"]]
             if len(set(names)) != len(names):
                 raise ValueError("duplicate_tool")
             for tool in manifest["tools"]:
+                if len(json.dumps(tool["inputSchema"])) > SCHEMA_BYTES:
+                    raise ValueError("schema_too_large")
+                if _depth(tool["inputSchema"]) > SCHEMA_DEPTH:
+                    raise ValueError("schema_too_deep")
                 _META.validate(tool["inputSchema"])
             if manifest["id"] in reserved or manifest["id"] in accepted:
                 raise ValueError("id_collision")

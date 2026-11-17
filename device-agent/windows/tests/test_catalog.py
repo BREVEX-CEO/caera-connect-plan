@@ -61,12 +61,20 @@ class Catalog(unittest.TestCase):
         self.write("i.json", manifest(id="elsewhere", platforms=["win32"] if sys.platform != "win32" else ["darwin"]))
         self.write("j.json", manifest(id="unpinned_script", argSha256={}))
         self.write("k.json", manifest(id="wrong_script", argSha256={str(ECHO): "0" * 64}))
+        deep = {"type": "object"}
+        for _ in range(12):
+            deep = {"type": "object", "properties": {"x": deep}}
+        self.write("l.json", manifest(id="deep", tools=[TOOLS[0] | {"inputSchema": deep}]))
+        wide = {"type": "object", "properties": {f"p{n}": {"type": "string", "description": "x" * 40} for n in range(400)}}
+        self.write("m.json", manifest(id="wide", tools=[TOOLS[0] | {"inputSchema": wide}]))
+        self.write("n.json", " " * (catalog.MANIFEST_BYTES + 1))
         accepted, rejected = catalog.load(self.home)
         self.assertEqual({k: v["state"] for k, v in accepted.items()}, {
             "echo": "trusted", "pinned_wrong": "pin_mismatch", "missing": "not_installed",
             "elsewhere": "unavailable_platform", "unpinned_script": "pin_mismatch", "wrong_script": "pin_mismatch"})
         self.assertEqual(sorted(r["reason"] for r in rejected),
-                         ["duplicate_tool", "id_collision", "invalid_manifest", "invalid_manifest", "invalid_manifest"])
+                         ["duplicate_tool", "id_collision", "invalid_manifest", "invalid_manifest", "invalid_manifest",
+                          "manifest_too_large", "schema_too_deep", "schema_too_large"])
         self.assertEqual([d["id"] for d in catalog.describe(accepted)], ["echo"])
         self.assertEqual({b["id"] for b in catalog.bundled()}, {"fs_sandbox", "sys_core", "ui_bridge", "web_automation", "verifier", "media_engine", "shell"})
 
