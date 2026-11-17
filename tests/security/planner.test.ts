@@ -253,3 +253,123 @@ test("model spending ceilings: an account's day and everyone's month, only when 
   const dearer = { input: 3, output: 25 };
   assert.equal(await modelBudgetReached(spend, "u", now, { accountDaily: 5.5 }, dearer), true);
 });
+
+test("the coordinator's specialists answer in parallel from complete results, and only answer", async () => {
+  const check: OutcomeCheck = {
+    id: "result",
+    description: "The requested output exists",
+    kind: "file_exists",
+    params: { path: `OCADE output/${suffix}.txt` },
+  };
+  // A long earlier result: the history clips it, the specialist reads it whole.
+  const needle = `INVOICE-${suffix}`;
+  const long = observation({
+    url: origin,
+    text: `${"filler ".repeat(3_000)}${needle} total 42.50`,
+  });
+  const seen: { system: string; prompt: string; tools: string[] }[] = [];
+  let analysts = 0;
+  let inFlight = 0;
+  let overlapped = false;
+  const reply = (name: string, args: Record<string, unknown>, id = "c1") => {
+    const call = { id, name, arguments: args };
+    return [
+      { type: "tool_call", call },
+      {
+        type: "final",
+        response: {
+          backend: "online",
+          stopReason: "tool_use",
+          text: "",
+          toolCalls: [call],
+          toolResults: [],
+        },
+      },
+    ];
+  };
+  const server = createServer(async (req, res) => {
+    const body: Buffer[] = [];
+    for await (const chunk of req) body.push(chunk as Buffer);
+    const request = JSON.parse(Buffer.concat(body).toString());
+    const [system, user] = request.messages.map((m: { content: string }) => m.content);
+    seen.push({ system, prompt: user, tools: request.tools.map((t: { name: string }) => t.name) });
+    let frames: unknown[];
+    if (system.startsWith("You are a specialist analyst")) {
+      analysts += 1;
+      inFlight += 1;
+      if (inFlight > 1) overlapped = true;
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      inFlight -= 1;
+      frames = reply("answer", {
+        text: user.includes(needle) ? `${needle}, total 42.50` : "not in the results",
+      });
+    } else if (!user.includes("Specialist answers")) {
+      frames = reply("delegate", {
+        tasks: [
+          { question: "Which invoice number and total?", steps: [1] },
+          { question: "Is there a due date?", steps: [1] },
+        ],
+      });
+    } else frames = reply("finish", {});
+    res.writeHead(200, { "content-type": "text/event-stream" });
+    res.end(frames.map((frame) => `data: ${JSON.stringify(frame)}\r\n\r\n`).join(""));
+  });
+  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const saved = { ...plannerAccess };
+  const address = server.address() as { port: number };
+  plannerAccess.serviceUrl = () => `http://127.0.0.1:${address.port}`;
+  plannerAccess.serviceKey = () => "synthetic-loopback-key";
+  plannerAccess.acquirePermit = async (_user, key) => ({
+    permit: {
+      id: "permit",
+      generationId: key,
+      idempotencyKey: key,
+      surface: "jarvis",
+      source: "server",
+    },
+    release: async () => {},
+  });
+  let calls = 0;
+  const plan = () =>
+    planStep({
+      userId: "synthetic-user",
+      objective: "Write the invoice total to a file",
+      checks: [check],
+      steps: [long],
+      grants: ["files", "browser"],
+      engines: [],
+      permitKey: async () => `delegation-${++calls}`,
+      now: new Date(),
+    });
+  try {
+    const decision = await plan();
+    assert.equal(decision.kind, "queue");
+    assert.equal((decision as { intent: { operation: string } }).intent.operation, "verify.checks");
+    assert.equal(analysts, 2, "one specialist a question");
+    assert.ok(overlapped, "the specialists worked at the same time");
+    const [coordinator, ...rest] = seen;
+    assert.ok(coordinator!.tools.includes("delegate"));
+    assert.ok(!coordinator!.prompt.includes(needle), "the coordinator's history was clipped");
+    const specialists = rest.filter((r) => r.system.startsWith("You are a specialist"));
+    assert.deepEqual(
+      specialists.map((r) => r.tools),
+      [["answer"], ["answer"]],
+      "they cannot act",
+    );
+    const second = rest.find((r) => !r.system.startsWith("You are a specialist"))!;
+    assert.match(second.prompt, new RegExp(`${needle}, total 42.50`));
+    assert.ok(!second.tools.includes("delegate"), "once a turn");
+    // The single-agent comparison: no specialist is offered.
+    seen.length = 0;
+    process.env.OCADE_JARVIS_SPECIALISTS = "0";
+    await plan();
+    assert.ok(!seen[0]!.tools.includes("delegate"));
+  } finally {
+    delete process.env.OCADE_JARVIS_SPECIALISTS;
+    Object.assign(plannerAccess, saved);
+    server.closeAllConnections();
+    await new Promise<void>((resolve, reject) =>
+      server.close((error) => (error ? reject(error) : resolve())),
+    );
+  }
+});
