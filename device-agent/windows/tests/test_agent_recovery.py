@@ -485,6 +485,31 @@ class SignedUpdates(unittest.TestCase):
                 agent_module._activate_release(self.home, *self.release("2.0.0"))
         self.assertEqual(agent_module._select_release(self.home), previous)
 
+    def test_a_release_with_long_paths_and_reserved_looking_names_activates(self):
+        """A macOS bundle with Chromium has paths over 260 characters; only containment applies."""
+        import hashlib
+        import tarfile
+        from subprocess import CompletedProcess
+
+        app = self.root / "long" / "app"
+        deep = app.joinpath(*(c * 60 for c in "defg"))
+        deep.mkdir(parents=True)
+        (deep / "resource.pak").write_text("x")
+        (app / "con.txt").write_text("c")
+        (app / "ocade-agent.exe").write_text("9.0.0")
+        bundle = self.root / "long" / "payload.tar.gz"
+        with tarfile.open(bundle, "w:gz") as archive:
+            for item in sorted(app.rglob("*")):
+                archive.add(item, arcname=item.relative_to(app).as_posix(), recursive=False)
+        raw = json.dumps({"version": "9.0.0", "platform": "Windows", "architecture": "x64",
+                          "protocol": PROTOCOL["version"], "archiveSha256": hashlib.sha256(bundle.read_bytes()).hexdigest(),
+                          "treeSha256": agent_module._release_tree(app)}).encode("utf8")
+        (self.root / "long" / "m.json").write_bytes(raw)
+        (self.root / "long" / "m.sig").write_bytes(self.private.sign(raw))
+        with patch("subprocess.run", return_value=CompletedProcess([], 0)):
+            agent_module._activate_release(self.home, self.root / "long" / "m.json", self.root / "long" / "m.sig", bundle)
+        self.assertEqual(agent_module._select_release(self.home).read_text(), "9.0.0")
+
     def test_a_release_tree_reached_through_a_link_keeps_its_inner_links(self):
         real = self.root / "real"
         (real / "lib").mkdir(parents=True)

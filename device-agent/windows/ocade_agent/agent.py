@@ -626,7 +626,7 @@ def _activate_release(home: Path, manifest_path: Path, signature_path: Path, arc
     import tarfile
     import tempfile
 
-    from .sandbox import Refused, resolve, sha256
+    from .sandbox import sha256
 
     _no_active_jobs(home)
     with manifest_path.open("rb") as stream:
@@ -674,10 +674,11 @@ def _activate_release(home: Path, manifest_path: Path, signature_path: Path, arc
                     if (len(paths) >= _RELEASE_FILES or normalized in paths or
                             any(not part or part in (".", "..") or ":" in part or "\\" in part for part in parts)):
                         raise RuntimeError("The update archive contains an invalid or repeated path.")
-                    try:
-                        resolve(app, name)
-                    except Refused:
-                        raise RuntimeError("An update entry does not stay in the release directory.") from None
+                    # Containment only: a release (a macOS bundle with Chromium) has paths longer
+                    # than the workspace rule's 260 characters, and names it would refuse.
+                    inside = os.path.realpath(app.joinpath(*parts))
+                    if os.path.commonpath([os.path.realpath(app), inside]) != os.path.realpath(app):
+                        raise RuntimeError("An update entry does not stay in the release directory.")
                     paths.add(normalized)
                     size += member.size
                     if size > _RELEASE_SIZE or not (member.isfile() or member.isdir() or member.issym()):
