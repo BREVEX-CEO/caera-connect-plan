@@ -236,19 +236,7 @@ def non_public_address(text: str) -> bool:
 
 _ADMINISTRATORS = "S-1-5-32-544"
 _DISABLE_MAX_PRIVILEGE = 0x1
-_DENY_ONLY = 0x10  # SE_GROUP_USE_FOR_DENY_ONLY
-
-
-def _restricted(token) -> bool:
-    """No privilege beyond change-notify, and Administrators (if present) is deny-only."""
-    import win32security  # type: ignore[import-not-found]
-
-    privileges = win32security.GetTokenInformation(token, win32security.TokenPrivileges)
-    if {win32security.LookupPrivilegeName(None, luid) for luid, _ in privileges} - {"SeChangeNotifyPrivilege"}:
-        return False
-    admins = win32security.ConvertStringSidToSid(_ADMINISTRATORS)
-    return all(attributes & _DENY_ONLY for sid, attributes in
-               win32security.GetTokenInformation(token, win32security.TokenGroups) if sid == admins)
+_DLL_INIT_FAILED = 0xC0000142  # what a process that may not open its desktop exits with
 
 
 def run_restricted(module: str) -> None:
@@ -258,11 +246,15 @@ def run_restricted(module: str) -> None:
     administrator rights even when the companion was started elevated (the restricted-token idea of
     OpenAI Codex's Windows sandbox, kept to what does not break ordinary user-folder work).
 
+    Where the desktop admits the person only through the Administrators group (a hosted CI runner
+    is one), a process without it cannot even start (STATUS_DLL_INIT_FAILED); there the copy keeps
+    the group and loses only the privileges, and `OCADE_RESTRICTED` says which applies.
+
     The first, unrestricted process starts its restricted copy on the same standard handles, inside
     a kill-on-close job object, and only waits: when the gateway ends it (STOP), the copy and
-    everything the copy started end with it. Elsewhere, and when already restricted, a no-op.
+    everything the copy started end with it. Elsewhere, and in the copy itself, a no-op.
     """
-    if sys.platform != "win32":
+    if sys.platform != "win32" or os.environ.get("OCADE_RESTRICTED"):
         return
     import subprocess
 
@@ -276,10 +268,7 @@ def run_restricted(module: str) -> None:
     me = win32api.GetCurrentProcess()
     # TOKEN_ASSIGN_PRIMARY | TOKEN_DUPLICATE | TOKEN_QUERY | TOKEN_ADJUST_DEFAULT | TOKEN_ADJUST_SESSIONID
     token = win32security.OpenProcessToken(me, 0x0001 | 0x0002 | 0x0008 | 0x0080 | 0x0100)
-    if _restricted(token):
-        return
     admins = win32security.ConvertStringSidToSid(_ADMINISTRATORS)
-    restricted = win32security.CreateRestrictedToken(token, _DISABLE_MAX_PRIVILEGE, [(admins, 0)], None, None)
     job = win32job.CreateJobObject(None, "")
     limits = win32job.QueryInformationJobObject(job, win32job.JobObjectExtendedLimitInformation)
     limits["BasicLimitInformation"]["LimitFlags"] = win32job.JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
@@ -295,10 +284,18 @@ def run_restricted(module: str) -> None:
     startup.hStdInput, startup.hStdOutput, startup.hStdError = (inherited(which) for which in (
         win32api.STD_INPUT_HANDLE, win32api.STD_OUTPUT_HANDLE, win32api.STD_ERROR_HANDLE))
     argv = [sys.executable, *sys.argv[1:]] if getattr(sys, "frozen", False) else [sys.executable, "-s", "-m", module]
-    process, thread, _, _ = win32process.CreateProcessAsUser(
-        restricted, None, subprocess.list2cmdline(argv), None, None, True,
-        win32process.CREATE_NO_WINDOW, None, os.getcwd(), startup)
-    win32api.CloseHandle(thread)
+    for level in ("privileges,administrators", "privileges"):
+        restricted = win32security.CreateRestrictedToken(
+            token, _DISABLE_MAX_PRIVILEGE, [(admins, 0)] if "administrators" in level else None, None, None)
+        process, thread, _, _ = win32process.CreateProcessAsUser(
+            restricted, None, subprocess.list2cmdline(argv), None, None, True,
+            win32process.CREATE_NO_WINDOW | win32process.CREATE_UNICODE_ENVIRONMENT,
+            {**os.environ, "OCADE_RESTRICTED": level}, os.getcwd(), startup)
+        win32api.CloseHandle(thread)
+        # A desktop refusal ends the copy before it reads anything, within moments.
+        if (win32event.WaitForSingleObject(process, 500) == win32event.WAIT_TIMEOUT
+                or win32process.GetExitCodeProcess(process) != _DLL_INIT_FAILED):
+            break
     win32event.WaitForSingleObject(process, win32event.INFINITE)
     code = win32process.GetExitCodeProcess(process)
     os._exit(code if code < 2 ** 31 else 1)
