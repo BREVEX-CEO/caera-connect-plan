@@ -25,6 +25,19 @@ USE THE "UX LAWS AND PRINCIPLES" AT AN EXTREME AND USE THEM ALL EFFECTIVELY. App
 
 0.6. **Navigation rule (physical order controls).** Numbered Parts and Appendix IDs are preserved historical cross-references, not permission to execute them in numerical order. Read this document's seven execution stages in their physical order: **CODING → SECURITY THREAT REGISTER → DEBLOAT → ZERO-ERROR GREEN GATE → PRE-CLOUD BENCHMARK → APPROVED CLOUD-COMPUTER/WHOLE-SITE QUALIFICATION → FINAL REPORT**. Later-only evaluations or historical benchmark results referenced inside coding requirements do NOT authorize early tests. No documentation-only item may be claimed implemented.
 
+0.7. **All Part and subsection headings: authoritative phase map.** Keep original numbered references stable even where physical order differs. This is a routing/index aid, NOT a completion checklist. The headings are organized by execution stage:
+
+- **Prerequisites (before Stage 1):** Parts 0, 1, 3–9 — authority, scope, architecture, requirements, engineering rules and execution policy.
+- **Stage 1 — coding:** Parts 10–13; **14A.1–14A.6** source integrations; **14B.1–14B.8** full website/Chat/Settings/UX/security (14B.9 points to Stage 3); **14C.1–14C.8** architecture; **14D.1–14D.5** six-source collaboration; **14E.1–14E.10** privacy, Chat, Settings and files; **14F.1–14F.17** multi-agent/vision; Parts 15, 18, 19, 21, 25; **27.0–27.7** revised features/products; **28.0–28.6** transformative features and map; Appendices A, B, C, F (historical §4–§11), G, G.1. Historical technical contract text is retained, not proof of coding.
+- **Stage 2 — threat remediation:** security register `docs/OCADE_SECURITY_THREAT_MODEL_AND_NEGATIVE_TEST_REGISTER.md`; full preserved requirement **23.4A** in Stage 2.1. Pre-benchmark safe negative regression tests, no cloud-PC benchmarks.
+- **Stage 3 — debloat:** Part 14 and original subsection **14B.9** (full text in Stage 3.1); preserve security, STOP, existing callers and evidence.
+- **Stage 4 — whole-product zero-error CI:** Part 23, including **23.5 hard benchmark prohibition** and same-SHA evidence checks.
+- **Stage 5 — pre-cloud model benchmarks:** Part 16 is a future competitor test specification; Appendix H's preserved historical **§19.1–§19.4** real desktop tasks are reference-only here, with no hosted computer execution.
+- **Stage 6 — hosted 16-run baseline, then approved whole-site cloud/real-device qualification if baseline passes:** Parts 17, 24 and execution of Appendix H cases. On failure, return through coding, threat regression, debloat, green CI and pre-cloud gates; never use hardcoded test answers.
+- **Stage 7 — evidence and final Claude/Codex report:** dated Part 2, Part 22, Appendices D/E, Parts 20/26 and final report. Preserve historical entries but do not call them current-SHA proof.
+
+**Heading numbering:** A legacy numbered Part may appear physically in a later stage because its original ID is a stable cross-reference. Nested Appendix F §4–§11 and Appendix H §19 are historical subsections, not new top-level Parts or permission to benchmark early.
+
 ## Part 1. What OCADE is and what success means
 
 1.1. OCADE BY CARCC is an autonomous computer-control agent. A customer describes a result once on the OCADE website. OCADE then plans and carries out the work on the customer's own Windows or macOS computer, checks the result independently and delivers editable files.
@@ -1185,7 +1198,7 @@ For each source item below, independently inspect actual upstream source, curren
 - **Independent test / finished definition:** A fresh user connects an approved service without copying API keys, revokes it and proves subsequent calls fail. Network and credential limits are tested end to end.
 - **Adoption decision:** First search the current repository, tests and runtime logs for an equivalent. If one is present, improve it; if absent, implement the smallest secure extension. Do not claim confirmed absence solely because a filename or feature was not found during this targeted audit.
 
-## Implementation sequence, relative to the JARVIS coding-first rule
+### 14A.3. Implementation sequence, relative to the JARVIS coding-first rule
 
 1. **P0: finish correctness and safety foundations first.** Fix authorization intent, STOP/input fencing, command isolation, stale target references, privacy of evidence, trust boundaries, real Windows/macOS qualification readiness, and full current-commit CI. Running tests still require properly authorized environment access.
 2. **P1: improve execution speed without changing owner authority.** Measure model/planner latency, compact context with decision parity, optimize browser observations, bounded code-driven batches, provider capability persistence, event-driven job wakes, richer receipts and credential protection.
@@ -1483,6 +1496,10 @@ The original design checklists repeat some 30-item and 20-item lists verbatim. T
 3. **Commercial optionality:** payments, refunds and billing must not be represented as working unless independently implemented and test-mode qualified; do not silently authorize paid services or live payment activation. Clarify nonbilling scope where owner approval is outstanding.
 4. **Asset integrity and provenance:** no unlicensed stock, fabricated testimonials, misleading performance claims or borrowed copyrighted assets; check attribution and reproducible build assets. Official icon systems may be reused but styled deliberately.
 5. **Public site health:** responsive Chrome/Edge/Safari checks, protected pages access checks, HTTPS, CSP, genuine privacy controls, metadata and link previews, search indexing of public-only routes, correct contact methods, backup drill, meaningful 404/500, safe robots rules, page speed and mobile performance measurement. Optional WhatsApp/chat widget only if actually supported and useful.
+
+### 14B.9. Debloating and implementation proof — preserved contract located in Stage 3
+
+**Navigation only:** The full original 14B.9 requirements are executed in Stage 3.1, after the Stage 2 threat-remediation gate. This pointer does NOT claim the debloat work has passed or permit early benchmarks.
 
 ## Part 14C. Consolidated elite architecture: 8 engineering + 8 differentiators + 10 owner upgrades + 12 verification upgrades (15 November 2026)
 
@@ -3082,7 +3099,7 @@ All 236 ideas have a disposition (decided, with destination). The full table is 
 
 The following original engineering contract is retained for safe JARVIS implementation. If a quoted legacy phrase conflicts with the updated coding-first and benchmark loop in Parts 23–25, the latest explicit owner decision governs. Full untouched text is also in the archived v7.
 
-## 4. The engineering formula **[U]**
+### 4. The engineering formula **[U]**
 
 **Objective → Evidence → Root cause → Smallest complete change → Proof → Simplify → Record → Next.**
 
@@ -3102,7 +3119,7 @@ The following original engineering contract is retained for safe JARVIS implemen
 
 **Architecture changes** only when measured evidence shows that the current design cannot meet an acceptance condition (§10).
 
-## 5. Twenty engineering rules **[U]** (rule — why — when — how — verify — mistake to avoid)
+### 5. Twenty engineering rules **[U]** (rule — why — when — how — verify — mistake to avoid)
 
 | # | Rule | Why | When | How | Verify | Common mistake |
 |---|---|---|---|---|---|---|
@@ -3127,7 +3144,7 @@ The following original engineering contract is retained for safe JARVIS implemen
 | 19 | Define done objectively | "Seems to work" is not done | Ending a task | Coding done = CODED and BUILDS (§17 G-Coded). Requirement done = RUNTIME VERIFIED at qualification (§17 G-Requirement) | The §17 gate for that state holds | Calling "implemented" verified, or calling a stub implemented |
 | 20 | Leave the repository resumable | Agents lose context | End of every work unit | Commit, update the board, note any in-flight hypothesis | A fresh agent knows the next step | Leaving state only in chat |
 
-## 6. OCADE operating rules **[O]**
+### 6. OCADE operating rules **[O]**
 
 **A. Mindset**
 1. Understand before acting.
@@ -3198,7 +3215,7 @@ The following original engineering contract is retained for safe JARVIS implemen
 6. Follow code dependencies only. Never wait for an unrelated package, CI job, benchmark or evaluation.
 7. Always report what remains incomplete.
 
-## 7. The coding loop **[U+O]**
+### 7. The coding loop **[U+O]**
 
 Work in **coding batches**: one coherent group of requirement IDs (usually one owner or one capability) finished completely, then one commit. Several commits per session are expected; one enormous commit is not.
 
@@ -3227,7 +3244,7 @@ Work in **coding batches**: one coherent group of requirement IDs (usually one o
 
 **Work states:** NOT CODED → CODED (fully implemented and wired, §7 step 4) → BUILDS (passes the coding gate) → RUNTIME VERIFIED (qualification evidence on the stated platform; Appendix A `PASS`). DONE means RUNTIME VERIFIED for every requirement of a package.
 
-## 8. Failure, recovery and resumption **[U+O]**
+### 8. Failure, recovery and resumption **[U+O]**
 
 - **A test stays red:**
   1. Fix it inside the batch; that is the default.
@@ -3243,7 +3260,7 @@ Work in **coding batches**: one coherent group of requirement IDs (usually one o
   4. If uncommitted work exists, finish it or discard it deliberately (never silently).
 - **The model or provider is busy:** wait or pace. Never rotate keys. Live evaluations resume from saved tasks.
 
-## 9. No-overengineering rules **[U+O]**
+### 9. No-overengineering rules **[U+O]**
 
 Before adding a component, dependency, abstraction or feature, answer all of these questions. If any answer is "no" or "unknown", do not add it yet.
 
@@ -3271,7 +3288,7 @@ Before adding a component, dependency, abstraction or feature, answer all of the
 
 **Debloat** only with traced callers, a parity test, and measured before/after results (W12).
 
-## 10. When an architecture decision may change
+### 10. When an architecture decision may change
 
 A frozen decision (Level 3) may change only when **all** of these hold:
 1. A measurement or reproduced defect shows that the current design cannot meet a stated acceptance condition.
@@ -3283,7 +3300,7 @@ A frozen decision (Level 3) may change only when **all** of these hold:
 
 Pre-registered reversal triggers are listed in §27. Everything else stays as decided.
 
-## 11. Owner approval and autonomy
+### 11. Owner approval and autonomy
 
 **Continue autonomously:** coding batches (§7), refactoring inside an owner, tests, local runs, free CI on this branch, staging tests with existing approved staging credentials (least privilege; never shown to the model or logs), and documentation on this branch.
 
@@ -3360,6 +3377,8 @@ Never ask for something the plan already authorises.
 
 ## EXECUTION STAGE 2 — REQUIRED SECURITY THREAT REMEDIATION, BEFORE DEBLOAT OR BENCHMARKS
 
+### Stage 2.1. Security threat register and mandatory remediation contract (preserved requirement 23.4A)
+
 Read **`docs/OCADE_SECURITY_THREAT_MODEL_AND_NEGATIVE_TEST_REGISTER.md`** in full, plus any subsequent threat-audit Markdown on this branch; identify every applicable issue across website/account/session, database tenant isolation, upload malware, malicious MCP/plugins/extensions, prompt injection, server entitlements/DevTools, weak BYOK models, image support and quota fallback, Windows/macOS isolation, subagent races, cloud/supply chain and privacy. Implement and independently verify the appropriate safe fix; run the proposed negative checks using isolated synthetic fixtures as SECURITY REGRESSION TESTS, not as real-task benchmarks. For false/inapplicable hypotheses, provide exact source and independent evidence rather than a fabricated fix. **ZERO unresolved applicable security findings, ZERO untriaged findings and ZERO mandatory failed tests** before Stage 3–6.
 
 23.4A. **Mandatory security-threat remediation and zero-error GREEN gate — BEFORE benchmarks or cloud-computer testing.** Read **`docs/OCADE_SECURITY_THREAT_MODEL_AND_NEGATIVE_TEST_REGISTER.md` IN FULL**, including the 192 root-risk hypotheses, 1,152 negative scenarios, 16 code-observed findings/gaps, mitigation and acceptance criteria; also inspect any newer, separately committed OCADE threat reports if they exist on this branch. Cross-check each finding against the current codebase, plan, all site sections/settings, online/offline Chat, JARVIS, Windows/macOS companion, Supabase/Cloudflare, file uploads/malware, MCP/skills, BYOK/model capability and quota switching, A/B tenant isolation and privacy, multi-agent concurrency, prompt injection, DevTools/entitlement abuse, admin, deployment and supply chain. **Before starting ANY JARVIS/model/website/offline benchmark, E1–E4, actual cloud-computer real-task test or remote-PC end-to-end test:** (a) assign an exact code/test owner and evidence status to every audit entry; (b) implement and independently verify the complete protection for every applicable vulnerability, implementation gap and unsafe failure path, with no duplicate engines or weakened security; (c) run the applicable negative tests with safe synthetic fixtures in the isolated coding/security-test environment (these are pre-benchmark security regression tests, NOT cloud-PC real-task benchmarks); (d) for hypotheses that are already prevented or genuinely inapplicable, record source-specific proof and a reproducible independent negative test—never relabel an unverified issue as fixed, use silence as evidence, or defer a mandatory safety item. **Absolute pre-benchmark gate: 100% applicable findings addressed and security requirements complied with, zero outstanding applicable security defects or mandatory remediations, zero failing/errored mandatory tests, zero untriaged findings, zero unapproved skipped/disabled tests, and every required website/backend/desktop security and build CI check COMPLETED GREEN on the exact final candidate SHA.** A genuinely unsupported platform/test must be documented with proof and cannot be counted as passing; unresolved mandatory coverage blocks entry. Any subsequent change, even a documentation or security fix, requires recomputing the final-SHA gate. If ANY condition fails or remains unknown, **DO NOT RUN BENCHMARKS OR CLOUD-COMPUTER TESTING**; continue safe coding, isolated negative testing, independent review and CI repairs, or report the precise blocker. A risk register is not proof of 192 exploited vulnerabilities, and 'zero errors' is an observed acceptance state of the defined required gates, not a claim that undiscovered vulnerabilities cannot exist.
@@ -3387,7 +3406,7 @@ After all applicable threats are independently resolved or proved inapplicable, 
 
 14.4. **Never removed:** security checks, permissions, STOP and Take Over, recovery and journaling, independent verification, database compatibility, user data, or a useful test.
 
-### 14B.9. Debloating and implementation proof BEFORE benchmarking
+### Stage 3.1. Full preserved 14B.9 debloating and implementation-proof contract
 
 1. **Audit:** Identify exact existing owner modules and functions first. For each proposed addition, record which one is improved and which old duplicate is removed or retained. Verify callers and rollback before removing code. Never delete security checks, STOP, authorization journals, historical evidence or customer data. Preserve the existing 84 concepts and 266 IDs with mapped statuses.
 2. **Source adoption:** Analyze all five linked repositories deeply; use useful tools/patterns where licenses, security, maintenance, performance and Windows/macOS support permit. Do not blindly import five complete projects, inflate bundle size or introduce parallel authorities. Record source link, commit, license, filename and accepted code changes for every adoption.
@@ -3421,7 +3440,7 @@ All mandatory coding, threat regressions, debloat verification and full website/
 
 Run bounded authorized model capability, structured tool-call, weak-model, quota, correct abstention, failure-recovery and deterministic hidden-oracle tests against isolated **non-cloud-PC** fixtures. These are the pre-cloud model/planner benchmark gate, NOT hosted desktop real-task testing. To proceed, every mandatory case must satisfy its defined pre-cloud acceptance criterion and zero unsafe effects; otherwise return to coding, threat regressions, debloat and fresh-SHA CI, fix the general root cause and rerun. **The historical 16-run Gemini/Gemma desktop comparison explicitly uses hosted Windows/macOS runners**; its exact specification (Appendix H) is preserved here for reference but must be EXECUTED ONLY in Stage 6, after the pre-cloud gate passes. No cloud-PC tests or real application effects in Stage 5.
 
-## Part 16. Competitor benchmark method (requirement 259)
+## Part 16. Competitor benchmark method — specification only in Stage 5; execution in Stage 6 (requirement 259)
 
 16.1. **The test.**
 - Twenty identical, reproducible tasks with hidden answers, across files and office work, browser work, desktop applications and a long job.
@@ -3437,13 +3456,15 @@ Run bounded authorized model capability, structured tool-call, weak-model, quota
 - OCADE's strongest verified differences: the independent verifier, exact permissions, local execution and editable outputs.
 - No claim of superiority is made until this benchmark runs with a published denominator.
 
-## Appendix H — Exact v7 benchmark and evaluation specification (preserved evidence; no duplicate campaign)
+## Appendix H — Historical benchmark tasks and evaluation specification (preserved; cloud execution ONLY in Stage 6)
+
+**Stage boundary:** Read these task definitions and historical outcomes in Stage 5; NEVER run hosted Windows/macOS, cloud-PC tasks, E1–E4 or other real-task campaigns until Stage 6's required entry gates pass. This appendix remains a historical task specification, not a Stage 5 execution order.
 
 This is the one preserved source of the prior evaluation categories, exact seeded benchmark tasks, applications, historical rounds, results, failure logs and permissions. It is copied without rewriting historical results. Its OLD per-run authorization descriptions and previous configuration alternatives are historical: the latest owner instructions in Parts 3, 17, 23 and 24 govern subsequent runs. Part 17 invokes this specification rather than defining duplicate benchmark tasks. The 16-model comparison and the E1–E4 campaigns remain distinct; historical attempts do not count as new first-attempt passes.
 
-## 19. Evaluation and qualification campaign
+### 19. Evaluation and qualification campaign
 
-### 19.1 Checkpoints
+#### 19.1 Checkpoints
 
 Every checkpoint uses fresh randomised tasks with hidden oracles, first attempt only, paced quota, and a published denominator. Checkpoints run only at the qualification stage; the owner directs them and supplies the model-comparison tasks (O14).
 
@@ -3464,7 +3485,7 @@ Every checkpoint uses fresh randomised tasks with hidden oracles, first attempt 
 
 Success = verified complete ÷ eligible attempted. The harness supplies only the objective, the inputs and the scopes; it never creates deliverables.
 
-### 19.2 Categories
+#### 19.2 Categories
 
 **Files and documents:**
 - Organise large file collections.
@@ -3507,7 +3528,7 @@ Success = verified complete ÷ eligible attempted. The harness supplies only the
 - Install, update and rollback.
 - Performance and resource use.
 
-### 19.3 Advanced creative acceptance — 3D supercar and ~60 s advertisement
+#### 19.3 Advanced creative acceptance — 3D supercar and ~60 s advertisement
 
 **Instruction** (given verbatim to OCADE): "Create an original, premium futuristic supercar in Blender or another suitable available 3D application. Model a detailed exterior and realistic materials, prepare professional lighting and camera compositions, and create a cinematic advertisement approximately 60 seconds long. Include carefully designed camera movements, dramatic presentation, suitable transitions, high-quality rendering and appropriate audio. Deliver the editable 3D project, editable advertisement project, final rendered video, and a report proving that the required outputs were produced correctly."
 
@@ -3522,7 +3543,7 @@ Success = verified complete ÷ eligible attempted. The harness supplies only the
 
 **Free-runner limits:** CPU only, 6-hour jobs. Cycles CPU works headless; Eevee needs EGL/Mesa (unverified). If the render cannot finish, record FAIL or BLOCKED with the measured frame time and validate at RPC.
 
-### 19.4 Owner-directed model comparison — 4 tasks × 2 standalone models × Windows/macOS (O15, O16)
+#### 19.4 Owner-directed model comparison — 4 tasks × 2 standalone models × Windows/macOS (O15, O16)
 
 **Status: 0 of 16 newly scoped evaluations verified.** Historical experiments used three obsolete configurations; their actual outcomes are preserved in the dated table below but do not count as tests of the new two-model comparison. The two-model scope is **coded** (13 Nov 2026: `plannerModel` accepts one allowlisted planner; the Live transport, hybrid route and model-to-model failover are deleted; the benchmark function and harness take the model id, `ocade-intelligence-benchmark/<model>`, `benchmark.py --model`) but **not deployed**: report UNTESTED or BLOCKED until a real run at one commit produces evidence.
 
@@ -4178,7 +4199,7 @@ The existing `tests.run_required.main` loads selected modules/classes/methods or
 
 26.2. Updating a checklist, writing a plan, compiling source, or completing only simulations is not grounds to raise readiness percentage. Only independently verified gates on the tested commit may change the score. Preserve the established release-gate calculation; do not invent weights or merge code progress with production qualification.
 
-26.3. Report progress at each verified 10% milestone and whenever useful. Say what changed, passed, failed, was excluded with reason, remains blocked, and what must happen next. Maintain distinct `NOT CODED`, `CODED`, `BUILDS`, `RUNTIME VERIFIED`, `PARTIAL`, `FAIL`, `BLOCKED`, and `UNTESTED` states.
+26.3. **Record internally** every independently verified 10% milestone as it occurs and preserve what changed, passed, failed, was excluded with reason, remains blocked, and what must happen next; deliver the consolidated Claude/Codex progress/readiness report **only in the final Stage 7** after applicable testing, without premature completion claims. Urgent safety blockers or permission requests must still be communicated when action is needed. Maintain distinct `NOT CODED`, `CODED`, `BUILDS`, `RUNTIME VERIFIED`, `PARTIAL`, `FAIL`, `BLOCKED`, and `UNTESTED` states.
 
 26.4. **100/100% JARVIS ENGINEERING GO** is allowed only after all required JARVIS coding and security checks are green; two-model and E1–E4 evaluations meet their mandatory criteria; Windows 10/11 and macOS receive authorized real-device qualification; customer setup, STOP/Take Over, task recovery, verified deliverables and support pass; there are no unresolved critical/high defects; and required technical testing approvals are obtained. Public deployment remains separately approval-gated and cannot be implied by this score. Otherwise the answer is NO-GO with exact unmet technical conditions.
 
