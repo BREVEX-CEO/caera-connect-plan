@@ -7,14 +7,14 @@ $app = Join-Path $env:LOCALAPPDATA "Programs\OCADE JARVIS"
 $docs = Join-Path ([Environment]::GetFolderPath("MyDocuments")) "OCADE JARVIS"
 $run = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run"
 function Check($ok, $what) { if (-not $ok) { throw "FAILED: $what" }; Write-Output "PASS: $what" }
-function Install { Start-Process $Installer -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART" -WindowStyle Hidden -Wait }
+function Install($tasks = "") { Start-Process $Installer -ArgumentList (@("/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART") + $(if ($tasks) { "/TASKS=$tasks" } else { @() })) -WindowStyle Hidden -Wait }
 
 Install
 Check (Test-Path (Join-Path $app "ocade-agent.exe")) "companion installed per user, no administrator rights"
 Check (Test-Path $docs) "the JARVIS folder exists in Documents"
-Check ((Get-ItemProperty $run)."OCADE JARVIS" -like "*ocade-agent-bg.exe*run*") "starts at this user's sign-in"
+Check ($null -eq (Get-ItemProperty $run -ErrorAction SilentlyContinue)."OCADE JARVIS") "by default it does not start at sign-in (it ends after each task)"
 $menu = Join-Path $env:APPDATA "Microsoft\Windows\Start Menu\Programs\OCADE JARVIS"
-Check (@(Get-ChildItem $menu -Filter *.lnk).Count -ge 3) "Start Menu: pair, start and stop shortcuts"
+Check (@(Get-ChildItem $menu -Filter *.lnk).Count -ge 4) "Start Menu: pair, start, Always-On start and stop shortcuts"
 $diagnosis = & (Join-Path $app "ocade-agent.exe") diagnose --workspace $docs 2>&1 | Out-String
 Write-Output $diagnosis
 Check ($diagnosis -match "OK\s+worker:office_worker") "the installed companion starts its own workers"
@@ -27,9 +27,14 @@ Check (($LASTEXITCODE -eq 0) -and ($smoke -match '"bundledBrowserFixture": true'
 
 
 Set-Content -Path (Join-Path $docs "my-notes.txt") -Value "keep me"
-Install  # repair / reinstall over itself
+Install "alwayson"  # repair / reinstall over itself, now choosing Always-On
 Check (Test-Path (Join-Path $app "ocade-agent.exe")) "a second install repairs in place"
+Check ((Get-ItemProperty $run)."OCADE JARVIS" -like "*ocade-agent-bg.exe*run --always-on") "Always-On starts at this user's sign-in"
 Check ((Get-Content (Join-Path $docs "my-notes.txt")) -eq "keep me") "reinstall leaves the person's files alone"
+
+Check ([bool]$env:OCADE_RELEASE_SIGNING_KEY) "a disposable release key for the update lifecycle"
+& $testPython (Join-Path $PSScriptRoot "test_update.py") (Join-Path $app "ocade-agent.exe") (Join-Path $PSScriptRoot "..\dist\OCADE JARVIS") $env:OCADE_RELEASE_SIGNING_KEY
+Check ($LASTEXITCODE -eq 0) "signed upgrade, rollback and damaged-release fallback of the installed companion"
 
 $uninstaller = Get-ChildItem $app -Filter "unins*.exe" | Select-Object -First 1
 Start-Process $uninstaller.FullName -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART" -Wait

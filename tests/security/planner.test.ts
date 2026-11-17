@@ -249,4 +249,7 @@ test("model spending ceilings: an account's day and everyone's month, only when 
   assert.equal(await modelBudgetReached(spend, "u", now, { monthly: 5.5 }), true);
   assert.deepEqual(asked.at(-1), [null, "2026-11-01T00:00:00.000Z"], "every account this month");
   assert.equal(await modelBudgetReached(spend, "u", now, { monthly: 5.51 }), false);
+  // Another model's own prices (any compatible model): ten times dearer, ten times sooner.
+  const dearer = { input: 3, output: 25 };
+  assert.equal(await modelBudgetReached(spend, "u", now, { accountDaily: 5.5 }, dearer), true);
 });

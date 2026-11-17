@@ -13,7 +13,12 @@ import {
   type OnlineHandlerDependencies,
   type ProviderFeature,
 } from "../../src/lib/intelligence/edge-handler.ts";
-import { plannerModel } from "../../src/lib/intelligence/online-models.ts";
+import {
+  keySlots,
+  plannerKeys,
+  plannerModel,
+  plannerProvider,
+} from "../../src/lib/intelligence/online-models.ts";
 
 const user = "00000000-0000-4000-8000-000000000001";
 
@@ -112,14 +117,136 @@ const dailyQuota = JSON.stringify({
   },
 });
 
-test("the planner is one allowlisted model, chosen by the server, never a route", () => {
+test("the planner is any one model the server names, never a route", () => {
   assert.equal(plannerModel(undefined), "gemini-3.5-flash-lite");
   assert.equal(plannerModel(" gemma-4-31b-it "), "gemma-4-31b-it");
-  assert.equal(plannerModel("gemini-3.5-flash-lite"), "gemini-3.5-flash-lite");
+  assert.equal(plannerModel("openai/gpt-oss-120b"), "openai/gpt-oss-120b", "any compatible model");
+  assert.equal(plannerModel("@cf/google/gemma-4-26b-a4b-it"), "@cf/google/gemma-4-26b-a4b-it");
   assert.equal(plannerModel("gemma-4-31b-it,gemini-3.5-flash-lite"), undefined, "no hybrid");
-  assert.equal(plannerModel("gemini-3.8-live-extended-thinking"), undefined, "retired");
-  assert.equal(plannerModel("gemini-9-ultra"), undefined, "unknown model");
-  assert.equal(plannerModel("@cf/google/gemma-4-26b-a4b-it"), undefined, "High is not routable");
+  assert.equal(plannerModel("gemma-4-31b-it gemini-3.5-flash-lite"), undefined, "no hybrid");
+  assert.equal(plannerModel(""), undefined);
+});
+
+test("any HTTPS provider endpoint and any number of keys, up to eight, from the server only", () => {
+  const env = (values: Record<string, string>) => (name: string) => values[name];
+  assert.deepEqual(plannerProvider(env({})), {
+    protocol: "gemini",
+    endpoint: "https://generativelanguage.googleapis.com/v1beta",
+  });
+  assert.deepEqual(
+    plannerProvider(
+      env({ OCADE_MODEL_PROTOCOL: "openai", OCADE_MODEL_ENDPOINT: "https://api.example.test/v1/" }),
+    ),
+    { protocol: "openai", endpoint: "https://api.example.test/v1" },
+  );
+  for (const endpoint of [
+    "http://api.example.test/v1",
+    "https://user:pass@api.example.test/v1",
+    "https://api.example.test/v1?key=x",
+  ])
+    assert.equal(
+      plannerProvider(env({ OCADE_MODEL_PROTOCOL: "openai", OCADE_MODEL_ENDPOINT: endpoint })),
+      undefined,
+      endpoint,
+    );
+  assert.equal(plannerProvider(env({ OCADE_MODEL_PROTOCOL: "openai" })), undefined, "no endpoint");
+  assert.equal(plannerProvider(env({ OCADE_MODEL_PROTOCOL: "soap" })), undefined);
+  assert.deepEqual(plannerKeys(env({ OCADE_MODEL_API_KEYS: '["a","b","a",""]' })), ["a", "b"]);
+  assert.deepEqual(plannerKeys(env({ OCADE_MODEL_API_KEYS: "a, b\nc" })), ["a", "b", "c"]);
+  assert.equal(
+    plannerKeys(
+      env({ OCADE_MODEL_API_KEYS: Array.from({ length: 12 }, (_, i) => `k${i}`).join(",") }),
+    ).length,
+    8,
+  );
+  assert.deepEqual(
+    plannerKeys(env({ GEMINI_API_KEY_PRIMARY: "p", GEMINI_API_KEY_TERTIARY: "t" })),
+    ["p", "t"],
+    "the older secrets still serve",
+  );
+  assert.deepEqual(keySlots(5), ["primary", "secondary", "tertiary", "key4", "key5"]);
+});
+
+test("an OpenAI-compatible planner: forced call, full schema, and what it refused is learned once", async () => {
+  const bodies: Record<string, unknown>[] = [];
+  const learned: string[] = [];
+  const handler = deps(
+    "openai/gpt-oss-120b",
+    async ({ body }) => {
+      bodies.push(body);
+      if ("reasoning_effort" in body)
+        return new Response(
+          JSON.stringify({ error: { message: "Unsupported parameter: 'reasoning_effort'" } }),
+          { status: 400 },
+        );
+      const chunk = (value: unknown) => `data: ${JSON.stringify(value)}\n\n`;
+      return new Response(
+        chunk({
+          choices: [
+            {
+              index: 0,
+              delta: {
+                tool_calls: [
+                  {
+                    index: 0,
+                    id: "c1",
+                    type: "function",
+                    function: { name: "finish", arguments: "{}" },
+                  },
+                ],
+              },
+            },
+          ],
+        }) + chunk({ choices: [{ index: 0, delta: {}, finish_reason: "tool_calls" }] }),
+        { headers: { "content-type": "text/event-stream" } },
+      );
+    },
+    {
+      protocol: "openai",
+      refused: new Map(),
+      capabilities: {
+        load: async () => [],
+        learn: async (model, feature) => void learned.push(`${model}:${feature}`),
+      },
+    },
+  );
+  const answer = await events(await handleOnlineIntelligence(request(), handler));
+  assert.equal(answer.at(-1)?.type, "final");
+  assert.equal(bodies.length, 2);
+  const [first, second] = bodies as Record<string, unknown>[];
+  assert.equal(first!.model, "openai/gpt-oss-120b");
+  assert.equal(first!.tool_choice, "required");
+  assert.deepEqual(
+    (first!.messages as { role: string }[]).map((m) => m.role),
+    ["system", "user"],
+  );
+  const [tool] = first!.tools as { function: { parameters: Record<string, unknown> } }[];
+  assert.equal(tool!.function.parameters.additionalProperties, false, "the full schema");
+  assert.equal("$schema" in tool!.function.parameters, false);
+  assert.equal("reasoning_effort" in second!, false);
+  assert.equal("chat_template_kwargs" in first!, false);
+  assert.deepEqual(learned, ["openai/gpt-oss-120b:thinking"], "saved for every instance");
+});
+
+test("a cold instance reads what a model refused before its first call", async () => {
+  const bodies: Record<string, unknown>[] = [];
+  const handler = deps(
+    "gemma-4-31b-it",
+    async ({ body }) => {
+      bodies.push(body);
+      return new Response(callChunk, { headers: { "content-type": "text/event-stream" } });
+    },
+    {
+      refused: new Map(),
+      capabilities: { load: async () => ["forced_call", "thinking"], learn: async () => undefined },
+    },
+  );
+  assert.equal(
+    (await events(await handleOnlineIntelligence(request(), handler))).at(-1)?.type,
+    "final",
+  );
+  assert.equal(bodies.length, 1);
+  assert.doesNotMatch(JSON.stringify(bodies[0]), /toolConfig|thinkingConfig/);
 });
 
 test("a quota refusal names its real limit; a per-day quota waits for the Pacific reset", () => {

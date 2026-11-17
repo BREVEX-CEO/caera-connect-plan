@@ -8,12 +8,11 @@ import { SERVICE_USER_HEADER } from "../../../src/lib/intelligence/contract.ts";
 import { ONLINE_CONSENT_VERSION } from "../../../src/lib/intelligence/online-consent-version.ts";
 import { buildHealthRecord } from "../../../src/lib/telemetry/operation-health.ts";
 import {
-  DEFAULT_ONLINE_MODEL,
   HIGH_ONLINE_MODEL,
+  keySlots,
+  plannerKeys,
   plannerModel,
-  PROVIDER_KEY_ENVIRONMENT,
-  PROVIDER_KEY_SLOTS,
-  type ProviderKeySlot,
+  plannerProvider,
 } from "../../../src/lib/intelligence/online-models.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
@@ -44,31 +43,24 @@ const SUPABASE_SERVICE_ROLE_KEY =
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ||
   "";
 /*
- * EXACTLY THREE KEY SLOTS, AND ONLY THE ONES THAT ARE SET.
+ * THE PLANNER'S PROVIDER, MODEL AND KEYS, AND ONLY THE KEYS THAT ARE SET.
  *
- * `docs/ARCHITECTURE.md` names all three and makes the second and third OPTIONAL, so the
- * list is built from what the deployment actually holds: a project with one key
- * must not have failover invented for it, and a project with three must not
- * have the third ignored. The keys stay in this module and never travel — the
- * handler is told WHICH SLOT to use and nothing more, so the policy lives in
- * one tested place and the secrets live in none of it.
- *
- * THREE NAMES, AND NO FOURTH. `PLAN.md` Phase 6 says "exactly three Supabase
- * Edge Function secrets", so the unprefixed `GEMINI_API_KEY` alias an earlier
- * deployment set is no longer read. A fourth accepted name is a fourth place a
- * key can be set, and the one nobody rotates.
+ * Any compatible provider and model (`online-models.ts`): `OCADE_MODEL_PROTOCOL`,
+ * `OCADE_MODEL_ENDPOINT`, `OCADE_MODEL` and `OCADE_MODEL_API_KEYS`, else the older Gemini
+ * secrets. The list is built from what the deployment actually holds: a project with one key
+ * must not have failover invented for it. The keys stay in this module and never travel: the
+ * handler is told WHICH SLOT to use and nothing more.
  */
-const PROVIDER_KEYS: Record<ProviderKeySlot, string> = {
-  primary: Deno.env.get(PROVIDER_KEY_ENVIRONMENT.primary) ?? "",
-  secondary: Deno.env.get(PROVIDER_KEY_ENVIRONMENT.secondary) ?? "",
-  tertiary: Deno.env.get(PROVIDER_KEY_ENVIRONMENT.tertiary) ?? "",
-};
-const CONFIGURED_SLOTS = PROVIDER_KEY_SLOTS.filter((slot) => PROVIDER_KEYS[slot].length > 0);
+const read = (name: string) => Deno.env.get(name);
+const PROVIDER = plannerProvider(read);
+const KEYS = plannerKeys(read);
+const CONFIGURED_SLOTS = keySlots(KEYS.length);
+const PROVIDER_KEYS = new Map(CONFIGURED_SLOTS.map((slot, i) => [slot, KEYS[i]!]));
+const PLANNER_MODEL = read("OCADE_MODEL") ?? read("GEMINI_MODEL");
 const CF_ACCOUNT = Deno.env.get("CLOUDFLARE_ACCOUNT_ID") ?? "";
 const CF_TOKEN = Deno.env.get("CLOUDFLARE_WORKERS_AI_TOKEN") ?? "";
 // Billing eligibility and inference use separately scoped credentials; neither substitutes for the other.
 const CF_BILLING_TOKEN = Deno.env.get("CLOUDFLARE_BILLING_READ_TOKEN") ?? "";
-const GEMINI_MODEL = Deno.env.get("GEMINI_MODEL") ?? DEFAULT_ONLINE_MODEL;
 const allowedOrigins = new Set(
   (Deno.env.get("OCADE_ALLOWED_ORIGINS") ?? "")
     .split(",")
@@ -155,6 +147,27 @@ addEventListener("beforeunload", (event) => {
   console.log("ocade.worker_unload", JSON.stringify({ reason: String(reason).slice(0, 40) }));
 });
 
+/** One provider host and model: what the capability record is kept for. */
+function capabilityKey(model: string): string {
+  return `${PROVIDER ? new URL(PROVIDER.endpoint).host : "unconfigured"}/${model}`;
+}
+
+/** A server-only database function's answer, or undefined when it could not be read. */
+async function rpc(name: string, body: Record<string, unknown>): Promise<unknown> {
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${name}`, {
+    method: "POST",
+    headers: {
+      apikey: SUPABASE_SERVICE_ROLE_KEY,
+      "Content-Type": "application/json",
+      ...(!SUPABASE_SERVICE_ROLE_KEY.startsWith("sb_secret_")
+        ? { Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}` }
+        : {}),
+    },
+    body: JSON.stringify(body),
+  });
+  return response.ok ? await response.json().catch(() => undefined) : undefined;
+}
+
 /** A signed-in person's session, asked of Supabase Auth itself. */
 export async function verifyUserJwt(token: string): Promise<{ userId: string } | null> {
   const auth = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
@@ -179,11 +192,25 @@ export const boundary: Omit<OnlineHandlerDependencies, "verifyJwt" | "verifyServ
     SUPABASE_URL &&
     SUPABASE_PUBLISHABLE_KEY &&
     SUPABASE_SERVICE_ROLE_KEY &&
-    CONFIGURED_SLOTS.length > 0,
+    CONFIGURED_SLOTS.length > 0 &&
+    PROVIDER,
   ),
   providerSlots: CONFIGURED_SLOTS,
   quotaReturnsAt: new Map(),
   refused: new Map(),
+  // Kept per provider host and model, for every instance (20261117090000).
+  capabilities: {
+    async load(model) {
+      const answer = await rpc("ocade_provider_refusals", { p_model: capabilityKey(model) });
+      return Array.isArray(answer) ? answer : [];
+    },
+    async learn(model, feature) {
+      await rpc("ocade_learn_provider_refusal", {
+        p_model: capabilityKey(model),
+        p_feature: feature,
+      });
+    },
+  },
   // A real limit the provider named: logged for the operator (ids and numbers only, never a key).
   discoveredLimit(limit) {
     console.log("ocade.provider_limit", JSON.stringify(limit));
@@ -195,7 +222,8 @@ export const boundary: Omit<OnlineHandlerDependencies, "verifyJwt" | "verifyServ
   highAvailable: async (signal) =>
     Boolean(CF_TOKEN) && (await highIncluded(CF_ACCOUNT, CF_BILLING_TOKEN, signal)),
   observe,
-  model: GEMINI_MODEL,
+  model: PLANNER_MODEL,
+  protocol: PROVIDER?.protocol,
   async consented(userId) {
     const response = await fetch(
       `${SUPABASE_URL}/rest/v1/profiles?id=eq.${encodeURIComponent(userId)}&select=online_ai_consent_at,online_ai_consent_version`,
@@ -288,19 +316,24 @@ export const boundary: Omit<OnlineHandlerDependencies, "verifyJwt" | "verifyServ
         },
       );
     }
-    // An allowlisted planner; which one serves is the handler's choice (deps.model).
-    if (!plannerModel(model)) return new Response(null, { status: 400 });
-    return fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse`,
-      {
-        method: "POST",
-        // The slot the handler chose. The key itself never leaves this file,
-        // and never appears in a log line, a response or an error.
-        headers: { "Content-Type": "application/json", "x-goog-api-key": PROVIDER_KEYS[slot] },
-        body: JSON.stringify(body),
-        redirect: "error",
-        signal,
-      },
-    );
+    // The configured planner; which model serves is the handler's choice (deps.model).
+    const key = PROVIDER_KEYS.get(slot);
+    if (!PROVIDER || !key || !plannerModel(model)) return new Response(null, { status: 400 });
+    // The slot the handler chose. The key itself never leaves this file, and never appears in a
+    // log line, a response or an error.
+    const [url, headers] =
+      PROVIDER.protocol === "openai"
+        ? [`${PROVIDER.endpoint}/chat/completions`, { Authorization: `Bearer ${key}` }]
+        : [
+            `${PROVIDER.endpoint}/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse`,
+            { "x-goog-api-key": key },
+          ];
+    return fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...headers },
+      body: JSON.stringify(body),
+      redirect: "error",
+      signal,
+    });
   },
 };

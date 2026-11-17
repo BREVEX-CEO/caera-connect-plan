@@ -32,6 +32,7 @@ from pypdf import PdfReader
 from .jobs import shell_argv
 from .sandbox import (
     MEDIA_INPUT_OPTIONS, OUTPUT_DIR, PASSIVE_IMAGE_FORMATS, Refused, guarded, non_public_address, plain_text, resolve,
+    run_restricted,
 )
 
 app = MCPServer("ocade-verifier")
@@ -805,7 +806,7 @@ def _containment(copy: Path) -> tuple[list[str], str]:
     sandbox = shutil.which("sandbox-exec") if sys.platform == "darwin" else None
     if sandbox:
         return [sandbox, "-p", _mac_profile(copy)], "filesystem+network"
-    return [], "copy-only"
+    return [], "copy+restricted-token" if sys.platform == "win32" else "copy-only"
 
 
 def _command_succeeds(command, text, notes: dict) -> bool | None:
@@ -1307,4 +1308,5 @@ def verify_dependency(name: str, version: str, platform: str, architecture: str,
 
 
 if __name__ == "__main__":
+    run_restricted("ocade_agent.verify_worker")  # its command re-runs never hold administrator rights
     app.run("stdio")

@@ -1,6 +1,7 @@
 ; Per-user installer for the OCADE JARVIS companion (plan.md §26, P04).
-; No administrator rights, no service, no inbound port. Starts at sign-in for this
-; Windows user only; the person pairs it from the Start Menu and can STOP it there.
+; No administrator rights, no service, no inbound port. The person pairs it and starts it from
+; the Start Menu, and can STOP it there; by default it ends after its task. Always-On (optional)
+; starts it at sign-in for this Windows user only and keeps it ready.
 ; STATUS: CODED, UNTESTED. Build with packaging/build.ps1.
 #define Version "0.1.0"
 #define Server "https://ocade.in"
@@ -33,6 +34,9 @@ WizardStyle=modern
 TimeStampsInUTC=yes
 UninstallDisplayName=OCADE JARVIS
 
+[Tasks]
+Name: "alwayson"; Description: "Always-On: keep JARVIS ready whenever I sign in (otherwise it ends after each task)"; Flags: unchecked
+
 [Files]
 Source: "{#Dist}\OCADE JARVIS\*"; DestDir: "{app}"; Flags: recursesubdirs ignoreversion
 
@@ -43,11 +47,12 @@ Name: "{userdocs}\OCADE JARVIS"
 Name: "{group}\Pair with OCADE"; Filename: "{cmd}"; Parameters: "/k """"{app}\ocade-agent.exe"" enroll --server {#Server} --workspace ""{userdocs}\OCADE JARVIS"""""
 Name: "{group}\Stop OCADE JARVIS"; Filename: "{app}\ocade-agent.exe"; Parameters: "stop"
 Name: "{group}\Start OCADE JARVIS"; Filename: "{app}\ocade-agent-bg.exe"; Parameters: "run"
+Name: "{group}\Start OCADE JARVIS (Always-On)"; Filename: "{app}\ocade-agent-bg.exe"; Parameters: "run --always-on"
 Name: "{group}\Open JARVIS folder"; Filename: "{userdocs}\OCADE JARVIS"
 
 [Registry]
-; Starts the background agent when this user signs in; removed on uninstall.
-Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "OCADE JARVIS"; ValueData: """{app}\ocade-agent-bg.exe"" run"; Flags: uninsdeletevalue
+; Always-On only: starts the background agent when this user signs in; removed on uninstall.
+Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "OCADE JARVIS"; ValueData: """{app}\ocade-agent-bg.exe"" run --always-on"; Flags: uninsdeletevalue; Tasks: alwayson
 
 [UninstallRun]
 Filename: "{app}\ocade-agent.exe"; Parameters: "stop"; Flags: runhidden; RunOnceId: "StopAgent"

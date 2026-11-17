@@ -87,6 +87,14 @@ class Shell(unittest.TestCase):
         with self.subTest("SHELL-004 its effect is real and checked on disk"):
             self.assertEqual((self.root / "fixed.txt").read_text().strip(), "repaired")
 
+    @unittest.skipUnless(WINDOWS, "the restricted token is the Windows containment (plan v8 11.9)")
+    def test_commands_and_jobs_never_hold_administrator_rights_or_privileges(self):
+        [privileges, groups] = self.run_steps({"command": "whoami /priv /fo csv"}, {"command": "whoami /groups /fo csv"})
+        held = {row.split(",")[0].strip('"') for row in privileges["evidence"]["stdout"].splitlines()[1:] if row}
+        self.assertEqual(held, {"SeChangeNotifyPrivilege"}, privileges)
+        admins = [row for row in groups["evidence"]["stdout"].splitlines() if "S-1-5-32-544" in row]
+        self.assertTrue(all("deny only" in row.lower() for row in admins), groups)
+
     def test_timeout_ends_the_whole_process_tree(self):
         [result] = self.run_steps({"command": LATE_WRITE, "timeoutSeconds": 2})
         self.assertEqual((result["evidence"]["timedOut"], result["evidence"]["exitCode"]), (True, None))

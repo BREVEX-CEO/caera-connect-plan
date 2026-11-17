@@ -140,9 +140,13 @@ class Agent:
         # while a real one (new task, next step, STOP, finished) always does.
         self.seen: tuple | None = None
         self.news = False
-        # Session mode (plan v8 5.4): with a limit, the companion ends once nothing has run, waited
-        # or been left running as a job for that long. None keeps it ready until it is stopped.
+        # Session mode (plan v8 5.4; the default from the command line, owner 17 Nov 2026): the
+        # companion ends `after_task_seconds` after its task finished, or `session_idle_seconds`
+        # after it started when no task came, never while a task runs or waits, nor while a job it
+        # started is unfinished. None for both keeps it ready until it is stopped (Always-On).
         self.session_idle_seconds: float | None = None
+        self.after_task_seconds: float | None = None
+        self.worked = False
 
     async def pause(self, seconds: float) -> bool:
         if self.nudge is None:
@@ -283,12 +287,16 @@ class Agent:
 
     def _session_over(self, status: str | None, quiet_since: float | None) -> tuple[bool, float | None]:
         """Whether session mode's idle period has passed, and since when the companion is quiet."""
-        if self.session_idle_seconds is None:
+        if self.session_idle_seconds is None and self.after_task_seconds is None:
             return False, None
         if status in ("running", "waiting") or jobs.unfinished(str(self.device.home)):
+            self.worked = status in ("running", "waiting") or self.worked
+            return False, None
+        limit = self.after_task_seconds if self.worked else self.session_idle_seconds
+        if limit is None:
             return False, None
         quiet_since = quiet_since or time.monotonic()
-        return time.monotonic() - quiet_since >= self.session_idle_seconds, quiet_since
+        return time.monotonic() - quiet_since >= limit, quiet_since
 
     async def _loop(self, until_idle: bool) -> None:
         idle = 1.0
@@ -316,7 +324,7 @@ class Agent:
             if state.get("jobsAllowed") is False:
                 await anyio.to_thread.run_sync(jobs.cancel_all, str(self.device.home))
             if state.get("action"):
-                idle, quiet_since = 1.0, None
+                idle, quiet_since, self.worked = 1.0, None, True
                 state = await self.handle(state["action"])
                 if not state.get("action"):
                     if state.get("jobsAllowed") is False:
@@ -358,6 +366,13 @@ def diagnose(home: Path, server: str | None, workspace: str | None) -> list[dict
 
     check("software", True, f"OCADE JARVIS {VERSION}, protocol v{PROTOCOL['version']}, {platform.system()} "
                             f"{platform.release()} {platform.machine()}, Python {platform.python_version()}")
+    try:
+        active = _release_state(home)["active"]
+        check("release", True, f"update {_installed_release(home, active)[1]} selected and verified"
+              if active else f"installed release {VERSION}")
+    except (OSError, RuntimeError, ValueError):
+        check("release", False, "the selected update failed its integrity check; "
+                                "the next start restores the previous release")
     saved = json.loads((home / "device.json").read_text()) if (home / "device.json").exists() else {}
     check("paired", bool(saved.get("deviceId")),
           "paired with an OCADE account" if saved.get("deviceId") else "not paired: run enroll and type the code in OCADE")
@@ -737,7 +752,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--browser-profile", action="store_true",
                         help="forget: also remove OCADE's own browser profile (its site sign-ins)")
     parser.add_argument("--session-minutes", type=float,
-                        help="end after this many minutes with no task, wait or job (session mode)")
+                        help="end after this many minutes when no task comes (default 30)")
+    parser.add_argument("--always-on", action="store_true",
+                        help="stay ready for tasks until stopped, instead of ending after a task")
     parser.add_argument("--manifest", type=Path)
     parser.add_argument("--signature", type=Path)
     parser.add_argument("--archive", type=Path)
@@ -767,7 +784,7 @@ def main(argv: list[str] | None = None) -> int:
         print("The selected release will start the next time you open OCADE.")
         return 0
     if args.command == "worker":  # the packaged executable hosting one capability worker
-        if args.module not in set(WORKERS.values()) | {"ocade_agent.job_runner"}:
+        if args.module not in set(WORKERS.values()) | {"ocade_agent.job_runner", "ocade_agent.tray"}:
             return 2
         runpy.run_module(args.module, run_name="__main__")
         return 0
@@ -819,9 +836,9 @@ def main(argv: list[str] | None = None) -> int:
             if args.command == "run-activated":
                 if release is None or Path(sys.executable).resolve() != release:
                     raise RuntimeError("The active release changed. Open OCADE again from its installed shortcut.")
-                return _run_companion(device, home, args.until_idle, args.session_minutes)
+                return _run_companion(device, home, args.until_idle, args.session_minutes, args.always_on)
             if release is None:
-                return _run_companion(device, home, args.until_idle, args.session_minutes)
+                return _run_companion(device, home, args.until_idle, args.session_minutes, args.always_on)
         # A different frozen bundle needs a fresh bootloader environment.
         import subprocess
 
@@ -830,6 +847,8 @@ def main(argv: list[str] | None = None) -> int:
             launch.append("--until-idle")
         if args.session_minutes is not None:
             launch += ["--session-minutes", str(args.session_minutes)]
+        if args.always_on:
+            launch.append("--always-on")
         return subprocess.call(launch, env={**os.environ, "PYINSTALLER_RESET_ENVIRONMENT": "1"})
     except (OSError, RuntimeError, ValueError) as error:
         print(f"Cannot start the companion: {error}", file=sys.stderr)
@@ -856,30 +875,37 @@ def _select_release(home: Path) -> Path | None:
     return None
 
 
-def _run_companion(device: Device, home: Path, until_idle: bool, session_minutes: float | None = None) -> int:
+SESSION_MINUTES = 30.0
+AFTER_TASK_SECONDS = 120.0  # a follow-up task within two minutes reuses the running companion
+
+
+def _run_companion(device: Device, home: Path, until_idle: bool, session_minutes: float | None = None,
+                   always_on: bool = False) -> int:
     (home / "STOP").unlink(missing_ok=True)  # starting again is the person's decision
     external, rejected = catalog.load(home)
     for entry in rejected:
         print(f"MCP manifest {entry['file']} not used: {entry['reason']}", file=sys.stderr)
     gateway = Gateway(device.config["workspace"], home=str(home), external=external)
 
-    # Windows shows the running companion in the notification area, with STOP (plan v8 5.4).
+    # The running companion shows in the notification area (Windows) or menu bar (macOS), with STOP
+    # (plan v8 5.4, 11.6).
     tray = None
-    if sys.platform == "win32" and not until_idle:
-        from .tray import WindowsTray
+    if sys.platform in ("win32", "darwin") and not until_idle:
+        from .tray import MacMenuBar, WindowsTray
 
-        tray = WindowsTray(home / "STOP", f"{device.config['server'].rstrip('/')}/ocade-jarvis")
+        tray = (WindowsTray if sys.platform == "win32" else MacMenuBar)(
+            home / "STOP", f"{device.config['server'].rstrip('/')}/ocade-jarvis")
         if not tray.start():
-            print("The notification-area icon could not be shown; STOP still works with `ocade_agent stop`.",
-                  file=sys.stderr)
+            print("The STOP icon could not be shown; STOP still works with `ocade_agent stop`.", file=sys.stderr)
             tray = None
 
     async def go() -> str | None:
         async with gateway:
             try:
                 agent = Agent(device, Journal(home / "journal.sqlite"), gateway)
-                if session_minutes is not None and session_minutes > 0:
-                    agent.session_idle_seconds = session_minutes * 60
+                if not always_on:
+                    agent.session_idle_seconds = (session_minutes or SESSION_MINUTES) * 60
+                    agent.after_task_seconds = AFTER_TASK_SECONDS
                 await agent.run(until_idle)
             except ConnectionError as error:
                 return str(error)

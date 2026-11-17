@@ -420,11 +420,12 @@ const SYSTEM = [
 ].join(" ");
 
 /**
- * What a million tokens may cost, for the spending ceilings (plan v8 10.5, 18.1): Gemini 3.5
- * Flash-Lite's paid prices, the higher of the two allowed planners (Gemma 4 has no paid tier), so
- * an estimate never undercounts.
+ * What a million tokens may cost, for the spending ceilings (plan v8 10.5, 18.1): the configured
+ * model's prices in US dollars (`OCADE_MODEL_USD_PER_MILLION_INPUT` / `_OUTPUT`), else Gemini 3.5
+ * Flash-Lite's paid prices.
  */
 export const MODEL_PRICE_PER_MILLION = { input: 0.3, output: 2.5 } as const;
+export type ModelPrice = { input: number; output: number };
 
 export type ModelSpend = (
   userId: string | null,
@@ -441,9 +442,10 @@ export async function modelBudgetReached(
   userId: string,
   now: Date,
   ceilings: { accountDaily?: number; monthly?: number },
+  price: ModelPrice = MODEL_PRICE_PER_MILLION,
 ): Promise<boolean> {
   const dollars = ({ input, output }: { input: number; output: number }) =>
-    (input * MODEL_PRICE_PER_MILLION.input + output * MODEL_PRICE_PER_MILLION.output) / 1_000_000;
+    (input * price.input + output * price.output) / 1_000_000;
   if (
     ceilings.accountDaily !== undefined &&
     dollars(await spend(userId, new Date(now.getTime() - 86_400_000))) >= ceilings.accountDaily
@@ -494,7 +496,13 @@ export const plannerAccess = {
       if (error) throw new PlannerUnavailable("model_budget_unknown");
       return data as { input: number; output: number };
     };
-    if (await modelBudgetReached(spend, userId, new Date(), ceilings))
+    const price = {
+      input:
+        ceiling(process.env.OCADE_MODEL_USD_PER_MILLION_INPUT) ?? MODEL_PRICE_PER_MILLION.input,
+      output:
+        ceiling(process.env.OCADE_MODEL_USD_PER_MILLION_OUTPUT) ?? MODEL_PRICE_PER_MILLION.output,
+    };
+    if (await modelBudgetReached(spend, userId, new Date(), ceilings, price))
       throw new PlannerUnavailable("model_budget_reached");
     const entitlement = await resolveTierFor(userId);
     const result = await new CommercialGenerationGate(

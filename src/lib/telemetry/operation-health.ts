@@ -70,8 +70,8 @@ const ERROR_CLASSES = [
 ] as const;
 export type ErrorClass = (typeof ERROR_CLASSES)[number];
 
-/** Which of the three server-side secret slots served. Never which key. */
-const PROVIDER_SLOTS = ["primary", "secondary", "tertiary", "local", "none"] as const;
+/** Which server-side key slot served (a fourth to eighth key is "additional"). Never which key. */
+const PROVIDER_SLOTS = ["primary", "secondary", "tertiary", "additional", "local", "none"] as const;
 export type ProviderSlot = (typeof PROVIDER_SLOTS)[number];
 
 /** Latency, at a resolution that describes a path and identifies no session. */

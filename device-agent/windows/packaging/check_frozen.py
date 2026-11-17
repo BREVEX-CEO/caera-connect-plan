@@ -272,7 +272,8 @@ async def main(executable: str, path: str) -> None:
 
 
 
-def prepare_update(bundle: Path, archive: Path, manifest: Path, source_epoch: int) -> None:
+def prepare_update(bundle: Path, archive: Path, manifest: Path, source_epoch: int,
+                   version: str | None = None) -> None:
     """Create the deterministic payload and manifest for the release signer's approval."""
     import gzip
     import tarfile
@@ -313,7 +314,7 @@ def prepare_update(bundle: Path, archive: Path, manifest: Path, source_epoch: in
                     else:
                         packed.addfile(info)
     manifest.write_text(json.dumps({
-        "version": VERSION, "platform": system, "architecture": architecture,
+        "version": version or VERSION, "platform": system, "architecture": architecture,
         "protocol": PROTOCOL["version"], "archiveSha256": sha256(archive), "treeSha256": tree_sha,
     }, sort_keys=True, separators=(",", ":")) + "\n", encoding="utf8")
 
@@ -325,11 +326,12 @@ if __name__ == "__main__":
     parser.add_argument("--archive", type=Path)
     parser.add_argument("--manifest", type=Path)
     parser.add_argument("--source-epoch", type=int)
+    parser.add_argument("--version", help="release label; defaults to the companion's own version")
     args = parser.parse_args()
     if args.prepare_update:
         if not (args.archive and args.manifest and args.source_epoch is not None):
             parser.error("prepare-update needs --archive, --manifest and --source-epoch")
-        prepare_update(args.prepare_update, args.archive, args.manifest, args.source_epoch)
+        prepare_update(args.prepare_update, args.archive, args.manifest, args.source_epoch, args.version)
     elif args.executable:
         asyncio.run(main(args.executable, args.path))
     else:

@@ -19,6 +19,7 @@ import {
   plannerModel,
   type OnlineModelId,
   type ProviderKeySlot,
+  type ProviderProtocol,
 } from "./online-models.ts";
 import {
   buildHealthRecord,
@@ -125,7 +126,10 @@ export interface OnlineHandlerDependencies {
   providerReady: boolean;
   /** Must verify included-only eligibility before every High request. Unknown is unavailable. */
   highAvailable?(signal: AbortSignal): Promise<boolean>;
+  /** The server's planner model id (any compatible model; one per task). */
   model?: string;
+  /** How the planner's provider is spoken to; Google's generateContent when absent. */
+  protocol?: ProviderProtocol;
   now?: () => number;
   sleep?: (ms: number, signal: AbortSignal) => Promise<void>;
   verifyJwt(token: string): Promise<{ userId: string } | null>;
@@ -175,6 +179,14 @@ export interface OnlineHandlerDependencies {
    * learned from a refusal, then never sent to that model again by this deployment instance.
    */
   refused?: Map<string, Set<ProviderFeature>>;
+  /**
+   * The same record kept for every server instance (20261117090000): what a model refused is
+   * read once per instance and saved when learned, so a cold instance does not send it again.
+   */
+  capabilities?: {
+    load(model: string): Promise<readonly ProviderFeature[]>;
+    learn(model: string, feature: ProviderFeature): Promise<void>;
+  };
   callProvider(input: {
     model: OnlineModelId;
     body: Record<string, unknown>;
@@ -411,10 +423,10 @@ export type ProviderFeature = "thinking" | "forced_call" | "json_schema" | "syst
 
 /** The words in a provider's 400 that name which setting it refused. */
 const REFUSAL_NAMES: readonly [ProviderFeature, RegExp][] = [
-  ["thinking", /thinking/i],
-  ["forced_call", /tool_?config|function_?calling_?config|allowed_?function_?names/i],
+  ["thinking", /thinking|reasoning/i],
+  ["forced_call", /tool_?config|function_?calling_?config|allowed_?function_?names|tool_?choice/i],
   ["json_schema", /json_?schema/i],
-  ["system_instruction", /developer instruction|system_?instruction/i],
+  ["system_instruction", /developer instruction|system_?instruction|system (role|message|prompt)/i],
 ];
 
 /** The setting a refusal names among those the request carried, if any. */
@@ -454,7 +466,10 @@ export function providerSchema(schema: unknown): unknown {
 }
 
 /** The settings this request carries for a model, given what it has refused. */
-function sentFeatures(body: OnlineRequestBody, refused: ReadonlySet<ProviderFeature>) {
+export function sentFeatures(
+  body: Pick<OnlineRequestBody, "research" | "tools" | "surface">,
+  refused: ReadonlySet<ProviderFeature>,
+) {
   const sent = new Set<ProviderFeature>();
   if (!refused.has("thinking")) sent.add("thinking");
   if (!refused.has("system_instruction")) sent.add("system_instruction");
@@ -1187,7 +1202,9 @@ async function runOnlineIntelligence(
   const high = body.quality === "high";
   // The server's own planner (`GEMINI_MODEL`), never the request's: exactly one model per task.
   const configured: OnlineModelId | undefined = high ? HIGH_ONLINE_MODEL : plannerModel(deps.model);
-  if (high && body.research) return json(403, { error: "research_unavailable" }, origin);
+  // Grounded research is Google's own search: no other protocol has it.
+  const openai = high || deps.protocol === "openai";
+  if (openai && body.research) return json(403, { error: "research_unavailable" }, origin);
   if (high && !(await deps.highAvailable?.(request.signal).catch(() => false))) {
     return json(503, { error: "high_unavailable" }, origin);
   }
@@ -1296,8 +1313,15 @@ async function runOnlineIntelligence(
     for (;;) {
       provider = null;
       refusedAs = undefined;
-      const refused = deps.refused?.get(configured) ?? new Set<ProviderFeature>();
-      deps.refused?.set(configured, refused);
+      let refused = deps.refused?.get(configured);
+      if (!refused) {
+        refused = new Set(
+          high
+            ? []
+            : await (deps.capabilities?.load(configured) ?? Promise.resolve([])).catch(() => []),
+        );
+        deps.refused?.set(configured, refused);
+      }
       let sent = sentFeatures(body, refused);
       let slotIndex = 0;
       while (modelAttempts < MAX_PROVIDER_ATTEMPTS && slotIndex < slots.length) {
@@ -1316,12 +1340,33 @@ async function runOnlineIntelligence(
           ATTEMPT_TIMEOUT_MS,
         );
         try {
-          attempted.slot = slot;
+          attempted.slot = (PROVIDER_KEY_SLOTS as readonly string[]).includes(slot)
+            ? (slot as ProviderSlot)
+            : "additional";
           attempted.attempts += 1; // counted before the request, so a failed transport counts too
           modelAttempts += 1;
           response = await deps.callProvider({
             model: configured,
-            body: high ? workersAiBody(body, MAX_OUTPUT_TOKENS) : providerBody(body, sent),
+            body: high
+              ? workersAiBody(body, MAX_OUTPUT_TOKENS)
+              : openai
+                ? workersAiBody(
+                    sent.has("json_schema")
+                      ? body
+                      : {
+                          ...body,
+                          tools: body.tools.map((tool) => ({
+                            ...tool,
+                            inputSchema: providerSchema(
+                              tool.inputSchema,
+                            ) as typeof tool.inputSchema,
+                          })),
+                        },
+                    MAX_OUTPUT_TOKENS,
+                    configured,
+                    sent,
+                  )
+                : providerBody(body, sent),
             signal: AbortSignal.any([controller.signal, hung.signal]),
             slot,
           });
@@ -1349,7 +1394,7 @@ async function runOnlineIntelligence(
           await response.body?.cancel();
           return json(503, { error: "high_unavailable" }, origin);
         }
-        provider = high ? workersAiResponse(response, controller.signal) : response;
+        provider = openai ? workersAiResponse(response, controller.signal) : response;
         if (response.ok) {
           Object.assign(served, { model: configured, slot });
           break;
@@ -1425,6 +1470,7 @@ async function runOnlineIntelligence(
           if (feature) {
             refused.add(feature);
             sent = sentFeatures(body, refused);
+            void deps.capabilities?.learn(configured, feature).catch(() => undefined);
             deps.providerIssue?.({ model: configured, slot, kind: `refused_${feature}` });
             // Learning what the model accepts is not a failed attempt at the turn itself.
             modelAttempts -= 1;

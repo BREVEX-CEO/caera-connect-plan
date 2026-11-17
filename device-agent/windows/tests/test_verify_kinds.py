@@ -209,7 +209,7 @@ class VerifierKinds(unittest.TestCase):
             listener.close()
         measured = evidence["measured"][probe["id"]]
         level = measured["containment"]
-        self.assertIn(level, ("filesystem+network", "network", "copy-only"))
+        self.assertIn(level, ("filesystem+network", "network", "copy-only", "copy+restricted-token"))
         self.assertTrue(evidence["predicates"][probe["id"]])
         if "filesystem" in level:
             self.assertFalse(outside.exists(), "a contained re-run wrote outside its copy")

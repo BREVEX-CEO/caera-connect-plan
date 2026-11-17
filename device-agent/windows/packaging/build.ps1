@@ -30,8 +30,10 @@ if ($env:OCADE_SIGN_THUMBPRINT) {
 }
 
 if ($env:OCADE_RELEASE_PUBLIC_KEY_FILE -and $env:SOURCE_DATE_EPOCH) {
+  # Kept out of Output\ so the reproducible-installer comparison sees only the installer.
+  New-Item -ItemType Directory -Force Update | Out-Null
   ..\.build-venv\Scripts\python check_frozen.py --prepare-update "..\dist\OCADE JARVIS" `
-    --archive "Output\OCADE-JARVIS-update.tar.gz" --manifest "Output\OCADE-JARVIS-update.json" `
+    --archive "Update\OCADE-JARVIS-update.tar.gz" --manifest "Update\OCADE-JARVIS-update.json" `
     --source-epoch $env:SOURCE_DATE_EPOCH
   if ($LASTEXITCODE -ne 0) { throw "Update archive preparation failed" }
 }

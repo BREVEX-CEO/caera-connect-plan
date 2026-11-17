@@ -100,8 +100,8 @@ test("a planner turn that breaks midway is asked again; only the complete answer
   assert.deepEqual([log.finalized, log.released], [1, 0], "settled once, for the answer");
 });
 
-test("one model per task: a hybrid or retired route serves nothing and calls no provider", async () => {
-  for (const route of [`${GEMMA},gemini-3.5-flash-lite`, "gemini-3.8-live-extended-thinking"]) {
+test("one model per task: a hybrid or malformed route serves nothing and calls no provider", async () => {
+  for (const route of [`${GEMMA},gemini-3.5-flash-lite`, `${GEMMA} gemini-3.5-flash-lite`, ""]) {
     const { deps, log } = harness(route, () => called());
     const response = await handleOnlineIntelligence(plannerRequest(), deps);
     assert.equal(response.status, 503, route);

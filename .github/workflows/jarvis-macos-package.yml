@@ -92,6 +92,12 @@ jobs:
                   raise RuntimeError("The installed browser is not in the package-local store")
               (root / ".ocade-browser-path").write_text(browser.relative_to(root).as_posix(), encoding="utf-8")
           PY
+      - name: Disposable release key for the update lifecycle (runner only; never a release key)
+        run: |
+          keys="$RUNNER_TEMP/ocade-release-test-key"
+          python device-agent/windows/packaging/test_update.py --new-key "$keys"
+          echo "OCADE_RELEASE_PUBLIC_KEY_FILE=$keys/release-key.txt" >> "$GITHUB_ENV"
+          echo "OCADE_RELEASE_SIGNING_KEY=$keys/signing.pem" >> "$GITHUB_ENV"
       - name: Native AX ladder (one actual desktop case; no skipped qualification)
         working-directory: device-agent/windows
         run: python -m tests.run_required --tests tests.test_mac_ui.MacUiLadder.test_mac_ladder
@@ -126,6 +132,9 @@ jobs:
                 "releaseReady": False}))
           PY
           python packaging/check_frozen.py "dist/OCADE JARVIS.app/Contents/MacOS/ocade-agent" --path "" | tee "$RUNNER_TEMP/mac-frozen-workers.jsonl"
+      - name: Signed upgrade, second upgrade, rollback and damaged-release fallback of the frozen app (11.8)
+        working-directory: device-agent/windows
+        run: python packaging/test_update.py "dist/OCADE JARVIS.app/Contents/MacOS/ocade-agent" "dist/OCADE JARVIS.app" "$OCADE_RELEASE_SIGNING_KEY"
       - name: Retain component proof only; no customer installer is published
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2

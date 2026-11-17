@@ -237,6 +237,18 @@ class SessionMode(unittest.TestCase):
     def test_an_idle_session_ends(self):
         self.assertTrue(self.ended_within(self.runner([{"task": None, "action": None}]), 6.0))
 
+    def test_the_companion_ends_after_its_task_finishes_by_default(self):
+        runner = self.runner([{"task": {"id": "t", "status": "running"}, "action": None},
+                              {"task": {"id": "t", "status": "completed"}, "action": None}])
+        runner.session_idle_seconds, runner.after_task_seconds = 3600, 0.2
+        self.assertTrue(self.ended_within(runner, 6.0), "finished task: the session ends")
+        self.assertTrue(runner.worked)
+
+    def test_always_on_keeps_it_ready(self):
+        runner = self.runner([{"task": {"id": "t", "status": "completed"}, "action": None}])
+        runner.session_idle_seconds = runner.after_task_seconds = None
+        self.assertFalse(self.ended_within(runner, 3.0))
+
     def test_a_waiting_task_or_an_unfinished_job_keeps_it(self):
         waiting = self.runner([{"task": {"id": "t", "status": "waiting"}, "action": None}])
         self.assertFalse(self.ended_within(waiting, 4.0))

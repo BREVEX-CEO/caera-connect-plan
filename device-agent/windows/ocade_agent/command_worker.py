@@ -27,7 +27,7 @@ from pathlib import Path
 from mcp.server.mcpserver import MCPServer
 
 from . import jobs
-from .sandbox import Refused, guarded, mark_effect
+from .sandbox import Refused, guarded, mark_effect, run_restricted
 
 app = MCPServer("ocade-shell")
 WORKSPACE = os.environ.get("OCADE_WORKSPACE", "")
@@ -333,5 +333,6 @@ def system_install_dependency(name: str, version: str, platform: str, architectu
 
 
 if __name__ == "__main__":
+    run_restricted("ocade_agent.command_worker")
     _contain_children()
     app.run("stdio")

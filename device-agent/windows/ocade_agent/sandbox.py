@@ -21,6 +21,7 @@ import hashlib
 import inspect
 import os
 import re
+import sys
 import tempfile
 from contextvars import ContextVar
 from pathlib import Path
@@ -231,3 +232,75 @@ def non_public_address(text: str) -> bool:
         address = ipaddress.IPv4Address(int(address) & 0xFFFFFFFF)
     address = getattr(address, "ipv4_mapped", None) or address
     return not address.is_global or address.is_multicast or address.is_reserved
+
+
+_ADMINISTRATORS = "S-1-5-32-544"
+_DISABLE_MAX_PRIVILEGE = 0x1
+_DENY_ONLY = 0x10  # SE_GROUP_USE_FOR_DENY_ONLY
+
+
+def _restricted(token) -> bool:
+    """No privilege beyond change-notify, and Administrators (if present) is deny-only."""
+    import win32security  # type: ignore[import-not-found]
+
+    privileges = win32security.GetTokenInformation(token, win32security.TokenPrivileges)
+    if {win32security.LookupPrivilegeName(None, luid) for luid, _ in privileges} - {"SeChangeNotifyPrivilege"}:
+        return False
+    admins = win32security.ConvertStringSidToSid(_ADMINISTRATORS)
+    return all(attributes & _DENY_ONLY for sid, attributes in
+               win32security.GetTokenInformation(token, win32security.TokenGroups) if sid == admins)
+
+
+def run_restricted(module: str) -> None:
+    """Windows (plan v8 11.9): this worker, and so every command, tracked job and verifier re-run
+    it starts, runs under a restricted copy of the person's token: every privilege removed except
+    change-notify, and Administrators deny-only, so a confirmed command never acts with
+    administrator rights even when the companion was started elevated (the restricted-token idea of
+    OpenAI Codex's Windows sandbox, kept to what does not break ordinary user-folder work).
+
+    The first, unrestricted process starts its restricted copy on the same standard handles, inside
+    a kill-on-close job object, and only waits: when the gateway ends it (STOP), the copy and
+    everything the copy started end with it. Elsewhere, and when already restricted, a no-op.
+    """
+    if sys.platform != "win32":
+        return
+    import subprocess
+
+    import ntsecuritycon  # type: ignore[import-not-found]
+    import win32api  # type: ignore[import-not-found]
+    import win32con  # type: ignore[import-not-found]
+    import win32event  # type: ignore[import-not-found]
+    import win32job  # type: ignore[import-not-found]
+    import win32process  # type: ignore[import-not-found]
+    import win32security  # type: ignore[import-not-found]
+
+    me = win32api.GetCurrentProcess()
+    token = win32security.OpenProcessToken(me, ntsecuritycon.TOKEN_DUPLICATE | ntsecuritycon.TOKEN_QUERY
+                                           | ntsecuritycon.TOKEN_ASSIGN_PRIMARY | ntsecuritycon.TOKEN_ADJUST_DEFAULT
+                                           | ntsecuritycon.TOKEN_ADJUST_SESSIONID)
+    if _restricted(token):
+        return
+    admins = win32security.ConvertStringSidToSid(_ADMINISTRATORS)
+    restricted = win32security.CreateRestrictedToken(token, _DISABLE_MAX_PRIVILEGE, [(admins, 0)], None, None)
+    job = win32job.CreateJobObject(None, "")
+    limits = win32job.QueryInformationJobObject(job, win32job.JobObjectExtendedLimitInformation)
+    limits["BasicLimitInformation"]["LimitFlags"] = win32job.JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
+    win32job.SetInformationJobObject(job, win32job.JobObjectExtendedLimitInformation, limits)
+    win32job.AssignProcessToJobObject(job, me)
+    startup = win32process.STARTUPINFO()
+    startup.dwFlags = win32con.STARTF_USESTDHANDLES
+
+    def inherited(which: int):
+        handle = win32api.GetStdHandle(which)
+        return win32api.DuplicateHandle(me, handle, me, 0, True, win32con.DUPLICATE_SAME_ACCESS) if handle else None
+
+    startup.hStdInput, startup.hStdOutput, startup.hStdError = (inherited(which) for which in (
+        win32api.STD_INPUT_HANDLE, win32api.STD_OUTPUT_HANDLE, win32api.STD_ERROR_HANDLE))
+    argv = [sys.executable, *sys.argv[1:]] if getattr(sys, "frozen", False) else [sys.executable, "-s", "-m", module]
+    process, thread, _, _ = win32process.CreateProcessAsUser(
+        restricted, None, subprocess.list2cmdline(argv), None, None, True,
+        win32process.CREATE_NO_WINDOW, None, os.getcwd(), startup)
+    win32api.CloseHandle(thread)
+    win32event.WaitForSingleObject(process, win32event.INFINITE)
+    code = win32process.GetExitCodeProcess(process)
+    os._exit(code if code < 2 ** 31 else 1)

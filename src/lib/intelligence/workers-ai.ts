@@ -5,8 +5,15 @@ import {
   type NormalizedToolDefinition,
 } from "./contract.ts";
 import { HIGH_ONLINE_MODEL } from "./online-models.ts";
+import type { ProviderFeature } from "./edge-handler.ts";
 
-/** A separate protocol adapter. Google credentials and opaque thoughts never enter it. */
+/**
+ * The OpenAI-compatible chat completions adapter: Workers AI for High, and any compatible
+ * provider for the planner (`OCADE_MODEL_PROTOCOL=openai`). Google credentials and opaque
+ * thoughts never enter it. `sent` is what the planner's model accepts (the capability record):
+ * a forced call is `tool_choice: "required"`, thinking is `reasoning_effort`, and a model that
+ * takes no system message reads it at the start of the first user turn. High sends neither.
+ */
 export function workersAiBody(
   input: {
     messages: NormalizedMessage[];
@@ -14,8 +21,19 @@ export function workersAiBody(
     attachments: NormalizedAttachment[];
   },
   maxTokens: number,
+  model: string = HIGH_ONLINE_MODEL,
+  sent?: ReadonlySet<ProviderFeature>,
 ): Record<string, unknown> {
-  const messages: Record<string, unknown>[] = input.messages.map((message) => {
+  const system =
+    sent && !sent.has("system_instruction")
+      ? input.messages
+          .filter((message) => message.role === "system")
+          .map((message) => message.content)
+      : [];
+  const conversation = system.length
+    ? input.messages.filter((message) => message.role !== "system")
+    : input.messages;
+  const messages: Record<string, unknown>[] = conversation.map((message) => {
     if (message.toolResult)
       return { role: "tool", tool_call_id: message.toolResult.callId, content: message.content };
     const content = message.parts
@@ -38,6 +56,11 @@ export function workersAiBody(
         : {}),
     };
   });
+  if (system.length) {
+    const first = messages.find((message) => message.role === "user");
+    if (first) first.content = `${system.join("\n\n")}\n\n${String(first.content)}`;
+    else messages.unshift({ role: "user", content: system.join("\n\n") });
+  }
   if (input.attachments.length) {
     // OpenAI tool-result content cannot contain images. A screenshot returned by
     // look/screen is a new untrusted user observation, after the native result.
@@ -66,24 +89,27 @@ export function workersAiBody(
     ];
   }
   return {
-    model: HIGH_ONLINE_MODEL,
+    model,
     messages,
     stream: true,
     stream_options: { include_usage: true },
     store: false,
     n: 1,
     max_completion_tokens: maxTokens,
-    chat_template_kwargs: { enable_thinking: true, clear_thinking: true },
+    ...(model === HIGH_ONLINE_MODEL
+      ? { chat_template_kwargs: { enable_thinking: true, clear_thinking: true } }
+      : {}),
+    ...(sent?.has("thinking") ? { reasoning_effort: "medium" } : {}),
     ...(input.tools.length
       ? {
-          tools: input.tools.map((tool) => ({
-            type: "function",
-            function: {
-              name: tool.name,
-              description: tool.description,
-              parameters: tool.inputSchema,
-            },
-          })),
+          tools: input.tools.map((tool) => {
+            const { $schema: _dialect, ...parameters } = tool.inputSchema;
+            return {
+              type: "function",
+              function: { name: tool.name, description: tool.description, parameters },
+            };
+          }),
+          ...(sent?.has("forced_call") ? { tool_choice: "required" } : {}),
         }
       : {}),
   };
