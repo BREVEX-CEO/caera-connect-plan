@@ -549,13 +549,14 @@ def _release_tree(root: Path) -> str:
 
     digest = hashlib.sha256()
     size = 0
+    base = root.resolve()  # a folder reached through a link (macOS /var is /private/var) still holds its files
     paths = sorted(root.rglob("*"))
     if len(paths) > _RELEASE_FILES:
         raise RuntimeError("The update contains too many files.")
     for path in paths:
         name = path.relative_to(root).as_posix()
         if path.is_symlink():
-            if not path.resolve(strict=True).is_relative_to(root):
+            if not path.resolve(strict=True).is_relative_to(base):
                 raise RuntimeError("An update link leaves the release directory.")
             entry = [name, "link", os.readlink(path)]
         elif path.is_dir():

@@ -485,6 +485,21 @@ class SignedUpdates(unittest.TestCase):
                 agent_module._activate_release(self.home, *self.release("2.0.0"))
         self.assertEqual(agent_module._select_release(self.home), previous)
 
+    def test_a_release_tree_reached_through_a_link_keeps_its_inner_links(self):
+        real = self.root / "real"
+        (real / "lib").mkdir(parents=True)
+        (real / "lib" / "a.txt").write_text("a")
+        linked = self.root / "linked"
+        try:
+            (real / "current").symlink_to("lib", target_is_directory=True)
+            linked.symlink_to(real, target_is_directory=True)
+        except OSError:
+            self.skipTest("this account may not create links (Windows without developer mode)")
+        self.assertEqual(agent_module._release_tree(linked), agent_module._release_tree(real))
+        (real / "escape").symlink_to(self.root)
+        with self.assertRaisesRegex(RuntimeError, "leaves the release directory"):
+            agent_module._release_tree(linked)
+
     def test_update_entry_refuses_while_the_agent_holds_its_lock(self):
         with patch.dict(os.environ, {"OCADE_AGENT_HOME": str(self.home)}):
             with agent_module.companion_lock(self.home):
