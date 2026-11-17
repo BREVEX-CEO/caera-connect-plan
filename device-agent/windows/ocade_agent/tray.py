@@ -1,4 +1,4 @@
-"""The companion's notification-area icon on Windows (plan v8 5.4): visible while the companion
+"""The companion's Windows notification-area icon and macOS menu-bar control, visible while the companion
 runs, with STOP and a way back to the JARVIS website. STOP here is the same local STOP as
 `ocade_agent stop`: the STOP file, which the agent checks between and during steps without any
 network, so it works when the server or the model cannot be reached. Uses pywin32, already a
@@ -108,87 +108,107 @@ class WindowsTray:
         return 0
 
 
-class MacMenuBar:
-    """The companion's menu-bar item on macOS (plan v8 11.6), with the same STOP and Open JARVIS.
-    AppKit needs the main thread's run loop, which the companion's own loop holds, so the item
-    lives in a small process of its own; it ends when the companion closes it or ends."""
+class MacTray:
+    """A separate status-bar process so Cocoa runs on its required main thread.
+
+    It has no device keys, model connection or task authority. Its STOP menu writes
+    only the same local STOP flag as the Windows tray, independently of the network.
+    """
 
     def __init__(self, stop_flag: Path, website: str | None = None):
         self.stop_flag, self.website = stop_flag, website
         self.process = None
 
     def start(self) -> bool:
-        """Show the item; False when it could not be shown within ten seconds."""
         import os
         import subprocess
         import sys
 
-        command = ([sys.executable, "worker", "ocade_agent.tray"] if getattr(sys, "frozen", False)
-                   else [sys.executable, "-s", "-m", "ocade_agent.tray"])
-        self.process = subprocess.Popen(
-            command, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
-            env={**os.environ, "OCADE_MENU_STOP": str(self.stop_flag), "OCADE_MENU_WEBSITE": self.website or ""})
-        answer: list[bytes] = []
-        reader = threading.Thread(target=lambda: answer.append(self.process.stdout.readline()), daemon=True)
-        reader.start()
-        reader.join(10)
-        if answer == [b"ready\n"]:
-            return True
-        self.close()
-        return False
+        from mcp.client.stdio import get_default_environment
+
+        executable = [sys.executable] if getattr(sys, "frozen", False) else [
+            sys.executable, "-m", "ocade_agent",
+        ]
+        command = executable + ["tray", "--tray-parent", str(os.getpid())]
+        if self.website:
+            command += ["--tray-website", self.website]
+        environment = {**get_default_environment(), "OCADE_AGENT_HOME": str(self.stop_flag.parent),
+                       "PYINSTALLER_RESET_ENVIRONMENT": "1"}
+        try:
+            self.process = subprocess.Popen(
+                command, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL, env=environment,
+            )
+        except OSError:
+            return False
+        return self.process.poll() is None
 
     def close(self) -> None:
-        if self.process and self.process.poll() is None:
+        import subprocess
+
+        if self.process is not None and self.process.poll() is None:
             self.process.terminate()
             try:
-                self.process.wait(5)
-            except Exception:
+                self.process.wait(timeout=5)
+            except subprocess.TimeoutExpired:
                 self.process.kill()
+                self.process.wait(timeout=5)
 
 
-def _menu_bar() -> None:
+def run_macos_status(stop_flag: Path, website: str | None, parent_pid: int) -> int:
+    """Render the STOP menu in an isolated Cocoa main loop, without new permissions."""
     import os
+    import sys
+    from urllib.parse import urlsplit
 
-    from AppKit import (  # type: ignore[import-not-found]
-        NSApplication, NSApplicationActivationPolicyAccessory, NSMenu, NSMenuItem, NSStatusBar,
-        NSVariableStatusItemLength,
-    )
-    from Foundation import NSObject, NSTimer  # type: ignore[import-not-found]
+    if sys.platform != "darwin" or parent_pid <= 1 or os.getppid() != parent_pid:
+        return 3
+    from AppKit import (NSApplication, NSApplicationActivationPolicyAccessory, NSMenu,
+                        NSMenuItem, NSStatusBar, NSVariableStatusItemLength)
+    from Foundation import NSObject, NSTimer
 
-    stop = Path(os.environ["OCADE_MENU_STOP"])
-    website = os.environ.get("OCADE_MENU_WEBSITE") or None
-    parent = os.getppid()
-    app = NSApplication.sharedApplication()
+    # Only open the JARVIS site over TLS, never an arbitrary scheme from saved config.
+    url = urlsplit(website or "")
+    safe_website = website if url.scheme == "https" and url.netloc and not url.username else None
+    application = NSApplication.sharedApplication()
+    application.setActivationPolicy_(NSApplicationActivationPolicyAccessory)
+    status_bar = NSStatusBar.systemStatusBar()
+    item = status_bar.statusItemWithLength_(NSVariableStatusItemLength)
+    button = item.button()
+    if button is None:
+        status_bar.removeStatusItem_(item)
+        return 3
+    button.setTitle_("JARVIS")
 
     class Actions(NSObject):
-        def stopNow_(self, sender):
-            stop.parent.mkdir(parents=True, exist_ok=True)
-            stop.touch()
+        def stop_(self, sender):
+            stop_flag.parent.mkdir(parents=True, exist_ok=True)
+            stop_flag.touch()
 
-        def openJarvis_(self, sender):
-            webbrowser.open(website)
+        def open_(self, sender):
+            if safe_website:
+                webbrowser.open(safe_website)
 
-        def watch_(self, timer):
-            if os.getppid() != parent:  # the companion ended: so does its item
-                app.terminate_(None)
+        def checkParent_(self, sender):
+            if os.getppid() != parent_pid:
+                application.terminate_(None)
 
-    app.setActivationPolicy_(NSApplicationActivationPolicyAccessory)
-    item = NSStatusBar.systemStatusBar().statusItemWithLength_(NSVariableStatusItemLength)
-    item.button().setTitle_("OCADE")
-    item.button().setToolTip_("OCADE JARVIS is running")
     actions = Actions.alloc().init()
     menu = NSMenu.alloc().init()
-    for title, action in (("STOP JARVIS now", "stopNow:"), ("Open JARVIS", "openJarvis:")):
-        if action == "openJarvis:" and not website:
-            continue
-        entry = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(title, action, "")
-        entry.setTarget_(actions)
-        menu.addItem_(entry)
+    stop = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_("STOP JARVIS now", "stop:", "")
+    stop.setTarget_(actions)
+    menu.addItem_(stop)
+    if safe_website:
+        open_site = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(
+            "Open JARVIS", "open:", "")
+        open_site.setTarget_(actions)
+        menu.addItem_(open_site)
     item.setMenu_(menu)
-    NSTimer.scheduledTimerWithTimeInterval_target_selector_userInfo_repeats_(1.0, actions, "watch:", None, True)
-    print("ready", flush=True)
-    app.run()
-
-
-if __name__ == "__main__":
-    _menu_bar()
+    timer = NSTimer.scheduledTimerWithTimeInterval_target_selector_userInfo_repeats_(
+        1.0, actions, "checkParent:", None, True)
+    try:
+        application.run()
+    finally:
+        timer.invalidate()
+        status_bar.removeStatusItem_(item)
+    return 0

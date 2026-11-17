@@ -1,12 +1,12 @@
 ALWAYS REPLY LIKE A CAVEMAN: Routine chat/status output must be ONE LINE, maximum TWO WORDS total; final outputs and complete reports may be detailed.
 
-# OCADE BY CARCC — JARVIS & Windows/macOS PC Control Master Plan (v8)
+# OCADE BY CARCC — Complete Product, JARVIS & Windows/macOS PC Control Master Plan (v9)
 
-**Owner-authorized JARVIS-only revision, 15 November 2026.** The 900-line owner-provided draft is retained as the basis except for explicitly excluded non-JARVIS functionality and contradictory older process instructions. Detailed original v7 evidence is preserved in the archive. The explanatory sections retain their original wording wherever consistent; legacy machine-readable traceability tables are preserved to avoid breaking their readers. This is a DOCUMENTATION change, not a claim that coding or qualification passed.
+**LATEST OWNER SCOPE, 15 NOVEMBER 2026:** Complete the whole OCADE product before real-task benchmarking: (1) JARVIS/PC control, (2) Online Chat/model integrations, (3) Offline Chat/download/offline website, plus settings, customer accounts, safety, all site UI/UX, Help/FAQ/terms/privacy and production workflows. Integrate the five source repositories' useful patterns, the 72-entry trace ledger and the 34 UX principles in Parts 14A–14B. The prior JARVIS-only and two-model-only implementation scope is superseded, but the two-model 16-run historical test remains the initial model comparison. The earlier plan and legacy traceability appendices are preserved for historical reference; this is DOCUMENTATION only, not evidence that coding or benchmark tests passed.
 
 ## Part 0. How to read this plan
 
-0.1. This file is the single active authority for the JARVIS computer-control product and its production release. Other product capabilities are outside this plan and their source code is not altered here. The preserved v7 plan lives in `docs/archive/plan-v7-2026-11-14.md`; relevant historical records and existing traceability IDs remain accessible. Where another document disagrees on JARVIS implementation, this plan wins and the disagreement is recorded in Part 21.
+0.1. This file is the single active authority for the COMPLETE OCADE product's engineering and production-readiness gates. JARVIS is the first coding priority; Online Chat and Offline Chat are subsequent required stages. Earlier JARVIS-only exclusions are overridden by Parts 14A and 14B. The preserved v7 plan lives in `docs/archive/plan-v7-2026-11-14.md`; relevant historical records and existing traceability IDs remain accessible. Where another document disagrees on JARVIS implementation, this plan wins and the disagreement is recorded in Part 21.
 
 0.2. Every statement of status carries one of four evidence labels:
 - **VERIFIED** means someone read the code, ran the command or fetched the primary source, and the location is cited.
@@ -24,7 +24,7 @@ ALWAYS REPLY LIKE A CAVEMAN: Routine chat/status output must be ONE LINE, maximu
 
 In plain terms: the customer says what they want done; OCADE does it on their own computer and proves it really happened before saying "done".
 
-1.2. The website is the customer's primary JARVIS interface for task entry, account access, device pairing, permissions, progress, receipts, files, usage, settings, billing and support. A small native companion on Windows/macOS performs authorized computer operations, remains visible while active and can always be stopped.
+1.2. The website is the customer's unified interface for JARVIS PC control, Online Chat, Offline Chat, task entry, account access, device pairing, permissions, progress, receipts, files, usage, settings and support. A small native companion on Windows/macOS performs authorized computer operations, remains visible while active and can always be stopped.
 
 1.3. The engineering priorities, in order, are unchanged from plan v7:
 1. correct completion;
@@ -67,22 +67,13 @@ In plain terms: OCADE spends almost all of its time waiting for the AI. The AI i
 
 2.5. **The action descriptions sent to the model are simplified in a way that loses rules** (VERIFIED, `providerSchema()` in `planner.server.ts` lines 412 to 433). The server still validates every action fully afterwards, so this is not a safety hole. It causes avoidable invalid proposals and extra turns.
 
-2.6. **The free Gemini tier cannot serve paying customers** (VERIFIED, Google's Gemini API Additional Terms and pricing page, fetched 14 November 2026):
-- Only paid services may be used when an app serves users in the European Economic Area, Switzerland or the United Kingdom.
-- Free-tier content may be used to improve Google's products and may be read by human reviewers. Google says not to submit sensitive, confidential or personal information to the unpaid services.
-- OCADE sends observations of the customer's own computer.
-- Gemini 3.5 Flash-Lite costs $0.30 per million input tokens and $2.50 per million output tokens on the paid tier.
-- Gemma 4 has no paid tier on the Gemini API at all.
+2.6. **Model data-handling boundary.** JARVIS observes the customer's computer, so customer data must only be sent to provider configurations explicitly permitted for that data and region, with approved access, user authorization, and controlled retention. Measure actual provider limits and model capabilities; do not expose confidential observations to an unapproved service.
 
 2.7. **The production Supabase project cannot run JARVIS** (VERIFIED with the Supabase tools on 14 November). It contains only the `ocade-intelligence` function (version 14). The planner's server door, `ocade-intelligence-service`, and the benchmark function exist only on the staging project.
 
-2.8. **No payment system exists** (VERIFIED).
-- No payment provider, checkout or webhook endpoint exists (`src/components/settings/BillingSection.tsx` line 14 states that no checkout exists; `supabase/functions` contains only the intelligence functions).
-- Paid plans can be granted only by an administrator (`src/lib/commercial/entitlement-resolver.ts`).
 
-2.9. **The current usage allowances would lose money if a customer used them fully** (VERIFIED arithmetic on `src/lib/commercial/usage-policy.ts` lines 65 to 77 and `src/lib/payments/pricing.ts`; Part 18).
 
-2.10. **Commercial readiness is 10 of 100.** 17 of 42 release-gate conditions pass (VERIFIED by recomputing `evidence/readiness/gates.json`). Installer and dependency readiness is 0 of 4 conditions.
+2.10. **Complete OCADE readiness is not yet independently re-scored on this commit.** Prior historical launch-score evidence must not be presented as a current product-wide score; recheck site, chat, installer, companion, security, online/offline and real-device gates.
 
 2.11. **The coding gate is red on the branch head** (VERIFIED). `npm run format:check` fails on `tools/source-research/README.md`. Everything else passed in this session:
 - `npm ci`, `npm run typecheck`, `npm run lint`, `npm run jarvis:protocol-check` and `npm run jarvis:no-hardcoded`.
@@ -104,15 +95,15 @@ In plain terms: OCADE spends almost all of its time waiting for the AI. The AI i
 
 3.1. **O1.** Windows 10, Windows 11 and macOS are mandatory. Linux is optional and never blocks release.
 
-3.2. **O2 and O14.** The only permitted planner models are Gemini 3.5 Flash-Lite (`gemini-3.5-flash-lite`) and Gemma 4 31B (`gemma-4-31b-it`), each used alone for a whole task. There is no Live planner, no hybrid and no failover between models.
+3.2. **O2 and O14, superseded in adapter scope by latest owner instruction.** Gemini 3.5 Flash-Lite (`gemini-3.5-flash-lite`) and Gemma 4 31B (`gemma-4-31b-it`) remain the **two original benchmark baseline models**, each used alone for the seeded 16-run comparison. Runtime code must become UNIVERSAL/provider-agnostic and able to register additional explicitly authorized models and multiple healthy server-side key slots. No untested model, secret, automatic cross-model failover or quota circumvention is authorized. See Parts 14A.4 and 14B.1.
 
 3.3. **O3.** No paid infrastructure, purchases or unapproved spending. See conflict C1 in Part 21.
 
-3.4. **O4.** One coding agent; no parallel coding sub-agents.
+3.4. **O4.** One coding agent remains the default coding authority; separate from the new owner-mandated RUNTIME multi-agent planning/delegation design. Multiple runtime agents may reason on independent subtasks only under one authoritative computer mutation controller, scoped permissions, STOP, and independent verification.
 
 3.5. **O5.** Cloud-first qualification before any test on the owner's physical computer, which needs separate approval.
 
-3.6. **O6.** Commercial activity only after engineering completion and real-device qualification.
+3.6. **O6.** Public deployment only after engineering completion, real-device qualification and owner authorization.
 
 3.7. **O7.** Keep all 266 requirements, all 84 concepts and every research concept traced.
 
@@ -122,22 +113,22 @@ In plain terms: OCADE spends almost all of its time waiting for the AI. The AI i
 
 3.10. **O10.** Never fabricate tests, benchmarks or completed work.
 
-3.11. **O11.** No `main` merge, deployment, payment activation, secret changes, credential exposure or weakened security without explicit owner approval.
+3.11. **O11.** No `main` merge, deployment, secret changes, credential exposure or weakened security without explicit owner approval.
 
 3.12. **O12.** Free non-deploying GitHub Actions on this branch are approved. CI stays secrets-free and never contacts production, except protected-environment runs the owner approves one by one. No scheduled automations.
 
-3.13. **O13 — coding first (owner update 15 November 2026).** Complete ALL mandatory JARVIS and computer-control coding, integration, compilation, security regressions and deep debloating. Every required GitHub Actions coding/build/check job must be green on the identical candidate commit before beginning the comprehensive cloud-computer benchmark campaign. Focused tests must run during coding. If later benchmarks uncover a defect, reopen the coding stage, fix it and restore the complete green gate before rerunning the task.
+3.13. **O13 — coding first (owner update 15 November 2026).** Complete ALL mandatory coding for the ENTIRE OCADE WEBSITE (JARVIS first, Online Chat second, Offline Chat third), server/backend, device companion, five-repository integration, multi-agent, universal model adapters, UI/UX, settings, security, Help and policy content, integration, compilation, security regressions and deep debloating. Every required GitHub Actions coding/build/check job must be green on the identical candidate commit before beginning the comprehensive cloud-computer benchmark campaign. Focused tests must run during coding. If later benchmarks uncover a defect, reopen the coding stage, fix it and restore the complete green gate before rerunning the task.
 
 3.14. **O15 and O16, with updated test-repair autonomy.** Four seeded tasks × two independently selected permitted models × Windows/macOS = 16 mandatory comparisons. Begin only after 100% coding/build gates are green and the protected cloud test environment is legitimately authorized. Once an authorized test scope, credentials, cost ceiling and environment are approved, routine NON-DESTRUCTIVE code fixes and reruns inside that scope require no new discretionary owner approval; platform-required protected-environment approvals, additional cost, deployment, physical-device access, elevated permissions, live payments and other sensitive operations still require the proper authorization. Never bypass required approval controls.
 
-3.15. **New owner instructions recorded on 14 November 2026.** They are binding unless the owner withdraws them:
+3.15. **Prior owner decisions recorded on 14 November 2026, as modified by Parts 14A–14B on 15 November 2026.** All remain binding except where the newer complete-product scope and model/runtime-agent policies explicitly supersede them:
 - No separate browser extension; zero budget for it.
 - Docker only on developer, CI and hosted infrastructure, never required on customer computers.
 - The website is the sole customer interface.
 - The companion is visible, tray-controlled, session-based by default and always stoppable.
 - Pairing without repeated email verification, while keeping secure authentication and revocation.
 - Usage caps lifted for testing accounts, while provider limits, budgets and safety still apply.
-- No tables in `plan.md`.
+- New explanatory plan sections should use points and sentences, not new tables; legacy machine-readable Appendix A–E tables remain required for existing parsers.
 
 ## Part 4. Engineering operating contract (carried over from plan v7 sections 4 to 11, wording kept)
 
@@ -262,18 +253,18 @@ In plain terms: the helper program appears only while it is working, shows a sma
 - no paid tier on the Gemini API.
 
 7.2. **Facts about Gemini 3.5 Flash-Lite.**
-- It has a paid tier (VERIFIED pricing) and is OCADE's production Standard default (`src/lib/intelligence/online-models.ts` line 4).
+- It is the currently configured Standard default (`src/lib/intelligence/online-models.ts` line 4).
 - **No equal-conditions benchmark against Gemma has been run** (the 16 runs are pending), so its task success, latency and tool-calling reliability are UNKNOWN for OCADE's workload.
 
-7.3. **Recommendation** (evidence-based, subject to the 16-run measurement):
-- Choose **Gemini 3.5 Flash-Lite as the single customer model**.
+7.3. **Initial benchmark recommendation only** (subject to measurement and future universal-provider capability tests):
+- Start the original 16-run comparison with **Gemini 3.5 Flash-Lite and Gemma 4 31B**, then select the best independently qualified default; this does NOT hardcode OCADE around one provider or prevent separately qualified models.
 - Reasons:
   - Gemma's measured failure rate and latency are far from the targets.
-  - Gemma cannot legally process paying or European customers' computer data, because it has no paid tier and the free-tier terms apply.
+  - Gemma must not process customer computer data until its provider configuration and data-handling permissions have been verified for the intended users.
 - Gemma stays a permitted evaluation model under O2.
 - If the 16 runs show Flash-Lite failing where Gemma succeeds, the decision is reopened with that evidence.
 
-In plain terms: the measurements so far show Gemma is slow and unreliable on the free service, and Google's rules do not allow the free service for paying or European customers. So the plan uses Flash-Lite for customers, but measures both fairly before final confirmation.
+In plain terms: Gemma's practical speed, reliability and suitability for customer data still need independent verification. Compare both models fairly.
 
 7.4. **How to make either model much faster and more capable on long tasks.** These are the levers, all inside the existing architecture.
 - 7.4.1. Cut every planning turn from about 15,000 to about 4,000 input tokens (Part 10, items 10.3 and 10.4). The model must read the whole prompt before it starts answering, so shorter prompts mean faster first replies and more turns within the per-minute quota.
@@ -316,7 +307,7 @@ In plain terms: the measurements so far show Gemma is slow and unreliable on the
 | 6 | Guarded action batching | PARTIAL (VERIFIED: batches stop on failure but carry no postconditions) | Postconditions |
 | 7 | Autonomous error recovery | PARTIAL | Refusal hints and fault-injection tests |
 | 8 | Long-running tasks | CODED | Proof on hosted Windows and macOS |
-| 9 | Specialised agents | CONFLICT C3 | Recommended meaning: specialised deterministic roles under the one controller (verifier, job runner, dependency manager); no extra model agents |
+| 9 | Specialised agents | OWNER OVERRIDE — REQUIRED | Mandatory bounded runtime multi-agent specialists under one authoritative desktop mutation controller (Parts 14A.4, 14B.1); preserve STOP and independent verification |
 | 10 | Verified skills and MCP tools | PARTIAL | Schema limits now; verified-route replay later |
 | 11 | Model qualification | Harness NOT IMPLEMENTED (LEDGER, requirement 23) | Build the harness |
 | 12 | Capability fallback | Passes at the route level (LEDGER) | Durable per-model capability record |
@@ -353,19 +344,21 @@ In plain terms: the measurements so far show Gemma is slow and unreliable on the
 | 33 | Accessibility | UNKNOWN | Automated accessibility audit with no serious findings |
 | 34 | Localisation | UNKNOWN | English first; another language only after owner approval |
 
-8.5. **Global commercial operations, requirements 35 to 43.**
+8.5. **Out-of-scope historical IDs 35–40 and 42; retained engineering obligations 41 and 43.**
+
+The original exact text for out-of-scope IDs is preserved in `docs/archive/plan-v7-2026-11-14.md`. Do not implement or count these deferred IDs as required JARVIS coding. Retain their identifiers so the 266-ID historical ledger remains traceable.
 
 | # | Requirement | Status | Remaining work |
 |---|---|---|---|
-| 35 | Worldwide payments | NOT CODED | Provider is an owner decision (Part 18) |
-| 36 | Currency | Prices exist in USD, EUR, GBP and INR (VERIFIED) | — |
-| 37 | Subscriptions | Admin grants only | Connect payment events to entitlements |
-| 38 | Secure webhooks | An audit table exists (VERIFIED) | Signature-checked, idempotent endpoint |
-| 39 | Taxes | NOT CODED | Merchant-of-record provider, or GST and export invoices with professional advice |
-| 40 | Refunds | Policy text exists (VERIFIED) | Refund events revoke access |
-| 41 | Cost controls | Counts tasks, not cost (VERIFIED) | Cost-metered credits, daily ceiling, global budget switch |
-| 42 | International profitability | Losses at full use (Part 18) | Caps |
-| 43 | Market restrictions | EEA and UK forbid the free model tier (VERIFIED) | Paid tier for all customer traffic |
+| 35 | Out-of-scope historical ID | EXCLUDED | None in this JARVIS-only release |
+| 36 | Out-of-scope historical ID | EXCLUDED | None in this JARVIS-only release |
+| 37 | Out-of-scope historical ID | EXCLUDED | None in this JARVIS-only release |
+| 38 | Out-of-scope historical ID | EXCLUDED | None in this JARVIS-only release |
+| 39 | Out-of-scope historical ID | EXCLUDED | None in this JARVIS-only release |
+| 40 | Out-of-scope historical ID | EXCLUDED | None in this JARVIS-only release |
+| 41 | AI resource controls | REQUIRED | Budget limits, quota protection, per-account rate controls and secure model access |
+| 42 | Out-of-scope historical ID | EXCLUDED | None in this JARVIS-only release |
+| 43 | Supported model/data geography | REQUIRED | Confirm provider policy and lawful data handling for test/customer traffic |
 
 8.6. **Security and operations, requirements 44 to 51.**
 
@@ -375,7 +368,7 @@ In plain terms: the measurements so far show Gemma is slow and unreliable on the
 | 45 | Credential isolation | PASSES (LEDGER) | Secret canary in CI |
 | 46 | Backups | PARTIAL | Paid Supabase plan for backups, restore drill |
 | 47 | Monitoring | PARTIAL | Alerts on errors, quota refusals and spending |
-| 48 | Legal compliance | PARTIAL | Update for the paid model, payment provider, DPDP Act and GDPR; professional review |
+| 48 | Deferred policy-page drafting | EXCLUDED | No website policy-page drafting in JARVIS coding; retain privacy and security protections |
 | 49 | Incident response | UNKNOWN | Runbook drill |
 | 50 | Support | PARTIAL | End-to-end ticket test |
 | 51 | Release safety | PARTIAL | Staged release and rollback |
@@ -412,27 +405,27 @@ In plain terms: the measurements so far show Gemma is slow and unreliable on the
 | 72 | Unrestricted testing usage | Unlimited grants exist (VERIFIED: `Unlimited` in `entitlement-resolver.ts`) | Assign them to test accounts; provider budgets still apply |
 | 73 | Usage within safety and infrastructure limits | Belongs with 72 | Global budget switch |
 
-8.9. **Owner requirement IDs 74–87 excluded from the active JARVIS scope.** These IDs are retained only as historical cross-references in the archived plan. No implementation, campaign, or acceptance criterion is assigned to them here.
+8.9. **Requirement IDs 74–87 are ACTIVE again under the latest owner instruction.** Offline Chat, local-model download, browser/app-shell offline operation, disconnected mode, persistent model integrity and readiness are mandatory code deliverables under Part 14B.2. The actual disconnected download-and-inference qualification is the FINAL stage of Part 17; original historical wording remains in the archived plan.
 
-8.10. **Customer data and legal experience, requirements 88 to 92.**
+8.10. **Customer data and task controls, requirements 88 to 92.**
 
 | # | Requirement | Status | Remaining work |
 |---|---|---|---|
 | 88 | Delete JARVIS local task data | PARTIAL | Clear JARVIS session records, temporary files, customer-approved companion workspace data and scoped device caches without removing unrelated customer data |
-| 89 | Delete account | CODED (VERIFIED `erase.server.ts`) | Database test that no rows remain; devices revoked; billing cancelled |
+| 89 | Delete account | CODED (VERIFIED `erase.server.ts`) | Database test that no rows remain and devices and task authority are revoked |
 | 90 | Complete customer lifecycle | — | End-to-end journey test |
-| 91 | Legal dialogs inside the website | Pages exist (VERIFIED routes for terms, privacy and help) | In-site dialogs and versioned consent |
+| 91 | Out-of-scope historical ID | EXCLUDED | Original in v7 archive; retain computer-control consent and privacy safeguards |
 | 92 | Minimal authentication friction | — | Part 5.5 |
 
 8.11. **Testing and reliability, requirements 93 to 101.**
 
 | # | Requirement | Status | Remaining work |
 |---|---|---|---|
-| 93 | Outside this JARVIS/PC-control scope | EXCLUDED | See historical archive; not a release dependency |
+| 93 | Android offline browser qualification | ACTIVE CODING / QUALIFICATION | Implement Android offline website test harness before green gate; actual airplane-mode qualification is LAST benchmark stage under Part 14B.2 |
 | 94 | All 236 research concepts evaluated | PASSES (LEDGER) | — |
 | 95 | Windows/macOS PC-control qualification | QUALIFICATION | Hosted and actual desktop evidence required |
 | 96 | Production evidence | QUALIFICATION | — |
-| 97 | Outside this JARVIS/PC-control scope | EXCLUDED | See historical archive; not a release dependency |
+| 97 | One-click offline setup | ACTIVE REQUIRED | Verified full model download, storage checks, offline-ready state and test harness coded before green gate; network-disconnect proof LAST in Part 17 |
 | 98 | Resource management | — | Part 15 targets |
 | 99 | Companion update integrity | PARTIAL | Updater missing |
 | 100 | Real-device qualification | BLOCKED on A2 | — |
@@ -464,9 +457,11 @@ In plain terms: the measurements so far show Gemma is slow and unreliable on the
 
 ## Part 9. Execution order
 
-9.1. **Strict coding-then-qualification order.** One coding agent completes P0 (Part 10), P1 (Part 11), P2 (Part 12) and P3 (Part 13), then P4 consolidation, deep debloating and COMPLETE GitHub compilation/coding-gate validation (Part 14). Only after all mandatory coding requirements are CODED and all required code/build/CI checks are GREEN on one fixed candidate commit may P5 cloud-computer benchmarks (Part 17 and Appendix H) begin. Test failures reopen coding and require the same green gates again. Do not start benchmark campaigns merely because one package's isolated tests passed.
+9.1. **Strict coding-then-qualification order.** One coding authority completes P0 JARVIS safety/planning (Part 10), P1 Windows/macOS control (Part 11), P2 site/onboarding (Part 12), P3 advanced control/security (Part 13), mandatory 72-entry five-repository integration (Part 14A) and the WHOLE SITE features/security/UX in Part 14B. Finish P4 consolidation/debloating, code integration and complete GitHub CI on the same final SHA. Only after every applicable required item is CODED and all site/backend/Windows/macOS companion code/build/CI jobs are GREEN may real-task/cloud benchmarks start (Part 17 and Appendix H). Test failures reopen coding and require the same green gates again. Do not start benchmark campaigns merely because one package's isolated tests passed.
 
 9.2. During coding, run focused tests, compile/typecheck/lint/format, protocol/security regressions, appropriate database tests and affected build checks after each change. Never postpone STOP, approval or wrong-target safety tests. **After EVERY commit, inspect its GitHub Actions checks and fix failing required gates at root cause; rerun until green. While runs are queued/in progress, work on the next independent coding batch without blocking, duplicating or conflicting with those checks. Never declare a running job green.** Require complete JARVIS and whole-site compilation/build CI to be green on the FINAL identical branch-head commit before any real-task/cloud benchmark. Owner approvals for sensitive operations remain binding.
+
+9.3. **Task inventory:** The previous 43 numbered P0–P5 work-package items remain as historical baseline. New Parts 14A–14B add 72 architecture trace entries (overlaps expected), 34 UX heuristics, 16 key protections, 19 SaaS security checks and deduplicated customer/site work; these are new acceptance references and must be reconciled before calculating a unique executable task count. The 266 tracked requirements and 84 concepts remain separate; the original 16 model-comparison runs remain separate tests. Never claim `43` is the entire new work count or add overlapping counts as if they were unique features.
 
 ## Part 10. Package P0: safety, task correctness and AI execution (estimated four to six days of coding)
 
@@ -603,7 +598,7 @@ In plain terms: the AI may plan a few safe steps at once, and the computer check
 11.11. **Customer journey audit and fixes.**
 - Run `tests/web/surface_audit.py` on every page and control.
 - Fix dead controls, empty states, error and loading states, responsiveness and accessibility.
-- Have a fresh test account complete the whole journey without help: landing page, pricing, registration, email verification, onboarding, download, install, pairing, permissions, first task, verified deliverable and continued use.
+- Have a fresh test account complete the whole journey without help: landing page, registration, email verification, onboarding, download, install, pairing, permissions, first task, verified deliverable and continued use.
 - Acceptance: zero dead controls, no serious accessibility findings, and a measured first verified task within five minutes of download.
 
 ## Part 12. Package P2: JARVIS website, account, device and data lifecycle (coding stage)
@@ -612,13 +607,13 @@ In plain terms: the AI may plan a few safe steps at once, and the computer check
 
 12.2. **Task and session lifecycle.** A fresh registered user can install the companion, pair without repeated email verification, authorize an exact task, start it from the website, inspect actual execution progress, stop it, resume through a safe revalidation, receive independently verified files, end the session and have the temporary companion exit. The workflow must recover appropriately from browser refresh, sleep and device reconnection.
 
-12.3. **Customer data deletion.** A scoped delete-data request removes only JARVIS-owned local task artifacts and applicable server records after explicit confirmation. Account deletion revokes devices and closes authorized sessions; any retention legally required for commercial records is separately disclosed and handled. A test proves the absence of data that should have been deleted, and never destroys unrelated user files.
+12.3. **Customer data deletion.** A scoped delete-data request removes only JARVIS-owned local task artifacts and applicable server records after explicit confirmation. Account deletion revokes devices and closes authorized sessions. A test proves the absence of data that should have been deleted and never destroys unrelated user files. Existing lawful retention/security obligations are not waived.
 
-12.4. **Legal, help and support experience.** Present readable and versioned terms, privacy, computer-control permissions and support information in accessible in-site dialogs; preserve a record of the accepted version. This is customer-facing implementation, not a substitute for professional legal review.
+12.4. **JARVIS permission, help and support experience.** Present exact task scope, device access, STOP, Take Over, permission changes and support information clearly. Maintain authorization evidence and meaningful privacy controls.
 
 12.5. **Customer acceptance.** A fresh account on a clean, supported Windows or macOS machine completes a first authorized task end to end without developer assistance, with no dead controls, misleading status or unverified completion. Complete coding and focused tests now; final hosted/real-device qualification belongs to P5.
 
-## Part 13. Package P3: commerce, operations and competitive capabilities
+## Part 13. Package P3: advanced PC control, operations and security
 
 13.1. **Verified-route replay.** A verified earlier task's step list, with its values as parameters, may be replayed as one guarded batch without model calls, falling back to normal planning at the first failed guard. Owner decision on O8 wording: the routes are learned from the customer's own verified runs, never hardcoded.
 
@@ -628,21 +623,10 @@ In plain terms: the AI may plan a few safe steps at once, and the computer check
 
 13.4. **Parallel independent milestones.** Milestones that touch disjoint windows, files or pages run in parallel under the same authority and locks.
 
-13.5. **Payments** (Part 18):
-- checkout;
-- a signature-checked, idempotent webhook using the existing `payment_webhook_audit` table;
-- entitlements written from payment events;
-- renewals and failed-payment recovery;
-- cancellation at the end of the period;
-- refunds that revoke access;
-- invoices and receipts;
-- transaction history;
-- an administrator reconciliation report.
 
-Everything runs in the provider's test mode until the owner approves live payments.
 
 13.6. **Operations:**
-- backups on a paid Supabase plan, with a timed restore drill;
+- backups using approved resources, with a timed restore drill;
 - alerts on error rate, quota refusals and spending;
 - support tickets tested end to end;
 - an incident runbook drill;
@@ -655,9 +639,7 @@ Everything runs in the provider's test mode until the owner approves live paymen
 - turn on leaked-password protection in Supabase Auth (VERIFIED: currently disabled, per the Supabase security advisor);
 - as defence in depth, revoke public execute rights from security-definer functions that only the server calls. The advisor lists 36 such functions callable by signed-in users. Spot checks show that the critical ones call `private.ocade_owner_require` or a staff-permission check (VERIFIED for `ocade_revoke_unlimited` and eleven others). The remaining 24 must be checked one by one.
 
-13.8. **Legal:**
-- Update the Terms, Privacy and Refund text in `src/components/legal/LegalContent.tsx` for the paid model tier, the payment provider, retention, deletion, India's Digital Personal Data Protection Act and the GDPR, and show them as dialogs inside the site with versioned consent.
-- A qualified professional must review them; code cannot satisfy this.
+
 
 ## Part 14. Package P4: completion, proof-based debloating and removals
 
@@ -676,6 +658,834 @@ Everything runs in the provider's test mode until the owner approves live paymen
 - Recommendation: move them to an archive branch and keep their findings in `docs/research/`. This is an owner decision.
 
 14.4. **Never removed:** security checks, permissions, STOP and Take Over, recovery and journaling, independent verification, database compatibility, user data, or a useful test.
+
+## Part 14A. Mandatory five-repository integration, advanced AI-agent architecture and pre-benchmark coding requirements (latest owner scope)
+
+14A.0. **LATEST OWNER SCOPE OVERRIDE (15 November 2026).** OCADE now includes the ENTIRE website and product: JARVIS first, online chat second, offline chat/site/model third, accounts, settings, device companion, help, FAQ, user policy pages and customer workflows. This overrides the earlier JARVIS-only scope, exclusion of all chat work and the narrower model-adapter constraint. Original 266 requirement IDs, 84 architecture concepts, and machine-readable appendices remain intact; do not silently rewrite historical baseline evidence. Finish each mandatory scoped item to CODED and verified GREEN CI before beginning real-task/cloud benchmarks. The older plan paragraphs are historical wherever they conflict; owner override is explicit here.
+
+14A.1. **Five source repositories and integration rules.**
+
+1. **NousResearch Hermes Agent** — https://github.com/NousResearch/hermes-agent — constrained tool programs, delegation, skill learning, checkpointing and model-context efficiency.
+2. **OpenClaw** — https://github.com/openclaw/openclaw — skill security, extension lifecycle, gateway trust, diagnosis and state recovery.
+3. **trycua CUA** — https://github.com/trycua/cua — native computer drivers, action contracts, screen/element grounding, isolated testing and real-device verification.
+4. **Microsoft UFO** — https://github.com/microsoft/UFO — application-aware task graphs, event-driven execution, Windows accessibility optimizations and dependency-aware coordination.
+5. **n8n Nod** — https://github.com/n8n-io/nod — universal provider adapters, secure credentials, learned tasks, approvals, memory, scheduling and connected-app operation.
+
+For each source item below, independently inspect actual upstream source, current version, dependencies, permissions, license/SPDX, model-weight licenses and target Windows/macOS support; identify matching OCADE code and choose **KEEP, IMPROVE, MERGE, ADD, REPLACE, VERIFY or DEFER**. Copy useful, legally compatible code when it is genuinely better, with attribution and license compliance. Never clone every framework into production or create competing task authorities. Each entry must have affected paths, implementation proof, negative tests, independent acceptance evidence, cost/latency comparison and a traceability disposition. Historical recommendations are NOT proof of a current deficiency. One mutation authority and prompt-injection/STOP/approval safeguards remain immutable.
+
+**Catalog accounting:** 62 existing source-derived recommendation entries are preserved below; 10 separate Nod extensions are numbered 63–72. These are **72 tracked entries**, not necessarily 72 unique missing product features because Nodes 53–62 and 63–72 intentionally refine some of the same mechanisms. Maintain one engineering fix per actual gap, with multiple cross-references, avoiding duplicate implementations.
+
+### 14A.2. Detailed five-repository source-integration ledger (items 1–62)
+
+#### REPO-01. Bounded programmatic action batches (`H01`)
+
+**Source repository:** https://github.com/NousResearch/hermes-agent.  **Origin / status / priority:** NousResearch / Hermes Agent — **IMPROVE** — **P1**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** OCADE already provides guarded action batches, reportedly up to five steps, so this is an optimization rather than a missing executor.
+- **What to add, build, improve or deliberately avoid:** Permit the planner to emit a bounded, inspectable operation program for repetitive read/calculate/write steps. Compile it into existing authorized actions; validate each argument, target and checkpoint; stop at the first unexpected effect. Measure against the existing five-action mechanism before adopting Hermes RPC mechanics.
+- **Independent test / finished definition:** On 30 representative repeated workflows, compare p50/p95 time, model calls and first-attempt success to the existing path. Inject STOP, an altered file and a wrong-window event mid-batch; no unauthorized post-STOP effect may occur.
+- **Adoption decision:** Extend the current implementation rather than replace it. Run a before/after acceptance suite and revert if the change increases risk, complexity, error rate or latency without a material customer benefit.
+
+#### REPO-02. Narrow RPC tool bridge (`H02`)
+
+**Source repository:** https://github.com/NousResearch/hermes-agent.  **Origin / status / priority:** NousResearch / Hermes Agent — **PROPOSE** — **P2**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** OCADE has an existing gateway and worker dispatch; a second independent gateway would duplicate authority.
+- **What to add, build, improve or deliberately avoid:** If programmatic execution genuinely helps, expose only a restricted callable interface into OCADE's existing task-authority layer. Enforce allowlists, per-action identity, typed inputs, maximum calls, deadlines, output limits and nonreplayable receipts. Never grant direct OS or secrets access to generated code.
+- **Independent test / finished definition:** A generated batch cannot invoke a tool outside its approved manifest or work after cancellation. Audit logs name every inner effect and its parent task.
+- **Adoption decision:** First search the current repository, tests and runtime logs for an equivalent. If one is present, improve it; if absent, implement the smallest secure extension. Do not claim confirmed absence solely because a filename or feature was not found during this targeted audit.
+
+#### REPO-03. Decision-preserving context compaction (`H03`)
+
+**Source repository:** https://github.com/NousResearch/hermes-agent.  **Origin / status / priority:** NousResearch / Hermes Agent — **IMPROVE** — **P0**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** prior source review says planner.server.ts already clips observations but retains relatively large state and context budgets; reducing characters alone can remove important facts.
+- **What to add, build, improve or deliberately avoid:** Maintain concise objective, recent verified state, available actions, unresolved obligations, permissions and error summaries. Prune duplicate tool output and old screenshots, not authority constraints or task dependencies. Test token savings against unchanged correct decisions.
+- **Independent test / finished definition:** Use a frozen decision-parity corpus with large, multilingual and multi-window tasks. Reject compaction that changes a correct target, permission decision or required action even if it is faster.
+- **Adoption decision:** Extend the current implementation rather than replace it. Run a before/after acceptance suite and revert if the change increases risk, complexity, error rate or latency without a material customer benefit.
+
+#### REPO-04. Pre-mutation checkpoints (`H04`)
+
+**Source repository:** https://github.com/NousResearch/hermes-agent.  **Origin / status / priority:** NousResearch / Hermes Agent — **IMPROVE** — **P2**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** OCADE journals task effects; prior source review does not prove comprehensive checkpoints for every reversible multi-file operation.
+- **What to add, build, improve or deliberately avoid:** Before high-impact editable-file changes, create a task-scoped snapshot or revision record, monitor available disk space and record a restore recipe. Checkpoints must be selective; a large media render must not trigger excessive full copies.
+- **Independent test / finished definition:** Corrupt a spreadsheet, CAD assembly and video project in controlled tests. Restore only the agent's changes without erasing customer edits made afterward; external submissions are never blindly undone.
+- **Adoption decision:** Extend the current implementation rather than replace it. Run a before/after acceptance suite and revert if the change increases risk, complexity, error rate or latency without a material customer benefit.
+
+#### REPO-05. Typed actionable recovery hints (`H05`)
+
+**Source repository:** https://github.com/NousResearch/hermes-agent.  **Origin / status / priority:** NousResearch / Hermes Agent — **IMPROVE** — **P1**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** OCADE already has generic recovery and refusal reasons; Hermes identifies narrower classes of execution faults.
+- **What to add, build, improve or deliberately avoid:** Classify errors into recoverable vs uncertain-effect vs unrecoverable; attach an evidence-based recovery hint and required re-observation. For example, a missing application is different from a failed save with unknown state. Add only classes demonstrated in real logs.
+- **Independent test / finished definition:** Replay real failures, recover without duplicate actions, and preserve unknown-effect quarantines. Test retry ceilings and that STOP overrides recovery.
+- **Adoption decision:** Extend the current implementation rather than replace it. Run a before/after acceptance suite and revert if the change increases risk, complexity, error rate or latency without a material customer benefit.
+
+#### REPO-06. Verified reusable procedure learning (`H06`)
+
+**Source repository:** https://github.com/NousResearch/hermes-agent.  **Origin / status / priority:** NousResearch / Hermes Agent — **IMPROVE** — **P2**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** OCADE's precedent mechanism retrieves similar routes as advice; prior source review says it does not independently replay the prior procedure.
+- **What to add, build, improve or deliberately avoid:** Create opt-in, parameterized recipes only after an external verifier validates output; store preconditions, app capability requirements, permissions, parameter placeholders and expiry conditions. Revalidate target observations on every use, rather than replaying recorded clicks.
+- **Independent test / finished definition:** A recipe works across renamed files and changed window positions, fails safely if prerequisites differ and never reuses another customer's private observations.
+- **Adoption decision:** Extend the current implementation rather than replace it. Run a before/after acceptance suite and revert if the change increases risk, complexity, error rate or latency without a material customer benefit.
+
+#### REPO-07. Parallel subagent delegation for independent thinking (`H07`)
+
+**Source repository:** https://github.com/NousResearch/hermes-agent.  **Origin / status / priority:** NousResearch / Hermes Agent — **EXPERIMENT** — **EXPERIMENT**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** prior research reference explicitly recommends rejecting additional AI agents now because a single authority and two planner models are the existing contract.
+- **What to add, build, improve or deliberately avoid:** Record the owner's newly requested swarm option as an EXPERIMENT, not automatically enabled. Restrict initial delegates to read-only research, independent file inspection or benchmark diagnosis; merge results into one task authority. Compare against a single deterministic script and one planner; use the faster and more reliable implementation.
+- **Independent test / finished definition:** Only permit production use after held-out benchmarks show a material win without doubled cost, conflicting edits, inflated latency or additional authorization risk. The controller must cancel all children upon STOP.
+- **Adoption decision:** Explicit owner-requested experimental capability. Document the conflict with prior two-model/one-controller rules, run side-by-side tests and ask for the necessary model/security/scope approvals before production activation.
+
+#### REPO-08. Remote and container execution backends (`H08`)
+
+**Source repository:** https://github.com/NousResearch/hermes-agent.  **Origin / status / priority:** NousResearch / Hermes Agent — **DEFER** — **DEFER**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** Hermes supports remote tools, SSH and containers. OCADE already has a separate development/CI environment and a native customer companion.
+- **What to add, build, improve or deliberately avoid:** Keep Docker and disposable VMs in developer/CI/cloud test environments. Add optional remote backend abstraction only for authorized tasks that need it; do not impose Docker, hypervisor or Linux installation on each customer.
+- **Independent test / finished definition:** A clean Windows/macOS customer installs just the companion. CI can create a disposable test sandbox and prove that no customer device depends on its engine.
+- **Adoption decision:** Keep the capability out of mandatory launch work unless independent customer need and benchmark data reverse the decision. Prefer eliminating its complexity over copying an unused subsystem.
+
+#### REPO-09. Persistent provider capability knowledge (`H09`)
+
+**Source repository:** https://github.com/NousResearch/hermes-agent.  **Origin / status / priority:** NousResearch / Hermes Agent — **ADD** — **P1**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** source-review evidence source inspection found rejected model parameters cached in an in-memory Map, so incompatibilities are rediscovered after process restarts.
+- **What to add, build, improve or deliberately avoid:** Persist supported model/provider/version/tool-calling settings, response limits, reasoning knobs and rejection evidence in a bounded, versioned registry. Keep caches isolated by provider and deployment, with expiry and negative-result verification.
+- **Independent test / finished definition:** After restart, a known unsupported parameter is not sent again; after a provider upgrade the capability can be reprobed safely. No tenant data leaks through cache keys.
+- **Adoption decision:** Implement the missing bounded capability through an existing OCADE module, preserving the current controller. Copy only small, compatible code after a license/security review; do not import the upstream application wholesale.
+
+#### REPO-10. Deterministic program substitution (`H10`)
+
+**Source repository:** https://github.com/NousResearch/hermes-agent.  **Origin / status / priority:** NousResearch / Hermes Agent — **IMPROVE** — **P1**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** Simple calculations, file normalization and structured transformations do not require generative reasoning on every instruction.
+- **What to add, build, improve or deliberately avoid:** For tasks with a well-defined local operation, use deterministic parsers, native file formats and scripts before model-generated multiagent plans. The AI should choose or describe the goal, not supervise every cell calculation or ordinary filesystem read.
+- **Independent test / finished definition:** Benchmark deterministic route vs model route for accuracy, latency and idempotency; the simple path must win or be removed.
+- **Adoption decision:** Extend the current implementation rather than replace it. Run a before/after acceptance suite and revert if the change increases risk, complexity, error rate or latency without a material customer benefit.
+
+#### REPO-11. Bounded code execution safety (`H11`)
+
+**Source repository:** https://github.com/NousResearch/hermes-agent.  **Origin / status / priority:** NousResearch / Hermes Agent — **IMPROVE** — **P0**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** OCADE has approvals, a command worker and a task authority, but code-driven batches introduce an additional attack surface.
+- **What to add, build, improve or deliberately avoid:** Treat generated source as untrusted. Constrain imports, tools, directories, shell use, execution duration, network destinations and output. Prefer approved high-level operations over general shell access; preserve an evidence receipt for each mutation.
+- **Independent test / finished definition:** Attempt command injection, unauthorized path traversal, network exfiltration, oversize output, infinite loops and cancellation during execution; every case is blocked or terminates cleanly.
+- **Adoption decision:** Extend the current implementation rather than replace it. Run a before/after acceptance suite and revert if the change increases risk, complexity, error rate or latency without a material customer benefit.
+
+#### REPO-12. Multi-turn efficiency and resource-budget evaluation (`H12`)
+
+**Source repository:** https://github.com/NousResearch/hermes-agent.  **Origin / status / priority:** NousResearch / Hermes Agent — **VERIFY** — **P0**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** prior source review identifies large prompts and model response delays; improvements were proposed but no reproducible production latency target is established here.
+- **What to add, build, improve or deliberately avoid:** Create per-task timing spans for prompt assembly, inference, action dispatch, application wait, verifier and recovery. Establish a baseline before adding another executor or model and track token/quota ceilings.
+- **Independent test / finished definition:** Publish task-by-task timing with p50/p95, pass rate, resource usage and cost-equivalent credits. Reject changes that speed up a substep but slow end-to-end completion or lower task success.
+- **Adoption decision:** Keep the existing implementation as the default. Add reproducible verification evidence; do not rebuild a feature that already passes the required tests.
+
+#### REPO-13. Skill discovery, eligibility and refresh (`O13`)
+
+**Source repository:** https://github.com/openclaw/openclaw.  **Origin / status / priority:** OpenClaw — **IMPROVE** — **P2**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** OCADE supports pinned external MCP manifests. OpenClaw demonstrates a richer lifecycle; a second uncontrolled plugin authority is not required.
+- **What to add, build, improve or deliberately avoid:** Extend the existing catalog with trusted source discovery, supported OS/app capabilities, eligibility, dependency checks, version pinning, staged refresh and automatic disable on incompatibility. Every skill must carry a declared permission footprint.
+- **Independent test / finished definition:** A malicious or incompatible skill cannot become active via discovery alone. Refresh preserves user-edited configuration and rollback to the previous verified version.
+- **Adoption decision:** Extend the current implementation rather than replace it. Run a before/after acceptance suite and revert if the change increases risk, complexity, error rate or latency without a material customer benefit.
+
+#### REPO-14. External skill and script security scanner (`O14`)
+
+**Source repository:** https://github.com/openclaw/openclaw.  **Origin / status / priority:** OpenClaw — **ADD** — **P1**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** prior source review confirms pinned schemas but does not show an equivalent full static-content security scan before third-party skills are accepted.
+- **What to add, build, improve or deliberately avoid:** Scan imported scripts, manifests and skill instructions for embedded secrets, prompt injection, dynamic downloads, unsafe shell patterns, hidden network destinations and excessive permissions. Results inform deterministic policy rather than granting AI-based blanket approval.
+- **Independent test / finished definition:** Seed a red-team corpus of benign and malicious packages, measure false positives/negatives, quarantine unsafe packages and require approval for high-risk capabilities.
+- **Adoption decision:** Implement the missing bounded capability through an existing OCADE module, preserving the current controller. Copy only small, compatible code after a license/security review; do not import the upstream application wholesale.
+
+#### REPO-15. Customer-facing companion security diagnostics (`O15`)
+
+**Source repository:** https://github.com/openclaw/openclaw.  **Origin / status / priority:** OpenClaw — **PROPOSE** — **P2**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** OCADE has setup and permission mechanisms, but prior source review requests a clearer customer-readable status of system safety.
+- **What to add, build, improve or deliberately avoid:** Add a device health panel that checks OS accessibility permissions, gateway binding, update integrity, locked-down command execution, browser access, dependencies and risky configuration. Distinguish fixing automatically from explaining how to fix.
+- **Independent test / finished definition:** A new user on Windows and macOS receives accurate actionable explanations for intentionally broken permissions without leaking secrets or demanding irrelevant administrative rights.
+- **Adoption decision:** First search the current repository, tests and runtime logs for an equivalent. If one is present, improve it; if absent, implement the smallest secure extension. Do not claim confirmed absence solely because a filename or feature was not found during this targeted audit.
+
+#### REPO-16. Versioned extension provenance (`O16`)
+
+**Source repository:** https://github.com/openclaw/openclaw.  **Origin / status / priority:** OpenClaw — **IMPROVE** — **P1**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** Pinned MCP manifests cover part of provenance; lifecycle, compatibility and supply-chain proof need broader qualification.
+- **What to add, build, improve or deliberately avoid:** Record source repository, license, version, digest, signed release if available, target OS, permissions, compatible OCADE version, last scan and revocation. Never silently use mutable latest URLs for privileged code.
+- **Independent test / finished definition:** A tampered binary or changed manifest is rejected, an obsolete extension is disabled, and the customer can see why a capability is unavailable.
+- **Adoption decision:** Extend the current implementation rather than replace it. Run a before/after acceptance suite and revert if the change increases risk, complexity, error rate or latency without a material customer benefit.
+
+#### REPO-17. Crash and interrupted-task recovery (`O17`)
+
+**Source repository:** https://github.com/openclaw/openclaw.  **Origin / status / priority:** OpenClaw — **IMPROVE** — **P0**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** OCADE has durable journaling and leases, but prior source review requests adversarial restart tests comparable to OpenClaw.
+- **What to add, build, improve or deliberately avoid:** After a process crash, reconstruct the exact task, authorization generation, in-flight action, external effects and unresolved outputs. Resume only when the last action's outcome is known; otherwise re-observe and request the appropriate approval.
+- **Independent test / finished definition:** Force-kill browser, worker, gateway and planner during save, upload and multi-file operations. No duplicate submission or post-STOP mutation is allowed.
+- **Adoption decision:** Extend the current implementation rather than replace it. Run a before/after acceptance suite and revert if the change increases risk, complexity, error rate or latency without a material customer benefit.
+
+#### REPO-18. Privacy-preserving diagnostic traces (`O18`)
+
+**Source repository:** https://github.com/openclaw/openclaw.  **Origin / status / priority:** OpenClaw — **IMPROVE** — **P0**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** Task logs are necessary for recovery but may contain screenshots, file contents or secrets.
+- **What to add, build, improve or deliberately avoid:** Separate operational metadata from confidential observations. Redact credentials, filenames when appropriate, personal content and private URLs; support time-bound retention and scoped access. Preserve enough evidence to diagnose failures without logging raw secrets.
+- **Independent test / finished definition:** Inject sample passwords and confidential documents; exported logs must not contain recoverable secrets. Recovery must still identify the failed operation and task status.
+- **Adoption decision:** Extend the current implementation rather than replace it. Run a before/after acceptance suite and revert if the change increases risk, complexity, error rate or latency without a material customer benefit.
+
+#### REPO-19. Broad plugin marketplace (`O19`)
+
+**Source repository:** https://github.com/openclaw/openclaw.  **Origin / status / priority:** OpenClaw — **DEFER** — **DEFER**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** prior source review explicitly says copying a huge marketplace is not currently material to OCADE's website-based PC-control goal.
+- **What to add, build, improve or deliberately avoid:** Record the feature in the competitive backlog only. Prefer a small verified set of native capabilities and approved MCP adapters; avoid duplicated plugin managers, arbitrary installers and unsupported channel integrations.
+- **Independent test / finished definition:** No core customer workflow or acceptance metric is blocked by omitting the marketplace. Revisit only when concrete user demand and security coverage justify it.
+- **Adoption decision:** Keep the capability out of mandatory launch work unless independent customer need and benchmark data reverse the decision. Prefer eliminating its complexity over copying an unused subsystem.
+
+#### REPO-20. Messaging-channel integrations (`O20`)
+
+**Source repository:** https://github.com/openclaw/openclaw.  **Origin / status / priority:** OpenClaw — **DEFER** — **DEFER**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** OpenClaw has many messaging channels, but the active OCADE contract is website-first JARVIS control.
+- **What to add, build, improve or deliberately avoid:** Do not add WhatsApp, Telegram or social messaging as task authorities by default. Preserve one web-based permission surface and explicit device pairing. Study messaging only as a future notification channel if customers need it.
+- **Independent test / finished definition:** Core benchmark pass rate and onboarding are unchanged without channels; any future channel cannot independently approve privileged PC operations.
+- **Adoption decision:** Keep the capability out of mandatory launch work unless independent customer need and benchmark data reverse the decision. Prefer eliminating its complexity over copying an unused subsystem.
+
+#### REPO-21. Gateway identity and authorization hardening (`O21`)
+
+**Source repository:** https://github.com/openclaw/openclaw.  **Origin / status / priority:** OpenClaw — **VERIFY** — **P0**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** OCADE already uses a central device gateway, identity and per-task authority; the audit does not prove every reauthentication edge case.
+- **What to add, build, improve or deliberately avoid:** Review device revocation, pairing expiry, replay resistance, local loopback binding, websocket or RPC origin checks, session fencing and device reassignment. Do not build another gateway unless an existing one fails an objective test.
+- **Independent test / finished definition:** An old paired device, stolen session, different account or replayed message cannot resume control; a valid device reconnects without unnecessary email verification.
+- **Adoption decision:** Keep the existing implementation as the default. Add reproducible verification evidence; do not rebuild a feature that already passes the required tests.
+
+#### REPO-22. Resource bounds for MCP manifests and schemas (`O22`)
+
+**Source repository:** https://github.com/openclaw/openclaw.  **Origin / status / priority:** OpenClaw — **ADD** — **P1**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** source-review evidence code inspection of catalog.py found manifest and JSON Schema validation but no complete serialized size and nesting limits.
+- **What to add, build, improve or deliberately avoid:** Enforce maximum manifest bytes, JSON depth, tool count, schema recursion, string lengths, dynamic URL count and per-skill prompt budget. Keep a deterministic error message if a manifest exceeds the limits.
+- **Independent test / finished definition:** Feed nested/cyclic/oversized schemas and hundreds of fake tool entries. Parsing stays within CPU/memory limits, never truncates security-critical descriptions and rejects safely.
+- **Adoption decision:** Implement the missing bounded capability through an existing OCADE module, preserving the current controller. Copy only small, compatible code after a license/security review; do not import the upstream application wholesale.
+
+#### REPO-23. Skill permission scoping and revocation (`O23`)
+
+**Source repository:** https://github.com/openclaw/openclaw.  **Origin / status / priority:** OpenClaw — **IMPROVE** — **P0**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** MCP tool calls are pinned and permissioned, but importing a new skill changes the available action surface.
+- **What to add, build, improve or deliberately avoid:** Require a per-skill permission proposal mapping to file scope, network domains, external publishing and high-risk commands. Bind the approved scope to task identity, display changes and support immediate revocation.
+- **Independent test / finished definition:** A skill that requests broader file access after an update cannot execute until reapproved; revocation cancels dependent pending calls.
+- **Adoption decision:** Extend the current implementation rather than replace it. Run a before/after acceptance suite and revert if the change increases risk, complexity, error rate or latency without a material customer benefit.
+
+#### REPO-24. Trust boundaries for retrieved content and instructions (`O24`)
+
+**Source repository:** https://github.com/openclaw/openclaw.  **Origin / status / priority:** OpenClaw — **IMPROVE** — **P0**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** Untrusted web pages, files and skill instructions may try to redirect the agent. prior source review emphasizes keeping AI interpretation separate from deterministic permission enforcement.
+- **What to add, build, improve or deliberately avoid:** Tag every observation by source and trust, prevent retrieved instructions from altering system policy, distinguish a customer's command from quoted website content, and validate all proposed tool effects.
+- **Independent test / finished definition:** Test hostile web pages that instruct JARVIS to send data or ignore STOP. No unauthorized effect occurs, even if the planner repeats malicious wording.
+- **Adoption decision:** Extend the current implementation rather than replace it. Run a before/after acceptance suite and revert if the change increases risk, complexity, error rate or latency without a material customer benefit.
+
+#### REPO-25. Extension update staging and rollback (`O25`)
+
+**Source repository:** https://github.com/openclaw/openclaw.  **Origin / status / priority:** OpenClaw — **PROPOSE** — **P2**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** The existence of pinned manifests does not prove safe upgrade, rollback and compatibility testing.
+- **What to add, build, improve or deliberately avoid:** Prepare new versions alongside the active version; run health checks and permission diffs, then activate only between tasks. Keep a known-good version available for rollback and preserve evidence of who authorized the update.
+- **Independent test / finished definition:** An update fails mid-install or removes a tool; active task behavior stays stable and the previous extension can be restored without losing user files.
+- **Adoption decision:** First search the current repository, tests and runtime logs for an equivalent. If one is present, improve it; if absent, implement the smallest secure extension. Do not claim confirmed absence solely because a filename or feature was not found during this targeted audit.
+
+#### REPO-26. Least-privilege package execution (`O26`)
+
+**Source repository:** https://github.com/openclaw/openclaw.  **Origin / status / priority:** OpenClaw — **IMPROVE** — **P0**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** A Windows command worker exists, but prior source review notes that a working-directory restriction is not a full OS access boundary.
+- **What to add, build, improve or deliberately avoid:** Use OS-level reduced-privilege process identities, file access controls, named-pipe restrictions and restricted child processes wherever feasible. An external skill does not inherit the full user account authority by default.
+- **Independent test / finished definition:** Attempt to read paths outside an approved workspace and spawn elevated commands; prove denial on clean Windows/macOS test machines, not only mocks.
+- **Adoption decision:** Extend the current implementation rather than replace it. Run a before/after acceptance suite and revert if the change increases risk, complexity, error rate or latency without a material customer benefit.
+
+#### REPO-27. Background accessibility actions (`C27`)
+
+**Source repository:** https://github.com/trycua/cua.  **Origin / status / priority:** trycua / CUA — **PROPOSE** — **P2**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** Cua can sometimes control accessible elements without foreground focus; OCADE uses foreground input on some Windows routes.
+- **What to add, build, improve or deliberately avoid:** Add background actions only for supported, well-identified application APIs or accessibility targets. Never simulate global keyboard input in the background; recheck window and element identity immediately before an effect.
+- **Independent test / finished definition:** Work in two simultaneous windows while a user types in another app. The background action must affect only the approved target and must not steal focus or corrupt the user's typing.
+- **Adoption decision:** First search the current repository, tests and runtime logs for an equivalent. If one is present, improve it; if absent, implement the smallest secure extension. Do not claim confirmed absence solely because a filename or feature was not found during this targeted audit.
+
+#### REPO-28. Rich per-action delivery evidence (`C28`)
+
+**Source repository:** https://github.com/trycua/cua.  **Origin / status / priority:** trycua / CUA — **IMPROVE** — **P1**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** OCADE has receipts and independent verification; CUA adds route, delivery method and effect-confidence metadata.
+- **What to add, build, improve or deliberately avoid:** Extend receipts with attempted mechanism, action ID, target binding, expected effect, observed effect, time spent, retry decision and evidence pointer. Do not duplicate or replace the verifier.
+- **Independent test / finished definition:** A test distinguishes delivered input, observed UI change and verified business outcome, and the record survives a crash with no credential leak.
+- **Adoption decision:** Extend the current implementation rather than replace it. Run a before/after acceptance suite and revert if the change increases risk, complexity, error rate or latency without a material customer benefit.
+
+#### REPO-29. Snapshot-bound element references (`C29`)
+
+**Source repository:** https://github.com/trycua/cua.  **Origin / status / priority:** trycua / CUA — **IMPROVE** — **P0**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** OCADE already has scoped element references; stale references remain a possible failure after window or page changes.
+- **What to add, build, improve or deliberately avoid:** Bind target handles to window generation, observation timestamp, accessibility-tree version and allowed action. Invalidate on navigation, modal transitions, window recreation or app restart; reacquire targets instead of guessing coordinates.
+- **Independent test / finished definition:** A button disappears or a modal replaces it between inspect and click. JARVIS refuses stale target use and re-observes before acting.
+- **Adoption decision:** Extend the current implementation rather than replace it. Run a before/after acceptance suite and revert if the change increases risk, complexity, error rate or latency without a material customer benefit.
+
+#### REPO-30. Postcondition verification of real outcomes (`C30`)
+
+**Source repository:** https://github.com/trycua/cua.  **Origin / status / priority:** trycua / CUA — **VERIFY** — **P0**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** OCADE's receipt plus independent verifier already separates action delivery from completed customer outcomes.
+- **What to add, build, improve or deliberately avoid:** Preserve the existing structure. Expand application-specific independent oracles for spreadsheets, CAD geometry, video timelines and exported files; never call a click or save dialog sufficient proof.
+- **Independent test / finished definition:** Hidden-answer tasks verify the file/state independently after JARVIS finishes. A successful click with wrong final content is marked failed.
+- **Adoption decision:** Keep the existing implementation as the default. Add reproducible verification evidence; do not rebuild a feature that already passes the required tests.
+
+#### REPO-31. Reproducible desktop benchmarks (`C31`)
+
+**Source repository:** https://github.com/trycua/cua.  **Origin / status / priority:** trycua / CUA — **IMPROVE** — **P0**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** OCADE has E1–E4 and 16-run comparisons planned; their qualified pass evidence is incomplete in prior source review.
+- **What to add, build, improve or deliberately avoid:** Version task environments, fixture snapshots, evaluation scripts, oracle criteria, model settings, OS builds and result artifacts. Track first attempt separately from recovery attempts, plus wall-clock task time.
+- **Independent test / finished definition:** A second runner reproduces the same result with the same hash/seed; CI and physical-device claims are not conflated. All required coding gates are green before broad real-task campaigns.
+- **Adoption decision:** Extend the current implementation rather than replace it. Run a before/after acceptance suite and revert if the change increases risk, complexity, error rate or latency without a material customer benefit.
+
+#### REPO-32. Optional isolated desktop test environments (`C32`)
+
+**Source repository:** https://github.com/trycua/cua.  **Origin / status / priority:** trycua / CUA — **IMPROVE** — **P1**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** A local VM/container test environment can contain destructive test fixtures; the customer device must still be controlled natively.
+- **What to add, build, improve or deliberately avoid:** Provision disposable Windows/macOS-compatible cloud test hosts or VMs, snapshot fixtures and inject failures. Keep virtualization strictly a testing/developer capability; do not force customer installation.
+- **Independent test / finished definition:** All destructive fault-injection tests run away from real customer devices. A clean customer installs only OCADE's approved companion, not a general container engine.
+- **Adoption decision:** Extend the current implementation rather than replace it. Run a before/after acceptance suite and revert if the change increases risk, complexity, error rate or latency without a material customer benefit.
+
+#### REPO-33. Additional narrow planner models (`C33`)
+
+**Source repository:** https://github.com/trycua/cua.  **Origin / status / priority:** trycua / CUA — **EXPERIMENT** — **EXPERIMENT**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** prior research reference says specialized form models should be deferred because the approved production planners are two independently tested models.
+- **What to add, build, improve or deliberately avoid:** Record the owner's request to support additional models, but isolate each in an experimental adapter until capability, data handling, correctness, cost and latency checks pass. Do not silently route customer tasks to unapproved models or replace the user's chosen planner mid-task.
+- **Independent test / finished definition:** A candidate model passes held-out forms and complex tasks, tool-schema tests and STOP/security checks before eligibility is approved. Otherwise it remains disabled with a visible reason.
+- **Adoption decision:** Explicit owner-requested experimental capability. Document the conflict with prior two-model/one-controller rules, run side-by-side tests and ask for the necessary model/security/scope approvals before production activation.
+
+#### REPO-34. Foreground focus and input arbitration (`C34`)
+
+**Source repository:** https://github.com/trycua/cua.  **Origin / status / priority:** trycua / CUA — **IMPROVE** — **P0**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** Foreground keyboard/mouse delivery may collide with actual user typing or a second concurrent JARVIS task.
+- **What to add, build, improve or deliberately avoid:** Introduce a per-device input lease: one owner of global input at a time, continuous active-window revalidation, pause-on-human-input policy and immediate STOP fencing. Nonconflicting read-only work can run concurrently.
+- **Independent test / finished definition:** When a user changes focus or types during an automation, no keystroke enters the wrong field. Conflicting jobs queue rather than interleave input.
+- **Adoption decision:** Extend the current implementation rather than replace it. Run a before/after acceptance suite and revert if the change increases risk, complexity, error rate or latency without a material customer benefit.
+
+#### REPO-35. Accessibility tree caching and invalidation (`C35`)
+
+**Source repository:** https://github.com/trycua/cua.  **Origin / status / priority:** trycua / CUA — **IMPROVE** — **P1**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** OCADE has Windows UIA inspection caching; prior research reference explicitly says it is not a missing feature.
+- **What to add, build, improve or deliberately avoid:** Measure cache hit rate and stale-target risk on real apps. Invalidate on window reconstruction, active view changes, process restart and structural mismatch; use incremental snapshots when reliable.
+- **Independent test / finished definition:** Cache reduces p95 inspection latency without increasing wrong-target errors. A deliberately stale tree is detected before modification.
+- **Adoption decision:** Extend the current implementation rather than replace it. Run a before/after acceptance suite and revert if the change increases risk, complexity, error rate or latency without a material customer benefit.
+
+#### REPO-36. Coordinate and display normalization (`C36`)
+
+**Source repository:** https://github.com/trycua/cua.  **Origin / status / priority:** trycua / CUA — **VERIFY** — **P1**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** prior source review doesn't establish complete multi-monitor, mixed-DPI, screen scaling and remote-session coverage.
+- **What to add, build, improve or deliberately avoid:** Validate coordinate transforms among logical pixels, physical pixels, screen origins, window client areas and display scales. Anchor clicks to app/element identity rather than naked coordinates.
+- **Independent test / finished definition:** Run mixed 100%/150%/200% DPI, secondary negative-origin monitor and window movement. There must be no click outside the exact authorized target.
+- **Adoption decision:** Keep the existing implementation as the default. Add reproducible verification evidence; do not rebuild a feature that already passes the required tests.
+
+#### REPO-37. Efficient structural observation before screenshots (`C37`)
+
+**Source repository:** https://github.com/trycua/cua.  **Origin / status / priority:** trycua / CUA — **IMPROVE** — **P0**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** prior source review identifies repeated full page-body reads and custom control snapshots in web_worker.py; this can waste time and context.
+- **What to add, build, improve or deliberately avoid:** Prefer targeted DOM queries, accessibility node diffs and application-native state. Limit screenshots to cases where structured observation fails or cannot express the target. Store observation hashes to avoid resending unchanged state.
+- **Independent test / finished definition:** Benchmark a large complex website. Model input, observation latency and tool calls decrease while preserving task correctness on held-out pages.
+- **Adoption decision:** Extend the current implementation rather than replace it. Run a before/after acceptance suite and revert if the change increases risk, complexity, error rate or latency without a material customer benefit.
+
+#### REPO-38. Vision fallback with verified grounding (`C38`)
+
+**Source repository:** https://github.com/trycua/cua.  **Origin / status / priority:** trycua / CUA — **IMPROVE** — **P1**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** OCADE has visual matching and screenshot-based fallback, but the audit does not prove broad real-app accuracy.
+- **What to add, build, improve or deliberately avoid:** Only when native/DOM/accessibility options fail, crop to relevant window, identify target with confidence and relation to nearby labels, confirm current window, then observe the effect. Avoid silent coordinate reuse.
+- **Independent test / finished definition:** Run GIMP, CAD, complex canvas and custom dialogs on both OSs; test occlusion, theme, zoom, resized windows and malicious lookalike labels.
+- **Adoption decision:** Extend the current implementation rather than replace it. Run a before/after acceptance suite and revert if the change increases risk, complexity, error rate or latency without a material customer benefit.
+
+#### REPO-39. Typed computer-action contracts (`C39`)
+
+**Source repository:** https://github.com/trycua/cua.  **Origin / status / priority:** trycua / CUA — **IMPROVE** — **P1**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** Existing tool calls are schema-validated, but a cross-route semantic contract for observed vs executed outcomes requires complete evidence.
+- **What to add, build, improve or deliberately avoid:** Define a common action descriptor for browser, Windows/macOS accessibility, file operations and visual fallback: target, route, consent scope, precondition, postcondition, effect identity, retry safety and cancellation generation.
+- **Independent test / finished definition:** The same task has consistent receipts regardless of execution route, and schema fuzzing cannot produce unapproved effects.
+- **Adoption decision:** Extend the current implementation rather than replace it. Run a before/after acceptance suite and revert if the change increases risk, complexity, error rate or latency without a material customer benefit.
+
+#### REPO-40. Cross-platform device qualification (`C40`)
+
+**Source repository:** https://github.com/trycua/cua.  **Origin / status / priority:** trycua / CUA — **VERIFY** — **P0**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** Windows 10/11 and macOS are mandatory, Linux optional; prior source review warns hosted simulation does not prove real-device operation.
+- **What to add, build, improve or deliberately avoid:** Create a device and OS matrix for pairing, accessibility permissions, native operations, tray STOP, install/update/remove, unexpected dialogs and recoveries. Keep evidence per platform and CPU architecture.
+- **Independent test / finished definition:** Qualify actual supported Windows/macOS devices, separating cloud host success, mock success and customer-device proof. Zero critical STOP or wrong-window failures.
+- **Adoption decision:** Keep the existing implementation as the default. Add reproducible verification evidence; do not rebuild a feature that already passes the required tests.
+
+#### REPO-41. Dependency-aware task graphs (`U41`)
+
+**Source repository:** https://github.com/microsoft/UFO.  **Origin / status / priority:** Microsoft / UFO — **PROPOSE** — **P2**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** OCADE already has ordered milestones. For complex CAD and video work, precedence between files and exports is more important than simple step order.
+- **What to add, build, improve or deliberately avoid:** Add a lightweight directed acyclic task graph to the existing supervisor with dependencies, prerequisites, cycle checks, side-effect identities and verified completion. Do not add a second swarm coordinator.
+- **Independent test / finished definition:** A car model, component spreadsheet and video export execute in the right order; an intentionally cyclic plan is rejected before any side effect.
+- **Adoption decision:** First search the current repository, tests and runtime logs for an equivalent. If one is present, improve it; if absent, implement the smallest secure extension. Do not claim confirmed absence solely because a filename or feature was not found during this targeted audit.
+
+#### REPO-42. Event-driven wakeups and no wasteful polling (`U42`)
+
+**Source repository:** https://github.com/microsoft/UFO.  **Origin / status / priority:** Microsoft / UFO — **IMPROVE** — **P1**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** prior source review recommends moving from unnecessary polling to event-driven status changes while keeping OCADE's existing durable authority.
+- **What to add, build, improve or deliberately avoid:** Workers should signal completion, blocked approvals and artifact readiness; the supervisor persists state and wakes only eligible tasks. Poll only when an external application offers no event source, with backoff.
+- **Independent test / finished definition:** On long renders, the agent makes few/no model calls while waiting, resumes promptly at completion, and still recovers after a missed event or worker restart.
+- **Adoption decision:** Extend the current implementation rather than replace it. Run a before/after acceptance suite and revert if the change increases risk, complexity, error rate or latency without a material customer benefit.
+
+#### REPO-43. Device-capability-aware task matching (`U43`)
+
+**Source repository:** https://github.com/microsoft/UFO.  **Origin / status / priority:** Microsoft / UFO — **PROPOSE** — **P2**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** The user may own several authorized devices, but their task must not silently move between computers.
+- **What to add, build, improve or deliberately avoid:** Match required software, OS, RAM/GPU, permissions and user-selected device to available capabilities. Show why a task needs a specific machine; require authorization for reassignment.
+- **Independent test / finished definition:** A task demanding a Mac-only app cannot be assigned to an incapable Windows host. No cross-device execution occurs without explicit consent.
+- **Adoption decision:** First search the current repository, tests and runtime logs for an equivalent. If one is present, improve it; if absent, implement the smallest secure extension. Do not claim confirmed absence solely because a filename or feature was not found during this targeted audit.
+
+#### REPO-44. Controlled dependency-aware replanning (`U44`)
+
+**Source repository:** https://github.com/microsoft/UFO.  **Origin / status / priority:** Microsoft / UFO — **IMPROVE** — **P1**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** OCADE already retries/replans after failures, but dependent subtasks must preserve confirmed prior effects.
+- **What to add, build, improve or deliberately avoid:** Replan only incomplete or invalidated graph nodes. Preserve verified finished artifacts, avoid resubmitting external effects, and require a new authorization when task scope changes.
+- **Independent test / finished definition:** Simulate an interrupted 3D export after upstream CAD file completion. Resume without rebuilding unrelated files or duplicating a committed operation.
+- **Adoption decision:** Extend the current implementation rather than replace it. Run a before/after acceptance suite and revert if the change increases risk, complexity, error rate or latency without a material customer benefit.
+
+#### REPO-45. Experience-based safe route reuse (`U45`)
+
+**Source repository:** https://github.com/microsoft/UFO.  **Origin / status / priority:** Microsoft / UFO — **IMPROVE** — **P2**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** OCADE's precedent() helps suggest operation names but not guarded replay of entire paths.
+- **What to add, build, improve or deliberately avoid:** Store preconditions, parameters, app version, authority limits and independently verified outcome evidence with each reusable route. Route reuse can accelerate repeated tasks only when revalidation passes.
+- **Independent test / finished definition:** A verified spreadsheet fix works with a different filename and window; a changed schema causes re-planning rather than blind replay.
+- **Adoption decision:** Extend the current implementation rather than replace it. Run a before/after acceptance suite and revert if the change increases risk, complexity, error rate or latency without a material customer benefit.
+
+#### REPO-46. Windows cached accessibility inspection (`U46`)
+
+**Source repository:** https://github.com/microsoft/UFO.  **Origin / status / priority:** Microsoft / UFO — **VERIFY** — **P0**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** prior research reference locates the FindAllBuildCache-type design in OCADE windows_worker.py at lines 232–269; it is already implemented.
+- **What to add, build, improve or deliberately avoid:** Do not reimplement it. Instrument hits/misses, invalidation cost, scan duration and wrong-target prevention. Improve existing cache only if measured evidence shows an actual bottleneck.
+- **Independent test / finished definition:** Run real Windows app matrices and compare cold/hot inspection latency and accuracy, proving no regression.
+- **Adoption decision:** Keep the existing implementation as the default. Add reproducible verification evidence; do not rebuild a feature that already passes the required tests.
+
+#### REPO-47. Conflicting subtask resource locks (`U47`)
+
+**Source repository:** https://github.com/microsoft/UFO.  **Origin / status / priority:** Microsoft / UFO — **PROPOSE** — **P2**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** Independent work may run concurrently but two jobs cannot modify the same app window or output file safely.
+- **What to add, build, improve or deliberately avoid:** Introduce a single authoritative resource-lock model for app focus, device input, file paths, task output and approval scopes, integrated with the existing supervisor. Acquire locks deterministically to avoid deadlocks.
+- **Independent test / finished definition:** Parallel tasks on distinct files finish safely; competing edits serialize and a crash releases stale leases after fencing the old generation.
+- **Adoption decision:** First search the current repository, tests and runtime logs for an equivalent. If one is present, improve it; if absent, implement the smallest secure extension. Do not claim confirmed absence solely because a filename or feature was not found during this targeted audit.
+
+#### REPO-48. Cycle and dependency validation (`U48`)
+
+**Source repository:** https://github.com/microsoft/UFO.  **Origin / status / priority:** Microsoft / UFO — **PROPOSE** — **P2**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** Task plans can become cyclic when the model incorrectly makes a result depend on itself.
+- **What to add, build, improve or deliberately avoid:** Reject task graphs with cycles, missing prerequisites, impossible device requirements and invalidated output paths before execution. Provide a clear corrective explanation or safe plan repair proposal.
+- **Independent test / finished definition:** Adversarial plans with cycles, missing dependencies or contradictory steps fail before any user-file mutation.
+- **Adoption decision:** First search the current repository, tests and runtime logs for an equivalent. If one is present, improve it; if absent, implement the smallest secure extension. Do not claim confirmed absence solely because a filename or feature was not found during this targeted audit.
+
+#### REPO-49. Persisted long-job continuation (`U49`)
+
+**Source repository:** https://github.com/microsoft/UFO.  **Origin / status / priority:** Microsoft / UFO — **IMPROVE** — **P1**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** The task journal exists, but multi-hour plans span app restarts, exports, user interruptions and provider failures.
+- **What to add, build, improve or deliberately avoid:** Persist progress by verified subtask, include versioned resource requirements and active effect leases, and provide a controlled Resume/Take Over UI. Avoid sending full history back to AI after each reconnection.
+- **Independent test / finished definition:** Kill the agent during a one-hour video export and resume from proven checkpoints without duplicate rendering or lost edits.
+- **Adoption decision:** Extend the current implementation rather than replace it. Run a before/after acceptance suite and revert if the change increases risk, complexity, error rate or latency without a material customer benefit.
+
+#### REPO-50. App-semantic specialist action selection (`U50`)
+
+**Source repository:** https://github.com/microsoft/UFO.  **Origin / status / priority:** Microsoft / UFO — **IMPROVE** — **P1**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** The vision and generic computer controls cannot always distinguish CAD-specific operations from ordinary clicks.
+- **What to add, build, improve or deliberately avoid:** Discover installed application capabilities and choose native CAD/document/media APIs first. Use task graph semantics to select deterministic workers for common operations without hardcoding customer app names or screenshot coordinates.
+- **Independent test / finished definition:** Complete the same geometry, formula and timeline tasks with different installed supported applications, using accurate editable outputs.
+- **Adoption decision:** Extend the current implementation rather than replace it. Run a before/after acceptance suite and revert if the change increases risk, complexity, error rate or latency without a material customer benefit.
+
+#### REPO-51. User-visible dependency and failure explanations (`U51`)
+
+**Source repository:** https://github.com/microsoft/UFO.  **Origin / status / priority:** Microsoft / UFO — **PROPOSE** — **P2**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** Progress indicators may show steps but not why a downstream task is waiting or which output is blocked.
+- **What to add, build, improve or deliberately avoid:** Expose milestone dependencies, exact waiting condition, last verified action, estimated next step only when grounded and user's safe recovery options. Do not invent percentages from planned actions.
+- **Independent test / finished definition:** For a blocked export, user sees the actual unmet source-file requirement; STOP and Resume work without losing audit history.
+- **Adoption decision:** First search the current repository, tests and runtime logs for an equivalent. If one is present, improve it; if absent, implement the smallest secure extension. Do not claim confirmed absence solely because a filename or feature was not found during this targeted audit.
+
+#### REPO-52. Outcome-oriented multi-app qualification (`U52`)
+
+**Source repository:** https://github.com/microsoft/UFO.  **Origin / status / priority:** Microsoft / UFO — **IMPROVE** — **P0**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** prior source review documents incomplete real-world benchmark success and unknown full current-SHA native tests.
+- **What to add, build, improve or deliberately avoid:** Add held-out evaluation suites requiring correct cross-app deliverables, benchmark hashes, first-attempt and retry metrics, errors per action, runtime and real Windows/macOS evidence. Keep CUA evaluation environment isolated from customer files.
+- **Independent test / finished definition:** A second evaluator reproduces strict pass counts on a pinned release candidate; no pass is awarded just because the agent clicked or reported success.
+- **Adoption decision:** Extend the current implementation rather than replace it. Run a before/after acceptance suite and revert if the change increases risk, complexity, error rate or latency without a material customer benefit.
+
+#### REPO-53. Intent-to-authority interpretation (`N53`)
+
+**Source repository:** https://github.com/n8n-io/nod.  **Origin / status / priority:** n8n / Nod — **IMPROVE** — **P0**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** OCADE already has deterministic permission grants but may not fully distinguish what a customer's natural-language request authorizes.
+- **What to add, build, improve or deliberately avoid:** Translate goal intent into an explicit action envelope: target apps/files, allowed reads, mutations, network actions, posting and delegation. Use deterministic policy to enforce it; the model can propose scope but cannot grant it.
+- **Independent test / finished definition:** A task to draft an email cannot send it unless explicitly authorized. Quoted instructions on a website never expand the customer's permission grant.
+- **Adoption decision:** Extend the current implementation rather than replace it. Run a before/after acceptance suite and revert if the change increases risk, complexity, error rate or latency without a material customer benefit.
+
+#### REPO-54. Read/prepare/commit effects separation (`N54`)
+
+**Source repository:** https://github.com/n8n-io/nod.  **Origin / status / priority:** n8n / Nod — **IMPROVE** — **P0**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** Existing approvals may not consistently encode private preparation versus irreversible external submission.
+- **What to add, build, improve or deliberately avoid:** Classify operations as observation, reversible local edit, external commit, credential use or irreversible mutation. Require appropriate confirmation with full untruncated details for externally committing actions.
+- **Independent test / finished definition:** A form can be filled and previewed without being submitted; a later submit is blocked until separately authorized. No misleading truncated approval text.
+- **Adoption decision:** Extend the current implementation rather than replace it. Run a before/after acceptance suite and revert if the change increases risk, complexity, error rate or latency without a material customer benefit.
+
+#### REPO-55. Private credential vault and controlled autofill (`N55`)
+
+**Source repository:** https://github.com/n8n-io/nod.  **Origin / status / priority:** n8n / Nod — **PROPOSE** — **P1**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** The reviewed JARVIS modules did not establish a general encrypted website-credential vault like Nod's.
+- **What to add, build, improve or deliberately avoid:** Use OS secure storage (Windows Credential Manager/macOS Keychain) or another approved encrypted vault; issue short-lived target-bound secret references, never raw password text to model prompts or logs. Autofill only an authorized, origin-verified login form.
+- **Independent test / finished definition:** Injected phishing pages cannot request a credential; model/tool logs contain no password, and revocation prevents further use. Do not import a large vault subsystem unless integration analysis justifies it.
+- **Adoption decision:** First search the current repository, tests and runtime logs for an equivalent. If one is present, improve it; if absent, implement the smallest secure extension. Do not claim confirmed absence solely because a filename or feature was not found during this targeted audit.
+
+#### REPO-56. Learned parameterized customer workflows (`N56`)
+
+**Source repository:** https://github.com/n8n-io/nod.  **Origin / status / priority:** n8n / Nod — **IMPROVE** — **P2**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** OCADE has precedent and experience storage, but automatic durable learned skills are under-verified.
+- **What to add, build, improve or deliberately avoid:** Capture a user-approved reusable workflow only after independent success; separate parameters from observations; include provenance, version, conditions and expiration. Allow user review and deletion.
+- **Independent test / finished definition:** Run a learned weekly spreadsheet process against new input files with no guessed paths; it halts safely on structural changes and never publishes without permission.
+- **Adoption decision:** Extend the current implementation rather than replace it. Run a before/after acceptance suite and revert if the change increases risk, complexity, error rate or latency without a material customer benefit.
+
+#### REPO-57. Protected user-edited skills and instructions (`N57`)
+
+**Source repository:** https://github.com/n8n-io/nod.  **Origin / status / priority:** n8n / Nod — **PROPOSE** — **P2**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** prior source review does not establish robust precedence rules between a user's own edited skill and auto-learned suggestions.
+- **What to add, build, improve or deliberately avoid:** Mark user-authored content as immutable to automated learning unless explicitly reviewed; keep version history and change previews. Auto-generated improvements may be proposed, not silently overwrite preferences.
+- **Independent test / finished definition:** After auto-learning detects a different route, the original user-created skill remains unchanged; rollback restores prior version exactly.
+- **Adoption decision:** First search the current repository, tests and runtime logs for an equivalent. If one is present, improve it; if absent, implement the smallest secure extension. Do not claim confirmed absence solely because a filename or feature was not found during this targeted audit.
+
+#### REPO-58. Memory provenance, consent and deletion (`N58`)
+
+**Source repository:** https://github.com/n8n-io/nod.  **Origin / status / priority:** n8n / Nod — **IMPROVE** — **P2**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** OCADE has an opt-in memory database according to prior code comparison, but source, consent and deletion proof are incomplete.
+- **What to add, build, improve or deliberately avoid:** Attach each memory to its originating task evidence, user consent scope, freshness and privacy label. Use retrieval sparingly and allow correction, export and complete authorized deletion.
+- **Independent test / finished definition:** A false preference is corrected and not resurfaced; deleting an item removes it from retrieval and related cache after the declared retention interval.
+- **Adoption decision:** Extend the current implementation rather than replace it. Run a before/after acceptance suite and revert if the change increases risk, complexity, error rate or latency without a material customer benefit.
+
+#### REPO-59. Customer-facing activity and usage explanation (`N59`)
+
+**Source repository:** https://github.com/n8n-io/nod.  **Origin / status / priority:** n8n / Nod — **IMPROVE** — **P1**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** OCADE already has task receipts and history; the audit calls for clearer explanations of actual actions, errors and approvals.
+- **What to add, build, improve or deliberately avoid:** Expose a timeline of objective, devices, apps touched, commands, permissions, verified output, retries, observed failures, usage and model selection. Keep sensitive values redacted and distinguish attempted from completed effects.
+- **Independent test / finished definition:** A customer can reconstruct what changed without seeing cryptic logs; exported receipts match independent evidence and never expose secrets.
+- **Adoption decision:** Extend the current implementation rather than replace it. Run a before/after acceptance suite and revert if the change increases risk, complexity, error rate or latency without a material customer benefit.
+
+#### REPO-60. Durable scheduled JARVIS work (`N60`)
+
+**Source repository:** https://github.com/n8n-io/nod.  **Origin / status / priority:** n8n / Nod — **DEFER** — **DEFER**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** OCADE has schedule database support, but unattended JARVIS scheduling was excluded by the current owner-approved testing scope.
+- **What to add, build, improve or deliberately avoid:** Preserve planning designs but do not automatically activate cron control of customer PCs. If later approved, use explicit per-schedule task scope, expiry, awake-device checks, one-time occurrence claims and immediate revocation.
+- **Independent test / finished definition:** A recurring task never runs after cancellation or device revocation and never creates duplicate effects after retry; otherwise the scheduler stays disabled.
+- **Adoption decision:** Keep the capability out of mandatory launch work unless independent customer need and benchmark data reverse the decision. Prefer eliminating its complexity over copying an unused subsystem.
+
+#### REPO-61. Proactive event monitoring (`N61`)
+
+**Source repository:** https://github.com/n8n-io/nod.  **Origin / status / priority:** n8n / Nod — **PROPOSE** — **P3**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** Earlier Nod comparison found no equivalent full proactive monitoring in the reviewed OCADE JARVIS flow.
+- **What to add, build, improve or deliberately avoid:** Introduce a future opt-in watch mechanism for permitted app events, changed files or task dependencies. Do not wake agents merely to consume tokens; schedule only actual relevant triggers and protect customer privacy.
+- **Independent test / finished definition:** An approved watched folder change creates at most one scoped task; unapproved files, notifications or credentials are not read or transmitted.
+- **Adoption decision:** First search the current repository, tests and runtime logs for an equivalent. If one is present, improve it; if absent, implement the smallest secure extension. Do not claim confirmed absence solely because a filename or feature was not found during this targeted audit.
+
+#### REPO-62. One-click approved app integrations (`N62`)
+
+**Source repository:** https://github.com/n8n-io/nod.  **Origin / status / priority:** n8n / Nod — **PROPOSE** — **P2**.  **Trace:** consult the named original source file and repository research notes; verify implementation and revision before copying.
+
+- **What exists or what the audit actually establishes:** OCADE supports MCP adapters but the previous comparison noted a less complete account-connection experience than Nod.
+- **What to add, build, improve or deliberately avoid:** Add a verified connector journey: choose service, review requested scopes, authenticate via provider-owned flow, test access, rotate/revoke and see connection health. Reuse the central MCP authority; do not give third-party connectors silent PC-control rights.
+- **Independent test / finished definition:** A fresh user connects an approved service without copying API keys, revokes it and proves subsequent calls fail. Network and credential limits are tested end to end.
+- **Adoption decision:** First search the current repository, tests and runtime logs for an equivalent. If one is present, improve it; if absent, implement the smallest secure extension. Do not claim confirmed absence solely because a filename or feature was not found during this targeted audit.
+
+## Implementation sequence, relative to the JARVIS coding-first rule
+
+1. **P0: finish correctness and safety foundations first.** Fix authorization intent, STOP/input fencing, command isolation, stale target references, privacy of evidence, trust boundaries, real Windows/macOS qualification readiness, and full current-commit CI. Running tests still require properly authorized environment access.
+2. **P1: improve execution speed without changing owner authority.** Measure model/planner latency, compact context with decision parity, optimize browser observations, bounded code-driven batches, provider capability persistence, event-driven job wakes, richer receipts and credential protection.
+3. **P2: controlled capability additions.** Reusable learned recipes, skill scanning and provenance, secured OAuth integrations, checkpointing, device capability routing, optional task DAG and actionable customer diagnostics. A proposed feature enters the active coding gate only when it solves a specific measured problem.
+4. **P3: optional after reliable release qualification.** Proactive monitoring, unattended scheduling, broad extensions, additional models and swarms stay outside mandatory release unless explicitly approved and independently justified by held-out measurements.
+5. **Benchmark hard gate.** Finish mandatory JARVIS coding and restore complete green website/backend/companion CI on a pinned SHA before full cloud-computer real-task benchmarks. Each failing benchmark reopens coding; repeat the green gate on the new SHA before continuing. Distinguish first-attempt results from repair successes.
+6. **Finish decision.** No 100% production-readiness claim until the full supported customer journey and real-device STOP, permissions, installation, pairing, task completion and verification pass independently. This report does not calculate a new readiness percentage.
+
+
+### 14A.4. Binding implementation classification and precedence
+
+- **Mandatory before benchmarks:** Every item marked P0, P1 or P2 REQUIRED after code inspection; all fixes needed to keep JARVIS, the entire website, online/offline chat, security, customer flows, companion and backend CODED and green. No partial item may be mislabeled complete. Evaluate historically deferred items: if they are unnecessary to launch, record verified DEFER with justification, never silently delete.
+- **Parallel AI-agent system is MANDATORY, not optional.** Replace earlier H07 experimental/defer wording. Implement a single authoritative coordinator that delegates **independent bounded subtasks** to specialist model or deterministic workers while preserving single owner for each computer/window/file mutation. Before delegation, verify it improves latency, quality or capability; keep deterministic code for simple operations. Run dependency graphs, tool-call budgets, scoped permissions, cancellation propagation, bounded agent depth, failure isolation, checkpointing and verified result reconciliation. Benchmark solo against multi-agent execution later; no unlimited uncontrolled agent swarms. Do not use parallel coding agents unless separately approved—the runtime multi-agent requirement is distinct from the established single coding agent restriction.
+- **Universal model compatibility is MANDATORY.** Replace fixed-provider assumptions in adapter design, NOT the existing 16-run baseline. Support capabilities-based configuration for multiple authorized commercial API providers and models; each registered model declares vision, tools, structured schemas, thinking controls, context, token cost, streaming, retry semantics, data-region protections and quota limits. A customer task must have explicit model selection and truthful fallback behavior; no cross-model hidden mutation, automatic substitution of unapproved models, or accidental prompt/secret disclosure. Additional model acceptance requires compatibility/real-task evidence; current Gemini 3.5 Flash-Lite and Gemma 4 31B remain the initial comparison pair, not the only future supported models.
+- **Key pooling and health routing are MANDATORY within legitimate provider terms.** Inspect existing Supabase Edge Functions and authorized GitHub protected environments. Add a secure server-side, encrypted logical key-slot registry with project, provider, model, tenant, permissions, rate-window and spending metadata; check health and automatically choose a valid key for the requested supported provider/model and user. Automatically rotate away from expired/failed keys and apply bounded backoff/circuit breakers. Never send raw API keys to frontend, model prompts or logs. Never rotate keys to circumvent project-level quotas or provider restrictions; multiple keys from one quota project do not multiply its allowance. A secret must first be provisioned by the owner; neither invent secrets nor assume they are readable to tools. Test simultaneous tasks, exhausted quota, revoked keys, wrong-provider selection, isolation, billing safety and safe retry.
+- **Native-first universal PC control remains MANDATORY.** Discover user apps and tools dynamically. Prefer native APIs, file formats and scripts, then DOM/OS accessibility; screenshot vision is the last fallback. Use relevant pieces of all five repositories only when they actually improve correctness or speed. No hardcoded application, UI coordinate, task answer, benchmark oracle, customer credential or task flow.
+- **Customer-side Docker/VMs are NEVER mandatory.** Docker/cloud VMs may help development, CI, isolated tests and explicitly authorized specialist work; packaging and setup on Windows/macOS must not force users to install container tooling. Prove companion cold-start and install time independently.
+
+### 14A.5. Ten additional Nod implementation refinements (items 63–72)
+
+#### REPO-63. Intent-scoped task authorization (Nod extension of N53)
+
+- **Source repository:** https://github.com/n8n-io/nod; related earlier entry: `N53`.
+- **Classification:** P0 REQUIRED. **Customer benefit:** Prevents an apparently helpful AI action from overstepping customer instructions.
+- **Detailed change:** Extend existing task authority to translate natural-language goals into an exact, immutable permission envelope: account, device, named apps/files, allowed reads, local edits, external writes, credential use, duration and revocation. Planner proposals never create permission. Separate inferred intent from granted authority. A document or website must not enlarge that grant.
+- **Acceptance evidence:** Draft an email but never send it; an injected page instruction cannot increase scope; stopping or revoking the task prevents subsequent writes.
+- **Deduplication:** This expands the earlier Nod item rather than creating a second executor or duplicate database.
+
+#### REPO-64. Read, prepare, and commit action tiers (Nod extension of N54)
+
+- **Source repository:** https://github.com/n8n-io/nod; related earlier entry: `N54`.
+- **Classification:** P0 REQUIRED. **Customer benefit:** Avoids accidental irreversible submissions.
+- **Detailed change:** Classify observation, reversible preparation, external commit, credential release and irreversible mutation. Preserve untruncated approval descriptions showing exact target, contents, consequences and rollback availability. A prepared form is not submitted unless the separate commit is authorized. Preserve idempotency and action receipts.
+- **Acceptance evidence:** An approved draft never sends or submits automatically; unknown previous effect blocks blind retry.
+- **Deduplication:** This expands the earlier Nod item rather than creating a second executor or duplicate database.
+
+#### REPO-65. Encrypted, origin-bound credential-use vault (Nod extension of N55)
+
+- **Source repository:** https://github.com/n8n-io/nod; related earlier entry: `N55`.
+- **Classification:** P1 REQUIRED. **Customer benefit:** Allows convenient app access without giving the model control of raw passwords.
+- **Detailed change:** Prefer existing operating-system credential stores or a vetted encrypted server vault. Use short-lived origin/target-bound references rather than model-visible plaintext; validate destination domain and TLS, scope access by user/device, rotate and revoke; scrub prompts, screenshots, exceptions and logs. Do not implement a new vault if an existing secure mechanism is sufficient.
+- **Acceptance evidence:** Phishing page and malicious plugin receive no passwords; revocation takes effect immediately; secret scanning finds no plaintext.
+- **Deduplication:** This expands the earlier Nod item rather than creating a second executor or duplicate database.
+
+#### REPO-66. Reusable independently verified workflows (Nod extension of N56)
+
+- **Source repository:** https://github.com/n8n-io/nod; related earlier entry: `N56`.
+- **Classification:** P2 REQUIRED. **Customer benefit:** Accelerates repeated work with fewer model calls.
+- **Detailed change:** Promote successful task traces into reviewed parameterized skills with version, provenance, app capability requirements, input/output schemas, success oracles and expiration; never save hardcoded user filenames, window positions or selectors as universal instructions. Integrate with existing experience and precedent storage.
+- **Acceptance evidence:** Run the learned spreadsheet workflow on new files and an altered app version without incorrect mutations.
+- **Deduplication:** This expands the earlier Nod item rather than creating a second executor or duplicate database.
+
+#### REPO-67. Protect user-edited skills and rollback (Nod extension of N57)
+
+- **Source repository:** https://github.com/n8n-io/nod; related earlier entry: `N57`.
+- **Classification:** P2 REQUIRED. **Customer benefit:** Keeps the customer in control of how their work is performed.
+- **Detailed change:** Mark authored instructions as customer-owned; automatic learning may suggest a diff but cannot overwrite the original. Keep revision history, approval records, rollback and deletion. Run regression checks after merging a skill improvement.
+- **Acceptance evidence:** Auto-learning retains user-chosen formatting; version restore is byte-equivalent.
+- **Deduplication:** This expands the earlier Nod item rather than creating a second executor or duplicate database.
+
+#### REPO-68. Consent-based long-term memory with provenance (Nod extension of N58)
+
+- **Source repository:** https://github.com/n8n-io/nod; related earlier entry: `N58`.
+- **Classification:** P2 REQUIRED. **Customer benefit:** Reduces repetition without creating a private-data risk.
+- **Detailed change:** Build on current opt-in memory. Store source task, timestamp, confidence, consent, privacy label, correction/deletion controls, scope and retention. Retrieve only necessary relevant entries; prevent cross-account or cross-device leakage. Expire uncertain or outdated facts.
+- **Acceptance evidence:** Correct a deliberately wrong preference and confirm it stays corrected; deletion propagates to retrieval and caches.
+- **Deduplication:** This expands the earlier Nod item rather than creating a second executor or duplicate database.
+
+#### REPO-69. Customer-readable action timeline and receipts (Nod extension of N59)
+
+- **Source repository:** https://github.com/n8n-io/nod; related earlier entry: `N59`.
+- **Classification:** P1 REQUIRED. **Customer benefit:** Builds trust through understandable, truthful progress.
+- **Detailed change:** Translate existing journals into plain-language task objectives, apps accessed, operation attempt versus confirmed effect, approvals, progress, STOP and recovery, verified output links, durations and model usage. Hide internal .py filenames, stack traces, key names or source paths from normal customer views; show them only in restricted redacted developer diagnostics.
+- **Acceptance evidence:** Every timeline item matches an actual signed or journaled event; no false completion or leaked internal path.
+- **Deduplication:** This expands the earlier Nod item rather than creating a second executor or duplicate database.
+
+#### REPO-70. Durable recurrence with explicit authority (Nod extension of N60)
+
+- **Source repository:** https://github.com/n8n-io/nod; related earlier entry: `N60`.
+- **Classification:** P3 CONDITIONAL. **Customer benefit:** Enables recurring work without duplicate or surprise actions.
+- **Detailed change:** Reuse existing schedule tables if unattended tasks are enabled. Each recurrence stores explicit customer opt-in, exact task scope, allowed device, schedule/expiry, one-time occurrence claim, revocation and offline-device behavior. Do not allow automated background control without visible user-granted permission. If this remains intentionally out of active scope, mark it DEFERRED and explain the prerequisite, not falsely complete.
+- **Acceptance evidence:** Cancellation prevents future runs; duplicated event delivery produces only one effect.
+- **Deduplication:** This expands the earlier Nod item rather than creating a second executor or duplicate database.
+
+#### REPO-71. Event-driven proactive monitoring (Nod extension of N61)
+
+- **Source repository:** https://github.com/n8n-io/nod; related earlier entry: `N61`.
+- **Classification:** P3 CONDITIONAL. **Customer benefit:** Allows JARVIS to resume tasks when conditions change.
+- **Detailed change:** Watch authorized events such as a completed export, file arrival or paired-device reconnection through efficient event subscriptions; trigger only once per relevant change, without polling the language model. Require separate customer permissions and cost ceilings, and do not broaden scope to unapproved data.
+- **Acceptance evidence:** Single file event causes one scoped action; stop/revoke disables listener; irrelevant events consume no model calls.
+- **Deduplication:** This expands the earlier Nod item rather than creating a second executor or duplicate database.
+
+#### REPO-72. One-click OAuth and MCP app connections (Nod extension of N62)
+
+- **Source repository:** https://github.com/n8n-io/nod; related earlier entry: `N62`.
+- **Classification:** P2 REQUIRED. **Customer benefit:** Simplifies connecting everyday tools while keeping permissions visible.
+- **Detailed change:** Reuse existing MCP routing. Provide provider authorization flow, precise scopes, official redirects, safe secret storage, connection tests, health/expiry, disconnect and refresh. Never ask customers to paste secrets into chat. Dynamically expose only authenticated and permitted tools to the planner.
+- **Acceptance evidence:** Connect, run a narrow authorized task and disconnect; subsequent access is denied; no credentials appear in logs.
+- **Deduplication:** This expands the earlier Nod item rather than creating a second executor or duplicate database.
+
+
+### 14A.6. Required readiness ledger for the 72 architecture entries
+
+Use one source-of-truth ledger keyed `REPO-01` through `REPO-72`: owner priority, current code path, source link/commit, disposition, exact change, input/output contract, threat model, new tests, real-device dependency, performance baseline and independently verified evidence. Start from the existing 266-ID/84-concept ledgers and **link** to them; never create a competing task authority, separate permissions engine, second secret vault or duplicate execution manager. Deferred items require an explicit signed-off reason. All applicable required and partial entries must be completed and return GREEN code/CI tests before the first benchmark task.
+
+
+## Part 14B. Entire OCADE website implementation, user experience, online/offline Chat, secret security, policy pages, and green-build prerequisites
+
+**This is implementation work BEFORE any real-task/cloud benchmarking.** P0: JARVIS computer control and core safety. P1: online Chat, universal model routing and customer integration. P2: offline Chat/site model setup and settings. P3: site-wide UX, security, support, policies, production hardening, complete regression suite and cleanup. These are implementation priorities only: no offline-model download/airplane-mode qualification until the LAST stage of benchmarking, but offline feature coding, typechecking and local tests MUST already be green. All applicable 72 architecture entries and any earlier partial mandatory feature must be accounted for. No standalone miniature green commit substitutes for green CI on the whole final branch head.
+
+### 14B.1. Universal online AI and chat architecture
+
+1. **Model-agnostic backend.** Expose a provider-neutral planning/chat API, unified capability contract and streaming state, while preserving distinct chat and JARVIS permissions. Support model families beyond Gemini/Gemma through approved provider adapters; choose by actual vision, tool schema, latency, context, safety and cost rather than hardcoded brand identifiers. The initial 16-run comparison remains Gemini 3.5 Flash-Lite versus Gemma 4 31B and does not authorize live use of untested models.
+2. **Supabase key registry.** Register any number of already-authorized key slots against real provider/project/account/model identities, encrypted server-side. Selection uses health, remaining lawful quota, task permission, data-region eligibility, configured priority and service cost. Health rotation handles revoked or failing keys; not quota evasion. Multiple keys in the same project share project-level quota where provider rules say so. Never copy keys from chat, screenshots or test output. Separate staging and production. Require owner-approved secret access and do not assume Supabase/CI secrets have been checked.
+3. **Online chat functionality.** Code complete chat initiation, new/edit/regenerate conversation, streaming answer, STOP, history persistence, clear error states, optional attachments, safe file previews, token/status usage, model selector, clipboard copy, exports where supported, context and model availability, rate-limit handling, protected deletion and per-account isolation. Use the same design primitives, not the JARVIS command authority.
+4. **Model qualification before release.** Each provider adapter needs positive/negative tests for schema, streaming, long context, images, tool calls, refusals, unknown unsupported parameters, timeouts, retries, rate limiting, pricing/quota reporting, data isolation and approved region use. No hardcoded provider keys in browser bundles or mocks promoted to runtime results.
+5. **Mandatory multi-agent JARVIS.** Build a bounded multi-agent coordinator with specialist capabilities, precise scope, one authoritative mutation owner, independent subtask verification, cancellation propagation and evidence aggregation as defined in Part 14A. Agent swarms cannot perform duplicate desktop actions or replace faster deterministic operations. Report actual number of model calls, latency and failure rate.
+
+### 14B.2. Offline Chat, local model, and website offline operation (code now; LAST benchmark suite later)
+
+1. **First-time setup.** Provide a clear download/setup flow with model size, RAM/storage/device support, expected resources and customer acceptance; download all model shards, tokenizer files and website assets, verify hashes and manifest versions, and report offline-ready ONLY after a genuinely disconnected local self-test.
+2. **Offline website.** Use service-worker/app-shell caching and navigation fallback so the prepared OCADE website opens in supported Chrome/Edge and Android browsers with Wi-Fi and mobile data disabled. Handle refresh/reopen, signed-out behavior, cache corruption, browser storage eviction, update rollback and insufficient quota; never promise offline reliability without a tested support matrix.
+3. **Local inference.** Run the installed model on the customer device through supported WASM/WebGPU or other approved on-device runtime as capability allows; never pretend that cloud API calls are local. Preserve private local history, STOP, data delete and no-network verification, including actual runtime failure messages.
+4. **Connectivity isolation.** With no internet: lock cloud-dependent Online Chat and cloud JARVIS accurately; allow functioning offline Chat after complete first-time setup; avoid confusing failed connectivity checks with claims of a successful offline model download. On reconnect, update state without duplicating/losing local chat.
+5. **Cross-device scope.** Test Windows 10/11 Chrome/Edge, macOS supported browsers, Android Chrome/airplane mode and relevant iOS/Safari constraints only when supported. Do not infer functionality from an emulator alone; real-device checks are release evidence.
+6. **Test ordering:** All offline-mode code must be finished and locally regression-tested before the full-site green gate; the **actual model-download, internet-disconnection, offline-site reopen and local inference benchmark suite runs LAST**, after JARVIS and online Chat benchmark campaigns. A failure reopens coding, reestablishes complete green CI on the new SHA, then reruns the affected suite. Treat unavailable real-device permissions as explicit blockers, not passes.
+
+### 14B.3. Settings customization and truthful task progress
+
+1. **Settings:** complete theme (dark/light/system), restrained colors, contrast, type size, language where supported, accessibility and reduced-motion preferences, model selection/availability, device management, app connections, task permissions, account/profile, data export/deletion, local offline model/storage and troubleshooting. Each setting must persist appropriately, survive reload and enforce access boundaries.
+2. **Normal customer language:** During active tasks show human descriptions such as “Checking files”, “Preparing workbook”, “Waiting for permission”, “Verifying output”, “Stopped safely”. Never expose internal source filenames such as `jarvis.py`, `planner.server.ts`, a Git commit, stack trace, token, provider-secret slot, internal URL or raw tool identifier in ordinary customer progress/watermark text. Keep a separate permission-controlled redacted diagnostic view for developer troubleshooting. Do not conceal that an AI/companion is controlling the PC; keep clear STOP and activity visibility.
+3. **Brand colors:** apply a coherent near-black/graphite visual system with electric cobalt and forest-green accents only where legible and useful. Verify light/dark contrast and semantic status colors. Real task completion and permissions take precedence over decorative design.
+4. **Page and control audit:** every route, menu, setting, button, modal, link, account state, device connection and chat task must have implemented behavior, testable outcome and truthful failure/recovery state; no fake demos or placeholder links presented as working.
+
+### 14B.4. Mandatory UX principles applied to the ENTIRE site (34 distinct principles, deduplicated)
+
+The owner demands that every named law be considered across all applicable screens. Treat 100% as full **audit coverage and justified application**, not the impossible assertion that every heuristic must appear in every component or that Doherty's 400 ms always includes network inference. For each principle, map relevant pages and actions to implemented design decisions, capture accessibility/usability tests and document nonapplicability. Related principles must not generate duplicate UI components.
+
+1. **UX-01 — Aesthetic-Usability Effect.** Use a deliberate visual hierarchy, accessible contrast and coherent polish; test that users can still find real controls quickly. **Verification:** Include a relevant accessible screen/interaction test and a reasoned exception where the rule does not apply.
+1. **UX-02 — Choice Overload.** Remove simultaneous competing choices; provide a primary action, then secondary paths only when needed. **Verification:** Include a relevant accessible screen/interaction test and a reasoned exception where the rule does not apply.
+1. **UX-03 — Chunking.** Group long settings, permissions and task details into meaningful labeled sections. **Verification:** Include a relevant accessible screen/interaction test and a reasoned exception where the rule does not apply.
+1. **UX-04 — Cognitive Bias.** Use neutral truthful labels for speed, success, safety and pricing; do not manipulate decisions with misleading defaults. **Verification:** Include a relevant accessible screen/interaction test and a reasoned exception where the rule does not apply.
+1. **UX-05 — Cognitive Load.** Keep the active task screen limited to current goal, next action, progress and intervention. **Verification:** Include a relevant accessible screen/interaction test and a reasoned exception where the rule does not apply.
+1. **UX-06 — Doherty Threshold.** Target perceptible feedback within 400 ms where feasible; differentiate UI acknowledgment from actual AI/desktop completion. **Verification:** Include a relevant accessible screen/interaction test and a reasoned exception where the rule does not apply.
+1. **UX-07 — Fitts's Law.** Make primary mobile and desktop controls easy to reach and large enough for reliable interaction. **Verification:** Include a relevant accessible screen/interaction test and a reasoned exception where the rule does not apply.
+1. **UX-08 — Flow.** Minimize interruption during safe authorized work and offer actionable status instead of intrusive popups. **Verification:** Include a relevant accessible screen/interaction test and a reasoned exception where the rule does not apply.
+1. **UX-09 — Goal-Gradient Effect.** Show truthful verified milestone completion rather than a fabricated progress percentage. **Verification:** Include a relevant accessible screen/interaction test and a reasoned exception where the rule does not apply.
+1. **UX-10 — Hick's Law.** Reduce options on model, settings and device pages through grouping and progressive disclosure. **Verification:** Include a relevant accessible screen/interaction test and a reasoned exception where the rule does not apply.
+1. **UX-11 — Jakob's Law.** Use familiar login, navigation, file upload, task status and settings conventions. **Verification:** Include a relevant accessible screen/interaction test and a reasoned exception where the rule does not apply.
+1. **UX-12 — Law of Common Region.** Use consistent visible boundaries around related controls, receipts and permission data. **Verification:** Include a relevant accessible screen/interaction test and a reasoned exception where the rule does not apply.
+1. **UX-13 — Law of Proximity.** Place labels, validation errors and actions close to their associated inputs. **Verification:** Include a relevant accessible screen/interaction test and a reasoned exception where the rule does not apply.
+1. **UX-14 — Law of Prägnanz.** Favor clear simple shapes and layout rather than unnecessary visual complexity. **Verification:** Include a relevant accessible screen/interaction test and a reasoned exception where the rule does not apply.
+1. **UX-15 — Law of Similarity.** Use consistent iconography, sizes, labels and button treatments for comparable actions. **Verification:** Include a relevant accessible screen/interaction test and a reasoned exception where the rule does not apply.
+1. **UX-16 — Law of Uniform Connectedness.** Visually connect related task steps and files with clear relationships. **Verification:** Include a relevant accessible screen/interaction test and a reasoned exception where the rule does not apply.
+1. **UX-17 — Mental Model.** Match what customers expect from a safe computer assistant: instruct, authorize, monitor, stop, verify. **Verification:** Include a relevant accessible screen/interaction test and a reasoned exception where the rule does not apply.
+1. **UX-18 — Miller's Law.** Use chunking and search instead of forcing users to remember long lists of controls. **Verification:** Include a relevant accessible screen/interaction test and a reasoned exception where the rule does not apply.
+1. **UX-19 — Occam's Razor.** Prefer the smallest coherent interaction that solves the user problem without duplicate controls. **Verification:** Include a relevant accessible screen/interaction test and a reasoned exception where the rule does not apply.
+1. **UX-20 — Paradox of the Active User.** Allow first-task completion without reading a manual; use concise just-in-time guidance. **Verification:** Include a relevant accessible screen/interaction test and a reasoned exception where the rule does not apply.
+1. **UX-21 — Pareto Principle.** Measure and fix the top user errors and bottlenecks first rather than indiscriminately adding features. **Verification:** Include a relevant accessible screen/interaction test and a reasoned exception where the rule does not apply.
+1. **UX-22 — Parkinson's Law.** Bound open-ended setup and task workflows by verifiable steps and sensible safe deadlines. **Verification:** Include a relevant accessible screen/interaction test and a reasoned exception where the rule does not apply.
+1. **UX-23 — Peak-End Rule.** Make the final verified deliverable and recovery experience trustworthy, not just the initial animation. **Verification:** Include a relevant accessible screen/interaction test and a reasoned exception where the rule does not apply.
+1. **UX-24 — Postel's Law.** Accept reasonable user input variability while validating and emitting strict safe actions. **Verification:** Include a relevant accessible screen/interaction test and a reasoned exception where the rule does not apply.
+1. **UX-25 — Selective Attention.** Keep urgent STOP and approval controls distinct from optional notifications. **Verification:** Include a relevant accessible screen/interaction test and a reasoned exception where the rule does not apply.
+1. **UX-26 — Serial Position Effect.** Place essential actions and outcome summaries at prominent first/last positions where helpful. **Verification:** Include a relevant accessible screen/interaction test and a reasoned exception where the rule does not apply.
+1. **UX-27 — Tesler's Law.** Handle unavoidable configuration complexity internally but do not conceal consequential permission choices. **Verification:** Include a relevant accessible screen/interaction test and a reasoned exception where the rule does not apply.
+1. **UX-28 — Von Restorff Effect.** Use restrained distinctive emphasis only for genuinely important controls such as STOP or warning. **Verification:** Include a relevant accessible screen/interaction test and a reasoned exception where the rule does not apply.
+1. **UX-29 — Working Memory.** Preserve context, previous selections and task history so users need not remember transient state. **Verification:** Include a relevant accessible screen/interaction test and a reasoned exception where the rule does not apply.
+1. **UX-30 — Zeigarnik Effect.** Clearly distinguish incomplete, interrupted and completed tasks; provide safe resumption. **Verification:** Include a relevant accessible screen/interaction test and a reasoned exception where the rule does not apply.
+1. **UX-31 — Visual Hierarchy.** Prioritize one clear H1, one primary CTA, meaningful contrast and predictable reading order. **Verification:** Include a relevant accessible screen/interaction test and a reasoned exception where the rule does not apply.
+1. **UX-32 — Progressive Disclosure.** Keep advanced models, integrations, logs and settings accessible without overwhelming newcomers. **Verification:** Include a relevant accessible screen/interaction test and a reasoned exception where the rule does not apply.
+1. **UX-33 — Recognition over Recall.** Expose recent tasks, known devices and file selections instead of requiring names or commands from memory. **Verification:** Include a relevant accessible screen/interaction test and a reasoned exception where the rule does not apply.
+1. **UX-34 — Feedback Loops.** Every request and state transition gets clear success, error, progress and recovery feedback with honest timing. **Verification:** Include a relevant accessible screen/interaction test and a reasoned exception where the rule does not apply.
+
+### 14B.5. Exactly 16 API-key and credential protection checks
+
+1. **KEY-01 — Environment storage.** Keep server-only API keys in approved environment/secret managers; never assume generic .env is sufficient protection. **Test:** Positive and negative secret-exposure checks in CI/staging; never print the secret.
+1. **KEY-02 — Ignore local .env.** Exclude secret-bearing local env files from Git and distribution; scan tracked overrides. **Test:** Positive and negative secret-exposure checks in CI/staging; never print the secret.
+1. **KEY-03 — No secret in frontend.** Move provider API calls containing secrets behind authenticated backend boundaries. **Test:** Positive and negative secret-exposure checks in CI/staging; never print the secret.
+1. **KEY-04 — Public variable audit.** Enumerate public prefixed variables and verify none contain credentials. **Test:** Positive and negative secret-exposure checks in CI/staging; never print the secret.
+1. **KEY-05 — Supabase service-role protection.** Never place a service role token in browser bundles, reports or public storage. **Test:** Positive and negative secret-exposure checks in CI/staging; never print the secret.
+1. **KEY-06 — Git history scanning.** Scan relevant history, commits and artifacts for leaked credentials, including old revisions. **Test:** Positive and negative secret-exposure checks in CI/staging; never print the secret.
+1. **KEY-07 — Incident key rotation.** Revoke and replace any confirmed exposed key; do not rotate unrelated keys without explicit authorization. **Test:** Positive and negative secret-exposure checks in CI/staging; never print the secret.
+1. **KEY-08 — Repository secret scanning.** Enable available automated scanning and blocking at code review and CI. **Test:** Positive and negative secret-exposure checks in CI/staging; never print the secret.
+1. **KEY-09 — Host-managed storage.** Provision secrets in authorized Supabase/GitHub/hosting dashboards, with separation of duties. **Test:** Positive and negative secret-exposure checks in CI/staging; never print the secret.
+1. **KEY-10 — Least-privilege scopes.** Restrict each key by provider permissions, project, audience and resources. **Test:** Positive and negative secret-exposure checks in CI/staging; never print the secret.
+1. **KEY-11 — Backend proxy.** Enforce authenticated, scoped, audited server access to provider APIs. **Test:** Positive and negative secret-exposure checks in CI/staging; never print the secret.
+1. **KEY-12 — Screenshots and demos.** Scan images, videos, developer outputs and public examples for keys and private data. **Test:** Positive and negative secret-exposure checks in CI/staging; never print the secret.
+1. **KEY-13 — Redacted logs.** Prevent secrets in task journals, errors, traces, analytics and observability. **Test:** Positive and negative secret-exposure checks in CI/staging; never print the secret.
+1. **KEY-14 — Environment isolation.** Use different authorized key sets for development/staging/production. **Test:** Positive and negative secret-exposure checks in CI/staging; never print the secret.
+1. **KEY-15 — Cost limits.** Set provider usage and spending ceilings with clear failure states and legal quotas. **Test:** Positive and negative secret-exposure checks in CI/staging; never print the secret.
+1. **KEY-16 — No credentials in chat.** Never ask users/agents to paste privileged keys into chat messages or AI prompts. **Test:** Positive and negative secret-exposure checks in CI/staging; never print the secret.
+
+### 14B.6. Exactly 19 SaaS/backend security hardening checks
+
+1. **SEC-01 — Row-level security.** Verify database owner/tenant isolation for tables, storage and tasks with authenticated negative tests. **Test:** Automated negative-access, misuse and regression checks with evidence.
+1. **SEC-02 — Authentication on routes.** Every sensitive API and Edge Function checks session and effective authorization, including admin operations. **Test:** Automated negative-access, misuse and regression checks with evidence.
+1. **SEC-03 — Never trust frontend.** Validate roles, scopes, prices and permissions in trusted services regardless of UI validation. **Test:** Automated negative-access, misuse and regression checks with evidence.
+1. **SEC-04 — Rate limiting.** Apply fair per-user/provider quotas and anti-abuse controls; do not circumvent provider limits. **Test:** Automated negative-access, misuse and regression checks with evidence.
+1. **SEC-05 — Input validation.** Validate/sanitize untrusted inputs by context; protect prompt and command boundaries. **Test:** Automated negative-access, misuse and regression checks with evidence.
+1. **SEC-06 — Parameterized queries.** Use bound parameters and eliminate unsafe SQL string interpolation. **Test:** Automated negative-access, misuse and regression checks with evidence.
+1. **SEC-07 — Restrictive CORS.** Allow only intended origins/methods/headers and prevent credential reflection. **Test:** Automated negative-access, misuse and regression checks with evidence.
+1. **SEC-08 — TLS everywhere.** Use HTTPS/WSS with secure cookies and correct forwarded-proxy handling. **Test:** Automated negative-access, misuse and regression checks with evidence.
+1. **SEC-09 — IDOR defense.** Test every resource ID against server-side ownership and delegated access. **Test:** Automated negative-access, misuse and regression checks with evidence.
+1. **SEC-10 — No production debug exposure.** Disable public debug routes, verbose stack traces and unprotected diagnostics. **Test:** Automated negative-access, misuse and regression checks with evidence.
+1. **SEC-11 — Bot protection when applicable.** Use accessible bot-abuse defenses on public forms, without CAPTCHA on every page. **Test:** Automated negative-access, misuse and regression checks with evidence.
+1. **SEC-12 — Admin action auditing.** Record privileged changes with tenant, actor, reason and tamper-evident evidence where feasible. **Test:** Automated negative-access, misuse and regression checks with evidence.
+1. **SEC-13 — Private storage.** Secure bucket/object policies, signed URLs, deletion and file exposure rules. **Test:** Automated negative-access, misuse and regression checks with evidence.
+1. **SEC-14 — Server enforced admin authorization.** Hiding an admin page is not protection; enforce server-side role checks. **Test:** Automated negative-access, misuse and regression checks with evidence.
+1. **SEC-15 — Dependency hygiene.** Audit vulnerable packages, pin risk-sensitive dependencies and apply tested upgrades. **Test:** Automated negative-access, misuse and regression checks with evidence.
+1. **SEC-16 — File upload protection.** Verify file type, size, content, path, scanning and processing limits. **Test:** Automated negative-access, misuse and regression checks with evidence.
+1. **SEC-17 — Independent security review.** Run static scans, dynamic checks and adversarial tests; an AI-only review is not sufficient. **Test:** Automated negative-access, misuse and regression checks with evidence.
+1. **SEC-18 — HTTP security headers.** Set appropriate CSP, HSTS, frame, MIME, referrer and permissions protections. **Test:** Automated negative-access, misuse and regression checks with evidence.
+1. **SEC-19 — Webhook signatures.** Verify signatures and replay/idempotency for any external events used by OCADE. **Test:** Automated negative-access, misuse and regression checks with evidence.
+
+### 14B.7. Consolidated web-design, conversion, launch and anti-template checks (duplicate user lists merged)
+
+The original design checklists repeat some 30-item and 20-item lists verbatim. This group intentionally deduplicates them rather than treating repeated advice as extra engineering tasks. Visual clichés (Lucide icons, cards, Inter, dark colors, borders, emoji) are risk indicators **only in context**—not blanket bans, because inappropriate removal can reduce usability or accessibility. Every below item requires a grounded code/design defect before changing it.
+
+1. **DESIGN-01 — Brand and color system.** Keep a restrained midnight/graphite base, forest-green and electric-cobalt accents where suitable. Audit low contrast, harsh gradients, neon rainbow combinations and confusing status colors; customize via tokens. Do not ban an icon or typeface merely because it is fashionable. **Acceptance:** Verify the affected page(s), responsive screens, keyboard/touch flows, loading/error states and real contents.
+1. **DESIGN-02 — Typography and spacing.** Choose a coherent legible font family/pair, consistent line-height, measured whitespace, aligned grids, strong hierarchy, concise paragraphs and consistent radii; test at real desktop/mobile sizes. **Acceptance:** Verify the affected page(s), responsive screens, keyboard/touch flows, loading/error states and real contents.
+1. **DESIGN-03 — Avoid template clichés.** Audit generic triple-card hero sections, repetitive bento grids, random gradient text, rainbow highlights, generic buzzwords, fake terminal mocks, decorative left stripes, radial orbs, dot grids, glassmorphism, grain and sparkle effects. Remove only when they hurt clarity, originality, performance or accessibility. **Acceptance:** Verify the affected page(s), responsive screens, keyboard/touch flows, loading/error states and real contents.
+1. **DESIGN-04 — Responsible motion.** Use meaningful transitions, skeleton loaders for genuine delays and responsive hover/focus states; avoid unnecessary scroll-fade, cursor-following animations, perpetual arrows and misleading progress. Respect reduced-motion settings. **Acceptance:** Verify the affected page(s), responsive screens, keyboard/touch flows, loading/error states and real contents.
+1. **DESIGN-05 — Honest product evidence.** Use real demonstrations, verified customer stories only with permission, authentic screenshots, clear service descriptions and no fabricated reviews, fake scarcity timers, false guarantees, hidden fees or unsupported achievements. **Acceptance:** Verify the affected page(s), responsive screens, keyboard/touch flows, loading/error states and real contents.
+1. **DESIGN-06 — Navigation and customer orientation.** Provide tested header/footer, simple menu, responsive drawer, clickable logo, clear CTA per step, accessible site search where useful, meaningful back-to-top/scroll position, working contact links, no dead navigation or placeholder text. **Acceptance:** Verify the affected page(s), responsive screens, keyboard/touch flows, loading/error states and real contents.
+1. **DESIGN-07 — Responsive and accessible operation.** Eliminate horizontal overflow, tiny tap targets, inaccessible dialogs, unreadable dark mode, weak color contrast and inconsistent mobile states. Provide keyboard/focus order, skip-to-content, alt text and usable touch interfaces. **Acceptance:** Verify the affected page(s), responsive screens, keyboard/touch flows, loading/error states and real contents.
+1. **DESIGN-08 — Form correctness.** Implement explicit required fields, inline validation, password visibility, safe autofill, password recovery, meaningful errors, loading, success/confirmation dialogs and appropriate bot resistance. **Acceptance:** Verify the affected page(s), responsive screens, keyboard/touch flows, loading/error states and real contents.
+1. **DESIGN-09 — Meta and discovery hygiene.** Correct page titles, descriptions, favicon, copyright year, canonical and social link preview, sitemap, robots, legitimate analytics and search-index controls for public pages only; avoid indexing private task files. **Acceptance:** Verify the affected page(s), responsive screens, keyboard/touch flows, loading/error states and real contents.
+1. **DESIGN-10 — Content and conversion clarity.** Explain the exact audience, result, differentiator, privacy implications and realistic first action. Resolve objections in Help/FAQ; keep contact forms minimal, support routes visible and normal response expectations honest. **Acceptance:** Verify the affected page(s), responsive screens, keyboard/touch flows, loading/error states and real contents.
+1. **DESIGN-11 — Performance and media.** Compress images without visible degradation, verify responsive loading, use skeletons rather than fake content, minimize font and bundle cost, measure typical page loads and first interaction; no universal unsupported guaranteed load time. **Acceptance:** Verify the affected page(s), responsive screens, keyboard/touch flows, loading/error states and real contents.
+1. **DESIGN-12 — Account and help journeys.** Test landing → register → confirm eligibility → settings → connect device → first task → progress → deliverable → history → disconnect → data export/deletion, plus help, FAQ, errors and account recovery. **Acceptance:** Verify the affected page(s), responsive screens, keyboard/touch flows, loading/error states and real contents.
+1. **DESIGN-13 — Customer disclosure and policy.** In-site detailed Terms/Conditions, Privacy, Cookie policy/consent, computer-control permissions, data retention/deletion, Help and FAQ with revision date, accessible long-form dialogs and separate route links. Refund policy only if payment flows actually exist; legal text requires qualified review before public launch. **Acceptance:** Verify the affected page(s), responsive screens, keyboard/touch flows, loading/error states and real contents.
+1. **DESIGN-14 — Optional micro-features.** Apply dark/light toggle, copy, back-to-top, print stylesheet, sticky header, scroll progress, contact widget, optional WhatsApp, domain email and UTM tracking only if real customer use justifies them and they do not clutter the UI. **Acceptance:** Verify the affected page(s), responsive screens, keyboard/touch flows, loading/error states and real contents.
+
+### 14B.8. Full customer lifecycle, help, policy and support completion
+
+1. **Lifecycle:** first visit, onboarding, signup/login, secure password recovery, optional supported social login, pairing a Windows/macOS companion, permission grants, authorized task progress, STOP/Take Over, recovery, independent files, history, model and device settings, help, contact, data export/delete and account closure. Cover unauthorized and failure cases. No user is forced to install Docker/VM on their computer.
+2. **Support and FAQ:** searchable, versioned, accessible Help and FAQ with installation, permissions, trusted device pairing, supported models, cost/usage disclosure, offline setup, failed tasks, model unavailability, contact and removal instructions. In-site long-form terms/privacy dialogs must also have accessible routes, full text, scroll/focus management and versioned consent. Qualified review is required for binding policy claims.
+3. **Commercial optionality:** payments, refunds and billing must not be represented as working unless independently implemented and test-mode qualified; do not silently authorize paid services or live payment activation. Clarify nonbilling scope where owner approval is outstanding.
+4. **Asset integrity and provenance:** no unlicensed stock, fabricated testimonials, misleading performance claims or borrowed copyrighted assets; check attribution and reproducible build assets. Official icon systems may be reused but styled deliberately.
+5. **Public site health:** responsive Chrome/Edge/Safari checks, protected pages access checks, HTTPS, CSP, genuine privacy controls, metadata and link previews, search indexing of public-only routes, correct contact methods, backup drill, meaningful 404/500, safe robots rules, page speed and mobile performance measurement. Optional WhatsApp/chat widget only if actually supported and useful.
+
+### 14B.9. Debloating and implementation proof BEFORE benchmarking
+
+1. **Audit:** Identify exact existing owner modules and functions first. For each proposed addition, record which one is improved and which old duplicate is removed or retained. Verify callers and rollback before removing code. Never delete security checks, STOP, authorization journals, historical evidence or customer data. Preserve the existing 84 concepts and 266 IDs with mapped statuses.
+2. **Source adoption:** Analyze all five linked repositories deeply; use useful tools/patterns where licenses, security, maintenance, performance and Windows/macOS support permit. Do not blindly import five complete projects, inflate bundle size or introduce parallel authorities. Record source link, commit, license, filename and accepted code changes for every adoption.
+3. **Required proof:** CODED means code and callers exist; GREEN means full integration, typecheck, lint, format, build, database migration checks, server auth/security, frontend UI/customer workflows, native companion packaging and regression suites all pass. QUALIFIED means later real-device/real-task evidence. Tests may use mocks during coding but must not be presented as real task benchmarks.
+4. **Hard benchmark gate:** Every mandatory JARVIS, online/offline Chat, account/settings, security, UI/UX, legal/help and source-integration item must be CODED, checked and no longer PARTIAL without explicit justified exclusion. The **ENTIRE OCADE SITE** and Windows/macOS companion must compile/build with all required GitHub jobs COMPLETED GREEN on the SAME FINAL SHA. A red/pending/skipped critical job blocks ALL real-task/cloud benchmarks. While CI jobs run, keep working on independent code and track each commit; fix all failures, rerun to green. After ANY benchmark repair, freeze a new SHA and rerun all required coding gates before further benchmarks.
+5. **Qualification sequence:** After the full gate is green: (i) 16-run Gemini/Gemma baseline; (ii) JARVIS E1–E4 and Windows/macOS/cloud/real-device tasks; (iii) online Chat model/connection/cross-account stress and customer workflow qualification; (iv) full-site responsive/support/security/customer journeys; **(v) LAST: offline model download and true disconnected offline website/chat evaluation**. Record first-attempt pass, retry separate, wall-clock task time, p95, provider calls and all failures. Never count empty/hardcoded mock results as passed tasks.
+6. **Status:** Track per-item actual implemented / tested / qualified / deferred evidence and report truthful product-wide public readiness X/100 only from explicit independently verified release gates. Do not claim 100% based on compiling or writing a plan. Deployment, new spend, external credential changes and main merge remain separately approval-gated.
+
 
 ## Part 15. Performance and resource targets (all measured on at least 30 tasks per category; none achieved yet)
 
@@ -721,41 +1531,23 @@ Everything runs in the provider's test mode until the owner approves live paymen
 
 17.3. Run real-computer qualification on Windows 10, Windows 11 and macOS after approval A2 and completed hosted qualifications.
 
-17.4. For EVERY failure, retain the failure evidence; investigate the root cause; implement a general, non-hardcoded correction; rerun coding gates until all green; then rerun the failed task and affected category on the same defined oracle. Never reclassify a retry as first-attempt success. Record commit, environment, actual task duration, model latency, tool usage, corrections and independent verification. Repeat within previously approved safe test permissions and resource limits until required acceptance is achieved or a precise blocker remains.
+17.4. For EVERY failure, retain the failure evidence; investigate root cause; implement a general, non-hardcoded correction; rerun complete-site coding/build/security gates until all green on the new SHA; then rerun the failed task and affected category on the same defined oracle. Never reclassify a retry as first-attempt success. Record commit, environment, actual task duration, model latency, tool usage, corrections and independent verification. Repeat within approved safe test permissions and resource limits until acceptance or a precise blocker.
 
-## Part 18. Commercial model and profitability
+17.5. **Required benchmark order, after whole-site GREEN CI:** (1) initial two-model 16-run comparison; (2) JARVIS E1–E4 real-task, cloud Windows/macOS and approved actual-PC qualification; (3) authorized additional-model compatibility tests; (4) online Chat, customer account/device/settings, security and full-site responsive workflows; **(5) LAST: local offline-model download, actual internet-off/browser-reopen website test and offline-chat inference on supported Windows/macOS/Android devices.** A failure returns to coding, requires a fresh all-green full-site SHA and then reruns affected tests. No prior CI-only mock is a real-world pass.
 
-18.1. **Verified unit costs.** Gemini 3.5 Flash-Lite on the paid tier costs $0.30 per million input tokens and $2.50 per million output tokens; thinking tokens count as output.
+## Part 18. JARVIS operating resources
 
-18.2. **Estimated cost per turn and per task.**
-- Assumption: about 1,000 output tokens per turn.
-- Today, a turn costs about $0.0070, and a task with six turns about $0.042.
-- After Package P0, a turn costs about $0.0037, and a task with four turns about $0.015.
+18.1. Complete JARVIS coding and whole-site compilation using existing authorized resources.
 
-18.3. **The current allowances lose money at full use** (VERIFIED arithmetic on `usage-policy.ts`). One charge is counted per task.
-- Pro at $28 a month allows about 3,000 tasks a month, costing about $45 after Package P0.
-- Max at $88 a month allows about 30,000, costing about $450.
-- Free allows up to about 100 tasks a day.
+18.2. Keep secure rate limits, legitimate AI quotas, minimal model input, usage ceilings and clearly recorded test resource consumption. Do not bypass project quotas or move customer data into disallowed model tiers.
 
-18.4. **Proposed rules** (owner decides the numbers):
-- Worst-case model cost may not exceed 35 percent of the net price.
-- That suggests about 600 tasks a month on Pro, about 1,900 on Max, and a Free trial of 10 tasks a month.
-- Weekly billing plans should be dropped, because the per-charge payment fee matters more on small charges.
+18.3. Missing approved GPU capacity, staging environment, credential access or real-device test permission is reported as a specific qualification blocker rather than patched with fabricated results.
 
-18.5. **Unavoidable fixed costs** to disclose before taking money:
-- a paid Supabase plan at about $25 a month, for backups and to avoid pausing;
-- paid Gemini usage;
-- a domain at about $1 a month.
 
-Cloudflare Workers and a transactional email free tier can stay free. At the assumed average use, about two Pro subscribers cover the fixed costs (HYPOTHESIS).
-
-18.6. **Payment provider** (owner decision).
-- First choice: a merchant-of-record provider such as Paddle, because it handles worldwide sales tax, invoices and refunds for a solo India-based founder. Indian-seller eligibility must be confirmed by applying.
-- Fallback: Razorpay subscriptions with international cards and settlement in rupees, where OCADE issues GST and export invoices itself under a letter of undertaking, with a chartered accountant's advice.
 
 ## Part 19. Owner approvals and decisions required
 
-19.1. A paid Gemini key and a monthly budget cap for customer traffic. This resolves section 2.6 and conflict C1.
+19.1. Authorized model-provider access, compatible customer-data safeguards and a resource budget. This resolves section 2.6 and conflict C1.
 
 19.2. Confirm Flash-Lite as the single customer model, and Gemma as evaluation-only (conflict C2).
 
@@ -763,9 +1555,7 @@ Cloudflare Workers and a transactional email free tier can stay free. At the ass
 
 19.4. Session-mode idle exit time and the always-ready default (conflict C4).
 
-19.5. The payment provider, the application to it, prices and caps.
 
-19.6. A paid Supabase plan.
 
 19.7. Deploy `ocade-intelligence-service` to production only after staging qualification (section 2.7).
 
@@ -777,39 +1567,25 @@ Cloudflare Workers and a transactional email free tier can stay free. At the ass
 
 19.11. The original wording of owner requirements 72, 73, 86 and 87.
 
-19.12. Live payments, production deployment and any `main` merge.
+19.12. Production deployment and any `main` merge remain separately approval-gated.
 
-## Part 20. GO / NO-GO release conditions
+## Part 20. JARVIS engineering GO / NO-GO
 
-20.1. **Today the answer is NO-GO.** Sections 2.2 to 2.12 explain why.
+20.1. Current status is NO-GO for public deployment until runtime evidence is independently verified.
 
-20.2. **A free, invite-only controlled beta** with at most 20 users and capped spending may start only when all of the following hold:
-- ALL mandatory P0–P4 coding and integration work is complete, on a commit with fully green required coding/build CI; the relevant P5 safety and first-task qualifications have subsequently passed.
-- A paid model key with a budget cap is configured.
-- There are zero open critical or high defects.
-- STOP, Take Over and unknown-effect tests pass on hosted Windows and macOS.
-- The legal pages are updated.
-- Support is live.
-- A backup restore drill has been completed.
+20.2. **Complete OCADE product release acceptance (100/100% independently verified technical readiness)** requires all mandatory Part 14A and 14B integration, JARVIS, Online Chat, Offline Chat, settings, UX, security, Help and policy implementation, all customer workflows, entire OCADE website and companion compiled, all required GitHub CI green on the identical candidate commit, all critical/security defects resolved, STOP/Take Over and permission gates proven, safe companion installation/upgrade/uninstall, independent deliverable checks, full hosted/real Windows/macOS qualification, benchmark acceptance (including E4 ≥90% first-attempt success) and complete JARVIS customer journeys.
 
-20.3. **A paid public launch** may start only when all of the following hold:
-- Every beta condition holds.
-- Packages P3 and P4 are complete.
-- Payments work end to end in test mode, and the owner has approved live mode.
-- Release gates R1 to R10 of Appendix A pass. This includes E4 at 90 percent or more over at least 100 tasks and three days, and real-computer qualification on all three systems.
-- Measured beta economics stay within the caps of Part 18.
-- Signing warnings are disclosed.
-- `npm run readiness` reports every milestone as passing.
+20.3. **Engineering readiness is not authorization to deploy.** A public release still requires explicit owner authorization, regardless of its technical score.
 
-20.4. Every continuation report shows **Public commercial production readiness: X/100%**, computed from the repository's independently evidenced `npm run readiness` milestone results (historical baseline 10/100, not a fresh measurement). Separately report coding completion and benchmark success counts; never substitute a guess or equate green compilation with production readiness. A claim of 100/100 requires every mandatory gate passed on the release commit, including benchmarks and real-device qualification. See Part 25.
+20.4. In every substantive report show **JARVIS technical readiness: X/100%** with commit and evidence source. If no valid engineering readiness calculation exists, report UNVERIFIED, not an invented percentage. Coding complete, CI green and benchmark passes are distinct evidence.
 
 ## Part 21. Conflicts and unresolved decisions
 
-21.1. **C1.** Owner decision O3 (no paid infrastructure) conflicts with Google's terms for serving customers (section 2.6) and with the need for backups. Resolution requires approval 19.1 and 19.6.
+21.1. **C1.** The no-spend goal may conflict with permitted model capacity and backup resources. Verify actual limits, secure customer-data handling and authorized resource budgets under approval 19.1.
 
-21.2. **C2.** O2 permits Gemma 4 31B, but Gemma has no paid tier and its free tier may not serve these customers. Recommendation: evaluation only.
+21.2. **C2.** O2 permits Gemma 4 31B, but customer-data suitability and task reliability are unverified. Use it only for approved evaluation data until those conditions pass.
 
-21.3. **C3.** Owner requirement 9 ("specialised agents") conflicts with plan v7 section 9 (no agent swarms) and with O2 (one model per task). Recommendation: deterministic specialised roles under the one controller.
+21.3. **C3 — latest owner override.** Multi-agent runtime delegation is now mandatory. Preserve one authoritative computer mutation controller, scoped deterministic tools and cancellation; use bounded specialist model agents only for independent subtasks. The two original models remain the baseline test pair, but the API must be universal and allow future qualified models. Do not create a second task authority.
 
 21.4. **C4.** Requirement 62's exit-after-task behaviour conflicts with instant pickup. Resolved by session mode staying alive while tasks or jobs run, plus an optional always-ready mode.
 
@@ -817,7 +1593,7 @@ Cloudflare Workers and a transactional email free tier can stay free. At the ass
 
 21.6. **C6.** `CLAUDE.md` and the research tooling still refer to the removed submodules (VERIFIED by search). Resolution: item 14.3.
 
-21.7. **C7.** The architecture review of 8 November proposed a mixed-model repair path. Owner decision O15 forbids it. O15 wins.
+21.7. **C7 — updated model policy.** The original 16 baseline runs still evaluate one model at a time without hidden failover. The new universal provider registry permits further adapters only after explicit authorization and independent qualification; mixing models in one task requires an explicit task-level policy and must never silently change permission scope or retry unknown mutations.
 
 21.8. **C8.** The blueprint's browser-extension proposal (R16) is withdrawn by the owner's decision of 14 November.
 
@@ -838,7 +1614,7 @@ Cloudflare Workers and a transactional email free tier can stay free. At the ass
 - `contracts.ts`: lines 1 to 520 and 1164 to 1240.
 - `windows_worker.py`: lines 150 to 494.
 - `web_worker.py`: lines 120 to 279 and 540 to 709.
-- Parts of `usage-policy.ts`, `pricing.ts`, `entitlement-resolver.ts` and `online-models.ts`.
+- JARVIS model usage controls and `online-models.ts`.
 
 22.3. **Not yet read, and to be read in staged sessions with a recorded log** before this plan is called exhaustive:
 - remaining documentation and non-JARVIS source files are not covered by the historical read ledger;
@@ -1031,9 +1807,9 @@ Original preamble (1 November 2026): this owner checklist complements the 84 con
 176. `PARTIAL` · **W11** — Make logs useful but redact passwords, authorization headers, tokens, API keys, sensitive file contents, and private data.
 177. `PARTIAL` · **W11** — Add structured crash reports, health checks, latency metrics, failure classifications, and diagnostics with privacy-respecting controls.
 179. `UNTESTED` · **W11** — Ensure customer data export, account deletion, device revocation, and retention processes operate consistently with published privacy commitments and applicable requirements.
-180. `PARTIAL` · **W11** — Prepare necessary non-payment legal and governance documentation, licence notices, privacy disclosures, Terms of Service, and installation guidance.
+180. `EXCLUDED` · **ARCHIVE** — Historical document-writing requirement, not active JARVIS work; original in `docs/archive/plan-v7-2026-11-14.md`. Keep functional installer help and data protection.
 181. `FAIL` · **W11** — Add release notes, troubleshooting documentation, support procedures, incident response, service status communication, and recovery instructions.
-182. `UNTESTED` · **W11** — Verify the commercial redistribution rights of bundled runtimes, dependencies, libraries, models, assets, and external components.
+182. `EXCLUDED` · **ARCHIVE** — Historical documentation requirement; original in v7 archive. Dependency integrity and secure provenance tests remain active.
 
 #### Packaging, updates, and reliability
 
@@ -1421,9 +2197,9 @@ Coding status is kept separate from runtime verification (Appendix A), so nothin
 | 176 | CODE | BUILDS | C9, `c8fbd54`: credentials in every receipt's evidence redacted at the gateway result boundary (`Gateway.run` → `redact`), count reported; companion and server logs carry no evidence text |
 | 177 | CODE | BUILDS | C9: structured local crash reports with no messages or contents (`_run_companion` → `record_crash`, shown by `diagnose`, `test_agent.py`), health endpoint `/api/health` (`src/server.ts` → `releaseHealthResponse`), latency buckets and failure classes (`buildHealthRecord`, `privacy.test.ts`) |
 | 179 | CODE | BUILDS | C9: export and per-class deletion (`account-data.functions.ts` → `data-rights.ts`); every table naming an account is exported or excluded with a reason (`tests/security/data-rights.test.ts`); deleting an account is never blocked and keeps others' records without the identity (migration `20261107083209` fixes a RESTRICT that blocked deleting a staff account and a CASCADE that erased customer cases; `account-deletion.test.sql`); device revocation (`authority.test.sql`); activity retention (`jarvis_purge_expired_activity`) |
-| 180 | CODE | BUILDS | C9: Terms and Privacy pages (`/terms`, `/privacy`, `LegalContent.tsx`), third-party licence notices generated from the inventory (`THIRD_PARTY_NOTICES.md`, shipped inside the installer by `ocade-agent.spec`), installation and troubleshooting guidance in Help; legal review of the final text is an owner action |
+| 180 | EXCLUDED | HISTORICAL | Non-JARVIS documentation work retained in v7 archive. Existing installer help remains testable. |
 | 181 | CODE | BUILDS | C9: `RELEASE_NOTES.md`; `docs/OPERATIONS.md` (support procedure, incident response with the console emergency pause, status communication, recovery for database, website, companion and tasks); JARVIS troubleshooting in Help (`help.tsx`); a public status page does not exist yet and is named as such |
-| 182 | CODE | BUILDS | JARVIS scope exclusion (see archived v7) |
+| 182 | EXCLUDED | HISTORICAL | Out of active JARVIS work; prior record archived. |
 | 185 | CODE | BUILDS | C5: every Python package the companion ships and its build tool are pinned with hashes (`requirements.lock`, `packaging/build.lock`) and installed with `--require-hashes`; Windows rebuilds the bundle and the installer and requires identical files (`compare_builds.py`), and the macOS package workflow now rebuilds the app and compares it the same way |
 | 186 | CODE | BUILDS | C5, `543eeb1a` |
 | 187 | CODE | BUILDS | C5: clean install, repair and uninstall keeping the person's files (`test_install.ps1`), upgrade and rollback of signed releases (`activate-update`, `rollback-update`, 186–189), restart resumes from the journal (`test_agent.py`) |
@@ -1580,7 +2356,7 @@ The existing `tests.run_required.main` loads selected modules/classes/methods or
 | C6 | Windows, macOS and browser gaps: packaged (UWP) apps, multi-monitor and DPI transforms, shadow DOM, popups (D29), D11, AXObserver (58–59, 122–135, 139–144) | `windows_worker.py`, `mac_worker.py`, `web_worker.py`, `discovery.py` |
 | C7 | Deliverables and visual fallback still open (61, 70–78, 211) | `office_worker.py`, `media_worker.py`, `scene_gl.py`, `verify_worker.py` |
 | C8 | Customer product: onboarding, every control wired, approvals, deliverables, voice within scope, PWA (146–160, 221) | `src/jarvis/*`, `src/routes/*`, `src/components/*` |
-| C9 | Security, privacy, operations: headers/CSP/CSRF, export and deletion, rate limits, redaction, support and legal drafts, licence inventory (161–182, 212, 222) | web server, `supabase/*`, `docs/*` |
+| C9 | Security, privacy, operations: headers/CSP/CSRF, export and deletion, rate limits, redaction, support and dependency provenance (161–179, 181, 212, 222) | web server, `supabase/*`, `docs/*` |
 | C10 | Instrumentation and remaining code items: per-phase timing and token usage, evaluation harness code, stability harness (W1, W2, W4, W13 code items) | `authority.server.ts`, `planner.server.ts`, `tests/jarvis/*` |
 | F | Integration and compilation fixes across all batches | all |
 | W12 | Deep debloat, consolidation and naming | all |
@@ -2063,31 +2839,31 @@ Also in C12: CI lint and format gates repaired (`edaf6d2`); an installed app res
 
 ## Part 23. Mandatory coding-complete GREEN gate BEFORE cloud-computer benchmarks (owner addition)
 
-23.1. Finish 100% of the JARVIS-only, release-mandatory implementation: planner and Gemini/Gemma adapters; task authority; permission fences; complete approvals; STOP/Take Over; Windows/macOS native, browser, accessibility and last-resort vision control; worker/job orchestration; recovery; independent verification; companion installers, upgrades, removal; JARVIS website controls; task data lifecycle; cost protections; security; customer subscription integrations required by the approved commercial scope. Classify out-of-scope IDs explicitly instead of silently dropping them.
+23.1. Finish 100% of mandatory implementation for the **ENTIRE OCADE PRODUCT**, in strict order: JARVIS, Windows/macOS companion and native-first PC control first; online Chat and universal API/model adapters second; offline Chat, downloaded local model and cached website third; then full site settings, UX, account/customer journeys, help/policy pages, security, backends, required 72-entry source integration, bounded multi-agent coordination, secret/key health routing, deep debloating and full validation. Include task authority, STOP/Take Over, permission fences, exact approvals, recovery and independent verification throughout. All applicable prior PARTIAL items must be finished or explicitly justified as nonrequired, preserving historical IDs and archived evidence.
 
 23.2. `CODED` means the implementation and callers exist; `BUILDS` means affected build, typecheck, lint, formatting, protocol, relevant unit/security tests and database checks are green; `QUALIFIED` means runtime proof, separately. Neither the presence of source code nor green CI alone implies release qualification.
 
 23.3. Complete source changes in small reversible batches. After each batch run the affected tests, including STOP, approval correctness and wrong-target regressions. Do not defer critical safety tests. **Every commit creates a required CI-follow-up obligation:** correlate checks and logs with the exact commit, monitor them through completion, fix any failed mandatory check without weakening tests, and rerun checks on a new commit until green. While GitHub Actions jobs execute, make progress on other independent, nonconflicting code work; do not wait idle, lose track of red checks, or claim a pending job passed. Integrate and reconcile these streams before moving to benchmarks. Preserve useful tests.
 
-23.4. When all coding items are classified, run the COMPLETE required GitHub compilation/coding validation on one candidate SHA: dependency installation, formatting, linting, TypeScript compilation/typechecking, build, protocol/contract checks, no-hardcoded scan, database/migration tests where the runner supports them, **the ENTIRE OCADE WEBSITE compile/build and non-JARVIS regression checks (without expanding this plan to unrelated Chat feature work)**, web/JARVIS UI tests, Windows and macOS companion tests, packaging, security and any mandatory source-dependent gate. Every required job must pass, with genuinely unsupported platform skips listed rather than disguised as green. Address stale research links and legacy model callers only when their removal does not damage working features.
+23.4. When all coding items are classified, run the COMPLETE required GitHub compilation/coding validation on one candidate SHA: dependency installation, formatting, linting, TypeScript compilation/typechecking, build, protocol/contract checks, no-hardcoded scan, database/migration tests where supported, **the ENTIRE OCADE WEBSITE including JARVIS, ONLINE CHAT and OFFLINE CHAT, settings, all customer flows, UX, security and user policies**, Windows and macOS companion tests, packaging, and all mandatory source-dependent checks. Every required job must pass, with genuinely unsupported platform skips listed rather than disguised as green. Address stale research links and legacy model callers only when their removal does not damage working features.
 
-23.5. **Hard gate:** Start NO cloud-computer real-task testing, E1–E4 or two-model performance benchmark until ALL mandatory JARVIS coding is finished, the whole OCADE website and companion compile/build, every required coding/security/website/companion CI job is COMPLETED GREEN on the SAME final commit SHA (not pending, skipped without justification, or green only on earlier commits), required test secrets/environment are explicitly authorized, and the release evaluation harness is ready. Any subsequent commit invalidates the candidate's previous green proof; reverify the new SHA. A benchmark failure reopens coding, and the entire relevant coding/build gate MUST be green again before reruns.
+23.5. **Hard gate:** Start NO cloud-computer real-task testing, E1–E4 or model performance benchmark until ALL mandatory OCADE-wide coding is finished, including the applicable Part 14A 72-item integration/partial-items ledger and Part 14B whole-site acceptance tasks,, the whole OCADE website and companion compile/build, every required coding/security/website/companion CI job is COMPLETED GREEN on the SAME final commit SHA (not pending, skipped without justification, or green only on earlier commits), required test secrets/environment are explicitly authorized, and the release evaluation harness is ready. Any subsequent commit invalidates the candidate's previous green proof; reverify the new SHA. A benchmark failure reopens coding, and the entire relevant coding/build gate MUST be green again before reruns.
 
-23.6. Record `Coding completeness: completed required IDs / eligible required IDs × 100%` independently from commercial release readiness. Do not manufacture a perfect coding figure merely by marking items out of scope; record the scope-change rationale.
+23.6. Record `Coding completeness: independently completed and tested mandatory full-product items / all applicable full-product mandatory items × 100%` separately from technical release readiness. Include JARVIS, online/offline Chat, full-site UX, security, secret/model integrations and source entries. Historical 266-ID and 84-concept tracking remains intact; reconcile overlap so one physical change is not counted several times. Never manufacture 100% through scope exclusions.
 
 ## Part 24. Autonomous benchmark → general repair → coding-gate → retest loop (owner addition)
 
-24.1. Once Part 23 is fully green, execute the single canonical benchmark configuration in Appendix H. Start with the two allowed standalone models on identical seeded objectives, resources and oracle checks: four tasks on Windows and macOS for each model (16 runs). Then execute all mandatory E1–E4, fault injection, professional deliverable, task-accuracy, performance, security and real-device qualifications in dependency order. Never mix the two planners within one task or hardcode application names, steps, selectors or test answers into production routing.
+24.1. Once Part 23 is fully green for the ENTIRE SITE on the same final SHA, execute the canonical benchmark configuration in Appendix H. Start with the initial two standalone baseline models on identical seeded objectives, resources and oracles: four tasks × Windows/macOS × Gemini/Gemma (16 runs); qualify additional explicitly authorized provider adapters separately. Then execute E1–E4 and required real-device qualification, online Chat/customer workflow tests, site security/UX tests, and **LAST the offline model download, airplane-mode website open/reopen and disconnected local-inference suite** in dependency order. Never mix the two planners within one task or hardcode application names, steps, selectors or test answers into production routing.
 
 24.2. On ANY task failure, **do not stop for routine discretionary approval** inside an already-authorized, free, safe cloud-computer test scope. Capture the complete trace: failed action and permission scope, model request and response metadata (without secrets), screenshots/structural observations, logs, exact error, task state, whether effects are known or unknown, generated artifacts and independently checked oracle verdict.
 
 24.3. Diagnose and make the smallest general fix to the existing JARVIS code, test harness or environment. Reject task-specific patches, planted benchmark answers, retries of unknown effects, weakened protections, truncated approvals, synthetic oracle passes and threshold changes. Preserve original failing results and distinguish reproducible product defects from quota, missing dependency, environment and flaky-test causes.
 
-24.4. For each fix: run focused regression tests; rebuild the entire site and companion; rerun the entire required coding/build CI until GREEN on the same new commit; then rerun the failed task under the same conditions and rerun the affected category and appropriate hidden-answer tests. While CI runs, continue other independent safe coding improvements; fix and track all red commit checks and never benchmark a still-running or red candidate. Continue this evidence-backed code → green-CI → benchmark → general repair → green-CI → retest cycle within approved time, quota, spending and authorization bounds until every applicable mandatory launch gate passes and independently measured commercial production readiness reaches 100/100%, or a precise evidenced blocker prevents safe continuation. Do not fabricate 100% or treat repeated retests as new first-attempt successes.
+24.4. For each fix: run focused regression tests; rebuild the entire site and companion; rerun the entire required coding/build CI until GREEN on the same new commit; then rerun the failed task under the same conditions and rerun the affected category and appropriate hidden-answer tests. While CI runs, continue other independent safe coding improvements; fix and track all red commit checks and never benchmark a still-running or red candidate. Continue this evidence-backed code → green-CI → benchmark → general repair → green-CI → retest cycle within approved time, quota, spending and authorization bounds until every applicable mandatory launch gate passes and independently measured JARVIS engineering readiness reaches 100/100%, or a precise evidenced blocker prevents safe continuation. Do not fabricate 100% or treat repeated retests as new first-attempt successes.
 
 24.5. Record for EVERY task and attempt: ID, objective, original seed, platform, model, tool route, source SHA, fixture hash, start/end timestamps, wall-clock time, time-to-first-safe-action, model latency and tokens, device execution time, API calls, CPU/RAM, monetary or free-tier quota use, user interventions, approval decisions, recoveries, postcondition results, artifacts, verifier/oracle outcome and any unresolved error. Report median, p95 and maximum durations and the first-attempt pass rate over a published denominator. Use monotonic clocks for durations and explicit wall-clock timestamps for audit logs.
 
-24.6. Never bypass protected-environment approval, exceed quotas or budgets, expose keys, use a consumer PC without approval, change payments, deploy to production, alter a secret, or spend money under the guise of automatic repair. An authorized initial testing approval may cover repeated NON-DESTRUCTIVE fixes and cloud reruns inside the same already-approved scope. If additional protected approval is required by GitHub or the owner, record the exact blocker rather than silently bypassing it. Use bounded retries/backoff to avoid unending, expensive or destructive loops.
+24.6. Never bypass protected-environment approval, exceed quotas or budgets, expose keys, use a consumer PC without approval, deploy to production, alter a secret, or spend money under the guise of automatic repair. An authorized initial testing approval may cover repeated NON-DESTRUCTIVE fixes and cloud reruns inside the same already-approved scope. If additional protected approval is required by GitHub or the owner, record the exact blocker rather than silently bypassing it. Use bounded retries/backoff to avoid unending, expensive or destructive loops.
 
 24.7. Require zero known critical/high safety defects, fully passing mandatory safety scenarios, independently verified outputs, the existing ≥90% E4 first-attempt target with ≥95% ambition, and all release gates. A failing real-world task remains a FAIL until it actually passes; do not report public readiness while critical coverage is missing.
 
@@ -2101,18 +2877,18 @@ Also in C12: CI lint and format gates repaired (`edaf6d2`); an installed app res
 
 25.4. Move planning outside device-request deadlines. Execute small, independently guarded deterministic action batches, locally verify expected postconditions after each step, and contact the model again only for new uncertain decisions, deviations, cross-app interpretation or creative reasoning. Heavy renders or exports run as durable jobs and are polled without wasting planner turns. Keep STOP and Take Over synchronous and authoritative throughout.
 
-25.5. Choose the cheapest, fastest and most accurate available native application object model or file operation first, followed by system scripts, DOM, accessibility, and screenshots only as last fallback. Avoid a second controller, unnecessary model router, tool swarms, duplicate searches, unnecessary full-screen captures and repeated app introspection. Reuse verified routes with parameter and permission checks only when held-out correctness tests prove them safe.
+25.5. Choose the cheapest, fastest and most accurate available native application object model or file operation first, followed by system scripts, DOM, accessibility, and screenshots only as last fallback. **The multi-agent coordinator is mandatory but bounded**: delegate only independent reasoning that demonstrably benefits from parallel specialist work while one mutation authority controls PC actions. Avoid extra competing controllers, uncontrolled tool swarms, duplicate searches, unnecessary full-screen captures and repeated introspection. Reuse verified routes with parameter and permission checks only when held-out correctness tests prove them safe.
 
 25.6. Strengthen complex multi-hour work by externalizing task objectives, dependencies, budgets, approvals, intermediate deliverables, task journal, verified checkpoints, recovery state and resumption. Favor specialist deterministic workers and domain checks rather than hallucinated model memory or hardcoded application flows. Independently validate final 3D objects, spreadsheets, animations, browser state and other outputs with objective oracles where possible.
 
 25.7. Measure at least 30 tasks per workload category for median/p95 planner latency, time-to-first-action, task completion time, token counts, quota refusals, recoverability, tool-call correctness and verified first-attempt success. Any claimed speedup must compare identical seeds and identical resource constraints and must report failures and statistical uncertainty. No guarantee that software changes can eliminate provider-side inference latency.
 
-## Part 26. Measured commercial production readiness (0–100%) and honest progress (owner addition)
+## Part 26. Measured complete OCADE product readiness (0–100%) and honest progress (owner addition)
 
-26.1. **Routine chat/status messages:** one single line with no more than two words (Caveman mode). **Final outputs, audits, milestone updates and substantive reports are exempt and may be detailed;** these must start with **Public commercial production readiness: X/100%** from the existing evidence-backed `npm run readiness` output and identify its commit/time. The historical recorded baseline was 10/100; if not rerun on this commit, label it historical. Separately show coding coverage, 266-ID JARVIS-scope statuses, 84-concept verification, passing release conditions, green/pending/failed GitHub checks and independent benchmark results. Never invent a score.
+26.1. **Routine chat/status messages:** one single line with no more than two words (Caveman mode). **Final outputs, audits, milestone updates and substantive reports are exempt and may be detailed;** these must start with **COMPLETE OCADE product readiness: X/100%** only when justified by explicitly defined technical gates and independent evidence tied to a commit/time. Historical general-release scores are not a validated JARVIS engineering readiness measurement. Separately show coding coverage, deferred IDs, 84-concept verification, passing technical gates, pending/failed GitHub checks and independent benchmark results. Never invent a score.
 
 26.2. Updating a checklist, writing a plan, compiling source, or completing only simulations is not grounds to raise readiness percentage. Only independently verified gates on the tested commit may change the score. Preserve the established release-gate calculation; do not invent weights or merge code progress with production qualification.
 
 26.3. Report progress at each verified 10% milestone and whenever useful. Say what changed, passed, failed, was excluded with reason, remains blocked, and what must happen next. Maintain distinct `NOT CODED`, `CODED`, `BUILDS`, `RUNTIME VERIFIED`, `PARTIAL`, `FAIL`, `BLOCKED`, and `UNTESTED` states.
 
-26.4. **100/100% and GO** are allowed only after all required JARVIS coding and security checks are green; two-model and E1–E4 evaluations meet their mandatory criteria; Windows 10/11 and macOS receive authorized real-device qualification; customer setup, STOP/Take Over, task recovery, verified deliverables, support, legal and commercial checks pass; there are no unresolved critical/high defects; and all required owner approvals are obtained. Otherwise the answer is NO-GO with the exact unmet conditions.
+26.4. **100/100% JARVIS ENGINEERING GO** is allowed only after all required JARVIS coding and security checks are green; two-model and E1–E4 evaluations meet their mandatory criteria; Windows 10/11 and macOS receive authorized real-device qualification; customer setup, STOP/Take Over, task recovery, verified deliverables and support pass; there are no unresolved critical/high defects; and required technical testing approvals are obtained. Public deployment remains separately approval-gated and cannot be implied by this score. Otherwise the answer is NO-GO with exact unmet technical conditions.
