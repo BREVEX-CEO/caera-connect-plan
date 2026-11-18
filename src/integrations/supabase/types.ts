@@ -435,18 +435,21 @@ export type Database = {
           content: string
           created_at: string
           id: string
+          source: string
           user_id: string
         }
         Insert: {
           content: string
           created_at?: string
           id?: string
+          source?: string
           user_id: string
         }
         Update: {
           content?: string
           created_at?: string
           id?: string
+          source?: string
           user_id?: string
         }
         Relationships: []
@@ -1753,11 +1756,12 @@ export type Database = {
           full_name: string | null
           id: string
           locale: string
+          memory_enabled: boolean
           occupation: string | null
-          online_ai_consent_at: string | null
-          online_ai_consent_version: string | null
           onboarding_completed: boolean
           onboarding_step: string | null
+          online_ai_consent_at: string | null
+          online_ai_consent_version: string | null
           phone: string | null
           preferred_name: string | null
           timezone: string
@@ -1774,11 +1778,12 @@ export type Database = {
           full_name?: string | null
           id: string
           locale?: string
+          memory_enabled?: boolean
           occupation?: string | null
-          online_ai_consent_at?: string | null
-          online_ai_consent_version?: string | null
           onboarding_completed?: boolean
           onboarding_step?: string | null
+          online_ai_consent_at?: string | null
+          online_ai_consent_version?: string | null
           phone?: string | null
           preferred_name?: string | null
           timezone?: string
@@ -1795,11 +1800,12 @@ export type Database = {
           full_name?: string | null
           id?: string
           locale?: string
+          memory_enabled?: boolean
           occupation?: string | null
-          online_ai_consent_at?: string | null
-          online_ai_consent_version?: string | null
           onboarding_completed?: boolean
           onboarding_step?: string | null
+          online_ai_consent_at?: string | null
+          online_ai_consent_version?: string | null
           phone?: string | null
           preferred_name?: string | null
           timezone?: string
@@ -1980,6 +1986,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      ocade_set_memory_enabled: { Args: { p_enabled: boolean }; Returns: boolean }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

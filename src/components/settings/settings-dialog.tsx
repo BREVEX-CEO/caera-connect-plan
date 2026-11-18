@@ -33,6 +33,7 @@ import { NotificationsSection } from "./NotificationsSection";
 import { UsageSection } from "./UsageSection";
 import { BillingSection } from "./BillingSection";
 import { ByokSection } from "./ByokSection";
+import { MemorySection } from "./MemorySection";
 import { Action, Row, Toggle } from "./rows";
 import { DELETE_CONFIRMATION, deleteMyAccount } from "@/lib/account.functions";
 import type { SettingsCategory } from "./settings-panel";
@@ -146,6 +147,7 @@ export default function SettingsDialog({
               {category === "devices" ? <JarvisAccess /> : null}
               {category === "privacy" ? (
                 <>
+                  <MemorySection />
                   <DataControlsSection />
                   <AdvancedSection />
                 </>
