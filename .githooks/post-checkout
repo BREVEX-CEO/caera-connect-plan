@@ -1,0 +1,4 @@
+#!/bin/sh
+# Refresh the code graph in the background; never block or fail git.
+(sh "$(git rev-parse --show-toplevel)/scripts/graphify-refresh.sh" >/dev/null 2>&1 &)
+exit 0
