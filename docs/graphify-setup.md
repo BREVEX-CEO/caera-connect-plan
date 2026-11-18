@@ -4,8 +4,8 @@ graphify builds a map (graph) of the code so Claude can find things fast. It liv
 
 **What updates it automatically**
 - Every git commit, merge and checkout (`.githooks/post-commit`, `post-merge`, `post-checkout`).
-- Every new Claude Code session (SessionStart hook in `.claude/settings.json`).
-- If the graph file is missing, the first Glob/Grep Claude runs rebuilds it in the background (PreToolUse hook).
+- Every new Claude Code session (SessionStart hook in `.claude/settings.json`, runs `scripts/setup-graphify.sh`, which installs graphify if missing and calls the wrapper).
+- If the graph file is missing, the first Bash/Grep/Read/Glob Claude runs rebuilds it in the background (PreToolUse hook).
 
 All of them call one script: `scripts/graphify-refresh.sh`. It runs one rebuild at a time, keeps a backup, and restores the backup if the new graph is tiny (under 100 nodes or under half the old size), times out (10 min), or fails. It always exits 0 so it can never break git or Claude. Log: `/tmp/graphify-refresh.log`.
 

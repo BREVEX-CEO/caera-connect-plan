@@ -1,9 +1,18 @@
 #!/bin/sh
-# One-time setup for a collaborator: enable git hooks and build the graph. Always exits 0.
-ROOT=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0
-cd "$ROOT" || exit 0
-git config core.hooksPath .githooks
-chmod +x .githooks/* scripts/graphify-*.sh scripts/setup-graphify.sh 2>/dev/null
-command -v graphify >/dev/null 2>&1 || echo "graphify is not installed. Install it with: pip install graphifyy"
-sh scripts/graphify-refresh.sh
+# Sets up graphify on a fresh machine or cloud session. Safe to re-run.
+# Always exits 0 so it can never block a session or git action.
+cd "$(dirname "$0")/.." 2>/dev/null || exit 0
+
+if ! command -v graphify >/dev/null 2>&1; then
+    python3 -m pip install -q graphifyy >/dev/null 2>&1 || pipx install -q graphifyy >/dev/null 2>&1 || true
+fi
+
+git config core.hooksPath .githooks 2>/dev/null || true
+chmod +x .githooks/* scripts/graphify-*.sh scripts/setup-graphify.sh 2>/dev/null || true
+
+if command -v graphify >/dev/null 2>&1; then
+    sh scripts/graphify-refresh.sh
+else
+    echo "graphify: not installed, skipping graph build" >&2
+fi
 exit 0
