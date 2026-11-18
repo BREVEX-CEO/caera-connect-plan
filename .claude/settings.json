@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "cd \"${CLAUDE_PROJECT_DIR:-$(git rev-parse --show-toplevel)}\" 2>/dev/null || exit 0; command -v graphify >/dev/null 2>&1 || exit 0; [ -f graphify-out/graph.json ] || { (sh scripts/setup-graphify.sh >/dev/null 2>&1 &); exit 0; }; graphify hook-guard search 2>/dev/null || true",
+            "command": "cd \"${CLAUDE_PROJECT_DIR:-$(git rev-parse --show-toplevel)}\" && sh scripts/graphify-cli.sh hook-guard search",
             "timeout": 10
           }
         ]
@@ -16,7 +16,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "cd \"${CLAUDE_PROJECT_DIR:-$(git rev-parse --show-toplevel)}\" 2>/dev/null || exit 0; command -v graphify >/dev/null 2>&1 || exit 0; [ -f graphify-out/graph.json ] || { (sh scripts/setup-graphify.sh >/dev/null 2>&1 &); exit 0; }; graphify hook-guard read 2>/dev/null || true",
+            "command": "cd \"${CLAUDE_PROJECT_DIR:-$(git rev-parse --show-toplevel)}\" && sh scripts/graphify-cli.sh hook-guard read",
             "timeout": 10
           }
         ]
@@ -28,7 +28,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "command -v graphify >/dev/null 2>&1 && graphify hook-guard compact 2>/dev/null || true",
+            "command": "cd \"${CLAUDE_PROJECT_DIR:-$(git rev-parse --show-toplevel)}\" && sh scripts/graphify-cli.sh hook-guard compact",
             "timeout": 10
           }
         ]
@@ -37,8 +37,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "cd \"${CLAUDE_PROJECT_DIR:-$(git rev-parse --show-toplevel)}\" 2>/dev/null; date '+%Y-%m-%d %H:%M:%S session-start fired' >> /tmp/graphify-session.log; (sh scripts/setup-graphify.sh >/dev/null 2>&1 &); exit 0",
-            "timeout": 30
+            "command": "cd \"${CLAUDE_PROJECT_DIR:-$(git rev-parse --show-toplevel)}\" && sh scripts/setup-graphify.sh",
+            "timeout": 1200
           }
         ]
       }

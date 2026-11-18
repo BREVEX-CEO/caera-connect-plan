@@ -41,3 +41,10 @@ Stop analysing when the next piece of information would not change the decision.
 - **Simplify:** Remove only redundancy made unnecessary by the verified change.
 - **Record:** Save evidence, unresolved issues and completion status where the next agent can find them.
 - **Next:** Continue with the next dependency-ready task.
+
+## Graphify
+
+At the start of each session run `sh scripts/setup-graphify.sh` in the repository.
+Read `graphify-out/GRAPH_REPORT.md` for architecture questions and use
+`sh scripts/graphify-cli.sh query "question"` for graph queries. Use the
+repository CLI wrapper for commands in `.agents/skills/graphify/SKILL.md`.

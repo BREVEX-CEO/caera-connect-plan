@@ -1,18 +1,33 @@
 #!/bin/sh
-# Sets up graphify on a fresh machine or cloud session. Safe to re-run.
-# Always exits 0 so it can never block a session or git action.
-cd "$(dirname "$0")/.." 2>/dev/null || exit 0
-
-if ! command -v graphify >/dev/null 2>&1; then
-    python3 -m pip install -q graphifyy >/dev/null 2>&1 || pipx install -q graphifyy >/dev/null 2>&1 || true
+set -eu
+cd "$(dirname "$0")/.."
+state=$(git rev-parse --absolute-git-dir)/graphify
+mkdir -p "$state"
+exec 9>"$state/setup.lock"
+flock -w 600 9
+version=$(cat .claude/skills/graphify/.graphify_version)
+if ! test -x "$state/venv/bin/graphify" || ! "$state/venv/bin/python" -c 'import tree_sitter_sql,graphify,sys,importlib.metadata as m; sys.exit(m.version("graphifyy") != sys.argv[1])' "$version"; then
+    echo "Installing graphifyy==$version (see $state/install.log)"
+    if ! (set -e
+        if command -v uv >/dev/null; then
+            uv venv --allow-existing "$state/venv" && uv pip install --reinstall-package graphifyy --python "$state/venv/bin/python" "graphifyy[sql]==$version"
+        else
+            python3 -m venv "$state/venv" && "$state/venv/bin/python" -m pip install --force-reinstall "graphifyy[sql]==$version"
+        fi
+    ) >"$state/install.log" 2>&1; then
+        cat "$state/install.log" >&2
+        exit 1
+    fi
 fi
-
-git config core.hooksPath .githooks 2>/dev/null || true
-chmod +x .githooks/* scripts/graphify-*.sh scripts/setup-graphify.sh 2>/dev/null || true
-
-if command -v graphify >/dev/null 2>&1; then
-    sh scripts/graphify-refresh.sh
-else
-    echo "graphify: not installed, skipping graph build" >&2
-fi
-exit 0
+hooks=$(git config --get core.hooksPath || :)
+case "$hooks" in
+    .githooks) ;;
+    '') for hook in "$(git rev-parse --git-path hooks)"/*; do
+            case "$hook" in *.sample) continue;; esac
+            if [ -f "$hook" ] && [ -x "$hook" ]; then echo "Preserving active hook $hook; integrate .githooks first" >&2; exit 1; fi
+        done
+        git config --local core.hooksPath .githooks ;;
+    *) echo "Preserving custom core.hooksPath=$hooks; integrate .githooks first" >&2; exit 1 ;;
+esac
+exec 9>&-
+exec sh scripts/graphify-refresh.sh

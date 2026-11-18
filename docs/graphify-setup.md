@@ -1,16 +1,23 @@
-# graphify setup (plain English)
+Graphify uses the version recorded in the tracked skill. On Linux install Python 3.11+
+with venv/pip or uv, util-linux flock and GNU timeout. From the repository root run
+`sh scripts/setup-graphify.sh`. It installs into the current worktree's Git
+directory, enables the four tracked Git hooks and refreshes the ignored graph.
+The hooks and Claude SessionStart run synchronously. Concurrent updates serialize.
+Graphify checks its manifest and extracts changed files. Failed updates restore
+the previous graph and report. Inspect `sh scripts/graphify-status.sh` and the
+refresh.log or install.log in the directory it prints.
 
-graphify builds a map (graph) of the code so Claude can find things fast. It lives in `graphify-out/` and is never committed.
+For Codex Cloud select BREVEX-CEO/caera-connect-plan and the task branch
+ocade/p00-p22-implementation. Set **both setup and maintenance scripts** to:
 
-**What updates it automatically**
-- Every git commit, merge and checkout (`.githooks/post-commit`, `post-merge`, `post-checkout`).
-- Every new Claude Code session (SessionStart hook in `.claude/settings.json`, runs `scripts/setup-graphify.sh`, which installs graphify if missing and calls the wrapper).
-- If the graph file is missing, the first Bash/Grep/Read/Glob Claude runs rebuilds it in the background (PreToolUse hook).
+```sh
+set -eu
+cd "$(git rev-parse --show-toplevel)"
+git merge-base --is-ancestor 252334a HEAD
+sh scripts/setup-graphify.sh
+```
 
-All of them call one script: `scripts/graphify-refresh.sh`. It runs one rebuild at a time, keeps a backup, and restores the backup if the new graph is tiny (under 100 nodes or under half the old size), times out (10 min), or fails. It always exits 0 so it can never break git or Claude. Log: `/tmp/graphify-refresh.log`.
-
-**Check health:** `sh scripts/graphify-status.sh` (want `OVERALL: OK`).
-
-**New collaborator:** `pip install graphifyy`, then `sh scripts/setup-graphify.sh` (turns on the git hooks and builds the graph).
-
-**Graph looks tiny or stale?** Run `sh scripts/graphify-refresh.sh`, then read `/tmp/graphify-refresh.log` for warnings. A plain `graphify update .` refuses or shrinks results in some cases; the wrapper uses `GRAPHIFY_FORCE=1` (the official full-rebuild switch, same as `--force`). Last resort: delete `graphify-out/` and run the refresh again.
+Enable package index access during installation. Rebuild the environment cache
+and start a new task on the implementation branch. The ancestry check fails
+visibly on an older checkout. It never switches branches. AGENTS.md also asks
+Codex to initialize the current checkout when the agent starts.

@@ -1,51 +1,57 @@
 #!/bin/sh
-# Safe graphify rebuild. Always exits 0. One rebuild at a time. Never keeps a tiny graph.
-LOG=/tmp/graphify-refresh.log
-LOCK=/tmp/graphify-refresh.lock
-log() { printf '%s [%s] %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$$" "$*" >> "$LOG"; }
-
-command -v graphify >/dev/null 2>&1 || exit 0
-ROOT=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0
-cd "$ROOT" || exit 0
-
-# Lock: drop a stale lock (older than 10 minutes), then try to take it.
-[ -d "$LOCK" ] && find "$LOCK" -maxdepth 0 -mmin +10 -exec rm -rf {} + 2>/dev/null
-if ! mkdir "$LOCK" 2>/dev/null; then
-  log "skipped: another rebuild is already running"
-  exit 0
-fi
-trap 'rmdir "$LOCK" 2>/dev/null' EXIT INT TERM
-
-GRAPH=graphify-out/graph.json
-BACKUP=graphify-out/graph.json.bak
-count_nodes() {
-  [ -f "$1" ] && python3 -c 'import json,sys; print(len(json.load(open(sys.argv[1]))["nodes"]))' "$1" 2>/dev/null || echo 0
+set -eu
+cd "$(dirname "$0")/.."
+state=$(git rev-parse --absolute-git-dir)/graphify
+mkdir -p "$state"
+exec 9>"$state/refresh.lock"
+flock -w 660 9
+bin=$state/venv/bin/graphify
+if ! test -x "$bin"; then echo "Graphify missing: run sh scripts/setup-graphify.sh" >&2; exit 1; fi
+export GRAPHIFY_OUT=graphify-out
+unset GRAPHIFY_FORCE
+out=graphify-out
+backup=$state/checkpoint
+restore() {
+    for file in graph.json GRAPH_REPORT.md graph.html manifest.json .graphify_build_state.json; do
+        if [ -f "$backup/$file" ]; then cp -p "$backup/$file" "$out/$file"; else rm -f "$out/$file"; fi
+    done
 }
-
-OLD=$(count_nodes "$GRAPH")
-rm -f "$BACKUP"
-[ -f "$GRAPH" ] && cp "$GRAPH" "$BACKUP"
-log "rebuild started (old graph: $OLD nodes)"
-
-GRAPHIFY_FORCE=1 timeout 600 graphify update . >> "$LOG" 2>&1
-RC=$?
-NEW=$(count_nodes "$GRAPH")
-
-BAD=""
-[ "$RC" -eq 124 ] && BAD="timed out after 600s"
-[ -z "$BAD" ] && [ "$RC" -ne 0 ] && BAD="graphify failed (exit $RC)"
-[ -z "$BAD" ] && [ "$NEW" -lt 100 ] && BAD="new graph has only $NEW nodes (minimum 100)"
-[ -z "$BAD" ] && [ "$NEW" -lt $((OLD / 2)) ] && BAD="new graph has $NEW nodes, under half of old $OLD"
-
-if [ -n "$BAD" ]; then
-  if [ -f "$BACKUP" ]; then
-    cp "$BACKUP" "$GRAPH"
-    log "WARNING: $BAD - restored backup ($OLD nodes)"
-  else
-    rm -f "$GRAPH"
-    log "WARNING: $BAD - no backup to restore, removed the bad graph"
-  fi
-else
-  log "rebuild ok: $NEW nodes"
+mkdir -p "$out"
+products() { sha256sum "$out/graph.json" "$out/GRAPH_REPORT.md" "$out/manifest.json" "$out/graph.html"; }
+inputs=$(python3 scripts/graphify-fingerprint.py)
+if [ ! -e "$state/unfinished" ] && [ ! -d "$backup" ] && [ -f "$state/fingerprint" ] &&
+    [ "$inputs" = "$(cat "$state/fingerprint")" ] && products | cmp -s - "$state/products"; then
+    echo 'Graphify inputs and products unchanged'
+    exit 0
 fi
-exit 0
+if [ -d "$backup" ]; then restore; rm -r "$backup"; fi
+rm -rf "$state/checkpoint.tmp"
+mkdir "$state/checkpoint.tmp"
+for file in graph.json GRAPH_REPORT.md graph.html manifest.json .graphify_build_state.json; do
+    if [ -f "$out/$file" ]; then cp -p "$out/$file" "$state/checkpoint.tmp/"; fi
+done
+mv "$state/checkpoint.tmp" "$backup"
+counts() { python3 scripts/graphify-health.py; }
+old=$(counts 2>/dev/null) || old=0
+set --
+if [ "$old" = 0 ]; then
+    rm -f "$out/graph.json" "$out/manifest.json" "$out/.graphify_build_state.json"
+    set -- --force
+fi
+touch "$state/unfinished"
+if timeout 600 "$bin" update . "$@" >>"$state/refresh.log" 2>&1 && new=$(counts) && [ "${new%% *}" -ge "$((${old%% *} / 2))" ]; then
+    rm -r "$backup"
+    if [ "$inputs" = "$(python3 scripts/graphify-fingerprint.py)" ]; then
+        products > "$state/products"
+        echo "$inputs" > "$state/fingerprint"
+    else
+        rm -f "$state/fingerprint"
+    fi
+    rm "$state/unfinished"
+    echo "Graphify ready (nodes edges): $new"
+else
+    restore
+    rm -r "$backup"
+    echo "Graphify refresh failed; restored previous outputs. See $state/refresh.log" >&2
+    exit 1
+fi
