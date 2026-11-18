@@ -1,0 +1,6 @@
+#!/bin/sh
+# Rebuilds the graphify knowledge graph in the background. Never fails git.
+command -v graphify >/dev/null 2>&1 || exit 0
+GIT_DIR=$(git rev-parse --git-dir 2>/dev/null) || exit 0
+GRAPHIFY_FORCE=1 nohup graphify update . >>"$GIT_DIR/graphify-update.log" 2>&1 </dev/null &
+exit 0

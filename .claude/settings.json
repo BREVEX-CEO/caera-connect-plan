@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "graphify hook-guard search",
+            "command": "command -v graphify >/dev/null 2>&1 && graphify hook-guard search 2>/dev/null || true",
             "timeout": 10
           }
         ]
@@ -16,7 +16,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "graphify hook-guard read",
+            "command": "command -v graphify >/dev/null 2>&1 && graphify hook-guard read 2>/dev/null || true",
             "timeout": 10
           }
         ]
@@ -28,8 +28,17 @@
         "hooks": [
           {
             "type": "command",
-            "command": "graphify hook-guard compact",
+            "command": "command -v graphify >/dev/null 2>&1 && graphify hook-guard compact 2>/dev/null || true",
             "timeout": 10
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh \"$CLAUDE_PROJECT_DIR\"/scripts/setup-graphify.sh",
+            "timeout": 900
           }
         ]
       }

@@ -1,4 +1,5 @@
 # graphify
-- **graphify** (`.claude/skills/graphify/SKILL.md`) - any input to knowledge graph. Trigger: `/graphify`
-When the user types `/graphify`, use the installed graphify skill or instructions before doing anything else.
-- After any task that changes code, run `graphify update ./src` and include the updated `graphify-out` folder in the same commit.
+- Before architecture questions, read `graphify-out/GRAPH_REPORT.md`.
+- The graph auto-updates via git hooks (`.githooks/`) and at session start (`scripts/setup-graphify.sh`).
+- If a graph looks stale, run `graphify update .`.
+- Full skill instructions: `.claude/skills/graphify/SKILL.md`. Trigger: `/graphify`.
