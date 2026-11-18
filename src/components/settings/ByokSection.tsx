@@ -38,7 +38,10 @@ export function ByokSection() {
           <p className="border-b border-border/50 py-4 text-[13px] leading-5 text-muted-foreground">
             With your key, your provider bills you directly for model use, and OCADE does not draw
             its own model allowance for those turns; your OCADE plan's limits still apply. Remaining
-            provider quota: unknown (providers do not report it to OCADE). If your key stops
+            provider quota: unknown (providers do not report it to OCADE). Used with your keys this
+            month, as OCADE observed it: {state.data.observed.turns} turns,{" "}
+            {state.data.observed.inputTokens.toLocaleString()} input and{" "}
+            {state.data.observed.outputTokens.toLocaleString()} output tokens. If your key stops
             working, OCADE stops and tells you; it never switches to its own models on its own.
           </p>
           {state.data.connections.map((connection) => (

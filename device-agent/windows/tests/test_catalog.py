@@ -184,3 +184,58 @@ class Catalog(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class StagedUpdates(unittest.TestCase):
+    """REPO-25 / threat O-16: a new server version is staged, checked and promoted, or refused;
+    the approved version stays active until then and can be restored afterwards."""
+
+    def setUp(self):
+        self.home = Path(tempfile.mkdtemp())
+        (self.home / "mcp" / "staged").mkdir(parents=True)
+        (self.home / "mcp" / "echo.json").write_text(json.dumps(manifest()))
+
+    def stage(self, **overrides):
+        (self.home / "mcp" / "staged" / "echo.json").write_text(json.dumps(manifest(**overrides)))
+
+    def active_version(self):
+        return catalog.load(self.home)[0]["echo"]["version"]
+
+    def test_a_healthy_update_is_promoted_and_can_be_rolled_back(self):
+        self.stage(version="1.1.0")
+        outcome = catalog.promote(self.home, "echo", "owner@example.test")
+        self.assertEqual(outcome, {"promoted": True, "from": "1.0.0", "to": "1.1.0", "changes": []})
+        self.assertEqual(self.active_version(), "1.1.0")
+        log = [json.loads(line) for line in (self.home / "mcp" / "updates.jsonl").read_text().splitlines()]
+        self.assertEqual((log[-1]["action"], log[-1]["approvedBy"]), ("promote", "owner@example.test"))
+        self.assertEqual(catalog.rollback(self.home, "echo", "owner@example.test"),
+                         {"rolledBack": True, "from": "1.1.0", "to": "1.0.0"})
+        self.assertEqual(self.active_version(), "1.0.0")
+        self.assertEqual(catalog.rollback(self.home, "echo", "owner")["reason"], "no_previous_version")
+
+    def test_new_permissions_need_approval_and_a_server_that_does_not_match_is_refused(self):
+        extra = {"name": "delete_all", "risk": "external_effect", "description": "Delete everything.",
+                 "inputSchema": {"properties": {}, "title": "deleteArguments", "type": "object"}}
+        self.stage(version="2.0.0", tools=[*TOOLS, extra])
+        refused = catalog.promote(self.home, "echo", "owner")
+        self.assertEqual((refused["reason"], refused["changes"]),
+                         ("permission_changes_need_approval", ["new_tool:delete_all"]))
+        # Accepted, but the running server does not offer the declared tool: its health check fails.
+        failed = catalog.promote(self.home, "echo", "owner", accept_changes=True)
+        self.assertEqual(failed["reason"], "health_check_failed")
+        self.assertEqual(self.active_version(), "1.0.0", "the approved version stays active")
+        raised = [TOOLS[0] | {"risk": "external_effect"}, TOOLS[1]]
+        self.stage(version="2.0.1", tools=raised)
+        self.assertEqual(catalog.promote(self.home, "echo", "owner")["changes"], ["risk_raised:echo"])
+
+    def test_a_tampered_or_hostile_update_is_never_promoted(self):
+        self.stage(version="3.0.0", sha256="0" * 64)
+        self.assertEqual(catalog.promote(self.home, "echo", "owner")["reason"], "pin_mismatch")
+        self.stage(version="3.0.1", reviewedFindings=[])
+        hostile = catalog.promote(self.home, "echo", "owner")
+        self.assertEqual(hostile["reason"], "quarantined")
+        self.assertIn("prompt_injection", hostile["findings"])
+        self.stage(id="other")
+        self.assertEqual(catalog.promote(self.home, "echo", "owner")["reason"], "id_changed")
+        self.assertEqual(self.active_version(), "1.0.0")
+        self.assertFalse((self.home / "mcp" / "previous").exists(), "nothing was replaced")

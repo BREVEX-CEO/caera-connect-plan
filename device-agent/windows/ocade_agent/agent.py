@@ -745,7 +745,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "command", nargs="?", default="run" if getattr(sys, "frozen", False) else None,
         choices=["enroll", "run", "stop", "worker", "diagnose", "forget", "tray",
-                 "activate-update", "rollback-update", "check-update-runtime", "run-activated"],
+                 "activate-update", "rollback-update", "check-update-runtime", "run-activated",
+                 "mcp-update", "mcp-rollback"],
     )
     parser.add_argument("module", nargs="?", help=argparse.SUPPRESS)
     parser.add_argument("--server")
@@ -762,6 +763,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--manifest", type=Path)
     parser.add_argument("--signature", type=Path)
     parser.add_argument("--archive", type=Path)
+    parser.add_argument("--mcp", help="mcp-update / mcp-rollback: the approved server's id")
+    parser.add_argument("--approved-by", help="mcp-update / mcp-rollback: who authorized the change")
+    parser.add_argument("--accept-permission-changes", action="store_true",
+                        help="mcp-update: accept new tools, higher risks or a new program")
     parser.add_argument("--tray-parent", type=int, help=argparse.SUPPRESS)
     parser.add_argument("--tray-website", help=argparse.SUPPRESS)
     args = parser.parse_args(argv)
@@ -795,6 +800,24 @@ def main(argv: list[str] | None = None) -> int:
             return 3
         print("The selected release will start the next time you open OCADE.")
         return 0
+    if args.command in {"mcp-update", "mcp-rollback"}:
+        # Between tasks only: the lock is held by a running companion (REPO-25).
+        if not (args.mcp and args.approved_by):
+            parser.error(f"{args.command} needs --mcp and --approved-by")
+        from . import catalog
+
+        try:
+            with companion_lock(home):
+                outcome = (
+                    catalog.promote(home, args.mcp, args.approved_by, args.accept_permission_changes)
+                    if args.command == "mcp-update"
+                    else catalog.rollback(home, args.mcp, args.approved_by)
+                )
+        except (OSError, RuntimeError) as error:
+            print(f"Update refused: {error}", file=sys.stderr)
+            return 3
+        print(json.dumps(outcome, sort_keys=True))
+        return 0 if outcome.get("promoted") or outcome.get("rolledBack") else 3
     if args.command == "worker":  # the packaged executable hosting one capability worker
         if args.module not in set(WORKERS.values()) | {"ocade_agent.job_runner"}:
             return 2

@@ -362,6 +362,17 @@ export const boundary: Omit<OnlineHandlerDependencies, "verifyJwt" | "verifyServ
   highAvailable: async (signal) =>
     Boolean(CF_TOKEN) && (await highIncluded(CF_ACCOUNT, CF_BILLING_TOKEN, signal)),
   observe,
+  async recordCall(call) {
+    await rpc("ocade_record_model_call", {
+      p_user_id: call.userId,
+      p_surface: call.surface,
+      p_source: call.source,
+      p_credential: call.credential,
+      p_model: call.model,
+      p_input_tokens: call.inputTokens,
+      p_output_tokens: call.outputTokens,
+    });
+  },
   byok: {
     route: (userId, surface, permit) =>
       surface === "jarvis"

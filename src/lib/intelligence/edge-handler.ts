@@ -248,6 +248,20 @@ export interface OnlineHandlerDependencies {
     ): Promise<boolean>;
     record(userId: string, connectionId: string, status: string): Promise<void>;
   };
+  /**
+   * ONE APPEND-ONLY RECORD PER ANSWERED MODEL TURN (plan 14B.1B.3): who it was for, which source
+   * paid for it (OCADE's keys or the customer's connection), which key or connection, which model
+   * and the tokens the provider reported. Never content, never a key.
+   */
+  recordCall?(call: {
+    userId: string;
+    surface: string;
+    source: "ocade" | "customer";
+    credential: string;
+    model: string;
+    inputTokens: number | null;
+    outputTokens: number | null;
+  }): Promise<void>;
   callProvider(input: {
     model: OnlineModelId;
     body: Record<string, unknown>;
@@ -1101,7 +1115,10 @@ function normalizedProviderStream(
   signal: AbortSignal,
   cleanup: () => void,
   cancelProvider: (reason: unknown) => void,
-  delivered: (toolCalls: NormalizedToolCall[]) => Promise<void> = async () => undefined,
+  delivered: (
+    toolCalls: NormalizedToolCall[],
+    usage?: NormalizedUsage,
+  ) => Promise<void> = async () => undefined,
   undelivered: () => Promise<void> = async () => undefined,
   report: (kind: string) => void = () => undefined,
 ): ReadableStream<Uint8Array> {
@@ -1120,9 +1137,9 @@ function normalizedProviderStream(
         settled = true;
         const completed = turn?.state === "complete";
         const anything = completed || (surface === "chat" && Boolean(turn?.answer.trim()));
-        await (anything ? delivered(completed ? turn!.toolCalls : []) : undelivered()).catch(
-          () => undefined,
-        );
+        await (
+          anything ? delivered(completed ? turn!.toolCalls : [], turn?.usage) : undelivered()
+        ).catch(() => undefined);
       };
       try {
         controller.enqueue(sse({ type: "status", backend: "online", state: "generating" }));
@@ -1447,6 +1464,18 @@ async function runOnlineIntelligence(
     /** How the model ended when it could not answer, when that was not capacity. */
     let refusedAs: "provider_rejected_request" | "provider_unavailable" | undefined;
     const served = { model: "", slot: "" };
+    const recordCall = (usage?: NormalizedUsage) =>
+      (
+        deps.recordCall?.({
+          userId: identity.userId,
+          surface: body.surface,
+          source: customer ? "customer" : "ocade",
+          credential: customer ? customer.id! : served.slot,
+          model: served.model,
+          inputTokens: usage?.inputTokens ?? null,
+          outputTokens: usage?.outputTokens ?? null,
+        }) ?? Promise.resolve()
+      ).catch(() => undefined);
     controller.signal.throwIfAborted(); // stopped during the claim: no provider is called
 
     /*
@@ -1726,6 +1755,7 @@ async function runOnlineIntelligence(
         : completedTurnEvents(whole);
       if (!whole.blocked) {
         ended("succeeded");
+        await recordCall(whole.usage);
         // Charged by the server before the planner is told the turn is complete.
         await deps
           .finalizePermit?.({ userId: identity.userId, permit: body.permit })
@@ -1795,8 +1825,9 @@ async function runOnlineIntelligence(
         (reason) => {
           if (!controller.signal.aborted) controller.abort(reason);
         },
-        () => {
+        async (_calls, usage) => {
           ended("succeeded");
+          await recordCall(usage);
           return (
             deps.finalizePermit?.({ userId: identity.userId, permit: body.permit }) ??
             Promise.resolve()

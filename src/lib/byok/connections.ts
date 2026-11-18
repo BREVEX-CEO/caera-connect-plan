@@ -26,6 +26,8 @@ export interface ByokState {
   connections: ByokConnection[];
   /** The connection chosen per surface; absent: OCADE's own models. Null: chosen, then deleted. */
   choices: Partial<Record<"chat" | "jarvis", string | null>>;
+  /** Turns answered with the person's own keys this month, as OCADE observed them. */
+  observed: { turns: number; inputTokens: number; outputTokens: number };
 }
 
 /** Known providers first (UX: a preset, then advanced only when needed). */
@@ -112,7 +114,7 @@ async function token(): Promise<string | null> {
 
 export async function readByok(): Promise<ByokState> {
   const { supabase } = await import("@/integrations/supabase/client");
-  const [connections, choices] = await Promise.all([
+  const [connections, choices, calls] = await Promise.all([
     supabase
       .from("byok_connections")
       .select(
@@ -120,13 +122,27 @@ export async function readByok(): Promise<ByokState> {
       )
       .order("created_at"),
     supabase.from("byok_choices").select("surface, connection_id"),
+    supabase
+      .from("model_calls")
+      .select("input_tokens, output_tokens")
+      .eq("source", "customer")
+      .gte(
+        "created_at",
+        new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), 1)).toISOString(),
+      )
+      .limit(10_000),
   ]);
-  if (connections.error || choices.error) throw new Error("byok_unavailable");
+  if (connections.error || choices.error || calls.error) throw new Error("byok_unavailable");
   return {
     connections: connections.data as ByokConnection[],
     choices: Object.fromEntries(
       choices.data.map((row) => [row.surface, row.connection_id]),
     ) as ByokState["choices"],
+    observed: {
+      turns: calls.data.length,
+      inputTokens: calls.data.reduce((sum, call) => sum + (call.input_tokens ?? 0), 0),
+      outputTokens: calls.data.reduce((sum, call) => sum + (call.output_tokens ?? 0), 0),
+    },
   };
 }
 

@@ -23,6 +23,8 @@ const NOT_EXPORTED: Record<string, string> = {
   ocade_support_shares: "time-limited shares the person made; removed with the account",
   byok_connections:
     "the person's own model connections: listed and deleted one by one in Settings > BYOK; a key is never exported; removed with the account, keys included",
+  model_calls:
+    "per-call model usage counts (source, model, tokens) kept for billing reconciliation; no content; removed with the account",
   byok_choices:
     "which source serves Chat and JARVIS, shown in Settings > BYOK; removed with the account",
 };

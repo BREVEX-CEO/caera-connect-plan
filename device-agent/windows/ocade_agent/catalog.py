@@ -23,6 +23,7 @@ from __future__ import annotations
 import hashlib
 import json
 import sys
+import tempfile
 from pathlib import Path
 
 import jsonschema
@@ -194,6 +195,110 @@ def load(home: Path) -> tuple[dict[str, dict], list[dict]]:
                 manifest["state"] = "quarantined"
         accepted[manifest["id"]] = manifest
     return accepted, rejected
+
+
+# ---------------------------------------------------------------------------------------------
+# STAGED UPDATES (plan REPO-25, threat O-16). A new version of an approved server is placed in
+# `<home>/mcp/staged/<id>.json`. It is promoted only after it validates, its pins hold, the scan is
+# clean, it starts and lists exactly the tools it declares, and any added tool or raised risk was
+# accepted by the person; the active version is kept in `<home>/mcp/previous/` for rollback, and
+# every promotion and rollback is appended to `<home>/mcp/updates.jsonl` with who authorized it.
+# The companion reads its servers when it starts, so a promotion never changes a running task.
+# ---------------------------------------------------------------------------------------------
+_RISK = {"read": 0, "reversible_write": 1, "external_effect": 2}
+
+
+def permission_changes(active: dict, staged: dict) -> list[str]:
+    """What the new version may do that the approved one could not: new tools, higher risks, a new program."""
+    before = {tool["name"]: tool for tool in active["tools"]}
+    changes = []
+    for tool in staged["tools"]:
+        old = before.get(tool["name"])
+        if old is None:
+            changes.append(f"new_tool:{tool['name']}")
+        elif _RISK.get(tool["risk"], 3) > _RISK.get(old["risk"], 3):
+            changes.append(f"risk_raised:{tool['name']}")
+    if staged["command"] != active["command"] or staged.get("args", []) != active.get("args", []):
+        changes.append("program_changed")
+    return changes
+
+
+async def health(manifest: dict) -> str | None:
+    """Start the server and require its live tool list to be exactly the declared one."""
+    from .gateway import Gateway
+
+    async with Gateway(tempfile.mkdtemp(), external={manifest["id"]: manifest}) as gateway:
+        try:
+            await gateway._session(f"mcp:{manifest['id']}")
+        except Exception as error:  # the reason is the gateway's own words, bounded
+            return str(error)[:300] or type(error).__name__
+    return None
+
+
+def _log(home: Path, entry: dict) -> None:
+    import datetime
+
+    entry = {"at": datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds")} | entry
+    with (home / "mcp" / "updates.jsonl").open("a", encoding="utf-8") as log:
+        log.write(json.dumps(entry, sort_keys=True) + "\n")
+
+
+def _active_file(home: Path, server: str) -> Path | None:
+    for path in sorted((home / "mcp").glob("*.json")):
+        try:
+            if json.loads(path.read_text(encoding="utf-8")).get("id") == server:
+                return path
+        except (OSError, ValueError):
+            continue
+    return None
+
+
+def promote(home: Path, server: str, approved_by: str, accept_changes: bool = False) -> dict:
+    """Promote the staged version of `server`, or refuse with the reason; the active one is kept."""
+    import anyio
+
+    staged_path = home / "mcp" / "staged" / f"{server}.json"
+    active_path = _active_file(home, server)
+    if not staged_path.is_file() or active_path is None:
+        return {"promoted": False, "reason": "nothing_staged" if active_path else "not_installed"}
+    with tempfile.TemporaryDirectory(prefix="ocade-mcp-staged-") as folder:
+        probe = Path(folder)
+        (probe / "mcp").mkdir()
+        (probe / "mcp" / "staged.json").write_bytes(staged_path.read_bytes())
+        found, refused = load(probe)
+    staged = found.get(server)
+    if staged is None:
+        return {"promoted": False, "reason": (refused[0]["reason"] if refused else "id_changed")}
+    if staged["state"] != "trusted":
+        return {"promoted": False, "reason": staged["state"], "findings": staged.get("findings", [])}
+    active = json.loads(active_path.read_text(encoding="utf-8"))
+    changes = permission_changes(active, staged)
+    if changes and not accept_changes:
+        return {"promoted": False, "reason": "permission_changes_need_approval", "changes": changes}
+    problem = anyio.run(health, staged)
+    if problem:
+        return {"promoted": False, "reason": "health_check_failed", "detail": problem}
+    previous = home / "mcp" / "previous"
+    previous.mkdir(exist_ok=True)
+    (previous / f"{server}.json").write_bytes(active_path.read_bytes())
+    staged_path.replace(active_path)
+    _log(home, {"action": "promote", "server": server, "from": active["version"], "to": staged["version"],
+                "changes": changes, "approvedBy": approved_by[:120]})
+    return {"promoted": True, "from": active["version"], "to": staged["version"], "changes": changes}
+
+
+def rollback(home: Path, server: str, approved_by: str) -> dict:
+    """Restore the version that was active before the last promotion."""
+    previous = home / "mcp" / "previous" / f"{server}.json"
+    active_path = _active_file(home, server)
+    if not previous.is_file() or active_path is None:
+        return {"rolledBack": False, "reason": "no_previous_version"}
+    current = json.loads(active_path.read_text(encoding="utf-8"))["version"]
+    restored = json.loads(previous.read_text(encoding="utf-8"))["version"]
+    previous.replace(active_path)
+    _log(home, {"action": "rollback", "server": server, "from": current, "to": restored,
+                "approvedBy": approved_by[:120]})
+    return {"rolledBack": True, "from": current, "to": restored}
 
 
 def describe(external: dict[str, dict]) -> list[dict]:

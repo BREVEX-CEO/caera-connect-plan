@@ -708,6 +708,45 @@ export type Database = {
         }
         Relationships: []
       }
+      model_calls: {
+        Row: {
+          connection_id: string | null
+          created_at: string
+          id: number
+          input_tokens: number | null
+          key_slot: string | null
+          model: string
+          output_tokens: number | null
+          source: string
+          surface: string
+          user_id: string
+        }
+        Insert: {
+          connection_id?: string | null
+          created_at?: string
+          id?: number
+          input_tokens?: number | null
+          key_slot?: string | null
+          model: string
+          output_tokens?: number | null
+          source: string
+          surface: string
+          user_id: string
+        }
+        Update: {
+          connection_id?: string | null
+          created_at?: string
+          id?: number
+          input_tokens?: number | null
+          key_slot?: string | null
+          model?: string
+          output_tokens?: number | null
+          source?: string
+          surface?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       ocade_admin_actions: {
         Row: {
           action: string

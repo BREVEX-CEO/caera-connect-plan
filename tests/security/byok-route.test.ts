@@ -108,10 +108,12 @@ const fresh = (): Seen => ({ calls: [], bound: [], recorded: [], released: 0 });
 
 test("a chosen connection serves the whole turn; no OCADE key is ever presented", async () => {
   const seen = fresh();
+  const calls: unknown[] = [];
   const handler = deps(
     async () => chosen({ status: "rate_limited" }),
     () => new Response(openaiCall, { headers: { "content-type": "text/event-stream" } }),
     seen,
+    { recordCall: async (call) => void calls.push(call) },
   );
   const response = await handleOnlineIntelligence(request(), handler);
   const text = await response.text();
@@ -121,6 +123,17 @@ test("a chosen connection serves the whole turn; no OCADE key is ever presented"
   ]);
   assert.deepEqual(seen.bound, ["conn-a1"], "the permit is marked as the customer's key");
   assert.deepEqual(seen.recorded, ["conn-a1:connected"], "a working key clears its old status");
+  assert.deepEqual(calls, [
+    {
+      userId: alice,
+      surface: "jarvis",
+      source: "customer",
+      credential: "conn-a1",
+      model: "vendor/alice-model",
+      inputTokens: null,
+      outputTokens: null,
+    },
+  ]);
 });
 
 test("High quality is OCADE's model: with a customer's connection chosen it is not used", async () => {
