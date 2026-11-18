@@ -576,3 +576,34 @@ test("a model whose provider refuses images learns it once and is then told it c
   assert.doesNotMatch(bodies[1]!, /inline_data/);
   assert.deepEqual(learned, ["gemma-4-31b-it:vision"]);
 });
+
+test("the owner's registered keys serve without a redeploy; none held is not ready", async () => {
+  const slots: string[] = [];
+  let held: string[] = ["owner:key-1", "owner:key-2"];
+  const handler = deps(
+    "gemma-4-31b-it",
+    async ({ slot }) => {
+      slots.push(slot);
+      return new Response("{}", { status: slots.length === 1 ? 401 : 503 });
+    },
+    { providerSlots: [], loadProviderSlots: async () => held },
+  );
+  await handleOnlineIntelligence(request(), handler);
+  assert.deepEqual(slots.slice(0, 2), ["owner:key-1", "owner:key-2"], "a refused key moves on");
+  held = [];
+  const none = await handleOnlineIntelligence(request(), handler);
+  assert.equal(none.status, 503);
+  assert.equal(((await none.json()) as { error: string }).error, "online_unavailable");
+  // 120 registered keys: every one is a slot, in order, with no code change.
+  held = Array.from({ length: 120 }, (_, i) => `owner:key-${i}`);
+  slots.length = 0;
+  const all = deps(
+    "gemma-4-31b-it",
+    async ({ slot }) => (slots.push(slot), new Response("{}", { status: 401 })),
+    {
+      loadProviderSlots: async () => held,
+    },
+  );
+  await handleOnlineIntelligence(request(), all);
+  assert.ok(slots.length >= 3 && slots.every((slot, i) => slot === `owner:key-${i}`));
+});

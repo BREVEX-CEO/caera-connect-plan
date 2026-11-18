@@ -191,6 +191,12 @@ export interface OnlineHandlerDependencies {
    * empty means the caller has not said, and one primary attempt is made.
    */
   providerSlots?: readonly ProviderKeySlot[];
+  /**
+   * Every key the deployment holds now, the owner's registered keys included (plan 14B.1A.1): read
+   * per request (the deployment caches it), so a key added or suspended in the Dashboard takes
+   * effect without a redeploy. When present, it replaces `providerSlots`, and none held is "not ready".
+   */
+  loadProviderSlots?(): Promise<readonly ProviderKeySlot[]>;
   /** Until when each key its provider refused (401, 403, invalid key) is tried last. */
   keyRefusedUntil?: Map<ProviderKeySlot, number>;
   /**
@@ -1322,7 +1328,12 @@ async function runOnlineIntelligence(
   if (high && !(await deps.highAvailable?.(request.signal).catch(() => false))) {
     return json(503, { error: "high_unavailable" }, origin);
   }
-  if (!configured || (!high && !customer && !deps.providerReady)) {
+  const heldSlots =
+    customer || high
+      ? undefined
+      : await deps.loadProviderSlots?.().catch(() => deps.providerSlots ?? []);
+  const ready = deps.providerReady && (!deps.loadProviderSlots || (heldSlots?.length ?? 0) > 0);
+  if (!configured || (!high && !customer && !ready)) {
     return json(503, { error: "online_unavailable" }, origin);
   }
   // Before anything is claimed or sent: the account's own agreement, read on the server.
@@ -1412,8 +1423,8 @@ async function runOnlineIntelligence(
       ? ["customer"]
       : high
         ? ["primary"]
-        : deps.providerSlots && deps.providerSlots.length > 0
-          ? deps.providerSlots
+        : (heldSlots ?? deps.providerSlots)?.length
+          ? (heldSlots ?? deps.providerSlots)!
           : [PROVIDER_KEY_SLOTS[0]];
     // A key its provider refused recently is tried last, not first (a circuit breaker per key):
     // healthy keys keep their order, and a refused key is still tried when no other is left.

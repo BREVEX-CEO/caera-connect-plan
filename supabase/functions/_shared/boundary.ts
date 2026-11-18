@@ -58,6 +58,34 @@ const PROVIDER = plannerProvider(read);
 const KEYS = plannerKeys(read);
 const CONFIGURED_SLOTS = keySlots(KEYS.length);
 const PROVIDER_KEYS = new Map(CONFIGURED_SLOTS.map((slot, i) => [slot, KEYS[i]!]));
+
+/*
+ * THE OWNER'S REGISTERED KEYS (plan 14B.1A.1; migration 20261118090000). Any number, kept in Vault
+ * and read through a server-only function for this deployment's provider host and model, at most
+ * once a minute. They follow the environment's keys, as slots named `owner:<label>`. A read that
+ * fails keeps the last good list; the keys never leave this file.
+ */
+const REGISTRY_TTL_MS = 60_000;
+let registry: { at: number; keys: Map<string, string> } = { at: 0, keys: new Map() };
+async function heldSlots(): Promise<string[]> {
+  if (PROVIDER && Date.now() - registry.at > REGISTRY_TTL_MS) {
+    const answer = await rpc("ocade_owner_model_keys", {
+      p_provider_host: new URL(PROVIDER.endpoint).host,
+      p_model: plannerModel(PLANNER_MODEL) ?? "",
+    }).catch(() => undefined);
+    if (Array.isArray(answer)) {
+      registry = {
+        at: Date.now(),
+        keys: new Map(
+          (answer as { label: string; secret: string }[])
+            .filter((row) => row.secret && !KEYS.includes(row.secret))
+            .map((row) => [`owner:${row.label}`, row.secret]),
+        ),
+      };
+    }
+  }
+  return [...CONFIGURED_SLOTS, ...registry.keys.keys()];
+}
 const PLANNER_MODEL = read("OCADE_MODEL") ?? read("GEMINI_MODEL");
 const CF_ACCOUNT = Deno.env.get("CLOUDFLARE_ACCOUNT_ID") ?? "";
 const CF_TOKEN = Deno.env.get("CLOUDFLARE_WORKERS_AI_TOKEN") ?? "";
@@ -303,13 +331,10 @@ export async function verifyOcadeServer(request: Request): Promise<{ userId: str
 export const boundary: Omit<OnlineHandlerDependencies, "verifyJwt" | "verifyService"> = {
   allowedOrigins,
   providerReady: Boolean(
-    SUPABASE_URL &&
-    SUPABASE_PUBLISHABLE_KEY &&
-    SUPABASE_SERVICE_ROLE_KEY &&
-    CONFIGURED_SLOTS.length > 0 &&
-    PROVIDER,
+    SUPABASE_URL && SUPABASE_PUBLISHABLE_KEY && SUPABASE_SERVICE_ROLE_KEY && PROVIDER,
   ),
   providerSlots: CONFIGURED_SLOTS,
+  loadProviderSlots: heldSlots,
   quotaReturnsAt: new Map(),
   keyRefusedUntil: new Map(),
   refused: new Map(),
@@ -462,7 +487,7 @@ export const boundary: Omit<OnlineHandlerDependencies, "verifyJwt" | "verifyServ
       );
     }
     // The configured planner; which model serves is the handler's choice (deps.model).
-    const key = PROVIDER_KEYS.get(slot);
+    const key = PROVIDER_KEYS.get(slot) ?? registry.keys.get(slot);
     if (!PROVIDER || !key || !plannerModel(model)) return new Response(null, { status: 400 });
     // The slot the handler chose. The key itself never leaves this file, and never appears in a
     // log line, a response or an error.
