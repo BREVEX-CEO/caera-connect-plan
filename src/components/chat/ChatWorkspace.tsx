@@ -1,5 +1,6 @@
 import { HighConfirm, QualityControl } from "@/lib/intelligence/QualityControl";
 import { ModelSource } from "@/components/settings/ModelSource";
+import { EnhancePrompt } from "./EnhancePrompt";
 import { useIntelligenceQuality } from "@/lib/intelligence/use-intelligence-quality";
 /**
  * THE PRODUCT HOME.
@@ -510,7 +511,10 @@ export function ChatWorkspace() {
                 fit on one line, and a composer that scrolls sideways puts Send
                 off the edge of a phone.
               */}
-              <div className="mt-2 flex flex-wrap items-center gap-1">
+              <div className="relative mt-2 flex flex-wrap items-center gap-1">
+                {user && choice !== "offline" ? (
+                  <EnhancePrompt draft={draft} onApply={setDraft} disabled={chat.busy} />
+                ) : null}
                 <IconButton
                   label="Attach a file"
                   disabled={!user || pending.length >= MAX_ATTACHMENTS}

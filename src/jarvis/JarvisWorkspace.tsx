@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { useSession } from "@/lib/session";
 import { ModelSource } from "@/components/settings/ModelSource";
+import { EnhancePrompt } from "@/components/chat/EnhancePrompt";
 import { useFollowBottom } from "@/lib/use-follow-bottom";
 import { Prose } from "@/components/chat/MessageList";
 import { useSettingsPanel } from "@/components/settings/settings-panel";
@@ -484,6 +485,11 @@ export function JarvisWorkspace({
               <label htmlFor="jarvis-composer" className="sr-only">
                 Message JARVIS
               </label>
+              {signedIn ? (
+                <div className="flex h-10 items-center">
+                  <EnhancePrompt draft={draft} onApply={setDraft} surface="jarvis" />
+                </div>
+              ) : null}
               <textarea
                 id="jarvis-composer"
                 // Firefox otherwise restores the text on reload, bringing back a request that
