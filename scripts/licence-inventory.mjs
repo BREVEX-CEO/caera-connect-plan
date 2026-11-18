@@ -24,7 +24,7 @@ const modelNoticeSection = modelEntries.length ? [
   "",
   "| Model | Licensor | Licence | Recipient copy |",
   "|---|---|---|---|",
-  ...modelEntries.map(([name, entry]) => `| ${name} | ${entry.licensor} | ${entry.licence} | [Full licence copy](/${entry.licenceCopy.replace(/^public\\//, "")}) |`),
+  ...modelEntries.map(([name, entry]) => `| ${name} | ${entry.licensor} | ${entry.licence} | [Full licence copy](/${entry.licenceCopy.replace("public/", "")}) |`),
   "",
   "",
 ].join("\n") : "";
@@ -151,19 +151,19 @@ ${rows(npm.sort((a, b) => a.name.localeCompare(b.name)))}
 if (process.argv.includes("--check")) {
   for (const [item, action] of Object.entries(inventory.ownerReview ?? {}))
     console.log(`OWNER REVIEW: ${item}: ${action}`);
-  if (problems.length) {
-    console.error(problems.join("\n"));
-    process.exit(1);
-  }
   const notices = readFileSync("THIRD_PARTY_NOTICES.md", "utf8");
   for (const [name, entry] of modelEntries)
-    if (!notices.includes(`| ${name} |`) || !notices.includes(entry.licenceCopy.replace(/^public\\//, "/")))
+    if (!notices.includes(`| ${name} |`) || !notices.includes(entry.licenceCopy.replace("public/", "/")))
       problems.push(`model ${name}: missing third-party notice or customer licence link`);
   for (const { name } of npm)
     if (!notices.includes(`| ${name} |`)) {
       console.error(`THIRD_PARTY_NOTICES.md is out of date (${name}); run npm run licences:write`);
       process.exit(1);
     }
+  if (problems.length) {
+    console.error(problems.join("\n"));
+    process.exit(1);
+  }
   console.log(
     `Licences: ${Object.keys(python).length} Python and ${npm.length} npm packages allowed for redistribution.`,
   );
