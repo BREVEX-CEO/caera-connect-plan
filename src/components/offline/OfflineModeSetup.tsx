@@ -96,6 +96,12 @@ export function OfflineModeSetup({ signedIn }: { signedIn: boolean }) {
           </Button>
         )}
       </div>
+      <a
+        href="/legal/lfm-open-license-v1.0.txt"
+        className="w-fit text-xs text-muted-foreground underline underline-offset-2"
+      >
+        Third-party licence
+      </a>
     </div>
   );
 }
