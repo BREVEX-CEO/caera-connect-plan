@@ -9,6 +9,14 @@ component's distribution and at its project page.
 - **MPL-2.0:** File-level copyleft: shipped unmodified, with its notice and source location.
 - **CC-BY-4.0:** Data (browser support tables): attribution in the notices.
 
+## On-device AI model licence
+
+OCADE's Offline Mode includes LFM2.5-VL-450M by Liquid AI, Inc. Its language weights and vision projector are governed by the **LFM Open License v1.0**, separate from OCADE's software licence. A complete copy is distributed with the website and available to recipients below. Commercial eligibility must be verified before public release.
+
+| Model | Licensor | Licence | Recipient copy |
+|---|---|---|---|
+| LFM2.5-VL-450M | Liquid AI, Inc. | LFM Open License v1.0 | [Full licence copy](/legal/lfm-open-license-v1.0.txt) |
+
 ## Native and runtime components
 
 | Component | Licence | Note |
