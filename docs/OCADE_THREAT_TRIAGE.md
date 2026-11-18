@@ -1,0 +1,42 @@
+# OCADE threat register triage (Stage 2)
+
+Source: `docs/OCADE_SECURITY_THREAT_MODEL_AND_NEGATIVE_TEST_REGISTER.md`. Updated 18 November 2026
+on branch `ocade/p00-p22-implementation`. Status words: **FIXED** (code and a negative test that
+fails without the fix), **PARTIAL** (part fixed, the gap named), **OPEN** (not addressed), **OWNER**
+(needs an owner decision). A status here is coding evidence only; nothing below is qualified
+against a live attacker, a real provider or a customer device.
+
+## The 16 code-observed findings
+
+| ID   | Status  | Evidence (code; negative test)                                                                                                                                                                                                                            | Remaining gap                                                                                                            |
+| ---- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| O-01 | FIXED   | `online-client.ts` no longer claims vision from reachability; the server decides per model (`edge-handler.ts` `vision`, `x-ocade-vision`); `tests/security/model-route.test.ts`                                                                           |                                                                                                                          |
+| O-02 | FIXED   | images reach only a model that sees them (declared, Google API, or BYOK test proved); a text-only model gets a note, no previews, no `ui.click_point` (`planner.server.ts` `plannerSight`); `model-route.test.ts`, `tests/jarvis/contracts.test.ts`       | auxiliary vision/OCR for text-only models not built                                                                      |
+| O-03 | FIXED   | Settings > BYOK, Vault-backed connections, per-surface choice, per-task source, no OCADE fallback, permit not charged (`20261117130000`); `byok.test.sql`, `byok-route.test.ts`, `byok-settings.test.ts`                                                  | not deployed as Edge Functions on staging; not qualified against a real provider                                         |
+| O-04 | PARTIAL | `library/intake.ts` refuses programs, scripts, macro documents, active PDFs and archive bombs before storage; `library-intake.test.ts`                                                                                                                    | no antivirus engine or content disarm; the product does not claim a virus scan                                           |
+| O-05 | PARTIAL | static scan plus quarantine (`catalog.py`); external servers get no workspace and a minimal environment                                                                                                                                                   | no OS-level filesystem/network confinement for external MCP processes                                                    |
+| O-06 | PARTIAL | Windows workers drop all privileges but change-notify (`sandbox.run_restricted`)                                                                                                                                                                          | Administrators group kept on an elevated companion; macOS commands not sandboxed                                         |
+| O-07 | OPEN    | the coordinator delegates analysis questions to parallel specialists (answer only)                                                                                                                                                                        | parallel executors with DAG leases and STOP fencing not built                                                            |
+| O-08 | PARTIAL | one model per task; BYOK failures are refused, never moved to OCADE (`byok-route.test.ts`)                                                                                                                                                                | no opt-in fallback policy is offered (fallback simply never happens)                                                     |
+| O-09 | OPEN    |                                                                                                                                                                                                                                                           | real-model and weak-model evaluations blocked by the Part 23 gate                                                        |
+| O-10 | PARTIAL | RLS on every public table (`injection-privilege.test.sql`), two-person tests for BYOK, memory and model-call records                                                                                                                                      | a two-tenant matrix over every route, storage URL and cache not built                                                    |
+| O-11 | PARTIAL | server-side permits, claim and settle (`generation-gate.ts`, DB tests)                                                                                                                                                                                    | replay/race harness against DevTools tampering not built                                                                 |
+| O-12 | PARTIAL | every report names its exact SHA                                                                                                                                                                                                                          | the required audit job is red on every current SHA (below)                                                               |
+| O-13 | OPEN    | template matching only (`vision.py`)                                                                                                                                                                                                                      | no semantic local visual parser                                                                                          |
+| O-14 | FIXED   | `gateway-address.ts`: HTTPS on 443 only, no credentials/query/fragment, no IP literal in any encoding, no internal names, every resolved IPv4/IPv6 (mapped, NAT64) public; redirects refused; the platform checks certificates; `gateway-address.test.ts` | DNS rebinding between the check and the connection is mitigated by certificate validation, not by pinning the dialled IP |
+| O-15 | PARTIAL | as O-04                                                                                                                                                                                                                                                   | as O-04                                                                                                                  |
+| O-16 | FIXED   | staged MCP updates: validation, pins, scan, live tool-list health check, permission diff approval, previous kept, authorization log (`catalog.promote`/`rollback`, `ocade_agent mcp-update`); `test_catalog.StagedUpdates`                                | no website UI for it                                                                                                     |
+
+## Gate blockers found during triage
+
+- **Known-vulnerability audit (SEC-15) is red on every current SHA.** `npm audit --omit=dev` reports
+  GHSA-fc5q-39xc-vjpf (picomatch, high, ReDoS) for every published picomatch version (`<=4.0.7`;
+  4.0.7 is the latest). It reaches the build through Vite and the TanStack Start build plugin, and
+  the name does not appear in the built site (`.output`). No upgrade fixes it. Changing the gate to
+  accept a reviewed exception is a security-control change and needs the owner's decision; until
+  then the Stage 4 all-green gate cannot pass.
+
+## The 192 root hypotheses and 1,152 negative scenarios
+
+Not yet triaged one by one. The 16 findings above are the code-observed subset. Each remaining root
+needs an owner, a status and, where applicable, a negative test before the Stage 2 gate can pass.
