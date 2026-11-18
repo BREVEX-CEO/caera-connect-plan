@@ -5,6 +5,13 @@ description: "Use for any question about a codebase, its architecture, file rela
 
 # /graphify
 
+For OCADE architecture questions, run
+`sh scripts/graphify-cli.sh query "<question>"` and read
+`graphify-out/GRAPH_REPORT.md` before inspecting application source. This
+wrapper uses the worktree's pinned Graphify and repairs a missing
+installation or unusable graph. When starting a build for this repository, use
+`sh scripts/setup-graphify.sh` in place of the generic installation steps below.
+
 Turn any folder of files into a navigable knowledge graph with community detection, an honest audit trail, and three outputs: interactive HTML, GraphRAG-ready JSON, and a plain-language GRAPH_REPORT.md.
 
 ## Usage
@@ -783,7 +790,7 @@ Both are non-default subcommands. `--update` re-extracts only new or changed fil
 When `graphify-out/graph.json` already exists and the user asks a question about the corpus, answer from the graph rather than rebuilding it:
 
 ```bash
-graphify query "<question>"
+sh scripts/graphify-cli.sh query "<question>"
 ```
 
 Before traversal, expand the question against the graph's own vocabulary so a wording mismatch does not collapse the answer to noise. If the `graphify query` CLI is unavailable, fall back to an inline NetworkX traversal of `graphify-out/graph.json`. Answer using only what the graph output contains, and quote `source_location` when citing a specific fact. For that vocab-expansion step, the BFS/DFS traversal modes, the `--budget` cap, the NetworkX fallback, `save-result` feedback, and the `/graphify path` and `/graphify explain` flows, see `references/query.md`.

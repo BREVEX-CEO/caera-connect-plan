@@ -17,10 +17,17 @@ restore() {
     done
 }
 mkdir -p "$out"
-products() { sha256sum "$out/graph.json" "$out/GRAPH_REPORT.md" "$out/manifest.json" "$out/graph.html"; }
+products() {
+    for file in graph.json GRAPH_REPORT.md manifest.json graph.html; do
+        test -s "$out/$file" || return 1
+    done
+    sha256sum "$out/graph.json" "$out/GRAPH_REPORT.md" "$out/manifest.json" "$out/graph.html"
+}
 inputs=$(python3 scripts/graphify-fingerprint.py)
-if [ ! -e "$state/unfinished" ] && [ ! -d "$backup" ] && [ -f "$state/fingerprint" ] &&
-    [ "$inputs" = "$(cat "$state/fingerprint")" ] && products | cmp -s - "$state/products"; then
+if [ ! -e "$state/unfinished" ] && [ ! -d "$backup" ] &&
+    [ -f "$state/fingerprint" ] && [ -f "$state/products" ] &&
+    [ "$inputs" = "$(cat "$state/fingerprint")" ] &&
+    current_products=$(products) && [ "$current_products" = "$(cat "$state/products")" ]; then
     echo 'Graphify inputs and products unchanged'
     exit 0
 fi
@@ -39,14 +46,16 @@ if [ "$old" = 0 ]; then
     set -- --force
 fi
 touch "$state/unfinished"
-if timeout 600 "$bin" update . "$@" >>"$state/refresh.log" 2>&1 && new=$(counts) && [ "${new%% *}" -ge "$((${old%% *} / 2))" ]; then
-    rm -r "$backup"
+if timeout 600 "$bin" update . "$@" >>"$state/refresh.log" 2>&1 &&
+    new=$(counts) && [ "${new%% *}" -ge "$((${old%% *} / 2))" ] &&
+    new_products=$(products); then
     if [ "$inputs" = "$(python3 scripts/graphify-fingerprint.py)" ]; then
-        products > "$state/products"
+        printf '%s\n' "$new_products" > "$state/products"
         echo "$inputs" > "$state/fingerprint"
     else
         rm -f "$state/fingerprint"
     fi
+    rm -r "$backup"
     rm "$state/unfinished"
     echo "Graphify ready (nodes edges): $new"
 else

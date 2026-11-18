@@ -1,12 +1,24 @@
 #!/bin/sh
 set -eu
 cd "$(dirname "$0")/.."
+for tool in flock timeout sha256sum; do
+    if ! command -v "$tool" >/dev/null; then
+        echo "Graphify requires $tool. See docs/graphify-setup.md." >&2
+        exit 1
+    fi
+done
+if ! python3 -c 'import sys; sys.exit(sys.version_info < (3, 11))'; then
+    echo 'Graphify requires Python 3.11 or newer on PATH.' >&2
+    exit 1
+fi
 state=$(git rev-parse --absolute-git-dir)/graphify
 mkdir -p "$state"
 exec 9>"$state/setup.lock"
 flock -w 600 9
 version=$(cat .claude/skills/graphify/.graphify_version)
-if ! test -x "$state/venv/bin/graphify" || ! "$state/venv/bin/python" -c 'import tree_sitter_sql,graphify,sys,importlib.metadata as m; sys.exit(m.version("graphifyy") != sys.argv[1])' "$version"; then
+if ! test -x "$state/venv/bin/graphify" ||
+    ! "$state/venv/bin/python" -c 'import tree_sitter_sql,graphify,sys,importlib.metadata as m; sys.exit(m.version("graphifyy") != sys.argv[1])' "$version" ||
+    ! "$state/venv/bin/graphify" --version >/dev/null 2>&1; then
     echo "Installing graphifyy==$version (see $state/install.log)"
     if ! (set -e
         if command -v uv >/dev/null; then

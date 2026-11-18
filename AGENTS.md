@@ -44,7 +44,11 @@ Stop analysing when the next piece of information would not change the decision.
 
 ## Graphify
 
-At the start of each session run `sh scripts/setup-graphify.sh` in the repository.
-Read `graphify-out/GRAPH_REPORT.md` for architecture questions and use
-`sh scripts/graphify-cli.sh query "question"` for graph queries. Use the
-repository CLI wrapper for commands in `.agents/skills/graphify/SKILL.md`.
+Codex Cloud setup and maintenance scripts and the trusted local Codex
+`SessionStart` hook initialize Graphify. If session startup did not initialize
+it, run `sh scripts/setup-graphify.sh` in the repository.
+For architecture and system-relationship questions, run
+`sh scripts/graphify-cli.sh query "question"` and read
+`graphify-out/GRAPH_REPORT.md` before searching application source.
+The wrapper repairs a missing installation or unusable graph.
+Use the repository wrapper for commands in `.agents/skills/graphify/SKILL.md`.

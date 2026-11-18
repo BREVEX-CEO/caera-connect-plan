@@ -1,0 +1,17 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|clear|fork",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "root=$(git rev-parse --show-toplevel) && sh \"$root/scripts/graphify-codex-start.sh\"",
+            "statusMessage": "Initializing the OCADE knowledge graph",
+            "timeout": 900
+          }
+        ]
+      }
+    ]
+  }
+}
