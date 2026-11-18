@@ -325,8 +325,26 @@ PAGE = """async ([source, width, height, tile, requireAlpha = true]) => {
 }"""
 
 
+# Chromium's own software renderer: used when the machine's graphics path gives WebGL no context
+# (hosted Windows runners without a GPU did, now and then: run 44191812891, windows-2025).
+SOFTWARE_GL = ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"]
+
+
 async def render(scene: dict, width: int, height: int, *, interchange: bool = False):
-    """Render in tiles and, when requested, sample that same scene into a glTF mesh."""
+    """Render in tiles and, when requested, sample that same scene into a glTF mesh.
+
+    The machine's own graphics path first; if it cannot draw, once more with Chromium's software
+    renderer. A scene that still cannot be drawn raises, and nothing is published.
+    """
+    try:
+        return await _render(scene, width, height, interchange, [])
+    except ValueError:
+        raise
+    except Exception:
+        return await _render(scene, width, height, interchange, SOFTWARE_GL)
+
+
+async def _render(scene: dict, width: int, height: int, interchange: bool, args: list[str]):
     from PIL import Image
     from playwright.async_api import async_playwright
 
@@ -334,7 +352,7 @@ async def render(scene: dict, width: int, height: int, *, interchange: bool = Fa
     async with async_playwright() as playwright:
         executable = os.environ.get("OCADE_BROWSER_EXECUTABLE")
         # Headless rendering needs no display; a stale DISPLAY would make Chromium drop WebGL.
-        options = {"headless": True, "env": {k: v for k, v in os.environ.items() if k != "DISPLAY"}}
+        options = {"headless": True, "args": args, "env": {k: v for k, v in os.environ.items() if k != "DISPLAY"}}
         if executable:
             browser = await playwright.chromium.launch(executable_path=executable, **options)
         else:
