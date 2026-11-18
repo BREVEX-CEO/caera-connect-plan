@@ -1,0 +1,7 @@
+runtime: JSPI=true Memory64=true isolated=true threads=2 chatTemplate=true modelBytes=363192800
+answer: "4"
+PASS  the artifact loads and answers correctly
+vision: imageInput=true ms=14677 answer="the image contains a red and blue square."
+PASS  the same artifact reads a known picture correctly
+graphics: requested=0 adapter=false
+NOTE  no graphics adapter here; the processor rung answered instead, which is the fallback behaving correctly. Re-run on GPU hardware for the graphics verdict.

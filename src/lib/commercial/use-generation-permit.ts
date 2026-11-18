@@ -293,7 +293,7 @@ async function beginOfflineBilledRequest(input: {
     });
   } catch (error) {
     if (input.explain) {
-      toast.error("Offline Intelligence is locked on this device.", {
+      toast.error("Offline Chat is locked on this device.", {
         description:
           /* The real reason when registration published one, rather than a guess. */
           deviceRegistrationProblem() === "device_limit"

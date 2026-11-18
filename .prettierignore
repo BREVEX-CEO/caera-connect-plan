@@ -18,3 +18,7 @@ OCADE_SYSTEM_PROMPT_REDESIGNED.md
 OCADE_Claude_Engineering_Lessons_and_Universal_Methods.md
 THIRD_PARTY_NOTICES.md
 docs/archive/
+
+# Installed by the graphify tool in its own layout.
+.claude/skills/graphify/
+graphify-out/

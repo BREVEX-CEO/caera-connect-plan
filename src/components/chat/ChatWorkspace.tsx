@@ -18,11 +18,14 @@ import { useIntelligenceQuality } from "@/lib/intelligence/use-intelligence-qual
  */
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { useEffect, useRef, useState, useSyncExternalStore, type MouseEvent } from "react";
+import { useEffect, useRef, useState, type MouseEvent } from "react";
 import { ArrowUp, ArrowLeft, ArrowRight, Mic, Plus, Square, X } from "lucide-react";
 import { AppShell } from "@/components/shell/AppShell";
 import { useSession } from "@/lib/session";
 import { offlineRelease } from "@/lib/brain/offline-release";
+import { useInstallation } from "@/lib/brain/use-installation";
+import { useOnline } from "@/lib/use-online";
+import { OfflineModeOffer, OfflineModeSetup } from "@/components/offline/OfflineModeSetup";
 import { useChat, type IntelligenceChoice } from "@/lib/chat/use-chat";
 import { useChatShortcuts } from "@/lib/chat/use-shortcuts";
 import { useDictation } from "@/lib/chat/use-dictation";
@@ -54,30 +57,6 @@ const closeMore = (event: MouseEvent<HTMLElement>) =>
   event.currentTarget.closest("details")?.removeAttribute("open");
 
 /**
- * Whether this browser currently has a network at all.
- *
- * `navigator.onLine` with its own events, through the subscription primitive
- * React already provides — no polling, no state to keep in sync, and correct
- * during hydration because the server snapshot says online. It answers "is
- * there a network", not "is OCADE reachable"; the router still probes the
- * boundary before routing anywhere.
- */
-function useOnline(): boolean {
-  return useSyncExternalStore(
-    (notify) => {
-      window.addEventListener("online", notify);
-      window.addEventListener("offline", notify);
-      return () => {
-        window.removeEventListener("online", notify);
-        window.removeEventListener("offline", notify);
-      };
-    },
-    () => navigator.onLine,
-    () => true,
-  );
-}
-
-/**
  * A message written before signing in is held here, in this tab, and sent once
  * afterwards. `docs/PRD.md` is explicit that it must be neither discarded
  * nor duplicated.
@@ -96,6 +75,12 @@ export function ChatWorkspace() {
   }, []);
   const [choice, setChoice] = useState<IntelligenceChoice>("auto");
   const online = useOnline();
+  const offlineInstall = useInstallation();
+  /*
+   * NO ENABLED OFFLINE CHAT COMPOSER UNTIL OFFLINE MODE IS READY (plan 14B.2).
+   * The setup panel stands where the composer would; the draft is kept.
+   */
+  const offlineGated = choice === "offline" && !offlineInstall.ready;
   const { quality, selectQuality } = useIntelligenceQuality(`${user?.id ?? ""}:${choice}`);
   // Standard was busy: High is offered once the person asks for it, and used only after its warning.
   const [offeringHigh, setOfferingHigh] = useState(false);
@@ -308,7 +293,7 @@ export function ChatWorkspace() {
 
   async function send() {
     const message = draft.trim();
-    if (!message) return;
+    if (!message || offlineGated) return;
 
     if (!user) {
       try {
@@ -471,10 +456,16 @@ export function ChatWorkspace() {
                 />
               ) : null}
 
+              {offlineGated ? (
+                <div className="px-1 py-1">
+                  <OfflineModeSetup signedIn={Boolean(user)} />
+                </div>
+              ) : null}
               <label className="sr-only" htmlFor="ocade-composer">
                 Message OCADE
               </label>
               <textarea
+                hidden={offlineGated}
                 id="ocade-composer"
                 ref={textarea}
                 rows={1}
@@ -517,7 +508,7 @@ export function ChatWorkspace() {
                 ) : null}
                 <IconButton
                   label="Attach a file"
-                  disabled={!user || pending.length >= MAX_ATTACHMENTS}
+                  disabled={!user || offlineGated || pending.length >= MAX_ATTACHMENTS}
                   title={user ? "Attach a file to this question" : "Sign in to attach a file"}
                   onClick={() => picker.current?.click()}
                 >
@@ -708,7 +699,7 @@ export function ChatWorkspace() {
                     <button
                       type="button"
                       onClick={() => void send()}
-                      disabled={draft.trim().length === 0}
+                      disabled={draft.trim().length === 0 || offlineGated}
                       aria-label="Send"
                       className="grid h-8 w-8 place-items-center rounded-md bg-primary text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-40"
                     >
@@ -796,7 +787,10 @@ export function ChatWorkspace() {
                 Sending needs an account. Your message is kept while you sign in.
               </p>
             ) : (
-              <LowAllowanceNotice signedIn={Boolean(user)} />
+              <>
+                <LowAllowanceNotice signedIn={Boolean(user)} />
+                {user && !offlineGated ? <OfflineModeOffer /> : null}
+              </>
             )}
           </div>
         </div>

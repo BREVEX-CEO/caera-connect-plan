@@ -109,13 +109,15 @@ const QUESTIONS: {
   },
   {
     category: "Chat",
-    question: "What is Offline Intelligence?",
-    words: "offline install model",
+    question: "What is Offline Mode?",
+    words: "offline mode setup chat no connection remove",
     answer: (
       <p>
-        OCADE prepares itself to answer on your device the first time you use Chat on supported
-        hardware. It installs once and is reused afterwards — a refresh, a new sign-in or an OCADE
-        update does not prepare it again. You can remove it at any time from Settings.
+        Offline Mode lets Chat answer on your device with no connection. Choose Set up Offline Mode
+        once while you are online; nothing is set up until you ask. It is set up once per browser
+        and every account that signs in to that browser reuses it, while each account&apos;s chats
+        stay private to that account. Your browser can clear offline files on its own, in which case
+        setup is needed again. Remove it at any time from Settings.
       </p>
     ),
   },

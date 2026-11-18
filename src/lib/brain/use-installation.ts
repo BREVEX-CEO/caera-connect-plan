@@ -84,6 +84,12 @@ export interface InstallationControls {
   reinstall: () => void;
   /** Re-check what is on disk and repair it. */
   repair: () => void;
+  /**
+   * Set up Offline Mode because the person asked: records acceptance for this
+   * browser profile and starts (or resumes) setup. Resolves false when every
+   * offline place on the account is already in use.
+   */
+  setUp: () => Promise<boolean>;
   remedies: InstallRemedy[];
 }
 
@@ -103,6 +109,11 @@ export function useInstallation(): InstallationControls {
     }, []),
     reinstall: useCallback(() => void authority().then((a) => a.reinstall()), []),
     repair: useCallback(() => void authority().then((a) => a.repair()), []),
+    setUp: useCallback(async () => {
+      if (!(await offlineAllowedHere())) return false;
+      void (await authority()).reinstall().then(holdAllowanceWhenReady);
+      return true;
+    }, []),
     remedies: state.remedies,
   };
 }

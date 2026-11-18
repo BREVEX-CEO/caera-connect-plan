@@ -592,3 +592,13 @@ kbd {
     font-size: 16px;
   }
 }
+
+/* Offline Mode setup: honest indeterminate progress while real work runs. */
+@keyframes ocade-indeterminate {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(300%);
+  }
+}

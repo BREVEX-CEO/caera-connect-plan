@@ -11,31 +11,38 @@
  * from a checkpoint; a handler that ignored `Range` would turn every
  * interruption into a restart and every install into a single stream.
  *
- * NOTHING HERE NAMES THE ARTIFACT. The object key is derived from the release
- * id, which is derived from the artifact's own digest. There is no file name to
- * leak, and the response carries none.
+ * ONE ARTIFACT, TWO OBJECTS. The release is the language weights followed by
+ * the vision projector (`release/OCADE_OFFLINE_RELEASE.json` `parts`). They are
+ * stored as two private objects and served as one byte range space, so the
+ * installer keeps its single resumable, digest-checked transfer. The response
+ * names neither object.
  */
 import { createFileRoute } from "@tanstack/react-router";
 import { verifyDelivery } from "@/lib/brain/delivery-signature";
+import { offlineRelease } from "@/lib/brain/offline-release";
+import {
+  OFFLINE_OBJECT_PREFIX,
+  concatenated,
+  matchParts,
+  slices,
+  type PartObject,
+  type R2Bucket,
+  type R2Range,
+} from "@/lib/brain/offline-objects.server";
 
-interface R2Range {
-  offset?: number;
-  length?: number;
-  suffix?: number;
-}
+/** Resolved once per isolate; the objects are immutable for a release. */
+const resolved = new Map<string, PartObject[]>();
 
-interface R2Object {
-  body: ReadableStream | null;
-  size: number;
-  writeHttpMetadata?: (headers: Headers) => void;
-}
-
-interface R2Bucket {
-  get(
-    key: string,
-    options?: { range?: R2Range; onlyIf?: unknown },
-  ): Promise<(R2Object & { range?: R2Range }) | null>;
-  head(key: string): Promise<{ size: number } | null>;
+async function partObjects(store: R2Bucket, releaseId: string): Promise<PartObject[] | null> {
+  const release = offlineRelease();
+  if (!release || release.releaseId !== releaseId) return null;
+  const known = resolved.get(releaseId);
+  if (known) return known;
+  const listing = await store.list({ prefix: OFFLINE_OBJECT_PREFIX });
+  if (listing.truncated) return null;
+  const parts = matchParts(listing.objects, release.parts);
+  if (parts) resolved.set(releaseId, parts);
+  return parts;
 }
 
 /**
@@ -95,20 +102,24 @@ export const Route = createFileRoute("/api/offline/bytes/$release")({
           });
         }
 
-        const key = `r/${releaseId}/a`;
-        const head = await store.head(key);
-        if (!head) return new Response(null, { status: 404 });
+        const parts = await partObjects(store, releaseId).catch(() => null);
+        if (!parts) return new Response(null, { status: 404 });
+        const size = parts.reduce((sum, part) => sum + part.size, 0);
 
-        const range = parseRange(request.headers.get("range"), head.size);
+        const range = parseRange(request.headers.get("range"), size);
         if (range === "unsatisfiable") {
           return new Response(null, {
             status: 416,
-            headers: { "content-range": `bytes */${head.size}` },
+            headers: { "content-range": `bytes */${size}` },
           });
         }
-
-        const object = await store.get(key, range ? { range } : undefined);
-        if (!object?.body) return new Response(null, { status: 404 });
+        const start = range
+          ? range.suffix !== undefined
+            ? size - range.suffix
+            : (range.offset ?? 0)
+          : 0;
+        const length = range ? (range.suffix ?? range.length ?? size - start) : size;
+        const body = concatenated(store, slices(parts, start, length));
 
         const headers = new Headers({
           "content-type": "application/octet-stream",
@@ -123,16 +134,12 @@ export const Route = createFileRoute("/api/offline/bytes/$release")({
           "x-content-type-options": "nosniff",
         });
 
+        headers.set("content-length", String(length));
         if (range) {
-          const start = range.suffix !== undefined ? head.size - range.suffix : (range.offset ?? 0);
-          const length = range.suffix ?? range.length ?? head.size - start;
-          headers.set("content-range", `bytes ${start}-${start + length - 1}/${head.size}`);
-          headers.set("content-length", String(length));
-          return new Response(object.body, { status: 206, headers });
+          headers.set("content-range", `bytes ${start}-${start + length - 1}/${size}`);
+          return new Response(body, { status: 206, headers });
         }
-
-        headers.set("content-length", String(head.size));
-        return new Response(object.body, { status: 200, headers });
+        return new Response(body, { status: 200, headers });
       },
     },
   },

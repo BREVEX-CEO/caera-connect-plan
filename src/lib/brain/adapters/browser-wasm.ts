@@ -7,7 +7,7 @@ import {
   type BrainStreamResult,
 } from "../adapter";
 import { BROWSER_SAMPLER } from "@/lib/brain/sampler-settings";
-import { OFFLINE_LABEL, formatSize, offlineRelease, type OfflineRelease } from "../offline-release";
+import { OFFLINE_LABEL, offlineRelease, type OfflineRelease } from "../offline-release";
 import { planThreads, readThreadSignals } from "../wasm-threads";
 
 /**
@@ -44,6 +44,9 @@ import { planThreads, readThreadSignals } from "../wasm-threads";
  */
 
 type WllamaModule = typeof import("@wllama/wllama");
+type ChatCompletionMessage = Parameters<
+  WllamaInstance["createChatCompletion"]
+>[0]["messages"][number];
 type WllamaInstance = InstanceType<WllamaModule["Wllama"]>;
 
 /**
@@ -142,10 +145,10 @@ export function estimateTokens(text: string): number {
 export function fitTranscript(messages: BrainMessage[], budget: number): BrainMessage[] | null {
   const system = messages.filter((m) => m.role === "system");
   const turns = messages.filter((m) => m.role !== "system");
-  let used = system.reduce((sum, m) => sum + estimateTokens(m.content), 0);
+  let used = system.reduce((sum, m) => sum + messageTokens(m), 0);
   const kept: BrainMessage[] = [];
   for (let i = turns.length - 1; i >= 0; i -= 1) {
-    const cost = estimateTokens(turns[i]!.content);
+    const cost = messageTokens(turns[i]!);
     if (used + cost > budget) break;
     used += cost;
     kept.unshift(turns[i]!);
@@ -160,6 +163,8 @@ export class BrowserWasmAdapter implements BrainAdapter {
   private instance: WllamaInstance | null = null;
   private loadedRelease: string | null = null;
   private cachedModel: OfflineRelease | null = null;
+  /** Whether the loaded engine accepted the vision projector; null before a load. */
+  private imageInput: boolean | null = null;
   private readonly weightsProvider?: () => Promise<Blob | null>;
   private readonly preferThreads: boolean;
   /** Layers to offload. 0 is the processor; the graphics rung asks for all. */
@@ -234,7 +239,7 @@ export class BrowserWasmAdapter implements BrainAdapter {
      */
     const model = offlineRelease();
     if (!model) {
-      return unavailable("Offline Intelligence is not available in this version of OCADE yet.");
+      return unavailable("Offline Mode is not available in this version of OCADE yet.");
     }
     let quotaBytes: number | null = null;
     try {
@@ -248,17 +253,12 @@ export class BrowserWasmAdapter implements BrainAdapter {
     // Weights already on this device need no room for another copy (F-077).
     const present = quotaBytes !== null && (await this.weightsProvider?.().catch(() => null));
     if (quotaBytes !== null && !present && quotaBytes < model.totalBytes) {
-      return unavailable(
-        `Offline Intelligence needs about ${formatSize(
-          model.totalBytes,
-        )} and this browser will only allow ${formatSize(quotaBytes)}.`,
-      );
+      // The measurement stays internal; the person is told only what to do.
+      return unavailable("Not enough free space to set up Offline Mode.");
     }
 
     if (deviceRefused(model.releaseId)) {
-      return unavailable(
-        "This device does not have enough memory for Offline Intelligence. OCADE answers online here.",
-      );
+      return unavailable("This device does not have enough memory for Offline Mode.");
     }
 
     this.cachedModel = model;
@@ -269,15 +269,20 @@ export class BrowserWasmAdapter implements BrainAdapter {
       // nothing else.
       modelId: model.releaseId,
       thinkingSuitable: model.thinkingSuitable,
-      capabilities: { text: true, vision: false, tools: false },
+      // The manifest's flag is a proof about the artifact; a loaded engine that
+      // did not accept the projector narrows it to what actually runs here.
+      capabilities: {
+        text: true,
+        vision: model.vision && this.imageInput !== false,
+        tools: false,
+      },
     };
   }
 
-  plan(): { model: OfflineRelease; downloadLabel: string; multiThreaded: boolean } | null {
+  plan(): { model: OfflineRelease; multiThreaded: boolean } | null {
     if (!this.cachedModel) return null;
     return {
       model: this.cachedModel,
-      downloadLabel: formatSize(this.cachedModel.totalBytes),
       /*
        * The real decision, not merely "SharedArrayBuffer exists". It can exist
        * on a page that is not isolated, where the threaded build cannot use it
@@ -329,7 +334,26 @@ export class BrowserWasmAdapter implements BrainAdapter {
     if (!availability.available) throw new Error(availability.reason);
     const chosen = this.plan();
     if (!chosen) throw new Error("No processor engine was selected for this device.");
-    await this.ensureLoaded(chosen.model);
+    const instance = await this.ensureLoaded(chosen.model);
+    /*
+     * A LOADED ENGINE IS NOT YET A WORKING ONE. Activation also asks for a few
+     * tokens, entirely on this device, so a release that loads but cannot
+     * generate here is refused before Offline Chat is offered.
+     */
+    try {
+      const reply = await instance.createChatCompletion({
+        stream: false,
+        messages: [{ role: "user", content: "Reply with the word ready." }],
+        max_tokens: 4,
+        temperature: 0,
+      });
+      if (!String(reply?.choices?.[0]?.message?.content ?? "").trim()) {
+        throw new Error("empty");
+      }
+    } catch {
+      await this.dispose();
+      throw new Error("Offline Mode could not start on this device.");
+    }
   }
 
   /**
@@ -365,8 +389,12 @@ export class BrowserWasmAdapter implements BrainAdapter {
        * broken. `warmup` is off for the same reason: it is a full forward pass
        * before anybody has asked anything.
        */
-      n_batch: 64,
-      n_ubatch: 64,
+      /*
+       * Large enough that one picture's tokens are encoded in a single batch:
+       * the projector refuses an image that spans batches.
+       */
+      n_batch: IMAGE_TOKENS,
+      n_ubatch: IMAGE_TOKENS,
       n_parallel: 1,
       warmup: false,
       /*
@@ -376,6 +404,11 @@ export class BrowserWasmAdapter implements BrainAdapter {
        */
       jinja: true,
       default_template_kwargs: { enable_thinking: false },
+      /*
+       * A picture costs at most this many tokens, so one image cannot crowd
+       * the conversation out of a phone-sized context.
+       */
+      image_max_tokens: IMAGE_TOKENS,
       /*
        * ZERO, EXPLICITLY, AND IT IS NOT REDUNDANT.
        *
@@ -474,14 +507,20 @@ export class BrowserWasmAdapter implements BrainAdapter {
      * product cannot see is storage the product cannot be honest about.
      */
     if (!this.weightsProvider) {
-      throw new Error("Offline Intelligence has not been prepared on this device yet.");
+      throw new Error("Offline Mode has not been set up on this device yet.");
     }
     const blob = await this.weightsProvider();
     if (!blob) {
       throw new Error("OCADE's prepared engine could not be read back from this device.");
     }
+    // The artifact is the language weights followed by the vision projector.
+    // `slice` is a view, not a copy, so this costs no memory.
+    const split = model.parts[0].bytes;
+    if (blob.size !== model.totalBytes) {
+      throw new Error("OCADE's prepared engine could not be read back from this device.");
+    }
     try {
-      await instance.loadModel([blob], this.loadParams());
+      await instance.loadModel([blob.slice(0, split), blob.slice(split)], this.loadParams());
     } catch (error) {
       // A partly started engine is released, and a device that cannot hold
       // this release is remembered, so Auto answers online instead of trying
@@ -489,15 +528,14 @@ export class BrowserWasmAdapter implements BrainAdapter {
       await instance.exit().catch(() => undefined);
       if (isAllocationFailure(error)) {
         rememberRefusal(model.releaseId);
-        throw new Error(
-          "This device does not have enough memory for Offline Intelligence. OCADE answers online here.",
-        );
+        throw new Error("This device does not have enough memory for Offline Mode.");
       }
       throw error;
     }
 
     this.instance = instance;
     this.loadedRelease = model.releaseId;
+    this.imageInput = instance.supportInputModality("image");
     return instance;
   }
 
@@ -514,11 +552,12 @@ export class BrowserWasmAdapter implements BrainAdapter {
     if (handlers.signal?.aborted) {
       return { ok: false, failure: "cancelled", reason: "Stopped." };
     }
-    if (messages.some((m) => (m.images?.length ?? 0) > 0)) {
+    const hasImages = messages.some((m) => (m.images?.length ?? 0) > 0);
+    if (hasImages && offlineRelease()?.vision !== true) {
       return {
         ok: false,
         failure: "unavailable",
-        reason: "Offline Intelligence cannot read images. Use Online for questions about an image.",
+        reason: "Offline Chat cannot read images on this device. Ask again when you are online.",
       };
     }
 
@@ -531,7 +570,7 @@ export class BrowserWasmAdapter implements BrainAdapter {
       return {
         ok: false,
         failure: "unavailable",
-        reason: "Offline Intelligence is not ready yet.",
+        reason: "Offline Mode is not ready yet.",
       };
     }
 
@@ -545,10 +584,10 @@ export class BrowserWasmAdapter implements BrainAdapter {
         ok: false,
         failure: "unavailable",
         reason:
-          "This message is too long for Offline Intelligence on this device. Shorten it or use Online.",
+          "This message is too long for Offline Chat on this device. Shorten it or use Online.",
       };
     }
-    const inputTokens = fitted.reduce((sum, m) => sum + estimateTokens(m.content), 0);
+    const inputTokens = fitted.reduce((sum, m) => sum + messageTokens(m), 0);
 
     let instance: WllamaInstance;
     try {
@@ -557,7 +596,14 @@ export class BrowserWasmAdapter implements BrainAdapter {
       return {
         ok: false,
         failure: "error",
-        reason: "Offline Intelligence could not start on this device. Try again.",
+        reason: "Offline Chat could not start on this device. Try again.",
+      };
+    }
+    if (hasImages && !this.imageInput) {
+      return {
+        ok: false,
+        failure: "unavailable",
+        reason: "Offline Chat cannot read images on this device. Ask again when you are online.",
       };
     }
 
@@ -579,6 +625,9 @@ export class BrowserWasmAdapter implements BrainAdapter {
         top_p: BROWSER_SAMPLER.topP,
         top_k: BROWSER_SAMPLER.topK,
         min_p: BROWSER_SAMPLER.minP,
+        // llama.cpp's own request key, which wllama forwards as JSON but does
+        // not declare; spread so the type does not reject it.
+        ...{ repeat_penalty: BROWSER_SAMPLER.repeatPenalty },
         /*
          * DELIBERATING IS OFF UNLESS IT IS ASKED FOR — AND ASKING NOW WORKS.
          *
@@ -600,7 +649,7 @@ export class BrowserWasmAdapter implements BrainAdapter {
         ...(wantsJsonOnly(fitted[fitted.length - 1]!.content)
           ? { response_format: { type: "json_object" as const } }
           : {}),
-        messages: fitted.map((m) => ({ role: m.role, content: m.content })),
+        messages: fitted.map(toEngineMessage),
       });
 
       for await (const chunk of stream) {
@@ -634,7 +683,7 @@ export class BrowserWasmAdapter implements BrainAdapter {
       return {
         ok: false,
         failure: "error",
-        reason: "Offline Intelligence stopped before it finished. Try again.",
+        reason: "Offline Chat stopped before it finished. Try again.",
       };
     } finally {
       // Its worker may still be producing; that output must reach nobody.
@@ -651,6 +700,36 @@ export class BrowserWasmAdapter implements BrainAdapter {
     this.instance = null;
     this.loadedRelease = null;
   }
+}
+
+/** Upper bound on one picture's tokens; also the batch size, see `loadParams`. */
+const IMAGE_TOKENS = 256;
+
+/** A turn's cost, counting each picture at its upper bound. */
+export function messageTokens(message: BrainMessage): number {
+  return estimateTokens(message.content) + (message.images?.length ?? 0) * IMAGE_TOKENS;
+}
+
+function base64Bytes(value: string): ArrayBuffer {
+  const binary = atob(value);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+  return bytes.buffer;
+}
+
+/** A turn as the engine takes it: pictures first, then the words about them. */
+export function toEngineMessage(message: BrainMessage): ChatCompletionMessage {
+  // Only the person's own turns carry pictures.
+  if (message.role !== "user" || !message.images?.length) {
+    return { role: message.role, content: message.content };
+  }
+  return {
+    role: "user",
+    content: [
+      ...message.images.map((image) => ({ type: "image" as const, data: base64Bytes(image) })),
+      { type: "text" as const, text: message.content },
+    ],
+  };
 }
 
 /*

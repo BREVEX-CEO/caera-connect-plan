@@ -15,16 +15,22 @@
  *
  * WHAT IT PRODUCES
  *
- *   release/OCADE_OFFLINE_RELEASE.json   opaque id, size, digest, runtime facts
- *   r/<releaseId>/a                      the bytes, in the private bucket
+ *   release/OCADE_OFFLINE_RELEASE.json   opaque id, sizes, digests, runtime facts
+ *   .artifact/artifact.bin               both parts back to back, for the proof
+ *   models/lfm25-vl-450m-q5/<digest>     each part, in the private bucket
+ *
+ * TWO PARTS, ONE ARTIFACT. The language weights and the vision projector are
+ * separate GGUF files. The browser receives them as one opaque artifact (the
+ * delivery route serves both objects as one byte range space), so the installer
+ * keeps a single resumable, digest-checked transfer. Each part's own digest is
+ * recorded; the whole-artifact digest pins both.
  *
  * THE RELEASE ID IS DERIVED FROM THE BYTES. `ocr-` plus the first sixteen hex
- * characters of the artifact's own SHA-256. It is stable, it reveals nothing,
- * and two different artifacts cannot collide on it by accident — which is what
- * makes the object path safe to serve immutable and safe to cache forever.
+ * characters of the artifact's own SHA-256.
  *
  * Usage (CI):
- *   OCADE_OFFLINE_SOURCE_URL=… OCADE_MODELS_BUCKET=… node scripts/build-offline-artifact.mjs
+ *   OCADE_OFFLINE_SOURCE_URL=… OCADE_OFFLINE_PROJECTOR_URL=… OCADE_MODELS_BUCKET=… \
+ *     node scripts/build-offline-artifact.mjs
  */
 import { createHash } from "node:crypto";
 import {
@@ -46,11 +52,17 @@ const WORK = path.join(process.cwd(), ".artifact");
 const BYTES = path.join(WORK, "artifact.bin");
 const MANIFEST = path.join(process.cwd(), "release", "OCADE_OFFLINE_RELEASE.json");
 
-const sourceUrl = (process.env.OCADE_OFFLINE_SOURCE_URL ?? "").trim();
+const sources = [
+  (process.env.OCADE_OFFLINE_SOURCE_URL ?? "").trim(),
+  (process.env.OCADE_OFFLINE_PROJECTOR_URL ?? "").trim(),
+];
+/** Server-side object prefix; must equal OFFLINE_OBJECT_PREFIX in offline-objects.server.ts. */
+const OBJECT_PREFIX = "models/lfm25-vl-450m-q5/";
 const bucket = (process.env.OCADE_MODELS_BUCKET ?? "").trim();
 const dryRun = process.argv.includes("--no-upload");
 
-if (!sourceUrl) fail("OCADE_OFFLINE_SOURCE_URL is not set.");
+if (!sources[0]) fail("OCADE_OFFLINE_SOURCE_URL is not set.");
+if (!sources[1]) fail("OCADE_OFFLINE_PROJECTOR_URL is not set.");
 if (!bucket && !dryRun) fail("OCADE_MODELS_BUCKET is not set.");
 
 function fail(message) {
@@ -66,58 +78,68 @@ mkdirSync(WORK, { recursive: true });
 
 /*
  * CACHED BYTES ARE REUSED ONLY WHEN THEY ARE KNOWN COMPLETE, FROM THIS SOURCE.
- * A record beside them names the source and the length it delivered; a file
- * left by another source or a cut-off transfer is fetched again (F-013).
+ * A record beside each part names the source and the length it delivered; a
+ * file left by another source or a cut-off transfer is fetched again (F-013).
  */
-const RECORD = `${BYTES}.source.json`;
-const cached = (() => {
-  try {
-    const record = JSON.parse(readFileSync(RECORD, "utf8"));
-    return record.url === sourceUrl && statSync(BYTES).size === record.bytes;
-  } catch {
-    return false;
-  }
-})();
-if (!cached) {
-  process.stdout.write("Reading the configured source…\n");
+async function fetchPart(sourceUrl, file) {
+  const record = `${file}.source.json`;
+  const cached = (() => {
+    try {
+      const saved = JSON.parse(readFileSync(record, "utf8"));
+      return saved.url === sourceUrl && statSync(file).size === saved.bytes;
+    } catch {
+      return false;
+    }
+  })();
+  if (cached) return;
+  process.stdout.write("Reading a configured source…\n");
   const response = await fetch(sourceUrl, { redirect: "follow" });
-  if (!response.ok || !response.body) fail(`The source answered ${response.status}.`);
+  if (!response.ok || !response.body) fail(`A source answered ${response.status}.`);
   const promised = Number(response.headers.get("content-length") ?? NaN);
-  const partial = `${BYTES}.partial`;
+  const partial = `${file}.partial`;
   await pipeline(Readable.fromWeb(response.body), createWriteStream(partial));
   const got = statSync(partial).size;
-  if (Number.isFinite(promised) && got !== promised) fail("The source transfer was cut short.");
-  renameSync(partial, BYTES);
-  writeFileSync(RECORD, JSON.stringify({ url: sourceUrl, bytes: got }));
+  if (Number.isFinite(promised) && got !== promised) fail("A source transfer was cut short.");
+  renameSync(partial, file);
+  writeFileSync(record, JSON.stringify({ url: sourceUrl, bytes: got }));
 }
 
-const totalBytes = statSync(BYTES).size;
-if (totalBytes < 64) fail("The source produced nothing usable.");
-
-/* ------------------------------------------------------ is it what we asked */
-
 /**
- * The structural check.
+ * The structural check, per part.
  *
  * Not a substitute for running it — the generation proof in the same workflow
- * does that — but it is the check that catches the failure that actually
- * happens: an HTML error page, a Git LFS pointer or a truncated transfer saved
- * under the right filename. Each of those is a perfectly valid file that is not
- * a model, and every one of them would otherwise be discovered by a customer.
+ * does that — but it catches the failure that actually happens: an HTML error
+ * page, a Git LFS pointer or a truncated transfer saved under the right name.
  */
 const CONTAINER_MAGIC = Buffer.from([0x47, 0x47, 0x55, 0x46]);
-const head = await readFirst(BYTES, 24);
-if (!head.subarray(0, 4).equals(CONTAINER_MAGIC)) fail("The source is not a model container.");
-const containerVersion = head.readUInt32LE(4);
-if (containerVersion !== 3) fail(`Unsupported container version ${containerVersion}.`);
-const tensorCount = Number(head.readBigUInt64LE(8));
-const metadataCount = Number(head.readBigUInt64LE(16));
-if (tensorCount < 1 || tensorCount > 10_000) fail("The container declares no usable tensors.");
-if (metadataCount < 1 || metadataCount > 10_000) fail("The container declares no metadata.");
+async function checkContainer(file) {
+  if (statSync(file).size < 64) fail("A source produced nothing usable.");
+  const head = await readFirst(file, 24);
+  if (!head.subarray(0, 4).equals(CONTAINER_MAGIC)) fail("A source is not a model container.");
+  const containerVersion = head.readUInt32LE(4);
+  if (containerVersion !== 3) fail(`Unsupported container version ${containerVersion}.`);
+  const tensorCount = Number(head.readBigUInt64LE(8));
+  const metadataCount = Number(head.readBigUInt64LE(16));
+  if (tensorCount < 1 || tensorCount > 10_000) fail("A container declares no usable tensors.");
+  if (metadataCount < 1 || metadataCount > 10_000) fail("A container declares no metadata.");
+}
 
-/* ------------------------------------------------------------ the digest -- */
+const PART_FILES = [path.join(WORK, "part-0.bin"), path.join(WORK, "part-1.bin")];
+const parts = [];
+for (const [index, file] of PART_FILES.entries()) {
+  await fetchPart(sources[index], file);
+  await checkContainer(file);
+  parts.push({ bytes: statSync(file).size, sha256: await digestOf(file) });
+}
 
-process.stdout.write("Hashing…\n");
+/* ------------------------------------------------------ the whole artifact -- */
+
+process.stdout.write("Joining and hashing…\n");
+await pipeline(async function* () {
+  for (const file of PART_FILES) yield* createReadStream(file);
+}, createWriteStream(BYTES));
+const totalBytes = statSync(BYTES).size;
+if (totalBytes !== parts[0].bytes + parts[1].bytes) fail("The joined artifact has the wrong size.");
 const sha256 = await digestOf(BYTES);
 const releaseId = `ocr-${sha256.slice(0, 16)}`;
 
@@ -132,21 +154,37 @@ const releaseId = `ocr-${sha256.slice(0, 16)}`;
  * needs and how much memory running it needs.
  */
 const manifest = {
-  schemaVersion: 2,
+  schemaVersion: 3,
   releaseId,
   totalBytes,
   sha256,
+  /** Language weights, then the vision projector. */
+  parts,
   /** Tokens of context the engine is configured for. */
   contextTokens: 4096,
   /** Working set while running, measured generously. Weights plus KV cache. */
   requiredMemoryBytes: 900 * 1024 * 1024,
   /**
-   * Whether deliberating before answering earns its cost here. False: on a
-   * device this size extra reasoning tokens lengthen the wait without improving
-   * the answer, which reads as a hung page.
+   * Whether deliberating before answering earns its cost here. False: this
+   * release has no deliberation mode, and on a device this size extra tokens
+   * lengthen the wait without improving the answer.
    */
   thinkingSuitable: false,
+  /**
+   * Set only by `prove-offline-artifact.mjs --record` after its image PASS,
+   * and kept on a rebuild of the same bytes, whose release id is unchanged.
+   */
+  vision: previousVision(releaseId),
 };
+
+function previousVision(id) {
+  try {
+    const previous = JSON.parse(readFileSync(MANIFEST, "utf8"));
+    return previous.releaseId === id && previous.vision === true;
+  } catch {
+    return false;
+  }
+}
 
 mkdirSync(path.dirname(MANIFEST), { recursive: true });
 await writeFile(MANIFEST, `${JSON.stringify(manifest, null, 2)}\n`);
@@ -160,32 +198,29 @@ if (dryRun) {
 }
 
 /*
- * ONE OPAQUE OBJECT, SERVED IN RANGES.
- *
- * Not a directory of numbered shards. The installer already downloads in
- * adaptive parallel ranges, resumes an interrupted one, and checkpoints its
- * digest at chunk boundaries — so pre-splitting the file would add a second
- * naming scheme, a second manifest section and a second failure mode to get
- * behaviour the range plan already has. A range piece is opaque by
- * construction: it has no name at all.
+ * EACH PART UNDER THE SERVER'S PREFIX, NAMED BY ITS OWN DIGEST. The delivery
+ * route finds a part by its exact size there and serves both as one range
+ * space, so no second naming scheme reaches the browser.
  */
-const put = spawnSync(
-  "npx",
-  [
-    "wrangler",
-    "r2",
-    "object",
-    "put",
-    `${bucket}/r/${releaseId}/a`,
-    "--file",
-    BYTES,
-    "--content-type",
-    "application/octet-stream",
-    "--remote",
-  ],
-  { stdio: "inherit" },
-);
-if (put.status !== 0) fail("The private upload did not complete.");
+for (const [index, file] of PART_FILES.entries()) {
+  const put = spawnSync(
+    "npx",
+    [
+      "wrangler",
+      "r2",
+      "object",
+      "put",
+      `${bucket}/${OBJECT_PREFIX}${parts[index].sha256}`,
+      "--file",
+      file,
+      "--content-type",
+      "application/octet-stream",
+      "--remote",
+    ],
+    { stdio: "inherit" },
+  );
+  if (put.status !== 0) fail("The private upload did not complete.");
+}
 
 /*
  * The manifest is NOT uploaded beside the bytes. It is committed, reviewed in a

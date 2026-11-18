@@ -296,7 +296,7 @@ async function* exportText(admin: DynamicTableClient, userId: string): AsyncGene
   const notes = [
     "This file contains the data OCADE holds for this account in its own database.",
     "Anything OCADE never received is not in here — a draft you never sent, or a file you never uploaded.",
-    "Offline Intelligence is a model on your device, not account data, and is unaffected by an export or a deletion.",
+    "Offline Mode is set up per browser, not per account: it holds none of your account data and is unaffected by an export. Deleting your account leaves it in place unless you choose to remove it.",
     "Not included: security credentials (recovery-code hashes, device keys, short-lived permits) and OCADE's own operator records.",
     partial
       ? "At least one table could not be read; every table that failed says so in its own entry."

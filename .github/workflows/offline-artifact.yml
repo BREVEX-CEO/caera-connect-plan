@@ -1,7 +1,8 @@
 name: Prepare an Offline Intelligence release
 
-# Builds one Offline Intelligence release, proves it answers a question in a
-# real browser, and puts it in OCADE's private bucket under an opaque id.
+# Builds one Offline Mode release (language weights plus vision projector),
+# proves it answers a question and reads a picture in a real browser, and puts
+# both parts in OCADE's private bucket.
 #
 # WHY THE SOURCE IS A SECRET. Where the upstream weights are built from is
 # deployment configuration. It is not in tracked source, it is not an input
@@ -35,6 +36,7 @@ jobs:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       OCADE_OFFLINE_SOURCE_URL: ${{ secrets.OCADE_OFFLINE_SOURCE_URL }}
+      OCADE_OFFLINE_PROJECTOR_URL: ${{ secrets.OCADE_OFFLINE_PROJECTOR_URL }}
       OCADE_MODELS_BUCKET: ocade-private-models
     steps:
       - name: Check out this branch
@@ -55,12 +57,12 @@ jobs:
       - name: Build the artifact and write the manifest
         run: node scripts/build-offline-artifact.mjs --no-upload
 
-      - name: Prove the artifact actually answers
+      - name: Prove the artifact answers and reads a picture
         env:
           PLAYWRIGHT_CHROMIUM: ""
         run: |
           PLAYWRIGHT_CHROMIUM="$(node -e "console.log(require('playwright-core').chromium.executablePath())")" \
-            node scripts/prove-offline-artifact.mjs
+            node scripts/prove-offline-artifact.mjs --record
 
       - name: Publish it privately
         run: node scripts/build-offline-artifact.mjs

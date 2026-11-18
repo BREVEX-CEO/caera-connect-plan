@@ -455,11 +455,13 @@ export function PrivacyContent() {
           on devices where you sign in. Temporary Chat is not saved.
         </p>
         <p>
-          Two categories remain on the device. Offline Intelligence model data is stored on the
-          machine it was installed on and is not workspace content; it persists until you remove it,
-          including after signing out or deleting your account. Device preferences — such as theme,
-          language, interface layout and an unsent message draft — are stored in that browser
-          because they describe that device rather than you.
+          Two categories remain on the device. Offline Mode files are stored once in the browser
+          where it was set up, are shared by every account that uses that browser, and contain no
+          account content; they persist until you remove them in Settings, including after signing
+          out or deleting your account unless you choose to remove them then, or until the browser
+          clears its site data. Device preferences — such as theme, language, interface layout and
+          an unsent message draft — are stored in that browser because they describe that device
+          rather than you.
         </p>
         <p>
           OCADE may keep the minimum local pending information needed to finish synchronizing saved

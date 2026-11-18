@@ -24,6 +24,7 @@ import {
 } from "@/jarvis/preferences";
 import { pickVoice } from "@/jarvis/use-voice";
 import { useSession } from "@/lib/session";
+import { useInstallation } from "@/lib/brain/use-installation";
 import { AdvancedSection } from "./AdvancedSection";
 import { SignInMethods } from "./SignInMethods";
 import { TwoStep } from "./TwoStep";
@@ -174,6 +175,9 @@ function AccountSettings() {
   const [problem, setProblem] = useState<string | null>(null);
   const [receipt, setReceipt] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  /* Unchecked by default: Offline Mode belongs to the browser, not the account. */
+  const [removeOffline, setRemoveOffline] = useState(false);
+  const offline = useInstallation();
   const { withProof, dialog } = useConfirmIdentity();
 
   return (
@@ -213,47 +217,77 @@ function AccountSettings() {
         description={
           receipt ??
           problem ??
-          "Everything on this account goes, permanently. Offline Intelligence on your devices is left alone."
+          "Everything on this account goes, permanently. Offline Mode stays set up in this browser unless you choose to remove it."
         }
       >
         {receipt ? null : asking ? (
-          <div className="flex w-full items-center gap-2">
-            <input
-              value={phrase}
-              onChange={(event) => setPhrase(event.target.value)}
-              aria-label="Type DELETE MY ACCOUNT to confirm"
-              placeholder={DELETE_CONFIRMATION}
-              className="h-8 w-full min-w-0 rounded-md border border-border bg-transparent px-2.5 text-sm text-foreground outline-none focus-visible:border-ring sm:w-44"
-            />
-            <Action
-              label={deleting ? "Deleting…" : "Delete"}
-              busy={deleting || phrase.trim().toUpperCase() !== DELETE_CONFIRMATION}
-              destructive
-              onClick={async () => {
-                setDeleting(true);
-                setProblem(null);
-                try {
-                  const result = await withProof(() =>
-                    deleteMyAccount({ data: { confirmation: phrase } }),
-                  );
-                  setReceipt(`Deleted. Your reference is ${result.receipt.reference}.`);
-                } catch (error) {
-                  setProblem(error instanceof Error ? error.message : "That could not be done.");
-                } finally {
-                  setDeleting(false);
-                }
-              }}
-            />
-            <button
-              type="button"
-              onClick={() => {
-                setAsking(false);
-                setPhrase("");
-              }}
-              className="h-8 rounded-md px-3 text-sm text-muted-foreground transition-colors hover:text-foreground"
-            >
-              Keep
-            </button>
+          <div className="flex w-full flex-col gap-2">
+            <div className="flex w-full items-center gap-2">
+              <input
+                value={phrase}
+                onChange={(event) => setPhrase(event.target.value)}
+                aria-label="Type DELETE MY ACCOUNT to confirm"
+                placeholder={DELETE_CONFIRMATION}
+                className="h-8 w-full min-w-0 rounded-md border border-border bg-transparent px-2.5 text-sm text-foreground outline-none focus-visible:border-ring sm:w-44"
+              />
+              <Action
+                label={deleting ? "Deleting…" : "Delete"}
+                busy={deleting || phrase.trim().toUpperCase() !== DELETE_CONFIRMATION}
+                destructive
+                onClick={async () => {
+                  setDeleting(true);
+                  setProblem(null);
+                  try {
+                    const result = await withProof(() =>
+                      deleteMyAccount({ data: { confirmation: phrase } }),
+                    );
+                    // Only after the account's own deletion is accepted, and only when asked.
+                    const offlineRemoved = removeOffline
+                      ? await offline.uninstall().then(
+                          () => true,
+                          () => false,
+                        )
+                      : null;
+                    setReceipt(
+                      `Deleted. Your reference is ${result.receipt.reference}.` +
+                        (offlineRemoved === false
+                          ? " Offline Mode could not be removed from this browser; remove it in Settings."
+                          : offlineRemoved
+                            ? " Offline Mode was removed from this browser."
+                            : ""),
+                    );
+                  } catch (error) {
+                    setProblem(error instanceof Error ? error.message : "That could not be done.");
+                  } finally {
+                    setDeleting(false);
+                  }
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  setAsking(false);
+                  setPhrase("");
+                }}
+                className="h-8 rounded-md px-3 text-sm text-muted-foreground transition-colors hover:text-foreground"
+              >
+                Keep
+              </button>
+            </div>
+            <label className="flex items-start gap-2 text-[13px] text-muted-foreground">
+              <input
+                type="checkbox"
+                checked={removeOffline}
+                onChange={(event) => setRemoveOffline(event.target.checked)}
+                className="mt-0.5"
+              />
+              <span>
+                Also remove Offline Mode from this browser
+                {removeOffline
+                  ? ". Offline Chat stops working here for every account that uses this browser; other accounts' chats are not deleted."
+                  : ""}
+              </span>
+            </label>
           </div>
         ) : (
           <Action label="Delete" destructive onClick={() => setAsking(true)} />

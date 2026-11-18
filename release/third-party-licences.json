@@ -286,6 +286,6 @@
     }
   },
   "ownerReview": {
-    "Offline Intelligence model (release ocr-2dc0ee44eb397906, release/OCADE_OFFLINE_RELEASE.json)": "The repository records only the artifact digest, not the model or its licence. The owner records both here before the offline model is distributed commercially."
+    "Offline Mode model (release ocr-20564d74721fa009, release/OCADE_OFFLINE_RELEASE.json)": "LFM2.5-VL-450M (language weights Q5_K_M and vision projector Q8_0) is under the LFM Open License v1.0: commercial use is licensed only while the licensee's annual revenue is below USD 10 million, and redistribution must give recipients a copy of the licence (section 4a). The owner confirms eligibility and how the licence copy reaches customers before Offline Mode is distributed commercially."
   }
 }

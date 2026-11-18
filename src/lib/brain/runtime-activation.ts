@@ -104,7 +104,12 @@ async function startWasm(
   } catch (error) {
     return {
       ok: false,
-      reason: error instanceof Error ? error.message : "The processor engine could not start.",
+      // OCADE's own sentences pass through; an engine's internal error text does not.
+      reason:
+        error instanceof Error &&
+        /^(Offline Mode|This device does not have enough memory)/.test(error.message)
+          ? error.message
+          : "Offline Mode could not start on this device.",
     };
   }
 }
@@ -155,7 +160,7 @@ export function authorityBackedAdapter(): BrainAdapter {
          * engine is not missing; it has not finished being prepared, and the
          * setup surface is already saying so with a percentage.
          */
-        reason: "OCADE is still preparing this device.",
+        reason: "Offline Mode is still being set up.",
       };
     },
     async preload() {
@@ -169,7 +174,7 @@ export function authorityBackedAdapter(): BrainAdapter {
         return {
           ok: false as const,
           failure: "unavailable" as const,
-          reason: "OCADE is still preparing this device.",
+          reason: "Offline Mode is still being set up.",
         };
       }
       return adapter.stream(messages, handlers);

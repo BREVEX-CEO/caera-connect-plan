@@ -16,33 +16,22 @@ import {
   recordOnlineConsent,
 } from "@/lib/intelligence/online-consent.functions";
 import { Action, Confirm, Row } from "./rows";
+import { OfflineModeSetup } from "@/components/offline/OfflineModeSetup";
+import { readSetupAcceptance } from "@/lib/brain/installation-state";
 
 /**
  * DATA CONTROLS: WHAT THIS DEVICE HOLDS, AND WHAT THIS ACCOUNT HOLDS.
  *
  * Two things a person may want to get rid of, and they are genuinely different:
- * Offline Intelligence is bytes on THIS device that cost nothing to fetch again,
- * and a Library is content on the ACCOUNT that nothing can bring back. They sit
- * on one screen because that is where somebody looks for either, and their
+ * Offline Mode is files in THIS browser, shared by every account on it, and a
+ * Library is content on the ACCOUNT that nothing can bring back. Their
  * confirmations are separate because their consequences are.
  *
- * OFFLINE INTELLIGENCE, AS THE PERSON WHO OWNS THE DEVICE SEES IT.
- *
- * Until now nobody could see it. The whole lifecycle was built, tested and
- * running — preparing on the first visit, downloading in parallel, resuming,
- * verifying, repairing — with no screen anywhere, so the one control `PLAN.md`
- * insists on ("only explicit Remove deletes it") could not be pressed and the
- * state it publishes could not be read. The reachability gate said so.
- *
- * WHAT IT MAY SAY. `PLAN.md` Phase 7 fixes the vocabulary: Preparing OCADE,
- * Downloading <percent>, Verifying, Ready, Repairing, Removed. The line comes
- * from `describeInstall`, which is the one authority for it — no second
- * opinion is composed here, and nothing on this screen names a model, a
- * runtime, a vendor, a file or a size.
- *
- * REMOVE IS DELIBERATE AND STAYS DELIBERATE. It asks once, because it throws
- * away something that took a while to fetch; and afterwards nothing reinstalls
- * automatically until the person presses Install.
+ * OFFLINE MODE. Its words come from `OfflineModeSetup` and `describeInstall`,
+ * the one authority for them; nothing on this screen names a model, a
+ * runtime, a vendor, a file or a size, or says "download" (plan 14B.2).
+ * Settings is the only place Offline Mode can be removed. Removal asks once,
+ * and afterwards nothing sets itself up again until somebody asks.
  */
 export function DataControlsSection() {
   return (
@@ -50,7 +39,7 @@ export function DataControlsSection() {
       <ConversationsSection />
       <LibrarySection />
       <ExportSection />
-      <OfflineIntelligenceSection />
+      <OfflineModeSection />
       <OnlineConsentSection />
     </div>
   );
@@ -231,19 +220,15 @@ function LibrarySection() {
   );
 }
 
-function OfflineIntelligenceSection() {
+function OfflineModeSection() {
   const install = useInstallation();
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
-  const removed = install.state.stage === "idle" && install.state.detail !== null;
   /*
-   * READY MEANS READY TO ANSWER, NOT MERELY DOWNLOADED.
+   * READY MEANS READY TO ANSWER, NOT MERELY SET UP.
    *
-   * The artifact's lifecycle and this browser's offline allocation were two
-   * independent authorities on the same screen, so Settings could say "Ready"
-   * here while Usage & Limits said OCADE cannot answer offline in this browser
-   * at all. Both are true of different things and the pair is a lie about the
-   * product, so readiness is stated once, from both.
+   * The installation and this browser's offline allocation are two
+   * authorities, so readiness is stated once, from both.
    */
   const { user } = useSession();
   const account = user?.id ?? null;
@@ -252,90 +237,63 @@ function OfflineIntelligenceSection() {
     () => deviceRegistrationProblem(account),
     () => null,
   );
-  const line =
-    install.ready && allocation
-      ? allocation === "device_limit"
-        ? "Installed, but this browser has no offline place on your account"
-        : "Installed, but its allowance could not be reserved yet"
-      : install.line;
+  // Removal is offered whenever something of Offline Mode may be here.
+  const removable =
+    install.ready ||
+    install.preparing ||
+    install.state.stage === "paused" ||
+    install.state.stage === "recoverable_error" ||
+    readSetupAcceptance() !== null;
 
   return (
     <div>
       <Row
-        label="Offline Intelligence"
+        label="Offline Mode"
         description={
           install.ready && allocation === "device_limit"
-            ? "OCADE is on this device, but every offline place on your account is taken. Remove a device under Usage & Limits to answer without a network here."
-            : "OCADE can answer on this device, with no network. It prepares itself once and is reused after that."
+            ? "Offline Mode is set up, but every offline place on your account is taken. Remove a device under Usage & Limits to chat with no connection here."
+            : install.ready && allocation
+              ? "Offline Mode is set up, but its allowance could not be reserved yet."
+              : "Chat on this device with no connection. Set up once per browser; every account on this browser reuses it, and each account's chats stay private."
         }
-      >
-        <span className="text-sm text-foreground" role="status">
-          {line}
-        </span>
-      </Row>
+      />
+      <div className="pb-4">
+        <OfflineModeSetup signedIn={Boolean(user)} />
+      </div>
 
-      {install.state.stage === "downloading" && install.state.fraction !== null ? (
-        <div
-          className="h-1 w-full overflow-hidden rounded-full bg-secondary"
-          role="progressbar"
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-valuenow={Math.round(install.state.fraction * 100)}
-          aria-label="Downloading"
+      {removable ? (
+        <Row
+          label="Remove Offline Mode"
+          description={
+            confirming
+              ? "This removes Offline Mode from this browser for every account that uses it. Chats are not deleted. Nothing sets itself up again until someone asks."
+              : "Remove it from this browser. It stays off until you set it up again."
+          }
         >
-          <div
-            className="h-full bg-primary transition-[width]"
-            style={{ width: `${Math.round(install.state.fraction * 100)}%` }}
-          />
-        </div>
+          {confirming ? (
+            <Confirm
+              label="Remove Offline Mode"
+              busy={busy}
+              onConfirm={async () => {
+                setBusy(true);
+                await install.uninstall();
+                setBusy(false);
+                setConfirming(false);
+              }}
+              onCancel={() => setConfirming(false)}
+            />
+          ) : (
+            <Action label="Remove" onClick={() => setConfirming(true)} />
+          )}
+        </Row>
       ) : null}
-
-      <Row
-        label={removed ? "Install" : "Remove"}
-        description={
-          removed
-            ? "Put OCADE's offline intelligence back on this device."
-            : "Delete it from this device. Nothing reinstalls until you ask for it again."
-        }
-      >
-        {removed ? (
-          <Action
-            label="Install"
-            busy={busy}
-            onClick={() => {
-              setBusy(true);
-              install.reinstall();
-              setBusy(false);
-            }}
-          />
-        ) : confirming ? (
-          <Confirm
-            label="Remove"
-            busy={busy}
-            onConfirm={async () => {
-              setBusy(true);
-              await install.uninstall();
-              setBusy(false);
-              setConfirming(false);
-            }}
-            onCancel={() => setConfirming(false)}
-          />
-        ) : (
-          <Action label="Remove" onClick={() => setConfirming(true)} />
-        )}
-      </Row>
 
       {/*
         REPAIR IS OFFERED ONLY WHEN SOMETHING IS WRONG. A permanent "Repair"
-        button invites people to repair a device that is fine, which costs them
-        a re-verification of a gigabyte to be told what the line above already
-        said.
+        button invites people to repair a browser that is fine.
       */}
       {install.remedies.includes("retry") ? (
-        <Row
-          label="Repair"
-          description="Check what is on this device and fetch only what is missing."
-        >
+        <Row label="Repair" description="Check Offline Mode and fetch only what is missing.">
           <Action label="Repair" onClick={install.repair} />
         </Row>
       ) : null}

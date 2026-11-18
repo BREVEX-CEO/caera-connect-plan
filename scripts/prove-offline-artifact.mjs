@@ -1,15 +1,21 @@
 #!/usr/bin/env node
 /**
- * PROVE THAT THIS EXACT ARTIFACT ANSWERS A QUESTION.
+ * PROVE THAT THIS EXACT ARTIFACT ANSWERS A QUESTION AND READS AN IMAGE.
  *
- * This test proves the local release artifact itself can load and infer in the
- * same browser/Wllama runtime used by OCADE. It deliberately bypasses model
- * download/cache plumbing: delivery is proved separately against the real
- * authorized endpoint.
+ * The release is one opaque artifact holding two GGUF parts back to back: the
+ * language weights, then the vision projector. The manifest names where the
+ * first part ends. This loads both parts in the same browser/wllama runtime
+ * OCADE uses, asks a text question, then shows it a picture drawn in the page
+ * and asks what it shows. The manifest's `vision` flag may be set only from a
+ * PASS here.
  *
- * Usage: node scripts/prove-offline-artifact.mjs [path/to/artifact.bin]
+ * It deliberately bypasses download/cache plumbing: delivery is proved
+ * separately against the real authorized endpoint.
+ *
+ * Usage: node scripts/prove-offline-artifact.mjs [path/to/artifact.bin] [--cpu-only] [--record]
+ *   --record  on a full PASS, set `vision: true` in the manifest.
  */
-import { createReadStream, statSync } from "node:fs";
+import { createReadStream, readFileSync, statSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
 import path from "node:path";
 import { chromium } from "playwright-core";
@@ -26,6 +32,18 @@ const PROOF_TIMEOUT_MS = 600_000;
 const ARTIFACT_SIZE = statSync(ARTIFACT).size;
 /** Reproduce processor-only conditions deliberately rather than by accident. */
 const CPU_ONLY = process.argv.includes("--cpu-only");
+
+const MANIFEST_PATH = path.join(ROOT, "release", "OCADE_OFFLINE_RELEASE.json");
+const MANIFEST = JSON.parse(readFileSync(MANIFEST_PATH, "utf8"));
+const RECORD = process.argv.includes("--record");
+const PARTS = Array.isArray(MANIFEST.parts) ? MANIFEST.parts : [];
+if (PARTS.length !== 2 || PARTS[0].bytes + PARTS[1].bytes !== ARTIFACT_SIZE) {
+  process.stderr.write(
+    "The manifest must describe exactly two parts whose sizes add up to this artifact.\n",
+  );
+  process.exit(2);
+}
+const SPLIT = PARTS[0].bytes;
 
 const TYPES = {
   ".js": "text/javascript; charset=utf-8",
@@ -46,8 +64,6 @@ const PAGE = `<!doctype html><meta charset="utf-8"><title>OCADE offline proof</t
 import { Wllama } from "/node_modules/@wllama/wllama/esm/index.js";
 
 const GPU_LAYERS = ${CPU_ONLY ? 0 : 99};
-const OPEN_TAG = "<think>";
-const CLOSE_TAG = "</think>";
 
 const supportsMemory64 = () => {
   try {
@@ -57,6 +73,18 @@ const supportsMemory64 = () => {
     return false;
   }
 };
+
+/* A picture whose content is known: a red page with a large blue square. */
+async function knownPicture() {
+  const canvas = new OffscreenCanvas(256, 256);
+  const context = canvas.getContext("2d");
+  context.fillStyle = "#ff0000";
+  context.fillRect(0, 0, 256, 256);
+  context.fillStyle = "#0000ff";
+  context.fillRect(64, 64, 128, 128);
+  const png = await canvas.convertToBlob({ type: "image/png" });
+  return png.arrayBuffer();
+}
 
 window.__prove = async () => {
   const diagnostics = {
@@ -78,13 +106,14 @@ window.__prove = async () => {
   if (!modelResponse.ok) {
     throw new Error("Artifact fetch failed with HTTP " + modelResponse.status + ".");
   }
-  const modelBlob = await modelResponse.blob();
-  if (modelBlob.size !== ${ARTIFACT_SIZE}) {
+  const whole = await modelResponse.blob();
+  if (whole.size !== ${ARTIFACT_SIZE}) {
     throw new Error(
-      "Artifact byte count changed: expected ${ARTIFACT_SIZE}, received " + modelBlob.size + ".",
+      "Artifact byte count changed: expected ${ARTIFACT_SIZE}, received " + whole.size + ".",
     );
   }
-  diagnostics.modelBytes = modelBlob.size;
+  diagnostics.modelBytes = whole.size;
+  const parts = [whole.slice(0, ${SPLIT}), whole.slice(${SPLIT})];
 
   const wasm = "/node_modules/@wllama/wllama/esm/wasm/wllama.wasm";
   const engine = new Wllama(
@@ -98,14 +127,6 @@ window.__prove = async () => {
   const threads = diagnostics.crossOriginIsolated && diagnostics.sharedArrayBuffer ? 2 : 1;
   diagnostics.threads = threads;
 
-  /*
-   * THE GRAPHICS RUNG, ASKED FOR HONESTLY.
-   *
-   * wllama 3.5.1 ships one wllama.wasm built with llama.cpp's ggml-webgpu
-   * backend, so the same file runs on the card or the processor depending only
-   * on n_gpu_layers. Asking for an adapter is what decides whether this run can
-   * even try; the load below is what decides whether it works.
-   */
   diagnostics.gpuRequested = !GPU_LAYERS ? 0 : GPU_LAYERS;
   diagnostics.gpuAdapter = false;
   try {
@@ -115,21 +136,15 @@ window.__prove = async () => {
   }
 
   try {
-    await engine.loadModel([modelBlob], {
-      n_ctx: 512,
-      n_batch: 64,
-      n_ubatch: 64,
+    await engine.loadModel(parts, {
+      // The product's own load parameters (browser-wasm.ts loadParams).
+      n_ctx: 2048,
+      n_batch: 256,
+      n_ubatch: 256,
+      image_max_tokens: 256,
       n_threads: threads,
       n_gpu_layers: diagnostics.gpuAdapter ? GPU_LAYERS : 0,
       n_parallel: 1,
-      /*
-       * Loaded exactly as the product loads it. This used to pass
-       * reasoning:false and a zero reasoning budget, which suppressed
-       * deliberation at load time — so the proof could never have observed
-       * thinking even once it was asked for, and it proved the artifact under
-       * conditions the adapter does not apply.
-       */
-      default_template_kwargs: { enable_thinking: false },
       warmup: false,
       jinja: true,
       seed: 42,
@@ -139,111 +154,52 @@ window.__prove = async () => {
     if (!diagnostics.hasChatTemplate) {
       throw new Error("The GGUF has no embedded chat template; refusing to treat raw generation as a chat proof.");
     }
+    diagnostics.imageInput = engine.supportInputModality("image");
 
     const response = await engine.createChatCompletion({
-      messages: [
-        {
-          role: "user",
-          content: "What is 2 + 2? Answer with the number only.",
-        },
-      ],
+      messages: [{ role: "user", content: "What is 2 + 2? Answer with the number only." }],
       max_tokens: 16,
-      temperature: 0.7,
-      top_p: 0.8,
-      top_k: 20,
-      min_p: 0,
+      // The product's sampler (src/lib/brain/sampler-settings.ts).
+      temperature: 0.1,
+      top_p: 1,
+      top_k: 0,
+      min_p: 0.15,
+      repeat_penalty: 1.05,
       seed: 42,
-      chat_template_kwargs: { enable_thinking: false },
       stream: false,
     });
-
     const answer = String(response?.choices?.[0]?.message?.content ?? "").trim();
 
-    /*
-     * THE SAME WEIGHTS, DELIBERATING.
-     *
-     * Qwen3 carries both modes in one artifact and the chat template chooses
-     * between them, so this is the proof that enable_thinking:true genuinely
-     * produces a reasoning block on THIS file in THIS runtime — not an
-     * assumption from the model card. The manifest thinkingSuitable flag may
-     * only be set from this result.
-     *
-     * The budget is deliberately generous and the question deliberately small:
-     * what is being proven is that deliberation happens and still arrives at
-     * the right answer, not how fast it is on this machine.
-     */
-    const thinkingStartedAt = Date.now();
-    const deliberated = await engine.createChatCompletion({
-      messages: [{ role: "user", content: "What is 2 + 2? Answer with the number only." }],
-      max_tokens: 512,
-      temperature: 0.7,
-      top_p: 0.8,
-      top_k: 20,
-      min_p: 0,
-      seed: 42,
-      chat_template_kwargs: { enable_thinking: true },
-      stream: false,
-    });
-    diagnostics.thinkingMs = Date.now() - thinkingStartedAt;
+    let imageAnswer = "";
+    if (diagnostics.imageInput) {
+      const startedAt = Date.now();
+      const seen = await engine.createChatCompletion({
+        messages: [
+          {
+            role: "user",
+            content: [
+              { type: "image", data: await knownPicture() },
+              {
+                type: "text",
+                text: "Name the colours in this image in one short sentence.",
+              },
+            ],
+          },
+        ],
+        max_tokens: 40,
+        temperature: 0.1,
+        top_p: 1,
+        top_k: 0,
+        min_p: 0.15,
+        repeat_penalty: 1.05,
+        seed: 42,
+        stream: false,
+      });
+      diagnostics.imageMs = Date.now() - startedAt;
+      imageAnswer = String(seen?.choices?.[0]?.message?.content ?? "").trim();
+    }
 
-    /*
-     * WHERE THE REASONING ACTUALLY LANDS, RATHER THAN WHERE IT WAS ASSUMED TO.
-     *
-     * The first run of this proof reported opened=false, closed=false and a
-     * correct answer of "4", and that was read as "no thinking". It was the
-     * opposite: wllama loads llama.cpp with reasoning_format defaulting to
-     * deepseek, which PARSES the reasoning block out of the message and
-     * removes the tags from content. Looking for a literal <think> in content
-     * therefore cannot see deliberation that definitely happened.
-     *
-     * So take the evidence the runtime actually offers, all of it:
-     *   - content, in case reasoning_format is none and the tags survive;
-     *   - reasoning_content, which is where llama.cpp puts the parsed block
-     *     (wllama 3.5.1 does not declare it, so it is read defensively);
-     *   - usage.completion_tokens_details.reasoning_tokens, which wllama DOES
-     *     declare and which is a count nothing else could produce.
-     *
-     * Any one of the three is proof the model deliberated. The observed keys
-     * are reported either way, so a future change of runtime is diagnosable
-     * rather than mysterious.
-     */
-    const message = deliberated?.choices?.[0]?.message ?? {};
-    const raw = String(message.content ?? "");
-    const parsedReasoning = String(message.reasoning_content ?? "");
-    const reasoningTokens = Number(
-      deliberated?.usage?.completion_tokens_details?.reasoning_tokens ?? 0,
-    );
-
-    diagnostics.messageKeys = Object.keys(message);
-    diagnostics.thinkingOpened = raw.includes(OPEN_TAG);
-    diagnostics.thinkingClosed = raw.includes(CLOSE_TAG);
-    diagnostics.reasoningContentChars = parsedReasoning.length;
-    diagnostics.reasoningTokens = Number.isFinite(reasoningTokens) ? reasoningTokens : 0;
-    diagnostics.thinkingChars = raw.length;
-    diagnostics.deliberated =
-      (diagnostics.thinkingOpened && diagnostics.thinkingClosed) ||
-      diagnostics.reasoningContentChars > 0 ||
-      diagnostics.reasoningTokens > 0;
-
-    /*
-     * NO REGULAR EXPRESSION, AND THAT IS THE POINT.
-     *
-     * This page is a template literal in a Node file, so every backslash in it
-     * is eaten before the browser sees it. An ordinary think-tag regex lost the
-     * backslash escaping its closing slash, so the literal ended early, and the
-     * page died with "Invalid regular expression flags" before window.__prove
-     * was ever defined. String indexes carry no backslashes at all, so there is
-     * nothing left for the outer literal to mangle.
-     */
-    const opened = raw.indexOf(OPEN_TAG);
-    const closed = raw.indexOf(CLOSE_TAG);
-    const thinkingAnswer = (
-      opened === -1 || closed === -1
-        ? raw
-        : raw.slice(0, opened) + raw.slice(closed + CLOSE_TAG.length)
-    ).trim();
-
-    return { answer, thinkingAnswer, diagnostics };
+    return { answer, imageAnswer, diagnostics };
   } finally {
     await engine.exit();
   }
@@ -328,6 +284,13 @@ function isCorrectArithmeticAnswer(answer) {
     /^2\s*\+\s*2\s*=\s*(?:4|four)$/.test(normalized) ||
     /^(?:the\s+)?answer\s+(?:is|=)\s*(?:4|four)$/.test(normalized)
   );
+}
+
+/** Both colours the picture really holds, and no colour it does not. */
+function isCorrectColourAnswer(answer) {
+  const named = (colour) => new RegExp(`\\b${colour}\\b`).test(answer);
+  const wrong = ["green", "yellow", "purple", "orange", "pink", "black", "white"].some(named);
+  return named("red") && named("blue") && !wrong;
 }
 
 const server = createServer((request, response) => {
@@ -461,37 +424,25 @@ try {
   }
 
   /*
-   * THINKING IS A SEPARATE CLAIM AND GETS A SEPARATE VERDICT.
-   *
-   * `release/OCADE_OFFLINE_RELEASE.json` may only carry `thinkingSuitable:
-   * true` on the strength of these three lines. Qwen3-0.6B carries both modes
-   * in one artifact, but "the model card says so" is not proof about this file
-   * in this runtime.
+   * VISION IS A SEPARATE CLAIM AND GETS A SEPARATE VERDICT. The manifest's
+   * `vision` flag may be set only on the strength of this line.
    */
-  const thinking = String(result?.thinkingAnswer ?? "").trim();
+  const seen = String(result?.imageAnswer ?? "").toLowerCase();
   process.stdout.write(
-    `thinking: deliberated=${Boolean(d.deliberated)} tags=${Boolean(d.thinkingOpened && d.thinkingClosed)} ` +
-      `reasoningContentChars=${d.reasoningContentChars ?? 0} reasoningTokens=${d.reasoningTokens ?? 0} ` +
-      `answerChars=${d.thinkingChars ?? "?"} ms=${d.thinkingMs ?? "?"} ` +
-      `messageKeys=${JSON.stringify(d.messageKeys ?? [])}\n`,
+    `vision: imageInput=${Boolean(d.imageInput)} ms=${d.imageMs ?? "?"} answer=${JSON.stringify(seen.slice(0, 200))}\n`,
   );
-  process.stdout.write(`thinking answer: ${JSON.stringify(thinking.slice(0, 200))}\n`);
-
-  if (!d.deliberated) {
+  if (!d.imageInput) {
     failed = true;
     process.stderr.write(
-      "Asked to deliberate, the artifact showed no reasoning by any measure the runtime offers: " +
-        "no reasoning block in content, no reasoning_content, and no reasoning tokens counted. " +
-        "Do not set thinkingSuitable on this release.\n",
+      "The runtime did not accept the projector: no image input. Do not set vision.\n",
     );
-  } else if (!isCorrectArithmeticAnswer(thinking)) {
+  } else if (!isCorrectColourAnswer(seen)) {
     failed = true;
     process.stderr.write(
-      "The artifact deliberated but the answer left after the reasoning was not correct. " +
-        "Do not set thinkingSuitable on this release.\n",
+      "The engine read the picture but named the wrong colours. Do not set vision.\n",
     );
   } else {
-    process.stdout.write("PASS  the same artifact deliberates and still answers correctly\n");
+    process.stdout.write("PASS  the same artifact reads a known picture correctly\n");
   }
 
   /*
@@ -526,6 +477,11 @@ try {
 } finally {
   await browser.close();
   await new Promise((resolve) => server.close(resolve));
+}
+
+if (!failed && RECORD) {
+  writeFileSync(MANIFEST_PATH, `${JSON.stringify({ ...MANIFEST, vision: true }, null, 2)}\n`);
+  process.stdout.write("Recorded vision: true in the manifest.\n");
 }
 
 process.exit(failed ? 1 : 0);

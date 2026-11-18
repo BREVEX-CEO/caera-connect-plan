@@ -532,7 +532,7 @@ export async function transferModel(
     if (!(await deps.writer.flush())) {
       failure = {
         failure: "storage",
-        reason: "OCADE could not save what it has downloaded so far.",
+        reason: "OCADE could not save the setup so far. Try again.",
         retriable: true,
       };
       return false;
@@ -631,7 +631,7 @@ export async function transferModel(
           }
           failure = {
             failure: "network",
-            reason: "Offline downloads are not available from this OCADE server.",
+            reason: "Offline Mode cannot be set up from this OCADE server.",
             retriable: false,
           };
           return null;
@@ -678,12 +678,12 @@ export async function transferModel(
       failure: "network",
       reason:
         lastStatus === null
-          ? "The connection kept dropping while OCADE was preparing this device."
+          ? "The connection kept dropping while Offline Mode was being set up."
           : lastStatus === 401 || lastStatus === 403 || lastStatus === 410
-            ? "The download link expired and a new one could not be made. Try again."
+            ? "Setup was interrupted and could not continue. Try again."
             : lastStatus >= 500
-              ? "OCADE's download service is unavailable right now. Try again shortly."
-              : "OCADE's download service does not have this version right now.",
+              ? "Offline Mode setup is unavailable right now. Try again shortly."
+              : "Offline Mode setup is unavailable for this version right now.",
       retriable: true,
     };
     return null;
@@ -838,7 +838,7 @@ export async function transferModel(
     return finish({
       ok: false,
       failure: failure ?? "storage",
-      reason: "OCADE could not save what it downloaded.",
+      reason: "OCADE could not save the setup. Try again.",
       retriable: true,
       checkpoint: durable,
       metrics,

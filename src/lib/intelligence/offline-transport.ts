@@ -26,10 +26,10 @@ import type {
 /**
  * The transcript, as the local engine takes it.
  *
- * ATTACHMENTS ARE APPENDED AS TEXT, AND IMAGES ARE NOT SENT AT ALL. The local
- * engine reads text; it cannot see. `PLAN.md` is explicit that an offline image
- * request must fail clearly rather than pretend, and the adapter refuses one —
- * so passing an image here would only move the refusal somewhere less honest.
+ * Readable attachments are appended as text; pictures ride on the last turn as
+ * images, which the engine reads only when its vision projector loaded. An
+ * engine that cannot see refuses them (`stream` below) rather than answering
+ * as though it had looked.
  */
 function toBrainMessages(request: IntelligenceRequest): BrainMessage[] {
   const messages: BrainMessage[] = request.messages.map((message) => ({
@@ -47,6 +47,10 @@ function toBrainMessages(request: IntelligenceRequest): BrainMessage[] {
       )
       .join("");
   }
+  const images = request.attachments.flatMap((attachment) =>
+    attachment.image ? [attachment.image] : [],
+  );
+  if (last && images.length > 0) last.images = images;
   return messages;
 }
 
@@ -86,18 +90,23 @@ export function createOfflineIntelligenceTransport(
     async *stream(request: IntelligenceRequest): AsyncIterable<IntelligenceEvent> {
       yield { type: "status", backend: "on_device", state: "starting" };
       /*
-       * A QUESTION ABOUT A PICTURE IS REFUSED, NOT ANSWERED BLIND. The local engine cannot see,
-       * and dropping the image here (on its own, or when Automatic falls back to this device)
-       * would let it answer as though it had looked.
+       * A QUESTION ABOUT A PICTURE IS REFUSED, NOT ANSWERED BLIND, when this
+       * engine cannot see. Dropping the image here (on its own, or when
+       * Automatic falls back to this device) would let it answer as though it
+       * had looked.
        */
       if (request.attachments.some((attachment) => attachment.image)) {
-        yield {
-          type: "refusal",
-          code: "local_unavailable",
-          reason: "OCADE cannot look at images on this device. Ask again when you are online.",
-          retryable: false,
-        };
-        return;
+        const availability = await adapter.probe();
+        if (!availability.available || !availability.capabilities.vision) {
+          yield {
+            type: "refusal",
+            code: "local_unavailable",
+            reason:
+              "Offline Chat cannot read images on this device. Ask again when you are online.",
+            retryable: false,
+          };
+          return;
+        }
       }
 
       /*

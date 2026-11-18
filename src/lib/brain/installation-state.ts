@@ -86,44 +86,41 @@ export function describeInstall(state: InstallState): string {
     case "idle":
       /*
        * Idle means two different things, and only the detail tells them apart:
-       * nothing has started yet, or somebody removed it. It used to say
-       * "Starting OCADE…" for both, which is untrue in exactly the case where
-       * the person is looking at the screen to check it worked.
+       * not set up yet, or somebody removed it.
        */
-      return state.detail ?? "Preparing OCADE";
+      return state.detail ?? "Offline Mode is not set up";
     case "checking_device":
     case "checking_storage":
     case "preparing_runtime":
     case "waiting_for_source":
-      return "Preparing OCADE";
+      return "Preparing Offline Mode";
     case "downloading": {
       const pct = state.fraction === null ? null : Math.round(state.fraction * 100);
-      return pct === null ? "Preparing OCADE" : `Downloading ${pct}%`;
+      return pct === null ? "Preparing Offline Mode" : `Preparing Offline Mode ${pct}%`;
     }
     case "paused":
       return state.detail ?? "Paused";
     case "retrying":
-      return "Reconnecting — OCADE will carry on from where it stopped";
+      return "Reconnecting — setup carries on from where it stopped";
     case "verifying":
-      return "Verifying";
+      return "Checking Offline Mode";
     case "loading":
     case "warming":
       return "Almost ready";
     case "ready":
-      return "Ready";
+      return "Offline Chat is ready";
     case "repairing":
-      return "Repairing";
+      return "Repairing Offline Mode";
     case "insufficient_storage":
-      return "OCADE needs more local storage on this device.";
+      return "Not enough free space to set up Offline Mode";
     case "recoverable_error":
-      return state.problem ?? "OCADE could not finish preparing this device.";
+      return state.problem ?? "Offline Mode could not finish setting up. Try again.";
     case "fatal_error":
-      return state.problem ?? "OCADE cannot run its intelligence on this device.";
+      return state.problem ?? "Offline Mode cannot run on this device.";
   }
 }
 
-/** What a removal publishes, and the one line that says it happened. */
-export const REMOVED_DETAIL = "Removed";
+export const REMOVED_DETAIL = "Offline Mode was removed from this browser";
 
 function isErrorStage(stage: InstallStage): boolean {
   return (
@@ -145,4 +142,21 @@ export function isPreparing(stage: InstallStage): boolean {
     stage === "warming" ||
     stage === "repairing"
   );
+}
+
+/**
+ * Whether this browser profile accepted Offline Mode setup and has not removed
+ * it since. Kept in ordinary storage so it survives the files being emptied or
+ * evicted: an evicted setup is then repaired, not offered again.
+ */
+export const SETUP_ACCEPTED_KEY = "ocade.offline-mode.accepted.at.v1";
+
+export function readSetupAcceptance(): number | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const value = Number(window.localStorage.getItem(SETUP_ACCEPTED_KEY));
+    return Number.isFinite(value) && value > 0 ? value : null;
+  } catch {
+    return null;
+  }
 }

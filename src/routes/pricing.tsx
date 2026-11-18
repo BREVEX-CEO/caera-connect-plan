@@ -207,7 +207,7 @@ function PlanCard({
           <Benefit>{allowance.week.toLocaleString("en-US")} questions a week</Benefit>
         )}
         <Benefit>Shared across every device you sign in on</Benefit>
-        <Benefit>Offline Intelligence on your own device</Benefit>
+        <Benefit>Offline Mode: Chat on your own device, with no connection</Benefit>
       </ul>
 
       <div className="mt-5">

@@ -1,9 +1,20 @@
 {
-  "schemaVersion": 2,
-  "releaseId": "ocr-2dc0ee44eb397906",
-  "totalBytes": 484220160,
-  "sha256": "2dc0ee44eb39790624623cf5e2a8cc21973c4839a67fed406dd3f9b2e6b7f800",
+  "schemaVersion": 3,
+  "releaseId": "ocr-20564d74721fa009",
+  "totalBytes": 363192800,
+  "sha256": "20564d74721fa009af7883b384d64b75c8c02e64d0587c728ba2a014814a2e9c",
+  "parts": [
+    {
+      "bytes": 260377632,
+      "sha256": "bbb75eeadd85619f82b3739e8358adbea49e49768faddf612ad17055137c8f87"
+    },
+    {
+      "bytes": 102815168,
+      "sha256": "ebfc428baa37efad8bae93864f914b2634a09009f91ad59f974fe1a1565d8561"
+    }
+  ],
   "contextTokens": 4096,
   "requiredMemoryBytes": 943718400,
-  "thinkingSuitable": true
+  "thinkingSuitable": false,
+  "vision": true
 }

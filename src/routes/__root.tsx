@@ -19,6 +19,7 @@ import { SettingsPanelProvider } from "@/components/settings/settings-panel";
 import { OnlineConsentDialog } from "@/lib/intelligence/OnlineConsent";
 import { ErrorBoundary } from "@/components/shell/ErrorBoundary";
 import { useInstallationBootstrap } from "@/lib/brain/use-installation";
+import { readSetupAcceptance } from "@/lib/brain/installation-state";
 import { useSession } from "@/lib/session";
 import { needsFullNavigation } from "@/lib/security/isolation";
 import { markHydrated } from "@/lib/after-hydration";
@@ -200,10 +201,9 @@ function RootComponent() {
 /**
  * Work that must happen once per browser and nowhere on screen.
  *
- * Offline Intelligence preparation starts on the first supported visit whether
- * or not anybody is signed in — `docs/PRD.md` and `docs/ARCHITECTURE.md` both say so —
- * and nothing it needs is imported statically, so the transfer can never share
- * a task with hydration.
+ * Offline Mode is set up only when the person asks (plan 14B.2); this checks or
+ * resumes an accepted setup, and nothing it needs is imported statically, so
+ * the transfer can never share a task with hydration.
  */
 function refreshOfflineAllowance() {
   void import("@/lib/commercial/offline-allowance")
@@ -240,12 +240,18 @@ function BrowserBootstrap() {
   const { user } = useSession();
   /*
    * OFFLINE BELONGS TO CHAT. JARVIS is Online-only, and Help, Pricing or the
-   * legal pages need no model: only opening Chat starts the Offline
-   * Intelligence download, and after that the prepared state simply stays.
+   * legal pages need no model.
    */
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const offlineWanted = useOfflineWanted(pathname);
-  useInstallationBootstrap({ enabled: Boolean(user) && offlineWanted });
+  /*
+   * Bootstrap only checks or resumes a setup this browser accepted (the
+   * authority refuses to START one automatically), so it runs on any page once
+   * accepted: Settings and Chat then show the real state, not a guess.
+   */
+  useInstallationBootstrap({
+    enabled: Boolean(user) && (offlineWanted || readSetupAcceptance() !== null),
+  });
 
   /*
    * REGISTER THE SERVICE WORKER, WHICH NOTHING WAS DOING.

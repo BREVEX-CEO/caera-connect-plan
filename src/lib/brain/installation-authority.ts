@@ -61,7 +61,12 @@ import {
 } from "./model-transfer";
 import { ModelVault, type ModelFileWriter, type VersionMeta } from "./model-vault";
 import type { InstallTelemetry } from "./install-telemetry";
-import { publishInstallState, REMOVED_DETAIL } from "./installation-state";
+import {
+  publishInstallState,
+  readSetupAcceptance,
+  REMOVED_DETAIL,
+  SETUP_ACCEPTED_KEY,
+} from "./installation-state";
 
 /**
  * Every state the installation can be in.
@@ -233,7 +238,7 @@ export interface AuthorityDeps {
    */
   sleep?: (ms: number) => Promise<void>;
   random?: () => number;
-  /** Injected so the uninstall cooldown is reachable without a browser. */
+  /** Injected so the setup acceptance is reachable without a browser. */
   readIntent?: () => number | null;
   writeIntent?: (at: number | null) => void;
   deviceSignals?: () => ReturnType<typeof readDeviceSignals>;
@@ -270,8 +275,6 @@ export type InstallReason =
 
 /** Triggers nobody pressed. These defer to a deliberate removal. */
 const AUTOMATIC_REASONS = new Set<InstallReason>(["app_bootstrap", "warm", "resumed"]);
-
-const UNINSTALL_INTENT_KEY = "ocade.model.uninstalled.at.v1";
 
 /** The record that makes a version active could not be written: not ready, and saying why. */
 const NOT_SAVED = {
@@ -388,7 +391,7 @@ export class ModelInstallationAuthority {
       this.publish(
         this.running
           ? { ...state, stage: "loading", observing: true, remedies: [] }
-          : { ...INITIAL, detail: "Offline Intelligence is ready in another OCADE tab." },
+          : { ...INITIAL, detail: "Offline Chat is ready in another OCADE tab." },
         false,
       );
       return;
@@ -416,26 +419,19 @@ export class ModelInstallationAuthority {
     if (this.running) return this.running;
 
     /*
-     * AN UNINSTALL THE USER JUST ASKED FOR MUST MEAN SOMETHING.
+     * OFFLINE MODE IS SET UP ONLY WHEN THE PERSON ASKED FOR IT.
      *
-     * Preparation starts automatically on every visit, which is right — and it
-     * would also mean that pressing "Remove OCADE Intelligence" freed a
-     * gigabyte and then immediately began downloading it again, behind the
-     * user's back, on the same screen. That is not a product removing
-     * something; that is a product arguing.
-     *
-     * So a deliberate removal records an intent, and the AUTOMATIC triggers
-     * respect it for a while. Anything the user explicitly asks for — Reinstall,
-     * Try again, Repair — clears it immediately, because their asking is the
-     * whole point.
+     * The automatic triggers (opening Chat, coming back online, a tab becoming
+     * visible) resume or re-check a setup this browser profile already
+     * accepted; they never start one. Only an explicit request — Set up
+     * Offline Mode, Try again, Repair — records acceptance, and Remove Offline
+     * Mode withdraws it, so nothing reinstalls behind the person's back.
      */
     if (AUTOMATIC_REASONS.has(options?.reason ?? "app_bootstrap")) {
-      if (this.uninstallIntentActive()) {
+      if (!this.setupAccepted()) {
         this.publish({
           stage: "idle",
-          // The same word the removal itself published. Two sentences for one
-          // state is two states as far as anybody reading the screen knows.
-          detail: REMOVED_DETAIL,
+          detail: this.state.detail === REMOVED_DETAIL ? REMOVED_DETAIL : null,
           problem: null,
           remedies: [],
           fraction: null,
@@ -443,7 +439,7 @@ export class ModelInstallationAuthority {
         return Promise.resolve(this.state);
       }
     } else {
-      this.clearUninstallIntent();
+      this.acceptSetup();
     }
 
     this.controller = new AbortController();
@@ -470,7 +466,7 @@ export class ModelInstallationAuthority {
     if (this.state.stage !== "ready") {
       this.publish({
         stage: "paused",
-        detail: "Preparation paused. OCADE will carry on from here.",
+        detail: "Setup paused. It carries on from here.",
       });
     }
   }
@@ -512,7 +508,7 @@ export class ModelInstallationAuthority {
         this.publish({
           stage: this.state.stage === "idle" ? "checking_device" : this.state.stage,
           observing: true,
-          detail: "OCADE is already preparing this device in another window.",
+          detail: "Offline Mode is already being set up in another window.",
         });
         return this.state;
       }
@@ -547,7 +543,7 @@ export class ModelInstallationAuthority {
     }
 
     /* 2. Walk the ladder. Each rung gets a real attempt before the next. */
-    let lastProblem = "OCADE could not prepare this device.";
+    let lastProblem = "Offline Mode could not be set up on this device.";
     for (const rung of usable) {
       if (signal.aborted) return this.paused();
       const outcome = await this.attemptPath(rung.path, signal);
@@ -597,7 +593,7 @@ export class ModelInstallationAuthority {
         ok: false,
         stop: true,
         stage: "recoverable_error",
-        reason: "OCADE could not reach your account to prepare Offline Intelligence.",
+        reason: "OCADE could not reach your account to set up Offline Mode.",
         remedies: ["retry"],
       };
     }
@@ -607,7 +603,7 @@ export class ModelInstallationAuthority {
         ok: false,
         stop: true,
         stage: "fatal_error",
-        reason: "Offline Intelligence is not available in this version of OCADE yet.",
+        reason: "Offline Mode is not available in this version of OCADE yet.",
         remedies: [],
       };
     }
@@ -678,7 +674,7 @@ export class ModelInstallationAuthority {
        */
       return {
         ok: false,
-        reason: "OCADE needs more local storage on this device.",
+        reason: "Not enough free space to set up Offline Mode.",
         stop: true,
         stage: "insufficient_storage",
         remedies: ["free_storage", "remove_local_intelligence", "retry", "use_another_device"],
@@ -799,7 +795,7 @@ export class ModelInstallationAuthority {
       if (result.failure === "insufficient_storage") {
         return {
           ok: false,
-          reason: "OCADE needs more local storage on this device.",
+          reason: "Not enough free space to set up Offline Mode.",
           stop: true,
           stage: "insufficient_storage",
           remedies: ["free_storage", "remove_local_intelligence", "retry"],
@@ -954,7 +950,7 @@ export class ModelInstallationAuthority {
       stage: "ready",
       fraction: 1,
       etaSeconds: null,
-      detail: "OCADE is ready.",
+      detail: "Offline Chat is ready.",
       problem: null,
       remedies: [],
       observing: false,
@@ -986,11 +982,11 @@ export class ModelInstallationAuthority {
     const result = await this.deps.vault.removeEverything();
     this.ladder = [];
     this.highestFraction = 0;
-    // Recorded BEFORE the state is published, so nothing observing the change
+    // Withdrawn BEFORE the state is published, so nothing observing the change
     // can race ahead and start an automatic install between the two. It is
-    // recorded even when the deletion did not finish: the person asked for this
-    // and nothing may quietly reinstall over that, whatever the disk did.
-    this.recordUninstallIntent();
+    // withdrawn even when the deletion did not finish: the person asked for
+    // this and nothing may quietly reinstall over that, whatever the disk did.
+    this.withdrawSetup();
 
     const removed = result.versionsRemoved + result.legacyRemoved;
 
@@ -1013,7 +1009,7 @@ export class ModelInstallationAuthority {
         ...INITIAL,
         stage: "recoverable_error",
         problem:
-          "OCADE could not remove all of its offline intelligence from this device. Nothing will reinstall, and you can try removing it again.",
+          "OCADE could not remove all of Offline Mode from this browser. Nothing will set itself up again, and you can try removing it again.",
       });
       this.emit({ kind: "uninstalled", removed });
       return { ok: false, removed };
@@ -1026,35 +1022,27 @@ export class ModelInstallationAuthority {
 
   /** Put it back, now, because the user asked for it. */
   reinstall(): Promise<InstallState> {
-    this.clearUninstallIntent();
     return this.install({ reason: "reinstall" });
   }
 
   /**
-   * Whether a deliberate removal is being honoured — which is forever.
-   *
-   * THIS USED TO EXPIRE AFTER A DAY, and that made it a cooldown rather than a
-   * decision: OCADE quietly downloaded half a gigabyte again to a device whose
-   * owner had explicitly removed it, on the first visit after twenty-four
-   * hours. `PLAN.md` is unambiguous — "Offline remains disabled until the user
-   * explicitly chooses Install Offline" — and so is `CLAUDE.md`: "never
-   * auto-reinstall it after updates, restarts, sign-in cycles, or deploys".
-   *
-   * Only `reinstall()` clears it, and only a person can call that.
+   * Whether this browser profile accepted Offline Mode setup and has not
+   * removed it since. Shared by every account on the profile: the installation
+   * is nonpersonal, and so is the choice to have it.
    */
-  uninstallIntentActive(): boolean {
-    return (this.deps.readIntent?.() ?? readIntentFromLocalStorage()) !== null;
+  setupAccepted(): boolean {
+    return (this.deps.readIntent?.() ?? readSetupAcceptance()) !== null;
   }
 
-  private recordUninstallIntent(): void {
+  private acceptSetup(): void {
     const at = this.now();
     if (this.deps.writeIntent) this.deps.writeIntent(at);
-    else writeIntentToLocalStorage(at);
+    else writeAcceptanceToLocalStorage(at);
   }
 
-  private clearUninstallIntent(): void {
+  private withdrawSetup(): void {
     if (this.deps.writeIntent) this.deps.writeIntent(null);
-    else writeIntentToLocalStorage(null);
+    else writeAcceptanceToLocalStorage(null);
   }
 
   /**
@@ -1100,7 +1088,7 @@ export class ModelInstallationAuthority {
   }
 
   private paused(): InstallState {
-    this.publish({ stage: "paused", detail: "Preparation paused." });
+    this.publish({ stage: "paused", detail: "Setup paused." });
     return this.state;
   }
 
@@ -1119,11 +1107,8 @@ export class ModelInstallationAuthority {
    * sentence that could apply to either.
    */
   private refusalMessage(): string {
-    const reasons = this.ladder.map((rung) => rung.why).filter(Boolean);
-    if (reasons.length === 0) {
-      return "OCADE could not find a way to run its intelligence on this device.";
-    }
-    return `OCADE tried every way it can run here and none of them worked: ${reasons[0]}`;
+    // The ladder's reasons stay in diagnostics; the person is told what to do.
+    return "Offline Mode cannot run in this browser. Try a recent version of Chrome or Edge, or another device.";
   }
 
   private emit(event: InstallTelemetry): void {
@@ -1131,33 +1116,15 @@ export class ModelInstallationAuthority {
   }
 }
 
-/**
- * The uninstall intent, in ordinary browser storage.
- *
- * localStorage rather than the vault, deliberately: it has to survive the vault
- * being emptied, which is the exact event it records.
- */
-function readIntentFromLocalStorage(): number | null {
-  if (typeof window === "undefined") return null;
-  try {
-    const raw = window.localStorage.getItem(UNINSTALL_INTENT_KEY);
-    const value = Number(raw);
-    return Number.isFinite(value) && value > 0 ? value : null;
-  } catch {
-    return null;
-  }
-}
-
-function writeIntentToLocalStorage(at: number | null): void {
+function writeAcceptanceToLocalStorage(at: number | null): void {
   if (typeof window === "undefined") return;
   try {
-    if (at === null) window.localStorage.removeItem(UNINSTALL_INTENT_KEY);
-    else window.localStorage.setItem(UNINSTALL_INTENT_KEY, String(at));
+    if (at === null) window.localStorage.removeItem(SETUP_ACCEPTED_KEY);
+    else window.localStorage.setItem(SETUP_ACCEPTED_KEY, String(at));
   } catch {
     /*
-     * Without durable storage the removal cannot be remembered across a
-     * reload. That is a browser limitation rather than a reason to fail the
-     * uninstall itself -- the bytes are still gone.
+     * Without durable storage the choice cannot be remembered across a
+     * reload: setup is offered again, and a removal still removed the bytes.
      */
   }
 }
