@@ -259,6 +259,12 @@ function OfflineModeSection() {
       />
       <div className="pb-4">
         <OfflineModeSetup signedIn={Boolean(user)} />
+        <a
+          href="/legal/lfm-open-license-v1.0.txt"
+          className="mt-2 inline-block text-xs text-muted-foreground underline underline-offset-2"
+        >
+          Third-party licences
+        </a>
       </div>
 
       {removable ? (
