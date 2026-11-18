@@ -16,6 +16,18 @@ const lock = readFileSync("device-agent/windows/requirements.lock", "utf8");
 const spec = readFileSync("device-agent/windows/packaging/ocade-agent.spec", "utf8");
 const npmLock = JSON.parse(readFileSync("package-lock.json", "utf8"));
 const allowed = new Set(inventory.allowed);
+const modelEntries = Object.entries(inventory.models ?? {});
+const modelNoticeSection = modelEntries.length ? [
+  "## On-device AI model licence",
+  "",
+  "OCADE's Offline Mode includes LFM2.5-VL-450M by Liquid AI, Inc. Its language weights and vision projector are governed by the **LFM Open License v1.0**, separate from OCADE's software licence. A complete copy is distributed with the website and available to recipients below. Commercial eligibility must be verified before public release.",
+  "",
+  "| Model | Licensor | Licence | Recipient copy |",
+  "|---|---|---|---|",
+  ...modelEntries.map(([name, entry]) => `| ${name} | ${entry.licensor} | ${entry.licence} | [Full licence copy](/${entry.licenceCopy.replace(/^public\\//, "")}) |`),
+  "",
+  "",
+].join("\n") : "";
 
 /** An SPDX expression is acceptable when every AND part, or any OR alternative, is allowed. */
 export function permitted(expression) {
@@ -32,6 +44,21 @@ export function permitted(expression) {
 }
 
 const problems = [];
+// Model files are separate redistribution artifacts, not npm/Python packages.
+// Fail before release if the complete customer copy is absent or incomplete.
+for (const [name, entry] of modelEntries) {
+  if (entry.licence !== "LFM Open License v1.0" || entry.licensor !== "Liquid AI, Inc.")
+    problems.push(`model ${name}: model licence or licensor requires review`);
+  if (!entry.licenceCopy?.startsWith("public/legal/")) {
+    problems.push(`model ${name}: missing local public licence copy path`);
+    continue;
+  }
+  let copy = "";
+  try { copy = readFileSync(entry.licenceCopy, "utf8"); }
+  catch { problems.push(`model ${name}: full licence not present at ${entry.licenceCopy}`); continue; }
+  for (const clause of ["LFM Open License v1.0", "4. Redistribution.", "5. Commercial Use Limitation.", "11. Termination.", "END OF TERMS AND CONDITIONS"])
+    if (!copy.includes(clause)) problems.push(`model ${name}: incomplete local licence copy (missing ${clause})`);
+}
 const python = Object.fromEntries(
   [...lock.matchAll(/^([A-Za-z0-9_.-]+)==([^\s;\\]+)/gm)].map(([, name, version]) => [
     name.toLowerCase(),
@@ -118,7 +145,7 @@ ${rows(bundledPython)}
 |---|---|---|
 ${rows(npm.sort((a, b) => a.name.localeCompare(b.name)))}
 `;
-  writeFileSync("THIRD_PARTY_NOTICES.md", text);
+  writeFileSync("THIRD_PARTY_NOTICES.md", text.replace("## Native and runtime components", modelNoticeSection + "## Native and runtime components"));
 }
 
 if (process.argv.includes("--check")) {
@@ -129,6 +156,9 @@ if (process.argv.includes("--check")) {
     process.exit(1);
   }
   const notices = readFileSync("THIRD_PARTY_NOTICES.md", "utf8");
+  for (const [name, entry] of modelEntries)
+    if (!notices.includes(`| ${name} |`) || !notices.includes(entry.licenceCopy.replace(/^public\\//, "/")))
+      problems.push(`model ${name}: missing third-party notice or customer licence link`);
   for (const { name } of npm)
     if (!notices.includes(`| ${name} |`)) {
       console.error(`THIRD_PARTY_NOTICES.md is out of date (${name}); run npm run licences:write`);
