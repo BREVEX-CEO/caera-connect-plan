@@ -1186,11 +1186,5 @@
     "seen": 1795008472.212602,
     "ast_hash": "fad39e86f2420a211112349c3b43a09a",
     "semantic_hash": ""
-  },
-  "graphify-probe.ts": {
-    "mtime": 1795008918.0581431,
-    "seen": 1795008920.9804199,
-    "ast_hash": "9cff1169ccbba6815052f1feef299d2a",
-    "semantic_hash": ""
   }
 }
