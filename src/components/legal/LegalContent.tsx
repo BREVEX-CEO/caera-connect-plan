@@ -219,6 +219,26 @@ export function TermsContent() {
         </p>
       </PublicSection>
 
+      <PublicSection title="15A. Offline Mode third-party licence">
+        <p>
+          Offline Mode includes the LFM2.5-VL-450M model from Liquid AI, Inc., with language weights
+          and a vision projector distributed under the LFM Open License v1.0. This third-party
+          licence is distinct from the rights governing OCADE's own software.
+        </p>
+        <p>
+          Recipients can read and keep the{" "}
+          <a
+            href="/legal/lfm-open-license-v1.0.txt"
+            className="text-foreground underline"
+          >
+            complete LFM Open License v1.0
+          </a>
+          . The licence requires redistribution notices and limits free commercial use based on
+          the licensee's annual revenue. Commercial use by a legal entity at or above USD 10 million
+          in annual revenue requires a separate licence from Liquid AI.
+        </p>
+      </PublicSection>
+
       <PublicSection title="16. Service provided as available">
         <p>
           To the maximum extent permitted by applicable law, OCADE is provided on an “as is” and “as
