@@ -342,7 +342,9 @@ function BrowserBootstrap() {
               .then((module) => module.forgetPushOnThisBrowser())
               .catch(() => {});
             // A question the bubble was handing over was the last account's to ask.
-            void import("@/jarvis/bubble-state").then((module) => module.takeHandOff());
+            void import("@/jarvis/bubble-state")
+              .then((module) => module.takeHandOff())
+              .catch(() => {});
           }
           if (event === "SIGNED_OUT") {
             /*
@@ -368,9 +370,11 @@ function BrowserBootstrap() {
   }, [router]);
 
   useEffect(() => {
-    void import("@/lib/security/isolation-upgrade").then((module) =>
-      module.upgradeIsolationInBrowser(),
-    );
+    void import("@/lib/security/isolation-upgrade")
+      .then((module) => module.upgradeIsolationInBrowser())
+      .catch(() => {
+        /* A page left before this loaded has nothing to upgrade. */
+      });
   }, []);
 
   return null;

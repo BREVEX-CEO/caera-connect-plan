@@ -416,17 +416,21 @@ export function useChat(): ChatState & ChatActions {
    */
   useEffect(() => {
     // Restart-safe: this account's saved offline turns load before the drain.
-    const journal = import("@/lib/chat/unsynced-turns").then(({ openJournal }) =>
-      openJournal(user?.id ?? null),
-    );
+    // A journal that cannot open (the page is being left, storage refused) holds nothing to send.
+    const journal = import("@/lib/chat/unsynced-turns")
+      .then(({ openJournal }) => openJournal(user?.id ?? null))
+      .catch(() => undefined);
     if (!user) return;
     const drain = () => {
-      void flushUnsyncedTurns().then(({ uploaded }) => {
-        if (uploaded > 0) {
-          void refreshConversations();
-          if (opened.current) void openMessages(opened.current);
-        }
-      });
+      flushUnsyncedTurns()
+        .then(({ uploaded }) => {
+          if (uploaded > 0) {
+            void refreshConversations();
+            if (opened.current) void openMessages(opened.current);
+          }
+        })
+        // Still unreachable: the turns stay waiting for the next connection.
+        .catch(() => {});
     };
     void journal.then(drain);
     window.addEventListener("online", drain);

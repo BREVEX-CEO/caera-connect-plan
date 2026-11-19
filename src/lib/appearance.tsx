@@ -186,15 +186,15 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
       });
     }
 
-    void import("@/integrations/supabase/client").then(
-      ({ getSupabaseBrowserConfiguration, supabase }) => {
+    void import("@/integrations/supabase/client")
+      .then(({ getSupabaseBrowserConfiguration, supabase }) => {
         if (cancelled || !getSupabaseBrowserConfiguration().configured) return;
         void supabase.auth.getSession().then(({ data }) => {
-          if (!cancelled && data.session) void load(data.session.user.id);
+          if (!cancelled && data.session) load(data.session.user.id).catch(() => {});
         });
         const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
           if (cancelled) return;
-          if (session) void load(session.user.id);
+          if (session) load(session.user.id).catch(() => {});
           else {
             // A new session starts from its own account, not the last one's edits.
             loadedFor = null;
@@ -202,8 +202,10 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
           }
         });
         unsubscribe = () => sub.subscription.unsubscribe();
-      },
-    );
+      })
+      .catch(() => {
+        /* No account copy this visit: the browser's copy still applies. */
+      });
 
     return () => {
       cancelled = true;

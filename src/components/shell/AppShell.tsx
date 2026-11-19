@@ -10,6 +10,7 @@
  * The drawer is the same markup, translated, with a backdrop and Escape.
  */
 import { Link, useRouterState } from "@tanstack/react-router";
+import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import {
@@ -361,9 +362,15 @@ function AccountRow() {
             role="menuitem"
             onClick={() => {
               setOpen(false);
-              void import("@/integrations/supabase/on-demand").then(({ loadSupabaseClient }) =>
-                loadSupabaseClient().then((supabase) => supabase.auth.signOut({ scope: "local" })),
-              );
+              void import("@/integrations/supabase/on-demand")
+                .then(({ loadSupabaseClient }) =>
+                  loadSupabaseClient().then((supabase) =>
+                    supabase.auth.signOut({ scope: "local" }),
+                  ),
+                )
+                .catch(() =>
+                  toast.error("OCADE could not sign you out. Check your connection and try again."),
+                );
             }}
             className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-sm text-foreground transition-colors hover:bg-accent"
           >

@@ -156,6 +156,8 @@ function ChallengePage() {
             void import("@/integrations/supabase/on-demand")
               .then(({ loadSupabaseClient }) => loadSupabaseClient())
               .then((supabase) => supabase.auth.signOut({ scope: "local" }))
+              // The /auth page offers signing in again whatever happened here.
+              .catch(() => undefined)
               .finally(() => window.location.assign("/auth"))
           }
           className="transition-colors hover:text-foreground"

@@ -1,6 +1,7 @@
 /** The Settings panel's contents, loaded when it first opens (see settings-panel.tsx). */
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "@tanstack/react-router";
+import { toast } from "sonner";
 import {
   CreditCard,
   KeyRound,
@@ -195,10 +196,14 @@ function AccountSettings() {
         <button
           type="button"
           onClick={() =>
-            void import("@/integrations/supabase/on-demand").then(({ loadSupabaseClient }) =>
-              // This device only: signing out here must not end the person's other devices.
-              loadSupabaseClient().then((supabase) => supabase.auth.signOut({ scope: "local" })),
-            )
+            void import("@/integrations/supabase/on-demand")
+              .then(({ loadSupabaseClient }) =>
+                // This device only: signing out here must not end the person's other devices.
+                loadSupabaseClient().then((supabase) => supabase.auth.signOut({ scope: "local" })),
+              )
+              .catch(() =>
+                toast.error("OCADE could not sign you out. Check your connection and try again."),
+              )
           }
           className="h-8 rounded-md border border-border px-3 text-sm text-foreground transition-colors hover:bg-accent"
         >
