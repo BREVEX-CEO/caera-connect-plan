@@ -227,15 +227,12 @@ export function TermsContent() {
         </p>
         <p>
           Recipients can read and keep the{" "}
-          <a
-            href="/legal/lfm-open-license-v1.0.txt"
-            className="text-foreground underline"
-          >
+          <a href="/legal/lfm-open-license-v1.0.txt" className="text-foreground underline">
             complete LFM Open License v1.0
           </a>
-          . The licence requires redistribution notices and limits free commercial use based on
-          the licensee's annual revenue. Commercial use by a legal entity at or above USD 10 million
-          in annual revenue requires a separate licence from Liquid AI.
+          . The licence requires redistribution notices and limits free commercial use based on the
+          licensee's annual revenue. Commercial use by a legal entity at or above USD 10 million in
+          annual revenue requires a separate licence from Liquid AI.
         </p>
       </PublicSection>
 
