@@ -124,12 +124,13 @@ const QUESTIONS: {
   {
     category: "Chat",
     question: "Are there keyboard shortcuts?",
-    words: "keyboard shortcut new chat",
+    words: "keyboard shortcut new chat command palette search mention",
     answer: (
       <p>
-        Two. Press <kbd>/</kbd> to put the cursor in the composer, and <kbd>Ctrl</kbd> or{" "}
-        <kbd>Cmd</kbd> + <kbd>Shift</kbd> + <kbd>O</kbd> to start a new chat. Typing always wins:
-        neither does anything while you are writing in a field.
+        Press <kbd>Ctrl</kbd> or <kbd>Cmd</kbd> + <kbd>K</kbd> to search commands and Settings.
+        Press <kbd>/</kbd> to put the cursor in the composer, and <kbd>Ctrl</kbd> or <kbd>Cmd</kbd>{" "}
+        + <kbd>Shift</kbd> + <kbd>O</kbd> to start a new chat; neither does anything while you are
+        writing in a field. In JARVIS, type <kbd>@</kbd> to name an app on the selected computer.
       </p>
     ),
   },

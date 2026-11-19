@@ -16,6 +16,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { AppearanceProvider } from "@/lib/appearance";
 import { SettingsPanelProvider } from "@/components/settings/settings-panel";
+import { CommandPalette } from "@/components/shell/CommandPalette";
 import { OnlineConsentDialog } from "@/lib/intelligence/OnlineConsent";
 import { ErrorBoundary } from "@/components/shell/ErrorBoundary";
 import { useInstallationBootstrap } from "@/lib/brain/use-installation";
@@ -150,6 +151,7 @@ function RootComponent() {
       <AppearanceProvider>
         <SettingsPanelProvider>
           <BrowserBootstrap />
+          <CommandPalette />
           {/*
             THE TOASTER. Without it mounted here, `toast()` is a no-op — and it
             must be here rather than in `RootShell`, because `shellComponent`
