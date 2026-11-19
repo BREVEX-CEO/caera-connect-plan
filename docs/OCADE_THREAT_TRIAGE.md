@@ -29,12 +29,11 @@ against a live attacker, a real provider or a customer device.
 
 ## Gate blockers found during triage
 
-- **Known-vulnerability audit (SEC-15) is red on every current SHA.** `npm audit --omit=dev` reports
-  GHSA-fc5q-39xc-vjpf (picomatch, high, ReDoS) for every published picomatch version (`<=4.0.7`;
-  4.0.7 is the latest). It reaches the build through Vite and the TanStack Start build plugin, and
-  the name does not appear in the built site (`.output`). No upgrade fixes it. Changing the gate to
-  accept a reviewed exception is a security-control change and needs the owner's decision; until
-  then the Stage 4 all-green gate cannot pass.
+- **Known-vulnerability audit (SEC-15): resolved 19 Nov 2026.** It was red while
+  GHSA-fc5q-39xc-vjpf (picomatch, high, ReDoS) had no fixed release. `npm audit --omit=dev` now
+  reports 0 vulnerabilities on the locked dependencies, locally and in the hosted CI run at
+  `f81e845` ([run 44580027553](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/44580027553)).
+  No exception was added to the gate.
 
 ## The 192 root hypotheses and 1,152 negative scenarios
 

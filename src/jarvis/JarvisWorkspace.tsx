@@ -34,6 +34,9 @@ import { cn, typedBeforeHydration } from "@/lib/utils";
 import { useJarvisPreferences, readPreferences, writePreferences } from "./preferences";
 import { SectionPanel, TaskPanel, type Section } from "./JarvisPanels";
 import { takeHandOff } from "./bubble-state";
+import { MentionList } from "./MentionPicker";
+import { useMentionCandidates } from "./use-mentions";
+import { insertMention, mentionQuery } from "@/lib/jarvis/mentions";
 import { useJarvisDictation, useReadAloud } from "./use-voice";
 import { JARVIS_CONSENT_NEEDED } from "@/lib/jarvis/consent-needed";
 import { MAX_OBJECTIVE_LENGTH, taskObjective } from "@/lib/jarvis/objective";
@@ -179,6 +182,27 @@ export function JarvisWorkspace({
     if (settled) setReloads((n) => n + 1);
   }, [settled]);
   const [sending, setSending] = useState(false);
+  /* The @ being typed before the caret, and which suggestion the arrow keys are on. */
+  const [mention, setMention] = useState<{ start: number; query: string } | null>(null);
+  const [mentionActive, setMentionActive] = useState(0);
+  const mentions = useMentionCandidates(device, mention?.query ?? null, user?.id ?? "");
+  const readMention = (element: HTMLTextAreaElement) => {
+    const next = mentionQuery(element.value, element.selectionStart ?? element.value.length);
+    setMention(next);
+    setMentionActive(0);
+  };
+  const pickMention = (exe: string) => {
+    const element = composer.current;
+    if (!element || !mention) return;
+    const caret = element.selectionStart ?? draft.length;
+    const next = insertMention(draft, mention.start, caret, exe);
+    setDraft(next.text.slice(0, MAX_OBJECTIVE_LENGTH));
+    setMention(null);
+    requestAnimationFrame(() => {
+      element.focus();
+      element.setSelectionRange(next.caret, next.caret);
+    });
+  };
 
   const send = async () => {
     if (!device || sendBlockedReason) return;
@@ -485,6 +509,18 @@ export function JarvisWorkspace({
               <label htmlFor="jarvis-composer" className="sr-only">
                 Message JARVIS
               </label>
+              {signedIn && mention ? (
+                <MentionList
+                  candidates={mentions.candidates}
+                  active={mentionActive}
+                  loading={mentions.loading}
+                  failed={mentions.failed}
+                  deviceName={device?.name ?? null}
+                  onPick={(candidate) => pickMention(candidate.exe)}
+                  onHover={setMentionActive}
+                  onPermissions={() => settings.open("devices")}
+                />
+              ) : null}
               {signedIn ? (
                 <div className="flex h-10 items-center">
                   <EnhancePrompt draft={draft} onApply={setDraft} surface="jarvis" />
@@ -504,11 +540,51 @@ export function JarvisWorkspace({
                     ? "What should JARVIS do? Name apps with @, e.g. @excel.exe"
                     : "Sign in to talk to JARVIS"
                 }
-                onChange={(event) => setDraft(event.target.value)}
+                onChange={(event) => {
+                  setDraft(event.target.value);
+                  if (signedIn) readMention(event.target);
+                }}
+                onSelect={(event) => {
+                  if (signedIn) readMention(event.currentTarget);
+                }}
+                onBlur={() => setMention(null)}
+                role="combobox"
+                aria-expanded={mention !== null}
+                aria-controls={mention ? "jarvis-mentions" : undefined}
+                aria-autocomplete="list"
+                aria-activedescendant={
+                  mention && mentions.candidates.length > 0
+                    ? `jarvis-mention-${mentionActive}`
+                    : undefined
+                }
                 onKeyDown={(event) => {
                   // As in Chat: Enter sends, Shift+Enter is a new line, and an Enter that
                   // confirms an input method's composition never sends half a sentence.
                   if (event.nativeEvent.isComposing || event.keyCode === 229) return;
+                  // The @ list takes the arrows, Enter, Tab and Escape while it is open.
+                  if (mention && mentions.candidates.length > 0) {
+                    const count = mentions.candidates.length;
+                    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+                      event.preventDefault();
+                      setMentionActive(
+                        (index) => (index + (event.key === "ArrowDown" ? 1 : count - 1)) % count,
+                      );
+                      return;
+                    }
+                    if (event.key === "Enter" || event.key === "Tab") {
+                      const chosen = mentions.candidates[mentionActive];
+                      if (chosen?.allowed) {
+                        event.preventDefault();
+                        pickMention(chosen.exe);
+                        return;
+                      }
+                    }
+                  }
+                  if (mention && event.key === "Escape") {
+                    event.preventDefault();
+                    setMention(null);
+                    return;
+                  }
                   if (event.key === "Enter" && !event.shiftKey) {
                     event.preventDefault();
                     if (!sendBlockedReason) event.currentTarget.form?.requestSubmit(); // same gate as Send
