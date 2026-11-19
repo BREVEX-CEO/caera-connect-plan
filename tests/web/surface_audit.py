@@ -126,6 +126,10 @@ def route_url(base: str, link: str) -> str | None:
             return None
     except ValueError:
         return None
+    # A linked plain file (the model licence text, a download) is a document, not an app page:
+    # it has no <h1> or lang to audit.
+    if os.path.splitext(url.path)[1].lower() not in ("", ".html"):
+        return None
     return urlunsplit((url.scheme, url.netloc, url.path or "/", url.query, ""))
 
 
