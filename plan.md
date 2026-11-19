@@ -4221,6 +4221,16 @@ The existing `tests.run_required.main` loads selected modules/classes/methods or
 - Licence — LFM Open License v1.0 recorded for owner review: commercial use only below USD 10 million annual revenue; recipients must receive a copy of the licence.
 - Not yet done for 14B.2: per-account isolation tests across A → logout → B → offline → A and multi-tab races (existing per-account encrypted journal unchanged), real-browser desktop/mobile qualification, GPU rung proof, and the delivery route against the real bucket.
 
+
+**19 Nov 2026 batch — licence compliance check, 14E.3 @ picker and Ctrl+K, 14B.3.1 System theme and Text size, CI repairs. CODED and TESTED locally; hosted runs named below.**
+
+- Licence — `public/legal/lfm-open-license-v1.0.txt` (owner commits) compared with the publisher's LICENSE: identical text after whitespace normalisation; the publisher ships no NOTICE file. The release joins the two GGUF files unmodified (no section 4(b) modified-file notice applies). Terms, Offline Mode setup, Settings, third-party notices and the service-worker cache carry the licence copy; `licences:check` fails if the copy or its notice link is missing. Commercial eligibility below USD 10 million revenue stays an owner/legal confirmation.
+- CI — the licence commits failed source formatting (fixed, `f81e845`) and the browser audit crawled the licence `.txt` as a page ("0 <h1>", "no lang"); the audit now skips same-origin non-HTML files (`c93bf6d`). SEC-15: `npm audit --omit=dev` reports 0 vulnerabilities; the picomatch gate blocker in `docs/OCADE_THREAT_TRIAGE.md` is resolved. CI (portable core with audit) green at `f81e845` and `c93bf6d`.
+- 14E.3 (part) — JARVIS composer: typing `@` lists the selected computer's reported apps (fuzzy name/program match, allowed first, "Needs permission" opens the computer's permissions); picking inserts `@exe`, the form `taskApps` and `jarvis_app_in_scope` already enforce. `tests/security/mentions.test.ts`. Not browser-tested signed in with a paired computer. Files, folders, windows, tabs, connectors and skills are NOT in the list yet (no registry for them).
+- 14E.3 Ctrl/Cmd+K — one palette for commands and the six Settings categories (Settings entries hidden signed out); browser-checked: Ctrl+K, "jarv", Enter opens JARVIS.
+- 14B.3.1 — Theme Dark/Light/System (System follows the device live, including the pre-paint boot script; CSP hash updated) and Text size Default/Large/Larger (root size; 139 fixed-pixel text utilities converted to identical rem sizes). Browser-checked: Larger + System on a light device renders 20 px root, light theme, no full-height overflow. Language selection NOT coded.
+- Not possible here: a git-history secret scan (KEY-06) — downloading a scanner binary was refused by this session's permission policy; the owner can enable GitHub secret scanning or approve a scanner.
+
 ---
 
 ## Part 20. JARVIS engineering GO / NO-GO
