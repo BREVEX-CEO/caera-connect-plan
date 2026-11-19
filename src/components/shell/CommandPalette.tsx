@@ -171,7 +171,7 @@ export function CommandPalette() {
           aria-controls="ocade-commands"
           aria-activedescendant={results.length ? `ocade-command-${active}` : undefined}
           placeholder="Search commands and settings"
-          className="h-12 w-full border-b border-border bg-transparent px-4 text-[15px] outline-none placeholder:text-muted-foreground"
+          className="h-12 w-full border-b border-border bg-transparent px-4 text-[0.9375rem] outline-none placeholder:text-muted-foreground"
         />
         {results.length === 0 ? (
           <p className="px-4 py-3 text-sm text-muted-foreground" role="status">

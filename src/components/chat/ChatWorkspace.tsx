@@ -393,7 +393,7 @@ export function ChatWorkspace() {
               textarea.current?.focus();
             }}
             style={{ left: quote.x, top: Math.max(8, quote.y - 40) }}
-            className="glass-strong fixed z-30 -translate-x-1/2 rounded-md px-3 py-1.5 text-[13px] text-foreground"
+            className="glass-strong fixed z-30 -translate-x-1/2 rounded-md px-3 py-1.5 text-[0.8125rem] text-foreground"
           >
             Ask OCADE
           </button>
@@ -414,7 +414,7 @@ export function ChatWorkspace() {
         <div className={cn("px-5", empty ? "flex flex-1 flex-col justify-center pb-24" : "pb-6")}>
           <div className="mx-auto w-full max-w-3xl">
             {empty ? (
-              <h1 className="mb-6 text-center text-[28px] font-semibold tracking-tight text-foreground">
+              <h1 className="mb-6 text-center text-[1.75rem] font-semibold tracking-tight text-foreground">
                 Ask OCADE
               </h1>
             ) : null}
@@ -493,7 +493,7 @@ export function ChatWorkspace() {
                   }
                 }}
                 placeholder="Ask anything"
-                className="ocade-scroll max-h-60 w-full resize-none bg-transparent px-1 text-[15px] leading-6 text-foreground outline-none placeholder:text-muted-foreground"
+                className="ocade-scroll max-h-60 w-full resize-none bg-transparent px-1 text-[0.9375rem] leading-6 text-foreground outline-none placeholder:text-muted-foreground"
               />
 
               {/*
@@ -718,7 +718,7 @@ export function ChatWorkspace() {
                 what happened the first time it was written there.
               */}
               {!online ? (
-                <p className="mt-2 px-1 text-[12px] text-muted-foreground" role="status">
+                <p className="mt-2 px-1 text-[0.75rem] text-muted-foreground" role="status">
                   {offlineCapable === null
                     ? "No connection. Checking whether this device can answer…"
                     : offlineCapable
@@ -735,7 +735,7 @@ export function ChatWorkspace() {
             */}
             {chat.problem ? (
               <>
-                <p className="mt-3 text-center text-[13px] text-foreground" role="alert">
+                <p className="mt-3 text-center text-[0.8125rem] text-foreground" role="alert">
                   {chat.problem}{" "}
                   {/*
                   RETRY IS REGENERATE ON THE LAST QUESTION. A failed generation
@@ -779,11 +779,11 @@ export function ChatWorkspace() {
                 ) : null}
               </>
             ) : rejected ? (
-              <p className="mt-3 text-center text-[13px] text-muted-foreground" role="status">
+              <p className="mt-3 text-center text-[0.8125rem] text-muted-foreground" role="status">
                 {rejected.name}: {rejected.reason}
               </p>
             ) : signedOut ? (
-              <p className="mt-3 text-center text-[13px] text-muted-foreground">
+              <p className="mt-3 text-center text-[0.8125rem] text-muted-foreground">
                 Sending needs an account. Your message is kept while you sign in.
               </p>
             ) : (
@@ -814,7 +814,7 @@ function LowAllowanceNotice({ signedIn }: { signedIn: boolean }) {
   if (!window || window.remaining > LOW_ALLOWANCE) return null;
 
   return (
-    <p className="mt-3 text-center text-[13px] text-muted-foreground" role="status">
+    <p className="mt-3 text-center text-[0.8125rem] text-muted-foreground" role="status">
       {window.remaining === 0
         ? `You have used this ${window.kind === "week" ? "week" : "session"}'s allowance. It resets ${describeReset(window.resetsInMs)}.`
         : `${window.remaining} request${window.remaining === 1 ? "" : "s"} left · resets ${describeReset(window.resetsInMs)}`}{" "}

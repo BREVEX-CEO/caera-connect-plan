@@ -96,7 +96,7 @@ export default function SettingsDialog({
               onClick={() => onCategoryChange(id)}
               aria-current={category === id ? "true" : undefined}
               className={cn(
-                "flex h-9 shrink-0 items-center gap-2.5 whitespace-nowrap rounded-full px-3 text-[15px] transition-colors duration-150 sm:mb-0.5 sm:w-full",
+                "flex h-9 shrink-0 items-center gap-2.5 whitespace-nowrap rounded-full px-3 text-[0.9375rem] transition-colors duration-150 sm:mb-0.5 sm:w-full",
                 category === id
                   ? "bg-accent text-foreground"
                   : "text-muted-foreground hover:bg-accent/60 hover:text-foreground",
@@ -274,7 +274,7 @@ function AccountSettings() {
                 Keep
               </button>
             </div>
-            <label className="flex items-start gap-2 text-[13px] text-muted-foreground">
+            <label className="flex items-start gap-2 text-[0.8125rem] text-muted-foreground">
               <input
                 type="checkbox"
                 checked={removeOffline}
@@ -386,13 +386,14 @@ function ResetJarvis() {
 }
 
 function AppearanceSettings() {
-  const { theme, reducedMotion, highContrast, setAppearance, saveError } = useAppearance();
+  const { theme, textSize, reducedMotion, highContrast, setAppearance, saveError } =
+    useAppearance();
 
   return (
     <div>
-      <Row label="Theme">
+      <Row label="Theme" description="System follows your device's light or dark setting.">
         <div className="flex rounded-md border border-border p-0.5">
-          {(["dark", "light"] as const).map((mode) => (
+          {(["dark", "light", "system"] as const).map((mode) => (
             <button
               key={mode}
               type="button"
@@ -403,8 +404,32 @@ function AppearanceSettings() {
                 theme === mode ? "bg-accent text-foreground" : "text-muted-foreground",
               )}
             >
-              <Moon className={cn("h-3.5 w-3.5", mode === "light" && "hidden")} aria-hidden />
+              <Moon className={cn("h-3.5 w-3.5", mode !== "dark" && "hidden")} aria-hidden />
               {mode}
+            </button>
+          ))}
+        </div>
+      </Row>
+      <Row label="Text size" description="Makes everything on OCADE larger on this device.">
+        <div className="flex rounded-md border border-border p-0.5">
+          {(
+            [
+              ["default", "Default"],
+              ["large", "Large"],
+              ["larger", "Larger"],
+            ] as const
+          ).map(([size, label]) => (
+            <button
+              key={size}
+              type="button"
+              onClick={() => setAppearance({ textSize: size })}
+              aria-pressed={textSize === size}
+              className={cn(
+                "flex h-7 items-center rounded px-3 text-sm transition-colors",
+                textSize === size ? "bg-accent text-foreground" : "text-muted-foreground",
+              )}
+            >
+              {label}
             </button>
           ))}
         </div>
@@ -428,7 +453,7 @@ function AppearanceSettings() {
       </Row>
       <BubbleSetting />
       {saveError ? (
-        <p className="pt-3 text-[13px] text-muted-foreground" role="status">
+        <p className="pt-3 text-[0.8125rem] text-muted-foreground" role="status">
           {saveError}
         </p>
       ) : null}

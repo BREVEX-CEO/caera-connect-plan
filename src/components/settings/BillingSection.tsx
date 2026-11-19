@@ -61,7 +61,7 @@ export function BillingSection() {
             {tier === current ? (
               <span className="text-sm text-foreground">Your plan</span>
             ) : (
-              <span className="text-[13px] text-muted-foreground">Not open yet</span>
+              <span className="text-[0.8125rem] text-muted-foreground">Not open yet</span>
             )}
           </Row>
         );

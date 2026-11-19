@@ -31,7 +31,7 @@ export function Row({
       <div className="min-w-0">
         <p className="text-sm text-foreground">{label}</p>
         {description ? (
-          <div className="mt-1 text-[13px] leading-5 text-muted-foreground">{description}</div>
+          <div className="mt-1 text-[0.8125rem] leading-5 text-muted-foreground">{description}</div>
         ) : null}
       </div>
       {children ? <div className="sm:shrink-0">{children}</div> : null}

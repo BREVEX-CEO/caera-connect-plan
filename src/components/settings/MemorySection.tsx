@@ -98,7 +98,10 @@ export function MemorySection() {
             />
           </Row>
           <form onSubmit={add} className="space-y-2 py-3">
-            <label className="block text-[13px] text-muted-foreground" htmlFor={`${id}-memory`}>
+            <label
+              className="block text-[0.8125rem] text-muted-foreground"
+              htmlFor={`${id}-memory`}
+            >
               Something to remember (up to 500 characters; never a password or key)
             </label>
             <textarea
@@ -117,14 +120,14 @@ export function MemorySection() {
             </button>
           </form>
           {memory.data.items.length === 0 ? (
-            <p className="pb-3 text-[13px] text-muted-foreground">Nothing remembered.</p>
+            <p className="pb-3 text-[0.8125rem] text-muted-foreground">Nothing remembered.</p>
           ) : (
             <ul className="divide-y divide-border/50">
               {memory.data.items.map((item) => (
                 <li key={item.id} className="flex items-start justify-between gap-4 py-2">
                   <div className="min-w-0 text-sm">
                     <p className="break-words text-foreground">{item.content}</p>
-                    <p className="text-[13px] text-muted-foreground">
+                    <p className="text-[0.8125rem] text-muted-foreground">
                       You added this {describeWhen(item.created_at)}
                     </p>
                   </div>
@@ -160,7 +163,7 @@ export function MemorySection() {
             </Row>
           ) : null}
           {problem ? (
-            <p role="alert" className="pb-2 text-[13px] text-destructive">
+            <p role="alert" className="pb-2 text-[0.8125rem] text-destructive">
               {problem}
             </p>
           ) : null}

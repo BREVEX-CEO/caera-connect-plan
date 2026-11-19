@@ -54,7 +54,7 @@ function AboutPage() {
           <p className="text-sm font-semibold text-foreground">
             {PUBLIC_IDENTITY.founderAlternateName}
           </p>
-          <p className="text-[13px] text-muted-foreground">{PUBLIC_IDENTITY.founderRoles}</p>
+          <p className="text-[0.8125rem] text-muted-foreground">{PUBLIC_IDENTITY.founderRoles}</p>
           <p className="mt-1 text-xs text-muted-foreground">
             {PUBLIC_IDENTITY.brand} · {PUBLIC_IDENTITY.plannedLaunchDate}
           </p>

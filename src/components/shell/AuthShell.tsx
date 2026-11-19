@@ -37,11 +37,13 @@ export function AuthShell({
             <p className="mt-2 text-sm leading-6 text-muted-foreground">{subtitle}</p>
           ) : null}
           <div className="mt-6">{children}</div>
-          {footer ? <div className="mt-6 text-[13px] text-muted-foreground">{footer}</div> : null}
+          {footer ? (
+            <div className="mt-6 text-[0.8125rem] text-muted-foreground">{footer}</div>
+          ) : null}
         </div>
       </main>
 
-      <footer className="flex flex-wrap items-center justify-center gap-4 border-t border-border/60 px-5 py-4 text-[13px] text-muted-foreground">
+      <footer className="flex flex-wrap items-center justify-center gap-4 border-t border-border/60 px-5 py-4 text-[0.8125rem] text-muted-foreground">
         <Link
           to="/terms"
           className="inline-flex min-h-6 items-center transition-colors hover:text-foreground"

@@ -194,7 +194,7 @@ function ChallengePage() {
             />
           </label>
           {error ? (
-            <p role="alert" className="text-[13px] text-foreground">
+            <p role="alert" className="text-[0.8125rem] text-foreground">
               {error}
             </p>
           ) : null}
@@ -214,7 +214,7 @@ function ChallengePage() {
               setError(null);
             }}
             disabled={busy}
-            className="flex h-9 w-full items-center justify-center text-[13px] text-muted-foreground transition-colors hover:text-foreground"
+            className="flex h-9 w-full items-center justify-center text-[0.8125rem] text-muted-foreground transition-colors hover:text-foreground"
           >
             Back
           </button>
@@ -252,7 +252,7 @@ function ChallengePage() {
           </label>
 
           {error ? (
-            <p role="alert" className="text-[13px] text-foreground">
+            <p role="alert" className="text-[0.8125rem] text-foreground">
               {error}
             </p>
           ) : null}
@@ -273,7 +273,7 @@ function ChallengePage() {
               setError(null);
             }}
             disabled={busy}
-            className="flex h-9 w-full items-center justify-center text-[13px] text-muted-foreground transition-colors hover:text-foreground"
+            className="flex h-9 w-full items-center justify-center text-[0.8125rem] text-muted-foreground transition-colors hover:text-foreground"
           >
             I lost my authenticator
           </button>

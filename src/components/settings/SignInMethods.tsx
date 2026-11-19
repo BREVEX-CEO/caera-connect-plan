@@ -138,7 +138,7 @@ export function SignInMethods() {
       ))}
 
       {problem ? (
-        <p className="pt-3 text-[13px] text-foreground" role="alert">
+        <p className="pt-3 text-[0.8125rem] text-foreground" role="alert">
           {problem}
         </p>
       ) : null}

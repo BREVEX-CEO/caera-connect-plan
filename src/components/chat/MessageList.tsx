@@ -90,7 +90,7 @@ export function MessageList({
         ))}
 
         {streaming ? (
-          <div className="text-[15px] leading-7 text-foreground">
+          <div className="text-[0.9375rem] leading-7 text-foreground">
             <Prose text={streaming} />
           </div>
         ) : null}
@@ -139,7 +139,7 @@ function Turn({
               rows={3}
               value={draft}
               onChange={(event) => setDraft(event.target.value)}
-              className="ocade-scroll w-full resize-none rounded-2xl bg-secondary px-4 py-2.5 text-[15px] leading-6 text-secondary-foreground outline-none"
+              className="ocade-scroll w-full resize-none rounded-2xl bg-secondary px-4 py-2.5 text-[0.9375rem] leading-6 text-secondary-foreground outline-none"
             />
             <div className="mt-2 flex justify-end gap-2">
               <button
@@ -148,7 +148,7 @@ function Turn({
                   setDraft(message.content);
                   setEditing(false);
                 }}
-                className="h-8 rounded-md px-3 text-[13px] text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                className="h-8 rounded-md px-3 text-[0.8125rem] text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
               >
                 Cancel
               </button>
@@ -159,7 +159,7 @@ function Turn({
                   setEditing(false);
                   onResend(message.id, draft);
                 }}
-                className="h-8 rounded-md bg-primary px-3 text-[13px] font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-40"
+                className="h-8 rounded-md bg-primary px-3 text-[0.8125rem] font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-40"
               >
                 Send edit
               </button>
@@ -173,7 +173,7 @@ function Turn({
       <div className="group flex flex-col items-end">
         <div
           className={cn(
-            "max-w-[85%] whitespace-pre-wrap rounded-2xl bg-secondary px-4 py-2.5 text-[15px] leading-6 text-secondary-foreground",
+            "max-w-[85%] whitespace-pre-wrap rounded-2xl bg-secondary px-4 py-2.5 text-[0.9375rem] leading-6 text-secondary-foreground",
             message.unsynced && "opacity-70",
           )}
         >
@@ -240,7 +240,7 @@ function Turn({
   }
 
   return (
-    <div className="group text-[15px] leading-7 text-foreground">
+    <div className="group text-[0.9375rem] leading-7 text-foreground">
       <Prose text={message.content} />
       <Controls>
         <Action label="Copy" icon={Copy} onClick={() => copy(message.content)} />
@@ -334,7 +334,7 @@ const Markdown = lazy(() => import("react-markdown"));
 
 export function Prose({ text }: { text: string }) {
   return (
-    <div className="[&_a]:text-foreground [&_a]:underline [&_code]:rounded [&_code]:bg-secondary [&_code]:px-1 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-[13px] [&_h1]:mt-5 [&_h1]:text-base [&_h1]:font-semibold [&_h2]:mt-5 [&_h2]:text-sm [&_h2]:font-semibold [&_h3]:mt-4 [&_h3]:text-sm [&_h3]:font-medium [&_li]:mt-1 [&_ol]:mt-2 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:mt-3 [&_p:first-child]:mt-0 [&_pre]:ocade-scroll [&_pre]:overflow-x-auto [&_pre]:rounded-md [&_pre]:bg-secondary [&_pre]:p-3 [&_table]:mt-3 [&_table]:w-full [&_table]:border-collapse [&_table]:text-[13px] [&_td]:border [&_td]:border-border/60 [&_td]:px-2 [&_td]:py-1 [&_th]:border [&_th]:border-border/60 [&_th]:px-2 [&_th]:py-1 [&_th]:text-left [&_th]:font-medium [&_ul]:mt-2 [&_ul]:list-disc [&_ul]:pl-5">
+    <div className="[&_a]:text-foreground [&_a]:underline [&_code]:rounded [&_code]:bg-secondary [&_code]:px-1 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-[0.8125rem] [&_h1]:mt-5 [&_h1]:text-base [&_h1]:font-semibold [&_h2]:mt-5 [&_h2]:text-sm [&_h2]:font-semibold [&_h3]:mt-4 [&_h3]:text-sm [&_h3]:font-medium [&_li]:mt-1 [&_ol]:mt-2 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:mt-3 [&_p:first-child]:mt-0 [&_pre]:ocade-scroll [&_pre]:overflow-x-auto [&_pre]:rounded-md [&_pre]:bg-secondary [&_pre]:p-3 [&_table]:mt-3 [&_table]:w-full [&_table]:border-collapse [&_table]:text-[0.8125rem] [&_td]:border [&_td]:border-border/60 [&_td]:px-2 [&_td]:py-1 [&_th]:border [&_th]:border-border/60 [&_th]:px-2 [&_th]:py-1 [&_th]:text-left [&_th]:font-medium [&_ul]:mt-2 [&_ul]:list-disc [&_ul]:pl-5">
       <Suspense fallback={<p className="whitespace-pre-wrap">{text}</p>}>
         <Markdown components={{ pre: CodeBlock, img: ImageAsWords }}>{text}</Markdown>
       </Suspense>

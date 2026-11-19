@@ -164,7 +164,7 @@ export function useConfirmIdentity(): {
           className="w-full max-w-sm rounded-xl border border-border bg-background p-4 text-sm"
         >
           <p className="font-medium text-foreground">Confirm it&apos;s you</p>
-          <p className="mt-1 text-[13px] leading-5 text-muted-foreground">
+          <p className="mt-1 text-[0.8125rem] leading-5 text-muted-foreground">
             {step.kind === "loading"
               ? "One moment…"
               : step.kind === "totp"
@@ -186,7 +186,7 @@ export function useConfirmIdentity(): {
             />
           ) : null}
           {problem ? (
-            <p role="alert" className="mt-2 text-[13px] text-destructive">
+            <p role="alert" className="mt-2 text-[0.8125rem] text-destructive">
               {problem}
             </p>
           ) : null}

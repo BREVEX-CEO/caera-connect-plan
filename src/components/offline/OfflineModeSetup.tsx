@@ -171,7 +171,7 @@ export function OfflineModeOffer() {
   if (hidden || !online || !notSetUp || !offlineRelease()) return null;
 
   return (
-    <div className="mt-3 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[13px] text-muted-foreground">
+    <div className="mt-3 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[0.8125rem] text-muted-foreground">
       <span role="status">{problem ?? "Chat with no connection, on this device."}</span>
       <button
         type="button"

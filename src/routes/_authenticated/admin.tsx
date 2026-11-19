@@ -132,7 +132,7 @@ function ConsolePage() {
         </p>
         {staff.newFactor ? (
           <p
-            className="mt-3 rounded-md border border-border/60 p-3 text-[13px] text-foreground"
+            className="mt-3 rounded-md border border-border/60 p-3 text-[0.8125rem] text-foreground"
             role="status"
           >
             You set up two-step verification after signing in here. Sign out, sign in again, then
@@ -188,7 +188,7 @@ function SecondFactorNotice({ blocking }: { blocking: boolean }) {
   const enrolled = assurance.data?.next === "aal2";
   return (
     <p
-      className="mt-3 rounded-md border border-border/60 p-3 text-[13px] text-foreground"
+      className="mt-3 rounded-md border border-border/60 p-3 text-[0.8125rem] text-foreground"
       role="status"
     >
       {blocking
@@ -279,12 +279,12 @@ function CustomersModule({ me, onOpenCases }: { me: MyStaff; onOpenCases: () => 
                     {row.displayName ?? row.email ?? row.id}
                   </span>
                   {row.displayName ? (
-                    <span className="block truncate text-[13px] text-muted-foreground">
+                    <span className="block truncate text-[0.8125rem] text-muted-foreground">
                       {row.email ?? "No email"}
                     </span>
                   ) : null}
                 </span>
-                <span className="flex shrink-0 flex-wrap items-center gap-2 text-[13px]">
+                <span className="flex shrink-0 flex-wrap items-center gap-2 text-[0.8125rem]">
                   <AccessBadge row={row} />
                   {row.roles.length > 0 ? (
                     <span className="text-muted-foreground">
@@ -439,7 +439,7 @@ function CustomerDetail({
   const validHours = Number.isInteger(Number(hours)) && Number(hours) >= 1 && Number(hours) <= 72;
 
   return (
-    <div className="mt-3 space-y-3 rounded-md border border-border p-3 text-[13px]">
+    <div className="mt-3 space-y-3 rounded-md border border-border p-3 text-[0.8125rem]">
       {dialog}
       {detail.data ? (
         <>
@@ -884,7 +884,7 @@ function GrantForm({
       }}
       className="mt-3 flex flex-wrap items-end gap-2 rounded-md border border-border p-3"
     >
-      <label className="text-[13px] text-muted-foreground">
+      <label className="text-[0.8125rem] text-muted-foreground">
         <span className="mb-1 block">Tier</span>
         <select
           value={tier}
@@ -895,7 +895,7 @@ function GrantForm({
           <option value="max">Max</option>
         </select>
       </label>
-      <label className="text-[13px] text-muted-foreground">
+      <label className="text-[0.8125rem] text-muted-foreground">
         <span className="mb-1 block">Days</span>
         <input
           type="number"
@@ -906,7 +906,7 @@ function GrantForm({
           className="h-8 w-20 rounded-md border border-border bg-transparent px-2 text-sm text-foreground outline-none focus-visible:border-ring"
         />
       </label>
-      <label className="min-w-[12rem] flex-1 text-[13px] text-muted-foreground">
+      <label className="min-w-[12rem] flex-1 text-[0.8125rem] text-muted-foreground">
         <span className="mb-1 block">Reason</span>
         <input
           value={reason}
@@ -923,7 +923,7 @@ function GrantForm({
         Give access
       </button>
       {/* What is about to be written, in one sentence, before it is written. */}
-      <p className="basis-full text-[13px] text-muted-foreground">
+      <p className="basis-full text-[0.8125rem] text-muted-foreground">
         {valid
           ? `${tier === "max" ? "Max" : "Pro"} until ${new Date(
               Date.now() + parsedDays * 86_400_000,

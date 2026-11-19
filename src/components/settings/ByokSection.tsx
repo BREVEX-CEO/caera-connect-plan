@@ -35,7 +35,7 @@ export function ByokSection() {
       {state.data ? (
         <>
           <Sources state={state.data} onChanged={refresh} />
-          <p className="border-b border-border/50 py-4 text-[13px] leading-5 text-muted-foreground">
+          <p className="border-b border-border/50 py-4 text-[0.8125rem] leading-5 text-muted-foreground">
             With your key, your provider bills you directly for model use, and OCADE does not draw
             its own model allowance for those turns; your OCADE plan's limits still apply. Remaining
             provider quota: unknown (providers do not report it to OCADE). Used with your keys this
@@ -116,7 +116,7 @@ function Sources({ state, onChanged }: { state: ByokState; onChanged: () => void
         {select("jarvis")}
       </Row>
       {problem ? (
-        <p role="alert" className="pb-2 text-[13px] text-destructive">
+        <p role="alert" className="pb-2 text-[0.8125rem] text-destructive">
           {problem}
         </p>
       ) : null}
@@ -192,7 +192,7 @@ function Connection({
         </div>
       </Row>
       {testing ? (
-        <div className="flex flex-wrap items-center justify-between gap-3 pb-2 text-[13px] text-muted-foreground">
+        <div className="flex flex-wrap items-center justify-between gap-3 pb-2 text-[0.8125rem] text-muted-foreground">
           <span>A test sends two small requests to your provider and may use your quota.</span>
           <div className="flex gap-2">
             <Action
@@ -205,7 +205,7 @@ function Connection({
         </div>
       ) : null}
       {deleting ? (
-        <div className="flex flex-wrap items-center justify-between gap-3 pb-2 text-[13px] text-muted-foreground">
+        <div className="flex flex-wrap items-center justify-between gap-3 pb-2 text-[0.8125rem] text-muted-foreground">
           <span>
             Deletes the key from OCADE. Anything that used it stops until you choose another source.
           </span>
@@ -227,7 +227,7 @@ function Connection({
         />
       ) : null}
       {problem ? (
-        <p role="alert" className="text-[13px] text-destructive">
+        <p role="alert" className="text-[0.8125rem] text-destructive">
           {problem}
         </p>
       ) : null}
@@ -314,7 +314,7 @@ function ConnectionForm({
       <p className="text-sm text-foreground">
         {initial ? `Change ${initial.alias}` : "Add a connection"}
       </p>
-      <label className="block text-[13px] text-muted-foreground" htmlFor={`${id}-preset`}>
+      <label className="block text-[0.8125rem] text-muted-foreground" htmlFor={`${id}-preset`}>
         Provider
         <select
           id={`${id}-preset`}
@@ -332,7 +332,10 @@ function ConnectionForm({
       </label>
       {preset === "other" ? (
         <>
-          <label className="block text-[13px] text-muted-foreground" htmlFor={`${id}-protocol`}>
+          <label
+            className="block text-[0.8125rem] text-muted-foreground"
+            htmlFor={`${id}-protocol`}
+          >
             API type
             <select
               id={`${id}-protocol`}
@@ -344,7 +347,10 @@ function ConnectionForm({
               <option value="gemini">Google Gemini (…/models/MODEL:generateContent)</option>
             </select>
           </label>
-          <label className="block text-[13px] text-muted-foreground" htmlFor={`${id}-endpoint`}>
+          <label
+            className="block text-[0.8125rem] text-muted-foreground"
+            htmlFor={`${id}-endpoint`}
+          >
             API base URL (public HTTPS, for example https://api.example.com/v1)
             <input
               id={`${id}-endpoint`}
@@ -358,9 +364,9 @@ function ConnectionForm({
           </label>
         </>
       ) : (
-        <p className="text-[13px] text-muted-foreground">API address: {chosen?.endpoint}</p>
+        <p className="text-[0.8125rem] text-muted-foreground">API address: {chosen?.endpoint}</p>
       )}
-      <label className="block text-[13px] text-muted-foreground" htmlFor={`${id}-alias`}>
+      <label className="block text-[0.8125rem] text-muted-foreground" htmlFor={`${id}-alias`}>
         Name
         <input
           id={`${id}-alias`}
@@ -371,7 +377,7 @@ function ConnectionForm({
           onChange={(event) => setAlias(event.target.value)}
         />
       </label>
-      <label className="block text-[13px] text-muted-foreground" htmlFor={`${id}-model`}>
+      <label className="block text-[0.8125rem] text-muted-foreground" htmlFor={`${id}-model`}>
         Model ID, exactly as your provider names it
         <input
           id={`${id}-model`}
@@ -383,7 +389,7 @@ function ConnectionForm({
           onChange={(event) => setModel(event.target.value)}
         />
       </label>
-      <label className="block text-[13px] text-muted-foreground" htmlFor={`${id}-key`}>
+      <label className="block text-[0.8125rem] text-muted-foreground" htmlFor={`${id}-key`}>
         {initial ? "New API key (leave empty to keep the current one)" : "API key"}
         <input
           id={`${id}-key`}
@@ -396,12 +402,12 @@ function ConnectionForm({
           maxLength={4096}
         />
       </label>
-      <p className="text-[13px] text-muted-foreground">
+      <p className="text-[0.8125rem] text-muted-foreground">
         OCADE stores the key encrypted on its server and never shows it again. Test the connection
         after saving.
       </p>
       {problem ? (
-        <p role="alert" className="text-[13px] text-destructive">
+        <p role="alert" className="text-[0.8125rem] text-destructive">
           {problem}
         </p>
       ) : null}

@@ -102,7 +102,7 @@ export function AdvancedSection() {
           description={`Last used ${describeWhen(session.lastSeenAt)}.`}
         >
           {session.current ? (
-            <span className="text-[13px] text-muted-foreground">Signed in</span>
+            <span className="text-[0.8125rem] text-muted-foreground">Signed in</span>
           ) : (
             <Action
               label="Sign out"
@@ -114,7 +114,7 @@ export function AdvancedSection() {
       ))}
 
       {refused ? (
-        <p className="pt-3 text-[13px] text-foreground" role="alert">
+        <p className="pt-3 text-[0.8125rem] text-foreground" role="alert">
           {refused}
         </p>
       ) : null}

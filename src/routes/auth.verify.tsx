@@ -256,7 +256,7 @@ function VerifyPage() {
            * button with the reason somewhere else is a button that, to a screen
            * reader, simply stopped working.
            */
-          className="flex min-h-6 items-center justify-center gap-2 text-[13px] text-muted-foreground transition-colors hover:text-foreground disabled:cursor-not-allowed disabled:opacity-70"
+          className="flex min-h-6 items-center justify-center gap-2 text-[0.8125rem] text-muted-foreground transition-colors hover:text-foreground disabled:cursor-not-allowed disabled:opacity-70"
         >
           {resending ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden /> : null}
           {describeResend(cooldown)}
@@ -265,12 +265,12 @@ function VerifyPage() {
           {resent ? "A new code has been sent." : ""}
         </p>
         {resent ? (
-          <p className="text-[13px] text-muted-foreground">
+          <p className="text-[0.8125rem] text-muted-foreground">
             A new code is on its way. The previous one no longer works.
           </p>
         ) : null}
         {error ? (
-          <p role="alert" className="text-[13px] text-foreground">
+          <p role="alert" className="text-[0.8125rem] text-foreground">
             {error}
           </p>
         ) : null}

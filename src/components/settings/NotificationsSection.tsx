@@ -148,7 +148,7 @@ export function NotificationsSection() {
               }
             />
           ) : (
-            <span className="text-[13px] text-muted-foreground">Always on</span>
+            <span className="text-[0.8125rem] text-muted-foreground">Always on</span>
           )}
         </Row>
       ))}
@@ -224,7 +224,7 @@ export function NotificationsSection() {
       ) : null}
 
       {saved ? (
-        <p className="pt-3 text-[13px] text-muted-foreground" role="status">
+        <p className="pt-3 text-[0.8125rem] text-muted-foreground" role="status">
           {saved}
         </p>
       ) : null}

@@ -102,7 +102,7 @@ function PricingPage() {
               onClick={() => setCadence(value)}
               aria-pressed={cadence === value}
               className={cn(
-                "h-8 rounded-md px-4 text-[13px] capitalize transition-colors",
+                "h-8 rounded-md px-4 text-[0.8125rem] capitalize transition-colors",
                 cadence === value
                   ? "bg-accent text-foreground"
                   : "text-muted-foreground hover:text-foreground",
@@ -113,7 +113,7 @@ function PricingPage() {
           ))}
         </div>
 
-        <label className="flex items-center gap-2 text-[13px] text-muted-foreground">
+        <label className="flex items-center gap-2 text-[0.8125rem] text-muted-foreground">
           Currency
           <select
             value={currency}
@@ -121,7 +121,7 @@ function PricingPage() {
               setChosen(true);
               setCurrency(event.target.value as CurrencyCode);
             }}
-            className="glass h-8 rounded-md px-2 text-[13px] text-foreground outline-none"
+            className="glass h-8 rounded-md px-2 text-[0.8125rem] text-foreground outline-none"
           >
             {CURRENCIES.map((entry) => (
               <option key={entry.code} value={entry.code}>
@@ -145,7 +145,7 @@ function PricingPage() {
         ))}
       </div>
 
-      <p className="mt-6 text-[13px] leading-5 text-muted-foreground">
+      <p className="mt-6 text-[0.8125rem] leading-5 text-muted-foreground">
         Paid plans are not open yet, and nothing is charged. Prices are shown so you know what they
         will cost when they open.
       </p>
@@ -186,19 +186,19 @@ function PlanCard({
       </h2>
 
       <p className="mt-3 flex items-baseline gap-1.5">
-        <span className="text-[28px] font-semibold tracking-tight text-foreground">
+        <span className="text-[1.75rem] font-semibold tracking-tight text-foreground">
           {describePrice(priceFor(plan, currency))}
         </span>
         {plan.cadence ? (
-          <span className="text-[13px] text-muted-foreground">
+          <span className="text-[0.8125rem] text-muted-foreground">
             / {plan.cadence === "weekly" ? "week" : "month"}
           </span>
         ) : null}
       </p>
 
-      <p className="mt-2 text-[13px] leading-5 text-muted-foreground">{plan.summary}</p>
+      <p className="mt-2 text-[0.8125rem] leading-5 text-muted-foreground">{plan.summary}</p>
 
-      <ul className="mt-4 flex-1 space-y-2 text-[13px] text-muted-foreground">
+      <ul className="mt-4 flex-1 space-y-2 text-[0.8125rem] text-muted-foreground">
         <Benefit>
           {allowance.session.toLocaleString("en-US")} questions every 6 hours 28 minutes
           {allowance.week === null ? ", with no weekly limit" : ""}
@@ -230,7 +230,7 @@ function Action({
   currentTier: PlanTier | undefined;
 }) {
   if (current) {
-    return <p className="text-[13px] font-medium text-foreground">Your plan</p>;
+    return <p className="text-[0.8125rem] font-medium text-foreground">Your plan</p>;
   }
   if (!signedIn) {
     return (
@@ -244,10 +244,10 @@ function Action({
     );
   }
   if (tier === "free") {
-    return <p className="text-[13px] text-muted-foreground">Included with every account.</p>;
+    return <p className="text-[0.8125rem] text-muted-foreground">Included with every account.</p>;
   }
   return (
-    <p className="text-[13px] text-muted-foreground">
+    <p className="text-[0.8125rem] text-muted-foreground">
       {currentTier === "free"
         ? "Paid plans are not open yet. Your account stays on Free until they are."
         : "Paid plans are not open yet."}

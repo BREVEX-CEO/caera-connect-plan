@@ -74,7 +74,7 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 }
 
 const button =
-  "h-7 shrink-0 rounded-md border border-border px-2 text-[13px] text-foreground transition-colors hover:bg-accent disabled:opacity-50";
+  "h-7 shrink-0 rounded-md border border-border px-2 text-[0.8125rem] text-foreground transition-colors hover:bg-accent disabled:opacity-50";
 
 /* ---------------------------------------------------------------- staff -- */
 
@@ -167,7 +167,7 @@ export function StaffModule({ me }: { me: MyStaff }) {
         )}
         {staff.data?.invites.length ? (
           <>
-            <h3 className="mt-4 text-[13px] font-medium text-muted-foreground">
+            <h3 className="mt-4 text-[0.8125rem] font-medium text-muted-foreground">
               Waiting for sign-up
             </h3>
             <ul className="mt-1 divide-y divide-border/50">
@@ -180,7 +180,7 @@ export function StaffModule({ me }: { me: MyStaff }) {
       </Section>
 
       <Section title="Give someone access">
-        <p className="mt-1 text-[13px] text-muted-foreground">
+        <p className="mt-1 text-[0.8125rem] text-muted-foreground">
           OCADE finds the account by its verified email address and gives access to that account,
           not to the address. An address with no account yet waits as an invitation for 14 days.
         </p>
@@ -229,7 +229,7 @@ export function StaffModule({ me }: { me: MyStaff }) {
       </Section>
 
       <Section title="Emergency: sign every staff member out">
-        <p className="mt-1 text-[13px] text-muted-foreground">
+        <p className="mt-1 text-[0.8125rem] text-muted-foreground">
           Ends every staff session on every device, except this one. Use it when a staff account may
           be in the wrong hands; removing that person also stops their access at once.
         </p>
@@ -339,7 +339,7 @@ function StaffRow({
             {member.email ?? member.userId}
             {member.isSelf ? " (you)" : ""}
           </span>
-          <span className="block text-[13px] text-muted-foreground">
+          <span className="block text-[0.8125rem] text-muted-foreground">
             {STAFF_ROLE_NAMES[member.role]}
             {member.granted.length || member.denied.length ? " · with changes" : ""}
           </span>
@@ -375,7 +375,7 @@ function StaffRow({
       {usage ? <StaffUsage member={member} me={me} /> : null}
       {editing && touchable ? (
         <div className="mt-3 space-y-3 rounded-md border border-border p-3">
-          <p className="text-[13px] text-muted-foreground">
+          <p className="text-[0.8125rem] text-muted-foreground">
             Filled is what this person can do. Tap to turn one on or off; green was added to{" "}
             {STAFF_ROLE_NAMES[member.role]}, struck through was taken away from it.
           </p>
@@ -426,7 +426,7 @@ function StaffRow({
             </button>
           </div>
           {me.role === "primary_owner" && member.role === "backup_owner" ? (
-            <fieldset className="space-y-2 border-t border-border/50 pt-3 text-[13px]">
+            <fieldset className="space-y-2 border-t border-border/50 pt-3 text-[0.8125rem]">
               <legend className="font-medium text-foreground">Make them the Primary Owner</legend>
               <label className="flex items-center gap-2 text-muted-foreground">
                 <input
@@ -469,7 +469,7 @@ function StaffUsage({ member, me }: { member: StaffMember; me: MyStaff }) {
   });
   if (!detail.data) {
     return (
-      <div className="mt-2 text-[13px]">
+      <div className="mt-2 text-[0.8125rem]">
         <Pending query={detail} loading="Loading usage…" problem="Usage could not be read." />
       </div>
     );
@@ -477,7 +477,7 @@ function StaffUsage({ member, me }: { member: StaffMember; me: MyStaff }) {
   const { usage, unlimited, lastUsed } = detail.data;
   const owner = member.role === "primary_owner" || member.role === "backup_owner";
   return (
-    <div className="mt-2 space-y-2 rounded-md border border-border p-3 text-[13px]">
+    <div className="mt-2 space-y-2 rounded-md border border-border p-3 text-[0.8125rem]">
       <UsageSummary usage={usage} unlimited={unlimited} lastUsed={lastUsed} />
       {!member.isSelf && !owner && (me.role === "primary_owner" || me.role === "backup_owner") ? (
         <UnlimitedUse
@@ -636,7 +636,7 @@ function InviteRow({
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="min-w-0 truncate text-foreground">
           {invite.email} · {STAFF_ROLE_NAMES[invite.role]}
-          <span className="block text-[13px] text-muted-foreground">
+          <span className="block text-[0.8125rem] text-muted-foreground">
             Until {new Date(invite.expiresAt).toLocaleDateString()}
           </span>
         </span>
@@ -671,7 +671,7 @@ export function CasesModule({ me }: { me: MyStaff }) {
   const [openId, setOpenId] = useState<string | null>(null);
   return (
     <Section title="Open cases">
-      <p className="mt-1 text-[13px] text-muted-foreground">
+      <p className="mt-1 text-[0.8125rem] text-muted-foreground">
         A customer&apos;s conversations can be read only under an open case, until it closes or
         expires. The customer is told, and every read is written down.
       </p>
@@ -685,7 +685,7 @@ export function CasesModule({ me }: { me: MyStaff }) {
                     <span className="block truncate text-foreground">
                       {kase.customerEmail ?? kase.customer}
                     </span>
-                    <span className="block text-[13px] text-muted-foreground">
+                    <span className="block text-[0.8125rem] text-muted-foreground">
                       {kase.reason} · {kase.conversation?.title ?? "no conversation"} · until{" "}
                       {new Date(kase.expiresAt).toLocaleString()}
                       {kase.mine ? "" : " · read by another member of staff"}
@@ -715,7 +715,7 @@ export function CasesModule({ me }: { me: MyStaff }) {
             ))}
           </ul>
         ) : (
-          <p className="mt-3 text-[13px] text-muted-foreground">No open cases.</p>
+          <p className="mt-3 text-[0.8125rem] text-muted-foreground">No open cases.</p>
         )
       ) : (
         <Pending query={cases} loading="Loading cases…" problem="Cases could not be read." />
@@ -758,7 +758,7 @@ function CaseReader({
         messages.data ? (
           <ol className="mt-3 max-h-80 space-y-2 overflow-y-auto">
             {messages.data.map((message, index) => (
-              <li key={index} className="text-[13px]">
+              <li key={index} className="text-[0.8125rem]">
                 <span className="text-muted-foreground">
                   {message.role === "user" ? "Customer" : "OCADE"}:
                 </span>{" "}
@@ -810,7 +810,7 @@ export function SystemModule({ me }: { me: MyStaff }) {
             <dl className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-5">
               {([["Staff", health.data.staff]] as const).map(([name, value]) => (
                 <div key={name}>
-                  <dt className="text-[13px] text-muted-foreground">{name}</dt>
+                  <dt className="text-[0.8125rem] text-muted-foreground">{name}</dt>
                   <dd className="text-lg font-semibold text-foreground">{value}</dd>
                 </div>
               ))}
@@ -846,7 +846,7 @@ function EmergencyControls({ canChange }: { canChange: boolean }) {
   });
   return (
     <Section title="Emergency pause">
-      <p className="mt-1 text-[13px] text-muted-foreground">
+      <p className="mt-1 text-[0.8125rem] text-muted-foreground">
         A pause takes effect on the next request: running steps finish or stop at their next check,
         nothing new starts, and customers see that JARVIS is paused. Every change is recorded with
         who made it and why.
@@ -904,7 +904,7 @@ function ControlRow({
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="min-w-0 text-foreground">
           {CONTROL_NAMES[control.key] ?? control.key} · {control.paused ? "Paused" : "Running"}
-          <span className="block text-[13px] text-muted-foreground">
+          <span className="block text-[0.8125rem] text-muted-foreground">
             {new Date(control.changedAt).toLocaleString()}
             {control.reason ? ` · ${control.reason}` : ""}
           </span>
@@ -969,7 +969,7 @@ export function AuditModule() {
         audit.data.length ? (
           <ul className="mt-2 divide-y divide-border/50">
             {audit.data.map((entry) => (
-              <li key={entry.id} className="py-2 text-[13px]">
+              <li key={entry.id} className="py-2 text-[0.8125rem]">
                 <span className="block text-foreground">
                   {ACTION_NAMES[entry.action] ?? entry.action}
                   {entry.target ? ` · ${entry.target}` : ""}
@@ -981,7 +981,7 @@ export function AuditModule() {
             ))}
           </ul>
         ) : (
-          <p className="mt-3 text-[13px] text-muted-foreground">Nothing recorded yet.</p>
+          <p className="mt-3 text-[0.8125rem] text-muted-foreground">Nothing recorded yet.</p>
         )
       ) : (
         <Pending

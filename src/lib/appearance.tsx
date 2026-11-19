@@ -32,10 +32,13 @@ import {
   type ReactNode,
 } from "react";
 
-export type ThemeMode = "dark" | "light";
+export type ThemeMode = "dark" | "light" | "system";
+/** Kept on this device only: it describes the screen, not the person. */
+export type TextSize = "default" | "large" | "larger";
 
 export interface AppearancePrefs {
   theme: ThemeMode;
+  textSize: TextSize;
   /** The person's own override. The OS preference is honoured separately. */
   reducedMotion: boolean;
   highContrast: boolean;
@@ -52,7 +55,20 @@ export interface AppearanceValue extends AppearancePrefs {
 /** The key the boot script in `__root.tsx` reads. Changing one changes both. */
 const APPEARANCE_STORAGE_KEY = "ocade:appearance:v1";
 
-const DEFAULTS: AppearancePrefs = { theme: "dark", reducedMotion: false, highContrast: false };
+const DEFAULTS: AppearancePrefs = {
+  theme: "dark",
+  textSize: "default",
+  reducedMotion: false,
+  highContrast: false,
+};
+
+function readTheme(value: unknown, fallback: ThemeMode): ThemeMode {
+  return value === "light" || value === "dark" || value === "system" ? value : fallback;
+}
+
+function readTextSize(value: unknown): TextSize {
+  return value === "large" || value === "larger" ? value : "default";
+}
 
 const AppearanceContext = createContext<AppearanceValue | null>(null);
 
@@ -69,7 +85,8 @@ function readLocal(): AppearancePrefs {
     if (!raw) return DEFAULTS;
     const parsed = JSON.parse(raw) as Partial<AppearancePrefs>;
     return {
-      theme: parsed.theme === "light" ? "light" : "dark",
+      theme: readTheme(parsed.theme, "dark"),
+      textSize: readTextSize(parsed.textSize),
       reducedMotion: parsed.reducedMotion === true,
       highContrast: parsed.highContrast === true,
     };
@@ -89,25 +106,39 @@ function writeLocal(prefs: AppearancePrefs) {
 }
 
 /** Applies the preferences to <html>, which is what every rule in styles.css reads. */
-function applyToDocument(prefs: AppearancePrefs, osReducedMotion: boolean) {
+function applyToDocument(prefs: AppearancePrefs, osReducedMotion: boolean, osLight: boolean) {
   if (typeof document === "undefined") return;
   const root = document.documentElement;
-  root.classList.toggle("light", prefs.theme === "light");
+  const light = prefs.theme === "light" || (prefs.theme === "system" && osLight);
+  root.classList.toggle("light", light);
   root.classList.toggle("high-contrast", prefs.highContrast);
   root.classList.toggle("reduce-motion", prefs.reducedMotion || osReducedMotion);
-  root.style.colorScheme = prefs.theme === "light" ? "light" : "dark";
+  root.classList.toggle("text-large", prefs.textSize === "large");
+  root.classList.toggle("text-larger", prefs.textSize === "larger");
+  root.style.colorScheme = light ? "light" : "dark";
+  root.style.background = light ? "#f1f1f1" : "#0a0a0a";
 }
 
 export function AppearanceProvider({ children }: { children: ReactNode }) {
   const [prefs, setPrefs] = useState<AppearancePrefs>(readLocal);
   const [osReducedMotion, setOsReducedMotion] = useState(false);
+  const [osLight, setOsLight] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   /** Set by the first local change, so a late cloud read cannot undo it. */
   const touchedRef = useRef(false);
 
   useEffect(() => {
-    applyToDocument(prefs, osReducedMotion);
-  }, [prefs, osReducedMotion]);
+    applyToDocument(prefs, osReducedMotion, osLight);
+  }, [prefs, osReducedMotion, osLight]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.matchMedia) return;
+    const query = window.matchMedia("(prefers-color-scheme: light)");
+    const update = () => setOsLight(query.matches);
+    update();
+    query.addEventListener?.("change", update);
+    return () => query.removeEventListener?.("change", update);
+  }, []);
 
   useEffect(() => {
     if (typeof window === "undefined" || !window.matchMedia) return;
@@ -142,8 +173,9 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
       if (cancelled || error || !data || touchedRef.current) return;
       setPrefs((current) => {
         const next: AppearancePrefs = {
-          // Either saved mode is honoured; anything else keeps this browser's (F-173).
-          theme: data.theme === "light" || data.theme === "dark" ? data.theme : current.theme,
+          // A saved mode is honoured; anything else keeps this browser's (F-173).
+          theme: readTheme(data.theme, current.theme),
+          textSize: current.textSize,
           reducedMotion:
             typeof data.reduced_motion === "boolean" ? data.reduced_motion : current.reducedMotion,
           highContrast:

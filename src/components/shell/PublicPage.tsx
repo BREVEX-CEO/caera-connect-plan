@@ -69,7 +69,7 @@ export function PublicPage({
               <Link
                 key={link.to}
                 to={link.to}
-                className="rounded-md px-2.5 py-2 text-[13px] text-muted-foreground transition-colors hover:bg-accent hover:text-foreground sm:py-1.5"
+                className="rounded-md px-2.5 py-2 text-[0.8125rem] text-muted-foreground transition-colors hover:bg-accent hover:text-foreground sm:py-1.5"
                 activeProps={{ className: "text-foreground" }}
               >
                 {link.label}
@@ -88,7 +88,7 @@ export function PublicPage({
 
       <footer className="border-t border-border/60 print:hidden">
         <div
-          className={`mx-auto flex ${column} flex-wrap items-center justify-between gap-3 px-5 py-6 text-[13px] text-muted-foreground`}
+          className={`mx-auto flex ${column} flex-wrap items-center justify-between gap-3 px-5 py-6 text-[0.8125rem] text-muted-foreground`}
         >
           <span>OCADE by CARCC</span>
           <Link

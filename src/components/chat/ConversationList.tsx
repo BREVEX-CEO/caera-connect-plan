@@ -101,7 +101,7 @@ export function ConversationList({
 
   if (loading && visible.length === 0) {
     return (
-      <p className="px-2.5 py-2 text-[13px] text-muted-foreground" role="status">
+      <p className="px-2.5 py-2 text-[0.8125rem] text-muted-foreground" role="status">
         Loading chats…
       </p>
     );
@@ -110,11 +110,11 @@ export function ConversationList({
   if (failed && visible.length === 0) {
     return (
       <div className="px-2.5 py-2" role="alert">
-        <p className="text-[13px] text-muted-foreground">Your chats could not be loaded.</p>
+        <p className="text-[0.8125rem] text-muted-foreground">Your chats could not be loaded.</p>
         <button
           type="button"
           onClick={onRetry}
-          className="mt-1 text-[13px] text-foreground underline underline-offset-2"
+          className="mt-1 text-[0.8125rem] text-foreground underline underline-offset-2"
         >
           Retry
         </button>
@@ -140,13 +140,13 @@ export function ConversationList({
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Search chats"
             aria-label="Search chats"
-            className="h-8 w-full rounded-lg border border-border bg-transparent px-2.5 text-[13px] text-foreground outline-none placeholder:text-muted-foreground focus-visible:border-ring"
+            className="h-8 w-full rounded-lg border border-border bg-transparent px-2.5 text-[0.8125rem] text-foreground outline-none placeholder:text-muted-foreground focus-visible:border-ring"
           />
         </div>
       ) : null}
 
       {needle && visible.length === 0 ? (
-        <p className="px-2.5 py-2 text-[13px] text-muted-foreground">No chats match.</p>
+        <p className="px-2.5 py-2 text-[0.8125rem] text-muted-foreground">No chats match.</p>
       ) : null}
 
       {[
@@ -157,7 +157,7 @@ export function ConversationList({
           : []),
       ].map((group) => (
         <div key={group.label}>
-          <p className="px-2.5 pb-1 pt-3 text-[13px] text-muted-foreground">{group.label}</p>
+          <p className="px-2.5 pb-1 pt-3 text-[0.8125rem] text-muted-foreground">{group.label}</p>
           <ul>
             {group.rows.map((row) => (
               <li key={row.id} className="group relative">
@@ -179,7 +179,7 @@ export function ConversationList({
                     data-closes-drawer
                     aria-current={activeId === row.id ? "true" : undefined}
                     className={cn(
-                      "flex h-9 w-full items-center rounded-lg pl-2.5 pr-8 text-left text-[14px] transition-colors",
+                      "flex h-9 w-full items-center rounded-lg pl-2.5 pr-8 text-left text-[0.875rem] transition-colors",
                       activeId === row.id
                         ? "bg-accent text-foreground"
                         : "text-muted-foreground hover:bg-accent/60 hover:text-foreground",
@@ -363,7 +363,7 @@ function MenuItem({
       role="menuitem"
       onClick={onSelect}
       className={cn(
-        "flex w-full items-center gap-2.5 rounded-md px-2.5 py-1.5 text-left text-[13px] transition-colors hover:bg-accent",
+        "flex w-full items-center gap-2.5 rounded-md px-2.5 py-1.5 text-left text-[0.8125rem] transition-colors hover:bg-accent",
         destructive ? "text-destructive" : "text-foreground",
       )}
     >
@@ -420,7 +420,7 @@ function RenameField({
         if (event.key === "Escape") onCancel();
       }}
       aria-label="Conversation name"
-      className="h-9 w-full rounded-lg border border-border bg-transparent px-2.5 text-[14px] text-foreground outline-none focus-visible:border-ring"
+      className="h-9 w-full rounded-lg border border-border bg-transparent px-2.5 text-[0.875rem] text-foreground outline-none focus-visible:border-ring"
     />
   );
 }

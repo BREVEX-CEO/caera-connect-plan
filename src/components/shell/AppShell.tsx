@@ -148,7 +148,7 @@ function Sidebar({ className, children }: { className?: string; children?: React
         <Link
           to="/"
           search={{ new: true }}
-          className="mb-0.5 flex h-10 items-center gap-3 rounded-lg px-2.5 text-[15px] font-medium text-foreground transition-colors hover:bg-accent"
+          className="mb-0.5 flex h-10 items-center gap-3 rounded-lg px-2.5 text-[0.9375rem] font-medium text-foreground transition-colors hover:bg-accent"
         >
           <PenSquare className="h-[18px] w-[18px] text-muted-foreground" aria-hidden />
           New chat
@@ -161,7 +161,7 @@ function Sidebar({ className, children }: { className?: string; children?: React
               to={to}
               aria-current={active ? "page" : undefined}
               className={cn(
-                "mb-0.5 flex h-10 items-center gap-3 rounded-lg px-2.5 text-[15px] transition-colors",
+                "mb-0.5 flex h-10 items-center gap-3 rounded-lg px-2.5 text-[0.9375rem] transition-colors",
                 active
                   ? "bg-accent text-foreground"
                   : "text-muted-foreground hover:bg-accent/60 hover:text-foreground",
@@ -209,7 +209,7 @@ function ConsoleLink({ active }: { active: boolean }) {
       to="/admin"
       aria-current={active ? "page" : undefined}
       className={cn(
-        "mb-0.5 flex h-10 items-center gap-3 rounded-lg px-2.5 text-[15px] transition-colors",
+        "mb-0.5 flex h-10 items-center gap-3 rounded-lg px-2.5 text-[0.9375rem] transition-colors",
         active
           ? "bg-accent text-foreground"
           : "text-muted-foreground hover:bg-accent/60 hover:text-foreground",
@@ -237,7 +237,7 @@ function UsageMeter() {
   const window = tightestWindow(usage.data);
   if (usage.data?.unlimited) {
     return (
-      <p className="shrink-0 px-4 pb-2 pt-1 text-[12px] leading-4 text-muted-foreground">
+      <p className="shrink-0 px-4 pb-2 pt-1 text-[0.75rem] leading-4 text-muted-foreground">
         {usage.data.unlimited.endsAt
           ? `Unlimited until ${new Date(usage.data.unlimited.endsAt).toLocaleDateString()}`
           : "Unlimited use"}
@@ -258,7 +258,7 @@ function UsageMeter() {
           style={{ width: `${spent}%` }}
         />
       </div>
-      <p className="text-[12px] leading-4 text-muted-foreground">
+      <p className="text-[0.75rem] leading-4 text-muted-foreground">
         {window.remaining} of {window.allowance} left · resets {describeReset(window.resetsInMs)}
       </p>
     </div>
@@ -387,7 +387,7 @@ function AccountRow() {
         <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-secondary text-xs font-semibold text-secondary-foreground">
           {initial}
         </span>
-        <span className="min-w-0 flex-1 truncate text-[15px] text-foreground">{name}</span>
+        <span className="min-w-0 flex-1 truncate text-[0.9375rem] text-foreground">{name}</span>
       </button>
     </div>
   );

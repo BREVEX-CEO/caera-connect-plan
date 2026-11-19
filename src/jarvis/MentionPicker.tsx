@@ -37,7 +37,7 @@ export function MentionList({
   return (
     <div className="absolute bottom-full left-0 right-0 z-20 mb-2 overflow-hidden rounded-xl border border-border bg-background shadow-lg">
       {deviceName ? (
-        <p className="border-b border-border/60 px-3 py-1.5 text-[12px] text-muted-foreground">
+        <p className="border-b border-border/60 px-3 py-1.5 text-[0.75rem] text-muted-foreground">
           Apps on {deviceName}
         </p>
       ) : null}
@@ -76,7 +76,9 @@ export function MentionList({
                 <span className="text-muted-foreground">@{candidate.exe}</span>
               </span>
               {candidate.allowed ? null : (
-                <span className="shrink-0 text-[12px] text-muted-foreground">Needs permission</span>
+                <span className="shrink-0 text-[0.75rem] text-muted-foreground">
+                  Needs permission
+                </span>
               )}
             </li>
           ))}

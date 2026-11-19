@@ -17,7 +17,7 @@ export function BrandMark({
         decoding="async"
       />
       {showWordmark ? (
-        <span className="text-[13px] font-semibold uppercase tracking-[0.2em] text-foreground">
+        <span className="text-[0.8125rem] font-semibold uppercase tracking-[0.2em] text-foreground">
           OCADE
         </span>
       ) : null}

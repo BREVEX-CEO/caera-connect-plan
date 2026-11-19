@@ -318,7 +318,7 @@ function AuthPage() {
             {busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null}
             Continue with Google
           </button>
-          <div className="my-5 flex items-center gap-3 text-[13px] text-muted-foreground">
+          <div className="my-5 flex items-center gap-3 text-[0.8125rem] text-muted-foreground">
             <span className="h-px flex-1 bg-border" />
             or
             <span className="h-px flex-1 bg-border" />
@@ -362,7 +362,7 @@ function AuthPage() {
           <SubmitButton busy={busy}>Send code</SubmitButton>
         </form>
       ) : (
-        <p className="text-[13px] text-muted-foreground">
+        <p className="text-[0.8125rem] text-muted-foreground">
           Email codes are not available on this deployment yet.
         </p>
       )}
@@ -374,18 +374,18 @@ function AuthPage() {
           setError(null);
           setHint(null);
         }}
-        className="mt-3 min-h-6 w-full text-center text-[13px] text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+        className="mt-3 min-h-6 w-full text-center text-[0.8125rem] text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
       >
         {usePassword ? "Use an email code instead" : "Use a password instead"}
       </button>
 
       {error ? (
-        <p className="mt-4 text-[13px] text-foreground" role="alert">
+        <p className="mt-4 text-[0.8125rem] text-foreground" role="alert">
           {error}
           {hint ? <span className="mt-1 block text-muted-foreground">{hint}</span> : null}
         </p>
       ) : notice ? (
-        <p className="mt-4 text-[13px] text-muted-foreground" role="status">
+        <p className="mt-4 text-[0.8125rem] text-muted-foreground" role="status">
           {notice}
         </p>
       ) : null}

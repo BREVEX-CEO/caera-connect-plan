@@ -186,7 +186,7 @@ export function TwoStep() {
       {enrolling ? (
         <div className="border-b border-border/50 py-4 last:border-b-0">
           <p className="text-sm text-foreground">Add OCADE to your authenticator app</p>
-          <p className="mt-1 text-[13px] leading-5 text-muted-foreground">
+          <p className="mt-1 text-[0.8125rem] leading-5 text-muted-foreground">
             Scan the code with your app, or enter the key by hand. If your app already has an OCADE
             entry from an earlier try, delete it first — each setup makes a new key.
           </p>
@@ -202,12 +202,12 @@ export function TwoStep() {
             ) : null}
             <div className="min-w-0 flex-1 space-y-2">
               <p
-                className="break-all font-mono text-[13px] tracking-wide text-foreground"
+                className="break-all font-mono text-[0.8125rem] tracking-wide text-foreground"
                 aria-label="Setup key"
               >
                 {enrolling.secret.match(/.{1,4}/g)?.join(" ")}
               </p>
-              <div className="flex flex-wrap gap-3 text-[13px]">
+              <div className="flex flex-wrap gap-3 text-[0.8125rem]">
                 <button
                   type="button"
                   onClick={() => {
@@ -264,7 +264,7 @@ export function TwoStep() {
             </button>
           </form>
           {rejected >= 2 ? (
-            <p className="mt-3 text-[13px] leading-5 text-muted-foreground">
+            <p className="mt-3 text-[0.8125rem] leading-5 text-muted-foreground">
               Still not accepted? Your app may hold a key from an earlier try, or its clock may be
               off.{" "}
               <button
@@ -306,17 +306,17 @@ export function TwoStep() {
           aria-label="Your recovery codes"
         >
           <p className="text-sm text-foreground">Save these recovery codes now</p>
-          <p className="mt-1 text-[13px] leading-5 text-muted-foreground">
+          <p className="mt-1 text-[0.8125rem] leading-5 text-muted-foreground">
             They are shown once. If you lose your phone, one of them turns two-step verification off
             so you can sign in and set it up again. Keep them somewhere other than your phone. Codes
             made earlier no longer work.
           </p>
-          <ul className="mt-3 grid gap-1 font-mono text-[13px] tracking-wide text-foreground sm:grid-cols-2">
+          <ul className="mt-3 grid gap-1 font-mono text-[0.8125rem] tracking-wide text-foreground sm:grid-cols-2">
             {sheet.map((code) => (
               <li key={code}>{code}</li>
             ))}
           </ul>
-          <div className="mt-3 flex flex-wrap gap-3 text-[13px]">
+          <div className="mt-3 flex flex-wrap gap-3 text-[0.8125rem]">
             <button
               type="button"
               onClick={() => {
@@ -350,7 +350,7 @@ export function TwoStep() {
       ) : null}
 
       {problem ? (
-        <p className="pt-3 text-[13px] text-foreground" role="alert">
+        <p className="pt-3 text-[0.8125rem] text-foreground" role="alert">
           {problem}
           {/aal2|assurance|Confirm the code/i.test(problem) ? (
             <>

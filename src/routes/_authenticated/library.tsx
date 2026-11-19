@@ -190,12 +190,12 @@ function LibraryPage() {
         </div>
 
         {problem ? (
-          <p className="mt-4 text-[13px] text-foreground" role="alert">
+          <p className="mt-4 text-[0.8125rem] text-foreground" role="alert">
             {problem}
           </p>
         ) : null}
         {fallback ? (
-          <p className="mt-4 text-[13px] text-foreground" role="status">
+          <p className="mt-4 text-[0.8125rem] text-foreground" role="status">
             Your browser kept a new tab from opening.{" "}
             <a
               href={fallback.url}
@@ -245,7 +245,7 @@ function LibraryPage() {
                 >
                   {item.name}
                 </button>
-                <span className="shrink-0 text-[13px] text-muted-foreground">
+                <span className="shrink-0 text-[0.8125rem] text-muted-foreground">
                   {describeSize(item.size_bytes)}
                 </span>
                 <button

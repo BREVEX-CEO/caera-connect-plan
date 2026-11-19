@@ -445,12 +445,12 @@ export function JarvisWorkspace({
                 turn.role === "user" ? (
                   <p
                     key={turn.id}
-                    className="max-w-[85%] self-end whitespace-pre-wrap rounded-3xl bg-secondary px-4 py-2.5 text-[15px] leading-relaxed text-secondary-foreground"
+                    className="max-w-[85%] self-end whitespace-pre-wrap rounded-3xl bg-secondary px-4 py-2.5 text-[0.9375rem] leading-relaxed text-secondary-foreground"
                   >
                     {turn.content}
                   </p>
                 ) : (
-                  <div key={turn.id} className="self-stretch text-[15px] leading-relaxed">
+                  <div key={turn.id} className="self-stretch text-[0.9375rem] leading-relaxed">
                     <Prose text={turn.content} />
                     {reader.supported ? (
                       <button
@@ -590,7 +590,7 @@ export function JarvisWorkspace({
                     if (!sendBlockedReason) event.currentTarget.form?.requestSubmit(); // same gate as Send
                   }
                 }}
-                className="max-h-40 min-h-10 flex-1 resize-none bg-transparent px-2 py-2 text-[15px] outline-none placeholder:text-muted-foreground"
+                className="max-h-40 min-h-10 flex-1 resize-none bg-transparent px-2 py-2 text-[0.9375rem] outline-none placeholder:text-muted-foreground"
               />
               {signedIn && dictation.supported ? (
                 <button

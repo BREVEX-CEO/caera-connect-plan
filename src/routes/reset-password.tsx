@@ -211,11 +211,11 @@ function ResetPasswordPage() {
           <p role="alert" className="text-sm text-foreground">
             This reset link is no longer valid.
           </p>
-          <p className="text-[13px] leading-5 text-muted-foreground">
+          <p className="text-[0.8125rem] leading-5 text-muted-foreground">
             {error ??
               "Open this page from the link in your reset email. Reset links expire quickly and can only be used once."}
           </p>
-          <p className="text-[13px] leading-5 text-muted-foreground">
+          <p className="text-[0.8125rem] leading-5 text-muted-foreground">
             Want a new password? Ask for a reset link from the sign-in page: it goes to your
             account&apos;s email, and opening it here lets you choose the new one.
           </p>
@@ -267,7 +267,7 @@ function ResetPasswordPage() {
             />
           </label>
           {error ? (
-            <p role="alert" className="text-[13px] text-foreground">
+            <p role="alert" className="text-[0.8125rem] text-foreground">
               {error}
             </p>
           ) : null}

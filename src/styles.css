@@ -589,7 +589,7 @@ kbd {
   :is(input:not([type="checkbox"], [type="radio"], [type="range"]), textarea, select):not(
     .text-xl
   ) {
-    font-size: 16px;
+    font-size: max(16px, 1rem);
   }
 }
 
@@ -601,4 +601,15 @@ kbd {
   100% {
     transform: translateX(300%);
   }
+}
+
+/*
+ * Settings > Text size. Text and spacing are in rem, so the root size scales them together
+ * without changing the viewport (zoom would make full-height screens scroll).
+ */
+html.text-large {
+  font-size: 112.5%;
+}
+html.text-larger {
+  font-size: 125%;
 }
