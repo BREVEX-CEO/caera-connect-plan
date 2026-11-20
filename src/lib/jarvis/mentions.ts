@@ -10,7 +10,7 @@
  * refuses actions for it whatever the text says.
  */
 
-export type ResourceKind = "app" | "website" | "tools";
+export type ResourceKind = "app" | "website" | "tools" | "skill";
 
 export interface InstalledApp {
   name: string;
@@ -27,6 +27,7 @@ export function deviceResources(
   apps: readonly InstalledApp[],
   grants: readonly string[],
   mcp: readonly { id?: unknown; publisher?: unknown }[],
+  skills: readonly { name: string; title: string }[] = [],
 ): InstalledApp[] {
   return [
     ...apps.map((app) => ({ ...app, kind: "app" as const })),
@@ -46,6 +47,12 @@ export function deviceResources(
         exe: `mcp:${String(server.id)}`,
         kind: "tools" as const,
       })),
+    // The person's own skills: named as /name, never a permission.
+    ...skills.map((skill) => ({
+      name: skill.title,
+      exe: `/${skill.name}`,
+      kind: "skill" as const,
+    })),
   ];
 }
 
@@ -79,7 +86,7 @@ export function matchScore(query: string, app: InstalledApp): number {
   if (!q) return 1;
   let best = 0;
   // The program's extension says nothing about which app it is: "ex" must not find "powerpnt.exe".
-  for (const label of [app.name, app.exe.replace(/\.(exe|app)$/i, "").replace(/^mcp:/, "")]) {
+  for (const label of [app.name, app.exe.replace(/\.(exe|app)$/i, "").replace(/^mcp:|^\//, "")]) {
     const folded = fold(label);
     if (folded.startsWith(q)) best = Math.max(best, 4);
     else if (
@@ -133,7 +140,7 @@ export function insertMention(
   caret: number,
   exe: string,
 ): { text: string; caret: number } {
-  const inserted = `@${exe} `;
+  const inserted = exe.startsWith("/") ? `${exe} ` : `@${exe} `;
   const after = text.slice(caret).replace(/^\s+/, "");
   return { text: text.slice(0, start) + inserted + after, caret: start + inserted.length };
 }

@@ -28,6 +28,7 @@ import {
   type OutcomeCheck,
 } from "./contracts.ts";
 import { assignLanes } from "./lanes.ts";
+import { namedSkills, type Skill } from "./skills.ts";
 import { ONLINE_CONSENT_VERSION } from "../intelligence/online-consent-version.ts";
 import {
   effectInDoubt,
@@ -501,6 +502,12 @@ async function decide(
       experience: () => call<Precedent[]>(admin, "jarvis_experience", { p_task: taskId }),
       instructions: () =>
         call<Instruction[]>(admin, "jarvis_task_instructions", { p_task: taskId }),
+      skills: async () => {
+        const names = namedSkills(task.title);
+        return names.length
+          ? call<Skill[]>(admin, "ocade_skills_for_task", { p_user: task.userId, p_names: names })
+          : [];
+      },
       engines: task.engines,
       permitKey,
       now,

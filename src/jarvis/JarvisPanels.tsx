@@ -19,6 +19,7 @@ import {
 } from "@/lib/jarvis/functions";
 import { toast } from "sonner";
 import { Schedules } from "./Schedules";
+import { Skills } from "./Skills";
 import { useSession } from "@/lib/session";
 import { toBase64 } from "@/lib/chat/attachments";
 import { addLibraryItem, LIBRARY_MAX_BYTES } from "@/lib/library/library.functions";
@@ -31,7 +32,7 @@ const AGENT_STYLE = [
   "bg-fuchsia-500/15 text-fuchsia-800 dark:text-fuchsia-300",
 ];
 
-export type Section = "conversations" | "schedules";
+export type Section = "conversations" | "schedules" | "skills";
 
 const when = (iso: string) =>
   new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(
@@ -41,6 +42,7 @@ const when = (iso: string) =>
 const TITLES: Record<Section, string> = {
   conversations: "Conversations",
   schedules: "Scheduled",
+  skills: "Skills",
 };
 
 export function SectionPanel({
@@ -77,6 +79,8 @@ export function SectionPanel({
           <p className="text-muted-foreground">Sign in to see your {section}.</p>
         ) : section === "schedules" ? (
           <Schedules />
+        ) : section === "skills" ? (
+          <Skills />
         ) : (
           <Conversations
             activeConversation={activeConversation}

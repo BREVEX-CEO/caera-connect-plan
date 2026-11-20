@@ -15,6 +15,7 @@ import {
   Menu,
   MessageSquare,
   MessagesSquare,
+  BookMarked,
   CalendarClock,
   Mic,
   LibraryBig,
@@ -62,6 +63,7 @@ interface Turn {
 const SECTIONS: { id: Section; label: string; icon: LucideIcon }[] = [
   { id: "conversations", label: "Conversations", icon: MessagesSquare },
   { id: "schedules", label: "Scheduled", icon: CalendarClock },
+  { id: "skills", label: "Skills", icon: BookMarked },
 ];
 
 export function JarvisWorkspace({

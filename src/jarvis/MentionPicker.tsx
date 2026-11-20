@@ -73,11 +73,17 @@ export function MentionList({
             >
               <span className="min-w-0 truncate">
                 <span className="text-foreground">{candidate.name}</span>{" "}
-                <span className="text-muted-foreground">@{candidate.exe}</span>
+                <span className="text-muted-foreground">
+                  {candidate.exe.startsWith("/") ? candidate.exe : `@${candidate.exe}`}
+                </span>
               </span>
               {candidate.kind && candidate.kind !== "app" ? (
                 <span className="shrink-0 text-[0.75rem] text-muted-foreground">
-                  {candidate.kind === "website" ? "Website" : "Tools"}
+                  {candidate.kind === "website"
+                    ? "Website"
+                    : candidate.kind === "skill"
+                      ? "Your skill"
+                      : "Tools"}
                 </span>
               ) : null}
               {candidate.allowed ? null : (

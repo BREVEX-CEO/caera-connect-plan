@@ -1672,6 +1672,74 @@ export type Database = {
           },
         ]
       }
+      ocade_skill_versions: {
+        Row: {
+          body: string
+          created_at: string
+          skill_id: string
+          title: string
+          user_id: string
+          version: number
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          skill_id: string
+          title: string
+          user_id: string
+          version: number
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          skill_id?: string
+          title?: string
+          user_id?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ocade_skill_versions_skill_id_fkey"
+            columns: ["skill_id"]
+            isOneToOne: false
+            referencedRelation: "ocade_skills"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ocade_skills: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          name: string
+          title: string
+          updated_at: string
+          user_id: string
+          version: number
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          name: string
+          title: string
+          updated_at?: string
+          user_id: string
+          version?: number
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          name?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+          version?: number
+        }
+        Relationships: []
+      }
       ocade_unlimited_grants: {
         Row: {
           created_at: string
