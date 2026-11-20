@@ -294,8 +294,10 @@ export type Database = {
           created_at: string
           device_id: string | null
           id: string
+          lane: number
           resolution: string | null
           resolved_at: string | null
+          resources: string[]
           result: Json | null
           status: string
           summary: string
@@ -312,8 +314,10 @@ export type Database = {
           created_at?: string
           device_id?: string | null
           id?: string
+          lane?: number
           resolution?: string | null
           resolved_at?: string | null
+          resources?: string[]
           result?: Json | null
           status?: string
           summary: string
@@ -330,8 +334,10 @@ export type Database = {
           created_at?: string
           device_id?: string | null
           id?: string
+          lane?: number
           resolution?: string | null
           resolved_at?: string | null
+          resources?: string[]
           result?: Json | null
           status?: string
           summary?: string

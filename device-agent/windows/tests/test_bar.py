@@ -1,0 +1,74 @@
+"""The floating bar (plan 14F.4): its state comes only from steps the companion really runs; an
+agent marker only from a point a click reported; what the person types is delivered once, kept
+through an outage, and dropped when unreadable; the collapsed line counts active agents honestly."""
+
+import json
+import tempfile
+import unittest
+from pathlib import Path
+
+import anyio
+
+from ocade_agent.agent import Agent
+from ocade_agent.bar import BarState, pending_instructions, queue_instruction, summary
+from ocade_agent.journal import Journal
+
+
+class BarStateTest(unittest.TestCase):
+    def test_state_follows_the_steps_that_run(self):
+        with tempfile.TemporaryDirectory() as directory:
+            home = Path(directory)
+            bar = BarState(home)
+            bar.task_seen({"id": "t", "status": "running"})
+            bar.started(0, {"operation": "ui.click_point", "arguments": {"window": {"hwnd": 42, "exe": "x.exe"}}})
+            bar.started(2, {"operation": "fs.write_text", "arguments": {}})
+            state = json.loads((home / "bar.json").read_text())
+            self.assertEqual([a["lane"] for a in state["agents"]], [0, 2])
+            self.assertEqual(state["window"]["hwnd"], 42)
+            self.assertEqual(summary(state), "2 agents working · Clicking in an app")
+            bar.finished(0, {"operation": "ui.click_point"}, {"evidence": {"clicked": [10, 20]}})
+            bar.finished(2, {"operation": "fs.write_text"}, {"evidence": {"clicked": [1, 1]}})
+            state = json.loads((home / "bar.json").read_text())
+            self.assertEqual([(m["lane"], m["x"], m["y"]) for m in state["marks"]], [(0, 10, 20)],
+                             "a marker only where a click reported its point")
+            self.assertEqual(summary(state), "Planning the next step")
+            bar.task_seen({"id": "t", "status": "completed"})
+            self.assertIsNone(json.loads((home / "bar.json").read_text())["task"], "a finished task hides the bar")
+
+
+class InstructionTest(unittest.TestCase):
+    def test_typed_instructions_are_delivered_once_and_kept_through_an_outage(self):
+        with tempfile.TemporaryDirectory() as directory:
+            home = Path(directory)
+            queue_instruction(home, "  Use the blue logo ", None)
+            queue_instruction(home, "Smaller", 1)
+            (home / "instructions" / "0-broken.json").write_text("{not json")
+            with self.assertRaises(ValueError):
+                queue_instruction(home, "   ", None)
+            with self.assertRaises(ValueError):
+                queue_instruction(home, "x", 9)
+
+            class Device:
+                def __init__(self):
+                    self.home, self.sent, self.status = home, [], 503
+
+                def request(self, payload):
+                    self.sent.append(payload)
+                    return self.status, {}
+
+            device = Device()
+            agent = Agent(device, Journal(home / "j.sqlite"), object(), home / "STOP")
+            anyio.run(agent.deliver_instructions)
+            self.assertEqual(len(device.sent), 1, "an outage stops the round, nothing is dropped")
+            self.assertEqual(len(pending_instructions(home)), 2, "the unreadable file is dropped, never sent")
+            device.status = 200
+            anyio.run(agent.deliver_instructions)
+            sent = [p for p in device.sent if p["op"] == "instruct"]
+            self.assertEqual([p["text"] for p in sent[1:]], ["Use the blue logo", "Smaller"])
+            self.assertEqual(sent[0]["clientId"], sent[1]["clientId"], "a retry is the same instruction")
+            self.assertEqual(sent[2]["lane"], 1)
+            self.assertEqual(pending_instructions(home), [])
+
+
+if __name__ == "__main__":
+    unittest.main()

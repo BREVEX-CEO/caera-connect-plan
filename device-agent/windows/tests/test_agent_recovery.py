@@ -110,7 +110,7 @@ class ReceiptDevice:
 class MustNotRun:
     epoch = 0
 
-    async def run(self, intent, epoch):
+    async def run(self, intent, epoch, lane=0):
         raise AssertionError("a pending opaque action or changed identity must never execute again")
 
 
@@ -120,7 +120,7 @@ class LocalReadGateway:
     def __init__(self):
         self.calls = []
 
-    async def run(self, intent, epoch):
+    async def run(self, intent, epoch, lane=0):
         self.calls.append(intent)
         return receipt("observed", False, {"entries": []})
 
@@ -384,9 +384,9 @@ class DispatchedStopTest(unittest.TestCase):
                         return 200, {"task": {"status": "running"}, "action": {"id": "after-stop", "intent": operation}}
                     return 200, {"task": {"status": "completed"}}
             class TrackedGateway(Gateway):
-                async def run(self, intent, epoch):
+                async def run(self, intent, epoch, lane=0):
                     dispatched.append(intent)
-                    return await super().run(intent, epoch)
+                    return await super().run(intent, epoch, lane)
             async def run():
                 async with TrackedGateway(str(home), home=str(home)) as gateway:
                     await gateway._session(agent_module.WORKERS["fs_sandbox"])

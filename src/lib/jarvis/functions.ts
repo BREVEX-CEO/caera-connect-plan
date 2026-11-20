@@ -67,6 +67,33 @@ export const stopJarvisTask = createServerFn({ method: "POST" })
     return guarded(() => stopTask(admin, context.userId, data.taskId));
   });
 
+/** Tell an open task something new, for the whole team or one agent (plan 14F.4.4). */
+export const instructJarvisTask = createServerFn({ method: "POST" })
+  .middleware([requireSession])
+  .validator((i) =>
+    z
+      .object({
+        taskId: uuid,
+        text: z.string().trim().min(1).max(2000),
+        lane: z.number().int().min(0).max(3).nullable().default(null),
+        clientId: uuid,
+      })
+      .parse(i),
+  )
+  .handler(async ({ data, context }) => {
+    const { admin, addInstruction } = await authority();
+    return guarded(async () => ({
+      id: await addInstruction(
+        admin,
+        context.userId,
+        data.taskId,
+        data.text,
+        data.lane,
+        data.clientId,
+      ),
+    }));
+  });
+
 export const getJarvisTask = createServerFn({ method: "GET" })
   .middleware([requireSession])
   .validator((i) => z.object({ taskId: uuid }).parse(i))
@@ -156,7 +183,7 @@ export const latestJarvisTask = createServerFn({ method: "GET" })
   });
 
 const capability = z.union([
-  z.enum(["files", "apps", "browser", "screen", "computer_control", "mcp"]),
+  z.enum(["files", "apps", "browser", "screen", "computer_control", "mcp", "background"]),
   z.string().regex(/^mcp:[a-z][a-z0-9_]{1,30}$/),
   z.string().regex(/^site:[a-z0-9]([a-z0-9.-]{0,251}[a-z0-9])?$/),
   appPermission,

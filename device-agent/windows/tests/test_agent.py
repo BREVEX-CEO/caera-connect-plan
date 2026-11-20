@@ -29,7 +29,7 @@ class FakeDevice:
 class FailingGateway:
     epoch = 0
 
-    async def run(self, intent, epoch):
+    async def run(self, intent, epoch, lane=0):
         raise AssertionError("an action with a journal entry must not run again")
 
 

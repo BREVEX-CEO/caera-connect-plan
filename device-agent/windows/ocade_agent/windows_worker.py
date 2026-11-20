@@ -23,6 +23,7 @@ import os
 import subprocess
 import sys
 import time
+from pathlib import Path
 
 from mcp.server.mcpserver import MCPServer
 
@@ -175,6 +176,15 @@ def _person_quiet() -> None:
     ours_ms = (time.monotonic() - _own_input["at"]) * 1000
     if idle_ms < PERSON_QUIET_MS and idle_ms + 250 < ours_ms:
         raise Refused("user_active")
+
+def _quiet_unless_background() -> None:
+    """Accessibility patterns (invoke, set value, scroll) send no input and move no focus, so with
+    the person's `background` permission they run while the person keeps working (plan 14F.2.2,
+    REPO-27). The companion records that permission from each claim in `background-ui`; without
+    it, they wait for the person to be idle like every other UI step."""
+    home = os.environ.get("OCADE_AGENT_HOME", "")
+    if not (home and (Path(home) / "background-ui").is_file()):
+        _person_quiet()
 
 
 def _element(window, element: dict, lease: dict):
@@ -373,7 +383,7 @@ def ui_scroll(window: dict, element: dict, direction: str | None = None, pages: 
     from pywinauto.uia_defines import NoPatternInterfaceError  # type: ignore[import-not-found]
 
     wrapper = _element(_actable(window), element, window)
-    _person_quiet()
+    _quiet_unless_background()
 
     def scroll_area():
         area = wrapper
@@ -433,7 +443,7 @@ def ui_invoke(window: dict, element: dict) -> dict:
     from pywinauto.uia_defines import NoPatternInterfaceError  # type: ignore[import-not-found]
 
     wrapper = _element(_actable(window), element, window)
-    _person_quiet()
+    _quiet_unless_background()
     if not wrapper.is_enabled():
         raise Refused("element_disabled")
     for pattern, interface_name, method_name in (
@@ -467,7 +477,7 @@ def ui_set_value(window: dict, element: dict, value: str) -> dict:
     wrapper = _element(_actable(window), element, window)
     if _password_state(wrapper.element_info.element) is not False:
         raise Refused("protected_control")
-    _person_quiet()
+    _quiet_unless_background()
     try:
         interface = wrapper.iface_value
     except (NoPatternInterfaceError, AttributeError):

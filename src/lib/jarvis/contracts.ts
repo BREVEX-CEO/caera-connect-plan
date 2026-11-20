@@ -1579,6 +1579,14 @@ export const deviceRequest = z.discriminatedUnion("op", [
     })
     .strict(),
   z.object({ op: z.literal("receipt"), activityId: z.uuid(), receipt: actionReceipt }).strict(),
+  z
+    .object({
+      op: z.literal("instruct"),
+      text: z.string().trim().min(1).max(2000),
+      lane: z.number().int().min(0).max(3).nullable(),
+      clientId: z.uuid(),
+    })
+    .strict(),
 ]);
 
 /** The machine-readable contract the companion validates against. */

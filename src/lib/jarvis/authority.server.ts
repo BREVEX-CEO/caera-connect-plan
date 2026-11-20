@@ -27,6 +27,7 @@ import {
   intent,
   type OutcomeCheck,
 } from "./contracts.ts";
+import { assignLanes } from "./lanes.ts";
 import { ONLINE_CONSENT_VERSION } from "../intelligence/online-consent-version.ts";
 import {
   effectInDoubt,
@@ -47,6 +48,7 @@ import {
   type PermitKey,
   type PlannerMeasurement,
   type Precedent,
+  type Instruction,
 } from "./planner.server.ts";
 
 export type Admin = Pick<SupabaseClient<Database>, "rpc">;
@@ -75,6 +77,9 @@ const REFUSALS: Record<string, string> = {
   app_out_of_scope:
     "This task is limited to the apps its request names with @. Name the app there, or start a new task.",
   task_not_found: "That task does not exist.",
+  task_not_open: "That task has already finished. Start a new task instead.",
+  invalid_instruction: "Write the instruction in at most 2,000 characters.",
+  too_many_instructions: "This task already has 50 instructions. Stop it and start a new task.",
   unknown_code: "That pairing code is wrong or has expired.",
   too_many_enrollments:
     "Too many computers are waiting to pair from here. Try again in 10 minutes.",
@@ -101,6 +106,25 @@ async function call<T>(admin: Admin, fn: string, args: Record<string, unknown>):
     throw new Error(`JARVIS could not record that just now (${fn}).`);
   }
   return data as T;
+}
+
+/** A new instruction from the website for one of the person's own open tasks (plan 14F.4.4). */
+export async function addInstruction(
+  admin: Admin,
+  userId: string,
+  taskId: string,
+  text: string,
+  lane: number | null,
+  clientId: string,
+): Promise<string> {
+  return call<string>(admin, "jarvis_add_instruction", {
+    p_user: userId,
+    p_task: taskId,
+    p_device: null,
+    p_text: text,
+    p_lane: lane,
+    p_client: clientId,
+  });
 }
 
 /* ------------------------------ Planning ------------------------------ */
@@ -153,7 +177,27 @@ interface TaskState {
     confirmedAt: string | null;
     claimedAt?: string | null;
     resolution: "applied" | "not_applied" | null;
+    lane?: number;
   }[];
+}
+
+/**
+ * Honest per-agent counts (plan 14F.3.7): an agent is a lane. Active means a step of that lane is
+ * on the computer now; waiting, that its next step is queued or awaits the person; paused, that
+ * the task itself is paused or taken over; blocked, that its step's effect is unknown or refused.
+ */
+export function agentCounts(status: string, steps: readonly { status: string; lane?: number }[]) {
+  const lanes = (wanted: string[]) =>
+    new Set(steps.filter((s) => wanted.includes(s.status)).map((s) => s.lane ?? 0));
+  const active = lanes(["claimed"]);
+  const waiting = [...lanes(["queued", "needs_confirmation"])].filter((l) => !active.has(l));
+  const halted = status === "waiting" || status === "taken_over";
+  return {
+    active: active.size,
+    waiting: halted ? 0 : waiting.length,
+    paused: halted ? waiting.length : 0,
+    blocked: lanes(["blocked"]).size,
+  };
 }
 
 const ms = (from: string, to: string | null) => (to ? Date.parse(to) - Date.parse(from) : null);
@@ -455,6 +499,8 @@ async function decide(
       grants: task.grants,
       mcp: task.mcp ?? [],
       experience: () => call<Precedent[]>(admin, "jarvis_experience", { p_task: taskId }),
+      instructions: () =>
+        call<Instruction[]>(admin, "jarvis_task_instructions", { p_task: taskId }),
       engines: task.engines,
       permitKey,
       now,
@@ -475,25 +521,23 @@ async function decide(
   const admitted = (async () => {
     try {
       if (decision.kind === "queue") {
+        const milestone = Number(
+          (task.checkpoint?.milestones as { index?: number } | undefined)?.index ?? 0,
+        );
+        const batch = [
+          { summary: decision.summary, action: decision.intent },
+          ...(decision.more ?? []).map((next) => ({ summary: next.summary, action: next.intent })),
+        ];
+        // Independent steps of the turn run at the same time on separate workers (lanes.ts).
+        const lanes = assignLanes(batch.map((item) => item.action));
         await call(admin, "jarvis_queue_actions", {
           p_task: taskId,
           p_controller: task.controller,
-          p_actions: [
-            {
-              summary: decision.summary,
-              action: decision.intent,
-              milestone: Number(
-                (task.checkpoint?.milestones as { index?: number } | undefined)?.index ?? 0,
-              ),
-            },
-            ...(decision.more ?? []).map((next) => ({
-              summary: next.summary,
-              action: next.intent,
-              milestone: Number(
-                (task.checkpoint?.milestones as { index?: number } | undefined)?.index ?? 0,
-              ),
-            })),
-          ] as unknown as Json,
+          p_actions: batch.map((item, index) => ({
+            ...item,
+            milestone,
+            lane: lanes[index]!.lane,
+          })) as unknown as Json,
         });
       } else if (decision.kind === "milestone") {
         await call(admin, "jarvis_complete_milestone", {
@@ -838,6 +882,7 @@ export async function taskView(admin: Admin, userId: string, taskId: string) {
       );
       return {
         id: step.id,
+        lane: step.lane ?? 0,
         durationMs: timing.stepDurationsMs[index],
         summary: step.summary,
         status: step.status,
@@ -852,6 +897,7 @@ export async function taskView(admin: Admin, userId: string, taskId: string) {
             : undefined,
       };
     }),
+    agents: agentCounts(task.status, task.steps),
     device: task.deviceName,
     // An outage is said plainly: the step in hand stays put and nothing new starts until contact.
     deviceOffline:
@@ -1110,6 +1156,18 @@ export async function handleDeviceRequest(
         status: 200,
         body: { inventory: "recorded", nudge: await nudgeChannel(admin, deviceId) },
       };
+    }
+    if (parsed.op === "instruct") {
+      // The person at the computer redirects its open task (plan 14F.4.4); a note, never a grant.
+      const id = await call<string>(admin, "jarvis_add_instruction", {
+        p_user: null,
+        p_task: null,
+        p_device: deviceId,
+        p_text: parsed.text,
+        p_lane: parsed.lane,
+        p_client: parsed.clientId,
+      });
+      return { status: 200, body: { instruction: "accepted", id } };
     }
     if (parsed.op === "receipt") {
       const [recorded] = await call<{ outcome: string; task_id: string }[]>(

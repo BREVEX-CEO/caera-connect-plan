@@ -7,6 +7,7 @@ import {
   confirmJarvisStep,
   resolveJarvisStep,
   getJarvisTask,
+  instructJarvisTask,
   listJarvisAccess,
   listJarvisDevices,
   pairJarvisDevice,
@@ -21,6 +22,14 @@ import { Schedules } from "./Schedules";
 import { useSession } from "@/lib/session";
 import { toBase64 } from "@/lib/chat/attachments";
 import { addLibraryItem, LIBRARY_MAX_BYTES } from "@/lib/library/library.functions";
+
+/** One stable colour per agent lane, paired with its name (plan 14F.3.5). */
+const AGENT_STYLE = [
+  "bg-sky-500/15 text-sky-700 dark:text-sky-300",
+  "bg-amber-500/15 text-amber-800 dark:text-amber-300",
+  "bg-emerald-500/15 text-emerald-800 dark:text-emerald-300",
+  "bg-fuchsia-500/15 text-fuchsia-800 dark:text-fuchsia-300",
+];
 
 export type Section = "conversations" | "schedules";
 
@@ -161,6 +170,11 @@ const ACCESS: { capability: string; label: string }[] = [
     label: "Click on screen when nothing else works, and run commands you confirm",
   },
   { capability: "mcp", label: "Use tool servers you approved on that computer" },
+  {
+    capability: "background",
+    label:
+      "Work in app windows while you keep using your computer (never moves your mouse or types; typing and clicking still wait for you)",
+  },
 ];
 
 /** Settings > Devices: pair a computer, choose exactly what JARVIS may use on it, remove it. */
@@ -462,6 +476,84 @@ function Elapsed({ timing, live }: { timing: Timing; live: boolean }) {
   );
 }
 
+/**
+ * Tell an open task something new (plan 14F.4.4): for everyone or one agent. The draft stays while
+ * it is sending or if sending fails; accepted means recorded for JARVIS's next turn, not done.
+ */
+function Instruct({ taskId, agents }: { taskId: string; agents: number[] }) {
+  const [text, setText] = useState("");
+  const [lane, setLane] = useState<number | null>(null);
+  const [state, setState] = useState<"idle" | "sending" | "accepted">("idle");
+  const client = useRef<string>(crypto.randomUUID());
+  const send = () => {
+    if (!text.trim() || state === "sending") return;
+    setState("sending");
+    instructJarvisTask({ data: { taskId, text, lane, clientId: client.current } })
+      .then(() => {
+        setText("");
+        client.current = crypto.randomUUID();
+        setState("accepted");
+      })
+      .catch((error: Error) => {
+        setState("idle");
+        toast.error(error.message);
+      });
+  };
+  return (
+    <form
+      className="mt-2 flex flex-wrap items-center gap-2"
+      onSubmit={(event) => {
+        event.preventDefault();
+        send();
+      }}
+    >
+      <label className="sr-only" htmlFor={`instruct-${taskId}`}>
+        Tell JARVIS something new for this task
+      </label>
+      <input
+        id={`instruct-${taskId}`}
+        value={text}
+        maxLength={2000}
+        onChange={(event) => {
+          setText(event.target.value);
+          if (state === "accepted") setState("idle");
+        }}
+        placeholder="Change something while it works…"
+        className="min-w-0 flex-1 rounded-full border border-border bg-background px-3 py-1 text-sm"
+      />
+      {agents.length > 1 ? (
+        <select
+          aria-label="Who the instruction is for"
+          value={lane ?? ""}
+          onChange={(event) =>
+            setLane(event.target.value === "" ? null : Number(event.target.value))
+          }
+          className="rounded-full border border-border bg-background px-2 py-1 text-xs"
+        >
+          <option value="">Everyone</option>
+          {agents.map((agent) => (
+            <option key={agent} value={agent}>
+              Agent {agent + 1}
+            </option>
+          ))}
+        </select>
+      ) : null}
+      <button
+        type="submit"
+        disabled={!text.trim() || state === "sending"}
+        className="rounded-full border border-border px-3 py-1 text-xs hover:bg-accent disabled:opacity-50"
+      >
+        {state === "sending" ? "Sending…" : "Send"}
+      </button>
+      {state === "accepted" ? (
+        <span role="status" className="basis-full text-xs text-muted-foreground">
+          Received. JARVIS uses it from its next step; finished steps stay as they are.
+        </span>
+      ) : null}
+    </form>
+  );
+}
+
 /** One task: what JARVIS is doing, what it proved, and the person's controls. */
 type Task = Awaited<ReturnType<typeof getJarvisTask>>;
 
@@ -477,6 +569,7 @@ export function TaskPanel({
   onUseFile: (path: string) => void;
 }) {
   const open = ["running", "waiting", "taken_over"].includes(task.status);
+  const parallel = new Set(task.steps.map((step) => step.lane)).size > 1;
   const act = (work: Promise<unknown>) =>
     void work.then(onChanged).catch((error: Error) => toast.error(error.message));
   return (
@@ -531,6 +624,26 @@ export function TaskPanel({
         ) : null}
       </div>
       {task.blocker ? <p className="mt-1 text-muted-foreground">{task.blocker}</p> : null}
+      {open && task.agents.active + task.agents.waiting + task.agents.paused > 1 ? (
+        <p className="mt-1 text-muted-foreground" aria-live="polite">
+          {[
+            [task.agents.active, "working"],
+            [task.agents.waiting, "waiting"],
+            [task.agents.paused, "paused"],
+            [task.agents.blocked, "blocked"],
+          ]
+            .filter(([count]) => Number(count) > 0)
+            .map(([count, word]) => `${count} ${word}`)
+            .join(", ")}{" "}
+          — independent parts run at the same time on your computer.
+        </p>
+      ) : null}
+      {open ? (
+        <Instruct
+          taskId={task.id}
+          agents={[...new Set(task.steps.map((step) => step.lane))].sort()}
+        />
+      ) : null}
       {task.deviceOffline ? (
         <p className="mt-1 text-muted-foreground">
           {task.device ?? "Your computer"} is not reachable. JARVIS continues when it reconnects;
@@ -559,6 +672,14 @@ export function TaskPanel({
       <ol aria-label="Task actions" className="mt-2 space-y-1">
         {task.steps.map((step) => (
           <li key={step.id} className="flex flex-wrap items-center gap-2">
+            {parallel ? (
+              // Each agent keeps one colour and one name (never colour alone, 14F.3.5).
+              <span
+                className={`shrink-0 rounded px-1.5 text-[10px] font-medium ${AGENT_STYLE[step.lane] ?? ""}`}
+              >
+                Agent {step.lane + 1}
+              </span>
+            ) : null}
             <span className="w-20 shrink-0 text-xs text-muted-foreground">
               {step.disposition ?? step.status.replace("_", " ")}
             </span>

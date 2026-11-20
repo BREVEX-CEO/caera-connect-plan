@@ -23,6 +23,7 @@ OCADE's Offline Mode includes LFM2.5-VL-450M by Liquid AI, Inc. Its language wei
 |---|---|---|
 | Chromium (Playwright build) | BSD-3-Clause | Bundled browser for the companion; its own credits file ships inside the browser folder. |
 | CPython runtime | PSF-2.0 | Frozen into the companion executable by PyInstaller. |
+| Tcl/Tk (with CPython's tkinter) | TCL | Draws the companion's floating JARVIS bar; frozen into the companion executable by PyInstaller. |
 | PyInstaller bootloader | GPL-2.0-or-later WITH Bootloader-exception | The exception explicitly permits distributing the bootloader with any program. |
 
 ## Companion (Python packages in the installer)

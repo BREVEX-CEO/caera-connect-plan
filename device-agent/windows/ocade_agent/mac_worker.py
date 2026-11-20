@@ -323,6 +323,15 @@ def _person_quiet() -> None:
     if idle < PERSON_QUIET_SECONDS and idle + 0.25 < time.monotonic() - _own_input["at"]:
         raise Refused("user_active")
 
+def _quiet_unless_background() -> None:
+    """Accessibility patterns (invoke, set value, scroll) send no input and move no focus, so with
+    the person's `background` permission they run while the person keeps working (plan 14F.2.2,
+    REPO-27). The companion records that permission from each claim in `background-ui`; without
+    it, they wait for the person to be idle like every other UI step."""
+    home = os.environ.get("OCADE_AGENT_HOME", "")
+    if not (home and (Path(home) / "background-ui").is_file()):
+        _person_quiet()
+
 
 def _front(window: dict, target) -> None:
     """Bring the leased window to the front as its app's focused window, or refuse.
@@ -447,7 +456,7 @@ def ui_scroll(window: dict, element: dict, direction: str | None = None, pages: 
 
     target, bounds = _actable(window)
     control = _element(target, element, window)
-    _person_quiet()
+    _quiet_unless_background()
     if direction is None:
         mark_effect()
         if AX.AXUIElementPerformAction(control, "AXScrollToVisible") != 0:
@@ -490,7 +499,7 @@ def ui_invoke(window: dict, element: dict) -> dict:
 
     target, bounds = _actable(window)
     control = _element(target, element, window)
-    _person_quiet()
+    _quiet_unless_background()
     with _ax_change_events(window, target, control) as events:
         mark_effect()
         if AX.AXUIElementPerformAction(control, "AXPress") != 0:
@@ -508,7 +517,7 @@ def ui_set_value(window: dict, element: dict, value: str) -> dict:
     control = _element(target, element, window)
     if _protected_control(control):
         raise Refused("protected_control")
-    _person_quiet()
+    _quiet_unless_background()
     with _ax_change_events(window, target, control) as events:
         mark_effect()
         if AX.AXUIElementSetAttributeValue(control, "AXValue", value) != 0:

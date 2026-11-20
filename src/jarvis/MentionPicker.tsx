@@ -33,12 +33,12 @@ export function MentionList({
       ? "This computer's permissions could not be read. Try again."
       : !deviceName
         ? "Pair a computer to name its apps."
-        : "No matching apps on this computer.";
+        : "Nothing on this computer matches. Allow an app or website in Permissions to name it.";
   return (
     <div className="absolute bottom-full left-0 right-0 z-20 mb-2 overflow-hidden rounded-xl border border-border bg-background shadow-lg">
       {deviceName ? (
         <p className="border-b border-border/60 px-3 py-1.5 text-[0.75rem] text-muted-foreground">
-          Apps on {deviceName}
+          Apps, websites and tools on {deviceName}
         </p>
       ) : null}
       {candidates.length === 0 ? (
@@ -49,7 +49,7 @@ export function MentionList({
         <ul
           id="jarvis-mentions"
           role="listbox"
-          aria-label="Apps to name"
+          aria-label="Resources to name"
           className="max-h-64 overflow-y-auto py-1"
         >
           {candidates.map((candidate, index) => (
@@ -75,6 +75,11 @@ export function MentionList({
                 <span className="text-foreground">{candidate.name}</span>{" "}
                 <span className="text-muted-foreground">@{candidate.exe}</span>
               </span>
+              {candidate.kind && candidate.kind !== "app" ? (
+                <span className="shrink-0 text-[0.75rem] text-muted-foreground">
+                  {candidate.kind === "website" ? "Website" : "Tools"}
+                </span>
+              ) : null}
               {candidate.allowed ? null : (
                 <span className="shrink-0 text-[0.75rem] text-muted-foreground">
                   Needs permission

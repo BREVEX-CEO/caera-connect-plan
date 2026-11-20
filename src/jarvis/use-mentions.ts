@@ -1,10 +1,15 @@
 import { useQuery } from "@tanstack/react-query";
 import { listJarvisAccess } from "@/lib/jarvis/functions";
-import { rankApps, type InstalledApp, type MentionCandidate } from "@/lib/jarvis/mentions";
+import {
+  deviceResources,
+  rankApps,
+  type InstalledApp,
+  type MentionCandidate,
+} from "@/lib/jarvis/mentions";
 
-/** The selected computer's apps for the @ being typed, ranked; allowed ones first. */
+/** The selected computer's apps, websites and tool servers for the @ being typed, ranked. */
 export function useMentionCandidates(
-  device: { id: string; installed_apps: unknown } | null,
+  device: { id: string; installed_apps: unknown; capabilities?: unknown } | null,
   query: string | null,
   account: string,
 ): { candidates: MentionCandidate[]; loading: boolean; failed: boolean } {
@@ -18,8 +23,11 @@ export function useMentionCandidates(
     (app): app is InstalledApp =>
       Boolean(app) && typeof app.name === "string" && typeof app.exe === "string",
   );
+  const grants = access.data ?? [];
+  const caps = device.capabilities as { mcp?: unknown } | null | undefined;
+  const mcp = Array.isArray(caps?.mcp) ? (caps.mcp as { id?: unknown }[]) : [];
   return {
-    candidates: rankApps(apps, new Set(access.data ?? []), query),
+    candidates: rankApps(deviceResources(apps, grants, mcp), new Set(grants), query),
     loading: access.isPending,
     failed: access.isError,
   };

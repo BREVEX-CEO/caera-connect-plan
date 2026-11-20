@@ -30,6 +30,7 @@ import anyio
 from websockets.asyncio.client import connect as websocket
 
 from . import catalog, discovery, held_input, jobs
+from .bar import BarState, pending_instructions
 from .device import Device
 from .gateway import PROTOCOL, WORKERS, Gateway, effect_possible, receipt
 from .journal import Journal
@@ -51,6 +52,22 @@ NUDGE_BURST, NUDGE_REFILL_SECONDS = 10.0, 30.0
 PHOENIX_HEARTBEAT_SECONDS = 25.0
 # Finite network/5xx receipt redelivery; journalled action effects are NEVER re-executed.
 RECEIPT_RETRY_DELAYS = (1.0, 2.0, 4.0, 8.0)
+# Parallel lanes (plan 14F.3): the server hands out at most one step per lane at a time.
+LANES = 4
+LANE_REASK_SECONDS = 10.0
+
+
+def handed_out(state: dict) -> list[dict]:
+    """The steps a claim answer hands out, one per lane (an older server sends only `action`)."""
+    actions = [a for a in state.get("actions") or [] if isinstance(a, dict) and a.get("id")]
+    if not actions and isinstance(state.get("action"), dict) and state["action"].get("id"):
+        actions = [state["action"]]
+    return actions[:LANES]
+
+
+def still_ours(state: dict) -> set:
+    """Steps this device may keep running: handed out now, or held while another lane is checked."""
+    return {a["id"] for a in handed_out(state)} | {i for i in state.get("running") or [] if isinstance(i, str)}
 
 
 def default_home() -> Path:
@@ -133,6 +150,10 @@ class Nudge:
 class Agent:
     def __init__(self, device: Device, journal: Journal, gateway: Gateway, stop_flag: Path | None = None):
         self.device, self.journal, self.gateway = device, journal, gateway
+        # Background app control is off until a claim answer says the person allows it.
+        self._note_background({})
+        home = getattr(device, "home", None)
+        self.bar = BarState(Path(home)) if home is not None else None
         self.stop_flag = stop_flag or device.home / "STOP"
         self.nudge: Nudge | None = None
         # The server state the last claim saw (task, its status, its action). A nudge is useful
@@ -163,30 +184,74 @@ class Agent:
         status, body = await anyio.to_thread.run_sync(self.device.request, {"op": "claim"})
         if status != 200:
             raise ConnectionError(body.get("error", str(status)))
-        task, action = body.get("task") or {}, body.get("action") or {}
-        seen = (task.get("id"), task.get("status"), action.get("id"))
+        self._note_background(body)
+        if self.bar is not None:
+            self.bar.task_seen(body.get("task"))
+        task = body.get("task") or {}
+        seen = (task.get("id"), task.get("status"), tuple(sorted(still_ours(body))))
         self.news, self.seen = seen != self.seen, seen
         return body
 
-    async def _run_watched(self, activity: str, intent: dict) -> dict:
-        """Run one action; cancel it if the server says its task stopped meanwhile."""
+    def _note_background(self, body: dict) -> None:
+        """Record the person's `background` permission for the UI workers (plan 14F.2.2): each
+        claim answer says it afresh, so turning it off takes effect from the next answer."""
+        home = getattr(self.device, "home", None)
+        if home is None:
+            return
+        flag = Path(home) / "background-ui"
+        try:
+            if body.get("backgroundAllowed") is True:
+                flag.touch()
+            else:
+                flag.unlink(missing_ok=True)
+        except OSError:
+            pass
+
+    async def deliver_instructions(self) -> None:
+        """Send what the person typed in the floating bar, oldest first (plan 14F.4.4). A file is
+        removed once the server has a final answer; an outage keeps it for the next try."""
+        home = getattr(self.device, "home", None)
+        if home is None:
+            return
+        for path, item in pending_instructions(Path(home)):
+            try:
+                status, answer = await anyio.to_thread.run_sync(self.device.request, {"op": "instruct", **item})
+            except OSError:
+                status, answer = 503, {}
+            if status == 200:
+                state = "accepted"
+            elif status in (400, 404, 409, 422):
+                state = "rejected"
+            else:
+                if self.bar is not None:
+                    self.bar.instruction(item["text"], "failed")
+                return
+            path.unlink(missing_ok=True)
+            if self.bar is not None:
+                self.bar.instruction(item["text"], state)
+
+    async def _run_watched(self, activity: str, intent: dict, lane: int = 0) -> dict:
+        """Run one action; cancel it if the server says its task stopped meanwhile (STOP ends
+        every lane) or that this step alone is no longer this device's to run."""
         epoch = self.gateway.epoch
         outcome: dict = {}
         jobs_revoked = False
+        task_over = False
 
         async with anyio.create_task_group() as group:
 
             async def work() -> None:
-                outcome["receipt"] = await self.gateway.run(intent, epoch)
+                outcome["receipt"] = await self.gateway.run(intent, epoch, lane)
                 group.cancel_scope.cancel()
 
             async def watch() -> None:
-                nonlocal jobs_revoked
+                nonlocal jobs_revoked, task_over
                 waited = 0.0
                 while True:
                     nudged = await self.pause(TICK_SECONDS)
                     waited += TICK_SECONDS
                     if self.stopped_here():  # local STOP: no network needed
+                        task_over = True
                         break
                     if waited < WATCH_SECONDS and not nudged:
                         continue
@@ -195,22 +260,26 @@ class Agent:
                         state = await self.claim()
                     except ConnectionError as error:
                         if str(error) in DEVICE_REFUSED:
-                            jobs_revoked = True
+                            jobs_revoked = task_over = True
                             break
                         continue  # offline: keep the already-authorized step, decide nothing new
                     jobs_revoked = state.get("jobsAllowed") is False
-                    if (state.get("action") or {}).get("id") != activity:
+                    if activity not in still_ours(state):
+                        status = (state.get("task") or {}).get("status")
+                        task_over = jobs_revoked or status not in ("running", "waiting")
                         break
                     if nudged and self.nudge is not None:
                         self.nudge.spent(useful=self.news)
-                self.gateway.stop()
+                if task_over:
+                    self.gateway.stop()  # nothing under the old epoch starts in any lane
                 group.cancel_scope.cancel()
 
             group.start_soon(work)
             group.start_soon(watch)
 
-        if "receipt" not in outcome:
-            # Cut off mid-action, its worker now ended: a chord or click it started stays held otherwise.
+        if "receipt" not in outcome and lane == 0:
+            # Cut off mid-action, its worker now ended: a chord or click it started stays held
+            # otherwise. Desktop input only ever runs in lane 0.
             held_input.release_held()
         if jobs_revoked or self.stopped_here():
             await anyio.to_thread.run_sync(jobs.cancel_all, str(self.device.home))
@@ -223,6 +292,7 @@ class Agent:
         """Run one action and deliver its receipt; returns the server's answer, which may
         already carry the next step."""
         activity, intent = action["id"], action["intent"]
+        lane = action.get("lane", 0) if action.get("lane") in range(LANES) else 0
         claimed = self.journal.start(activity, intent)
         held = self.journal.get(activity)
         matches = self.journal.matches(activity, intent)
@@ -235,7 +305,11 @@ class Agent:
         elif not claimed and effect_possible(intent):
             result = receipt("unknown", True, error="interrupted")
         else:
-            result = await self._run_watched(activity, intent)
+            if self.bar is not None:
+                self.bar.started(lane, intent)
+            result = await self._run_watched(activity, intent, lane)
+            if self.bar is not None:
+                self.bar.finished(lane, intent, result)
         if matches:
             result = self.journal.finish(activity, result)
         # A refused receipt used to retry forever (e.g. 413/422). Preserve the
@@ -250,6 +324,7 @@ class Agent:
             except OSError:
                 status, answer = 503, {}  # transport outage: retry only this exact saved receipt
             if status == 200:
+                self._note_background(answer)
                 return answer
             if status == 401 or str(answer.get("error")) in DEVICE_REFUSED:
                 await anyio.to_thread.run_sync(jobs.cancel_all, str(self.device.home))
@@ -299,14 +374,56 @@ class Agent:
         return time.monotonic() - quiet_since >= limit, quiet_since
 
     async def _loop(self, until_idle: bool) -> None:
+        """Ask for work and run every handed-out step at once, one per lane (plan 14F.3)."""
+        failure: BaseException | None = None
+        async with anyio.create_task_group() as group:
+            try:
+                await self._serve(group, until_idle)
+            except BaseException as error:  # re-raised as itself, not wrapped in a group
+                failure = error
+            group.cancel_scope.cancel()
+        if failure is not None:
+            raise failure
+
+    async def _serve(self, group, until_idle: bool) -> None:
         idle = 1.0
         state: dict | None = None
         woke = False
         quiet_since: float | None = None
+        running: set[str] = set()
+        answers: list[dict] = []
+        lane_failure: list[BaseException] = []
+        changed = anyio.Event()
+
+        async def lane(action: dict) -> None:
+            nonlocal changed
+            try:
+                answers.append(await self.handle(action))
+            except Exception as error:  # noqa: BLE001 - surfaced by the loop, as before
+                lane_failure.append(error)
+            finally:
+                running.discard(action["id"])
+                changed.set()
+
         while True:
-            if self.stopped_here():
+            if lane_failure or self.stopped_here():
+                if running:  # every lane sees the flag within a tick and delivers its receipt
+                    await changed.wait()
+                    changed = anyio.Event()
+                    continue
+                if lane_failure:  # a receipt the server refuses for good: repair before resending
+                    raise lane_failure[0]
                 await anyio.to_thread.run_sync(jobs.cancel_all, str(self.device.home))
                 raise LocalStop()
+            await self.deliver_instructions()
+            if state is None and answers:
+                answer = answers.pop()  # the latest answer carries the server's state after it
+                answers.clear()
+                if handed_out(answer) or running:
+                    state = answer
+                elif answer.get("jobsAllowed") is False:
+                    await anyio.to_thread.run_sync(jobs.cancel_all, str(self.device.home))
+                # No next step in the answer: ask.
             if state is None:
                 try:
                     state = await self.claim()
@@ -319,32 +436,36 @@ class Agent:
                     self.nudge.spent(useful=self.news)
             woke = False
             if self.stopped_here():  # STOP may have arrived while the claim was in flight.
-                await anyio.to_thread.run_sync(jobs.cancel_all, str(self.device.home))
-                raise LocalStop()
+                continue
             if state.get("jobsAllowed") is False:
                 await anyio.to_thread.run_sync(jobs.cancel_all, str(self.device.home))
-            if state.get("action"):
+            for action in handed_out(state):
+                if action["id"] not in running:
+                    running.add(action["id"])
+                    group.start_soon(lane, action)
+            if running:
                 idle, quiet_since, self.worked = 1.0, None, True
-                state = await self.handle(state["action"])
-                if not state.get("action"):
-                    if state.get("jobsAllowed") is False:
-                        await anyio.to_thread.run_sync(jobs.cancel_all, str(self.device.home))
-                    state = None  # no next step in the answer: ask
+                state = None
+                # A lane's receipt answer carries the steps that may run next; a slow re-ask is
+                # only the safety net.
+                with anyio.move_on_after(LANE_REASK_SECONDS + random.random()):
+                    await changed.wait()
+                changed = anyio.Event()
                 continue
             status = (state.get("task") or {}).get("status")
             if "task" in state and status not in ("running", "waiting"):
                 # The server answered that nothing is running (STOP, Take Over, finished): a job
                 # outliving its task would be work nobody follows. An outage cancels nothing.
                 await anyio.to_thread.run_sync(jobs.cancel_all, str(self.device.home))
-            running = status == "running"
+            active = status == "running"
             state = None
-            if until_idle and not running:
+            if until_idle and not active:
                 return
             over, quiet_since = self._session_over(status, quiet_since)
             if over:
                 return
             nudged = self.nudge is not None and self.nudge.connected
-            if running:
+            if active:
                 idle = 1.0
                 woke = await self.pause((NUDGED_ACTIVE_POLL if nudged else ACTIVE_POLL_SECONDS) + random.random() / 4)
                 continue
@@ -744,7 +865,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="ocade_agent")
     parser.add_argument(
         "command", nargs="?", default="run" if getattr(sys, "frozen", False) else None,
-        choices=["enroll", "run", "stop", "worker", "diagnose", "forget", "tray",
+        choices=["enroll", "run", "stop", "worker", "diagnose", "forget", "tray", "bar",
                  "activate-update", "rollback-update", "check-update-runtime", "run-activated",
                  "mcp-update", "mcp-rollback"],
     )
@@ -779,6 +900,10 @@ def main(argv: list[str] | None = None) -> int:
         from .tray import run_macos_status
 
         return run_macos_status(home / "STOP", args.tray_website, args.tray_parent)
+    if args.command == "bar":
+        from .bar import run_bar
+
+        return run_bar(home)
     if args.command == "check-update-runtime":
         try:
             anyio.run(_check_update_runtime)
@@ -934,6 +1059,15 @@ def _run_companion(device: Device, home: Path, until_idle: bool, session_minutes
                   file=sys.stderr)
             tray = None
 
+    # The floating bar over the app JARVIS works in (plan 14F.4); without a display it is skipped.
+    bar = None
+    if not until_idle and sys.platform in ("win32", "darwin"):
+        from .bar import BarWindow
+
+        bar = BarWindow(home)
+        if not bar.start():
+            bar = None
+
     async def go() -> str | None:
         async with gateway:
             try:
@@ -970,6 +1104,8 @@ def _run_companion(device: Device, home: Path, until_idle: bool, session_minutes
     finally:
         if tray is not None:
             tray.close()  # the icon never outlives the companion
+        if bar is not None:
+            bar.close()
     return 0
 
 

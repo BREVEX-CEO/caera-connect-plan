@@ -45,6 +45,7 @@ WORKERS = {
     "shell": "ocade_agent.command_worker",
 }
 MAX_CALL_SECONDS = 300
+DISCARD_SECONDS = 15
 # These implementations only inspect local paths/data/resources; they neither
 # dispatch to an app nor invoke browser, network, COM or command operations.
 # This is a recovery policy, not permission to execute: protocol grants and risk
@@ -176,10 +177,13 @@ class Gateway:
         worker = self._workers.pop(key, None)
         if worker:
             worker["scope"].cancel()
-            with anyio.CancelScope(shield=True):
+            # Bounded: a worker whose process outlived the SDK's kill escalation must not hold
+            # STOP, shutdown or the next step forever (hosted windows-2022 hang, 20 Nov 2026).
+            with anyio.move_on_after(DISCARD_SECONDS, shield=True):
                 await worker["closed"].wait()
 
     def _parameters(self, key: str) -> StdioServerParameters:
+        key = key.split("#")[0]  # a lane's own process runs the same pinned module
         if key.startswith("mcp:"):
             manifest = self.external[key[4:]]
             # Re-checked at every start: a replaced executable is not the approved one.
@@ -269,10 +273,11 @@ class Gateway:
                 return f"{key} offers {sorted(tools)}, approved {sorted(approved)}"
             drifted = [n for n in approved if fingerprint(tools[n]) != fingerprint(approved[n])]
             return f"{key} schemas drifted: {drifted}" if drifted else None
+        module = key.split("#")[0]
         expected = {
             name.replace(".", "_"): spec
             for name, spec in PROTOCOL["operations"].items()
-            if self.modules.get(spec["role"]) == key
+            if self.modules.get(spec["role"]) == module
         }
         if set(tools) != set(expected):
             return f"{key} offers {sorted(tools)}, expected {sorted(expected)}"
@@ -300,8 +305,12 @@ class Gateway:
             return "invalid_intent"
         return f"mcp:{manifest['id']}", tool["name"], arguments["arguments"]
 
-    async def run(self, intent: dict, epoch: int) -> dict:
-        """Dispatch one validated intent and return an honest, timed receipt."""
+    async def run(self, intent: dict, epoch: int, lane: int = 0) -> dict:
+        """Dispatch one validated intent and return an honest, timed receipt.
+
+        Each parallel lane (plan 14F.3) has its own worker processes, so one lane's timeout,
+        cancellation or crash ends only that lane's worker; approved external MCP servers are
+        shared (their own concurrency is theirs)."""
         started = time.monotonic()
         worker_started = worker_ready = tool_started = tool_finished = None
 
@@ -344,6 +353,8 @@ class Gateway:
         if isinstance(target, str):
             return timed("not_applied", False, error=target, refused=True)
         key, tool, arguments = target
+        if lane and not key.startswith("mcp:"):
+            key = f"{key}#{lane}"
 
         uncertain = effect_possible(intent)
         worker_started = time.monotonic()

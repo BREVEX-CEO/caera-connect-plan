@@ -5,7 +5,12 @@
  */
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { insertMention, mentionQuery, rankApps } from "../../src/lib/jarvis/mentions.ts";
+import {
+  deviceResources,
+  insertMention,
+  mentionQuery,
+  rankApps,
+} from "../../src/lib/jarvis/mentions.ts";
 
 const APPS = [
   { name: "Microsoft Excel", exe: "excel.exe" },
@@ -54,4 +59,29 @@ test("the inserted form is the one the task scope reads", () => {
   const at = text.indexOf("@excel.exe");
   assert.ok(at >= 0);
   assert.doesNotMatch(text.charAt(at + "@excel.exe".length), /[a-z0-9._()+-]/);
+});
+
+test("one list names apps, allowed websites and approved tool servers; only allowed ones are listed", () => {
+  const resources = deviceResources(
+    [{ name: "Microsoft Excel", exe: "excel.exe" }],
+    ["app:excel.exe", "site:example.com", "files"],
+    [{ id: "github", publisher: "GitHub" }, { id: "../bad" }],
+  );
+  assert.deepEqual(
+    resources.map((r) => [r.kind, r.exe]),
+    [
+      ["app", "excel.exe"],
+      ["website", "example.com"],
+      ["tools", "mcp:github"],
+    ],
+  );
+  const found = rankApps(resources, new Set(["site:example.com"]), "exa");
+  assert.equal(found[0]!.exe, "example.com");
+  assert.equal(found[0]!.allowed, true);
+  assert.equal(rankApps(resources, new Set(), "git")[0]!.exe, "mcp:github");
+  assert.equal(
+    rankApps(resources, new Set(), "excel")[0]!.allowed,
+    false,
+    "an app still needs its permission",
+  );
 });

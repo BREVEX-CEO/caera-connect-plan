@@ -1,17 +1,57 @@
 /**
  * THE @ PICKER'S LOGIC (plan 14E.3), KEPT PURE SO IT CAN BE TESTED WITHOUT A BROWSER.
  *
- * Typing `@` in the JARVIS composer offers the apps the selected computer reports. Picking one
+ * Typing `@` in the JARVIS composer offers one list of resources: the apps the selected computer
+ * reports, the websites allowed on it, and the tool servers (MCP) approved on it. Picking an app
  * inserts `@<exe>`, which is exactly the form the planner and the database already read to limit a
- * task to the apps it names (`taskApps`, `jarvis_app_in_scope`). A mention never grants anything:
- * an app that is not allowed on that computer is shown as needing permission, and the authority
+ * task to the apps it names (`taskApps`, `jarvis_app_in_scope`); a website or tool server is named
+ * the same way and only tells the planner what to use. A mention never grants anything: a
+ * resource that is not allowed on that computer is shown as needing permission, and the authority
  * refuses actions for it whatever the text says.
  */
+
+export type ResourceKind = "app" | "website" | "tools";
 
 export interface InstalledApp {
   name: string;
   exe: string;
+  kind?: ResourceKind;
 }
+
+/**
+ * Every resource the picker can name on one computer: its apps, its allowed websites and its
+ * approved tool servers. A website or tool server is listed only once allowed or approved, so
+ * nothing about another computer or account can appear.
+ */
+export function deviceResources(
+  apps: readonly InstalledApp[],
+  grants: readonly string[],
+  mcp: readonly { id?: unknown; publisher?: unknown }[],
+): InstalledApp[] {
+  return [
+    ...apps.map((app) => ({ ...app, kind: "app" as const })),
+    ...grants
+      .filter((grant) => grant.startsWith("site:"))
+      .map((grant) => ({ name: grant.slice(5), exe: grant.slice(5), kind: "website" as const })),
+    ...mcp
+      // The companion reports only the servers its person approved (catalog.describe).
+      .filter(
+        (server) => typeof server.id === "string" && /^[a-z0-9][a-z0-9._-]{0,63}$/i.test(server.id),
+      )
+      .map((server) => ({
+        name:
+          typeof server.publisher === "string"
+            ? `${server.id} (${server.publisher})`
+            : String(server.id),
+        exe: `mcp:${String(server.id)}`,
+        kind: "tools" as const,
+      })),
+  ];
+}
+
+/** Whether a resource may be named: an app needs its permission; the others are listed only when allowed. */
+const permitted = (app: InstalledApp, allowed: ReadonlySet<string>) =>
+  (app.kind ?? "app") !== "app" || allowed.has(`app:${app.exe}`);
 
 export interface MentionCandidate extends InstalledApp {
   allowed: boolean;
@@ -39,7 +79,7 @@ export function matchScore(query: string, app: InstalledApp): number {
   if (!q) return 1;
   let best = 0;
   // The program's extension says nothing about which app it is: "ex" must not find "powerpnt.exe".
-  for (const label of [app.name, app.exe.replace(/\.(exe|app)$/i, "")]) {
+  for (const label of [app.name, app.exe.replace(/\.(exe|app)$/i, "").replace(/^mcp:/, "")]) {
     const folded = fold(label);
     if (folded.startsWith(q)) best = Math.max(best, 4);
     else if (
@@ -75,7 +115,7 @@ export function rankApps(
     if (seen.has(app.exe)) continue;
     seen.add(app.exe);
     const score = matchScore(query, app);
-    if (score > 0) scored.push({ app: { ...app, allowed: allowed.has(`app:${app.exe}`) }, score });
+    if (score > 0) scored.push({ app: { ...app, allowed: permitted(app, allowed) }, score });
   }
   scored.sort(
     (a, b) =>

@@ -64,10 +64,11 @@ analysis = Analysis(
     + trust_data,
     hiddenimports=bundled + native_modules
     + collect_submodules("send2trash")
-    + ["playwright.async_api", "pptx"],
+    + ["playwright.async_api", "pptx", "tkinter"],
     # pymsgbox and mouseinfo (GPL-3.0) are optional imports of pyautogui that OCADE never
     # uses; leaving them out keeps GPL code out of the installer (release/third-party-licences.json).
-    excludes=["tkinter", "pymsgbox", "mouseinfo"],
+    # tkinter (Tcl/Tk licence) stays: it draws the floating JARVIS bar (ocade_agent/bar.py).
+    excludes=["pymsgbox", "mouseinfo"],
 )
 # Redistribution (182): fail the build, not the audit, if an excluded GPL module is still pulled in.
 leaked = sorted({entry[0] for entry in analysis.pure + analysis.binaries
