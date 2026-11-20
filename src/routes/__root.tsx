@@ -341,22 +341,18 @@ function BrowserBootstrap() {
             void import("@/lib/notifications/push-device")
               .then((module) => module.forgetPushOnThisBrowser())
               .catch(() => {});
+            /*
+             * The last account's unsent offline turns are LOCKED, not erased: the
+             * next person on this browser cannot read them, and only that account
+             * signing in again reopens them (plan 14B.2).
+             */
+            void import("@/lib/chat/unsynced-turns")
+              .then((module) => module.lockJournal(previous))
+              .catch(() => {});
             // A question the bubble was handing over was the last account's to ask.
             void import("@/jarvis/bubble-state")
               .then((module) => module.takeHandOff())
               .catch(() => {});
-          }
-          if (event === "SIGNED_OUT") {
-            /*
-             * What signing out clears is what this TAB was holding, never the
-             * account's own records: the next person to sign in on this machine
-             * must not inherit an unsent turn from the last one.
-             */
-            if (previous) {
-              void import("@/lib/chat/unsynced-turns")
-                .then((module) => module.forgetAllUnsyncedTurns(previous))
-                .catch(() => {});
-            }
           }
           router.invalidate();
         });

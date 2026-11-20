@@ -246,6 +246,12 @@ function AccountSettings() {
                     const result = await withProof(() =>
                       deleteMyAccount({ data: { confirmation: phrase } }),
                     );
+                    // The deleted account's unsent offline turns are erased from this browser.
+                    if (user) {
+                      await import("@/lib/chat/unsynced-turns")
+                        .then((module) => module.forgetAllUnsyncedTurns(user.id))
+                        .catch(() => undefined);
+                    }
                     // Only after the account's own deletion is accepted, and only when asked.
                     const offlineRemoved = removeOffline
                       ? await offline.uninstall().then(

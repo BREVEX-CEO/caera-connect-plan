@@ -5,8 +5,10 @@
  * the database is unreachable: it waits here, in memory for the screen and in
  * an encrypted IndexedDB journal so a closed tab or a browser restart does not
  * lose it. The journal key is AES-GCM, generated per account, non-extractable,
- * and never leaves this browser; signing out deletes the account's entries and
- * key. Each turn carries a `clientKey` the server refuses to store twice, so a
+ * and never leaves this browser. Signing out LOCKS the account's entries (plan
+ * 14B.2): the decrypted turns and the key handle leave memory, the encrypted rows
+ * stay, and only the same account signing in again opens them. Deleting the
+ * account erases them. Each turn carries a `clientKey` the server refuses to store twice, so a
  * replay after a restart still yields exactly one row.
  */
 import type { ChatAttachmentMeta } from "@/lib/ocade-chat-store";
@@ -196,10 +198,24 @@ export function releaseUnsyncedTurn(clientKey: string): void {
   inFlight.delete(clientKey);
 }
 
-/** Discard an account's waiting turns and its journal key. Sign-out, after a warning. */
+/**
+ * Lock an account's journal: its decrypted turns and key handle leave this tab, the encrypted
+ * rows stay. Sign-out and account switch. Only `openJournal` for the same account reopens it.
+ */
+export function lockJournal(owner: string): void {
+  if (owner === account) {
+    account = null;
+    buffer.clear();
+    inFlight.clear();
+    ready = Promise.resolve();
+  }
+  keys.delete(owner);
+}
+
+/** Erase an account's waiting turns and its journal key. Account deletion. */
 export async function forgetAllUnsyncedTurns(owner: string): Promise<void> {
-  if (owner === account) buffer.clear();
-  // Best effort: sign-out goes on either way, and a journal it could not open holds nothing.
+  lockJournal(owner);
+  // Best effort: a journal it could not open holds nothing.
   await inOrder(async () => {
     const rows = (await run<JournalRow[]>(TURNS, "readonly", (s) => s.getAll())) ?? [];
     for (const row of rows.filter((r) => r.accountId === owner)) {
