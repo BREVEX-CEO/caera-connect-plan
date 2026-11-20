@@ -13,6 +13,7 @@ import {
   X,
 } from "lucide-react";
 import { JarvisAccess } from "@/jarvis/JarvisPanels";
+import { AppsAndWebsites } from "@/jarvis/AppsAndWebsites";
 import { cn } from "@/lib/utils";
 import { useModalFocus } from "@/lib/use-modal-focus";
 import { useAppearance } from "@/lib/appearance";
@@ -146,7 +147,12 @@ export default function SettingsDialog({
                   <ResetJarvis />
                 </>
               ) : null}
-              {category === "devices" ? <JarvisAccess /> : null}
+              {category === "devices" ? (
+                <>
+                  <JarvisAccess />
+                  <AppsAndWebsites />
+                </>
+              ) : null}
               {category === "privacy" ? (
                 <>
                   <MemorySection />
