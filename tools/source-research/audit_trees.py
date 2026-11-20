@@ -9,11 +9,19 @@ from pathlib import Path
 import subprocess
 
 
+ARCHIVE_COMMIT='2b6aeecd02c875a49cb4b8d0ce322ac6d2849995'
+
+
 def audit(root):
     root=Path(root).resolve()
     evidence=root/'evidence/source-research'
     report=json.loads((evidence/'git-tree-audit.json').read_text())
     archive=evidence/'pinned-git-trees.jsonl.gz'
+    if not archive.exists():
+        # Archived out of the working tree (ARCHIVE.md); restored byte for byte from Git history.
+        blob=subprocess.run(['git','-C',str(root),'show',ARCHIVE_COMMIT+':evidence/source-research/pinned-git-trees.jsonl.gz'],
+                            check=True,capture_output=True).stdout
+        archive.write_bytes(blob)
     h=hashlib.sha256()
     with archive.open('rb') as stream:
         while block:=stream.read(1024*1024):

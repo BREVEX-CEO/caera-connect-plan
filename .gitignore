@@ -46,3 +46,4 @@ device-agent/windows/packaging/Output/
 # graphify knowledge graph (generated, rebuilt by hooks)
 graphify-out/
 src/graphify-out/
+evidence/source-research/pinned-git-trees.jsonl.gz
