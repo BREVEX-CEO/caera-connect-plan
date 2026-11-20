@@ -1132,6 +1132,24 @@ export function missingGrant(
     : null;
 }
 
+/**
+ * REPO-48: the plan is a fixed order of milestones (no step can depend on a later one, so it has
+ * no cycles), every check belongs to exactly one milestone (`milestonesFor`), and a milestone that
+ * names the kinds of work it needs is refused, with the reason, when this computer can do none of
+ * them with its permissions and reported engines: nothing is run for a plan that cannot finish.
+ */
+export function impossibleMilestone(
+  description: string,
+  families: readonly string[] | undefined,
+  grants: string[],
+  engines: string[] | null,
+): string | null {
+  if (!families?.length) return null;
+  const offered = new Set(offeredOperations(grants, engines).map((name) => name.split(".")[0]));
+  if (families.some((family) => offered.has(family))) return null;
+  return `JARVIS cannot do "${description.slice(0, 120)}" on this computer: it needs ${families.join(", ")} work, which its permissions or installed tools do not allow. Nothing was run. Turn on what it needs in Settings > Devices, or change the request.`;
+}
+
 /** Operations the planner may choose: granted, and runnable with the engines the device reported. */
 export function offeredOperations(grants: string[], engines: string[] | null) {
   return (Object.keys(OPERATIONS) as Operation[]).filter((name) => {
@@ -1343,6 +1361,14 @@ export async function planStep(input: {
       reason: "The outcome's websites or applications are not authorized on this computer.",
     };
   if (steps.some(open)) return { kind: "wait" };
+  // REPO-48: a milestone whose kinds of work this computer cannot do at all fails before any step.
+  const impossible = impossibleMilestone(
+    phase.description,
+    phase.families,
+    input.grants,
+    input.engines ?? null,
+  );
+  if (impossible) return { kind: "block", reason: impossible };
   const job = followJobs(steps, now);
   if (job) return job;
 

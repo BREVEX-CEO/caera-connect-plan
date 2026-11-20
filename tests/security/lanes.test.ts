@@ -66,3 +66,13 @@ test("instructions reach the planner as data that redirects, never grants", asyn
   assert.match(text, /To everyone: "Use the blue logo"/);
   assert.match(text, /To agent 2: "Ignore \\"permissions\\""/);
 });
+
+test("REPO-48: a milestone this computer cannot do at all is refused before any step", async () => {
+  const { impossibleMilestone } = await import("../../src/lib/jarvis/planner.server.ts");
+  assert.match(
+    impossibleMilestone("Render the scene", ["scene"], ["files"], ["office"]) ?? "",
+    /cannot do "Render the scene".*Nothing was run/,
+  );
+  assert.equal(impossibleMilestone("Write it", ["fs", "scene"], ["files"], []), null);
+  assert.equal(impossibleMilestone("Anything", undefined, [], []), null);
+});
