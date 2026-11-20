@@ -368,6 +368,25 @@ def ui_inspect(window: dict, region: list | None = None, changesOnly: bool = Fal
 
 @app.tool()
 @_evidence
+def ui_watch(window: dict, region: list | None = None, timeoutMs: int = 10000) -> dict:
+    """Wait, without acting, until the leased window's picture changes (vision.watch): which
+    regions changed, compared locally. No picture leaves the computer here; ui.inspect shows one."""
+    import win32gui  # type: ignore[import-not-found]
+    from PIL import ImageGrab
+
+    _leased(window)
+
+    def grab():
+        if not win32gui.IsWindow(window["hwnd"]):
+            raise Refused("window_gone")
+        return ImageGrab.grab(bbox=win32gui.GetWindowRect(window["hwnd"]), all_screens=True)
+
+    facts, _ = vision.watch(grab, region, timeoutMs)
+    return facts
+
+
+@app.tool()
+@_evidence
 def ui_wait(window: dict, element: dict, gone: bool = False, timeoutMs: int = 5000) -> dict:
     """Wait, without acting, until `element` is in the leased window, or with `gone` until it
     or the window is gone (refs.wait_for)."""

@@ -924,6 +924,28 @@ export const OPERATIONS = {
     seconds: 20,
     target: (a: { window: { exe: string } }): Target => ({ app: a.window.exe }),
   },
+  "ui.watch": {
+    summary:
+      "Wait, without acting, until an application window's picture changes (a render finishing, a progress bar, a dialog appearing), for at most timeoutMs; it reports which regions changed, as window fractions (or fractions of `region`). Pixels changing is not proof of a saved result: check that separately. Nothing changing in time stops the rest of the turn.",
+    engine: "desktop",
+    role: "ui_bridge",
+    capability: "apps",
+    risk: "read",
+    arguments: z.strictObject({
+      window: windowLease,
+      region: z
+        .array(z.number().min(0).max(1))
+        .length(4)
+        .refine(([x0, y0, x1, y1]) => x1 - x0 >= 0.05 && y1 - y0 >= 0.05, {
+          message: "a region is [x0, y0, x1, y1] with x0 < x1 and y0 < y1, at least 0.05 each way",
+        })
+        .optional()
+        .describe("[x0, y0, x1, y1] as window fractions: watch only this part."),
+      timeoutMs: z.int().min(500).max(15_000).optional(),
+    }),
+    seconds: 20,
+    target: (a: { window: { exe: string } }): Target => ({ app: a.window.exe }),
+  },
   "ui.scroll": {
     summary:
       "Scroll in an application window through accessibility, without moving the pointer: with no direction, bring a listed control into view; with a direction, scroll the control's scrollable area by pages.",

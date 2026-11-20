@@ -465,7 +465,8 @@ const SYSTEM = [
   "A window must be one returned by apps.list (exe, pid, hwnd, started) — never invent identifiers. Name an element by",
   "the `ref` ui.inspect gave it (element: {ref}); a ref stays valid while its control keeps its name and type, and a",
   "changed one is refused. To look at a window again, ui.inspect it with changesOnly: only new or changed controls",
-  "come back. After an action that opens or closes a dialog or a progress bar, ui.wait for the control you expect.",
+  "come back. After an action that opens or closes a dialog or a progress bar, ui.wait for the control you expect;",
+  "when nothing you can name will change (a render, a canvas, a video), ui.watch for the picture to change.",
   "window_blocked means another window of that app (a dialog) holds its input: the refusal names it under `dialogs`",
   "with its exact lease; ui.inspect it and answer it as the outcome requires before acting on the first window again.",
   "Facts the person asks you to find (versions, dates, prices, names, figures) must come from what this task observed,",
@@ -966,6 +967,7 @@ const REPAIR_HINTS: Record<string, string> = {
   window_blocked: "a dialog blocks the window: answer or close the dialog first",
   window_ambiguous: "several windows match: name the window exactly from the newest listing",
   window_not_responding: "the app is not responding: wait with ui.wait, then inspect again",
+  not_changed: "nothing in that window changed in time: inspect it to see why, or watch longer",
   focus_lost:
     "another window took focus: inspect again; do not repeat a step whose effect is unknown",
   user_active: "the person is using the computer: wait a moment, then inspect again",

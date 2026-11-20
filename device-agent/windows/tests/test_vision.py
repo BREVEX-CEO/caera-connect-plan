@@ -102,3 +102,37 @@ class RegionView(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class WatchTest(unittest.TestCase):
+    """ui.watch (plan 14F.9-14F.10): local change detection, no model call per frame."""
+
+    def test_a_changed_region_is_reported_and_a_caret_blink_is_not(self):
+        from PIL import Image, ImageDraw
+
+        from ocade_agent import vision
+
+        before = Image.new("RGB", (160, 160), "white")
+        caret = before.copy()
+        ImageDraw.Draw(caret).line((5, 5, 5, 7), fill="black")
+        self.assertEqual(vision.changed_regions(before, caret), [], "a tiny change stays below the bar")
+        after = before.copy()
+        ImageDraw.Draw(after).rectangle((120, 120, 159, 159), fill="black")
+        regions = vision.changed_regions(before, after)
+        self.assertTrue(regions and all(r[0] >= 0.75 and r[1] >= 0.75 for r in regions), regions)
+
+        frames = iter([before, before, after])
+        facts, last = vision.watch(lambda: next(frames), None, 5000, interval=0.01)
+        self.assertTrue(facts["changed"])
+        self.assertEqual(facts["frames"], 3)
+
+    def test_nothing_changing_in_time_is_a_refusal(self):
+        from PIL import Image
+
+        from ocade_agent import vision
+        from ocade_agent.sandbox import Refused
+
+        still = Image.new("RGB", (64, 64), "white")
+        with self.assertRaises(Refused) as caught:
+            vision.watch(lambda: still, None, 50, interval=0.01)
+        self.assertEqual(caught.exception.code, "not_changed")

@@ -123,6 +123,8 @@ class MacUiLadder(unittest.TestCase):
                 out["present"] = await run("ui.wait", {"window": window, "element": {"automationId": "saveButton"}})
                 out["never"] = await run("ui.wait", {"window": window, "element": {"automationId": "neverThere"},
                                                      "timeoutMs": 400})
+                # ui.watch (plan 14F.9): needs Screen Recording; without it the refusal says so.
+                out["still"] = await run("ui.watch", {"window": window, "timeoutMs": 600})
                 # By the ref the inspection gave the button (P5), not by a description.
                 save = next(e["ref"] for e in out["inspect"]["evidence"]["elements"] if e["automationId"] == "saveButton")
                 out["invoke"] = await run("ui.invoke", {"window": window, "element": {"ref": save}})
@@ -192,6 +194,11 @@ class MacUiLadder(unittest.TestCase):
             return out
 
         out = anyio.run(steps)
+        with self.subTest("MAC-030 ui.watch refuses a still window, or names the missing permission (14F.9)"):
+            capture = "previewUnavailable" not in out["inspect"]["evidence"]
+            self.assertEqual((out["still"]["status"], out["still"]["errorCode"]),
+                             ("not_applied", "not_changed" if capture else "screen_recording_permission_needed"),
+                             out["still"])
         with self.subTest("MAC-001 an unseen installed app is discovered"):
             self.assertIn(self.exe, [a["exe"] for a in out["list"]["evidence"]["installed"]])
         with self.subTest("MAC-002 an app that is not installed is refused"):

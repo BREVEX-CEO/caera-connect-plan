@@ -113,3 +113,50 @@ def match(seen: Image.Image, now: Image.Image, x: float, y: float) -> dict:
         result["reason"] = "target_ambiguous"
     return result
 
+
+
+GRID = 8  # the window is compared as an 8 × 8 grid of regions
+WATCH_THRESHOLD = 6  # mean channel difference (0..255) a region must exceed to count as changed
+
+
+def changed_regions(before: Image.Image, after: Image.Image) -> list[list[float]]:
+    """Which regions of a window changed, as [x0, y0, x1, y1] window fractions (plan 14F.10.2:
+    cheap filtering first). Small changes (a blinking caret, anti-aliasing) stay below the bar."""
+    if before.size != after.size:
+        return [[0.0, 0.0, 1.0, 1.0]]
+    a, b = _small(before), _small(after)
+    difference = ImageChops.difference(a, b)
+    if difference.getbbox() is None:
+        return []
+    found = []
+    for row in range(GRID):
+        for column in range(GRID):
+            box = (column * a.width // GRID, row * a.height // GRID,
+                   (column + 1) * a.width // GRID, (row + 1) * a.height // GRID)
+            if box[2] <= box[0] or box[3] <= box[1]:
+                continue
+            if max(ImageStat.Stat(difference.crop(box)).mean) > WATCH_THRESHOLD:
+                found.append([round(column / GRID, 3), round(row / GRID, 3),
+                              round((column + 1) / GRID, 3), round((row + 1) / GRID, 3)])
+    return found
+
+
+def watch(grab, region: list | None, timeout_ms: int, interval: float = 0.25) -> tuple[dict, Image.Image]:
+    """`ui.watch` on both desktops (plan 14F.9-14F.10, V05/V06): capture the leased window (or one
+    region of it), then compare later captures of the same window, at most four a second and
+    locally (no model call per frame), until a region changes or `timeout_ms` passes. Returns the
+    facts and the last frame. A change seen is a change in pixels only, never proof of a saved
+    result; nothing changing in time is a refusal, like `ui.wait`."""
+    started = time.monotonic()
+    first = view(grab(), region)
+    frames = 1
+    while True:
+        time.sleep(interval)
+        now = view(grab(), region)
+        frames += 1
+        regions = changed_regions(first, now)
+        waited = round((time.monotonic() - started) * 1000)
+        if regions:
+            return {"changed": True, "regions": regions[:32], "waitedMs": waited, "frames": frames}, now
+        if waited >= timeout_ms:
+            raise Refused("not_changed", waitedMs=waited, frames=frames)

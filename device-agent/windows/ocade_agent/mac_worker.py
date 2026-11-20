@@ -440,6 +440,24 @@ def ui_inspect(window: dict, region: list | None = None, changesOnly: bool = Fal
 
 @app.tool()
 @_evidence
+def ui_watch(window: dict, region: list | None = None, timeoutMs: int = 10000) -> dict:
+    """Wait, without acting, until the leased window's picture changes (vision.watch): which
+    regions changed, compared locally. No picture leaves the computer here; ui.inspect shows one."""
+    from PIL import ImageGrab
+
+    if not _screen_capture_allowed():
+        raise Refused("screen_recording_permission_needed")
+
+    def grab():
+        _, (x, y, width, height) = _leased(window)  # the window as it is now, or refused
+        return ImageGrab.grab(bbox=(x, y, x + width, y + height))
+
+    facts, _ = vision.watch(grab, region, timeoutMs)
+    return facts
+
+
+@app.tool()
+@_evidence
 def ui_wait(window: dict, element: dict, gone: bool = False, timeoutMs: int = 5000) -> dict:
     """Wait, without acting, until `element` is in the leased window, or with `gone` until it
     or the window is gone (refs.wait_for)."""

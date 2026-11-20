@@ -42,7 +42,7 @@ WORDS = {
     "image.edit": "Editing an image", "media.analyze": "Analysing media",
     "media.render_timeline": "Rendering a video", "scene.render": "Rendering a 3D scene",
     "apps.list": "Listing apps", "apps.launch": "Opening an app", "ui.inspect": "Reading an app window",
-    "ui.wait": "Waiting for an app", "ui.scroll": "Scrolling in an app", "ui.invoke": "Pressing a control",
+    "ui.wait": "Waiting for an app", "ui.watch": "Watching an app window", "ui.scroll": "Scrolling in an app", "ui.invoke": "Pressing a control",
     "ui.set_value": "Filling a field", "ui.send_keys": "Typing in an app", "ui.click_point": "Clicking in an app",
     "shell.run": "Running a command", "job.start": "Starting a long job", "job.status": "Checking a long job",
     "job.cancel": "Ending a long job", "verify.checks": "Checking the result", "web.open": "Opening a page",

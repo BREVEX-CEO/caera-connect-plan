@@ -125,6 +125,20 @@ class WindowsUiLadder(unittest.TestCase):
                 out["present"] = await run("ui.wait", {"window": window, "element": {"automationId": "saveButton"}})
                 out["never"] = await run("ui.wait", {"window": window, "element": {"automationId": "neverThere"},
                                                      "timeoutMs": 400})
+                # ui.watch (plan 14F.9): a still window is not a change; a scroll run at the same time
+                # by another lane's own worker is seen as changed regions of the real window.
+                out["still"] = await run("ui.watch", {"window": window, "timeoutMs": 600})
+                watched = {}
+
+                async def watch():
+                    watched["result"] = await gateway.run(intent("ui.watch", {"window": window, "timeoutMs": 8000}),
+                                                          gateway.epoch, 1)
+
+                async with anyio.create_task_group() as group:
+                    group.start_soon(watch)
+                    await anyio.sleep(1.5)
+                    await run("ui.scroll", {"window": window, "element": rows, "direction": "down", "pages": 2})
+                out["moved"] = watched["result"]
                 # By the ref the newest inspection gave the button (P5), not by a description.
                 save = next(e["ref"] for e in out["region"]["evidence"]["elements"] if e["automationId"] == "saveButton")
                 out["invoke"] = await run("ui.invoke", {"window": window, "element": {"ref": save}})
@@ -235,6 +249,12 @@ class WindowsUiLadder(unittest.TestCase):
                              ("not_applied", "wait_timed_out", False), out["never"])
             self.assertTrue(out["dialog_ok"]["evidence"].get("met"), out["dialog_ok"])
             self.assertTrue(out["dialog_gone"]["evidence"].get("met"), out["dialog_gone"])
+        with self.subTest("UIA-021 ui.watch sees a real change locally and refuses when nothing changes (14F.9)"):
+            self.assertEqual((out["still"]["status"], out["still"]["errorCode"]), ("not_applied", "not_changed"),
+                             out["still"])
+            self.assertEqual(out["moved"]["status"], "observed", out["moved"])
+            self.assertTrue(out["moved"]["evidence"]["regions"], out["moved"])
+            self.assertNotIn("preview", out["moved"], "no picture leaves the computer from ui.watch")
         with self.subTest("UIA-020 ui.scroll moves a list by pages and brings a listed item into view (plan v8 11.3)"):
             self.assertEqual(out["scroll_down"]["status"], "observed", out["scroll_down"])
             self.assertGreater(out["scroll_down"]["evidence"]["verticalPercent"], 0, out["scroll_down"])
