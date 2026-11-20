@@ -428,3 +428,92 @@ export const deleteJarvisSchedule = createServerFn({ method: "POST" })
     if (error) throw new Error("That schedule could not be deleted just now.");
     return { deleted: true };
   });
+
+/* Watched folders (REPO-61/71): a new file in one folder of a computer's JARVIS folder starts
+ * one scheduled run. The person's own rows (RLS); creation through the server step. */
+export const listJarvisWatches = createServerFn({ method: "GET" })
+  .middleware([requireSession])
+  .handler(async ({ context }) => {
+    const { data, error } = await context.supabase
+      .from("jarvis_watches")
+      .select("id, device_id, folder, what, active, created_at")
+      .order("created_at", { ascending: true });
+    if (error) throw new Error("Your watched folders could not be loaded just now.");
+    return data ?? [];
+  });
+
+export const addJarvisWatch = createServerFn({ method: "POST" })
+  .middleware([requireSession])
+  .validator((i) =>
+    z
+      .object({
+        deviceId: uuid,
+        folder: z
+          .string()
+          .trim()
+          .min(1)
+          .max(200)
+          .refine(
+            (f) => !/(^|[\\/])\.\.([\\/]|$)/.test(f) && !/^([\\/]|[A-Za-z]:)/.test(f),
+            "Choose a folder inside the computer's JARVIS folder, such as Invoices.",
+          ),
+        what: z.string().trim().min(1).max(400),
+      })
+      .parse(i),
+  )
+  .handler(async ({ data, context }) => {
+    const { data: made, error: madeError } = await context.supabase
+      .from("ocade_conversations")
+      .insert({
+        user_id: context.userId,
+        surface: "jarvis",
+        title: `When a file arrives in ${data.folder}`.slice(0, 200),
+      })
+      .select("id")
+      .single();
+    if (madeError || !made) throw new Error("JARVIS could not save that watch just now.");
+    const { admin } = await authority();
+    const { data: id, error } = await admin.rpc(
+      "jarvis_add_watch" as never,
+      {
+        p_user: context.userId,
+        p_conversation: made.id,
+        p_device: data.deviceId,
+        p_folder: data.folder,
+        p_what: data.what,
+      } as never,
+    );
+    if (error) {
+      throw new Error(
+        error.message.includes("watch_limit")
+          ? "That computer already has 10 watched folders."
+          : error.message.includes("device_unavailable")
+            ? "That computer is not paired with your account."
+            : "JARVIS could not save that watch just now.",
+      );
+    }
+    return { id: id as unknown as string };
+  });
+
+export const setJarvisWatchActive = createServerFn({ method: "POST" })
+  .middleware([requireSession])
+  .validator((i) => z.object({ id: uuid, active: z.boolean() }).parse(i))
+  .handler(async ({ data, context }) => {
+    const { error, data: row } = await context.supabase
+      .from("jarvis_watches")
+      .update({ active: data.active })
+      .eq("id", data.id)
+      .select("id")
+      .maybeSingle();
+    if (error || !row) throw new Error("That watched folder is no longer there.");
+    return { active: data.active };
+  });
+
+export const deleteJarvisWatch = createServerFn({ method: "POST" })
+  .middleware([requireSession])
+  .validator((i) => z.object({ id: uuid }).parse(i))
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase.from("jarvis_watches").delete().eq("id", data.id);
+    if (error) throw new Error("That watched folder could not be removed.");
+    return { deleted: true };
+  });

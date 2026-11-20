@@ -20,6 +20,7 @@ import {
 import { toast } from "sonner";
 import { Schedules } from "./Schedules";
 import { Skills } from "./Skills";
+import { Watches } from "./Watches";
 import { useSession } from "@/lib/session";
 import { toBase64 } from "@/lib/chat/attachments";
 import { addLibraryItem, LIBRARY_MAX_BYTES } from "@/lib/library/library.functions";
@@ -78,7 +79,10 @@ export function SectionPanel({
         {!signedIn ? (
           <p className="text-muted-foreground">Sign in to see your {section}.</p>
         ) : section === "schedules" ? (
-          <Schedules />
+          <>
+            <Schedules />
+            <Watches />
+          </>
         ) : section === "skills" ? (
           <Skills />
         ) : (

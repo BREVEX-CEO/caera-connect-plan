@@ -1164,6 +1164,23 @@ export async function handleDeviceRequest(
         body: { inventory: "recorded", nudge: await nudgeChannel(admin, deviceId) },
       };
     }
+    if (parsed.op === "watches") {
+      // The folders the person asked this computer to watch (REPO-61/71).
+      return {
+        status: 200,
+        body: { watches: await call(admin, "jarvis_device_watches", { p_device: deviceId }) },
+      };
+    }
+    if (parsed.op === "watch_event") {
+      // One new file: at most one one-time scheduled run, through the scheduled-work path.
+      const outcome = await call<string>(admin, "jarvis_watch_fired", {
+        p_device: deviceId,
+        p_watch: parsed.watchId,
+        p_file: parsed.file,
+        p_key: parsed.key,
+      });
+      return { status: 200, body: { watch: outcome } };
+    }
     if (parsed.op === "instruct") {
       // The person at the computer redirects its open task (plan 14F.4.4); a note, never a grant.
       const id = await call<string>(admin, "jarvis_add_instruction", {

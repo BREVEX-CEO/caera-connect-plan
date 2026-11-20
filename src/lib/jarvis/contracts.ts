@@ -1601,6 +1601,19 @@ export const deviceRequest = z.discriminatedUnion("op", [
     })
     .strict(),
   z.object({ op: z.literal("receipt"), activityId: z.uuid(), receipt: actionReceipt }).strict(),
+  z.object({ op: z.literal("watches") }).strict(),
+  z
+    .object({
+      op: z.literal("watch_event"),
+      watchId: z.uuid(),
+      file: z
+        .string()
+        .min(1)
+        .max(255)
+        .regex(/^[^/\\\p{Cc}]+$/u),
+      key: z.string().min(1).max(400),
+    })
+    .strict(),
   z
     .object({
       op: z.literal("instruct"),

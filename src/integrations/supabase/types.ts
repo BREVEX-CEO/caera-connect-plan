@@ -511,6 +511,7 @@ export type Database = {
           repeat: string
           time_zone: string
           user_id: string
+          watch_id: string | null
           what: string
         }
         Insert: {
@@ -544,6 +545,64 @@ export type Database = {
           next_at?: string
           repeat?: string
           time_zone?: string
+          user_id?: string
+          watch_id?: string | null
+          what?: string
+        }
+        Relationships: []
+      }
+      jarvis_watch_events: {
+        Row: {
+          created_at: string
+          file: string
+          key: string
+          user_id: string
+          watch_id: string
+        }
+        Insert: {
+          created_at?: string
+          file: string
+          key: string
+          user_id: string
+          watch_id: string
+        }
+        Update: {
+          created_at?: string
+          file?: string
+          key?: string
+          user_id?: string
+          watch_id?: string
+        }
+        Relationships: []
+      }
+      jarvis_watches: {
+        Row: {
+          active: boolean
+          conversation_id: string
+          created_at: string
+          device_id: string
+          folder: string
+          id: string
+          user_id: string
+          what: string
+        }
+        Insert: {
+          active?: boolean
+          conversation_id: string
+          created_at?: string
+          device_id: string
+          folder: string
+          id?: string
+          user_id: string
+          what: string
+        }
+        Update: {
+          active?: boolean
+          conversation_id?: string
+          created_at?: string
+          device_id?: string
+          folder?: string
+          id?: string
           user_id?: string
           what?: string
         }

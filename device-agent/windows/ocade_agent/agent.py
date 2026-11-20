@@ -31,6 +31,7 @@ from websockets.asyncio.client import connect as websocket
 
 from . import catalog, discovery, held_input, jobs
 from .bar import BarState, pending_instructions
+from .watch import RULES_SECONDS, Watcher
 from .device import Device
 from .gateway import PROTOCOL, WORKERS, Gateway, effect_possible, receipt
 from .journal import Journal
@@ -154,6 +155,8 @@ class Agent:
         self._note_background({})
         home = getattr(device, "home", None)
         self.bar = BarState(Path(home)) if home is not None else None
+        workspace = getattr(gateway, "workspace", None)
+        self.watcher = Watcher(Path(workspace), Path(home)) if home is not None and workspace else None
         self.stop_flag = stop_flag or device.home / "STOP"
         self.nudge: Nudge | None = None
         # The server state the last claim saw (task, its status, its action). A nudge is useful
@@ -206,6 +209,32 @@ class Agent:
                 flag.unlink(missing_ok=True)
         except OSError:
             pass
+
+    async def watch_folders(self) -> None:
+        """Watched folders (REPO-61/71): look for new files locally and report each once. Rules
+        are asked for every five minutes; an outage keeps a file for the next look."""
+        watcher, now = self.watcher, time.monotonic()
+        if watcher is None or not watcher.due(now):
+            return
+        watcher.looked_at = now
+        if not watcher.rules_at or now - watcher.rules_at >= RULES_SECONDS:
+            try:
+                status, answer = await anyio.to_thread.run_sync(self.device.request, {"op": "watches"})
+            except OSError:
+                status, answer = 503, {}
+            if status == 200 and isinstance(answer.get("watches"), list):
+                watcher.set_rules(answer["watches"], now)
+            elif not watcher.rules_at:
+                return
+        for event in await anyio.to_thread.run_sync(watcher.look, now):
+            try:
+                status, _ = await anyio.to_thread.run_sync(self.device.request, {"op": "watch_event", **event})
+            except OSError:
+                return
+            if status == 200 or status in (400, 409, 422):
+                watcher.reported(event)
+            else:
+                return
 
     async def deliver_instructions(self) -> None:
         """Send what the person typed in the floating bar, oldest first (plan 14F.4.4). A file is
@@ -416,6 +445,7 @@ class Agent:
                 await anyio.to_thread.run_sync(jobs.cancel_all, str(self.device.home))
                 raise LocalStop()
             await self.deliver_instructions()
+            await self.watch_folders()
             if state is None and answers:
                 answer = answers.pop()  # the latest answer carries the server's state after it
                 answers.clear()
