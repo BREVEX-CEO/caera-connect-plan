@@ -15,6 +15,9 @@ export const Route = createFileRoute("/robots.txt")({
           "Disallow: /auth",
           "Disallow: /home",
           "Disallow: /settings",
+          // Signed-in areas: nothing there is public, and each page also carries noindex.
+          "Disallow: /library",
+          "Disallow: /admin",
           /*
            * A SHARE LINK IS UNLISTED, AND THAT IS ITS SECURITY.
            *

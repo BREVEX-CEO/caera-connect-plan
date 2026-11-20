@@ -70,18 +70,18 @@ const COMMANDS: Command[] = [
     run: ({ settings }) => settings("devices"),
   },
   {
-    label: "Settings: Privacy & data",
+    label: "Settings: Privacy & Security",
     words: "memory export delete library offline mode",
     run: ({ settings }) => settings("privacy"),
   },
   {
-    label: "Settings: Usage & billing",
+    label: "Settings: Billing & Usage",
     words: "allowance plan subscription invoice",
     run: ({ settings }) => settings("billing"),
   },
   {
-    label: "Settings: Your own model keys",
-    words: "byok api key gateway provider",
+    label: "Settings: BYOK",
+    words: "byok own model keys api key gateway provider",
     run: ({ settings }) => settings("byok"),
   },
 ];

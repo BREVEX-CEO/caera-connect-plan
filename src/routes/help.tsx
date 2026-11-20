@@ -48,11 +48,13 @@ const QUESTIONS: {
   {
     category: "Getting started",
     question: "What is OCADE?",
-    words: "chat jarvis library",
+    words: "chat jarvis library computer tasks",
     answer: (
       <p>
-        OCADE by CARCC is an AI product for conversation in Chat. JARVIS, its task assistant, is
-        being rebuilt. Library holds the files and images you upload and the ones OCADE produces.
+        OCADE by CARCC is an AI product with three places: Chat for conversation, online or on your
+        device; OCADE JARVIS, which carries out tasks on a paired Windows or Mac computer with your
+        permission; and Library, which holds the files and images you upload and the ones OCADE
+        produces.
       </p>
     ),
   },
@@ -137,11 +139,40 @@ const QUESTIONS: {
   {
     category: "JARVIS",
     question: "Where is JARVIS?",
-    words: "jarvis task computer device unavailable rebuilt",
+    words: "jarvis task computer device companion pair windows mac permissions stop",
     answer: (
       <p>
-        OCADE JARVIS is being rebuilt and cannot take requests right now. Your past JARVIS
-        conversations stay readable on the JARVIS page, and you can delete them there.
+        Open OCADE JARVIS from the sidebar. JARVIS works on a Windows or Mac computer that runs the
+        OCADE companion: pair it under Settings, Devices, then choose which apps, folders and
+        websites it may use on that computer. STOP is always on screen while it works, and Take over
+        hands the computer back to you. The companion is not yet offered for public download; until
+        it is, JARVIS can only use computers OCADE has paired for you.
+      </p>
+    ),
+  },
+  {
+    category: "Chat",
+    question: "Can I use my own AI provider key?",
+    words: "byok own key api provider openai gemini bill billing base url model",
+    answer: (
+      <p>
+        Yes. In Settings, BYOK, add a connection with your provider, model and key, test it, then
+        choose it for Chat, JARVIS or both. Requests on that connection are billed to you by your
+        provider, never to OCADE, and OCADE never falls back to its own models when your key fails.
+        The key is stored encrypted and is never shown again; you can replace or delete it at any
+        time.
+      </p>
+    ),
+  },
+  {
+    category: "Chat",
+    question: "What does OCADE remember about me?",
+    words: "memory remember forget personal private",
+    answer: (
+      <p>
+        Nothing, unless you turn memory on in Settings, Privacy &amp; Security. When it is on, OCADE
+        keeps only the notes you type there, uses them only in your own Chat, and you can forget one
+        or all of them at any moment.
       </p>
     ),
   },

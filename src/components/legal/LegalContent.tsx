@@ -482,7 +482,21 @@ export function PrivacyContent() {
         </p>
         <p>
           OCADE may keep the minimum local pending information needed to finish synchronizing saved
-          work after a connection returns. Temporary Chat remains outside that synchronization flow.
+          work after a connection returns. It is encrypted in that browser for the account that
+          wrote it; signing out locks it, only that account signing in again opens it, and deleting
+          the account erases it. Temporary Chat remains outside that synchronization flow.
+        </p>
+      </PublicSection>
+
+      <PublicSection title="7A. Cookies and browser storage">
+        <p>
+          OCADE does not use advertising or analytics cookies and does not set its own cookies. It
+          keeps a small amount of information in your browser&apos;s own storage because the service
+          cannot work without it: your sign-in session, the device preferences described above, an
+          identifier for this browser used to count offline places on your account, whether you
+          chose to set up or dismiss Offline Mode, the Offline Mode files themselves and any unsent
+          offline messages. None of it is used to track you across other websites. Clearing this
+          site&apos;s data in your browser signs you out and removes all of it.
         </p>
       </PublicSection>
 

@@ -22,7 +22,8 @@ export const Route = createFileRoute("/ocade-jarvis")({
       { title: "OCADE JARVIS" },
       {
         name: "description",
-        content: "OCADE JARVIS, the task assistant beside Chat, is being rebuilt.",
+        content:
+          "OCADE JARVIS carries out tasks on your paired Windows or Mac computer, with your permission and a STOP that is always on screen.",
       },
     ],
   }),
