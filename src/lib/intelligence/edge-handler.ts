@@ -1,5 +1,6 @@
 import { workersAiBody, workersAiResponse } from "./workers-ai.ts";
 import { anthropicBody, anthropicResponse } from "./anthropic.ts";
+import { responsesBody, responsesResponse } from "./openai-responses.ts";
 import { readBoundedRequestText } from "../read-bounded-request.ts";
 import { HIGH_WARNING_VERSION, type IntelligenceQuality } from "./quality.ts";
 import type {
@@ -1345,6 +1346,7 @@ async function runOnlineIntelligence(
   const protocol = high ? "openai" : ((customer ? customer.protocol : deps.protocol) ?? "gemini");
   const openai = protocol === "openai";
   const anthropic = protocol === "anthropic";
+  const responses = protocol === "responses";
   /** Where this model's quota and refusals are kept: per customer connection, never shared. */
   const record = customer ? `customer:${customer.id}` : configured;
   if (protocol !== "gemini" && body.research)
@@ -1554,8 +1556,8 @@ async function runOnlineIntelligence(
             model: configured,
             body: high
               ? workersAiBody(shown, MAX_OUTPUT_TOKENS)
-              : anthropic
-                ? anthropicBody(
+              : anthropic || responses
+                ? (anthropic ? anthropicBody : responsesBody)(
                     sent.has("json_schema")
                       ? shown
                       : {
@@ -1621,7 +1623,9 @@ async function runOnlineIntelligence(
           ? workersAiResponse(response, controller.signal)
           : anthropic
             ? anthropicResponse(response, controller.signal)
-            : response;
+            : responses
+              ? responsesResponse(response, controller.signal)
+              : response;
         if (response.ok) {
           Object.assign(served, { model: configured, slot });
           if (customer && customer.status !== "connected")

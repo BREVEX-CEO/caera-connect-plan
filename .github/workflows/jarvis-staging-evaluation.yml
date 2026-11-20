@@ -25,6 +25,11 @@ on:
         description: "Benchmark planner models, space-separated (each plans alone)"
         type: string
         default: "gemini-3.5-flash-lite gemma-4-31b-it"
+      bench_agents:
+        description: "single: the coordinator alone; team: with parallel specialists; both: each"
+        type: choice
+        options: ["both", "single", "team"]
+        default: "both"
       seed:
         description: "Paced E1 seed; all runs 48 tasks sequentially"
         type: choice
@@ -133,6 +138,7 @@ jobs:
         env:
           SYSTEMS: ${{ inputs.bench_systems }}
           MODELS: ${{ inputs.bench_models }}
+          AGENTS: ${{ inputs.bench_agents }}
         run: |
           case "$SYSTEMS" in
             desktop) os='["windows-latest","macos-latest"]' ;;
@@ -141,7 +147,12 @@ jobs:
             linux) os='["ubuntu-latest"]' ;;
           esac
           models=$(python3 -c 'import json,os,re; m=os.environ["MODELS"].split(); assert 0 < len(m) <= 4 and all(re.fullmatch(r"[A-Za-z0-9@][A-Za-z0-9._:/@+-]{0,199}", x) for x in m); print(json.dumps(m))')
-          echo "matrix={\"os\":$os,\"model\":$models}" >> "$GITHUB_OUTPUT"
+          case "$AGENTS" in
+            both) agents='["single","team"]' ;;
+            single) agents='["single"]' ;;
+            team) agents='["team"]' ;;
+          esac
+          echo "matrix={\"os\":$os,\"model\":$models,\"agents\":$agents}" >> "$GITHUB_OUTPUT"
 
   benchmark:
     needs: bench-plan
@@ -205,10 +216,11 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           ONLY: ${{ inputs.only || 'calc gimp car advert' }}
           MODEL: ${{ matrix.model }}
+          AGENTS: ${{ matrix.agents }}
         run: |
           [[ "$SUPABASE_URL" == https://auyapercxxptziyngycx.supabase.co ]] || { echo "REFUSED: staging only"; exit 2; }
           read -r -a tasks <<< "$ONLY"
-          run=(python tests/jarvis/benchmark.py --model "$MODEL" --out bench-out --only "${tasks[@]}")
+          run=(python tests/jarvis/benchmark.py --model "$MODEL" --agents "$AGENTS" --out bench-out --only "${tasks[@]}")
           if [[ "$RUNNER_OS" == Linux ]]; then xvfb-run -a -s "-screen 0 1920x1080x24" "${run[@]}"; else "${run[@]}"; fi
       - name: Refuse to upload anything that contains the server credential
         id: scan
@@ -227,7 +239,7 @@ jobs:
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: always() && steps.scan.outcome == 'success'
         with:
-          name: bench-${{ matrix.os }}-${{ matrix.model }}-${{ github.run_id }}
+          name: bench-${{ matrix.os }}-${{ matrix.model }}-${{ matrix.agents }}-${{ github.run_id }}
           path: bench-out
           if-no-files-found: warn
           retention-days: 14

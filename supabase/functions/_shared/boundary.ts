@@ -210,7 +210,7 @@ interface ByokRow {
   id: string | null;
   enabled: boolean;
   status: string;
-  protocol: "gemini" | "openai" | "anthropic";
+  protocol: "gemini" | "openai" | "anthropic" | "responses";
   endpoint: string;
   model: string;
   sees_images: boolean | null;
@@ -264,7 +264,7 @@ export async function customerFetch(
   const resolve = (host: string, type: "A" | "AAAA") => Deno.resolveDns(host, type);
   if (!(await resolvesPublic(address.host, resolve))) return new Response(null, { status: 421 });
   const headers: Record<string, string> =
-    route.protocol === "openai"
+    route.protocol === "openai" || route.protocol === "responses"
       ? { Authorization: `Bearer ${held.key}` }
       : route.protocol === "anthropic"
         ? { "x-api-key": held.key, "anthropic-version": ANTHROPIC_VERSION }
@@ -280,11 +280,12 @@ export async function customerFetch(
 
 /** The path a model call takes on a provider's API, by protocol. */
 export function modelPath(
-  protocol: "gemini" | "openai" | "anthropic",
+  protocol: "gemini" | "openai" | "anthropic" | "responses",
   model: string,
   stream: boolean,
 ): string {
   if (protocol === "anthropic") return "/messages";
+  if (protocol === "responses") return "/responses";
   return protocol === "openai"
     ? "/chat/completions"
     : `/models/${encodeURIComponent(model)}:${stream ? "streamGenerateContent?alt=sse" : "generateContent"}`;
@@ -517,15 +518,17 @@ export const boundary: Omit<OnlineHandlerDependencies, "verifyJwt" | "verifyServ
     const [url, headers] =
       PROVIDER.protocol === "openai"
         ? [`${PROVIDER.endpoint}/chat/completions`, { Authorization: `Bearer ${key}` }]
-        : PROVIDER.protocol === "anthropic"
-          ? [
-              `${PROVIDER.endpoint}/messages`,
-              { "x-api-key": key, "anthropic-version": ANTHROPIC_VERSION },
-            ]
-          : [
-              `${PROVIDER.endpoint}/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse`,
-              { "x-goog-api-key": key },
-            ];
+        : PROVIDER.protocol === "responses"
+          ? [`${PROVIDER.endpoint}/responses`, { Authorization: `Bearer ${key}` }]
+          : PROVIDER.protocol === "anthropic"
+            ? [
+                `${PROVIDER.endpoint}/messages`,
+                { "x-api-key": key, "anthropic-version": ANTHROPIC_VERSION },
+              ]
+            : [
+                `${PROVIDER.endpoint}/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse`,
+                { "x-goog-api-key": key },
+              ];
     return fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json", ...headers },

@@ -6,7 +6,7 @@
  */
 import { getSupabaseBrowserConfiguration } from "@/integrations/supabase/configuration";
 
-export type ByokProtocol = "gemini" | "openai" | "anthropic";
+export type ByokProtocol = "gemini" | "openai" | "anthropic" | "responses";
 
 export interface ByokConnection {
   id: string;

@@ -21,6 +21,7 @@ import json
 import os
 import platform
 import random
+import re
 import shutil
 import statistics
 import subprocess
@@ -422,18 +423,30 @@ def crash_watch(stop: threading.Event, record: dict, after: float = 20) -> None:
 TASKS = {"calc": calc, "gimp": gimp, "car": car, "advert": advert}
 
 
+def _model_id(value: str) -> str:
+    if not re.fullmatch(r"[A-Za-z0-9@][A-Za-z0-9._:/@+-]{0,199}", value):
+        raise argparse.ArgumentTypeError("not a model id")
+    return value
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model", choices=["gemini-3.5-flash-lite", "gemma-4-31b-it"], required=True)
+    # Any model id the provider accepts (plan 14D.4): validated like the planner validates it,
+    # never limited to a fixed list. The historical two-model comparison passes its two ids.
+    parser.add_argument("--model", type=_model_id, required=True)
+    # single: the coordinator plans alone (OCADE_JARVIS_SPECIALISTS=0); team: it may hand
+    # questions to parallel specialists. Recorded in the summary so runs compare like with like.
+    parser.add_argument("--agents", choices=["single", "team"], default="team")
     parser.add_argument("--out", required=True)
     parser.add_argument("--only", nargs="*", choices=list(TASKS), default=list(TASKS))
     parser.add_argument("--seed", type=int, default=7)
     args = parser.parse_args()
+    os.environ["OCADE_JARVIS_SPECIALISTS"] = "0" if args.agents == "single" else "1"
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
     base = Path(tempfile.mkdtemp(prefix="ocade-bench-"))
     commit = subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT, capture_output=True, text=True).stdout.strip()
-    summary = {"model": args.model, "system": SYSTEM, "machine": platform.platform(), "commit": commit,
+    summary = {"model": args.model, "agents": args.agents, "system": SYSTEM, "machine": platform.platform(), "commit": commit,
                "programs": {"soffice": SOFFICE, "gimp": GIMP, "blender": BLENDER, "ffprobe": FFPROBE},
                "appGrants": app_grants(), "results": []}
     car_ws = None

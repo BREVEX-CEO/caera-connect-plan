@@ -9,6 +9,8 @@
  */
 import type { CustomerRoute } from "./edge-handler.ts";
 import type { ProviderProtocol } from "./online-models.ts";
+
+const PROTOCOLS: readonly ProviderProtocol[] = ["gemini", "openai", "anthropic", "responses"];
 import { bearer, cors, json } from "./edge-handler.ts";
 import { gatewayAddress } from "./gateway-address.ts";
 import { plannerModel } from "./online-models.ts";
@@ -94,6 +96,24 @@ async function boundedJson(response: Response): Promise<unknown> {
 
 /** The tool-call probe for a protocol, and the name of the tool it must call. */
 export function toolProbe(protocol: ProviderProtocol, model: string): unknown {
+  if (protocol === "responses") {
+    return {
+      model,
+      stream: false,
+      store: false,
+      max_output_tokens: 64,
+      tool_choice: "required",
+      input: "Call the ok tool.",
+      tools: [
+        {
+          type: "function",
+          name: "ok",
+          description: "Say the test passed.",
+          parameters: { type: "object", properties: {} },
+        },
+      ],
+    };
+  }
   if (protocol === "anthropic") {
     return {
       model,
@@ -158,6 +178,11 @@ function at(value: unknown, ...path: (string | number)[]): unknown {
 
 /** Whether an answer called the probe's tool; null when it is not a recognisable answer at all. */
 export function calledTool(protocol: ProviderProtocol, answer: unknown): boolean | null {
+  if (protocol === "responses") {
+    const output = at(answer, "output");
+    if (!Array.isArray(output)) return null;
+    return output.some((item) => at(item, "type") === "function_call" && at(item, "name") === "ok");
+  }
   if (protocol === "anthropic") {
     const content = at(answer, "content");
     if (!Array.isArray(content)) return null;
@@ -176,6 +201,16 @@ export function calledTool(protocol: ProviderProtocol, answer: unknown): boolean
 
 /** The text of an answer, either protocol. */
 export function answerText(protocol: ProviderProtocol, answer: unknown): string {
+  if (protocol === "responses") {
+    const output = at(answer, "output");
+    if (!Array.isArray(output)) return "";
+    return output
+      .flatMap((item) =>
+        Array.isArray(at(item, "content")) ? (at(item, "content") as unknown[]) : [],
+      )
+      .map((part) => (at(part, "type") === "output_text" ? String(at(part, "text") ?? "") : ""))
+      .join("");
+  }
   if (protocol === "anthropic") {
     const content = at(answer, "content");
     return Array.isArray(content)
@@ -274,22 +309,23 @@ export async function visionProbe(
   const question =
     "This image has four vertical stripes. Name the colour of each, left to right, as four words.";
   const body =
-    protocol === "anthropic"
+    protocol === "responses"
       ? {
           model,
           stream: false,
-          max_tokens: 32,
-          messages: [
+          store: false,
+          max_output_tokens: 32,
+          input: [
             {
               role: "user",
               content: [
-                { type: "text", text: question },
-                { type: "image", source: { type: "base64", media_type: "image/png", data: image } },
+                { type: "input_text", text: question },
+                { type: "input_image", image_url: `data:image/png;base64,${image}` },
               ],
             },
           ],
         }
-      : protocol === "openai"
+      : protocol === "anthropic"
         ? {
             model,
             stream: false,
@@ -299,23 +335,41 @@ export async function visionProbe(
                 role: "user",
                 content: [
                   { type: "text", text: question },
-                  { type: "image_url", image_url: { url: `data:image/png;base64,${image}` } },
+                  {
+                    type: "image",
+                    source: { type: "base64", media_type: "image/png", data: image },
+                  },
                 ],
               },
             ],
           }
-        : {
-            contents: [
-              {
-                role: "user",
-                parts: [
-                  { text: question },
-                  { inline_data: { mime_type: "image/png", data: image } },
-                ],
-              },
-            ],
-            generationConfig: { maxOutputTokens: 32 },
-          };
+        : protocol === "openai"
+          ? {
+              model,
+              stream: false,
+              max_tokens: 32,
+              messages: [
+                {
+                  role: "user",
+                  content: [
+                    { type: "text", text: question },
+                    { type: "image_url", image_url: { url: `data:image/png;base64,${image}` } },
+                  ],
+                },
+              ],
+            }
+          : {
+              contents: [
+                {
+                  role: "user",
+                  parts: [
+                    { text: question },
+                    { inline_data: { mime_type: "image/png", data: image } },
+                  ],
+                },
+              ],
+              generationConfig: { maxOutputTokens: 32 },
+            };
   return { body, colours };
 }
 
@@ -395,13 +449,12 @@ export async function handleByok(request: Request, deps: ByokDependencies): Prom
     switch (body.action) {
       case "save": {
         const alias = typeof body.alias === "string" ? body.alias.trim() : "";
-        const protocol = body.protocol;
+        const protocol = PROTOCOLS.find((known) => known === body.protocol);
         const address = typeof body.endpoint === "string" ? gatewayAddress(body.endpoint) : null;
         const model = typeof body.model === "string" ? plannerModel(body.model) : undefined;
         const key = typeof body.key === "string" && body.key.trim() ? body.key.trim() : null;
         if (!alias || alias.length > 60) return json(400, { error: "alias_invalid" }, origin);
-        if (protocol !== "gemini" && protocol !== "openai" && protocol !== "anthropic")
-          return json(400, { error: "protocol_invalid" }, origin);
+        if (!protocol) return json(400, { error: "protocol_invalid" }, origin);
         if (!address?.ok)
           return json(
             400,

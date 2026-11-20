@@ -26,7 +26,7 @@ export function plannerModel(configured: string | undefined): OnlineModelId | un
  * compatibility endpoint, Workers AI ...). The endpoint is the API's base URL, HTTPS only, with no
  * credentials or query in it; the keys are sent as headers.
  */
-export type ProviderProtocol = "gemini" | "openai" | "anthropic";
+export type ProviderProtocol = "gemini" | "openai" | "anthropic" | "responses";
 export interface PlannerProvider {
   protocol: ProviderProtocol;
   endpoint: string;
@@ -40,7 +40,7 @@ export function plannerProvider(
   read: (name: string) => string | undefined,
 ): PlannerProvider | undefined {
   const protocol = (read("OCADE_MODEL_PROTOCOL")?.trim() || "gemini") as ProviderProtocol;
-  if (protocol !== "gemini" && protocol !== "openai" && protocol !== "anthropic") return undefined;
+  if (!["gemini", "openai", "anthropic", "responses"].includes(protocol)) return undefined;
   const endpoint = (
     read("OCADE_MODEL_ENDPOINT")?.trim() ||
     DEFAULT_ENDPOINT[protocol] ||

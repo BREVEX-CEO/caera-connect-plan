@@ -346,6 +346,7 @@ function ConnectionForm({
               <option value="openai">OpenAI Chat Completions (…/chat/completions)</option>
               <option value="gemini">Google Gemini (…/models/MODEL:generateContent)</option>
               <option value="anthropic">Anthropic Messages (…/messages)</option>
+              <option value="responses">OpenAI Responses (…/responses)</option>
             </select>
           </label>
           <label
