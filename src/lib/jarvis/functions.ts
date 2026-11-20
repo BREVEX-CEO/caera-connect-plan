@@ -271,3 +271,133 @@ export const listJarvisDevices = createServerFn({ method: "GET" })
       return { ...device, state };
     });
   });
+
+/* ----------------------------- Schedules ----------------------------- */
+
+const scheduleInput = z.object({
+  id: uuid.optional(),
+  /** Omitted: a new JARVIS conversation is made for it. */
+  conversationId: uuid.optional(),
+  /** Omitted: a reminder, which needs no computer. */
+  deviceId: uuid.nullable(),
+  what: taskObjective,
+  /** The first run, as an instant the browser computed from the person's wall time. */
+  nextAt: z.iso.datetime(),
+  repeat: z.enum(["none", "daily", "weekdays", "weekly"]),
+  timeZone: z.string().min(1).max(64),
+});
+
+const SCHEDULE_REFUSALS: Record<string, string> = {
+  schedule_conversation_unavailable: "That conversation is not one of your JARVIS conversations.",
+  schedule_device_unavailable: "That computer is not paired with your account, or was removed.",
+  schedule_in_past: "Choose a time in the future.",
+  schedule_limit: "You already have 50 schedules. Delete one first.",
+  schedule_not_found: "That schedule no longer exists.",
+};
+
+function scheduleRefusal(message: string): Error {
+  const code = Object.keys(SCHEDULE_REFUSALS).find((key) => message.includes(key));
+  return new Error(
+    code ? SCHEDULE_REFUSALS[code] : "JARVIS could not save that schedule just now.",
+  );
+}
+
+/** The person's own schedules, soonest first (RLS: their rows only). */
+export const listJarvisSchedules = createServerFn({ method: "GET" })
+  .middleware([requireSession])
+  .handler(async ({ context }) => {
+    const { data, error } = await context.supabase
+      .from("jarvis_schedules")
+      .select(
+        "id, conversation_id, device_id, what, next_at, repeat, time_zone, active, last_run_at, last_outcome",
+      )
+      .order("next_at", { ascending: true });
+    if (error) throw new Error("Your schedules could not be loaded just now.");
+    return data ?? [];
+  });
+
+/** Create or edit a schedule; the database checks the conversation and computer are the person's. */
+export const saveJarvisSchedule = createServerFn({ method: "POST" })
+  .middleware([requireSession])
+  .validator((i) => scheduleInput.parse(i))
+  .handler(async ({ data, context }) => {
+    const { isTimeZone } = await import("./schedule-time");
+    if (!isTimeZone(data.timeZone)) throw new Error("That time zone is not recognised.");
+    let conversationId = data.conversationId;
+    if (!conversationId) {
+      const { data: made, error } = await context.supabase
+        .from("ocade_conversations")
+        .insert({
+          user_id: context.userId,
+          surface: "jarvis",
+          title: `Scheduled: ${data.what}`.slice(0, 200),
+        })
+        .select("id")
+        .single();
+      if (error || !made) throw new Error("JARVIS could not save that schedule just now.");
+      conversationId = made.id;
+    }
+    const { admin } = await authority();
+    const { data: id, error } = await admin.rpc(
+      "jarvis_save_schedule" as never,
+      {
+        p_user: context.userId,
+        p_id: data.id ?? null,
+        p_conversation: conversationId,
+        p_device: data.deviceId,
+        p_what: data.what,
+        p_next_at: data.nextAt,
+        p_repeat: data.repeat,
+        p_zone: data.timeZone,
+      } as never,
+    );
+    if (error) throw scheduleRefusal(error.message);
+    return { id: id as unknown as string };
+  });
+
+/** Pause or resume. Resuming moves a past run to its next future slot in the person's zone. */
+export const setJarvisScheduleActive = createServerFn({ method: "POST" })
+  .middleware([requireSession])
+  .validator((i) => z.object({ id: uuid, active: z.boolean() }).parse(i))
+  .handler(async ({ data, context }) => {
+    const { data: row } = await context.supabase
+      .from("jarvis_schedules")
+      .select("next_at, repeat, time_zone")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (!row) throw new Error(SCHEDULE_REFUSALS.schedule_not_found);
+    let nextAt: string | null = null;
+    if (data.active) {
+      const { nextOccurrence } = await import("./schedule-time");
+      const now = new Date();
+      const due = new Date(row.next_at);
+      const next =
+        due.getTime() > now.getTime()
+          ? due
+          : nextOccurrence(due, row.repeat as "none", row.time_zone, now);
+      if (!next)
+        throw new Error("That one-time schedule has passed. Edit it to choose a new time.");
+      nextAt = next.toISOString();
+    }
+    const { admin } = await authority();
+    const { data: done, error } = await admin.rpc(
+      "jarvis_set_schedule_active" as never,
+      {
+        p_user: context.userId,
+        p_id: data.id,
+        p_active: data.active,
+        p_next_at: nextAt,
+      } as never,
+    );
+    if (error || !done) throw new Error(SCHEDULE_REFUSALS.schedule_not_found);
+    return { active: data.active };
+  });
+
+export const deleteJarvisSchedule = createServerFn({ method: "POST" })
+  .middleware([requireSession])
+  .validator((i) => z.object({ id: uuid }).parse(i))
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase.from("jarvis_schedules").delete().eq("id", data.id);
+    if (error) throw new Error("That schedule could not be deleted just now.");
+    return { deleted: true };
+  });

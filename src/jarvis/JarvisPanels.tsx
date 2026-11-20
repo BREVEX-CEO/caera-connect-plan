@@ -17,16 +17,22 @@ import {
   takeOverJarvisTask,
 } from "@/lib/jarvis/functions";
 import { toast } from "sonner";
+import { Schedules } from "./Schedules";
 import { useSession } from "@/lib/session";
 import { toBase64 } from "@/lib/chat/attachments";
 import { addLibraryItem, LIBRARY_MAX_BYTES } from "@/lib/library/library.functions";
 
-export type Section = "conversations";
+export type Section = "conversations" | "schedules";
 
 const when = (iso: string) =>
   new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(
     new Date(iso),
   );
+
+const TITLES: Record<Section, string> = {
+  conversations: "Conversations",
+  schedules: "Scheduled",
+};
 
 export function SectionPanel({
   section,
@@ -43,11 +49,11 @@ export function SectionPanel({
 }) {
   return (
     <aside
-      aria-label="Conversations"
+      aria-label={TITLES[section]}
       className="flex h-full w-72 max-w-[80vw] flex-col border-r border-border/60 bg-background/90"
     >
       <div className="flex h-12 items-center justify-between px-3">
-        <h2 className="text-sm font-medium">Conversations</h2>
+        <h2 className="text-sm font-medium">{TITLES[section]}</h2>
         <button
           type="button"
           aria-label="Close"
@@ -60,6 +66,8 @@ export function SectionPanel({
       <div className="ocade-scroll min-h-0 flex-1 overflow-y-auto px-3 pb-3 text-sm">
         {!signedIn ? (
           <p className="text-muted-foreground">Sign in to see your {section}.</p>
+        ) : section === "schedules" ? (
+          <Schedules />
         ) : (
           <Conversations
             activeConversation={activeConversation}

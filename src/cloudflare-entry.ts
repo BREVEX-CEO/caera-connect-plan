@@ -17,6 +17,20 @@ async function runErasureSweep(): Promise<void> {
   }
 }
 
+/** Scheduled JARVIS work and reminders due this minute (REPO-60/70). */
+async function runScheduleSweep(): Promise<void> {
+  try {
+    const [{ runDueSchedules }, { supabaseAdmin }] = await Promise.all([
+      import("./lib/jarvis/schedules.server"),
+      import("./integrations/supabase/client.server"),
+    ]);
+    const sweep = await runDueSchedules(supabaseAdmin as never);
+    if (sweep.claimed !== 0) console.info("schedules.sweep", JSON.stringify(sweep));
+  } catch (error) {
+    console.error("schedules.sweep", error instanceof Error ? error.message : "failed");
+  }
+}
+
 type WaitUntilContext = {
   waitUntil(promise: Promise<unknown>): void;
 };
@@ -151,6 +165,7 @@ export default {
         nitroHooks.callHook("cloudflare:scheduled", { controller, env, context }) ??
           Promise.resolve(),
         runErasureSweep(),
+        runScheduleSweep(),
       ]),
     );
   },

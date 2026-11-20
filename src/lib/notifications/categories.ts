@@ -30,7 +30,7 @@
  * with the retired JARVIS engine. What remains is what the product actually
  * sends today (security) and the two it sends about the account itself.
  */
-export type NotificationCategoryId = "security" | "account" | "product_updates";
+export type NotificationCategoryId = "security" | "account" | "automation" | "product_updates";
 
 export interface NotificationCategory {
   id: NotificationCategoryId;
@@ -76,6 +76,13 @@ export const NOTIFICATION_CATEGORIES: readonly NotificationCategory[] = [
     description: "Email changes and anything else that affects getting back in.",
     optional: false,
     frequencies: URGENT_ONLY,
+  },
+  {
+    id: "automation",
+    title: "Scheduled JARVIS work",
+    description: "Reminders you set, and whether scheduled JARVIS tasks started or were refused.",
+    optional: true,
+    frequencies: ["immediate", "grouped"],
   },
   {
     id: "product_updates",
