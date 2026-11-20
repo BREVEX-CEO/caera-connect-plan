@@ -613,3 +613,23 @@ html.text-large {
 html.text-larger {
   font-size: 125%;
 }
+
+/* The permission guide's steps appear one after another (plan 27.2.5); still for reduced motion. */
+@keyframes ocade-guide-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.ocade-guide-step {
+  animation: ocade-guide-in 400ms ease-out both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ocade-guide-step {
+    animation: none;
+  }
+}

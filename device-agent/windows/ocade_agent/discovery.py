@@ -40,8 +40,8 @@ def engines() -> list[str]:
         import importlib.util
 
         if importlib.util.find_spec("pywinauto"):
-            found.append("desktop")
-    elif sys.platform == "darwin":  # Accessibility, only once the person has granted it
+            found.extend(("desktop", "capture"))
+    elif sys.platform == "darwin":  # Accessibility and Screen Recording, once the person granted them
         try:
             import ApplicationServices  # type: ignore[import-not-found]
 
@@ -49,7 +49,35 @@ def engines() -> list[str]:
                 found.append("desktop")
         except ImportError:
             pass
+        try:
+            import Quartz  # type: ignore[import-not-found]
+
+            preflight = getattr(Quartz, "CGPreflightScreenCaptureAccess", None)
+            if preflight is None or preflight():
+                found.append("capture")
+        except ImportError:
+            pass
     return found
+
+
+def ask_for_mac_permissions() -> None:
+    """Show macOS's own permission prompts for what is not granted yet (plan 27.2.5): the system
+    decides and the person answers; nothing here can grant anything."""
+    if sys.platform != "darwin":
+        return
+    try:
+        import ApplicationServices  # type: ignore[import-not-found]
+        import Quartz  # type: ignore[import-not-found]
+
+        if not ApplicationServices.AXIsProcessTrusted():
+            ApplicationServices.AXIsProcessTrustedWithOptions(
+                {ApplicationServices.kAXTrustedCheckOptionPrompt: True})
+        preflight = getattr(Quartz, "CGPreflightScreenCaptureAccess", None)
+        request = getattr(Quartz, "CGRequestScreenCaptureAccess", None)
+        if preflight is not None and request is not None and not preflight():
+            request()
+    except Exception:  # noqa: BLE001 - a prompt that cannot be shown changes nothing
+        pass
 
 
 def installed_apps(limit: int = 300) -> list[dict]:

@@ -22,6 +22,7 @@ import {
 import { toast } from "sonner";
 import { Schedules } from "./Schedules";
 import { Skills } from "./Skills";
+import { PermissionGuide } from "./PermissionGuide";
 import { Watches } from "./Watches";
 import { useSession } from "@/lib/session";
 import { toBase64 } from "@/lib/chat/attachments";
@@ -343,6 +344,13 @@ function DeviceAccess({
           </button>
         ) : null}
       </div>
+      {!device.revoked_at ? (
+        <PermissionGuide
+          deviceId={device.id}
+          platform={device.platform}
+          engines={(device.capabilities as { engines?: unknown } | null)?.engines}
+        />
+      ) : null}
       {device.state === "permission_required" && has("files") ? (
         <button type="button" onClick={() => set("files", true)} className="text-xs underline">
           Allow JARVIS access again

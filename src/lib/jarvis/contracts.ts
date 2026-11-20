@@ -22,7 +22,16 @@ export const DEVICE_SILENCE_MS = 90_000;
 const RISKS = ["read", "reversible_write", "external_effect"] as const;
 
 /** Shared programs an operation needs on the computer; the device reports which it has. */
-export const ENGINES = ["ffmpeg", "browser", "office", "desktop", "dependencies", "gltf"] as const;
+export const ENGINES = [
+  "ffmpeg",
+  "browser",
+  "office",
+  "desktop",
+  "dependencies",
+  "gltf",
+  // App windows can be seen (macOS Screen Recording granted; always on Windows).
+  "capture",
+] as const;
 
 /** Paths are relative to a workspace folder the person chose on the device itself. */
 const workspacePath = z

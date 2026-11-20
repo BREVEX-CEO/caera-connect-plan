@@ -56,6 +56,7 @@ RECEIPT_RETRY_DELAYS = (1.0, 2.0, 4.0, 8.0)
 # Parallel lanes (plan 14F.3): the server hands out at most one step per lane at a time.
 LANES = 4
 LANE_REASK_SECONDS = 10.0
+INVENTORY_SECONDS = 600.0
 
 
 def handed_out(state: dict) -> list[dict]:
@@ -155,6 +156,7 @@ class Agent:
         self._note_background({})
         home = getattr(device, "home", None)
         self.bar = BarState(Path(home)) if home is not None else None
+        self.inventory_at: float | None = None
         workspace = getattr(gateway, "workspace", None)
         self.watcher = Watcher(Path(workspace), Path(home)) if home is not None and workspace else None
         self.stop_flag = stop_flag or device.home / "STOP"
@@ -365,15 +367,23 @@ class Agent:
                 raise ConnectionError(f"receipt_delivery_unavailable_{status}")
             await anyio.sleep(RECEIPT_RETRY_DELAYS[attempt])
 
-    async def run(self, until_idle: bool = False) -> None:
-        self.gateway.prewarm()
-        # What the person can choose from: installed apps and approved external MCP servers.
+    async def report_inventory(self) -> dict:
+        """What the person can choose from: installed apps, approved external MCP servers and the
+        engines (and macOS permissions) this computer has now."""
         apps = await anyio.to_thread.run_sync(discovery.installed_apps)
         _, answer = await anyio.to_thread.run_sync(
             self.device.request,
             {"op": "inventory", "apps": apps, "mcp": catalog.describe(self.gateway.external),
              "engines": await anyio.to_thread.run_sync(discovery.engines)},
         )
+        self.inventory_at = time.monotonic()
+        return answer or {}
+
+    async def run(self, until_idle: bool = False) -> None:
+        self.gateway.prewarm()
+        if not until_idle:
+            await anyio.to_thread.run_sync(discovery.ask_for_mac_permissions)
+        answer = await self.report_inventory()
         channel = (answer or {}).get("nudge")
         if not channel:
             return await self._loop(until_idle)
@@ -446,6 +456,12 @@ class Agent:
                 raise LocalStop()
             await self.deliver_instructions()
             await self.watch_folders()
+            if self.inventory_at is not None and time.monotonic() - self.inventory_at >= INVENTORY_SECONDS:
+                # A permission granted in System Settings, or an app installed, shows on the website.
+                try:
+                    await self.report_inventory()
+                except OSError:
+                    self.inventory_at = time.monotonic()
             if state is None and answers:
                 answer = answers.pop()  # the latest answer carries the server's state after it
                 answers.clear()
