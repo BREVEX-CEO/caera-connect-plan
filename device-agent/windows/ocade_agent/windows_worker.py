@@ -294,6 +294,7 @@ def apps_launch(exe: str, open: str | None = None) -> dict:
         folder = ntpath.dirname(path).lower()
         arguments = [path] + ([str(resolve(WORKSPACE, open))] if open else [])
         mark_effect()
+        # nosemgrep: dangerous-subprocess-use-tainted-env-args -- argument list from the approved step, never a shell
         subprocess.Popen(arguments, close_fds=True)  # argument list, no shell
     deadline = time.monotonic() + 20
     while time.monotonic() < deadline:

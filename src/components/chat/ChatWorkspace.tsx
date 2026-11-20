@@ -25,6 +25,7 @@ import { useSession } from "@/lib/session";
 import { offlineRelease } from "@/lib/brain/offline-release";
 import { useInstallation } from "@/lib/brain/use-installation";
 import { useOnline } from "@/lib/use-online";
+import { confirmSendWithSecret } from "@/lib/security/secret-shape";
 import { OfflineModeOffer, OfflineModeSetup } from "@/components/offline/OfflineModeSetup";
 import { useChat, type IntelligenceChoice } from "@/lib/chat/use-chat";
 import { useChatShortcuts } from "@/lib/chat/use-shortcuts";
@@ -294,6 +295,7 @@ export function ChatWorkspace() {
   async function send() {
     const message = draft.trim();
     if (!message || offlineGated) return;
+    if (!confirmSendWithSecret(message)) return;
 
     if (!user) {
       try {

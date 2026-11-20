@@ -35,6 +35,7 @@ import { cn, typedBeforeHydration } from "@/lib/utils";
 import { useJarvisPreferences, readPreferences, writePreferences } from "./preferences";
 import { SectionPanel, TaskPanel, type Section } from "./JarvisPanels";
 import { takeHandOff } from "./bubble-state";
+import { confirmSendWithSecret } from "@/lib/security/secret-shape";
 import { MentionList } from "./MentionPicker";
 import { useMentionCandidates } from "./use-mentions";
 import { insertMention, mentionQuery } from "@/lib/jarvis/mentions";
@@ -214,6 +215,7 @@ export function JarvisWorkspace({
       return;
     }
     const objective = accepted.data;
+    if (!confirmSendWithSecret(objective)) return;
     setSending(true);
     try {
       const conversation =

@@ -148,6 +148,7 @@ def media_preview(path: str, at: list[float] | None = None) -> dict:
     tiles = []
     for moment in times:
         frame = subprocess.run(
+            # nosemgrep: dangerous-subprocess-use-tainted-env-args -- argument list from the approved step, never a shell
             [_engine("ffmpeg"), "-v", "error", "-ss", f"{moment}", *MEDIA_INPUT_OPTIONS, "-i", str(source), "-frames:v", "1",
              "-vf", "scale=320:-2", "-f", "image2pipe", "-vcodec", "png", "-"],
             capture_output=True, timeout=120,
@@ -250,6 +251,7 @@ def media_analyze(path: str, threshold: float = 0.3) -> dict:
     if not any(s.get("codec_type") == "video" for s in facts.get("streams", [])):
         raise Refused("no_video_stream")
     run = subprocess.run(
+        # nosemgrep: dangerous-subprocess-use-tainted-env-args -- argument list from the approved step, never a shell
         [_engine("ffmpeg"), "-v", "error", *MEDIA_INPUT_OPTIONS, "-i", str(source), "-an", "-vf",
          "fps=4,scale=256:-2,select='gte(scene,0)',signalstats,metadata=print:file=-", "-f", "null", "-"],
         capture_output=True, text=True, timeout=900,
@@ -271,6 +273,7 @@ def media_analyze(path: str, threshold: float = 0.3) -> dict:
     loudness = {}
     if has_audio:
         audio = subprocess.run(
+            # nosemgrep: dangerous-subprocess-use-tainted-env-args -- argument list from the approved step, never a shell
             [_engine("ffmpeg"), "-v", "error", *MEDIA_INPUT_OPTIONS, "-i", str(source), "-vn", "-af",
              "asetnsamples=n=12000,astats=metadata=1:reset=1,ametadata=print:key=lavfi.astats.Overall.RMS_level:file=-",
              "-f", "null", "-"],

@@ -163,6 +163,7 @@ def _check(kind: str, params: dict, notes: dict) -> bool | None:
         probe = shutil.which("ffprobe")
         if not probe:
             return None
+        # nosemgrep: dangerous-subprocess-use-tainted-env-args -- argument list from the approved step, never a shell
         run = subprocess.run([probe, "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", *MEDIA_INPUT_OPTIONS, str(path)],
                              capture_output=True, text=True, timeout=60)
         if run.returncode != 0:

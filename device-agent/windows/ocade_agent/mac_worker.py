@@ -381,6 +381,7 @@ def apps_launch(exe: str, open: str | None = None) -> dict:
     before = {w["hwnd"] for w in open_windows(400)}
     arguments = ["open", "-n", "-a", bundle["path"]] + (["--args", str(resolve(WORKSPACE, open))] if open else [])
     mark_effect()
+    # nosemgrep: dangerous-subprocess-use-tainted-env-args -- argument list from the approved step, never a shell
     subprocess.run(arguments, check=False, capture_output=True)  # argument list, no shell
     deadline = time.monotonic() + 20
     while time.monotonic() < deadline:

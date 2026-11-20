@@ -19,6 +19,7 @@ def main() -> None:
     with open(here / "output.log", "wb") as log:
         try:
             command = subprocess.Popen(
+                # nosemgrep: dangerous-subprocess-use-tainted-env-args -- argument list from the approved step, never a shell
                 spec["argv"], cwd=spec["cwd"], stdin=subprocess.DEVNULL, stdout=log, stderr=subprocess.STDOUT,
                 start_new_session=sys.platform != "win32",
                 creationflags=(subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.CREATE_NO_WINDOW)
