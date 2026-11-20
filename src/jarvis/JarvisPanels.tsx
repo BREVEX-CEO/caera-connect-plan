@@ -6,6 +6,7 @@ import { deleteConversation, listConversations } from "@/lib/ocade.functions";
 import {
   confirmJarvisStep,
   resolveJarvisStep,
+  answerJarvisForm,
   clearJarvisApprovals,
   setJarvisTaskMode,
   getJarvisTask,
@@ -572,6 +573,86 @@ function Instruct({ taskId, agents }: { taskId: string; agents: number[] }) {
   );
 }
 
+/**
+ * The short form JARVIS generated for the details it needs (R12-06): only those fields, in
+ * OCADE's own design, with the destination still shown in the task; sending it answers JARVIS
+ * and the task continues. Values stay as typed if sending fails.
+ */
+function TaskForm({
+  taskId,
+  fields,
+  onDone,
+}: {
+  taskId: string;
+  fields: NonNullable<Task["form"]>;
+  onDone: () => void;
+}) {
+  const [values, setValues] = useState<Record<string, string>>({});
+  const [busy, setBusy] = useState(false);
+  const client = useRef(crypto.randomUUID());
+  const missing = fields.some((field) => field.required && !values[field.name]?.trim());
+  return (
+    <form
+      aria-label="Details JARVIS needs"
+      className="mt-2 space-y-2 rounded-xl border border-border p-3"
+      onSubmit={(event) => {
+        event.preventDefault();
+        if (missing || busy) return;
+        setBusy(true);
+        void answerJarvisForm({ data: { taskId, values, clientId: client.current } })
+          .then(onDone)
+          .catch((error: Error) => toast.error(error.message))
+          .finally(() => setBusy(false));
+      }}
+    >
+      {fields.map((field) => {
+        const id = `form-${taskId}-${field.name}`;
+        const common = {
+          id,
+          value: values[field.name] ?? "",
+          required: field.required,
+          onChange: (event: { target: { value: string } }) =>
+            setValues({ ...values, [field.name]: event.target.value }),
+          className: "mt-1 w-full rounded-md border border-border bg-background px-2 py-1",
+        };
+        return (
+          <label key={field.name} htmlFor={id} className="block text-xs">
+            <span>
+              {field.label}
+              {field.required ? " (required)" : ""}
+            </span>
+            {field.type === "choice" ? (
+              <select {...common}>
+                <option value="">Choose…</option>
+                {field.options!.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+            ) : field.type === "long_text" ? (
+              <textarea {...common} rows={3} maxLength={1000} />
+            ) : (
+              <input
+                {...common}
+                type={field.type === "number" ? "number" : field.type === "date" ? "date" : "text"}
+                maxLength={1000}
+              />
+            )}
+          </label>
+        );
+      })}
+      <button
+        type="submit"
+        disabled={missing || busy}
+        className="rounded-full bg-foreground px-3 py-1 text-xs text-background disabled:opacity-50"
+      >
+        {busy ? "Sending…" : "Send to JARVIS"}
+      </button>
+    </form>
+  );
+}
+
 /** One task: what JARVIS is doing, what it proved, and the person's controls. */
 type Task = Awaited<ReturnType<typeof getJarvisTask>>;
 
@@ -688,6 +769,7 @@ export function TaskPanel({
         </label>
       ) : null}
       {task.blocker ? <p className="mt-1 text-muted-foreground">{task.blocker}</p> : null}
+      {task.form ? <TaskForm taskId={task.id} fields={task.form} onDone={onChanged} /> : null}
       {open && task.agents.active + task.agents.waiting + task.agents.paused > 1 ? (
         <p className="mt-1 text-muted-foreground" aria-live="polite">
           {[

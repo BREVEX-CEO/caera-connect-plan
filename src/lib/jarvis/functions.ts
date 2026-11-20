@@ -157,6 +157,24 @@ export const confirmJarvisStep = createServerFn({ method: "POST" })
     };
   });
 
+/** Answers to the short form JARVIS asked with (R12-06); the task continues with them. */
+export const answerJarvisForm = createServerFn({ method: "POST" })
+  .middleware([requireSession])
+  .validator((i) =>
+    z
+      .object({
+        taskId: uuid,
+        values: z.record(z.string().regex(/^[a-z][a-z0-9_]{0,39}$/), z.string().max(1000)),
+        clientId: uuid,
+      })
+      .parse(i),
+  )
+  .handler(async ({ data, context }) => {
+    const { admin, answerForm } = await authority();
+    await guarded(() => answerForm(admin, context.userId, data.taskId, data.values, data.clientId));
+    return { answered: true };
+  });
+
 /** Live or Background (R12-01): switching keeps the task, its steps and its permissions. */
 export const setJarvisTaskMode = createServerFn({ method: "POST" })
   .middleware([requireSession])

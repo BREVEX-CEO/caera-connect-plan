@@ -93,3 +93,25 @@ test("R12-02: only ordinary in-app steps can be allowed for the rest of a task",
   );
   assert.equal(approvalScope({ nonsense: true }), null);
 });
+
+test("R12-06: a generated form is a few distinct, typed fields; choices carry options", async () => {
+  const { generatedForm } = await import("../../src/lib/jarvis/supervisor.ts");
+  assert.ok(
+    generatedForm.safeParse([
+      { name: "amount", label: "Amount", type: "number", required: true },
+      { name: "reason", label: "Reason", type: "choice", options: ["Travel", "Food"] },
+    ]).success,
+  );
+  for (const bad of [
+    [],
+    [{ name: "Bad", label: "x", type: "text" }],
+    [
+      { name: "a", label: "x", type: "text" },
+      { name: "a", label: "y", type: "text" },
+    ],
+    [{ name: "c", label: "x", type: "choice" }],
+    [{ name: "t", label: "x", type: "text", options: ["a", "b"] }],
+    Array.from({ length: 13 }, (_, i) => ({ name: `f${i}`, label: "x", type: "text" })),
+  ])
+    assert.equal(generatedForm.safeParse(bad).success, false, JSON.stringify(bad).slice(0, 80));
+});

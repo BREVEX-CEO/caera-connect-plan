@@ -32,6 +32,7 @@ import {
   followJobs,
   isJobPoll,
   milestonePlan,
+  generatedForm,
   milestonesFor,
   milestoneProgress,
   type Milestone,
@@ -1585,10 +1586,28 @@ export async function planStep(input: {
     ...(specialists && !delegated && steps.length ? [DELEGATE_TOOL] : []),
     {
       name: "ask",
-      description: "Ask the person one short question, or explain why nothing safe can be done.",
+      description:
+        "Ask the person one short question, or explain why nothing safe can be done. Need a few details? Add `fields` (only what matters): the task waits for the form's answers.",
       parameters: {
         type: "object",
-        properties: { question: { type: "string", maxLength: 300 } },
+        properties: {
+          question: { type: "string", maxLength: 300 },
+          fields: {
+            type: "array",
+            maxItems: 12,
+            items: {
+              type: "object",
+              properties: {
+                name: { type: "string" },
+                label: { type: "string" },
+                type: { type: "string", enum: ["text", "number", "date", "choice", "long_text"] },
+                options: { type: "array", items: { type: "string" } },
+                required: { type: "boolean" },
+              },
+              required: ["name", "label", "type"],
+            },
+          },
+        },
         required: ["question"],
       },
     },
@@ -1790,10 +1809,9 @@ export async function planStep(input: {
       continue;
     }
     if (call.name === "ask") {
-      return {
-        kind: "block",
-        reason: String(call.args.question ?? "JARVIS needs your decision.").slice(0, 300),
-      };
+      const reason = String(call.args.question ?? "JARVIS needs your decision.").slice(0, 300);
+      const form = generatedForm.safeParse(call.args.fields);
+      return form.success ? { kind: "form", reason, fields: form.data } : { kind: "block", reason };
     }
     if (call.name === "finish") {
       // A repaired program is re-run by the verifier only with a command the person already

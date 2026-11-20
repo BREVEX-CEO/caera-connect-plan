@@ -33,6 +33,7 @@ import { ONLINE_CONSENT_VERSION } from "../intelligence/online-consent-version.t
 import {
   effectInDoubt,
   milestonePlan,
+  generatedForm,
   open,
   unresolvedEffect,
   type Decision,
@@ -84,6 +85,8 @@ const REFUSALS: Record<string, string> = {
   approval_not_scopable: "This kind of step is always confirmed one by one.",
   live_needed: "This step types, clicks or opens a window. Switch the task to Live to allow it.",
   invalid_mode: "Choose Live or Background.",
+  form_not_open: "That form was already answered, or the task moved on.",
+  invalid_answers: "Fill in the required fields (at most 1,000 characters each).",
   unknown_code: "That pairing code is wrong or has expired.",
   too_many_enrollments:
     "Too many computers are waiting to pair from here. Try again in 10 minutes.",
@@ -565,6 +568,13 @@ async function decide(
           p_verification: decision.verification as unknown as Json,
           p_summary: decision.summary,
         });
+      } else if (decision.kind === "form") {
+        await call(admin, "jarvis_task_ask_form", {
+          p_task: taskId,
+          p_controller: task.controller,
+          p_reason: decision.reason,
+          p_form: decision.fields as unknown as Json,
+        });
       } else if (decision.kind === "wait" && decision.reason) {
         await call(admin, "jarvis_task_wait", {
           p_task: taskId,
@@ -768,6 +778,23 @@ export function confirmAction(admin: Admin, userId: string, activityId: string, 
   });
 }
 
+/** The person's answers to a generated form; the task then continues (R12-06). */
+export async function answerForm(
+  admin: Admin,
+  userId: string,
+  taskId: string,
+  values: Record<string, string>,
+  clientId: string,
+) {
+  await call(admin, "jarvis_answer_form", {
+    p_user: userId,
+    p_task: taskId,
+    p_values: values,
+    p_client: clientId,
+  });
+  await resumeTask(admin, userId, taskId);
+}
+
 /** Live or Background for one of the person's own open tasks (R12-01). */
 export function setTaskMode(admin: Admin, userId: string, taskId: string, mode: string) {
   return call<string>(admin, "jarvis_set_task_mode", {
@@ -960,6 +987,11 @@ export async function taskView(admin: Admin, userId: string, taskId: string) {
     }),
     agents: agentCounts(task.status, task.steps),
     mode: task.mode ?? "live",
+    // R12-06: the few details JARVIS asked for, while the task waits for them.
+    form:
+      task.status === "waiting"
+        ? (generatedForm.safeParse(task.checkpoint?.form).data ?? null)
+        : null,
     approvalsForTask: approvals ?? 0,
     device: task.deviceName,
     // An outage is said plainly: the step in hand stays put and nothing new starts until contact.

@@ -935,7 +935,7 @@ export const OPERATIONS = {
   },
   "ui.watch": {
     summary:
-      "Wait, without acting, until an application window's picture changes (a render finishing, a progress bar, a dialog appearing), for at most timeoutMs; it reports which regions changed, as window fractions (or fractions of `region`). Pixels changing is not proof of a saved result: check that separately. Nothing changing in time stops the rest of the turn.",
+      "Wait, without acting, until an app window's picture changes (a render, a progress bar, a dialog), for at most timeoutMs; reports the changed regions as window (or `region`) fractions. Changed pixels do not prove a saved result. No change in time stops the turn.",
     engine: "desktop",
     role: "ui_bridge",
     capability: "apps",

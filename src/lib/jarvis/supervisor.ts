@@ -128,7 +128,25 @@ export type Decision =
   | { kind: "milestone"; index: number }
   | { kind: "wait"; reason?: string }
   | { kind: "settle"; verification: VerificationResult; summary: string }
-  | { kind: "block"; reason: string };
+  | { kind: "block"; reason: string }
+  /** R12-06: the task waits for a few details the person fills in a generated form. */
+  | { kind: "form"; reason: string; fields: FormField[] };
+
+export const formField = z.strictObject({
+  name: z.string().regex(/^[a-z][a-z0-9_]{0,39}$/),
+  label: z.string().min(1).max(120),
+  type: z.enum(["text", "number", "date", "choice", "long_text"]),
+  options: z.array(z.string().min(1).max(80)).min(2).max(20).optional(),
+  required: z.boolean().optional(),
+});
+export type FormField = z.infer<typeof formField>;
+/** A generated form: 1-12 distinctly named fields, choices with their options. */
+export const generatedForm = z
+  .array(formField)
+  .min(1)
+  .max(12)
+  .refine((fields) => new Set(fields.map((f) => f.name)).size === fields.length)
+  .refine((fields) => fields.every((f) => (f.type === "choice") === Boolean(f.options)));
 
 /** This key space belongs to the supervisor; model-chosen operations use sN. */
 export function isJobPoll(step: Step): boolean {
