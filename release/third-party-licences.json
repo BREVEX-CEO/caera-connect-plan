@@ -286,7 +286,7 @@
     }
   },
   "ownerReview": {
-    "Offline Mode model (release ocr-20564d74721fa009, release/OCADE_OFFLINE_RELEASE.json)": "Full LFM Open License v1.0 provided in public/legal/lfm-open-license-v1.0.txt and third-party notices. Owner/legal must confirm Legal Entity annual-revenue eligibility (< USD 10,000,000), any derivative/attribution obligations, and customer access before public commercial launch; at or above threshold obtain separate Liquid AI authorisation."
+    "Offline Mode model (release ocr-20564d74721fa009, release/OCADE_OFFLINE_RELEASE.json)": "OWNER CONFIRMED on 2026-11-20: OCADE's applicable legal entity is below USD 10,000,000 annual revenue (self-attestation, not independent financial verification). The full LFM Open License v1.0 and attribution are in public/legal/lfm-open-license-v1.0.txt and THIRD_PARTY_NOTICES.md. Before commercial distribution, legal review must verify the licence's Legal Entity scope, current eligibility, recipient notice access, and continuing obligations. At/above the threshold, obtain separate Liquid AI authorisation."
   },
   "models": {
     "LFM2.5-VL-450M": {
@@ -297,7 +297,13 @@
       "licenceCopy": "public/legal/lfm-open-license-v1.0.txt",
       "releaseManifest": "release/OCADE_OFFLINE_RELEASE.json",
       "redistributedParts": "Language weights and vision projector are governed by the same model licence.",
-      "commercialUse": "Free commercial use is conditional on the licensee/Legal Entity having less than USD 10,000,000 annual revenue; otherwise obtain a separate commercial licence."
+      "commercialUse": "Free commercial use is conditional on the licensee/Legal Entity having less than USD 10,000,000 annual revenue; otherwise obtain a separate commercial licence.",
+      "ownerRevenueAttestation": {
+        "status": "OWNER-DECLARED — NOT INDEPENDENTLY VERIFIED",
+        "date": "2026-11-20",
+        "assertion": "The owner confirmed in conversation that OCADE's applicable legal entity has annual revenue below USD 10,000,000.",
+        "nextReview": "Reconfirm annually and if revenue or corporate control changes; confirm Legal Entity scope and threshold with legal counsel before commercial release."
+      }
     }
   }
 }
