@@ -1,4 +1,5 @@
 import { highIncluded } from "./workers-ai.ts";
+import { ANTHROPIC_VERSION } from "../../../src/lib/intelligence/anthropic.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.110.7";
 import {
   isServiceKey,
@@ -209,7 +210,7 @@ interface ByokRow {
   id: string | null;
   enabled: boolean;
   status: string;
-  protocol: "gemini" | "openai";
+  protocol: "gemini" | "openai" | "anthropic";
   endpoint: string;
   model: string;
   sees_images: boolean | null;
@@ -265,7 +266,9 @@ export async function customerFetch(
   const headers: Record<string, string> =
     route.protocol === "openai"
       ? { Authorization: `Bearer ${held.key}` }
-      : { "x-goog-api-key": held.key };
+      : route.protocol === "anthropic"
+        ? { "x-api-key": held.key, "anthropic-version": ANTHROPIC_VERSION }
+        : { "x-goog-api-key": held.key };
   return fetch(`${address.url}${path}`, {
     method: "POST",
     headers: { "Content-Type": "application/json", ...headers },
@@ -276,7 +279,12 @@ export async function customerFetch(
 }
 
 /** The path a model call takes on a provider's API, by protocol. */
-export function modelPath(protocol: "gemini" | "openai", model: string, stream: boolean): string {
+export function modelPath(
+  protocol: "gemini" | "openai" | "anthropic",
+  model: string,
+  stream: boolean,
+): string {
+  if (protocol === "anthropic") return "/messages";
   return protocol === "openai"
     ? "/chat/completions"
     : `/models/${encodeURIComponent(model)}:${stream ? "streamGenerateContent?alt=sse" : "generateContent"}`;
@@ -509,10 +517,15 @@ export const boundary: Omit<OnlineHandlerDependencies, "verifyJwt" | "verifyServ
     const [url, headers] =
       PROVIDER.protocol === "openai"
         ? [`${PROVIDER.endpoint}/chat/completions`, { Authorization: `Bearer ${key}` }]
-        : [
-            `${PROVIDER.endpoint}/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse`,
-            { "x-goog-api-key": key },
-          ];
+        : PROVIDER.protocol === "anthropic"
+          ? [
+              `${PROVIDER.endpoint}/messages`,
+              { "x-api-key": key, "anthropic-version": ANTHROPIC_VERSION },
+            ]
+          : [
+              `${PROVIDER.endpoint}/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse`,
+              { "x-goog-api-key": key },
+            ];
     return fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json", ...headers },

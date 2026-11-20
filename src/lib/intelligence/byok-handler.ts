@@ -8,6 +8,7 @@
  * is the only thing the product ever claims about the connection.
  */
 import type { CustomerRoute } from "./edge-handler.ts";
+import type { ProviderProtocol } from "./online-models.ts";
 import { bearer, cors, json } from "./edge-handler.ts";
 import { gatewayAddress } from "./gateway-address.ts";
 import { plannerModel } from "./online-models.ts";
@@ -19,7 +20,7 @@ export interface ByokDependencies {
     userId: string;
     connectionId: string | null;
     alias: string;
-    protocol: "gemini" | "openai";
+    protocol: ProviderProtocol;
     endpoint: string;
     model: string;
     key: string | null;
@@ -92,7 +93,23 @@ async function boundedJson(response: Response): Promise<unknown> {
 }
 
 /** The tool-call probe for a protocol, and the name of the tool it must call. */
-export function toolProbe(protocol: "gemini" | "openai", model: string): unknown {
+export function toolProbe(protocol: ProviderProtocol, model: string): unknown {
+  if (protocol === "anthropic") {
+    return {
+      model,
+      stream: false,
+      max_tokens: 64,
+      tool_choice: { type: "any" },
+      messages: [{ role: "user", content: "Call the ok tool." }],
+      tools: [
+        {
+          name: "ok",
+          description: "Say the test passed.",
+          input_schema: { type: "object", properties: {} },
+        },
+      ],
+    };
+  }
   return protocol === "openai"
     ? {
         model,
@@ -140,7 +157,12 @@ function at(value: unknown, ...path: (string | number)[]): unknown {
 }
 
 /** Whether an answer called the probe's tool; null when it is not a recognisable answer at all. */
-export function calledTool(protocol: "gemini" | "openai", answer: unknown): boolean | null {
+export function calledTool(protocol: ProviderProtocol, answer: unknown): boolean | null {
+  if (protocol === "anthropic") {
+    const content = at(answer, "content");
+    if (!Array.isArray(content)) return null;
+    return content.some((block) => at(block, "type") === "tool_use" && at(block, "name") === "ok");
+  }
   if (protocol === "openai") {
     const message = at(answer, "choices", 0, "message");
     if (!message) return null;
@@ -153,7 +175,15 @@ export function calledTool(protocol: "gemini" | "openai", answer: unknown): bool
 }
 
 /** The text of an answer, either protocol. */
-export function answerText(protocol: "gemini" | "openai", answer: unknown): string {
+export function answerText(protocol: ProviderProtocol, answer: unknown): string {
+  if (protocol === "anthropic") {
+    const content = at(answer, "content");
+    return Array.isArray(content)
+      ? content
+          .map((block) => (at(block, "type") === "text" ? String(at(block, "text") ?? "") : ""))
+          .join("")
+      : "";
+  }
   if (protocol === "openai") {
     const content = at(answer, "choices", 0, "message", "content");
     return typeof content === "string" ? content : "";
@@ -229,7 +259,7 @@ const STRIPES = 4;
  * name by seeing them. A text-only model guessing is right once in 750 tries.
  */
 export async function visionProbe(
-  protocol: "gemini" | "openai",
+  protocol: ProviderProtocol,
   model: string,
   pick: () => number,
 ): Promise<{ body: unknown; colours: string[] }> {
@@ -244,7 +274,7 @@ export async function visionProbe(
   const question =
     "This image has four vertical stripes. Name the colour of each, left to right, as four words.";
   const body =
-    protocol === "openai"
+    protocol === "anthropic"
       ? {
           model,
           stream: false,
@@ -254,20 +284,38 @@ export async function visionProbe(
               role: "user",
               content: [
                 { type: "text", text: question },
-                { type: "image_url", image_url: { url: `data:image/png;base64,${image}` } },
+                { type: "image", source: { type: "base64", media_type: "image/png", data: image } },
               ],
             },
           ],
         }
-      : {
-          contents: [
-            {
-              role: "user",
-              parts: [{ text: question }, { inline_data: { mime_type: "image/png", data: image } }],
-            },
-          ],
-          generationConfig: { maxOutputTokens: 32 },
-        };
+      : protocol === "openai"
+        ? {
+            model,
+            stream: false,
+            max_tokens: 32,
+            messages: [
+              {
+                role: "user",
+                content: [
+                  { type: "text", text: question },
+                  { type: "image_url", image_url: { url: `data:image/png;base64,${image}` } },
+                ],
+              },
+            ],
+          }
+        : {
+            contents: [
+              {
+                role: "user",
+                parts: [
+                  { text: question },
+                  { inline_data: { mime_type: "image/png", data: image } },
+                ],
+              },
+            ],
+            generationConfig: { maxOutputTokens: 32 },
+          };
   return { body, colours };
 }
 
@@ -352,7 +400,7 @@ export async function handleByok(request: Request, deps: ByokDependencies): Prom
         const model = typeof body.model === "string" ? plannerModel(body.model) : undefined;
         const key = typeof body.key === "string" && body.key.trim() ? body.key.trim() : null;
         if (!alias || alias.length > 60) return json(400, { error: "alias_invalid" }, origin);
-        if (protocol !== "gemini" && protocol !== "openai")
+        if (protocol !== "gemini" && protocol !== "openai" && protocol !== "anthropic")
           return json(400, { error: "protocol_invalid" }, origin);
         if (!address?.ok)
           return json(

@@ -6,7 +6,7 @@
  */
 import { getSupabaseBrowserConfiguration } from "@/integrations/supabase/configuration";
 
-export type ByokProtocol = "gemini" | "openai";
+export type ByokProtocol = "gemini" | "openai" | "anthropic";
 
 export interface ByokConnection {
   id: string;
@@ -39,6 +39,12 @@ export const PRESETS: { id: string; label: string; protocol: ByokProtocol; endpo
     endpoint: "https://generativelanguage.googleapis.com/v1beta",
   },
   { id: "openai", label: "OpenAI", protocol: "openai", endpoint: "https://api.openai.com/v1" },
+  {
+    id: "anthropic",
+    label: "Anthropic",
+    protocol: "anthropic",
+    endpoint: "https://api.anthropic.com/v1",
+  },
   {
     id: "openrouter",
     label: "OpenRouter",

@@ -26,20 +26,21 @@ export function plannerModel(configured: string | undefined): OnlineModelId | un
  * compatibility endpoint, Workers AI ...). The endpoint is the API's base URL, HTTPS only, with no
  * credentials or query in it; the keys are sent as headers.
  */
-export type ProviderProtocol = "gemini" | "openai";
+export type ProviderProtocol = "gemini" | "openai" | "anthropic";
 export interface PlannerProvider {
   protocol: ProviderProtocol;
   endpoint: string;
 }
 const DEFAULT_ENDPOINT: Partial<Record<ProviderProtocol, string>> = {
   gemini: "https://generativelanguage.googleapis.com/v1beta",
+  anthropic: "https://api.anthropic.com/v1",
 };
 
 export function plannerProvider(
   read: (name: string) => string | undefined,
 ): PlannerProvider | undefined {
   const protocol = (read("OCADE_MODEL_PROTOCOL")?.trim() || "gemini") as ProviderProtocol;
-  if (protocol !== "gemini" && protocol !== "openai") return undefined;
+  if (protocol !== "gemini" && protocol !== "openai" && protocol !== "anthropic") return undefined;
   const endpoint = (
     read("OCADE_MODEL_ENDPOINT")?.trim() ||
     DEFAULT_ENDPOINT[protocol] ||

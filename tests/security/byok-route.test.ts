@@ -266,3 +266,44 @@ test("a customer model's quota and refusals are its own, never another connectio
   await (await handleOnlineIntelligence(request(), bob)).text();
   assert.equal(other.calls.length, 1);
 });
+
+test("an Anthropic connection gets a Messages body and its stream ends the turn", async () => {
+  const seen = fresh();
+  let body: Record<string, unknown> | undefined;
+  const events = [
+    { type: "message_start", message: { usage: { input_tokens: 5 } } },
+    {
+      type: "content_block_start",
+      index: 0,
+      content_block: { type: "tool_use", id: "toolu_1", name: "finish", input: {} },
+    },
+    {
+      type: "content_block_delta",
+      index: 0,
+      delta: { type: "input_json_delta", partial_json: "{}" },
+    },
+    { type: "content_block_stop", index: 0 },
+    { type: "message_delta", delta: { stop_reason: "tool_use" }, usage: { output_tokens: 3 } },
+    { type: "message_stop" },
+  ];
+  const handler = deps(
+    async () => chosen({ protocol: "anthropic", model: "claude-alice" }),
+    () =>
+      new Response(events.map((e) => sse(e)).join(""), {
+        headers: { "content-type": "text/event-stream" },
+      }),
+    seen,
+  );
+  const original = handler.callProvider!;
+  handler.callProvider = async (input) => {
+    body = input.body as Record<string, unknown>;
+    return original(input);
+  };
+  const text = await (await handleOnlineIntelligence(request(), handler)).text();
+  assert.match(text, /"type":"final"/);
+  assert.match(text, /"finish"/);
+  assert.equal(body?.system, "Plan.");
+  assert.equal(body?.model, "claude-alice");
+  assert.ok(Array.isArray(body?.messages) && !("contents" in body!), "Messages, not Gemini, body");
+  assert.deepEqual(seen.calls, [{ model: "claude-alice", slot: "customer", customer: "conn-a1" }]);
+});

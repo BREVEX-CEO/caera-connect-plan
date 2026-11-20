@@ -1,4 +1,5 @@
 import { workersAiBody, workersAiResponse } from "./workers-ai.ts";
+import { anthropicBody, anthropicResponse } from "./anthropic.ts";
 import { readBoundedRequestText } from "../read-bounded-request.ts";
 import { HIGH_WARNING_VERSION, type IntelligenceQuality } from "./quality.ts";
 import type {
@@ -1341,10 +1342,13 @@ async function runOnlineIntelligence(
       ? HIGH_ONLINE_MODEL
       : plannerModel(deps.model);
   // Grounded research is Google's own search: no other protocol has it.
-  const openai = high || (customer ? customer.protocol : deps.protocol) === "openai";
+  const protocol = high ? "openai" : ((customer ? customer.protocol : deps.protocol) ?? "gemini");
+  const openai = protocol === "openai";
+  const anthropic = protocol === "anthropic";
   /** Where this model's quota and refusals are kept: per customer connection, never shared. */
   const record = customer ? `customer:${customer.id}` : configured;
-  if (openai && body.research) return json(403, { error: "research_unavailable" }, origin);
+  if (protocol !== "gemini" && body.research)
+    return json(403, { error: "research_unavailable" }, origin);
   if (high && !(await deps.highAvailable?.(request.signal).catch(() => false))) {
     return json(503, { error: "high_unavailable" }, origin);
   }
@@ -1473,7 +1477,7 @@ async function runOnlineIntelligence(
       deps.keyRefusedUntil?.set(slot, (deps.now ?? Date.now)() + KEY_REST_MS);
     let provider: Response | null = null;
     // Images reach only a model that takes them; the planner is told which it was (x-ocade-vision).
-    const sees = customer ? customer.seesImages === true : (deps.vision ?? !openai);
+    const sees = customer ? customer.seesImages === true : (deps.vision ?? protocol === "gemini");
     let blind = !sees;
     let quotaExhausted = false;
     /** What the customer's connection was found to be when it could not answer. */
@@ -1550,8 +1554,8 @@ async function runOnlineIntelligence(
             model: configured,
             body: high
               ? workersAiBody(shown, MAX_OUTPUT_TOKENS)
-              : openai
-                ? workersAiBody(
+              : anthropic
+                ? anthropicBody(
                     sent.has("json_schema")
                       ? shown
                       : {
@@ -1567,7 +1571,24 @@ async function runOnlineIntelligence(
                     configured,
                     sent,
                   )
-                : providerBody(shown, sent),
+                : openai
+                  ? workersAiBody(
+                      sent.has("json_schema")
+                        ? shown
+                        : {
+                            ...shown,
+                            tools: shown.tools.map((tool) => ({
+                              ...tool,
+                              inputSchema: providerSchema(
+                                tool.inputSchema,
+                              ) as typeof tool.inputSchema,
+                            })),
+                          },
+                      MAX_OUTPUT_TOKENS,
+                      configured,
+                      sent,
+                    )
+                  : providerBody(shown, sent),
             signal: AbortSignal.any([controller.signal, hung.signal]),
             slot,
             ...(customer ? { customer } : {}),
@@ -1596,7 +1617,11 @@ async function runOnlineIntelligence(
           await response.body?.cancel();
           return json(503, { error: "high_unavailable" }, origin);
         }
-        provider = openai ? workersAiResponse(response, controller.signal) : response;
+        provider = openai
+          ? workersAiResponse(response, controller.signal)
+          : anthropic
+            ? anthropicResponse(response, controller.signal)
+            : response;
         if (response.ok) {
           Object.assign(served, { model: configured, slot });
           if (customer && customer.status !== "connected")
