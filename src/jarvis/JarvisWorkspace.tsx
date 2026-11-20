@@ -46,6 +46,7 @@ import { MAX_OBJECTIVE_LENGTH, taskObjective } from "@/lib/jarvis/objective";
 import { askOnlineConsent } from "@/lib/intelligence/online-consent-ask";
 import { appendOcadeMessage, createConversation } from "@/lib/ocade.functions";
 import {
+  listJarvisHabits,
   getJarvisTask,
   latestJarvisTask,
   listJarvisDevices,
@@ -444,6 +445,7 @@ export function JarvisWorkspace({
                     Describe the outcome. JARVIS works on your paired computer and checks the
                     result.
                   </p>
+                  <Habits account={user?.id ?? ""} onPick={(title) => setDraft(title)} />
                 </div>
               ) : null}
               {/* A question is a compact bubble; an answer is prose to read, as in Chat. */}
@@ -699,5 +701,31 @@ function RailButton({
       <Icon className="h-[18px] w-[18px] shrink-0" aria-hidden />
       {expanded ? <span className="truncate">{label}</span> : null}
     </button>
+  );
+}
+
+/** "Do again" (R12-10): the person's own repeated, verified outcomes, only while memory is on. */
+function Habits({ account, onPick }: { account: string; onPick: (title: string) => void }) {
+  const habits = useQuery({
+    queryKey: ["jarvis", "habits", account],
+    queryFn: () => listJarvisHabits(),
+    enabled: Boolean(account),
+    staleTime: 300_000,
+  });
+  if (!habits.data?.length) return null;
+  return (
+    <div className="mt-4 flex flex-wrap justify-center gap-2" aria-label="Do again">
+      {habits.data.map((habit) => (
+        <button
+          key={habit.title}
+          type="button"
+          onClick={() => onPick(habit.title)}
+          title={`You asked for this ${habit.times} times and JARVIS verified it each time.`}
+          className="max-w-xs truncate rounded-full border border-border px-3 py-1 text-xs hover:bg-accent"
+        >
+          Do again: {habit.title}
+        </button>
+      ))}
+    </div>
   );
 }

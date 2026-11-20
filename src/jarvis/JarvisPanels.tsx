@@ -580,6 +580,19 @@ export function TaskPanel({
 }) {
   const open = ["running", "waiting", "taken_over"].includes(task.status);
   const parallel = new Set(task.steps.map((step) => step.lane)).size > 1;
+  // The timeline (R12-09): filter by agent and by what happened; entries are the real steps.
+  const [agentFilter, setAgentFilter] = useState<number | null>(null);
+  const [statusFilter, setStatusFilter] = useState<"all" | "problems" | "waiting">("all");
+  const shown = task.steps.filter(
+    (step) =>
+      (agentFilter === null || step.lane === agentFilter) &&
+      (statusFilter === "all" ||
+        (statusFilter === "problems"
+          ? ["failed", "blocked", "cancelled"].includes(step.status) || step.needsAnswer
+          : ["queued", "claimed", "needs_confirmation"].includes(step.status))),
+  );
+  // Passive next-action preview (R12-08): the next step JARVIS has actually planned, not a guess.
+  const next = task.steps.find((step) => ["queued", "needs_confirmation"].includes(step.status));
   const act = (work: Promise<unknown>) =>
     void work.then(onChanged).catch((error: Error) => toast.error(error.message));
   return (
@@ -712,8 +725,50 @@ export function TaskPanel({
           ) : null}
         </ol>
       ) : null}
+      {open && next ? (
+        <p className="mt-2 text-xs text-muted-foreground" aria-live="polite">
+          <span className="font-medium text-foreground">
+            {next.status === "needs_confirmation" ? "Needs your approval:" : "Next:"}
+          </span>{" "}
+          {next.summary}
+        </p>
+      ) : null}
+      {task.steps.length > 6 ? (
+        <div className="mt-2 flex flex-wrap gap-2 text-xs" role="group" aria-label="Filter steps">
+          {parallel ? (
+            <select
+              aria-label="Agent"
+              value={agentFilter ?? ""}
+              onChange={(event) =>
+                setAgentFilter(event.target.value === "" ? null : Number(event.target.value))
+              }
+              className="rounded-full border border-border bg-background px-2 py-0.5"
+            >
+              <option value="">All agents</option>
+              {[...new Set(task.steps.map((step) => step.lane))].sort().map((lane) => (
+                <option key={lane} value={lane}>
+                  Agent {lane + 1}
+                </option>
+              ))}
+            </select>
+          ) : null}
+          <select
+            aria-label="Steps shown"
+            value={statusFilter}
+            onChange={(event) => setStatusFilter(event.target.value as typeof statusFilter)}
+            className="rounded-full border border-border bg-background px-2 py-0.5"
+          >
+            <option value="all">All steps</option>
+            <option value="problems">Problems only</option>
+            <option value="waiting">Not finished</option>
+          </select>
+          <span className="self-center text-muted-foreground">
+            {shown.length} of {task.steps.length}
+          </span>
+        </div>
+      ) : null}
       <ol aria-label="Task actions" className="mt-2 space-y-1">
-        {task.steps.map((step) => (
+        {shown.map((step) => (
           <li key={step.id} className="flex flex-wrap items-center gap-2">
             {parallel ? (
               // Each agent keeps one colour and one name (never colour alone, 14F.3.5).

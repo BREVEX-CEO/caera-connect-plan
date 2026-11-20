@@ -539,3 +539,31 @@ export const deleteJarvisWatch = createServerFn({ method: "POST" })
     if (error) throw new Error("That watched folder could not be removed.");
     return { deleted: true };
   });
+
+/**
+ * PRIVATE HABITS (plan 27.2.10 R12-10, opt-in): outcomes this person asked for at least twice
+ * and that JARVIS finished with every check passed, offered as "do again" suggestions. Only
+ * while their memory is on (off: nothing is derived), only from their own tasks (RLS), and a
+ * suggestion only fills the composer: running it is a new task with the usual checks.
+ */
+export const listJarvisHabits = createServerFn({ method: "GET" })
+  .middleware([requireSession])
+  .handler(async ({ context }) => {
+    const { data: profile } = await context.supabase
+      .from("profiles")
+      .select("memory_enabled")
+      .eq("id", context.userId)
+      .maybeSingle();
+    if (!profile?.memory_enabled) return [];
+    const { data, error } = await context.supabase
+      .from("jarvis_tasks")
+      .select("title, checkpoint, outcome")
+      .eq("user_id", context.userId)
+      .eq("status", "completed")
+      .gte("created_at", new Date(Date.now() - 90 * 86_400_000).toISOString())
+      .order("created_at", { ascending: false })
+      .limit(200);
+    if (error) return [];
+    const { habits } = await import("./habits");
+    return habits(data ?? []);
+  });
