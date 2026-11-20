@@ -157,6 +157,17 @@ export const confirmJarvisStep = createServerFn({ method: "POST" })
     };
   });
 
+/** Run a verified task again (ELITE-02): its recorded steps without the model, then checked. */
+export const replayJarvisTask = createServerFn({ method: "POST" })
+  .middleware([requireSession])
+  .validator((i) => z.object({ taskId: uuid }).parse(i))
+  .handler(async ({ data, context }) => {
+    const { admin, replayTask } = await authority();
+    return guarded(() =>
+      replayTask(admin, context.userId, data.taskId, taskSessionId(context.claims)),
+    );
+  });
+
 /** Answers to the short form JARVIS asked with (R12-06); the task continues with them. */
 export const answerJarvisForm = createServerFn({ method: "POST" })
   .middleware([requireSession])

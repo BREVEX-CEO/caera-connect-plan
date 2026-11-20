@@ -1335,6 +1335,8 @@ export async function planStep(input: {
   experience?: () => Promise<Precedent[]>;
   /** Background (R12-01): nothing that types, clicks or opens a window in front of the person. */
   background?: boolean;
+  /** ELITE-02: the recorded steps of a verified task this one runs again, without the model. */
+  replay?: { operation: string; arguments: Record<string, unknown> }[];
   /** What the person told the open task since it started (plan 14F.4.4), oldest first. */
   instructions?: () => Promise<Instruction[]>;
   /** The person's own skills the request names with /name (ocade_skills_for_task). */
@@ -1533,6 +1535,53 @@ export async function planStep(input: {
         new Date(now.getTime() + 10 * 60_000),
       ),
     };
+  }
+
+  // ELITE-02 / VERIFY-05 deterministic replay: while every replayed step applied as recorded,
+  // the next recorded step (or the independent check) is queued without a model call. The first
+  // step that did not apply hands the task back to the planner below.
+  const replay = input.replay ?? [];
+  const replayed = steps.filter((step) => step.intent.key.startsWith("replay-"));
+  if (
+    replay.length &&
+    phase.final &&
+    replayed.every((step) => step.receipt?.status === "observed" && !step.receipt.errorCode)
+  ) {
+    const deadline = new Date(now.getTime() + 10 * 60_000);
+    if (replayed.length < replay.length) {
+      const recorded = replay[replayed.length]!;
+      try {
+        const next = intent(
+          recorded.operation as Operation,
+          `replay-${replayed.length + 1}`,
+          recorded.arguments as never,
+          new Date(
+            Math.max(
+              deadline.getTime(),
+              now.getTime() +
+                ((OPERATIONS[recorded.operation as Operation] as { seconds?: number }).seconds ??
+                  0) *
+                  1000 +
+                60_000,
+            ),
+          ),
+        );
+        if (!missingGrant(next, input.grants))
+          return {
+            kind: "queue",
+            summary: `Repeating: ${stepSummary(recorded.operation as Operation, recorded.arguments)}`,
+            intent: next,
+          };
+      } catch {
+        // A recorded step this version no longer accepts: the planner takes over.
+      }
+    } else if (!steps.some((step) => step.intent.operation === "verify.checks")) {
+      return {
+        kind: "queue",
+        summary: "Checking the repeated result independently",
+        intent: intent("verify.checks", "replay-verify", { checks }, deadline),
+      };
+    }
   }
 
   const operations = offeredOperations(input.grants, input.engines ?? null).filter(

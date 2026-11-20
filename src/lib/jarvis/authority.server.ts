@@ -12,6 +12,7 @@
  * The next decision is driven by the device's next receipt, so no in-memory
  * loop, timer or open connection is ever the only holder of a task.
  */
+import { z } from "zod";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Json } from "@/integrations/supabase/types";
 import { readBoundedRequestText } from "../read-bounded-request.ts";
@@ -89,6 +90,8 @@ const REFUSALS: Record<string, string> = {
   invalid_mode: "Choose Live or Background.",
   form_not_open: "That form was already answered, or the task moved on.",
   invalid_answers: "Fill in the required fields (at most 1,000 characters each).",
+  not_replayable:
+    "Only a finished task whose checks all passed, with file or document steps, can be run again this way.",
   unknown_code: "That pairing code is wrong or has expired.",
   too_many_enrollments:
     "Too many computers are waiting to pair from here. Try again in 10 minutes.",
@@ -511,6 +514,7 @@ async function decide(
       mcp: task.mcp ?? [],
       experience: () => call<Precedent[]>(admin, "jarvis_experience", { p_task: taskId }),
       background: task.mode === "background",
+      replay: replaySteps.safeParse(task.checkpoint?.replay).data,
       instructions: () =>
         call<Instruction[]>(admin, "jarvis_task_instructions", { p_task: taskId }),
       skills: async () => {
@@ -782,6 +786,88 @@ export function confirmAction(admin: Admin, userId: string, activityId: string, 
     p_activity: activityId,
     p_scope: scope,
   });
+}
+
+/** What a replay list may hold (the database enforces the same operations). */
+const REPLAYABLE = new Set([
+  "fs.list",
+  "fs.read_text",
+  "fs.write_text",
+  "fs.manage",
+  "office.inspect_workbook",
+  "office.write_document",
+  "office.write_workbook",
+  "office.write_presentation",
+  "media.inspect",
+  "media.trim",
+  "media.preview",
+  "media.analyze",
+  "media.render_timeline",
+  "image.edit",
+  "scene.render",
+  "system.inspect",
+]);
+const replaySteps = z
+  .array(z.object({ operation: z.string(), arguments: z.record(z.string(), z.unknown()) }))
+  .min(1)
+  .max(30);
+
+/**
+ * Run a verified task again (ELITE-02): same outcome checks, its file, document and media steps
+ * replayed without the model, each permission-checked as usual, then independently verified.
+ * Only the owner's own completed task with every check passed and a single milestone.
+ */
+export async function replayTask(admin: Admin, userId: string, taskId: string, sessionId?: string) {
+  const task = await readTask(admin, taskId);
+  if (!task || task.userId !== userId)
+    throw new JarvisRefusal("task_not_found", REFUSALS.task_not_found);
+  const verification = task.checkpoint?.verification as { passed?: string[] } | undefined;
+  const checks = task.outcome ?? [];
+  const deviceId = await call<string | null>(admin, "jarvis_task_device", { p_task: taskId });
+  if (
+    task.status !== "completed" ||
+    !checks.length ||
+    !checks.every((check) => verification?.passed?.includes(check.id)) ||
+    (Array.isArray(task.plan) && task.plan.length > 1) ||
+    !task.conversationId ||
+    !deviceId
+  )
+    throw new JarvisRefusal("not_replayable", REFUSALS.not_replayable);
+  const recorded = task.steps.flatMap((step) => {
+    const parsed = actionIntent.safeParse(step.intent);
+    const receipt = actionReceipt.safeParse(step.receipt);
+    return parsed.success &&
+      step.status === "done" &&
+      receipt.success &&
+      receipt.data.status === "observed" &&
+      REPLAYABLE.has(parsed.data.operation) &&
+      parsed.data.key !== DISCOVERY
+      ? [{ operation: parsed.data.operation, arguments: parsed.data.arguments }]
+      : [];
+  });
+  if (!recorded.length || recorded.length > 30)
+    throw new JarvisRefusal("not_replayable", REFUSALS.not_replayable);
+  const [opened] = await call<{ task_id: string; controller: string; reused: boolean }[]>(
+    admin,
+    "jarvis_open_task",
+    {
+      p_user: userId,
+      p_conversation: task.conversationId,
+      p_device: deviceId,
+      p_title: task.title,
+      p_outcome: checks as unknown as Json,
+      p_plan: (task.plan ?? []) as Json,
+      ...(sessionId ? { p_session: sessionId } : {}),
+    },
+  );
+  if (opened.reused) throw new JarvisRefusal("busy", REFUSALS.busy);
+  await call(admin, "jarvis_set_replay", {
+    p_task: opened.task_id,
+    p_controller: opened.controller,
+    p_replay: recorded as unknown as Json,
+  });
+  await advance(admin, opened.task_id);
+  return { taskId: opened.task_id };
 }
 
 /** The person's answers to a generated form; the task then continues (R12-06). */

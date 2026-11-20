@@ -7,6 +7,7 @@ import {
   confirmJarvisStep,
   resolveJarvisStep,
   answerJarvisForm,
+  replayJarvisTask,
   clearJarvisApprovals,
   setJarvisTaskMode,
   getJarvisTask,
@@ -758,6 +759,24 @@ export function TaskPanel({
             className="rounded-full border border-border px-3 py-1 hover:bg-accent"
           >
             Save as skill
+          </button>
+        ) : null}
+        {task.status === "completed" &&
+        task.checks.length > 0 &&
+        task.checks.every((check) => check.state === "passed") ? (
+          <button
+            type="button"
+            onClick={() =>
+              act(
+                replayJarvisTask({ data: { taskId: task.id } }).then(() =>
+                  toast.success("Running it again from the steps that worked."),
+                ),
+              )
+            }
+            title="Repeats the file and document steps that worked, without asking the AI, then checks the result again."
+            className="rounded-full border border-border px-3 py-1 hover:bg-accent"
+          >
+            Run again exactly
           </button>
         ) : null}
         {task.canRetry ? (
