@@ -29,6 +29,7 @@ import {
 } from "./contracts.ts";
 import { assignLanes } from "./lanes.ts";
 import { namedSkills, type Skill } from "./skills.ts";
+import { builtInSkills } from "./packages.ts";
 import { ONLINE_CONSENT_VERSION } from "../intelligence/online-consent-version.ts";
 import {
   effectInDoubt,
@@ -513,9 +514,13 @@ async function decide(
         call<Instruction[]>(admin, "jarvis_task_instructions", { p_task: taskId }),
       skills: async () => {
         const names = namedSkills(task.title);
-        return names.length
-          ? call<Skill[]>(admin, "ocade_skills_for_task", { p_user: task.userId, p_names: names })
-          : [];
+        if (!names.length) return [];
+        // The person's own skills, then OCADE's built-in package products (plan 27.3) they name.
+        const own = await call<Skill[]>(admin, "ocade_skills_for_task", {
+          p_user: task.userId,
+          p_names: names,
+        });
+        return [...own, ...builtInSkills(names.filter((n) => !own.some((s) => s.name === n)))];
       },
       engines: task.engines,
       permitKey,

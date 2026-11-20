@@ -44,6 +44,7 @@ import { useJarvisDictation, useReadAloud } from "./use-voice";
 import { JARVIS_CONSENT_NEEDED } from "@/lib/jarvis/consent-needed";
 import { MAX_OBJECTIVE_LENGTH, taskObjective } from "@/lib/jarvis/objective";
 import { askOnlineConsent } from "@/lib/intelligence/online-consent-ask";
+import { PACKAGES } from "@/lib/jarvis/packages";
 import { appendOcadeMessage, createConversation } from "@/lib/ocade.functions";
 import {
   listJarvisHabits,
@@ -446,6 +447,7 @@ export function JarvisWorkspace({
                     result.
                   </p>
                   <Habits account={user?.id ?? ""} onPick={(title) => setDraft(title)} />
+                  <Packages onPick={(starter) => setDraft(starter)} />
                 </div>
               ) : null}
               {/* A question is a compact bubble; an answer is prose to read, as in Chat. */}
@@ -726,6 +728,53 @@ function Habits({ account, onPick }: { account: string; onPick: (title: string) 
           Do again: {habit.title}
         </button>
       ))}
+    </div>
+  );
+}
+
+/**
+ * The four outcome packages (plan 27.3): each product fills the composer with an editable
+ * outcome naming it, so JARVIS follows that product's rules. Nothing is sent until the person
+ * sends it.
+ */
+function Packages({ onPick }: { onPick: (starter: string) => void }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="mx-auto mt-6 max-w-xl text-left">
+      <button
+        type="button"
+        aria-expanded={open}
+        onClick={() => setOpen(!open)}
+        className="mx-auto block rounded-full border border-border px-3 py-1 text-xs hover:bg-accent"
+      >
+        {open ? "Hide ready-made outcomes" : "Start from a ready-made outcome"}
+      </button>
+      {open ? (
+        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+          {PACKAGES.map((pack) => (
+            <section
+              key={pack.id}
+              aria-label={pack.name}
+              className="rounded-xl border border-border/60 p-3"
+            >
+              <h3 className="text-sm font-medium">{pack.name}</h3>
+              <ul className="mt-2 space-y-1">
+                {pack.products.map((product) => (
+                  <li key={product.id}>
+                    <button
+                      type="button"
+                      onClick={() => onPick(product.starter)}
+                      className="text-left text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+                    >
+                      {product.name}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 }

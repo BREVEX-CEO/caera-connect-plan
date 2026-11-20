@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSession } from "@/lib/security/session-middleware";
+import { builtInSkills } from "./packages";
 
 /**
  * THE PERSON'S OWN SKILLS (plan 14E.6.6, REPO-57/67): named procedures they write and name with
@@ -71,6 +72,8 @@ export const saveSkill = createServerFn({ method: "POST" })
       if (error || !row) throw new Error("That skill could not be saved.");
       return { id: row.id };
     }
+    if (builtInSkills([data.name]).length)
+      throw new Error(`/${data.name} is one of OCADE's own packages. Choose another name.`);
     const { error, data: row } = await context.supabase
       .from("ocade_skills")
       .insert({ user_id: context.userId, name: data.name, title: data.title, body: data.body })
