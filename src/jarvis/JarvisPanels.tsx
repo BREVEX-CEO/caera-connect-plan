@@ -23,6 +23,8 @@ import {
 import { toast } from "sonner";
 import { Schedules } from "./Schedules";
 import { Skills } from "./Skills";
+import { buildPassport, passportReport } from "@/lib/jarvis/proof-passport";
+import { saveSkill } from "@/lib/jarvis/skills.functions";
 import { PermissionGuide } from "./PermissionGuide";
 import { Watches } from "./Watches";
 import { useSession } from "@/lib/session";
@@ -713,6 +715,51 @@ export function TaskPanel({
             Continue
           </button>
         ) : null}
+        {!open ? (
+          <button
+            type="button"
+            onClick={() =>
+              void buildPassport(task).then((passport) => {
+                download(`ocade-proof-${task.id}.json`, JSON.stringify(passport, null, 2));
+                download(`ocade-proof-${task.id}.txt`, passportReport(passport));
+              })
+            }
+            className="rounded-full border border-border px-3 py-1 hover:bg-accent"
+          >
+            Proof Passport
+          </button>
+        ) : null}
+        {task.status === "completed" && task.checks.every((check) => check.state === "passed") ? (
+          <button
+            type="button"
+            onClick={() => {
+              const name = window.prompt(
+                "Name this skill (lowercase letters, digits and hyphens). You can edit it in Skills.",
+              );
+              if (!name) return;
+              act(
+                saveSkill({
+                  data: {
+                    id: null,
+                    name,
+                    title: task.title.slice(0, 120),
+                    // Only the step summaries: no file contents, receipts or private values.
+                    body: [
+                      `Outcome: ${task.title}`,
+                      "Steps that worked:",
+                      ...task.steps.map((step, index) => `${index + 1}. ${step.summary}`),
+                    ]
+                      .join("\n")
+                      .slice(0, 8000),
+                  },
+                }).then(() => toast.success(`Saved as /${name}.`)),
+              );
+            }}
+            className="rounded-full border border-border px-3 py-1 hover:bg-accent"
+          >
+            Save as skill
+          </button>
+        ) : null}
         {task.canRetry ? (
           <button
             type="button"
@@ -1154,4 +1201,14 @@ function ArtifactItem({
       ) : null}
     </li>
   );
+}
+
+/** Save text the person asked for as a file on their device (nothing is uploaded). */
+function download(name: string, text: string) {
+  const url = URL.createObjectURL(new Blob([text], { type: "text/plain;charset=utf-8" }));
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = name;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }

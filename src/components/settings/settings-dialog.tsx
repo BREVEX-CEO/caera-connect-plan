@@ -34,6 +34,7 @@ import { useConfirmIdentity } from "@/components/security/ConfirmIdentity";
 import { DataControlsSection } from "./DataControlsSection";
 import { NotificationsSection } from "./NotificationsSection";
 import { UsageSection } from "./UsageSection";
+import { TimeReclaimed } from "./TimeReclaimed";
 import { BillingSection } from "./BillingSection";
 import { ByokSection } from "./ByokSection";
 import { MemorySection } from "./MemorySection";
@@ -163,6 +164,7 @@ export default function SettingsDialog({
               {category === "billing" ? (
                 <>
                   <UsageSection />
+                  <TimeReclaimed />
                   <BillingSection />
                 </>
               ) : null}
