@@ -30,6 +30,7 @@ import {
 import { assignLanes } from "./lanes.ts";
 import { namedSkills, type Skill } from "./skills.ts";
 import { builtInSkills } from "./packages.ts";
+import { flaggedSites } from "./scam.ts";
 import { ONLINE_CONSENT_VERSION } from "../intelligence/online-consent-version.ts";
 import {
   effectInDoubt,
@@ -848,6 +849,11 @@ export async function taskView(admin: Admin, userId: string, taskId: string) {
     throw new JarvisRefusal("task_not_found", REFUSALS.task_not_found);
   // Steps the person allowed "for the rest of this task" (R12-02), so the view can offer "ask again".
   const approvals = await call<number>(admin, "jarvis_task_approvals", { p_task: taskId });
+  const parsedSteps = task.steps.flatMap((step) => {
+    const parsed = actionIntent.safeParse(step.intent);
+    if (!parsed.success) return [];
+    return [{ intent: parsed.data, receipt: actionReceipt.safeParse(step.receipt).data ?? null }];
+  });
   const verification = (task.checkpoint?.verification ?? null) as {
     passed?: string[];
     failed?: string[];
@@ -991,6 +997,8 @@ export async function taskView(admin: Admin, userId: string, taskId: string) {
       };
     }),
     agents: agentCounts(task.status, task.steps),
+    // Anti-Scam Guardian (28.2.6): warning signs on pages this task opened, with the evidence.
+    warnings: [...flaggedSites(parsedSteps).entries()].map(([site, signs]) => ({ site, signs })),
     mode: task.mode ?? "live",
     // R12-06: the few details JARVIS asked for, while the task waits for them.
     form:

@@ -816,6 +816,28 @@ export function TaskPanel({
         </label>
       ) : null}
       {task.blocker ? <p className="mt-1 text-muted-foreground">{task.blocker}</p> : null}
+      {task.warnings.length ? (
+        <div
+          role="alert"
+          className="mt-2 rounded-xl border border-amber-500/50 bg-amber-500/10 p-2 text-xs"
+        >
+          <p className="font-medium">
+            Possible scam signs. JARVIS will not fill, click or upload there without you.
+          </p>
+          <ul className="mt-1 space-y-0.5">
+            {task.warnings.map((warning) => (
+              <li key={warning.site}>
+                {warning.site}:{" "}
+                {warning.signs.map((sign) => `${sign.sign} (“${sign.evidence}”)`).join("; ")}
+              </li>
+            ))}
+          </ul>
+          <p className="mt-1 text-muted-foreground">
+            These are OCADE&apos;s own rule checks, not a guarantee either way. Check the address
+            yourself before entering anything.
+          </p>
+        </div>
+      ) : null}
       {task.form ? <TaskForm taskId={task.id} fields={task.form} onDone={onChanged} /> : null}
       {open && task.agents.active + task.agents.waiting + task.agents.paused > 1 ? (
         <p className="mt-1 text-muted-foreground" aria-live="polite">
