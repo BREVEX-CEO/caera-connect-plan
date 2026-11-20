@@ -81,10 +81,12 @@ class BarState:
         self.sent: list[dict] = []
         self.window: dict | None = None
 
-    def task_seen(self, task: dict | None) -> None:
+    def task_seen(self, task: dict | None, mode: str | None = None) -> None:
         task = task or {}
-        if (task.get("id"), task.get("status")) != (self.task.get("id"), self.task.get("status")):
-            self.task = {"id": task.get("id"), "status": task.get("status")}
+        mode = mode if mode in ("live", "background") else self.task.get("mode", "live")
+        if (task.get("id"), task.get("status"), mode) != (self.task.get("id"), self.task.get("status"),
+                                                          self.task.get("mode")):
+            self.task = {"id": task.get("id"), "status": task.get("status"), "mode": mode}
             if task.get("id") is None:
                 self.lanes.clear()
             self.flush()
@@ -286,7 +288,8 @@ def run_bar(home: Path) -> int:  # pragma: no cover - drawn on a real desktop, c
         else:
             agents = state.get("agents") or []
             dots.configure(text=" ".join(AGENTS[a["lane"] % LANES][2] for a in agents) or "○")
-            line.configure(text=summary(state)[:60])
+            mode = "Background" if (state.get("task") or {}).get("mode") == "background" else "Live"
+            line.configure(text=f"{mode} · {summary(state)}"[:64])
             rows.configure(text="\n".join(
                 f"{AGENTS[a['lane'] % LANES][2]} {AGENTS[a['lane'] % LANES][0]}: {a['doing']} "
                 f"({int(time.time() - a['since'])} s)" for a in agents) or "No agent is running a step right now.")

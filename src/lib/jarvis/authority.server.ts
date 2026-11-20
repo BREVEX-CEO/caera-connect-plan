@@ -81,6 +81,9 @@ const REFUSALS: Record<string, string> = {
   task_not_open: "That task has already finished. Start a new task instead.",
   invalid_instruction: "Write the instruction in at most 2,000 characters.",
   too_many_instructions: "This task already has 50 instructions. Stop it and start a new task.",
+  approval_not_scopable: "This kind of step is always confirmed one by one.",
+  live_needed: "This step types, clicks or opens a window. Switch the task to Live to allow it.",
+  invalid_mode: "Choose Live or Background.",
   unknown_code: "That pairing code is wrong or has expired.",
   too_many_enrollments:
     "Too many computers are waiting to pair from here. Try again in 10 minutes.",
@@ -133,6 +136,8 @@ export async function addInstruction(
 interface TaskState {
   id: string;
   userId: string;
+  /** Live or Background (R12-01). */
+  mode?: "live" | "background";
   sessionLive?: boolean;
   status: string;
   controller: string | null;
@@ -500,6 +505,7 @@ async function decide(
       grants: task.grants,
       mcp: task.mcp ?? [],
       experience: () => call<Precedent[]>(admin, "jarvis_experience", { p_task: taskId }),
+      background: task.mode === "background",
       instructions: () =>
         call<Instruction[]>(admin, "jarvis_task_instructions", { p_task: taskId }),
       skills: async () => {
@@ -754,8 +760,53 @@ export async function resolveEffect(
   if (!answered) throw new JarvisRefusal("task_not_found", REFUSALS.task_not_found);
 }
 
-export function confirmAction(admin: Admin, userId: string, activityId: string) {
-  return call<boolean>(admin, "jarvis_confirm_action", { p_user: userId, p_activity: activityId });
+export function confirmAction(admin: Admin, userId: string, activityId: string, scope = false) {
+  return call<boolean>(admin, "jarvis_confirm_action", {
+    p_user: userId,
+    p_activity: activityId,
+    p_scope: scope,
+  });
+}
+
+/** Live or Background for one of the person's own open tasks (R12-01). */
+export function setTaskMode(admin: Admin, userId: string, taskId: string, mode: string) {
+  return call<string>(admin, "jarvis_set_task_mode", {
+    p_user: userId,
+    p_task: taskId,
+    p_mode: mode,
+  });
+}
+
+/** "Ask me again": withdraw every "for the rest of this task" approval of one task. */
+export function clearApprovals(admin: Admin, userId: string, taskId: string) {
+  return call<number>(admin, "jarvis_clear_approvals", { p_user: userId, p_task: taskId });
+}
+
+/**
+ * What "allow steps like this for the rest of this task" would cover (R12-02), in the person's
+ * words, or null when the step is consequential and is always confirmed one by one. Mirrors
+ * `jarvis_approval_scope`, which decides.
+ */
+export function approvalScope(intent: unknown): string | null {
+  const parsed = actionIntent.safeParse(intent);
+  if (!parsed.success) return null;
+  const { operation, target } = parsed.data;
+  if (
+    ["ui.invoke", "ui.set_value", "ui.send_keys", "ui.click_point", "apps.launch"].includes(
+      operation,
+    ) &&
+    target?.app
+  )
+    return `in ${target.app}`;
+  if (["web.fill", "web.select", "web.click"].includes(operation) && target?.site)
+    return `on ${target.site}`;
+  if (
+    ["office.edit_document", "office.edit_workbook", "fs.replace_text", "fs.edit_text"].includes(
+      operation,
+    )
+  )
+    return target?.app ? `in ${target.app}` : "in this task's files";
+  return null;
 }
 
 /** The owner's view: status, checks and each step's summary — no controller, no raw evidence. */
@@ -763,6 +814,8 @@ export async function taskView(admin: Admin, userId: string, taskId: string) {
   const task = await readTask(admin, taskId);
   if (!task || task.userId !== userId)
     throw new JarvisRefusal("task_not_found", REFUSALS.task_not_found);
+  // Steps the person allowed "for the rest of this task" (R12-02), so the view can offer "ask again".
+  const approvals = await call<number>(admin, "jarvis_task_approvals", { p_task: taskId });
   const verification = (task.checkpoint?.verification ?? null) as {
     passed?: string[];
     failed?: string[];
@@ -895,6 +948,7 @@ export async function taskView(admin: Admin, userId: string, taskId: string) {
         status: step.status,
         disposition,
         needsConfirmation: step.status === "needs_confirmation",
+        scope: step.status === "needs_confirmation" ? approvalScope(step.intent) : null,
         needsAnswer,
         resolution: step.resolution,
         // What the person allows or answers about is the exact operation and arguments.
@@ -905,6 +959,8 @@ export async function taskView(admin: Admin, userId: string, taskId: string) {
       };
     }),
     agents: agentCounts(task.status, task.steps),
+    mode: task.mode ?? "live",
+    approvalsForTask: approvals ?? 0,
     device: task.deviceName,
     // An outage is said plainly: the step in hand stays put and nothing new starts until contact.
     deviceOffline:

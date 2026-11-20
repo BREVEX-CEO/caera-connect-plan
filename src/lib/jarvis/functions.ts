@@ -147,12 +147,34 @@ export const resumeJarvisTask = createServerFn({ method: "POST" })
 
 export const confirmJarvisStep = createServerFn({ method: "POST" })
   .middleware([requireSession])
-  .validator((i) => z.object({ activityId: uuid }).parse(i))
+  .validator((i) => z.object({ activityId: uuid, scope: z.boolean().default(false) }).parse(i))
   .handler(async ({ data, context }) => {
     const { admin, confirmAction } = await authority();
     return {
-      confirmed: await guarded(() => confirmAction(admin, context.userId, data.activityId)),
+      confirmed: await guarded(() =>
+        confirmAction(admin, context.userId, data.activityId, data.scope),
+      ),
     };
+  });
+
+/** Live or Background (R12-01): switching keeps the task, its steps and its permissions. */
+export const setJarvisTaskMode = createServerFn({ method: "POST" })
+  .middleware([requireSession])
+  .validator((i) => z.object({ taskId: uuid, mode: z.enum(["live", "background"]) }).parse(i))
+  .handler(async ({ data, context }) => {
+    const { admin, setTaskMode } = await authority();
+    return {
+      mode: await guarded(() => setTaskMode(admin, context.userId, data.taskId, data.mode)),
+    };
+  });
+
+/** "Ask me again": steps allowed for the rest of a task ask one by one again. */
+export const clearJarvisApprovals = createServerFn({ method: "POST" })
+  .middleware([requireSession])
+  .validator((i) => z.object({ taskId: uuid }).parse(i))
+  .handler(async ({ data, context }) => {
+    const { admin, clearApprovals } = await authority();
+    return { cleared: await guarded(() => clearApprovals(admin, context.userId, data.taskId)) };
   });
 
 /** The person says whether a step nobody could observe took effect. It is never run again. */

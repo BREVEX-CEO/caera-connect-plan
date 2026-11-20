@@ -127,6 +127,7 @@ BEGIN
   INSERT INTO public.jarvis_permissions (user_id, device_id, capability, allowed) VALUES (v_user, v_device, 'background', true);
   SELECT * INTO v_task FROM public.jarvis_open_task(v_user, (SELECT conversation_id FROM lane_ids), v_device,
                                                     'Lanes background', NULL, '[]');
+  PERFORM public.jarvis_set_task_mode(v_user, v_task.task_id, 'background');  -- R12-01: both are needed
   PERFORM pg_temp.check((public.jarvis_claim_action(v_device) ->> 'backgroundAllowed')::boolean,
                         'a claim says when the person allows background app control');
   PERFORM public.jarvis_stop_task(v_user, v_task.task_id);

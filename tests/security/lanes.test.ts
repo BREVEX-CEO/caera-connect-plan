@@ -76,3 +76,20 @@ test("REPO-48: a milestone this computer cannot do at all is refused before any 
   assert.equal(impossibleMilestone("Write it", ["fs", "scene"], ["files"], []), null);
   assert.equal(impossibleMilestone("Anything", undefined, [], []), null);
 });
+
+test("R12-02: only ordinary in-app steps can be allowed for the rest of a task", async () => {
+  const { approvalScope } = await import("../../src/lib/jarvis/authority.server.ts");
+  const { intent } = await import("../../src/lib/jarvis/contracts.ts");
+  const later = new Date(Date.now() + 60_000);
+  const window = { exe: "excel.exe", pid: 1, hwnd: 2, started: 3 };
+  assert.equal(
+    approvalScope(intent("ui.invoke", "k1", { window, element: { name: "OK" } }, later)),
+    "in excel.exe",
+  );
+  assert.equal(
+    approvalScope(intent("shell.run", "k2", { command: "dir", shell: "cmd" } as never, later)),
+    null,
+    "a command is always confirmed one by one",
+  );
+  assert.equal(approvalScope({ nonsense: true }), null);
+});

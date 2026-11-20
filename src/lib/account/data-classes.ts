@@ -129,7 +129,7 @@ export const ACCOUNT_DATA_CLASSES: readonly AccountDataClass[] = [
     description:
       "JARVIS tasks and their activity, what it remembers about you, your reminders, scheduled work and watched folders, your skills and their earlier versions, its permissions and the computers you connected.",
     tables: [
-      { table: "jarvis_tasks", owner: "user_id" },
+      { table: "jarvis_tasks", owner: "user_id", cascades: ["jarvis_step_approvals"] },
       { table: "jarvis_activity", owner: "user_id" },
       { table: "jarvis_memories", owner: "user_id" },
       { table: "jarvis_schedules", owner: "user_id" },

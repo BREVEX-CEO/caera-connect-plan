@@ -189,7 +189,7 @@ class Agent:
             raise ConnectionError(body.get("error", str(status)))
         self._note_background(body)
         if self.bar is not None:
-            self.bar.task_seen(body.get("task"))
+            self.bar.task_seen(body.get("task"), body.get("mode"))
         task = body.get("task") or {}
         seen = (task.get("id"), task.get("status"), tuple(sorted(still_ours(body))))
         self.news, self.seen = seen != self.seen, seen

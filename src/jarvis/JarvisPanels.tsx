@@ -6,6 +6,8 @@ import { deleteConversation, listConversations } from "@/lib/ocade.functions";
 import {
   confirmJarvisStep,
   resolveJarvisStep,
+  clearJarvisApprovals,
+  setJarvisTaskMode,
   getJarvisTask,
   instructJarvisTask,
   listJarvisAccess,
@@ -621,6 +623,15 @@ export function TaskPanel({
             Retry
           </button>
         ) : null}
+        {open && task.approvalsForTask > 0 ? (
+          <button
+            type="button"
+            onClick={() => act(clearJarvisApprovals({ data: { taskId: task.id } }))}
+            className="rounded-full border border-border px-3 py-1 hover:bg-accent"
+          >
+            Ask me again for each step
+          </button>
+        ) : null}
         {open ? (
           <button
             type="button"
@@ -631,6 +642,30 @@ export function TaskPanel({
           </button>
         ) : null}
       </div>
+      {open ? (
+        <label className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+          <span className="text-muted-foreground">Mode</span>
+          <select
+            value={task.mode}
+            onChange={(event) =>
+              act(
+                setJarvisTaskMode({
+                  data: { taskId: task.id, mode: event.target.value as "live" | "background" },
+                }),
+              )
+            }
+            className="rounded-full border border-border bg-background px-2 py-0.5"
+          >
+            <option value="live">Live</option>
+            <option value="background">Background</option>
+          </select>
+          <span className="text-muted-foreground">
+            {task.mode === "background"
+              ? "Works without taking your mouse, keyboard or focus; it asks for Live when a step needs them."
+              : "JARVIS may type, click and open windows in front of you."}
+          </span>
+        </label>
+      ) : null}
       {task.blocker ? <p className="mt-1 text-muted-foreground">{task.blocker}</p> : null}
       {open && task.agents.active + task.agents.waiting + task.agents.paused > 1 ? (
         <p className="mt-1 text-muted-foreground" aria-live="polite">
@@ -719,6 +754,24 @@ export function TaskPanel({
                 >
                   Allow this step
                 </button>
+                {step.scope ? (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      act(
+                        confirmJarvisStep({ data: { activityId: step.id, scope: true } }).then(
+                          ({ confirmed }) => {
+                            if (!confirmed)
+                              throw new Error("This step is no longer waiting for approval.");
+                          },
+                        ),
+                      )
+                    }
+                    className="rounded-full border border-border px-3 py-0.5 text-xs hover:bg-accent"
+                  >
+                    Allow steps like this {step.scope} for this task
+                  </button>
+                ) : null}
                 <button
                   type="button"
                   onClick={() => act(stopJarvisTask({ data: { taskId: task.id } }))}

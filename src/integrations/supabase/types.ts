@@ -608,6 +608,30 @@ export type Database = {
         }
         Relationships: []
       }
+      jarvis_step_approvals: {
+        Row: {
+          created_at: string
+          operation: string
+          target: string
+          task_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          operation: string
+          target: string
+          task_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          operation?: string
+          target?: string
+          task_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       jarvis_tasks: {
         Row: {
           blocker: string | null
