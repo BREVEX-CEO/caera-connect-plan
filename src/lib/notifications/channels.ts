@@ -16,7 +16,7 @@
  * why in words a person can act on.
  */
 
-export type NotificationChannelId = "in_app" | "email" | "web_push";
+export type NotificationChannelId = "in_app" | "email" | "web_push" | "chat";
 
 export interface NotificationChannel {
   id: NotificationChannelId;
@@ -71,6 +71,14 @@ export function resolveChannels(configuration: ChannelConfiguration): Notificati
             unavailableReason:
               "No browser push service is connected to this deployment, so OCADE would have nowhere to send them.",
           }),
+    },
+    {
+      // Like browsers, a chat app is connected by the person; until then it is "held".
+      id: "chat",
+      title: "Chat app",
+      description:
+        "To a Slack, Discord, Microsoft Teams or ntfy channel you connect. It only tells you; nothing sent there can approve or start anything.",
+      available: true,
     },
   ];
 }

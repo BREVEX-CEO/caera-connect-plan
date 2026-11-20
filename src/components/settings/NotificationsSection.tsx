@@ -1,3 +1,4 @@
+import { getChatHook, removeChatHook, saveChatHook } from "@/lib/notifications/chat.functions";
 import { useEffect, useState } from "react";
 import { useSession } from "@/lib/session";
 import { NOTIFICATION_CATEGORIES, isMutable } from "@/lib/notifications/categories";
@@ -153,6 +154,8 @@ export function NotificationsSection() {
         </Row>
       ))}
 
+      <ChatApp />
+
       {device && device !== "unsupported" ? (
         <Row
           label="On this device"
@@ -229,5 +232,92 @@ export function NotificationsSection() {
         </p>
       ) : null}
     </div>
+  );
+}
+
+/** Notifications in the person's own chat app (REPO-20): notification only, never approval. */
+function ChatApp() {
+  const [kind, setKind] = useState<string | null | undefined>(undefined);
+  const [address, setAddress] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+  useEffect(() => {
+    void getChatHook().then(
+      (hook) => setKind(hook.kind),
+      () => setKind(null),
+    );
+  }, []);
+  const names: Record<string, string> = {
+    slack: "Slack",
+    discord: "Discord",
+    teams: "Microsoft Teams",
+    ntfy: "ntfy",
+  };
+  return (
+    <Row
+      label="Chat app"
+      description={
+        message ??
+        (kind
+          ? `Notifications that are on also go to your ${names[kind] ?? kind} channel. It only tells you; nothing there can approve or start anything.`
+          : "Also send the notifications that are on to a Slack, Discord, Microsoft Teams or ntfy channel: paste its incoming-webhook address.")
+      }
+    >
+      {kind ? (
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => {
+            setBusy(true);
+            void removeChatHook()
+              .then(() => {
+                setKind(null);
+                setMessage(null);
+              })
+              .catch((error: Error) => setMessage(error.message))
+              .finally(() => setBusy(false));
+          }}
+          className="rounded-full border border-border px-3 py-1 text-xs hover:bg-accent"
+        >
+          Disconnect
+        </button>
+      ) : (
+        <form
+          className="flex gap-2"
+          onSubmit={(event) => {
+            event.preventDefault();
+            setBusy(true);
+            void saveChatHook({ data: { url: address } })
+              .then((saved) => {
+                setKind(saved.kind);
+                setAddress("");
+                setMessage(
+                  saved.test === "sent"
+                    ? "Connected. A test message was sent there."
+                    : "Saved, but the test message did not arrive. Check the address.",
+                );
+              })
+              .catch((error: Error) => setMessage(error.message))
+              .finally(() => setBusy(false));
+          }}
+        >
+          <input
+            type="url"
+            value={address}
+            onChange={(event) => setAddress(event.target.value)}
+            aria-label="Incoming-webhook address"
+            placeholder="https://hooks.slack.com/services/…"
+            className="w-56 rounded-md border border-border bg-background px-2 py-1 text-xs"
+          />
+          <button
+            type="submit"
+            disabled={busy || !address.trim()}
+            className="rounded-full border border-border px-3 py-1 text-xs hover:bg-accent disabled:opacity-50"
+          >
+            Connect
+          </button>
+        </form>
+      )}
+    </Row>
   );
 }

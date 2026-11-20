@@ -845,6 +845,30 @@ export type Database = {
         }
         Relationships: []
       }
+      ocade_chat_hooks: {
+        Row: {
+          created_at: string
+          failures: number
+          kind: string
+          url: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          failures?: number
+          kind: string
+          url: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          failures?: number
+          kind?: string
+          url?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       ocade_commercial_usage: {
         Row: {
           id: string

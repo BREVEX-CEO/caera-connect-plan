@@ -86,6 +86,7 @@ export async function sendNotification(input: NotificationToSend): Promise<SendO
     const delivery = deliveryReport(decision, channels);
     // Not "sent" until the push service accepts it (F-214).
     if (delivery.web_push === "sent") delivery.web_push = "failed";
+    if (delivery.chat === "sent") delivery.chat = "failed";
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data, error } = await supabaseAdmin.rpc("ocade_record_notification", {
@@ -108,6 +109,17 @@ export async function sendNotification(input: NotificationToSend): Promise<SendO
       });
       if (recordError) {
         return { id, delivery, heldReason: "The browser delivery could not be recorded." };
+      }
+    }
+    if (id && decision.channels.includes("chat")) {
+      delivery.chat = await postToChat(input);
+      const { error: recordError } = await supabaseAdmin.rpc("ocade_set_notification_delivery", {
+        p_id: id,
+        p_channel: "chat",
+        p_state: delivery.chat,
+      });
+      if (recordError) {
+        return { id, delivery, heldReason: "The chat delivery could not be recorded." };
       }
     }
     return { id, delivery, heldReason: decision.held ? decision.reason : "" };
@@ -208,6 +220,52 @@ async function pushToBrowsers(input: NotificationToSend, id: string): Promise<De
   );
   if (outcomes.includes("sent")) return "sent";
   return outcomes.every((outcome) => outcome === "gone") ? "held" : "dead_letter";
+}
+
+/**
+ * To the person's connected chat app (REPO-20): "held" when none is connected, "sent" once the
+ * provider accepted it. Only accepted provider hosts, no redirects, five seconds; an address that
+ * fails ten times in a row is forgotten and the person connects it again.
+ */
+export async function postToChat(input: {
+  userId: string;
+  title: string;
+  body?: string;
+  deepLink?: string | null;
+}): Promise<DeliveryState> {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { chatHookKind, chatRequest } = await import("./chat-hook");
+  const { data: hook, error } = await supabaseAdmin
+    .from("ocade_chat_hooks")
+    .select("url, failures")
+    .eq("user_id", input.userId)
+    .maybeSingle();
+  if (error) return "failed";
+  if (!hook) return "held";
+  const kind = chatHookKind(hook.url);
+  if (!kind) return "failed";
+  const request = chatRequest(kind, {
+    title: input.title,
+    body: input.body ?? "",
+    link: new URL(input.deepLink ?? "/", COMPANY_FACTS.siteOrigin).toString(),
+  });
+  let ok = false;
+  for (let attempt = 1; attempt <= DELIVERY_ATTEMPTS && !ok; attempt += 1) {
+    if (attempt > 1) await new Promise((resolve) => setTimeout(resolve, 400 * attempt));
+    ok = await fetch(hook.url, {
+      method: "POST",
+      redirect: "manual",
+      signal: AbortSignal.timeout(5000),
+      ...request,
+    })
+      .then((response) => response.ok)
+      .catch(() => false);
+  }
+  const row = supabaseAdmin.from("ocade_chat_hooks");
+  if (ok) await row.update({ failures: 0 }).eq("user_id", input.userId);
+  else if (hook.failures + 1 >= 10) await row.delete().eq("user_id", input.userId);
+  else await row.update({ failures: hook.failures + 1 }).eq("user_id", input.userId);
+  return ok ? "sent" : "dead_letter";
 }
 
 function unavailableEverywhere(channels: readonly NotificationChannel[]): DeliveryReport {

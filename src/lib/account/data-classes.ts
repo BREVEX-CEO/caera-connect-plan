@@ -191,10 +191,12 @@ export const ACCOUNT_DATA_CLASSES: readonly AccountDataClass[] = [
   {
     id: "notifications",
     label: "Notifications",
-    description: "Notifications OCADE sent you and how you asked to receive them.",
+    description:
+      "Notifications OCADE sent you, how you asked to receive them, and the chat app you connected.",
     tables: [
       { table: "ocade_notifications", owner: "user_id" },
       { table: "ocade_notification_preferences", owner: "user_id" },
+      { table: "ocade_chat_hooks", owner: "user_id" },
     ],
     retention: null,
   },
