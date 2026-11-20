@@ -133,6 +133,25 @@ def queue_instruction(home: Path, text: str, lane: int | None) -> Path:
     return path
 
 
+def save_pointed(home: Path, image, now: float | None = None) -> str:
+    """Point & Ask (plan 14E.5.3): keep the region the person selected as a picture in the JARVIS
+    folder's 'OCADE output/pointed', the only place the planner can look at it from (with
+    media.preview, and only with the screen permission). Returns its path in the JARVIS folder."""
+    config = json.loads((home / "device.json").read_text(encoding="utf-8"))
+    workspace = Path(config["workspace"]).resolve()
+    name = f"OCADE output/pointed/{time.strftime('%Y%m%d-%H%M%S', time.localtime(now))}.png"
+    target = workspace / name
+    target.parent.mkdir(parents=True, exist_ok=True)
+    image.save(target)
+    return name
+
+
+def point_instruction(path: str, question: str) -> str:
+    asked = question.strip() or "What is this, and what should I do with it?"
+    return (f"I selected this part of my screen and saved it as {path} (look at it with media.preview): "
+            f"{asked}")[:2000]
+
+
 def pending_instructions(home: Path) -> list[tuple[Path, dict]]:
     """Queued instructions, oldest first; an unreadable file is dropped, never sent."""
     found = []
@@ -219,6 +238,52 @@ def run_bar(home: Path) -> int:  # pragma: no cover - drawn on a real desktop, c
 
     entry.bind("<Return>", send)
     tk.Button(composer, text="Send", relief="flat", bg="#374151", fg="white", command=send).pack(side="left")
+
+    def point():
+        """Point & Ask: the person drags a rectangle; only that region is captured, once."""
+        from PIL import ImageGrab
+
+        shade = tk.Toplevel(root)
+        shade.attributes("-fullscreen", True)
+        shade.attributes("-topmost", True)
+        shade.attributes("-alpha", 0.25)
+        canvas = tk.Canvas(shade, cursor="cross", bg="black", highlightthickness=0)
+        canvas.pack(fill="both", expand=True)
+        start = {}
+
+        def press(event):
+            start.update(x=event.x_root, y=event.y_root)
+            start["box"] = canvas.create_rectangle(event.x, event.y, event.x, event.y, outline="white", width=2)
+
+        def drag(event):
+            if "box" in start:
+                canvas.coords(start["box"], start["x"] - shade.winfo_rootx(), start["y"] - shade.winfo_rooty(),
+                              event.x, event.y)
+
+        def release(event):
+            box = (min(start.get("x", 0), event.x_root), min(start.get("y", 0), event.y_root),
+                   max(start.get("x", 0), event.x_root), max(start.get("y", 0), event.y_root))
+            shade.destroy()
+            if box[2] - box[0] < 8 or box[3] - box[1] < 8:
+                status.configure(text="Nothing selected.")
+                return
+            root.after(150, lambda: finish(box))  # the shade is gone from the screen first
+
+        def finish(box):
+            try:
+                path = save_pointed(home, ImageGrab.grab(bbox=box, all_screens=True))
+                queue_instruction(home, point_instruction(path, entry.get()), None)
+                entry.delete(0, "end")
+                status.configure(text=f"Sent what you pointed at ({path}).")
+            except Exception:  # noqa: BLE001 - shown, never silently retried
+                status.configure(text="That part of the screen could not be captured.")
+
+        canvas.bind("<ButtonPress-1>", press)
+        canvas.bind("<B1-Motion>", drag)
+        canvas.bind("<ButtonRelease-1>", release)
+        shade.bind("<Escape>", lambda _e: shade.destroy())
+
+    tk.Button(composer, text="Point", relief="flat", bg="#374151", fg="white", command=point).pack(side="left", padx=4)
 
     markers: list = []
     missing_since = [None]

@@ -70,5 +70,24 @@ class InstructionTest(unittest.TestCase):
             self.assertEqual(pending_instructions(home), [])
 
 
+class PointTest(unittest.TestCase):
+    def test_a_pointed_region_is_kept_only_in_the_jarvis_folder_and_asked_about(self):
+        from PIL import Image
+
+        from ocade_agent.bar import point_instruction, save_pointed
+
+        with tempfile.TemporaryDirectory() as directory:
+            home, workspace = Path(directory, "home"), Path(directory, "ws")
+            home.mkdir()
+            workspace.mkdir()
+            (home / "device.json").write_text(json.dumps({"workspace": str(workspace)}))
+            path = save_pointed(home, Image.new("RGB", (20, 10), "red"), now=0)
+            self.assertTrue(path.startswith("OCADE output/pointed/") and path.endswith(".png"))
+            self.assertEqual(Image.open(workspace / path).size, (20, 10))
+            text = point_instruction(path, "")
+            self.assertIn(path, text)
+            self.assertIn("media.preview", text)
+
+
 if __name__ == "__main__":
     unittest.main()
