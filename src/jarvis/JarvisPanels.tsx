@@ -779,6 +779,20 @@ export function TaskPanel({
             Run again exactly
           </button>
         ) : null}
+        {!open && task.mode === "rehearsal" ? (
+          <button
+            type="button"
+            onClick={() => {
+              onRetry(task.title);
+              toast.info(
+                "Review the rehearsal in 'OCADE output/rehearsal', then send this to do it for real.",
+              );
+            }}
+            className="rounded-full border border-border px-3 py-1 hover:bg-accent"
+          >
+            Do it for real
+          </button>
+        ) : null}
         {task.canRetry ? (
           <button
             type="button"
@@ -818,7 +832,10 @@ export function TaskPanel({
             onChange={(event) =>
               act(
                 setJarvisTaskMode({
-                  data: { taskId: task.id, mode: event.target.value as "live" | "background" },
+                  data: {
+                    taskId: task.id,
+                    mode: event.target.value as "live" | "background" | "rehearsal",
+                  },
                 }),
               )
             }
@@ -826,11 +843,14 @@ export function TaskPanel({
           >
             <option value="live">Live</option>
             <option value="background">Background</option>
+            <option value="rehearsal">Rehearsal (on copies)</option>
           </select>
           <span className="text-muted-foreground">
-            {task.mode === "background"
-              ? "Works without taking your mouse, keyboard or focus; it asks for Live when a step needs them."
-              : "JARVIS may type, click and open windows in front of you."}
+            {task.mode === "rehearsal"
+              ? "Tries the work on copies in 'OCADE output/rehearsal' first; nothing else changes. Run it for real after you review it."
+              : task.mode === "background"
+                ? "Works without taking your mouse, keyboard or focus; it asks for Live when a step needs them."
+                : "JARVIS may type, click and open windows in front of you."}
           </span>
         </label>
       ) : null}

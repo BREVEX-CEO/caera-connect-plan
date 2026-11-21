@@ -83,7 +83,7 @@ class BarState:
 
     def task_seen(self, task: dict | None, mode: str | None = None) -> None:
         task = task or {}
-        mode = mode if mode in ("live", "background") else self.task.get("mode", "live")
+        mode = mode if mode in ("live", "background", "rehearsal") else self.task.get("mode", "live")
         if (task.get("id"), task.get("status"), mode) != (self.task.get("id"), self.task.get("status"),
                                                           self.task.get("mode")):
             self.task = {"id": task.get("id"), "status": task.get("status"), "mode": mode}
@@ -353,7 +353,8 @@ def run_bar(home: Path) -> int:  # pragma: no cover - drawn on a real desktop, c
         else:
             agents = state.get("agents") or []
             dots.configure(text=" ".join(AGENTS[a["lane"] % LANES][2] for a in agents) or "○")
-            mode = "Background" if (state.get("task") or {}).get("mode") == "background" else "Live"
+            mode = {"background": "Background", "rehearsal": "Rehearsal"}.get(
+                (state.get("task") or {}).get("mode"), "Live")
             line.configure(text=f"{mode} · {summary(state)}"[:64])
             rows.configure(text="\n".join(
                 f"{AGENTS[a['lane'] % LANES][2]} {AGENTS[a['lane'] % LANES][0]}: {a['doing']} "

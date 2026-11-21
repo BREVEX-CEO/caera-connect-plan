@@ -53,6 +53,21 @@ BEGIN
   PERFORM public.jarvis_set_task_mode(v_user, v_task.task_id, 'live');
   PERFORM public.jarvis_queue_actions(v_task.task_id, v_task.controller, v_step);
   PERFORM pg_temp.check((SELECT count(*) FROM public.jarvis_activity WHERE task_id = v_task.task_id) = 1, 'Live queues it, nothing was lost');
+  -- Rehearsal (T12-06): writes only under the rehearsal folder; nothing consequential.
+  PERFORM public.jarvis_set_task_mode(v_user, v_task.task_id, 'rehearsal');
+  BEGIN
+    PERFORM public.jarvis_queue_actions(v_task.task_id, v_task.controller, jsonb_build_array(jsonb_build_object(
+      'summary', 'Write', 'action', jsonb_build_object('v', 1, 'key', 'r1', 'operation', 'fs.write_text',
+      'capability', 'files', 'risk', 'reversible_write', 'arguments', '{"path":"Reports/q1.txt","text":"x"}'::jsonb,
+      'deadlineUtc', v_deadline))));
+    RAISE EXCEPTION 'mode: a rehearsal wrote outside its folder';
+  EXCEPTION WHEN insufficient_privilege THEN
+    IF SQLERRM <> 'rehearsal_only' THEN RAISE; END IF;
+  END;
+  PERFORM public.jarvis_queue_actions(v_task.task_id, v_task.controller, jsonb_build_array(jsonb_build_object(
+    'summary', 'Write', 'action', jsonb_build_object('v', 1, 'key', 'r2', 'operation', 'fs.write_text',
+    'capability', 'files', 'risk', 'reversible_write', 'arguments', '{"path":"OCADE output/rehearsal/q1.txt","text":"x"}'::jsonb,
+    'deadlineUtc', v_deadline))));
   PERFORM public.jarvis_stop_task(v_user, v_task.task_id);
   BEGIN
     PERFORM public.jarvis_set_task_mode(v_user, v_task.task_id, 'background');

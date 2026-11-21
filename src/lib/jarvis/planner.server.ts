@@ -1335,6 +1335,8 @@ export async function planStep(input: {
   experience?: () => Promise<Precedent[]>;
   /** Background (R12-01): nothing that types, clicks or opens a window in front of the person. */
   background?: boolean;
+  /** T12-06 Rehearsal: only reads, and writes under 'OCADE output/rehearsal'. */
+  rehearsal?: boolean;
   /** ELITE-02: the recorded steps of a verified task this one runs again, without the model. */
   replay?: { operation: string; arguments: Record<string, unknown> }[];
   /** What the person told the open task since it started (plan 14F.4.4), oldest first. */
@@ -1585,7 +1587,10 @@ export async function planStep(input: {
   }
 
   const operations = offeredOperations(input.grants, input.engines ?? null).filter(
-    (name) => !input.background || !FOREGROUND_ONLY.has(name),
+    (name) =>
+      (!input.background || !FOREGROUND_ONLY.has(name)) &&
+      (!input.rehearsal ||
+        (OPERATIONS[name].risk !== "external_effect" && !/^(ui|web|mcp|job)\./.test(name))),
   );
   const external = routeExternalTools(input.objective, input.mcp ?? [], input.grants);
   const externalName = (server: string, tool: string) => `mcp__${server}__${tool}`;
@@ -1805,6 +1810,9 @@ export async function planStep(input: {
         guide,
         recipes,
         warned,
+        input.rehearsal
+          ? "This is a REHEARSAL on copies: read what you need and write every result under 'OCADE output/rehearsal/' only; nothing else may change. The person reviews it and runs the task for real afterwards."
+          : "",
         input.background
           ? "This task runs in Background: the person keeps using their computer. Typing, clicking and opening windows are not available; when the outcome truly needs them, ask the person to switch the task to Live."
           : "",

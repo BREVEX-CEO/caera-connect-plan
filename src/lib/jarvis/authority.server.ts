@@ -87,7 +87,9 @@ const REFUSALS: Record<string, string> = {
   too_many_instructions: "This task already has 50 instructions. Stop it and start a new task.",
   approval_not_scopable: "This kind of step is always confirmed one by one.",
   live_needed: "This step types, clicks or opens a window. Switch the task to Live to allow it.",
-  invalid_mode: "Choose Live or Background.",
+  rehearsal_only:
+    "A rehearsal only reads and writes under 'OCADE output/rehearsal'. Run the task for real to do this.",
+  invalid_mode: "Choose Live, Background or Rehearsal.",
   form_not_open: "That form was already answered, or the task moved on.",
   invalid_answers: "Fill in the required fields (at most 1,000 characters each).",
   not_replayable:
@@ -145,7 +147,7 @@ interface TaskState {
   id: string;
   userId: string;
   /** Live or Background (R12-01). */
-  mode?: "live" | "background";
+  mode?: "live" | "background" | "rehearsal";
   sessionLive?: boolean;
   status: string;
   controller: string | null;
@@ -514,6 +516,7 @@ async function decide(
       mcp: task.mcp ?? [],
       experience: () => call<Precedent[]>(admin, "jarvis_experience", { p_task: taskId }),
       background: task.mode === "background",
+      rehearsal: task.mode === "rehearsal",
       replay: replaySteps.safeParse(task.checkpoint?.replay).data,
       instructions: () =>
         call<Instruction[]>(admin, "jarvis_task_instructions", { p_task: taskId }),
