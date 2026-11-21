@@ -392,11 +392,12 @@ class BarWindow:
 
         from mcp.client.stdio import get_default_environment
 
-        executable = [sys.executable] if getattr(sys, "frozen", False) else [sys.executable, "-m", "ocade_agent"]
+        command = [sys.executable] if getattr(sys, "frozen", False) else [sys.executable, "-m", "ocade_agent"]
+        command.append("bar")
         environment = {**get_default_environment(), "OCADE_AGENT_HOME": str(self.home),
                        "PYINSTALLER_RESET_ENVIRONMENT": "1"}
         try:
-            self.process = subprocess.Popen(executable + ["bar"], stdin=subprocess.DEVNULL,
+            self.process = subprocess.Popen(command, stdin=subprocess.DEVNULL,
                                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, env=environment)
         except OSError:
             return False
