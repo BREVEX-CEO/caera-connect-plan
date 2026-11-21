@@ -17,7 +17,7 @@ CREATE TABLE public.jarvis_watches (
   active boolean NOT NULL DEFAULT true,
   created_at timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT jarvis_watches_folder_check CHECK (
-    length(folder) BETWEEN 1 AND 200 AND folder !~ '(^|[\\/])\.\.([\\/]|$)' AND folder !~ '^([\\/]|[A-Za-z]:)'
+    length(folder) >= 1 AND length(folder) <= 200 AND folder !~ '(^|[\\/])\.\.([\\/]|$)' AND folder !~ '^([\\/]|[A-Za-z]:)'
     AND folder !~ '[[:cntrl:]]'),
   CONSTRAINT jarvis_watches_what_check CHECK (length(btrim(what)) BETWEEN 1 AND 400)
 );
@@ -31,7 +31,7 @@ CREATE TABLE public.jarvis_watch_events (
   file text NOT NULL,
   created_at timestamptz NOT NULL DEFAULT now(),
   PRIMARY KEY (watch_id, key),
-  CONSTRAINT jarvis_watch_events_key_check CHECK (length(key) BETWEEN 1 AND 400 AND length(file) BETWEEN 1 AND 255)
+  CONSTRAINT jarvis_watch_events_key_check CHECK (length(key) >= 1 AND length(key) <= 400 AND length(file) >= 1 AND length(file) <= 255)
 );
 CREATE INDEX jarvis_watch_events_user_idx ON public.jarvis_watch_events (user_id);
 

@@ -32,7 +32,7 @@ ALTER TABLE public.jarvis_activity
   ADD COLUMN IF NOT EXISTS resources text[] NOT NULL DEFAULT '{}';
 ALTER TABLE public.jarvis_activity DROP CONSTRAINT IF EXISTS jarvis_activity_lane_check;
 ALTER TABLE public.jarvis_activity ADD CONSTRAINT jarvis_activity_lane_check
-  CHECK (lane BETWEEN 0 AND 3 AND cardinality(resources) <= 8);
+  CHECK (lane >= 0 AND lane <= 3 AND cardinality(resources) <= 8);
 CREATE INDEX IF NOT EXISTS jarvis_activity_lane_idx
   ON public.jarvis_activity (task_id, lane, status, created_at);
 
