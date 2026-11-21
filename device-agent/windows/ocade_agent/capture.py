@@ -365,6 +365,9 @@ def native_or_polling(native, grab):
         except Refused:
             raise
         except Exception as error:  # noqa: BLE001 - the native stream could not start
+            if isinstance(error, ImportError):
+                # Loader errors are local diagnostics. Receipts keep only the failure type.
+                print(f"OCADE window capture bindings could not load: {error}", file=sys.stderr)
             _, stop = polling(grab)(arrived, end)
             # This label becomes a receipt. Exceptions can contain private window or file names.
             return f"polling ({type(error).__name__})", stop
