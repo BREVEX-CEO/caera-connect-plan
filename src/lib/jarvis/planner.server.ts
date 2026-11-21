@@ -1229,6 +1229,16 @@ const HELD_BACK = "schema on first call";
 /** The first clause of an operation's summary: what it does, without its rules. */
 export const brief = (summary: string) => summary.split(/[.:;](?:\s|$)/)[0]!.slice(0, 120);
 
+/** Where a protected value may be filled in (R12-03): form fields and documents only. */
+const FILLS_PROTECTED: ReadonlySet<string> = new Set([
+  "web.fill",
+  "ui.set_value",
+  "ui.send_keys",
+  "fs.write_text",
+  "office.write_document",
+  "office.write_workbook",
+]);
+
 /** Steps that may share one planning turn; see the guarded batch in `planStep`. */
 const UNBATCHED: ReadonlySet<string> = new Set(["verify.checks", "job.status", "job.cancel"]);
 const batchable = (action: ActionIntent) =>
@@ -1722,9 +1732,15 @@ export async function planStep(input: {
   const deadline = new Date(now.getTime() + 10 * 60_000);
   const key = `s${steps.length + 1}`;
   const queued = (name: string, args: unknown, at: string) => {
+    const masked = args as Record<string, unknown>;
     args = unmaskArguments(args, seen); // the real values, only for this task's own computer
     const operation = operations.find((candidate) => toolName(candidate) === name);
     if (!operation) throw new Error("that tool was not offered this turn");
+    // R12-03 purpose binding: a protected value goes only into a form field or a document.
+    if (JSON.stringify(args) !== JSON.stringify(masked) && !FILLS_PROTECTED.has(operation))
+      throw new Error(
+        "a protected value (card number or IBAN) is only ever filled into a form field or written into a document; it cannot go into an address, a command or another tool",
+      );
     if (operation === "system.install_dependency") {
       const requested = dependencyApproval.parse(args);
       const inspected = [...steps]
@@ -1799,7 +1815,8 @@ export async function planStep(input: {
     }
     return {
       operation,
-      summary: stepSummary(operation, args as Record<string, unknown>),
+      // The timeline, notifications and history keep the placeholder, never the value.
+      summary: stepSummary(operation, masked),
       // Long renders get their own bound; everything else keeps the ten-minute deadline.
       intent: intent(
         operation,
