@@ -1,0 +1,4 @@
+{"id":"AUTH-01","ok":true,"detail":{"first":"ok","second":"otp_expired"}}
+{"id":"AUTH-06","ok":true,"detail":{"wrong":"Invalid login credentials","unknown":"Invalid login credentials"}}
+{"id":"AUTH-04","ok":false,"detail":{"triesUntilRefused":"none of 60"}}
+{"id":"SESSION-06","ok":false,"detail":{"replay":"refresh_token_already_used","familyAfterReplay":"still valid"}}

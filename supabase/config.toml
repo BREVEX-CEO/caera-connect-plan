@@ -10,3 +10,14 @@ verify_jwt = false
 
 [functions.ocade-byok]
 verify_jwt = true
+
+# Threat register AUTH-04 / SESSION-06 (21 Nov 2026): the limits that protect sign-in live in the
+# auth server, because the browser talks to it directly. Measured on a local stack with the CLI
+# defaults: 60 wrong email codes in a row were all answered, never refused.
+[auth.rate_limit]
+# Verifications (email codes, links) per 5 minutes per IP address.
+token_verifications = 30
+
+[auth.email]
+# An emailed code is valid for 10 minutes, not an hour.
+otp_expiry = 600

@@ -30,3 +30,13 @@ Each engine therefore used an account within the cap; this is the cap working, n
 planner) were not running, so no model answer, BYOK test or JARVIS task was exercised; axe and
 the keyboard/reflow checks are automated facts, not WCAG conformance, and not a substitute for
 people using assistive technology (plan 14B.4A user studies remain an owner action).
+
+## Authentication negative checks (`tests/web/auth_negative.mjs`, same local stack)
+
+`auth-negative.jsonl`: AUTH-01 (recovery link single-use) PASS; AUTH-06 (same answer for a wrong
+password and an unknown account) PASS; AUTH-04 (guessing an emailed code is cut off) **FAIL
+locally** — 60 wrong codes were all answered even with `token_verifications = 30` in
+`supabase/config.toml`, because the local auth server receives no client-IP header for its
+limiter; it must be measured on staging after the owner pushes the config; SESSION-06 (refresh
+token replay) PARTIAL — the replay is refused (`refresh_token_already_used`) but the auth server
+keeps the rest of the session family valid.
