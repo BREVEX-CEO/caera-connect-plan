@@ -879,6 +879,24 @@ export function TaskPanel({
         </label>
       ) : null}
       {task.blocker ? <p className="mt-1 text-muted-foreground">{task.blocker}</p> : null}
+      {task.contextUsed.length ? (
+        <details className="mt-2 text-xs">
+          <summary className="cursor-pointer text-muted-foreground">
+            What JARVIS looked at ({task.contextUsed.length})
+          </summary>
+          <ul className="mt-1 space-y-0.5">
+            {task.contextUsed.map((item) => (
+              <li key={item} className="truncate">
+                {item}
+              </li>
+            ))}
+          </ul>
+          <p className="mt-1 text-muted-foreground">
+            Only from the folders and sites this computer allows. To keep JARVIS out of a file, move
+            it out of the JARVIS folder or say so in your request.
+          </p>
+        </details>
+      ) : null}
       {task.warnings.length ? (
         <div
           role="alert"

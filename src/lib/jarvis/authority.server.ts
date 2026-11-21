@@ -1086,6 +1086,20 @@ export async function taskView(admin: Admin, userId: string, taskId: string) {
       };
     }),
     agents: agentCounts(task.status, task.steps),
+    // Automatic Context Discovery (R12-07): what this task actually read, so the person sees it.
+    contextUsed: [
+      ...new Set(
+        parsedSteps.flatMap(({ intent: step }) =>
+          ["fs.read_text", "office.inspect_workbook", "media.inspect", "media.preview"].includes(
+            step.operation,
+          ) && typeof (step.arguments as { path?: unknown }).path === "string"
+            ? [(step.arguments as { path: string }).path]
+            : step.operation === "web.read" || step.operation === "web.open"
+              ? [step.target?.site ?? ""].filter(Boolean)
+              : [],
+        ),
+      ),
+    ].slice(0, 30),
     // Anti-Scam Guardian (28.2.6): warning signs on pages this task opened, with the evidence.
     warnings: [...flaggedSites(parsedSteps).entries()].map(([site, signs]) => ({ site, signs })),
     mode: task.mode ?? "live",
