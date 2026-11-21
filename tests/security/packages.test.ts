@@ -36,3 +36,9 @@ test("each starter is a valid objective naming its product, whose rules reach th
     assert.match(builtInSkills([id])[0]!.body, /Never move money/);
   assert.deepEqual(builtInSkills(["not-a-product"]), []);
 });
+
+test("Simplification Mode is a built-in skill that never hides or submits", async () => {
+  const { SIMPLIFY } = await import("../../src/lib/jarvis/packages.ts");
+  assert.deepEqual(namedSkills(SIMPLIFY.starter), ["simplify"]);
+  assert.match(builtInSkills(["simplify"])[0]!.body, /never hide anything, never submit/);
+});

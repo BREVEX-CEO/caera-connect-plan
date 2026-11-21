@@ -44,7 +44,7 @@ import { useJarvisDictation, useReadAloud } from "./use-voice";
 import { JARVIS_CONSENT_NEEDED } from "@/lib/jarvis/consent-needed";
 import { MAX_OBJECTIVE_LENGTH, taskObjective } from "@/lib/jarvis/objective";
 import { askOnlineConsent } from "@/lib/intelligence/online-consent-ask";
-import { PACKAGES } from "@/lib/jarvis/packages";
+import { PACKAGES, SIMPLIFY } from "@/lib/jarvis/packages";
 import { appendOcadeMessage, createConversation } from "@/lib/ocade.functions";
 import {
   listJarvisHabits,
@@ -751,6 +751,16 @@ function Packages({ onPick }: { onPick: (starter: string) => void }) {
       </button>
       {open ? (
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
+          <section aria-label={SIMPLIFY.name} className="rounded-xl border border-border/60 p-3">
+            <h3 className="text-sm font-medium">Make something easier</h3>
+            <button
+              type="button"
+              onClick={() => onPick(SIMPLIFY.starter)}
+              className="mt-2 text-left text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+            >
+              {SIMPLIFY.name}: explain a confusing page or app and ask only what matters
+            </button>
+          </section>
           {PACKAGES.map((pack) => (
             <section
               key={pack.id}

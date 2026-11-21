@@ -117,7 +117,23 @@ export const PACKAGES: readonly Package[] = [
   },
 ];
 
-const PRODUCTS = new Map(PACKAGES.flatMap((pack) => pack.products).map((p) => [p.id, p]));
+/**
+ * Simplification Mode (plan 27.2.11 R12-11), on the same spine: `/simplify` with a website or an
+ * app window makes it easy to use — the next step in plain words, only the controls that matter,
+ * a short generated form for the details needed — without replacing or hiding the original.
+ */
+export const SIMPLIFY: Product = {
+  id: "simplify",
+  name: "Simplification Mode",
+  starter:
+    "/simplify Open the page or app window I name here, tell me in plain words what it is for and what the next step is, and ask me only for the details it really needs.",
+  rules:
+    "Read the page or window (web.read or ui.inspect) and explain it in plain words: what it is for, the one next step, and only the controls that matter. Ask for the details it needs with a short form (ask with fields). Keep every required notice, fee, term and error the original shows, and name the original destination; never hide anything, never submit or confirm anything, and tell the person they can always use the original instead.",
+};
+
+const PRODUCTS = new Map(
+  [...PACKAGES.flatMap((pack) => pack.products), SIMPLIFY].map((p) => [p.id, p]),
+);
 
 /** The built-in products a request names, as read-only skills (version 0: OCADE's own). */
 export function builtInSkills(names: readonly string[]): Skill[] {
