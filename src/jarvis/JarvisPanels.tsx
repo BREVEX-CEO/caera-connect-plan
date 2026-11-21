@@ -207,6 +207,7 @@ export function JarvisAccess() {
   const [code, setCode] = useState("");
   const [linked, setLinked] = useState(false);
   const [pairing, setPairing] = useState(false);
+  const validCode = /^[0-9A-F]{16}$/.test(code);
   /*
    * THE COMPANION'S LINK FILLS THE CODE IN (plan v8 5.5): `#pair=<code>` after enrolling, so a
    * signed-in person only confirms. Never paired by the link alone: the code could have come
@@ -238,7 +239,7 @@ export function JarvisAccess() {
         className="flex gap-2"
         onSubmit={(event) => {
           event.preventDefault();
-          if (pairing || !/^[0-9A-F]{16}$/.test(code)) return;
+          if (pairing || !validCode) return;
           setPairing(true);
           void pairJarvisDevice({ data: { code } })
             .then(() => {
@@ -256,21 +257,25 @@ export function JarvisAccess() {
         <input
           id="jarvis-pair-code"
           value={code}
-          onChange={(event) => setCode(event.target.value.toUpperCase())}
+          onChange={(event) => setCode(event.target.value.toUpperCase().replace(/[\s-]+/g, ""))}
           placeholder="Pairing code"
-          maxLength={16}
+          maxLength={32}
           pattern="[0-9A-F]{16}"
           autoComplete="off"
-          className="h-9 flex-1 rounded-md border border-border bg-transparent px-2 font-mono outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          aria-describedby="jarvis-pair-code-hint"
+          className="h-11 min-w-0 flex-1 rounded-md border border-border bg-transparent px-2 font-mono outline-none focus-visible:ring-1 focus-visible:ring-ring"
         />
         <button
           type="submit"
-          disabled={pairing || code.length !== 16}
-          className="rounded-md bg-foreground px-3 text-background disabled:opacity-40"
+          disabled={pairing || !validCode}
+          className="min-h-11 rounded-md bg-foreground px-4 text-background disabled:opacity-40"
         >
           {pairing ? "Pairing…" : "Pair"}
         </button>
       </form>
+      <p id="jarvis-pair-code-hint" className="text-xs text-muted-foreground">
+        Enter the 16 characters shown by the companion.
+      </p>
       {linked ? (
         <p role="note" className="text-muted-foreground">
           The companion filled in its code. Press Pair only if that companion is running on the
@@ -284,7 +289,12 @@ export function JarvisAccess() {
         <p className="text-muted-foreground">No computer is paired yet.</p>
       ) : null}
       {devices.data?.map((device) => (
-        <DeviceAccess key={device.id} device={device} onChanged={refresh} />
+        <DeviceAccess
+          key={device.id}
+          device={device}
+          onChanged={refresh}
+          onRefresh={() => devices.refetch({ throwOnError: true })}
+        />
       ))}
     </div>
   );
@@ -302,9 +312,11 @@ const DEVICE_LABELS: Record<string, string> = {
 function DeviceAccess({
   device,
   onChanged,
+  onRefresh,
 }: {
   device: Awaited<ReturnType<typeof listJarvisDevices>>[number];
   onChanged: () => void;
+  onRefresh: () => Promise<unknown>;
 }) {
   const { user } = useSession();
   const granted = useQuery({
@@ -355,6 +367,7 @@ function DeviceAccess({
           deviceId={device.id}
           platform={device.platform}
           engines={(device.capabilities as { engines?: unknown } | null)?.engines}
+          onRefresh={onRefresh}
         />
       ) : null}
       {device.state === "permission_required" && has("files") ? (
