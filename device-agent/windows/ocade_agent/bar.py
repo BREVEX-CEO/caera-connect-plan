@@ -18,14 +18,16 @@ colour, never shown as a fabricated pointer.
 
 from __future__ import annotations
 
-import itertools
 import json
 import os
+import threading
 import time
 import uuid
 from pathlib import Path
 
 LANES = 4
+_instruction_lock = threading.Lock()
+_last_instruction_at = 0
 # Stable per-agent colour plus a name and a shape, never colour alone (14F.3.5).
 AGENTS = (
     ("Agent 1", "#0284c7", "●"),
@@ -125,20 +127,21 @@ class BarState:
             pass
 
 
-_TYPED = itertools.count()
-
-
 def queue_instruction(home: Path, text: str, lane: int | None) -> Path:
     """What the person typed in the bar, for the agent loop to deliver (the bar has no key)."""
+    global _last_instruction_at
+
     text = text.strip()[:2000]
     if not text:
         raise ValueError("empty instruction")
     if lane is not None and lane not in range(LANES):
         raise ValueError("no such agent")
-    # The clock alone can repeat (about 16 ms apart on Windows), and a repeated name would replace
-    # an earlier instruction; the counter keeps both, in the order they were typed.
-    path = home / "instructions" / f"{time.time_ns():020d}-{next(_TYPED):06d}.json"
-    write_json(path, {"text": text, "lane": lane, "clientId": str(uuid.uuid4())})
+    client_id = str(uuid.uuid4())
+    with _instruction_lock:
+        # Windows can return the same wall time for successive writes.
+        _last_instruction_at = max(time.time_ns(), _last_instruction_at + 1)
+        path = home / "instructions" / f"{_last_instruction_at}-{client_id}.json"
+        write_json(path, {"text": text, "lane": lane, "clientId": client_id})
     return path
 
 
@@ -163,8 +166,12 @@ def point_instruction(path: str, question: str) -> str:
 
 def pending_instructions(home: Path) -> list[tuple[Path, dict]]:
     """Queued instructions, oldest first; an unreadable file is dropped, never sent."""
+    def order(path: Path) -> tuple[str, str]:
+        timestamp, _, suffix = path.stem.partition("-")
+        return timestamp.zfill(20), suffix
+
     found = []
-    for path in sorted((home / "instructions").glob("*.json"))[:10]:
+    for path in sorted((home / "instructions").glob("*.json"), key=order)[:10]:
         try:
             item = json.loads(path.read_text(encoding="utf-8"))
             text, lane, client = item["text"], item.get("lane"), str(uuid.UUID(item["clientId"]))

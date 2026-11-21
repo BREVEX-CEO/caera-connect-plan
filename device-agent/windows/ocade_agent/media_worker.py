@@ -451,10 +451,13 @@ def media_render_timeline(
         zoom_to = overlay.get("zoomTo", 1.0)
         size = f"'ceil({scale}*(1+({zoom_to}-1)*clip((t-{start})/{end - start},0,1))/2)*2'"
         fade_in, fade_out = overlay.get("fadeIn", 0.5), overlay.get("fadeOut", 0.5)
+        # Fade the fixed-size source before the per-frame zoom. FFmpeg's fade
+        # rejects changing frame dimensions downstream of a dynamic scale.
         graph.append(
-            f"[{count}:v]format=rgba,scale=w={size}:h=-2:eval=frame,"
+            f"[{count}:v]format=rgba,"
             f"fade=t=in:st={start}:d={max(fade_in, 0.01)}:alpha=1,"
-            f"fade=t=out:st={max(end - fade_out, start)}:d={max(fade_out, 0.01)}:alpha=1[o{number}]"
+            f"fade=t=out:st={max(end - fade_out, start)}:d={max(fade_out, 0.01)}:alpha=1,"
+            f"scale=w={size}:h=-2:eval=frame[o{number}]"
         )
         x = overlay.get("x", 0.5)
         y = overlay.get("y", 0.5)

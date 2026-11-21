@@ -5,7 +5,9 @@ through an outage, and dropped when unreadable; the collapsed line counts active
 import json
 import tempfile
 import unittest
+from contextlib import closing
 from pathlib import Path
+from unittest.mock import patch
 
 import anyio
 
@@ -16,7 +18,7 @@ from ocade_agent.journal import Journal
 
 class BarStateTest(unittest.TestCase):
     def test_state_follows_the_steps_that_run(self):
-        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as directory:
+        with tempfile.TemporaryDirectory() as directory:
             home = Path(directory)
             bar = BarState(home)
             bar.task_seen({"id": "t", "status": "running"})
@@ -38,10 +40,11 @@ class BarStateTest(unittest.TestCase):
 
 class InstructionTest(unittest.TestCase):
     def test_typed_instructions_are_delivered_once_and_kept_through_an_outage(self):
-        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as directory:
+        with tempfile.TemporaryDirectory() as directory, closing(Journal(Path(directory) / "j.sqlite")) as journal:
             home = Path(directory)
-            queue_instruction(home, "  Use the blue logo ", None)
-            queue_instruction(home, "Smaller", 1)
+            with patch("ocade_agent.bar.time.time_ns", return_value=1_800_000_000_000_000_000):
+                queue_instruction(home, "  Use the blue logo ", None)
+                queue_instruction(home, "Smaller", 1)
             (home / "instructions" / "0-broken.json").write_text("{not json")
             with self.assertRaises(ValueError):
                 queue_instruction(home, "   ", None)
@@ -57,7 +60,7 @@ class InstructionTest(unittest.TestCase):
                     return self.status, {}
 
             device = Device()
-            agent = Agent(device, Journal(home / "j.sqlite"), object(), home / "STOP")
+            agent = Agent(device, journal, object(), home / "STOP")
             anyio.run(agent.deliver_instructions)
             self.assertEqual(len(device.sent), 1, "an outage stops the round, nothing is dropped")
             self.assertEqual(len(pending_instructions(home)), 2, "the unreadable file is dropped, never sent")
@@ -76,14 +79,15 @@ class PointTest(unittest.TestCase):
 
         from ocade_agent.bar import point_instruction, save_pointed
 
-        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as directory:
+        with tempfile.TemporaryDirectory() as directory:
             home, workspace = Path(directory, "home"), Path(directory, "ws")
             home.mkdir()
             workspace.mkdir()
             (home / "device.json").write_text(json.dumps({"workspace": str(workspace)}))
             path = save_pointed(home, Image.new("RGB", (20, 10), "red"), now=0)
             self.assertTrue(path.startswith("OCADE output/pointed/") and path.endswith(".png"))
-            self.assertEqual(Image.open(workspace / path).size, (20, 10))
+            with Image.open(workspace / path) as pointed:
+                self.assertEqual(pointed.size, (20, 10))
             text = point_instruction(path, "")
             self.assertIn(path, text)
             self.assertIn("media.preview", text)

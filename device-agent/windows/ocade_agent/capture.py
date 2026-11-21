@@ -26,6 +26,7 @@ import time
 from collections import deque
 from contextlib import contextmanager
 from dataclasses import dataclass
+from functools import cache
 
 from PIL import Image
 
@@ -248,18 +249,35 @@ def windows_graphics_capture(hwnd: int):
     return start
 
 
+@cache
+def _screen_capture_output_type():
+    import objc  # type: ignore[import-not-found]
+    from CoreMedia import CMSampleBufferGetImageBuffer  # type: ignore[import-not-found]
+    from Foundation import NSObject  # type: ignore[import-not-found]
+
+    # Objective-C registers each class name once per process, even across streams.
+    class OcadeScreenCaptureOutput(NSObject, protocols=[objc.protocolNamed("SCStreamOutput"),
+                                                       objc.protocolNamed("SCStreamDelegate")]):
+        def stream_didOutputSampleBuffer_ofType_(self, _stream, sample, kind):
+            if kind == 0:  # screen frames
+                pixels = CMSampleBufferGetImageBuffer(sample)
+                if pixels is not None and not self.stopping.is_set():
+                    self.latest["pixels"] = pixels
+                    self.dirty.set()
+
+        def stream_didStopWithError_(self, _stream, _error):
+            self.on_end("capture_stopped")
+
+    return OcadeScreenCaptureOutput
+
+
 def screen_capture_kit(window_id: int):
     """ScreenCaptureKit for one window (an SCStream with a single-window filter)."""
 
     def start(arrived, end):
-        import objc  # type: ignore[import-not-found]
         import Quartz  # type: ignore[import-not-found]
         import ScreenCaptureKit as SCK  # type: ignore[import-not-found]
-        from CoreMedia import (  # type: ignore[import-not-found]
-            CMSampleBufferGetImageBuffer,
-            CMTimeMake,
-        )
-        from Foundation import NSObject  # type: ignore[import-not-found]
+        from CoreMedia import CMTimeMake  # type: ignore[import-not-found]
 
         found, ready = {}, threading.Event()
 
@@ -285,30 +303,27 @@ def screen_capture_kit(window_id: int):
         latest: dict = {}
         stop, dirty = threading.Event(), threading.Event()
 
-        class Output(NSObject, protocols=[objc.protocolNamed("SCStreamOutput"),
-                                          objc.protocolNamed("SCStreamDelegate")]):
-            def stream_didOutputSampleBuffer_ofType_(self, _stream, sample, kind):
-                if kind == 0 and CMSampleBufferGetImageBuffer(sample) is not None:  # screen frames
-                    latest["pixels"] = CMSampleBufferGetImageBuffer(sample)
-                    dirty.set()
-
-            def stream_didStopWithError_(self, _stream, _error):
-                end("capture_stopped")
-
-        output = Output.alloc().init()
+        output = _screen_capture_output_type().alloc().init()
+        output.latest, output.stopping, output.dirty, output.on_end = latest, stop, dirty, end
         stream = SCK.SCStream.alloc().initWithFilter_configuration_delegate_(content_filter, configuration, output)
         ok, _error = stream.addStreamOutput_type_sampleHandlerQueue_error_(output, 0, None, None)
         if not ok:
             raise Refused("capture_failed")
         started = threading.Event()
-        def on_start(error):  # a void ObjC block: returning a value aborts the process
+
+        def start_completed(error):
             found["start"] = error
             started.set()
 
-        def on_stop(_error):  # keeps the delegate referenced until the stream has stopped
-            _ = keep
+        def stop_completed(_error):
+            # The delegate must outlive the stream.
+            output.latest.clear()
 
-        stream.startCaptureWithCompletionHandler_(on_start)
+        def close():
+            stop.set()
+            stream.stopCaptureWithCompletionHandler_(stop_completed)
+
+        stream.startCaptureWithCompletionHandler_(start_completed)
         if not started.wait(5) or found.get("start") is not None:
             raise Refused("screen_recording_permission_needed")
 
@@ -326,17 +341,15 @@ def screen_capture_kit(window_id: int):
                 Quartz.CVPixelBufferUnlockBaseAddress(pixels, 1)
             return Image.frombuffer("RGBA", (width, height), data, "raw", "BGRA", stride, 1).convert("RGB")
 
-        keep = (output, objc)  # the delegate must outlive the stream
-        if not dirty.wait(2) or (first := convert()) is None:
-            stream.stopCaptureWithCompletionHandler_(on_stop)
-            raise RuntimeError("no first frame")
+        try:
+            if not dirty.wait(2) or (first := convert()) is None:
+                raise RuntimeError("no first frame")
+        except Exception:
+            close()
+            raise
         arrived(first)
         threading.Thread(target=_throttled, args=(convert, arrived, end, stop, dirty),
                          daemon=True, name="ocade-capture").start()
-
-        def close():
-            stop.set()
-            stream.stopCaptureWithCompletionHandler_(on_stop)
 
         return "screen_capture_kit", close
 
@@ -351,9 +364,10 @@ def native_or_polling(native, grab):
             return native(arrived, end)
         except Refused:
             raise
-        except Exception as error:  # noqa: BLE001 - no native capture on this build: the labelled fallback
+        except Exception as error:  # noqa: BLE001 - the native stream could not start
             _, stop = polling(grab)(arrived, end)
-            return f"polling ({type(error).__name__}: {str(error)[:120]})", stop
+            # This label becomes a receipt. Exceptions can contain private window or file names.
+            return f"polling ({type(error).__name__})", stop
 
     return start
 

@@ -33,6 +33,9 @@ class Journal:
             " state TEXT NOT NULL CHECK (state IN ('started', 'finished')), receipt TEXT)"
         )
 
+    def close(self) -> None:
+        self.db.close()
+
     def get(self, activity: str) -> tuple[str, dict | None] | None:
         row = self.db.execute("SELECT state, receipt FROM actions WHERE activity = ?", (activity,)).fetchone()
         return (row[0], json.loads(row[1]) if row[1] else None) if row else None

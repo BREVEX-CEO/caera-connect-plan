@@ -126,6 +126,10 @@ class WindowsUiLadder(unittest.TestCase):
                 out["present"] = await run("ui.wait", {"window": window, "element": {"automationId": "saveButton"}})
                 out["never"] = await run("ui.wait", {"window": window, "element": {"automationId": "neverThere"},
                                                      "timeoutMs": 400})
+                # By the ref the newest inspection gave the button (P5), not by a description.
+                save = next(e["ref"] for e in out["region"]["evidence"]["elements"] if e["automationId"] == "saveButton")
+                out["invoke"] = await run("ui.invoke", {"window": window, "element": {"ref": save}})
+                out["after_invoke"] = self.note()
                 # ui.watch (plan 14F.9): a still window is not a change; a scroll run at the same time
                 # by another lane's own worker is seen as changed regions of the real window.
                 out["still"] = await run("ui.watch", {"window": window, "timeoutMs": 600})
@@ -161,11 +165,7 @@ class WindowsUiLadder(unittest.TestCase):
                     await anyio.sleep(0.15)
                     win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP, 0, 0)
                 out["recorded"] = recorded["result"]
-                await run("ui.set_value", {"window": window, "element": box, "value": "Quarterly GREEN"})
-                # By the ref the newest inspection gave the button (P5), not by a description.
-                save = next(e["ref"] for e in out["region"]["evidence"]["elements"] if e["automationId"] == "saveButton")
-                out["invoke"] = await run("ui.invoke", {"window": window, "element": {"ref": save}})
-                out["after_invoke"] = self.note()
+                out["after_record"] = self.note()
                 out["keys"] = await run("ui.send_keys", {"window": window, "element": box, "keys": [
                     {"press": "End"}, {"press": "Shift+Home"}, {"press": "Backspace"}, {"text": "100% (a+b) ~{typed}^ by keyz"},
                     {"press": "Backspace"}, {"text": "s"}]})
@@ -290,6 +290,7 @@ class WindowsUiLadder(unittest.TestCase):
                           [(s["kind"], s.get("element"), s.get("value")) for s in steps], steps)
             self.assertIn("saveButton", [s.get("element", {}).get("automationId") for s in steps if s["kind"] == "invoke"],
                           steps)
+            self.assertEqual(out["after_record"], "shown once")
         with self.subTest("UIA-020 ui.scroll moves a list by pages and brings a listed item into view (plan v8 11.3)"):
             self.assertEqual(out["scroll_down"]["status"], "observed", out["scroll_down"])
             self.assertGreater(out["scroll_down"]["evidence"]["verticalPercent"], 0, out["scroll_down"])

@@ -23,7 +23,7 @@ import sys
 import time
 import traceback
 import webbrowser
-from contextlib import contextmanager
+from contextlib import closing, contextmanager
 from pathlib import Path
 
 import anyio
@@ -1117,11 +1117,12 @@ def _run_companion(device: Device, home: Path, until_idle: bool, session_minutes
     async def go() -> str | None:
         async with gateway:
             try:
-                agent = Agent(device, Journal(home / "journal.sqlite"), gateway)
-                if not always_on:
-                    agent.session_idle_seconds = (session_minutes or SESSION_MINUTES) * 60
-                    agent.after_task_seconds = AFTER_TASK_SECONDS
-                await agent.run(until_idle)
+                with closing(Journal(home / "journal.sqlite")) as journal:
+                    agent = Agent(device, journal, gateway)
+                    if not always_on:
+                        agent.session_idle_seconds = (session_minutes or SESSION_MINUTES) * 60
+                        agent.after_task_seconds = AFTER_TASK_SECONDS
+                    await agent.run(until_idle)
             except ConnectionError as error:
                 return str(error)
             except LocalStop:

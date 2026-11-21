@@ -123,6 +123,11 @@ class MacUiLadder(unittest.TestCase):
                 out["present"] = await run("ui.wait", {"window": window, "element": {"automationId": "saveButton"}})
                 out["never"] = await run("ui.wait", {"window": window, "element": {"automationId": "neverThere"},
                                                      "timeoutMs": 400})
+                # By the ref the inspection gave the button (P5), not by a description.
+                save = next(e["ref"] for e in out["inspect"]["evidence"]["elements"] if e["automationId"] == "saveButton")
+                out["invoke"] = await run("ui.invoke", {"window": window, "element": {"ref": save}})
+                await anyio.sleep(0.5)
+                out["after_invoke"] = self.note()
                 # ui.watch (plan 14F.9): needs Screen Recording; without it the refusal says so.
                 out["still"] = await run("ui.watch", {"window": window, "timeoutMs": 600})
                 # A real change while watching, on the window's own ScreenCaptureKit stream.
@@ -137,12 +142,6 @@ class MacUiLadder(unittest.TestCase):
                     await anyio.sleep(1.5)
                     await run("ui.set_value", {"window": window, "element": box, "value": "changed while watched"})
                 out["watched"] = watched["result"]
-                await run("ui.set_value", {"window": window, "element": box, "value": "Quarterly GREEN"})
-                # By the ref the inspection gave the button (P5), not by a description.
-                save = next(e["ref"] for e in out["inspect"]["evidence"]["elements"] if e["automationId"] == "saveButton")
-                out["invoke"] = await run("ui.invoke", {"window": window, "element": {"ref": save}})
-                time.sleep(0.5)
-                out["after_invoke"] = self.note()
                 await run("ui.set_value", {"window": window, "element": box, "value": ""})
                 out["keys"] = await run("ui.send_keys", {"window": window, "element": box, "keys": [
                     {"text": "typed by keyz"}, {"press": "Backspace"}, {"text": "s"}]})

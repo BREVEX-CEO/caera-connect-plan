@@ -5,9 +5,12 @@ real change, refuses a still window and an ended capture, and shows ordered keyf
 Scripted frame sources only; the native streams are proved on hosted Windows and macOS
 (UIA-021, MAC-030)."""
 
+import sys
 import threading
 import time
 import unittest
+from types import SimpleNamespace
+from unittest.mock import Mock, patch
 
 from PIL import Image, ImageDraw
 
@@ -93,7 +96,7 @@ class HubTest(unittest.TestCase):
 
         frames = iter([picture(), picture(30)] + [picture(30)] * 100)
         stream = capture.Stream(capture.native_or_polling(broken, lambda: next(frames)))
-        self.assertEqual(stream.backend, "polling (RuntimeError: no Windows.Graphics.Capture on this build)")
+        self.assertEqual(stream.backend, "polling (RuntimeError)")
         self.assertIsNotNone(stream.wait(1, 3), "the fallback delivers frames")
         stream.close()
 
@@ -111,6 +114,72 @@ class HubTest(unittest.TestCase):
         stream = capture.Stream(capture.polling(gone))
         self.assertIsNone(stream.wait(0, 2))
         self.assertEqual(stream.ended, "window_gone")
+
+
+class ScreenCaptureKitTest(unittest.TestCase):
+    def test_multiple_streams_reuse_the_delegate_class_and_complete_void_callbacks(self):
+        registered = set()
+
+        class NSObject:
+            def __init_subclass__(cls, protocols):
+                if cls.__name__ in registered:
+                    raise ValueError("Objective-C class already registered")
+                registered.add(cls.__name__)
+
+            @classmethod
+            def alloc(cls):
+                return cls()
+
+            def init(self):
+                return self
+
+        def complete(block, *args):
+            self.assertIsNone(block(*args), "Objective-C void blocks must return None")
+
+        window = Mock()
+        window.windowID.return_value = 42
+        window.frame.return_value.size = SimpleNamespace(width=1, height=1)
+        content = Mock()
+        content.windows.return_value = [window]
+        kit = Mock()
+        kit.SCShareableContent.getShareableContentExcludingDesktopWindows_onScreenWindowsOnly_completionHandler_.side_effect = (
+            lambda _exclude, _visible, block: complete(block, content, None)
+        )
+        quartz = Mock()
+        quartz.CVPixelBufferGetWidth.return_value = 1
+        quartz.CVPixelBufferGetHeight.return_value = 1
+        quartz.CVPixelBufferGetBytesPerRow.return_value = 4
+        quartz.CVPixelBufferGetBaseAddress.return_value.as_buffer.return_value = b"\x00\x00\xff\xff"
+        streams = []
+
+        def new_stream(_window_filter, _configuration, delegate):
+            stream = Mock()
+            stream.addStreamOutput_type_sampleHandlerQueue_error_.return_value = (True, None)
+
+            def start(block):
+                complete(block, None)
+                complete(delegate.stream_didOutputSampleBuffer_ofType_, stream, object(), 0)
+
+            stream.startCaptureWithCompletionHandler_.side_effect = start
+            stream.stopCaptureWithCompletionHandler_.side_effect = lambda block: complete(block, None)
+            streams.append(stream)
+            return stream
+
+        kit.SCStream.alloc.return_value.initWithFilter_configuration_delegate_.side_effect = new_stream
+        modules = {"objc": Mock(), "Quartz": quartz, "ScreenCaptureKit": kit,
+                   "Foundation": SimpleNamespace(NSObject=NSObject), "CoreMedia": Mock()}
+        self.addCleanup(capture._screen_capture_output_type.cache_clear)
+        with patch.dict(sys.modules, modules):
+            for _ in range(2):
+                arrived = Mock()
+                backend, stop = capture.screen_capture_kit(42)(arrived, Mock())
+                try:
+                    self.assertEqual(backend, "screen_capture_kit")
+                    self.assertEqual(arrived.call_args.args[0].getpixel((0, 0)), (255, 0, 0))
+                finally:
+                    stop()
+                streams[-1].stopCaptureWithCompletionHandler_.assert_called_once()
+        self.assertEqual(len(registered), 1)
 
 
 class WatchTest(unittest.TestCase):

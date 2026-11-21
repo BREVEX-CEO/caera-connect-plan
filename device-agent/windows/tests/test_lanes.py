@@ -5,6 +5,7 @@ local STOP ends every lane, each with its own receipt."""
 import tempfile
 import time
 import unittest
+from contextlib import closing
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -70,11 +71,11 @@ class LanesTest(unittest.TestCase):
         self.assertEqual(still_ours({"actions": [{"id": "a"}], "running": ["b"]}), {"a", "b"})
 
     def test_steps_in_different_lanes_run_at_the_same_time_and_each_lane_in_order(self):
-        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as directory:
+        with tempfile.TemporaryDirectory() as directory, closing(Journal(Path(directory) / "j.sqlite")) as journal:
             home = Path(directory)
             device, gateway = TwoLanes(home), SlowGateway()
             started = time.monotonic()
-            anyio.run(Agent(device, Journal(home / "j.sqlite"), gateway, home / "STOP")._loop, True)
+            anyio.run(Agent(device, journal, gateway, home / "STOP")._loop, True)
             elapsed = time.monotonic() - started
             a1, a2, b1 = (gateway.spans[k] for k in ("a1", "a2", "b1"))
             self.assertLess(b1[0], a1[1], "lane 1 started while lane 0 was still running")
@@ -85,7 +86,7 @@ class LanesTest(unittest.TestCase):
             self.assertEqual(sorted(receipts), ["a1", "a2", "b1"])
 
     def test_local_stop_ends_every_lane_each_with_its_receipt(self):
-        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as directory:
+        with tempfile.TemporaryDirectory() as directory, closing(Journal(Path(directory) / "j.sqlite")) as journal:
             home = Path(directory)
             flag = home / "STOP"
             device = TwoLanes(home)
@@ -96,7 +97,7 @@ class LanesTest(unittest.TestCase):
                     await anyio.sleep(30)
 
             with self.assertRaises(agent_module.LocalStop):
-                anyio.run(Agent(device, Journal(home / "j.sqlite"), Blocking(), flag)._loop, False)
+                anyio.run(Agent(device, journal, Blocking(), flag)._loop, False)
             receipts = {p["activityId"]: p["receipt"] for p in device.sent if p["op"] == "receipt"}
             self.assertEqual(set(receipts), {"a1", "b1"})
             self.assertTrue(all(r["errorCode"] == "stopped" for r in receipts.values()))
@@ -104,7 +105,7 @@ class LanesTest(unittest.TestCase):
 
 class BackgroundPermissionTest(unittest.TestCase):
     def test_each_answer_sets_or_clears_the_background_permission_for_the_workers(self):
-        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as directory:
+        with tempfile.TemporaryDirectory() as directory, closing(Journal(Path(directory) / "j.sqlite")) as journal:
             home = Path(directory)
             flag = home / "background-ui"
             flag.touch()
@@ -116,7 +117,7 @@ class BackgroundPermissionTest(unittest.TestCase):
                 def request(self, payload):
                     return 200, self.answers.pop(0)
 
-            agent = Agent(Device(), Journal(home / "j.sqlite"), SlowGateway(), home / "STOP")
+            agent = Agent(Device(), journal, SlowGateway(), home / "STOP")
             self.assertFalse(flag.exists(), "off until an answer allows it")
             anyio.run(agent.claim)
             self.assertTrue(flag.exists())
@@ -131,7 +132,7 @@ class LaneWorkersTest(unittest.TestCase):
                     "risk": "read", "arguments": {"path": "."},
                     "deadlineUtc": (datetime.now(timezone.utc) + timedelta(minutes=2)).isoformat().replace("+00:00", "Z")}
 
-        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as directory:
+        with tempfile.TemporaryDirectory() as directory:
             async def go():
                 async with Gateway(directory, home=directory) as gateway:
                     async with anyio.create_task_group() as group:
@@ -151,7 +152,7 @@ class BackgroundGateTest(unittest.TestCase):
         from ocade_agent import mac_worker, windows_worker
 
         for worker in (windows_worker, mac_worker):
-            with self.subTest(worker=worker.__name__), tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as directory:
+            with self.subTest(worker=worker.__name__), tempfile.TemporaryDirectory() as directory:
                 waited = []
                 with mock.patch.dict("os.environ", {"OCADE_AGENT_HOME": directory}), \
                         mock.patch.object(worker, "_person_quiet", lambda waited=waited: waited.append(1)):
