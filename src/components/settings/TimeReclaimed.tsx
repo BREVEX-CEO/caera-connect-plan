@@ -1,8 +1,15 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSession } from "@/lib/security/session-middleware";
-import { csv, reclaimed, record, type Period, type TaskRecord } from "@/lib/jarvis/time-reclaimed";
+import {
+  csv,
+  reclaimed,
+  record,
+  recordsInPeriod,
+  type Period,
+  type TaskRecord,
+} from "@/lib/jarvis/time-reclaimed";
 import { useSession } from "@/lib/session";
 import { Row } from "./rows";
 
@@ -22,36 +29,48 @@ const listTaskRecords = createServerFn({ method: "GET" })
 
 const PERIODS: { id: Period; label: string }[] = [
   { id: "today", label: "Today" },
-  { id: "week", label: "Week" },
-  { id: "month", label: "Month" },
-  { id: "all", label: "All time" },
+  { id: "week", label: "Last 7 days" },
+  { id: "month", label: "Last 30 days" },
+  { id: "all", label: "Most recent 1,000 tasks" },
 ];
 
 /** Billing & Usage > What JARVIS finished (T12-12): verified results, never inflated. */
 export function TimeReclaimed() {
   const { user } = useSession();
   const [period, setPeriod] = useState<Period>("month");
-  const key = `ocade.baseline.${user?.id ?? ""}`;
-  const [baseline, setBaseline] = useState<string>(() =>
-    typeof window === "undefined" ? "" : (window.localStorage.getItem(key) ?? ""),
-  );
+  const key = user ? `ocade.baseline.${user.id}` : null;
+  const [storedBaseline, setBaseline] = useState<{ key: string; value: string } | null>(null);
+  const baseline = storedBaseline?.key === key ? (storedBaseline?.value ?? "") : "";
+  useEffect(() => {
+    if (!key) return;
+    try {
+      setBaseline({ key, value: localStorage.getItem(key) ?? "" });
+    } catch {
+      // Time estimates are optional when browser storage is unavailable.
+    }
+  }, [key]);
   const tasks = useQuery({
     queryKey: ["jarvis", "records", user?.id ?? ""],
     queryFn: () => listTaskRecords(),
     enabled: Boolean(user),
   });
-  const minutes = Number(baseline) > 0 ? Number(baseline) : null;
-  const view = reclaimed(tasks.data ?? [], period, minutes);
+  const amount = Number(baseline);
+  const minutes = amount >= 1 && amount <= 600 ? amount : null;
+  const now = new Date();
+  const view = reclaimed(tasks.data ?? [], period, minutes, now);
+  const visible = recordsInPeriod(tasks.data ?? [], period, now);
   return (
     <Row
       label="What JARVIS finished"
       description={
         tasks.isError
           ? "Your JARVIS results could not be read just now."
-          : `${view.verified} verified, ${view.failed} not finished as asked, ${view.other} other, of ${view.total}. ` +
-            (view.savedMinutes === null
-              ? "Time saved: unavailable until you say how long a task takes you by hand."
-              : `About ${view.savedMinutes} minutes saved, from your estimate of ${minutes} minutes per task, minus the time JARVIS waited on you.`)
+          : tasks.isPending
+            ? "Loading your JARVIS results…"
+            : `${view.verified} verified, ${view.failed} not finished as asked, ${view.other} other, of ${view.total}. ` +
+              (view.savedMinutes === null
+                ? "Time saved: unavailable until you say how long a task takes you by hand."
+                : `About ${view.savedMinutes} minutes saved, from your estimate of ${minutes} minutes per task, minus the time JARVIS waited on you.`)
       }
     >
       <div className="flex flex-wrap items-center gap-2 text-xs">
@@ -72,9 +91,16 @@ export function TimeReclaimed() {
           min={1}
           max={600}
           value={baseline}
+          disabled={!key}
           onChange={(event) => {
-            setBaseline(event.target.value);
-            window.localStorage.setItem(key, event.target.value);
+            if (!key) return;
+            const value = event.target.value;
+            setBaseline({ key, value });
+            try {
+              localStorage.setItem(key, value);
+            } catch {
+              // The estimate still works for this visit.
+            }
           }}
           aria-label="Your minutes per task by hand"
           placeholder="Minutes by hand"
@@ -82,10 +108,10 @@ export function TimeReclaimed() {
         />
         <button
           type="button"
-          disabled={!tasks.data?.length}
+          disabled={!visible.length || tasks.isError}
           onClick={() => {
             const url = URL.createObjectURL(
-              new Blob([csv(tasks.data ?? [])], { type: "text/csv;charset=utf-8" }),
+              new Blob([csv(visible)], { type: "text/csv;charset=utf-8" }),
             );
             const link = document.createElement("a");
             link.href = url;

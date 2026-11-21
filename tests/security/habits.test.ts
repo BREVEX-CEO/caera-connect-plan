@@ -19,6 +19,8 @@ test("repeated verified outcomes only, top three, by count", () => {
     verified("Once only"),
     { ...verified("Unverified"), checkpoint: { verification: { passed: ["c1"] } } },
     { ...verified("Unverified"), checkpoint: null },
+    { ...verified("Unverified"), checkpoint: { verification: { passed: ["c1", "c1"] } } },
+    { ...verified("Unverified"), checkpoint: { verification: { passed: ["other", "c2"] } } },
     { title: "No checks", outcome: [], checkpoint: {} },
     { title: "No checks", outcome: [], checkpoint: {} },
   ]);

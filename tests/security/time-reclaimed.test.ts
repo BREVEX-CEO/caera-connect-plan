@@ -28,3 +28,17 @@ test("only verified completed tasks count; time saved needs the person's own bas
   assert.equal(reclaimed(tasks, "all", 0, now).savedMinutes, null);
   assert.match(csv(tasks), /"Task ""completed""",completed,yes/);
 });
+
+test("duplicate and unrelated checks cannot inflate outcomes or exported verification", () => {
+  const base = {
+    ...row("completed", 2, 1),
+    title: "=1+1",
+    outcome: [{ id: "a" }, { id: "b" }],
+  };
+  const notVerified = record({
+    ...base,
+    checkpoint: { verification: { passed: ["a", "a", "old"] } },
+  });
+  assert.equal(reclaimed([notVerified], "today", 10, now).verified, 0);
+  assert.match(csv([notVerified]), /"'=1\+1",completed,no/);
+});

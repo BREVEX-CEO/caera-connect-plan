@@ -15,6 +15,20 @@ export interface TaskRecord {
   passed: number;
 }
 
+/** Count only distinct declared checks with a matching verification result. */
+export function countOutcomeChecks(outcome: unknown, checkpoint: unknown) {
+  const checks: unknown[] = Array.isArray(outcome) ? outcome : [];
+  const reported = (checkpoint as { verification?: { passed?: unknown } } | null)?.verification
+    ?.passed;
+  const passed = new Set<unknown>(Array.isArray(reported) ? reported : []);
+  const matched = new Set<string>();
+  for (const check of checks) {
+    const id = (check as { id?: unknown } | null)?.id;
+    if (typeof id === "string" && id.length > 0 && passed.has(id)) matched.add(id);
+  }
+  return { checks: checks.length, passed: matched.size };
+}
+
 /** A stored task row reduced to what the dashboard counts (no checks' contents). */
 export function record(row: {
   title: string;
@@ -25,23 +39,30 @@ export function record(row: {
   outcome: unknown;
   checkpoint: unknown;
 }): TaskRecord {
-  const passed = (row.checkpoint as { verification?: { passed?: unknown[] } } | null)?.verification
-    ?.passed;
   return {
     title: row.title,
     status: row.status,
     created_at: row.created_at,
     finished_at: row.finished_at,
     user_wait_ms: row.user_wait_ms,
-    checks: Array.isArray(row.outcome) ? row.outcome.length : 0,
-    passed: Array.isArray(passed) ? passed.length : 0,
+    ...countOutcomeChecks(row.outcome, row.checkpoint),
   };
 }
 
 export type Period = "today" | "week" | "month" | "all";
 
 export function verified(task: TaskRecord): boolean {
-  return task.status === "completed" && task.checks > 0 && task.passed >= task.checks;
+  return task.status === "completed" && task.checks > 0 && task.passed === task.checks;
+}
+
+export function recordsInPeriod(tasks: readonly TaskRecord[], period: Period, now = new Date()) {
+  const from =
+    period === "all"
+      ? 0
+      : period === "today"
+        ? new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()
+        : now.getTime() - (period === "week" ? 7 : 30) * 86_400_000;
+  return tasks.filter((task) => Date.parse(task.created_at) >= from);
 }
 
 export function reclaimed(
@@ -50,11 +71,7 @@ export function reclaimed(
   baselineMinutes: number | null,
   now = new Date(),
 ) {
-  const from =
-    period === "all"
-      ? 0
-      : now.getTime() - (period === "today" ? 1 : period === "week" ? 7 : 30) * 86_400_000;
-  const within = tasks.filter((task) => Date.parse(task.created_at) >= from);
+  const within = recordsInPeriod(tasks, period, now);
   const done = within.filter(verified);
   const failed = within.filter((task) => ["failed", "blocked"].includes(task.status)).length;
   const unfinished = within.length - done.length - failed;
@@ -66,14 +83,18 @@ export function reclaimed(
     failed,
     other: unfinished,
     savedMinutes:
-      baselineMinutes && baselineMinutes > 0
+      baselineMinutes !== null && Number.isFinite(baselineMinutes) && baselineMinutes > 0
         ? Math.max(0, Math.round(done.length * baselineMinutes - waitedMinutes))
         : null,
   };
 }
 
 export function csv(tasks: readonly TaskRecord[]): string {
-  const cell = (value: string) => `"${value.replaceAll('"', '""')}"`;
+  const cell = (value: string) => {
+    // A task title is user text. Spreadsheet apps may interpret a quoted CSV field as a formula.
+    const text = /^[\s\uFEFF]*[=+@-]|^[\t\r\n]/.test(value) ? `'${value}` : value;
+    return `"${text.replaceAll('"', '""')}"`;
+  };
   return [
     "title,status,verified,accepted_at,finished_at,waited_on_you_seconds",
     ...tasks.map((task) =>
