@@ -4262,6 +4262,19 @@ The existing `tests.run_required.main` loads selected modules/classes/methods or
 - REPO-02 reconciled to the existing guarded batch (typed allowlisted operations, per-step permission at dispatch, deadlines, bounded evidence, journal receipts, cancellation fence) — no second gateway. REPO-08 reconciled: customers install only the companion; disposable sandboxes stay in CI (hosted installer/cloud-validation jobs); no container backend is imposed on customers.
 - NOT DONE (honest): Parts 27/28 products; 14C items; 14D task DAG/adaptive teams beyond lanes; resumable large uploads and Point & Ask (14E.4/14E.5); native continuous capture; Stage 2 (0/192 roots triaged), debloat, final CI campaign, staging and benchmarks.
 
+**21 Nov 2026 batch 2 — Parts 27/28 primitives and products, 14E remainder, security PARTIALs. CODED and TESTED locally (DB 30+ groups, 48 rollbacks; 335 TypeScript tests; companion lane/bar/watch suites); not deployed, not run on staging, a real model or hosted runners (owner: one coordinated campaign after coding).**
+
+- R12-02 Smart Approvals (`20261121140000`): "steps like this in <app>/on <site>/in this task's files for this task", exact scope, withdrawable, never for commands/jobs/installs/uploads/downloads/external tools.
+- R12-01 Live/Background mode per task (`20261121150000`): Background refuses typing/clicking/opening windows (`live_needed`) and enables pattern-based background control only with the `background` permission. T12-06 Rehearsal mode (`20261121180000`): only reads and writes under `OCADE output/rehearsal`; "Do it for real".
+- R12-05 permission guide (Mac Accessibility/Screen Recording from reported `desktop`/`capture` engines; macOS's own prompts; engines re-reported every 10 min). R12-06 generated forms (`20261121160000`): ask with typed fields, task waits, answers return as an instruction. R12-08 next-step preview; R12-09 timeline filters; R12-10 opt-in "Do again" habits (memory on only, verified twice).
+- 27.3 four packages / eight products as built-in read-only skills (`packages.ts`) with narrowing rules (no money movement, no submission, no invented facts).
+- 28.1 T12-07 Proof Passport (manifest + integrity hash, unsigned, never VERIFIED beyond checks); T12-10 case summary for a professional (honest fallback, no partner network); T12-11 save a verified task as a private skill; T12-12 Time Reclaimed (verified counts; time saved only from the person's own baseline; CSV). 28.2.6 Anti-Scam Guardian (rule signs with evidence on pages JARVIS opened; fill/click/upload refused on a flagged site).
+- 14C ELITE-02/VERIFY-05 deterministic replay (`20261121170000`): "Run again exactly" replays a verified task's file/document/media steps without the model, then re-verifies; the planner takes over at the first mismatch.
+- 14E.4 resumable large Library uploads (TUS to Storage, accepted-byte progress, resume, cancel, stale cleanup) with storage-side intake by range/stream (`intakeRefusalStored`). 14E.5.3 Point & Ask from the floating bar.
+- Security: SEC-04 per-person rate limits on server actions (`20261121190000`, fails closed); KEY-13 log redaction in the Worker and every Edge Function (canary-tested); SEC-10 route review test (no debug/diagnostic routes, no stack traces).
+- 14E.8 Answer language (Chat; the interface is English and says so).
+- NOT DONE (honest): native continuous capture (WGC/ScreenCaptureKit), SkillForge demonstration recording, R12-03 field-level purpose binding, R12-07 discovery presentation, R12-11 Simplification Mode beyond forms, 14D task DAG/adaptive teams, ELITE-08 margin, per-route 34-principle UX evidence and signed-in surface audit, Stage 2 (0/192 roots triaged), debloat, final CI campaign, staging, benchmarks, payments (owner: after everything else).
+
 ---
 
 ## Part 20. JARVIS engineering GO / NO-GO
