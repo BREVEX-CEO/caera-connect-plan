@@ -60,13 +60,13 @@ OCADE's Offline Mode includes LFM2.5-VL-450M by Liquid AI, Inc. Its language wei
 | pyee | 14.0.0 | MIT |
 | pygetwindow | 0.0.9 | BSD-3-Clause |
 | pyjwt | 2.15.1 | MIT |
-| pyobjc-core | 13.0 | MIT |
-| pyobjc-framework-applicationservices | 13.0 | MIT |
-| pyobjc-framework-cocoa | 13.0 | MIT |
-| pyobjc-framework-coremedia | 13.0 | MIT |
-| pyobjc-framework-coretext | 13.0 | MIT |
-| pyobjc-framework-quartz | 13.0 | MIT |
-| pyobjc-framework-screencapturekit | 13.0 | MIT |
+| pyobjc-core | 12.2.2 | MIT |
+| pyobjc-framework-applicationservices | 12.2.2 | MIT |
+| pyobjc-framework-cocoa | 12.2.2 | MIT |
+| pyobjc-framework-coremedia | 12.2.2 | MIT |
+| pyobjc-framework-coretext | 12.2.2 | MIT |
+| pyobjc-framework-quartz | 12.2.2 | MIT |
+| pyobjc-framework-screencapturekit | 12.2.2 | MIT |
 | pypdf | 6.21.4 | BSD-3-Clause |
 | pypdfium2 | 5.13.0 | Apache-2.0 OR BSD-3-Clause (PDFium: BSD-3-Clause) |
 | pyperclip | 1.11.0 | BSD-3-Clause |

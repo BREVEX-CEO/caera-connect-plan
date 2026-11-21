@@ -159,31 +159,31 @@
       "note": "Optional import of pyautogui; excluded from the installer (packaging/ocade-agent.spec excludes), so no GPL code is redistributed."
     },
     "pyobjc-core": {
-      "version": "13.0",
+      "version": "12.2.2",
       "licence": "MIT"
     },
     "pyobjc-framework-applicationservices": {
-      "version": "13.0",
+      "version": "12.2.2",
       "licence": "MIT"
     },
     "pyobjc-framework-cocoa": {
-      "version": "13.0",
+      "version": "12.2.2",
       "licence": "MIT"
     },
     "pyobjc-framework-coremedia": {
-      "version": "13.0",
+      "version": "12.2.2",
       "licence": "MIT"
     },
     "pyobjc-framework-coretext": {
-      "version": "13.0",
+      "version": "12.2.2",
       "licence": "MIT"
     },
     "pyobjc-framework-quartz": {
-      "version": "13.0",
+      "version": "12.2.2",
       "licence": "MIT"
     },
     "pyobjc-framework-screencapturekit": {
-      "version": "13.0",
+      "version": "12.2.2",
       "licence": "MIT"
     },
     "pypdf": {
