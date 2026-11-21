@@ -17,7 +17,7 @@ def main(database: str) -> None:
     command = ["psql", "-q", "-X", "-A", "-t", "-v", "ON_ERROR_STOP=1", "-d", database, "-c"]
 
     def sql(statement: str) -> str:
-        result = subprocess.run(command + [statement], capture_output=True, text=True, timeout=30)
+        result = subprocess.run(command + [statement], capture_output=True, text=True, timeout=30, check=False)
         if result.returncode:
             raise AssertionError(result.stderr.strip())
         return result.stdout.strip()
