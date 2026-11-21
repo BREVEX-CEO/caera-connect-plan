@@ -275,7 +275,7 @@ class WindowsUiLadder(unittest.TestCase):
             self.assertTrue(out["dialog_ok"]["evidence"].get("met"), out["dialog_ok"])
             self.assertTrue(out["dialog_gone"]["evidence"].get("met"), out["dialog_gone"])
         with self.subTest("UIA-021 ui.watch sees a real change locally and refuses when nothing changes (14F.9)"):
-            self.assertEqual((out["still"]["status"], out["still"]["errorCode"]), ("not_applied", "not_changed"),
+            self.assertEqual((out["still"]["status"], out["still"].get("errorCode")), ("not_applied", "not_changed"),
                              out["still"])
             watched = out["watched"]
             self.assertEqual(out["watch_scroll"]["status"], "observed", out["watch_scroll"])
