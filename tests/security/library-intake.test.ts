@@ -5,8 +5,9 @@
  */
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { randomBytes } from "node:crypto";
 import { deflateRawSync } from "node:zlib";
-import { intakeRefusal, zipEntries } from "../../src/lib/library/intake.ts";
+import { intakeRefusal, intakeRefusalStored, zipEntries } from "../../src/lib/library/intake.ts";
 
 /** A real ZIP built in memory: stored or deflated entries with a correct central directory. */
 function zip(files: { name: string; data: Buffer; claimSize?: number }[]): Uint8Array {
@@ -113,4 +114,66 @@ test("ordinary files are kept", () => {
     ["Meeting notes", "notes.txt"],
   ])
     assert.equal(intakeRefusal(bytes(content), name), null, name);
+});
+
+/** A stored file read by range and as a stream in small chunks (patterns cross chunk borders). */
+function stored(data: Uint8Array) {
+  return {
+    size: data.length,
+    range: async (start: number, end: number) => data.slice(start, end),
+    whole: async () =>
+      new ReadableStream<Uint8Array>({
+        start(controller) {
+          for (let at = 0; at < data.length; at += 7) controller.enqueue(data.slice(at, at + 7));
+          controller.close();
+        },
+      }),
+  };
+}
+
+test("a stored large file gets the same decision without being held in memory (14E.4)", async () => {
+  const pad = (head: string, filler: number, tail: string) =>
+    new Uint8Array(
+      Buffer.concat([
+        Buffer.from(head, "latin1"),
+        Buffer.alloc(filler, 0x20),
+        Buffer.from(tail, "latin1"),
+      ]),
+    );
+  const cases: [Uint8Array, string, string | null][] = [
+    [pad("%PDF-1.7\n", 200_000, "<< /S /JavaScript >>"), "late.pdf", "active_pdf"],
+    [pad("%PDF-1.7\n", 200_000, "<< /Type /Catalog >>"), "fine.pdf", null],
+    [
+      new Uint8Array(
+        Buffer.concat([
+          Buffer.from([0xd0, 0xcf, 0x11, 0xe0]),
+          Buffer.alloc(100_000),
+          Buffer.from("_VBA_PROJECT", "utf16le"),
+        ]),
+      ),
+      "old.doc",
+      "macro",
+    ],
+    [bytes("MZ\x90\x00 padding"), "a.jpg", "program"],
+    [
+      zip([
+        { name: "readme.txt", data: randomBytes(300_000) },
+        { name: "bin/payload.exe", data: Buffer.from("x") },
+      ]),
+      "docs.zip",
+      "archive_content",
+    ],
+    [zip([{ name: "a.txt", data: Buffer.from("hello world") }]), "docs.zip", null],
+    [
+      zip([{ name: "big.txt", data: Buffer.alloc(1000), claimSize: 3 * 1024 ** 3 }]),
+      "p.zip",
+      "archive_bomb",
+    ],
+  ];
+  for (const [data, name, expected] of cases) {
+    const file = stored(data);
+    const refused = await intakeRefusalStored(file.size, name, file.range, file.whole);
+    assert.equal(refused?.code ?? null, expected, name);
+    assert.equal(intakeRefusal(data, name)?.code ?? null, expected, `${name} in memory`);
+  }
 });

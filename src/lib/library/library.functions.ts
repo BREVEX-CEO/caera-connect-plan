@@ -245,3 +245,115 @@ export const deleteAllLibraryItems = createServerFn({ method: "POST" })
     const { pending } = await (await import("./tombstones.server")).sweepTombstones(context.userId);
     return { removed: Number(removed ?? 0), pending };
   });
+
+/* ------------------------------------------------------------------------------------------
+ * Large files (plan 14E.4): the browser uploads straight to Storage (resumable-upload.ts) under
+ * a path this server chose in the person's own folder; the item is listed only after the stored
+ * bytes pass the same intake rules, read by range and stream, never whole in memory.
+ * ---------------------------------------------------------------------------------------- */
+
+/** Where the next large upload goes, and the removal of this person's abandoned ones. */
+export const beginLibraryUpload = createServerFn({ method: "POST" })
+  .middleware([requireSession])
+  .validator(
+    z.object({ size: z.number().int().min(1).max(LIBRARY_MAX_BYTES), resume: uuid.nullish() })
+      .parse,
+  )
+  .handler(async ({ data, context }) => {
+    // An upload begun more than a day ago that never became an item is removed (by policy).
+    const { data: objects } = await context.supabase.storage
+      .from("library")
+      .list(context.userId, { limit: 1000 });
+    const { data: rows } = await context.supabase
+      .from("ocade_library_items")
+      .select("storage_path");
+    const listed = new Set((rows ?? []).map((row) => row.storage_path));
+    const stale = (objects ?? [])
+      .filter(
+        (object) =>
+          object.name !== data.resume &&
+          !listed.has(`${context.userId}/${object.name}`) &&
+          Date.now() - Date.parse(object.created_at ?? "") > 86_400_000,
+      )
+      .map((object) => `${context.userId}/${object.name}`);
+    if (stale.length) await context.supabase.storage.from("library").remove(stale.slice(0, 100));
+    const id = data.resume ?? crypto.randomUUID();
+    return { id, objectName: `${context.userId}/${id}` };
+  });
+
+/** Check the uploaded bytes, then list the item; refused bytes are removed at once. */
+export const finishLibraryUpload = createServerFn({ method: "POST" })
+  .middleware([requireSession])
+  .validator(
+    z.object({
+      id: uuid,
+      name: z.string().trim().min(1).max(300),
+      mime: z.string().trim().min(1).max(200).refine(isMediaType, "That file type is not valid."),
+      conversationId: uuid.nullish(),
+    }).parse,
+  )
+  .handler(async ({ data, context }): Promise<LibraryItemRow> => {
+    const storagePath = `${context.userId}/${data.id}`;
+    const bucket = context.supabase.storage.from("library");
+    const { data: found } = await bucket.list(context.userId, { search: data.id, limit: 5 });
+    const object = found?.find((entry) => entry.name === data.id);
+    const size = Number((object?.metadata as { size?: unknown } | undefined)?.size ?? 0);
+    if (!object || !Number.isSafeInteger(size) || size < 1 || size > LIBRARY_MAX_BYTES)
+      throw new Error("That upload is not complete yet.");
+    const signed = await bucket.createSignedUrl(storagePath, 300);
+    if (signed.error || !signed.data) throw new Error("That upload could not be checked.");
+    const url = signed.data.signedUrl;
+    const { intakeRefusalStored } = await import("./intake");
+    const refused = await intakeRefusalStored(
+      size,
+      data.name,
+      async (start, end) => {
+        if (end <= start) return new Uint8Array(0);
+        const part = await fetch(url, { headers: { range: `bytes=${start}-${end - 1}` } });
+        if (!part.ok) throw new Error("That upload could not be checked.");
+        return new Uint8Array(await part.arrayBuffer()).subarray(0, end - start);
+      },
+      async () => {
+        const all = await fetch(url);
+        if (!all.ok || !all.body) throw new Error("That upload could not be checked.");
+        return all.body;
+      },
+    );
+    if (refused) {
+      await bucket.remove([storagePath]);
+      throw new Error(refused.reason);
+    }
+    // Stored as bytes to be downloaded, never as a document a browser would run (see above).
+    const { data: row, error } = await context.supabase
+      .from("ocade_library_items")
+      .insert({
+        id: data.id,
+        user_id: context.userId,
+        kind: "file",
+        source: "upload",
+        name: data.name,
+        mime: data.mime,
+        size_bytes: size,
+        storage_path: storagePath,
+        conversation_id: data.conversationId ?? null,
+      })
+      .select(COLUMNS)
+      .single();
+    if (error || !row) throw new Error(`That could not be saved: ${error?.message ?? "no row"}`);
+    return row as LibraryItemRow;
+  });
+
+/** Stop an upload and remove what reached Storage. */
+export const cancelLibraryUpload = createServerFn({ method: "POST" })
+  .middleware([requireSession])
+  .validator(z.object({ id: uuid }).parse)
+  .handler(async ({ data, context }) => {
+    const { data: listed } = await context.supabase
+      .from("ocade_library_items")
+      .select("id")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (!listed)
+      await context.supabase.storage.from("library").remove([`${context.userId}/${data.id}`]);
+    return { cancelled: true };
+  });

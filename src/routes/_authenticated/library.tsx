@@ -7,13 +7,21 @@ import { AppShell } from "@/components/shell/AppShell";
 import { Pending } from "@/components/settings/rows";
 import {
   addLibraryItem,
+  beginLibraryUpload,
+  cancelLibraryUpload,
   deleteLibraryItem,
+  finishLibraryUpload,
   listLibraryItems,
   signLibraryItem,
   LIBRARY_MAX_BYTES,
   type LibraryItemRow,
 } from "@/lib/library/library.functions";
 import { cn } from "@/lib/utils";
+import { resumable, uploadResumable } from "@/lib/library/resumable-upload";
+import { getSupabaseBrowserConfiguration, supabase } from "@/integrations/supabase/client";
+
+/** Files above this go straight to Storage, resumably, instead of through a server function. */
+const DIRECT_UPLOAD_BYTES = 4 * 1024 * 1024;
 
 export const Route = createFileRoute("/_authenticated/library")({
   head: () => ({ meta: [{ title: "Library — OCADE" }] }),
@@ -59,11 +67,46 @@ function LibraryPage() {
 
   const refresh = () => client.invalidateQueries({ queryKey: ["library", "items"] });
 
+  const [progress, setProgress] = useState<{ accepted: number; total: number } | null>(null);
+  const cancel = useRef<{ controller: AbortController; id: string } | null>(null);
+
+  /** A large file goes straight to Storage, resumably, then is checked (plan 14E.4). */
+  async function uploadLarge(file: File) {
+    const configuration = getSupabaseBrowserConfiguration();
+    const { data: session } = await supabase.auth.getSession();
+    if (!configuration.url || !configuration.publishableKey || !session.session)
+      throw new Error("Sign in again to add a large file.");
+    const begun = await beginLibraryUpload({
+      data: { size: file.size, resume: resumable(file)?.id ?? null },
+    });
+    const controller = new AbortController();
+    cancel.current = { controller, id: begun.id };
+    try {
+      await uploadResumable({
+        file,
+        endpoint: `${configuration.url}/storage/v1/upload/resumable`,
+        apiKey: configuration.publishableKey,
+        accessToken: session.session.access_token,
+        objectName: begun.objectName,
+        id: begun.id,
+        signal: controller.signal,
+        onProgress: (accepted, total) => setProgress({ accepted, total }),
+      });
+      setProgress(null);
+      return await finishLibraryUpload({
+        data: { id: begun.id, name: file.name, mime: file.type || "application/octet-stream" },
+      });
+    } finally {
+      cancel.current = null;
+    }
+  }
+
   const upload = useMutation({
     mutationFn: async (file: File) => {
       if (file.size > LIBRARY_MAX_BYTES) {
         throw new Error("That file is larger than OCADE can keep in your library.");
       }
+      if (file.size > DIRECT_UPLOAD_BYTES) return uploadLarge(file);
       return addLibraryItem({
         data: {
           name: file.name,
@@ -138,8 +181,27 @@ function LibraryPage() {
             className="flex h-8 items-center gap-2 rounded-md border border-border px-3 text-sm text-foreground transition-colors hover:bg-accent disabled:opacity-50"
           >
             <Upload className="h-4 w-4" aria-hidden />
-            {upload.isPending ? "Adding…" : "Add"}
+            {upload.isPending
+              ? progress
+                ? `${Math.floor((progress.accepted / progress.total) * 100)}% received`
+                : "Adding…"
+              : "Add"}
           </button>
+          {upload.isPending && progress ? (
+            <button
+              type="button"
+              onClick={() => {
+                const running = cancel.current;
+                if (!running) return;
+                running.controller.abort();
+                void cancelLibraryUpload({ data: { id: running.id } });
+                setProgress(null);
+              }}
+              className="h-8 rounded-md px-3 text-sm text-muted-foreground hover:bg-accent"
+            >
+              Cancel upload
+            </button>
+          ) : null}
           <input
             ref={picker}
             type="file"

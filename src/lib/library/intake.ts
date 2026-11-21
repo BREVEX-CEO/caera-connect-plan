@@ -116,18 +116,93 @@ export function intakeRefusal(
   if (starts(bytes, 0x50, 0x4b, 0x03, 0x04) || starts(bytes, 0x50, 0x4b, 0x05, 0x06)) {
     const entries = zipEntries(bytes);
     if (!entries) return null; // not a readable archive: kept as inert bytes, never unpacked here
-    const unpacked = entries.reduce((sum, entry) => sum + entry.uncompressed, 0);
-    if (
-      entries.length > MAX_ENTRIES ||
-      unpacked > MAX_UNPACKED ||
-      unpacked > Math.max(bytes.length, 1) * MAX_RATIO
-    )
-      return refuse("archive_bomb");
-    // An OOXML document with a macro project, or an archive that holds something runnable.
-    if (entries.some((entry) => /(^|\/)vbaProject\.bin$/i.test(entry.name)))
-      return refuse(/\.(docx|xlsx|pptx)$/i.test(name) ? "macro" : "archive_content");
-    if (entries.some((entry) => RUNNABLE_NAMES.test(entry.name) || MACRO_NAMES.test(entry.name)))
-      return refuse("archive_content");
+    return archiveRefusal(entries, bytes.length, name);
+  }
+  return null;
+}
+
+function archiveRefusal(entries: ZipEntry[], size: number, name: string) {
+  const refuse = (code: IntakeRefusal) => ({ code, reason: REASONS[code] });
+  const unpacked = entries.reduce((sum, entry) => sum + entry.uncompressed, 0);
+  if (
+    entries.length > MAX_ENTRIES ||
+    unpacked > MAX_UNPACKED ||
+    unpacked > Math.max(size, 1) * MAX_RATIO
+  )
+    return refuse("archive_bomb");
+  // An OOXML document with a macro project, or an archive that holds something runnable.
+  if (entries.some((entry) => /(^|\/)vbaProject\.bin$/i.test(entry.name)))
+    return refuse(/\.(docx|xlsx|pptx)$/i.test(name) ? "macro" : "archive_content");
+  if (entries.some((entry) => RUNNABLE_NAMES.test(entry.name) || MACRO_NAMES.test(entry.name)))
+    return refuse("archive_content");
+  return null;
+}
+
+const HEAD = 64 * 1024;
+const TAIL = 65_557;
+const MAX_DIRECTORY = 8 * 1024 * 1024;
+
+/**
+ * The same intake rules for a file already in storage, without holding it in memory (plan
+ * 14E.4): its first 64 KiB for what it is, its ZIP directory read by range, and for PDFs and
+ * older Office files one streaming pass for active content (patterns may cross chunk borders).
+ */
+export async function intakeRefusalStored(
+  size: number,
+  name: string,
+  range: (start: number, end: number) => Promise<Uint8Array>,
+  whole: () => Promise<ReadableStream<Uint8Array>>,
+): Promise<{ code: IntakeRefusal; reason: string } | null> {
+  const refuse = (code: IntakeRefusal) => ({ code, reason: REASONS[code] });
+  const head = await range(0, Math.min(size, HEAD));
+  const quick = intakeRefusal(head, name);
+  // A ZIP or PDF judged on its head alone is decided below on the whole file.
+  const pdf = starts(head, 0x25, 0x50, 0x44, 0x46);
+  const ole = starts(head, 0xd0, 0xcf, 0x11, 0xe0);
+  const zip = starts(head, 0x50, 0x4b, 0x03, 0x04) || starts(head, 0x50, 0x4b, 0x05, 0x06);
+  if (quick && !zip) return quick;
+  if (zip) {
+    const tailStart = Math.max(0, size - TAIL);
+    const tail = await range(tailStart, size);
+    const view = new DataView(tail.buffer, tail.byteOffset, tail.byteLength);
+    let end = -1;
+    for (let i = tail.length - 22; i >= 0; i -= 1) {
+      if (view.getUint32(i, true) === 0x06054b50) {
+        end = i;
+        break;
+      }
+    }
+    if (end < 0) return null; // not a readable archive: inert bytes
+    const directorySize = view.getUint32(end + 12, true);
+    const directoryAt = view.getUint32(end + 16, true);
+    if (directorySize > MAX_DIRECTORY) return refuse("archive_bomb");
+    if (directoryAt + directorySize > size) return null;
+    const directory = await range(directoryAt, directoryAt + directorySize);
+    // The directory followed by its end record, with the directory's offset rewritten to 0.
+    const record = tail.subarray(end, Math.min(tail.length, end + 22));
+    const joined = new Uint8Array(directory.length + record.length);
+    joined.set(directory, 0);
+    joined.set(record, directory.length);
+    new DataView(joined.buffer).setUint32(directory.length + 16, 0, true);
+    const entries = zipEntries(joined);
+    return entries ? archiveRefusal(entries, size, name) : null;
+  }
+  if (!pdf && !ole) return null;
+  const needles = pdf ? [ascii("/Launch"), ascii("/JavaScript")] : [VBA_STREAM];
+  const keep = Math.max(...needles.map((n) => n.length)) - 1;
+  const reader = (await whole()).getReader();
+  let carry = new Uint8Array(0);
+  for (;;) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    const window = new Uint8Array(carry.length + value.length);
+    window.set(carry, 0);
+    window.set(value, carry.length);
+    if (needles.some((needle) => contains(window, needle))) {
+      await reader.cancel();
+      return refuse(pdf ? "active_pdf" : "macro");
+    }
+    carry = window.subarray(Math.max(0, window.length - keep));
   }
   return null;
 }
