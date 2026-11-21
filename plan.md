@@ -4294,6 +4294,15 @@ The existing `tests.run_required.main` loads selected modules/classes/methods or
 - 14E.8 Answer language (Chat; the interface is English and says so).
 - NOT DONE (honest): native continuous capture (WGC/ScreenCaptureKit), SkillForge demonstration recording, R12-03 field-level purpose binding, R12-07 discovery presentation, R12-11 Simplification Mode beyond forms, 14D task DAG/adaptive teams, ELITE-08 margin, per-route 34-principle UX evidence and signed-in surface audit, Stage 2 (0/192 roots triaged), debloat, final CI campaign, staging, benchmarks, payments (owner: after everything else).
 
+**21 Nov 2026 batch 3 — 14D.4A, live vision, SkillForge, adaptive team, purpose binding. CODED and TESTED locally (DB groups incl. `byok-budgets` and a 12-session reservation race, 49 rollbacks; 358 TypeScript tests; 324 companion tests under xvfb); not deployed, not run on staging, a real model or hosted runners.**
+
+- 14D.4A.3-6 (`20261121200000`): per-key model discovery (OpenAI-compatible, Gemini, Anthropic list endpoints; OpenRouter free/price/tools/image metadata), up to 1000 models a key, permit/test/price each; Manual or Auto (first permitted model that can do the job; never another key); Free-only / Custom (per task, day, month in the person's currency and time zone; unknown price refused) / Unlimited; every customer-key call reserved under a connection lock before sending and settled from reported usage; refusals in the person's words in Chat and JARVIS; task panel shows source, model and spend. Not done: live provider listing/benchmark (needs keys and the coding/CI gates), staging Gemini inspection (Stage 5).
+- 14F.9-14F.10 live vision (`capture.py`): one shared capture per watched window — Windows.Graphics.Capture (pywinrt) / ScreenCaptureKit, frames only on change, ≤4 images/s, ≤8 kept, labelled polling fallback; `ui.watch` on the shared stream with optional ordered keyframes (temporal context). Native backends asserted only on hosted runners (UIA-021, MAC-030): UNVERIFIED until the campaign.
+- 28.2.1 SkillForge: `ui.record` (one leased window, bounded, presses + final field values, protected fields never read), editable workflow → private skill (versioned in the skill text), `/skill field="value"` replays without the model on the app's open window, fail closed at a missing control. Hosted UIA-022 pending.
+- 14D.3 adaptive team: in multi-agent mode a free agent is planned for while others' plain steps run (wait instead of finish; overlapping work refused before queueing; free lanes first); single-agent mode unchanged for the comparison.
+- R12-03 purpose binding: protected values are filled only into form fields and documents; summaries keep placeholders.
+- NOT DONE (honest): ELITE-08 margin (needs payments), per-route 34-principle UX evidence and signed-in surface audit (need a seeded signed-in environment), Stage 2 (0/192 roots triaged), debloat, final CI campaign, staging, benchmarks, payments (owner: after everything else).
+
 ---
 
 ## Part 20. JARVIS engineering GO / NO-GO
