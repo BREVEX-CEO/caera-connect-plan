@@ -8,8 +8,32 @@ tests permit no skips unless a reason is explicitly supplied.
 """
 
 import argparse
+import faulthandler
+import logging
+import re
 import sys
 import unittest
+
+# A hung suite fails with every thread's stack instead of running into the job's timeout.
+HANG_SECONDS = 1500
+
+
+class _AbandonedWorker(logging.Handler):
+    """Names what a worker that survived the SDK's kill is doing (the hosted windows-2022 hang)."""
+
+    def emit(self, record):
+        found = re.search(r"process (\d+) is still alive", record.getMessage())
+        if not found:
+            return
+        try:
+            import psutil
+
+            process = psutil.Process(int(found.group(1)))
+            facts = process.as_dict(["name", "status", "cmdline", "num_threads", "ppid", "create_time"])
+            facts["children"] = [(c.pid, c.name(), c.status()) for c in process.children(recursive=True)]
+        except Exception as error:  # noqa: BLE001 - evidence only; the test still fails on its own
+            facts = {"unavailable": repr(error)}
+        print(f"OCADE_ABANDONED_WORKER:{facts}", file=sys.stderr, flush=True)
 
 
 def run_required(suite, allowed=(), stream=None):
@@ -30,6 +54,8 @@ def main(argv=None):
     parser.add_argument("allowed", nargs="*", help="exact allowed skip reasons")
     parser.add_argument("--tests", action="append", help="required test module, class or method; repeatable")
     args = parser.parse_args(argv)
+    faulthandler.dump_traceback_later(HANG_SECONDS, exit=True)
+    logging.getLogger("mcp.client.stdio").addHandler(_AbandonedWorker())
     loader = unittest.TestLoader()
     suite = (loader.loadTestsFromNames(args.tests) if args.tests
              else loader.discover("tests", top_level_dir="."))
