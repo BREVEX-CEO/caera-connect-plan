@@ -16,7 +16,7 @@ from ocade_agent.journal import Journal
 
 class BarStateTest(unittest.TestCase):
     def test_state_follows_the_steps_that_run(self):
-        with tempfile.TemporaryDirectory() as directory:
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as directory:
             home = Path(directory)
             bar = BarState(home)
             bar.task_seen({"id": "t", "status": "running"})
@@ -38,7 +38,7 @@ class BarStateTest(unittest.TestCase):
 
 class InstructionTest(unittest.TestCase):
     def test_typed_instructions_are_delivered_once_and_kept_through_an_outage(self):
-        with tempfile.TemporaryDirectory() as directory:
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as directory:
             home = Path(directory)
             queue_instruction(home, "  Use the blue logo ", None)
             queue_instruction(home, "Smaller", 1)
@@ -76,7 +76,7 @@ class PointTest(unittest.TestCase):
 
         from ocade_agent.bar import point_instruction, save_pointed
 
-        with tempfile.TemporaryDirectory() as directory:
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as directory:
             home, workspace = Path(directory, "home"), Path(directory, "ws")
             home.mkdir()
             workspace.mkdir()

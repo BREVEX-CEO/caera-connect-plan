@@ -161,6 +161,7 @@ class WindowsUiLadder(unittest.TestCase):
                     await anyio.sleep(0.15)
                     win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP, 0, 0)
                 out["recorded"] = recorded["result"]
+                await run("ui.set_value", {"window": window, "element": box, "value": "Quarterly GREEN"})
                 # By the ref the newest inspection gave the button (P5), not by a description.
                 save = next(e["ref"] for e in out["region"]["evidence"]["elements"] if e["automationId"] == "saveButton")
                 out["invoke"] = await run("ui.invoke", {"window": window, "element": {"ref": save}})
@@ -186,8 +187,6 @@ class WindowsUiLadder(unittest.TestCase):
                 time.sleep(1)
                 out["after_dialog"] = await run("ui.set_value", {"window": window, "element": box, "value": "after dialog"})
                 # The person presses a key: JARVIS's hands pause, then continue once they are quiet.
-                import win32api  # type: ignore[import-not-found]
-
                 time.sleep(1)  # input within 250 ms of JARVIS's own cannot be told apart
                 win32api.keybd_event(win32con.VK_SHIFT, 0, 0, 0)
                 win32api.keybd_event(win32con.VK_SHIFT, 0, win32con.KEYEVENTF_KEYUP, 0)

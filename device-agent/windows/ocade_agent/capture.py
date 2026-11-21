@@ -301,7 +301,14 @@ def screen_capture_kit(window_id: int):
         if not ok:
             raise Refused("capture_failed")
         started = threading.Event()
-        stream.startCaptureWithCompletionHandler_(lambda error: (found.update(start=error), started.set()))
+        def on_start(error):  # a void ObjC block: returning a value aborts the process
+            found["start"] = error
+            started.set()
+
+        def on_stop(_error):  # keeps the delegate referenced until the stream has stopped
+            _ = keep
+
+        stream.startCaptureWithCompletionHandler_(on_start)
         if not started.wait(5) or found.get("start") is not None:
             raise Refused("screen_recording_permission_needed")
 
@@ -321,7 +328,7 @@ def screen_capture_kit(window_id: int):
 
         keep = (output, objc)  # the delegate must outlive the stream
         if not dirty.wait(2) or (first := convert()) is None:
-            stream.stopCaptureWithCompletionHandler_(lambda _error: keep)
+            stream.stopCaptureWithCompletionHandler_(on_stop)
             raise RuntimeError("no first frame")
         arrived(first)
         threading.Thread(target=_throttled, args=(convert, arrived, end, stop, dirty),
@@ -329,7 +336,7 @@ def screen_capture_kit(window_id: int):
 
         def close():
             stop.set()
-            stream.stopCaptureWithCompletionHandler_(lambda _error: keep)
+            stream.stopCaptureWithCompletionHandler_(on_stop)
 
         return "screen_capture_kit", close
 
@@ -344,8 +351,9 @@ def native_or_polling(native, grab):
             return native(arrived, end)
         except Refused:
             raise
-        except Exception:  # noqa: BLE001 - no native capture on this build: the labelled fallback
-            return polling(grab)(arrived, end)
+        except Exception as error:  # noqa: BLE001 - no native capture on this build: the labelled fallback
+            _, stop = polling(grab)(arrived, end)
+            return f"polling ({type(error).__name__}: {str(error)[:120]})", stop
 
     return start
 

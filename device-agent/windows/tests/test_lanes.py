@@ -70,7 +70,7 @@ class LanesTest(unittest.TestCase):
         self.assertEqual(still_ours({"actions": [{"id": "a"}], "running": ["b"]}), {"a", "b"})
 
     def test_steps_in_different_lanes_run_at_the_same_time_and_each_lane_in_order(self):
-        with tempfile.TemporaryDirectory() as directory:
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as directory:
             home = Path(directory)
             device, gateway = TwoLanes(home), SlowGateway()
             started = time.monotonic()
@@ -85,7 +85,7 @@ class LanesTest(unittest.TestCase):
             self.assertEqual(sorted(receipts), ["a1", "a2", "b1"])
 
     def test_local_stop_ends_every_lane_each_with_its_receipt(self):
-        with tempfile.TemporaryDirectory() as directory:
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as directory:
             home = Path(directory)
             flag = home / "STOP"
             device = TwoLanes(home)
@@ -104,7 +104,7 @@ class LanesTest(unittest.TestCase):
 
 class BackgroundPermissionTest(unittest.TestCase):
     def test_each_answer_sets_or_clears_the_background_permission_for_the_workers(self):
-        with tempfile.TemporaryDirectory() as directory:
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as directory:
             home = Path(directory)
             flag = home / "background-ui"
             flag.touch()
@@ -131,7 +131,7 @@ class LaneWorkersTest(unittest.TestCase):
                     "risk": "read", "arguments": {"path": "."},
                     "deadlineUtc": (datetime.now(timezone.utc) + timedelta(minutes=2)).isoformat().replace("+00:00", "Z")}
 
-        with tempfile.TemporaryDirectory() as directory:
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as directory:
             async def go():
                 async with Gateway(directory, home=directory) as gateway:
                     async with anyio.create_task_group() as group:
@@ -151,7 +151,7 @@ class BackgroundGateTest(unittest.TestCase):
         from ocade_agent import mac_worker, windows_worker
 
         for worker in (windows_worker, mac_worker):
-            with self.subTest(worker=worker.__name__), tempfile.TemporaryDirectory() as directory:
+            with self.subTest(worker=worker.__name__), tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as directory:
                 waited = []
                 with mock.patch.dict("os.environ", {"OCADE_AGENT_HOME": directory}), \
                         mock.patch.object(worker, "_person_quiet", lambda waited=waited: waited.append(1)):

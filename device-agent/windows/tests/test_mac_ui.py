@@ -137,6 +137,7 @@ class MacUiLadder(unittest.TestCase):
                     await anyio.sleep(1.5)
                     await run("ui.set_value", {"window": window, "element": box, "value": "changed while watched"})
                 out["watched"] = watched["result"]
+                await run("ui.set_value", {"window": window, "element": box, "value": "Quarterly GREEN"})
                 # By the ref the inspection gave the button (P5), not by a description.
                 save = next(e["ref"] for e in out["inspect"]["evidence"]["elements"] if e["automationId"] == "saveButton")
                 out["invoke"] = await run("ui.invoke", {"window": window, "element": {"ref": save}})

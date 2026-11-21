@@ -18,6 +18,7 @@ colour, never shown as a fabricated pointer.
 
 from __future__ import annotations
 
+import itertools
 import json
 import os
 import time
@@ -124,6 +125,9 @@ class BarState:
             pass
 
 
+_TYPED = itertools.count()
+
+
 def queue_instruction(home: Path, text: str, lane: int | None) -> Path:
     """What the person typed in the bar, for the agent loop to deliver (the bar has no key)."""
     text = text.strip()[:2000]
@@ -131,7 +135,9 @@ def queue_instruction(home: Path, text: str, lane: int | None) -> Path:
         raise ValueError("empty instruction")
     if lane is not None and lane not in range(LANES):
         raise ValueError("no such agent")
-    path = home / "instructions" / f"{time.time_ns()}.json"
+    # The clock alone can repeat (about 16 ms apart on Windows), and a repeated name would replace
+    # an earlier instruction; the counter keeps both, in the order they were typed.
+    path = home / "instructions" / f"{time.time_ns():020d}-{next(_TYPED):06d}.json"
     write_json(path, {"text": text, "lane": lane, "clientId": str(uuid.uuid4())})
     return path
 

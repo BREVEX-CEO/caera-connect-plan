@@ -93,7 +93,7 @@ class HubTest(unittest.TestCase):
 
         frames = iter([picture(), picture(30)] + [picture(30)] * 100)
         stream = capture.Stream(capture.native_or_polling(broken, lambda: next(frames)))
-        self.assertEqual(stream.backend, "polling")
+        self.assertEqual(stream.backend, "polling (RuntimeError: no Windows.Graphics.Capture on this build)")
         self.assertIsNotNone(stream.wait(1, 3), "the fallback delivers frames")
         stream.close()
 

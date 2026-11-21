@@ -16,7 +16,7 @@ from ocade_agent.watch import Watcher, inside
 
 class WatcherTest(unittest.TestCase):
     def test_new_settled_files_are_reported_once(self):
-        with tempfile.TemporaryDirectory() as directory:
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as directory:
             workspace, home = Path(directory, "ws"), Path(directory, "home")
             (workspace / "Invoices").mkdir(parents=True)
             home.mkdir()
@@ -37,7 +37,7 @@ class WatcherTest(unittest.TestCase):
             self.assertEqual(Watcher(workspace, home).state["w1"]["known"].keys() >= {"new.pdf", "old.pdf"}, True)
 
     def test_a_folder_outside_the_jarvis_folder_is_never_listed(self):
-        with tempfile.TemporaryDirectory() as directory:
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as directory:
             workspace = Path(directory, "ws")
             workspace.mkdir()
             outside = Path(directory, "secret")
@@ -53,7 +53,7 @@ class WatcherTest(unittest.TestCase):
 
 class AgentWatchTest(unittest.TestCase):
     def test_the_agent_asks_for_rules_and_reports_each_file_once(self):
-        with tempfile.TemporaryDirectory() as directory:
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as directory:
             workspace, home = Path(directory, "ws"), Path(directory, "home")
             (workspace / "In").mkdir(parents=True)
             home.mkdir()
