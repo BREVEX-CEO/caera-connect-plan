@@ -14,6 +14,7 @@
  * untrusted data. When the planner is unavailable the task waits; no other
  * model is substituted.
  */
+import { byokRefusal } from "../byok/refusals.ts";
 import { skillLines, type Skill } from "./skills.ts";
 import { flaggedSites } from "./scam.ts";
 import { maskSensitive, unmaskArguments } from "./sensitive-values.ts";
@@ -437,6 +438,8 @@ export function plannerMessage(code: string): string {
     return "JARVIS could not check its spending limit, so it asks the model nothing until it can.";
   if (code === "allowance_exhausted")
     return "Your JARVIS allowance is used up until your usage window resets.";
+  const own = byokRefusal(code);
+  if (own) return own;
   if (plannerBusy(code))
     return /rate_limited|unavailable/.test(code)
       ? "JARVIS's online planner is busy right now."

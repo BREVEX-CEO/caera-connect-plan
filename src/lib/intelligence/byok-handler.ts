@@ -41,13 +41,59 @@ export interface ByokDependencies {
   enable(userId: string, connectionId: string, enabled: boolean): Promise<boolean>;
   choose(userId: string, surface: "chat" | "jarvis", connectionId: string | null): Promise<void>;
   remove(userId: string, connectionId: string): Promise<boolean>;
+  /** The provider's model list for the connection's key (GET, the same checked address). */
+  list(route: CustomerRoute, signal: AbortSignal): Promise<Response>;
+  saveModels(userId: string, connectionId: string, models: ListedModel[]): Promise<number>;
+  setModel(input: {
+    userId: string;
+    connectionId: string;
+    model: string;
+    permitted: boolean;
+    inputPrice: number | null;
+    outputPrice: number | null;
+    currency: string | null;
+  }): Promise<boolean>;
+  recordModel(
+    userId: string,
+    connectionId: string,
+    model: string,
+    callsTools: boolean | null,
+    seesImages: boolean | null,
+  ): Promise<void>;
+  policy(userId: string, connectionId: string, policy: SpendingPolicy): Promise<boolean>;
   now?: () => number;
+}
+
+/** One model a provider listed for a key; anything it did not say is left out (unknown). */
+export interface ListedModel {
+  model: string;
+  label?: string;
+  free?: boolean;
+  /** US dollars per million tokens, as the provider listed them. */
+  inputPrice?: number;
+  outputPrice?: number;
+  callsTools?: boolean;
+  seesImages?: boolean;
+}
+
+export interface SpendingPolicy {
+  modelMode: "manual" | "auto";
+  spendMode: "free_only" | "custom" | "unlimited";
+  freeTier: boolean;
+  currency: string;
+  timeZone: string;
+  task: number | null;
+  day: number | null;
+  month: number | null;
 }
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const MAX_BODY = 16_384;
 const PROBE_TIMEOUT_MS = 30_000;
 const MAX_ANSWER_BYTES = 65_536;
+/** A provider's whole model list (OpenRouter's is a few megabytes), and how many are kept. */
+const MAX_LIST_BYTES = 8_388_608;
+const MAX_MODELS = 1000;
 /** Tests a person may run per minute: each one may spend their own provider quota. */
 const TESTS_PER_MINUTE = 6;
 const tests = new Map<string, number[]>();
@@ -72,7 +118,7 @@ function concat(parts: Uint8Array[]): Uint8Array {
   return out;
 }
 
-async function boundedJson(response: Response): Promise<unknown> {
+async function boundedJson(response: Response, limit = MAX_ANSWER_BYTES): Promise<unknown> {
   const reader = response.body?.getReader();
   if (!reader) return null;
   const chunks: Uint8Array[] = [];
@@ -81,7 +127,7 @@ async function boundedJson(response: Response): Promise<unknown> {
     const { done, value } = await reader.read();
     if (done) break;
     size += value.byteLength;
-    if (size > MAX_ANSWER_BYTES) {
+    if (size > limit) {
       await reader.cancel();
       return null;
     }
@@ -380,6 +426,123 @@ export function sawColours(text: string, colours: string[]): boolean {
   return named.join(" ") === colours.join(" ");
 }
 
+/** Where a protocol lists the models a key may use. */
+export function listPath(protocol: ProviderProtocol): string {
+  if (protocol === "gemini") return "/models?pageSize=1000";
+  if (protocol === "anthropic") return "/models?limit=1000";
+  return "/models";
+}
+
+/** A listed price in dollars per token, as dollars per million; undefined when not a number. */
+function perMillion(value: unknown): number | undefined {
+  const price = typeof value === "string" || typeof value === "number" ? Number(value) : NaN;
+  return Number.isFinite(price) && price >= 0 && price < 1 ? price * 1_000_000 : undefined;
+}
+
+/**
+ * The models in a provider's list answer, of any supported protocol (untrusted JSON): only valid
+ * model names, at most 1000, and only what the provider itself said about each.
+ */
+export function listedModels(protocol: ProviderProtocol, answer: unknown): ListedModel[] | null {
+  const rows = at(answer, protocol === "gemini" ? "models" : "data");
+  if (!Array.isArray(rows)) return null;
+  const models: ListedModel[] = [];
+  const seen = new Set<string>();
+  for (const row of rows) {
+    if (models.length >= MAX_MODELS) break;
+    const raw =
+      protocol === "gemini"
+        ? String(at(row, "name") ?? "").replace(/^models\//, "")
+        : at(row, "id");
+    const model = typeof raw === "string" && raw ? plannerModel(raw) : undefined;
+    if (!model || seen.has(model)) continue;
+    if (protocol === "gemini") {
+      const methods = at(row, "supportedGenerationMethods");
+      if (Array.isArray(methods) && !methods.includes("generateContent")) continue;
+    }
+    seen.add(model);
+    const entry: ListedModel = { model };
+    const label = at(
+      row,
+      protocol === "gemini" ? "displayName" : protocol === "anthropic" ? "display_name" : "name",
+    );
+    if (typeof label === "string" && label.trim()) entry.label = label.trim().slice(0, 200);
+    // OpenRouter-style metadata: prices in dollars per token, parameters and input kinds.
+    const input = perMillion(at(row, "pricing", "prompt"));
+    const output = perMillion(at(row, "pricing", "completion"));
+    if (input !== undefined && output !== undefined) {
+      entry.free = input === 0 && output === 0;
+      if (!entry.free) Object.assign(entry, { inputPrice: input, outputPrice: output });
+    }
+    const parameters = at(row, "supported_parameters");
+    if (Array.isArray(parameters)) entry.callsTools = parameters.includes("tools");
+    const modalities = at(row, "architecture", "input_modalities");
+    if (Array.isArray(modalities)) entry.seesImages = modalities.includes("image");
+    models.push(entry);
+  }
+  return models;
+}
+
+/** A refreshed model list for a connection: read from its provider and kept, or why not. */
+async function refreshModels(
+  deps: ByokDependencies,
+  userId: string,
+  route: CustomerRoute,
+): Promise<{ count: number } | { status: string }> {
+  let response: Response;
+  try {
+    response = await deps.list(route, AbortSignal.timeout(PROBE_TIMEOUT_MS));
+  } catch {
+    return { status: "unreachable" };
+  }
+  if (!response.ok) return { status: statusOf(response.status) };
+  const models = listedModels(route.protocol, await boundedJson(response, MAX_LIST_BYTES));
+  // A provider without a model list keeps the connection's own model, known from its test.
+  if (!models) return { status: "incompatible" };
+  return { count: await deps.saveModels(userId, route.id!, models) };
+}
+
+function amount(value: unknown): number | null | undefined {
+  if (value === null || value === undefined || value === "") return null;
+  const n = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(n) && n >= 0 && n <= 1_000_000_000 ? n : undefined;
+}
+
+function knownTimeZone(zone: unknown): zone is string {
+  if (typeof zone !== "string" || !zone || zone.length > 64) return false;
+  try {
+    new Intl.DateTimeFormat("en", { timeZone: zone });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** The spending policy a request asks for, or undefined when any part of it is not valid. */
+export function spendingPolicy(body: Record<string, unknown>): SpendingPolicy | undefined {
+  const modelMode =
+    body.modelMode === "auto" ? "auto" : body.modelMode === "manual" ? "manual" : undefined;
+  const spendMode = (["free_only", "custom", "unlimited"] as const).find(
+    (m) => m === body.spendMode,
+  );
+  const currency = typeof body.currency === "string" ? body.currency.toUpperCase() : "";
+  const [task, day, month] = [amount(body.task), amount(body.day), amount(body.month)];
+  if (!modelMode || !spendMode || !/^[A-Z]{3}$/.test(currency) || !knownTimeZone(body.timeZone))
+    return undefined;
+  if (task === undefined || day === undefined || month === undefined) return undefined;
+  if (spendMode === "custom" && task === null && day === null && month === null) return undefined;
+  return {
+    modelMode,
+    spendMode,
+    freeTier: body.freeTier === true,
+    currency,
+    timeZone: body.timeZone,
+    task,
+    day,
+    month,
+  };
+}
+
 function allowedTest(userId: string, now: number): boolean {
   const recent = (tests.get(userId) ?? []).filter((at) => now - at < 60_000);
   if (recent.length >= TESTS_PER_MINUTE) return false;
@@ -392,7 +555,11 @@ async function testConnection(
   deps: ByokDependencies,
   userId: string,
   route: CustomerRoute,
+  /** Another model of the connection's list, tested for Auto; its result is that model's only. */
+  other?: string,
 ): Promise<{ status: string; seesImages: boolean | null; callsTools: boolean | null }> {
+  if (other) route.model = other;
+  const model = route.model!;
   const call = async (body: unknown) => {
     try {
       const response = await deps.send(route, body, AbortSignal.timeout(PROBE_TIMEOUT_MS));
@@ -401,7 +568,7 @@ async function testConnection(
       return { code: 0, answer: null };
     }
   };
-  const tools = await call(toolProbe(route.protocol, route.model));
+  const tools = await call(toolProbe(route.protocol, model));
   let status = tools.code === 200 ? "connected" : statusOf(tools.code);
   let callsTools: boolean | null = null;
   let seesImages: boolean | null = null;
@@ -412,13 +579,14 @@ async function testConnection(
     else callsTools = called;
   }
   if (status === "connected") {
-    const probe = await visionProbe(route.protocol, route.model, Math.random);
+    const probe = await visionProbe(route.protocol, model, Math.random);
     const seen = await call(probe.body);
     // Only an answer naming every colour in order proves sight; a refusal or a wrong answer is text-only.
     seesImages =
       seen.code === 200 && sawColours(answerText(route.protocol, seen.answer), probe.colours);
   }
-  await deps.record(userId, route.id!, status, seesImages, callsTools);
+  if (other) await deps.recordModel(userId, route.id!, model, callsTools, seesImages);
+  else await deps.record(userId, route.id!, status, seesImages, callsTools);
   return { status, seesImages, callsTools };
 }
 
@@ -480,9 +648,58 @@ export async function handleByok(request: Request, deps: ByokDependencies): Prom
         if (!id) return json(400, { error: "connection_required" }, origin);
         if (!allowedTest(userId, (deps.now ?? Date.now)()))
           return json(429, { error: "too_many_tests", retryAfterSeconds: 60 }, origin);
+        const other = typeof body.model === "string" ? plannerModel(body.model) : undefined;
+        if (body.model !== undefined && !other)
+          return json(400, { error: "model_invalid" }, origin);
         const route = await deps.route(userId, id);
         if (!route) return json(404, { error: "connection_not_found" }, origin);
-        return json(200, await testConnection(deps, userId, route), origin);
+        return json(200, await testConnection(deps, userId, route, other), origin);
+      }
+      case "models": {
+        if (!id) return json(400, { error: "connection_required" }, origin);
+        if (!allowedTest(userId, (deps.now ?? Date.now)()))
+          return json(429, { error: "too_many_tests", retryAfterSeconds: 60 }, origin);
+        const route = await deps.route(userId, id);
+        if (!route) return json(404, { error: "connection_not_found" }, origin);
+        const refreshed = await refreshModels(deps, userId, route);
+        return "count" in refreshed
+          ? json(200, refreshed, origin)
+          : json(502, { error: "models_unavailable", status: refreshed.status }, origin);
+      }
+      case "model": {
+        const model = typeof body.model === "string" ? plannerModel(body.model) : undefined;
+        const inputPrice = amount(body.inputPrice);
+        const outputPrice = amount(body.outputPrice);
+        const currency =
+          typeof body.currency === "string" && /^[A-Z]{3}$/.test(body.currency)
+            ? body.currency
+            : null;
+        if (!id || !model || typeof body.permitted !== "boolean")
+          return json(400, { error: "invalid_request" }, origin);
+        if (
+          inputPrice === undefined ||
+          outputPrice === undefined ||
+          ((inputPrice ?? outputPrice) !== null && !currency)
+        )
+          return json(400, { error: "price_invalid" }, origin);
+        return (await deps.setModel({
+          userId,
+          connectionId: id,
+          model,
+          permitted: body.permitted,
+          inputPrice,
+          outputPrice,
+          currency,
+        }))
+          ? json(200, { ok: true }, origin)
+          : json(404, { error: "model_not_found" }, origin);
+      }
+      case "policy": {
+        const policy = spendingPolicy(body);
+        if (!id || !policy) return json(400, { error: "policy_invalid" }, origin);
+        return (await deps.policy(userId, id, policy))
+          ? json(200, { ok: true }, origin)
+          : json(404, { error: "connection_not_found" }, origin);
       }
       case "enable": {
         if (!id || typeof body.enabled !== "boolean")

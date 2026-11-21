@@ -166,6 +166,22 @@ const QUESTIONS: {
   },
   {
     category: "Chat",
+    question: "How do I choose among my key's models and limit what it spends?",
+    words: "byok models auto manual free budget spending limit unlimited custom price currency",
+    answer: (
+      <p>
+        In Settings, BYOK, open Models &amp; spending on a connection and refresh its model list.
+        Manual always uses the model you entered; Auto uses the first model you permit that can do
+        the job, and never one you did not permit or another key. Free-only never sends a request to
+        a model that is not known to be free; Custom stops at the per-task, daily and monthly
+        amounts you set (it needs each model's price); Unlimited sets no OCADE limit, but your
+        provider still charges and keeps its own limits. Amounts are OCADE's records and may differ
+        from your provider's bill.
+      </p>
+    ),
+  },
+  {
+    category: "Chat",
     question: "What does OCADE remember about me?",
     words: "memory remember forget personal private",
     answer: (

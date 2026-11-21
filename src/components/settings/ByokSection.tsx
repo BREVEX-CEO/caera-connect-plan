@@ -5,7 +5,9 @@ import {
   STATUS_TEXT,
   changeByok,
   readByok,
+  readModels,
   type ByokConnection,
+  type ByokModel,
   type ByokProtocol,
   type ByokState,
 } from "@/lib/byok/connections";
@@ -135,6 +137,7 @@ function Connection({
   const [replacing, setReplacing] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [testing, setTesting] = useState(false);
+  const [models, setModels] = useState(false);
   const act = useMutation({
     mutationFn: (body: Record<string, unknown>) =>
       changeByok({ connectionId: connection.id, ...body }),
@@ -182,6 +185,10 @@ function Connection({
       >
         <div className="flex flex-wrap gap-2">
           <Action label="Test" busy={act.isPending} onClick={() => setTesting(true)} />
+          <Action
+            label={models ? "Hide models & spending" : "Models & spending"}
+            onClick={() => setModels((open) => !open)}
+          />
           <Action label="Replace key" onClick={() => setReplacing((open) => !open)} />
           <Action
             label={connection.enabled ? "Turn off" : "Turn on"}
@@ -204,6 +211,7 @@ function Connection({
           </div>
         </div>
       ) : null}
+      {models ? <ModelsAndSpending connection={connection} onChanged={onChanged} /> : null}
       {deleting ? (
         <div className="flex flex-wrap items-center justify-between gap-3 pb-2 text-[0.8125rem] text-muted-foreground">
           <span>
@@ -424,5 +432,323 @@ function ConnectionForm({
         {onCancel ? <Action label="Cancel" onClick={onCancel} /> : null}
       </div>
     </form>
+  );
+}
+
+const SPEND_TEXT = {
+  free_only:
+    "Free-only: only models your provider lists as free, or this key if you confirm it has no billing. A paid request is never sent.",
+  custom:
+    "Custom: OCADE reserves each call's largest cost before sending it and stops at your amounts. Needs each model's price.",
+  unlimited:
+    "Unlimited: no OCADE limit. Your provider still charges for use and keeps its own limits.",
+} as const;
+
+/** One price line for a model, from what is known only. */
+function priceText(model: ByokModel): string {
+  if (model.free === true) return "Free";
+  if (model.input_price !== null && model.output_price !== null)
+    return `${model.input_price} in / ${model.output_price} out ${model.price_currency ?? ""} per million tokens`;
+  return "Price unknown";
+}
+
+/**
+ * ALL THE MODELS UNDER ONE KEY, AUTO OR MANUAL, AND A SPENDING POLICY (plan 14D.4A.3-5). The list
+ * is the provider's own for this key; a badge says only what the list or a test showed.
+ */
+function ModelsAndSpending({
+  connection,
+  onChanged,
+}: {
+  connection: ByokConnection;
+  onChanged: () => void;
+}) {
+  const id = useId();
+  const client = useQueryClient();
+  const key = ["byok-models", connection.id];
+  const data = useQuery({ queryKey: key, queryFn: () => readModels(connection), staleTime: 0 });
+  const [filter, setFilter] = useState("");
+  const [problem, setProblem] = useState<string | null>(null);
+  const [pricing, setPricing] = useState<string | null>(null);
+  const [policy, setPolicy] = useState({
+    modelMode: connection.model_mode,
+    spendMode: connection.spend_mode,
+    freeTier: connection.free_tier,
+    currency: connection.budget_currency,
+    timeZone:
+      connection.budget_time_zone === "UTC"
+        ? Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC"
+        : connection.budget_time_zone,
+    task: connection.budget_task?.toString() ?? "",
+    day: connection.budget_day?.toString() ?? "",
+    month: connection.budget_month?.toString() ?? "",
+  });
+  const act = useMutation({
+    mutationFn: (body: Record<string, unknown>) =>
+      changeByok({ connectionId: connection.id, ...body }),
+    onSuccess: () => {
+      setProblem(null);
+      setPricing(null);
+      void client.invalidateQueries({ queryKey: key });
+      onChanged();
+    },
+    onError: (error) => setProblem(error.message),
+  });
+  const field = "h-8 rounded-md border border-border bg-background px-2 text-sm";
+  const shown = (data.data?.models ?? [])
+    .filter((model) =>
+      `${model.model} ${model.label ?? ""}`.toLowerCase().includes(filter.toLowerCase()),
+    )
+    .sort((a, b) => Number(Boolean(b.permitted_at)) - Number(Boolean(a.permitted_at)))
+    .slice(0, 50);
+  const total = data.data?.models.length ?? 0;
+  const money = (value: number) => `${value.toFixed(4)} ${connection.budget_currency}`;
+
+  return (
+    <div className="space-y-3 pb-4 text-[0.8125rem] text-muted-foreground">
+      <Pending
+        query={data}
+        loading="Reading this key's models…"
+        problem="This key's models could not be read. Nothing was changed."
+      />
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <span>
+          {connection.models_listed_at
+            ? `${total} models listed for this key · read ${describeWhen(connection.models_listed_at)}`
+            : "The model list for this key has not been read yet."}
+        </span>
+        <Action
+          label={act.isPending ? "Reading…" : "Refresh model list"}
+          busy={act.isPending}
+          onClick={() => act.mutate({ action: "models" })}
+        />
+      </div>
+
+      <fieldset className="space-y-1">
+        <legend className="text-foreground">Which model</legend>
+        <label className="flex items-center gap-2">
+          <input
+            type="radio"
+            name={`${id}-mode`}
+            checked={policy.modelMode === "manual"}
+            onChange={() => setPolicy({ ...policy, modelMode: "manual" })}
+          />
+          Manual: always {connection.model}
+        </label>
+        <label className="flex items-center gap-2">
+          <input
+            type="radio"
+            name={`${id}-mode`}
+            checked={policy.modelMode === "auto"}
+            onChange={() => setPolicy({ ...policy, modelMode: "auto" })}
+          />
+          Auto: the first model you permit below that can do the job (JARVIS needs tool calls), in
+          the order you permitted them. Never a model you did not permit, and never another key.
+        </label>
+      </fieldset>
+
+      {total ? (
+        <div className="space-y-1">
+          <label className="block" htmlFor={`${id}-filter`}>
+            Find a model ({total} in the list, permitted first)
+            <input
+              id={`${id}-filter`}
+              className={`${field} w-full`}
+              value={filter}
+              onChange={(event) => setFilter(event.target.value)}
+            />
+          </label>
+          <ul className="divide-y divide-border/50">
+            {shown.map((model) => (
+              <li
+                key={model.model}
+                className="flex flex-wrap items-center justify-between gap-2 py-1.5"
+              >
+                <span className="min-w-0 break-all">
+                  <span className="text-foreground">{model.label ?? model.model}</span>
+                  {model.label ? ` · ${model.model}` : ""}
+                  <span className="block">
+                    {[
+                      priceText(model),
+                      model.calls_tools === true
+                        ? "Calls tools"
+                        : model.calls_tools === false
+                          ? "No tool calls"
+                          : "Tools unknown",
+                      model.sees_images === true
+                        ? "Sees images"
+                        : model.sees_images === false
+                          ? "Text only"
+                          : "Images unknown",
+                      model.listed ? null : "No longer listed by your provider",
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </span>
+                </span>
+                <span className="flex flex-wrap gap-2">
+                  <label className="flex items-center gap-1">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(model.permitted_at)}
+                      disabled={act.isPending || !model.listed}
+                      onChange={(event) =>
+                        act.mutate({
+                          action: "model",
+                          model: model.model,
+                          permitted: event.target.checked,
+                        })
+                      }
+                    />
+                    Permit
+                  </label>
+                  <Action
+                    label="Test"
+                    busy={act.isPending}
+                    onClick={() => act.mutate({ action: "test", model: model.model })}
+                  />
+                  <Action
+                    label="Price"
+                    onClick={() => setPricing(pricing === model.model ? null : model.model)}
+                  />
+                </span>
+                {pricing === model.model ? (
+                  <form
+                    className="flex w-full flex-wrap items-end gap-2"
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      const form = new FormData(event.currentTarget);
+                      act.mutate({
+                        action: "model",
+                        model: model.model,
+                        permitted: Boolean(model.permitted_at),
+                        inputPrice: form.get("in"),
+                        outputPrice: form.get("out"),
+                        currency: connection.budget_currency,
+                      });
+                    }}
+                  >
+                    <label>
+                      Input, {connection.budget_currency} per million tokens
+                      <input
+                        name="in"
+                        required
+                        inputMode="decimal"
+                        className={`${field} block w-32`}
+                      />
+                    </label>
+                    <label>
+                      Output, {connection.budget_currency} per million tokens
+                      <input
+                        name="out"
+                        required
+                        inputMode="decimal"
+                        className={`${field} block w-32`}
+                      />
+                    </label>
+                    <button
+                      type="submit"
+                      className="h-8 rounded-md border border-border px-3 text-foreground"
+                    >
+                      Save price
+                    </button>
+                  </form>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+          {total > shown.length && !filter ? <p>Type to find the other models.</p> : null}
+          <p>A test sends two small requests with that model and may use your quota.</p>
+        </div>
+      ) : null}
+
+      <fieldset className="space-y-1">
+        <legend className="text-foreground">Spending on this key</legend>
+        {(Object.keys(SPEND_TEXT) as (keyof typeof SPEND_TEXT)[]).map((mode) => (
+          <label key={mode} className="flex items-start gap-2">
+            <input
+              type="radio"
+              name={`${id}-spend`}
+              checked={policy.spendMode === mode}
+              onChange={() => setPolicy({ ...policy, spendMode: mode })}
+            />
+            <span>{SPEND_TEXT[mode]}</span>
+          </label>
+        ))}
+        {policy.spendMode === "free_only" ? (
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={policy.freeTier}
+              onChange={(event) => setPolicy({ ...policy, freeTier: event.target.checked })}
+            />
+            This key has no billing attached with my provider (a free-tier key)
+          </label>
+        ) : null}
+        {policy.spendMode === "custom" ? (
+          <div className="flex flex-wrap gap-2">
+            <label>
+              Currency
+              <input
+                className={`${field} block w-20 uppercase`}
+                maxLength={3}
+                value={policy.currency}
+                onChange={(event) =>
+                  setPolicy({ ...policy, currency: event.target.value.toUpperCase() })
+                }
+              />
+            </label>
+            {(["task", "day", "month"] as const).map((period) => (
+              <label key={period}>
+                {period === "task" ? "Per task" : period === "day" ? "Per day" : "Per month"}
+                <input
+                  className={`${field} block w-28`}
+                  inputMode="decimal"
+                  placeholder="No limit"
+                  value={policy[period]}
+                  onChange={(event) => setPolicy({ ...policy, [period]: event.target.value })}
+                />
+              </label>
+            ))}
+            <label>
+              Days reset at midnight in
+              <input
+                className={`${field} block w-44`}
+                value={policy.timeZone}
+                onChange={(event) => setPolicy({ ...policy, timeZone: event.target.value })}
+              />
+            </label>
+          </div>
+        ) : null}
+        <Action
+          label={act.isPending ? "Saving…" : "Save model and spending settings"}
+          busy={act.isPending}
+          onClick={() =>
+            act.mutate({
+              action: "policy",
+              ...policy,
+              task: policy.task || null,
+              day: policy.day || null,
+              month: policy.month || null,
+            })
+          }
+        />
+      </fieldset>
+
+      {data.data ? (
+        <p aria-live="polite">
+          Recorded on this key: today {money(data.data.today)}, this month {money(data.data.month)}
+          {data.data.estimated ? " (partly estimated from reservations)" : ""}
+          {data.data.unpriced ? "; some calls had no known price and are not counted" : ""}. Your
+          provider's bill may differ and may arrive later; OCADE's own models never draw on this
+          key.
+        </p>
+      ) : null}
+      {problem ? (
+        <p role="alert" className="text-destructive">
+          {problem}
+        </p>
+      ) : null}
+    </div>
   );
 }

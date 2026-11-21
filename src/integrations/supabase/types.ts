@@ -127,53 +127,170 @@ export type Database = {
       byok_connections: {
         Row: {
           alias: string
+          budget_currency: string
+          budget_day: number | null
+          budget_month: number | null
+          budget_task: number | null
+          budget_time_zone: string
           calls_tools: boolean | null
           checked_at: string | null
           created_at: string
           enabled: boolean
           endpoint: string
           fingerprint: string
+          free_tier: boolean
           id: string
           model: string
+          model_mode: string
+          models_listed_at: string | null
           protocol: string
           secret_id: string
           sees_images: boolean | null
+          spend_mode: string
           status: string
           updated_at: string
           user_id: string
         }
         Insert: {
           alias: string
+          budget_currency?: string
+          budget_day?: number | null
+          budget_month?: number | null
+          budget_task?: number | null
+          budget_time_zone?: string
           calls_tools?: boolean | null
           checked_at?: string | null
           created_at?: string
           enabled?: boolean
           endpoint: string
           fingerprint: string
+          free_tier?: boolean
           id?: string
           model: string
+          model_mode?: string
+          models_listed_at?: string | null
           protocol: string
           secret_id: string
           sees_images?: boolean | null
+          spend_mode?: string
           status?: string
           updated_at?: string
           user_id: string
         }
         Update: {
           alias?: string
+          budget_currency?: string
+          budget_day?: number | null
+          budget_month?: number | null
+          budget_task?: number | null
+          budget_time_zone?: string
           calls_tools?: boolean | null
           checked_at?: string | null
           created_at?: string
           enabled?: boolean
           endpoint?: string
           fingerprint?: string
+          free_tier?: boolean
           id?: string
           model?: string
+          model_mode?: string
+          models_listed_at?: string | null
           protocol?: string
           secret_id?: string
           sees_images?: boolean | null
+          spend_mode?: string
           status?: string
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      byok_models: {
+        Row: {
+          calls_tools: boolean | null
+          connection_id: string
+          free: boolean | null
+          input_price: number | null
+          label: string | null
+          listed: boolean
+          model: string
+          output_price: number | null
+          permitted_at: string | null
+          price_currency: string | null
+          sees_images: boolean | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          calls_tools?: boolean | null
+          connection_id: string
+          free?: boolean | null
+          input_price?: number | null
+          label?: string | null
+          listed?: boolean
+          model: string
+          output_price?: number | null
+          permitted_at?: string | null
+          price_currency?: string | null
+          sees_images?: boolean | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          calls_tools?: boolean | null
+          connection_id?: string
+          free?: boolean | null
+          input_price?: number | null
+          label?: string | null
+          listed?: boolean
+          model?: string
+          output_price?: number | null
+          permitted_at?: string | null
+          price_currency?: string | null
+          sees_images?: boolean | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      byok_spend: {
+        Row: {
+          actual: number | null
+          connection_id: string
+          created_at: string
+          currency: string
+          id: string
+          model: string
+          reserved: number | null
+          settled_at: string | null
+          state: string
+          task_id: string | null
+          user_id: string
+        }
+        Insert: {
+          actual?: number | null
+          connection_id: string
+          created_at?: string
+          currency: string
+          id?: string
+          model: string
+          reserved?: number | null
+          settled_at?: string | null
+          state?: string
+          task_id?: string | null
+          user_id: string
+        }
+        Update: {
+          actual?: number | null
+          connection_id?: string
+          created_at?: string
+          currency?: string
+          id?: string
+          model?: string
+          reserved?: number | null
+          settled_at?: string | null
+          state?: string
+          task_id?: string | null
           user_id?: string
         }
         Relationships: []
@@ -649,6 +766,7 @@ export type Database = {
           live_frame_at: string | null
           model_calls: number
           model_connection: string | null
+          model_name: string | null
           model_customer_key: boolean
           model_metric_ids: string[]
           model_ms: number
@@ -690,6 +808,7 @@ export type Database = {
           live_frame_at?: string | null
           model_calls?: number
           model_connection?: string | null
+          model_name?: string | null
           model_customer_key?: boolean
           model_metric_ids?: string[]
           model_ms?: number
@@ -731,6 +850,7 @@ export type Database = {
           live_frame_at?: string | null
           model_calls?: number
           model_connection?: string | null
+          model_name?: string | null
           model_customer_key?: boolean
           model_metric_ids?: string[]
           model_ms?: number

@@ -137,7 +137,8 @@ export interface CustomerRoute {
   enabled: boolean;
   status: string;
   protocol: ProviderProtocol;
-  model: string;
+  /** Null when Auto has no permitted model that can do the job: refused, never another model. */
+  model: string | null;
   /** What its last test proved; null is unknown and is treated as text-only. */
   seesImages: boolean | null;
 }
@@ -249,6 +250,25 @@ export interface OnlineHandlerDependencies {
       connectionId: string,
     ): Promise<boolean>;
     record(userId: string, connectionId: string, status: string): Promise<void>;
+    /**
+     * THE PERSON'S SPENDING POLICY FOR THEIR KEY (plan 14D.4A.5): the call's largest cost is
+     * reserved before it is sent, or the policy's refusal is returned; `settle` records what the
+     * provider reported afterwards (`sent: false` gives the reservation back).
+     */
+    reserve?(input: {
+      userId: string;
+      connectionId: string;
+      model: string;
+      permit: OnlineRequestBody["permit"];
+      inputTokens: number;
+      outputTokens: number;
+    }): Promise<{ reservation: string } | { refusal: string }>;
+    settle?(input: {
+      userId: string;
+      reservation: string;
+      sent: boolean;
+      usage?: NormalizedUsage;
+    }): Promise<void>;
   };
   /**
    * ONE APPEND-ONLY RECORD PER ANSWERED MODEL TURN (plan 14B.1B.3): who it was for, which source
@@ -1334,11 +1354,12 @@ async function runOnlineIntelligence(
         ? "byok_disabled"
         : CUSTOMER_REFUSALS[customer.status];
     if (refusal) return json(409, { error: refusal }, origin);
+    if (!customer.model) return json(409, { error: "byok_no_model" }, origin);
   }
   const high = !customer && body.quality === "high";
   // The server's own planner (`GEMINI_MODEL`) or the customer's, never the request's: one model.
   const configured: OnlineModelId | undefined = customer
-    ? plannerModel(customer.model)
+    ? plannerModel(customer.model ?? undefined)
     : high
       ? HIGH_ONLINE_MODEL
       : plannerModel(deps.model);
@@ -1402,6 +1423,40 @@ async function runOnlineIntelligence(
       .catch(() => undefined);
     return json(503, { error: "byok_unavailable" }, origin);
   }
+  /*
+   * Reserved on the person's own key before anything is sent: the prompt's size (a generous
+   * estimate, about three characters a token) and the most the answer may be.
+   */
+  let reservation: string | undefined;
+  if (customer && deps.byok?.reserve) {
+    const reserved = await deps.byok
+      .reserve({
+        userId: identity.userId,
+        connectionId: customer.id!,
+        model: customer.model!,
+        permit: body.permit,
+        inputTokens: Math.ceil(JSON.stringify(body.messages).length / 3),
+        outputTokens: MAX_OUTPUT_TOKENS,
+      })
+      .catch(() => ({ refusal: "unavailable" }));
+    if ("refusal" in reserved) {
+      await deps
+        .releasePermit?.({ userId: identity.userId, permit: body.permit })
+        .catch(() => undefined);
+      return json(
+        reserved.refusal === "unavailable" ? 503 : 402,
+        { error: `byok_${reserved.refusal}` },
+        origin,
+      );
+    }
+    reservation = reserved.reservation;
+  }
+  const settle = (sent: boolean, usage?: NormalizedUsage) =>
+    reservation
+      ? deps
+          .byok!.settle?.({ userId: identity.userId, reservation, sent, usage })
+          .catch(() => undefined)
+      : undefined;
 
   const controller = new AbortController();
   const abort = () => controller.abort(request.signal.reason);
@@ -1788,6 +1843,8 @@ async function runOnlineIntelligence(
     }
 
     if (service && (whole || provider?.ok)) {
+      // The provider answered, so it may have charged the person's key: settled, never released.
+      await settle(true, whole?.usage);
       // A turn that never completed is a provider failure the caller may retry; nothing was delivered.
       if (!whole) return json(503, { error: "provider_failed" });
       const events: IntelligenceEvent[] = whole.blocked
@@ -1875,13 +1932,16 @@ async function runOnlineIntelligence(
         async (_calls, usage) => {
           ended("succeeded");
           await recordCall(usage);
+          await settle(true, usage);
           return (
             deps.finalizePermit?.({ userId: identity.userId, permit: body.permit }) ??
             Promise.resolve()
           );
         },
-        () => {
+        async () => {
           ended("failed");
+          // The provider answered and the stream broke: it may have charged; the estimate stands.
+          await settle(true);
           return (
             deps.releasePermit?.({ userId: identity.userId, permit: body.permit }) ??
             Promise.resolve()
@@ -1909,6 +1969,8 @@ async function runOnlineIntelligence(
     // returns. Its stream owns cleanup and settling; early refusals do both here.
     if (!handedOff) {
       cleanup();
+      // No answer was handed on: a refused or failed call is not billed by providers.
+      await settle(false);
       await deps
         .releasePermit?.({ userId: identity.userId, permit: body.permit })
         .catch(() => undefined);

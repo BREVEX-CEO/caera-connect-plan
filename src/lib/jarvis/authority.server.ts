@@ -148,6 +148,14 @@ interface TaskState {
   userId: string;
   /** Live or Background (R12-01). */
   mode?: "live" | "background" | "rehearsal";
+  /** The person's own key this task started with (14D.4A.4); absent: OCADE-managed. */
+  modelSource?: {
+    alias: string | null;
+    model: string | null;
+    currency: string | null;
+    spent: number | null;
+    estimated: boolean;
+  } | null;
   sessionLive?: boolean;
   status: string;
   controller: string | null;
@@ -1103,6 +1111,17 @@ export async function taskView(admin: Admin, userId: string, taskId: string) {
     // Anti-Scam Guardian (28.2.6): warning signs on pages this task opened, with the evidence.
     warnings: [...flaggedSites(parsedSteps).entries()].map(([site, signs]) => ({ site, signs })),
     mode: task.mode ?? "live",
+    source: task.modelSource
+      ? {
+          alias: task.modelSource.alias ?? "deleted key",
+          model: task.modelSource.model ?? "none",
+          spent:
+            typeof task.modelSource.spent === "number"
+              ? `${task.modelSource.spent.toFixed(4)} ${task.modelSource.currency ?? ""}`.trim()
+              : null,
+          estimated: task.modelSource.estimated === true,
+        }
+      : null,
     // R12-06: the few details JARVIS asked for, while the task waits for them.
     form:
       task.status === "waiting"

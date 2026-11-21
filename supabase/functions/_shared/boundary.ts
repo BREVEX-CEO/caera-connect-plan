@@ -216,7 +216,7 @@ interface ByokRow {
   status: string;
   protocol: "gemini" | "openai" | "anthropic" | "responses";
   endpoint: string;
-  model: string;
+  model: string | null;
   sees_images: boolean | null;
   secret: string | null;
 }
@@ -259,6 +259,7 @@ export async function customerRoute(
 export async function customerFetch(
   route: CustomerRoute,
   path: string,
+  /** Undefined: a GET (the provider's model list). */
   body: unknown,
   signal: AbortSignal,
 ): Promise<Response> {
@@ -274,9 +275,9 @@ export async function customerFetch(
         ? { "x-api-key": held.key, "anthropic-version": ANTHROPIC_VERSION }
         : { "x-goog-api-key": held.key };
   return fetch(`${address.url}${path}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", ...headers },
-    body: JSON.stringify(body),
+    method: body === undefined ? "GET" : "POST",
+    headers: body === undefined ? headers : { "Content-Type": "application/json", ...headers },
+    ...(body === undefined ? {} : { body: JSON.stringify(body) }),
     redirect: "error",
     signal,
   });
@@ -410,6 +411,32 @@ export const boundary: Omit<OnlineHandlerDependencies, "verifyJwt" | "verifyServ
         p_status: status,
         p_sees_images: null,
         p_calls_tools: null,
+      });
+    },
+    async reserve(input) {
+      const answer = await rpcOrThrow("ocade_byok_reserve", {
+        p_user_id: input.userId,
+        p_connection_id: input.connectionId,
+        p_model: input.model,
+        p_idempotency_key: input.permit.idempotencyKey,
+        p_input_tokens: input.inputTokens,
+        p_output_tokens: input.outputTokens,
+      });
+      const row = (Array.isArray(answer) ? answer[0] : null) as {
+        reservation?: string | null;
+        refusal?: string | null;
+      } | null;
+      if (row?.refusal) return { refusal: row.refusal };
+      if (!row?.reservation) throw new Error("byok_unavailable");
+      return { reservation: row.reservation };
+    },
+    async settle(input) {
+      await rpc("ocade_byok_settle", {
+        p_user_id: input.userId,
+        p_reservation: input.reservation,
+        p_sent: input.sent,
+        p_input_tokens: input.usage?.inputTokens ?? null,
+        p_output_tokens: input.usage?.outputTokens ?? null,
       });
     },
   },

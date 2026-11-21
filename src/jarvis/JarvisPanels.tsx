@@ -879,6 +879,15 @@ export function TaskPanel({
         </label>
       ) : null}
       {task.blocker ? <p className="mt-1 text-muted-foreground">{task.blocker}</p> : null}
+      <p className="mt-1 text-xs text-muted-foreground">
+        {task.source
+          ? `Your key: ${task.source.alias} · ${task.source.model}${
+              task.source.spent
+                ? ` · ${task.source.estimated ? "about " : ""}${task.source.spent} so far`
+                : ""
+            }`
+          : "OCADE-managed models"}
+      </p>
       {task.contextUsed.length ? (
         <details className="mt-2 text-xs">
           <summary className="cursor-pointer text-muted-foreground">

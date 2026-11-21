@@ -27,6 +27,10 @@ const NOT_EXPORTED: Record<string, string> = {
     "per-call model usage counts (source, model, tokens) kept for billing reconciliation; no content; removed with the account",
   byok_choices:
     "which source serves Chat and JARVIS, shown in Settings > BYOK; removed with the account",
+  byok_models:
+    "the models a person's own key lists, and which they permit, shown in Settings > BYOK; removed with the connection and the account",
+  byok_spend:
+    "per-call reservations and costs on the person's own key (model, amount; no content), shown in Settings > BYOK; removed with the connection and the account",
 };
 
 test("every table that names an account is exported or excluded with a reason", () => {

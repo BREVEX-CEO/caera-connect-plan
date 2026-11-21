@@ -20,6 +20,29 @@ export interface ByokConnection {
   sees_images: boolean | null;
   calls_tools: boolean | null;
   checked_at: string | null;
+  model_mode: "manual" | "auto";
+  spend_mode: "free_only" | "custom" | "unlimited";
+  free_tier: boolean;
+  budget_currency: string;
+  budget_time_zone: string;
+  budget_task: number | null;
+  budget_day: number | null;
+  budget_month: number | null;
+  models_listed_at: string | null;
+}
+
+/** One model a key's provider listed, with what is known about it (null: unknown). */
+export interface ByokModel {
+  model: string;
+  label: string | null;
+  listed: boolean;
+  free: boolean | null;
+  input_price: number | null;
+  output_price: number | null;
+  price_currency: string | null;
+  calls_tools: boolean | null;
+  sees_images: boolean | null;
+  permitted_at: string | null;
 }
 
 export interface ByokState {
@@ -110,6 +133,12 @@ export const ERROR_TEXT: Record<string, string> = {
   connection_not_found: "That connection no longer exists.",
   authentication_required: "Sign in again, then retry.",
   byok_unavailable: "OCADE could not reach its key store. Nothing was changed. Try again.",
+  models_unavailable:
+    "Your provider did not give a model list for this key. You can still use the model you entered.",
+  model_not_found: "That model is not in this key's list. Refresh the list first.",
+  price_invalid: "Enter both prices per million tokens as numbers, in the budget's currency.",
+  policy_invalid:
+    "Check the spending settings: a known time zone, a three-letter currency, and for Custom at least one amount.",
 };
 
 async function token(): Promise<string | null> {
@@ -124,7 +153,7 @@ export async function readByok(): Promise<ByokState> {
     supabase
       .from("byok_connections")
       .select(
-        "id, alias, protocol, endpoint, model, fingerprint, enabled, status, sees_images, calls_tools, checked_at",
+        "id, alias, protocol, endpoint, model, fingerprint, enabled, status, sees_images, calls_tools, checked_at, model_mode, spend_mode, free_tier, budget_currency, budget_time_zone, budget_task, budget_day, budget_month, models_listed_at",
       )
       .order("created_at"),
     supabase.from("byok_choices").select("surface, connection_id"),
@@ -149,6 +178,65 @@ export async function readByok(): Promise<ByokState> {
       inputTokens: calls.data.reduce((sum, call) => sum + (call.input_tokens ?? 0), 0),
       outputTokens: calls.data.reduce((sum, call) => sum + (call.output_tokens ?? 0), 0),
     },
+  };
+}
+
+/** A connection's listed models, and what its key cost today and this month (recorded by OCADE). */
+export async function readModels(connection: ByokConnection) {
+  const { supabase } = await import("@/integrations/supabase/client");
+  const zone = connection.budget_time_zone;
+  // Midnight today and on the 1st, in the budget's own time zone, as instants.
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat("en-CA", {
+      timeZone: zone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hourCycle: "h23",
+    })
+      .formatToParts(new Date())
+      .map((part) => [part.type, part.value]),
+  );
+  const local = Date.UTC(
+    +parts.year,
+    +parts.month - 1,
+    +parts.day,
+    +parts.hour,
+    +parts.minute,
+    +parts.second,
+  );
+  const offset = local - Math.floor(Date.now() / 1000) * 1000;
+  const dayStart = Date.UTC(+parts.year, +parts.month - 1, +parts.day) - offset;
+  const monthStart = Date.UTC(+parts.year, +parts.month - 1, 1) - offset;
+  const [models, spend] = await Promise.all([
+    supabase
+      .from("byok_models")
+      .select(
+        "model, label, listed, free, input_price, output_price, price_currency, calls_tools, sees_images, permitted_at",
+      )
+      .eq("connection_id", connection.id)
+      .order("model")
+      .limit(1000),
+    supabase
+      .from("byok_spend")
+      .select("created_at, reserved, actual, state")
+      .eq("connection_id", connection.id)
+      .neq("state", "released")
+      .gte("created_at", new Date(monthStart).toISOString())
+      .limit(10_000),
+  ]);
+  if (models.error || spend.error) throw new Error("byok_unavailable");
+  const cost = (rows: typeof spend.data) =>
+    rows.reduce((sum, row) => sum + Number(row.actual ?? row.reserved ?? 0), 0);
+  return {
+    models: models.data as ByokModel[],
+    today: cost(spend.data.filter((row) => Date.parse(row.created_at) >= dayStart)),
+    month: cost(spend.data),
+    estimated: spend.data.some((row) => row.state !== "settled"),
+    unpriced: spend.data.some((row) => row.actual === null && row.reserved === null),
   };
 }
 

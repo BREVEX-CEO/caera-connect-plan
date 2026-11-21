@@ -1,3 +1,4 @@
+import { byokRefusal } from "@/lib/byok/refusals";
 import { getSupabaseBrowserConfiguration } from "@/integrations/supabase/configuration";
 import type {
   IntelligenceEvent,
@@ -245,6 +246,18 @@ export function createOnlineIntelligenceTransport(
         }
         const later =
           typeof said?.retryAfterSeconds === "number" ? said.retryAfterSeconds * 1000 : undefined;
+        // The person's own key answered for itself: said in their words, never replaced.
+        const own = byokRefusal(said?.error);
+        if (own) {
+          yield {
+            type: "refusal",
+            code: "provider_failed",
+            reason: own,
+            retryable: false,
+            ...(later ? { retryAfterMs: later } : {}),
+          };
+          return;
+        }
         yield {
           type: "refusal",
           code: response.status === 429 ? "provider_rate_limited" : "online_unavailable",
