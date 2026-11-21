@@ -260,6 +260,8 @@ export const beginLibraryUpload = createServerFn({ method: "POST" })
       .parse,
   )
   .handler(async ({ data, context }) => {
+    const { admit } = await import("@/lib/security/rate-limit.server");
+    await admit(context.userId, "begin_upload");
     // An upload begun more than a day ago that never became an item is removed (by policy).
     const { data: objects } = await context.supabase.storage
       .from("library")

@@ -644,6 +644,7 @@ export type Database = {
           device_id: string | null
           finished_at: string | null
           id: string
+          mode: string
           live_frame: string | null
           live_frame_at: string | null
           model_calls: number
@@ -684,6 +685,7 @@ export type Database = {
           device_id?: string | null
           finished_at?: string | null
           id?: string
+          mode?: string
           live_frame?: string | null
           live_frame_at?: string | null
           model_calls?: number
@@ -724,6 +726,7 @@ export type Database = {
           device_id?: string | null
           finished_at?: string | null
           id?: string
+          mode?: string
           live_frame?: string | null
           live_frame_at?: string | null
           model_calls?: number
@@ -1778,6 +1781,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      ocade_rate_windows: {
+        Row: {
+          action: string
+          count: number
+          user_id: string
+          window_start: string
+        }
+        Insert: {
+          action: string
+          count: number
+          user_id: string
+          window_start: string
+        }
+        Update: {
+          action?: string
+          count?: number
+          user_id?: string
+          window_start?: string
+        }
+        Relationships: []
       }
       ocade_skill_versions: {
         Row: {

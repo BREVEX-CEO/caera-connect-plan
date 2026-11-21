@@ -115,7 +115,11 @@ export const ACCOUNT_DATA_CLASSES: readonly AccountDataClass[] = [
     id: "activity",
     label: "Activity",
     description: "The record of actions taken on this account, kept for your own security review.",
-    tables: [{ table: "activity_log", owner: "user_id" }],
+    tables: [
+      { table: "activity_log", owner: "user_id" },
+      // How often this account did rate-limited actions in the last day (SEC-04).
+      { table: "ocade_rate_windows", owner: "user_id" },
+    ],
     retention: null,
   },
   {

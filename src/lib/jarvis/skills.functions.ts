@@ -62,6 +62,8 @@ export const saveSkill = createServerFn({ method: "POST" })
       .parse(i),
   )
   .handler(async ({ data, context }) => {
+    const { admit } = await import("@/lib/security/rate-limit.server");
+    await admit(context.userId, "save_skill");
     if (data.id) {
       const { error, data: row } = await context.supabase
         .from("ocade_skills")

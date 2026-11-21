@@ -21,6 +21,8 @@ export const saveChatHook = createServerFn({ method: "POST" })
   .middleware([requireSession])
   .validator((i) => z.object({ url: z.string().trim().max(700) }).parse(i))
   .handler(async ({ data, context }) => {
+    const { admit } = await import("@/lib/security/rate-limit.server");
+    await admit(context.userId, "save_chat_hook");
     const kind = chatHookKind(data.url);
     if (!kind)
       throw new Error(

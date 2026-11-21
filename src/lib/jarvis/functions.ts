@@ -23,6 +23,14 @@ function taskSessionId(claims: Record<string, unknown>): string {
   return session.data;
 }
 
+async function admit(
+  userId: string,
+  action: "start_task" | "replay_task" | "instruct_task" | "save_watch",
+) {
+  const { admit: count } = await import("@/lib/security/rate-limit.server");
+  await count(userId, action);
+}
+
 async function authority() {
   const [module, { supabaseAdmin }] = await Promise.all([
     import("./authority.server"),
@@ -56,6 +64,7 @@ export const startJarvisTask = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { admin, startTask } = await authority();
     const sessionId = taskSessionId(context.claims);
+    await admit(context.userId, "start_task");
     return guarded(() => startTask(admin, context.userId, { ...data, sessionId }));
   });
 
@@ -82,6 +91,7 @@ export const instructJarvisTask = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { admin, addInstruction } = await authority();
+    await admit(context.userId, "instruct_task");
     return guarded(async () => ({
       id: await addInstruction(
         admin,
@@ -163,6 +173,7 @@ export const replayJarvisTask = createServerFn({ method: "POST" })
   .validator((i) => z.object({ taskId: uuid }).parse(i))
   .handler(async ({ data, context }) => {
     const { admin, replayTask } = await authority();
+    await admit(context.userId, "replay_task");
     return guarded(() =>
       replayTask(admin, context.userId, data.taskId, taskSessionId(context.claims)),
     );
@@ -513,6 +524,7 @@ export const addJarvisWatch = createServerFn({ method: "POST" })
       .parse(i),
   )
   .handler(async ({ data, context }) => {
+    await admit(context.userId, "save_watch");
     const { data: made, error: madeError } = await context.supabase
       .from("ocade_conversations")
       .insert({
