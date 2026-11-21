@@ -93,6 +93,8 @@ function AuthPage() {
   const navigate = useNavigate();
   const search = Route.useSearch();
   const availability = Route.useLoaderData();
+  // GoTrue's email provider flag covers OTP and password sign-in.
+  const emailEnabled = availability.emailDelivery;
   const nextPath = safeNext(search.next) ?? DEFAULT_NEXT;
   const configured = getSupabaseBrowserConfiguration().configured;
 
@@ -138,7 +140,7 @@ function AuthPage() {
   async function continueWithGoogle() {
     if (!availability.google) {
       setError("Google sign-in is not available yet.");
-      setHint("Use a code sent to your email address instead.");
+      setHint(emailEnabled ? "Use a code sent to your email address instead." : null);
       return;
     }
     setBusy(true);
@@ -186,9 +188,9 @@ function AuthPage() {
       setError("Enter your email address.");
       return;
     }
-    if (!availability.emailDelivery) {
+    if (!emailEnabled) {
       setError("Email codes are not available yet.");
-      setHint("Continue with Google instead.");
+      setHint(availability.google ? "Continue with Google instead." : null);
       return;
     }
     const state = loadThrottle("otp_send", address);
@@ -224,6 +226,7 @@ function AuthPage() {
 
   async function signInWithPassword(event: React.FormEvent) {
     event.preventDefault();
+    if (!emailEnabled) return;
     const address = email.trim().toLowerCase();
     if (!address || !password) {
       setError("Enter your email address and password.");
@@ -248,7 +251,7 @@ function AuthPage() {
         saveThrottle("password_signin", address, recordFailure(state, Date.now()));
         // One sentence whether the account exists or not.
         setError("That email and password did not match.");
-        setHint("Forgot it? Choose “Use an email code instead” below, or reset your password.");
+        setHint("Forgot it? Choose “Use an email code instead” below.");
         setBusy(false);
         return;
       }
@@ -278,8 +281,8 @@ function AuthPage() {
 
   // The same field in both sign-in forms.
   const emailField = (
-    <label className="block">
-      <span className="sr-only">Email address</span>
+    <label className="block space-y-1">
+      <span className="text-sm font-medium">Email address</span>
       <input
         type="email"
         autoComplete="email"
@@ -287,7 +290,7 @@ function AuthPage() {
         value={email}
         onChange={(event) => setEmail(event.target.value)}
         placeholder="you@example.com"
-        className="h-10 w-full rounded-md border border-border bg-transparent px-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus-visible:border-ring"
+        className="h-11 w-full rounded-md border border-border bg-transparent px-3 text-base text-foreground outline-none placeholder:text-muted-foreground focus-visible:border-ring"
       />
     </label>
   );
@@ -296,9 +299,13 @@ function AuthPage() {
     <AuthShell
       title="Sign in to OCADE"
       subtitle={
-        availability.google
-          ? "Continue with Google, or sign in with your email."
-          : "Sign in with your email address."
+        emailEnabled
+          ? availability.google
+            ? "Continue with Google, or sign in with your email."
+            : "Sign in with your email address."
+          : availability.google
+            ? "Use your Google account to sign in."
+            : "Sign-in is currently unavailable."
       }
       footer={
         <>
@@ -308,76 +315,83 @@ function AuthPage() {
       }
     >
       {availability.google ? (
-        <>
-          <button
-            type="button"
-            onClick={continueWithGoogle}
-            disabled={busy}
-            className="flex h-10 w-full items-center justify-center gap-2 rounded-md bg-primary text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-60"
-          >
-            {busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null}
-            Continue with Google
-          </button>
-          <div className="my-5 flex items-center gap-3 text-[0.8125rem] text-muted-foreground">
-            <span className="h-px flex-1 bg-border" />
-            or
-            <span className="h-px flex-1 bg-border" />
-          </div>
-        </>
+        <button
+          type="button"
+          onClick={continueWithGoogle}
+          disabled={busy}
+          className="flex h-11 w-full items-center justify-center gap-2 rounded-md bg-primary text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-60"
+        >
+          {busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null}
+          Continue with Google
+        </button>
+      ) : null}
+      {availability.google && emailEnabled ? (
+        <div className="my-5 flex items-center gap-3 text-[0.8125rem] text-muted-foreground">
+          <span className="h-px flex-1 bg-border" />
+          or
+          <span className="h-px flex-1 bg-border" />
+        </div>
       ) : null}
 
-      {usePassword ? (
-        <form onSubmit={signInWithPassword} className="space-y-3">
+      {emailEnabled ? (
+        <form onSubmit={usePassword ? signInWithPassword : sendEmailCode} className="space-y-3">
           {emailField}
-          <label className="block">
-            <span className="sr-only">Password</span>
-            <span className="relative block">
-              <input
-                type={visible ? "text" : "password"}
-                autoComplete="current-password"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                placeholder="Password"
-                className="h-10 w-full rounded-md border border-border bg-transparent pl-3 pr-10 text-sm text-foreground outline-none placeholder:text-muted-foreground focus-visible:border-ring"
-              />
-              <button
-                type="button"
-                onClick={() => setVisible((value) => !value)}
-                aria-label={visible ? "Hide password" : "Show password"}
-                className="absolute right-1 top-1 grid h-8 w-8 place-items-center rounded text-muted-foreground transition-colors hover:text-foreground"
-              >
-                {visible ? (
-                  <EyeOff className="h-4 w-4" aria-hidden />
-                ) : (
-                  <Eye className="h-4 w-4" aria-hidden />
-                )}
-              </button>
-            </span>
-          </label>
-          <SubmitButton busy={busy}>Sign in</SubmitButton>
+          {usePassword ? (
+            <div className="space-y-1">
+              <label htmlFor="sign-in-password" className="text-sm font-medium">
+                Password
+              </label>
+              <div className="relative">
+                <input
+                  id="sign-in-password"
+                  type={visible ? "text" : "password"}
+                  autoComplete="current-password"
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  className="h-11 w-full rounded-md border border-border bg-transparent pl-3 pr-12 text-base text-foreground outline-none focus-visible:border-ring"
+                />
+                <button
+                  type="button"
+                  onClick={() => setVisible((value) => !value)}
+                  aria-label={visible ? "Hide password" : "Show password"}
+                  className="absolute inset-y-0 right-0 grid w-11 place-items-center rounded text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  {visible ? (
+                    <EyeOff className="h-4 w-4" aria-hidden />
+                  ) : (
+                    <Eye className="h-4 w-4" aria-hidden />
+                  )}
+                </button>
+              </div>
+            </div>
+          ) : null}
+          <SubmitButton busy={busy}>{usePassword ? "Sign in" : "Send code"}</SubmitButton>
         </form>
-      ) : availability.emailDelivery ? (
-        <form onSubmit={sendEmailCode} className="space-y-3">
-          {emailField}
-          <SubmitButton busy={busy}>Send code</SubmitButton>
-        </form>
-      ) : (
-        <p className="text-[0.8125rem] text-muted-foreground">
-          Email codes are not available on this deployment yet.
-        </p>
-      )}
+      ) : null}
 
-      <button
-        type="button"
-        onClick={() => {
-          setUsePassword((current) => !current);
-          setError(null);
-          setHint(null);
-        }}
-        className="mt-3 min-h-6 w-full text-center text-[0.8125rem] text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
-      >
-        {usePassword ? "Use an email code instead" : "Use a password instead"}
-      </button>
+      {emailEnabled ? (
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => {
+            setUsePassword((current) => !current);
+            setVisible(false);
+            setError(null);
+            setHint(null);
+          }}
+          className="mt-2 min-h-11 w-full text-center text-sm text-muted-foreground underline-offset-2 hover:text-foreground hover:underline disabled:opacity-60"
+        >
+          {usePassword ? "Use an email code instead" : "Use a password instead"}
+        </button>
+      ) : null}
+      {!emailEnabled && !availability.google ? (
+        <Link
+          to="/help"
+          className="flex min-h-11 items-center justify-center rounded-md border border-border text-sm hover:bg-accent"
+        >
+          Get help
+        </Link>
+      ) : null}
 
       {error ? (
         <p className="mt-4 text-[0.8125rem] text-foreground" role="alert">
@@ -398,7 +412,7 @@ function SubmitButton({ busy, children }: { busy: boolean; children: React.React
     <button
       type="submit"
       disabled={busy}
-      className="flex h-10 w-full items-center justify-center gap-2 rounded-md border border-border text-sm font-medium text-foreground transition-colors hover:bg-accent disabled:opacity-60"
+      className="flex h-11 w-full items-center justify-center gap-2 rounded-md border border-border text-sm font-medium text-foreground transition-colors hover:bg-accent disabled:opacity-60"
     >
       {busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null}
       {children}
