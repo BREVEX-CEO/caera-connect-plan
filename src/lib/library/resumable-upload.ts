@@ -20,6 +20,15 @@ export interface ResumeRecord {
   id: string;
 }
 
+function acknowledgedOffset(response: Response, maximum: number): number {
+  const header = response.headers.get("upload-offset");
+  const offset = Number(header);
+  if (!header || !/^\d+$/.test(header) || !Number.isSafeInteger(offset) || offset > maximum) {
+    throw new Error("The server returned invalid upload progress.");
+  }
+  return offset;
+}
+
 export async function uploadResumable(input: {
   file: File;
   endpoint: string;
@@ -38,6 +47,12 @@ export async function uploadResumable(input: {
     apikey: input.apiKey,
     "tus-resumable": "1.0.0",
   };
+  const interrupted = "The upload was interrupted. Choose the file again to resume.";
+  const send = (url: string, init: RequestInit) =>
+    fetch(url, { ...init, signal }).catch((error: unknown) => {
+      if (signal?.aborted) throw error;
+      return null;
+    });
   const key = fingerprint(file);
   let record: ResumeRecord | null = null;
   try {
@@ -47,9 +62,10 @@ export async function uploadResumable(input: {
   }
   let offset = 0;
   if (record && record.id === input.id) {
-    const head = await fetch(record.url, { method: "HEAD", headers: auth, signal });
-    if (head.ok) offset = Number(head.headers.get("upload-offset") ?? 0);
-    else record = null;
+    const head = await send(record.url, { method: "HEAD", headers: auth, cache: "no-store" });
+    if (head?.ok) offset = acknowledgedOffset(head, file.size);
+    else if (head && [403, 404, 410].includes(head.status)) record = null;
+    else throw new Error(interrupted);
   } else record = null;
   if (!record) {
     const created = await fetch(input.endpoint, {
@@ -75,28 +91,31 @@ export async function uploadResumable(input: {
   input.onProgress?.(offset, file.size);
   while (offset < file.size) {
     const chunk = file.slice(offset, Math.min(file.size, offset + CHUNK));
-    let answer: Response | null = null;
-    for (let attempt = 0; attempt < 4 && !answer?.ok; attempt += 1) {
+    let accepted = offset;
+    for (let attempt = 0; attempt < 4 && accepted === offset; attempt += 1) {
       if (attempt) await new Promise((resolve) => setTimeout(resolve, 1000 * 2 ** attempt));
-      answer = await fetch(record.url, {
+      const answer = await send(record.url, {
         method: "PATCH",
-        signal,
         headers: {
           ...auth,
           "upload-offset": String(offset),
           "content-type": "application/offset+octet-stream",
         },
         body: chunk,
-      }).catch((error: unknown) => {
-        if (signal?.aborted) throw error;
-        return null;
       });
+      if (answer?.ok) {
+        accepted = acknowledgedOffset(answer, offset + chunk.size);
+        if (accepted <= offset) throw new Error("The server did not accept that part.");
+      } else if (!answer || answer.status === 409 || answer.status >= 500) {
+        // The chunk may already be stored. Recover the receiver's offset before retrying it.
+        const head = await send(record.url, { method: "HEAD", headers: auth, cache: "no-store" });
+        if (head?.ok) {
+          accepted = acknowledgedOffset(head, offset + chunk.size);
+          if (accepted < offset) throw new Error("The server lost part of the upload.");
+        }
+      }
     }
-    if (!answer?.ok)
-      throw new Error("The upload was interrupted. Choose the file again to resume.");
-    const accepted = Number(answer.headers.get("upload-offset"));
-    if (!Number.isFinite(accepted) || accepted <= offset)
-      throw new Error("The server did not accept that part.");
+    if (accepted === offset) throw new Error(interrupted);
     offset = accepted;
     input.onProgress?.(offset, file.size);
   }

@@ -91,3 +91,56 @@ test("an interrupted upload resumes from the server's own offset", async () => {
   assert.ok(!s.calls.some((call) => call.startsWith("POST")), "no new upload was created");
   assert.equal(s.calls.filter((call) => call.startsWith("PATCH")).length, 2);
 });
+
+test("a lost PATCH acknowledgment does not resend bytes already stored", async () => {
+  const s = server();
+  let firstPatch = true;
+  globalThis.fetch = (async (url: string, init: RequestInit) => {
+    const response = await s.fetch(url, init);
+    if (firstPatch && init.method === "PATCH") {
+      firstPatch = false;
+      throw new TypeError("connection interrupted after the bytes were stored");
+    }
+    return response;
+  }) as never;
+  const seen: number[] = [];
+  await uploadResumable({
+    file,
+    endpoint: "https://x.test/storage/v1/upload/resumable",
+    apiKey: "k",
+    accessToken: "t",
+    objectName: "u/id3",
+    id: "id3",
+    storage: memory(),
+    onProgress: (accepted) => seen.push(accepted),
+  });
+  assert.deepEqual(seen, [0, CHUNK, CHUNK * 2, file.size]);
+  assert.equal(s.received(), file.size);
+  assert.equal(s.calls[2], "HEAD /storage/v1/upload/resumable/abc");
+  assert.equal(s.calls.filter((call) => call.startsWith("PATCH")).length, 3);
+});
+
+test("invalid server progress cannot finish a partial upload", async () => {
+  const s = server();
+  globalThis.fetch = (async (url: string, init: RequestInit) => {
+    const response = await s.fetch(url, init);
+    return init.method === "PATCH"
+      ? new Response(null, { status: 204, headers: { "upload-offset": String(file.size) } })
+      : response;
+  }) as never;
+  const store = memory();
+  await assert.rejects(
+    uploadResumable({
+      file,
+      endpoint: "https://x.test/storage/v1/upload/resumable",
+      apiKey: "k",
+      accessToken: "t",
+      objectName: "u/id4",
+      id: "id4",
+      storage: store,
+    }),
+    /invalid upload progress/,
+  );
+  assert.equal(s.received(), CHUNK);
+  assert.ok(store.map.has(fingerprint(file)), "the partial upload is still resumable");
+});
