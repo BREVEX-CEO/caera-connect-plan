@@ -5,6 +5,7 @@ through an outage, and dropped when unreadable; the collapsed line counts active
 import json
 import tempfile
 import unittest
+import uuid
 from contextlib import closing
 from pathlib import Path
 from unittest.mock import patch
@@ -34,6 +35,10 @@ class BarStateTest(unittest.TestCase):
             self.assertEqual([(m["lane"], m["x"], m["y"]) for m in state["marks"]], [(0, 10, 20)],
                              "a marker only where a click reported its point")
             self.assertEqual(summary(state), "Planning the next step")
+            bar.task_seen({"id": "next-task", "status": "running"})
+            state = json.loads((home / "bar.json").read_text())
+            self.assertEqual(state["marks"], [])
+            self.assertIsNone(state["window"])
             bar.task_seen({"id": "t", "status": "completed"})
             self.assertIsNone(json.loads((home / "bar.json").read_text())["task"], "a finished task hides the bar")
 
@@ -42,14 +47,15 @@ class InstructionTest(unittest.TestCase):
     def test_typed_instructions_are_delivered_once_and_kept_through_an_outage(self):
         with tempfile.TemporaryDirectory() as directory, closing(Journal(Path(directory) / "j.sqlite")) as journal:
             home = Path(directory)
+            task_id = str(uuid.uuid4())
             with patch("ocade_agent.bar.time.time_ns", return_value=1_800_000_000_000_000_000):
-                queue_instruction(home, "  Use the blue logo ", None)
-                queue_instruction(home, "Smaller", 1)
+                queue_instruction(home, "  Use the blue logo ", None, task_id)
+                queue_instruction(home, "Smaller", 1, task_id)
             (home / "instructions" / "0-broken.json").write_text("{not json")
             with self.assertRaises(ValueError):
-                queue_instruction(home, "   ", None)
+                queue_instruction(home, "   ", None, task_id)
             with self.assertRaises(ValueError):
-                queue_instruction(home, "x", 9)
+                queue_instruction(home, "x", 9, task_id)
 
             class Device:
                 def __init__(self):
@@ -69,6 +75,7 @@ class InstructionTest(unittest.TestCase):
             sent = [p for p in device.sent if p["op"] == "instruct"]
             self.assertEqual([p["text"] for p in sent[1:]], ["Use the blue logo", "Smaller"])
             self.assertEqual(sent[0]["clientId"], sent[1]["clientId"], "a retry is the same instruction")
+            self.assertTrue(all(payload["taskId"] == task_id for payload in sent))
             self.assertEqual(sent[2]["lane"], 1)
             self.assertEqual(pending_instructions(home), [])
 

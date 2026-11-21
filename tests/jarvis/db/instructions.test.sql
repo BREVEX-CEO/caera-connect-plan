@@ -31,6 +31,7 @@ DECLARE
   v_key text := repeat(replace(v_a::text, '-', ''), 4);
   v_device uuid;
   v_task record;
+  v_old_task uuid;
   v_client uuid := gen_random_uuid();
   v_one uuid;
 BEGIN
@@ -43,7 +44,7 @@ BEGIN
   v_one := public.jarvis_add_instruction(v_a, v_task.task_id, NULL, 'Use the blue logo', NULL, v_client);
   PERFORM pg_temp.check(public.jarvis_add_instruction(v_a, v_task.task_id, NULL, 'Use the blue logo', NULL, v_client) = v_one,
                         'a resend is the same instruction');
-  PERFORM public.jarvis_add_instruction(NULL, NULL, v_device, 'Agent 2: smaller', 1::smallint, gen_random_uuid());
+  PERFORM public.jarvis_add_instruction(NULL, v_task.task_id, v_device, 'Agent 2: smaller', 1::smallint, gen_random_uuid());
   PERFORM pg_temp.check((SELECT jsonb_agg(i ->> 'from') FROM jsonb_array_elements(public.jarvis_task_instructions(v_task.task_id)) AS i)
                         = '["website", "computer"]'::jsonb, 'the planner reads both, oldest first');
   PERFORM pg_temp.fails(format('SELECT public.jarvis_add_instruction(%L, %L, NULL, %L, NULL, %L)', v_b, v_task.task_id, 'hijack', gen_random_uuid()),
@@ -57,6 +58,12 @@ BEGIN
   PERFORM public.jarvis_stop_task(v_a, v_task.task_id);
   PERFORM pg_temp.fails(format('SELECT public.jarvis_add_instruction(%L, %L, NULL, %L, NULL, %L)', v_a, v_task.task_id, 'late', gen_random_uuid()),
                         'task_not_open');
+  v_old_task := v_task.task_id;
+  SELECT * INTO v_task FROM public.jarvis_open_task(v_a, (SELECT conv FROM ins_ids), v_device, 'New task', NULL, '[]');
+  PERFORM pg_temp.fails(format('SELECT public.jarvis_add_instruction(NULL, %L, %L, %L, NULL, %L)',
+                        v_old_task, v_device, 'Queued before reconnect', gen_random_uuid()), 'task_not_open');
+  PERFORM pg_temp.check(public.jarvis_task_instructions(v_task.task_id) = '[]'::jsonb,
+                        'reconnecting does not redirect a queued instruction to a new task on the same device');
 END $$;
 RESET ROLE;
 SET LOCAL ROLE authenticated;

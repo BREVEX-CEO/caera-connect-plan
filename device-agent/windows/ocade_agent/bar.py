@@ -92,9 +92,12 @@ class BarState:
         mode = mode if mode in ("live", "background", "rehearsal") else self.task.get("mode", "live")
         if (task.get("id"), task.get("status"), mode) != (self.task.get("id"), self.task.get("status"),
                                                           self.task.get("mode")):
-            self.task = {"id": task.get("id"), "status": task.get("status"), "mode": mode}
-            if task.get("id") is None:
+            if task.get("id") != self.task.get("id"):
                 self.lanes.clear()
+                self.marks.clear()
+                self.window = None
+                self.sent.clear()
+            self.task = {"id": task.get("id"), "status": task.get("status"), "mode": mode}
             self.flush()
 
     def started(self, lane: int, intent: dict) -> None:
@@ -127,7 +130,7 @@ class BarState:
             pass
 
 
-def queue_instruction(home: Path, text: str, lane: int | None) -> Path:
+def queue_instruction(home: Path, text: str, lane: int | None, task_id: str) -> Path:
     """What the person typed in the bar, for the agent loop to deliver (the bar has no key)."""
     global _last_instruction_at
 
@@ -136,12 +139,15 @@ def queue_instruction(home: Path, text: str, lane: int | None) -> Path:
         raise ValueError("empty instruction")
     if lane is not None and lane not in range(LANES):
         raise ValueError("no such agent")
+    if not isinstance(task_id, str):
+        raise ValueError("no task to instruct")
+    task_id = str(uuid.UUID(task_id))
     client_id = str(uuid.uuid4())
     with _instruction_lock:
         # Windows can return the same wall time for successive writes.
         _last_instruction_at = max(time.time_ns(), _last_instruction_at + 1)
         path = home / "instructions" / f"{_last_instruction_at}-{client_id}.json"
-        write_json(path, {"text": text, "lane": lane, "clientId": client_id})
+        write_json(path, {"text": text, "lane": lane, "clientId": client_id, "taskId": task_id})
     return path
 
 
@@ -174,10 +180,16 @@ def pending_instructions(home: Path) -> list[tuple[Path, dict]]:
     for path in sorted((home / "instructions").glob("*.json"), key=order)[:10]:
         try:
             item = json.loads(path.read_text(encoding="utf-8"))
-            text, lane, client = item["text"], item.get("lane"), str(uuid.UUID(item["clientId"]))
+            text, lane = item["text"], item.get("lane")
+            client_id = item["clientId"]
+            if not isinstance(client_id, str) or ("taskId" in item and not isinstance(item["taskId"], str)):
+                raise ValueError
+            client = str(uuid.UUID(client_id))
             if not isinstance(text, str) or not text.strip() or (lane is not None and lane not in range(LANES)):
                 raise ValueError
-            found.append((path, {"text": text.strip()[:2000], "lane": lane, "clientId": client}))
+            # Older files carry no task identity and receive a final refusal from the server.
+            task = {"taskId": str(uuid.UUID(item["taskId"]))} if "taskId" in item else {}
+            found.append((path, {"text": text.strip()[:2000], "lane": lane, "clientId": client, **task}))
         except (OSError, ValueError, KeyError, TypeError):
             path.unlink(missing_ok=True)
     return found
@@ -261,12 +273,16 @@ def run_bar(home: Path) -> int:  # pragma: no cover - drawn on a real desktop, c
     who.pack(side="left", padx=4)
     status = tk.Label(root, text="", bg="#111827", fg="#9ca3af", font=("Segoe UI", 8), anchor="w")
     status.pack(fill="x", padx=8, side="bottom")
+    visible_task = None
 
     def send(_event=None):
+        if visible_task is None:
+            status.configure(text="There is no open task to send this to.")
+            return "break"
         name = target.get()
         lane = next((i for i, (n, _, _) in enumerate(AGENTS) if n == name), None)
         try:
-            queue_instruction(home, entry.get(), lane)
+            queue_instruction(home, entry.get(), lane, visible_task)
         except (ValueError, OSError):
             return "break"
         entry.delete(0, "end")  # the draft goes only once it is queued for delivery
@@ -280,6 +296,10 @@ def run_bar(home: Path) -> int:  # pragma: no cover - drawn on a real desktop, c
         """Point & Ask: the person drags a rectangle; only that region is captured, once."""
         from PIL import ImageGrab
 
+        task_id = visible_task
+        if task_id is None:
+            status.configure(text="Open a task before pointing at something.")
+            return
         shade = tk.Toplevel(root)
         shade.attributes("-fullscreen", True)
         shade.attributes("-topmost", True)
@@ -307,11 +327,14 @@ def run_bar(home: Path) -> int:  # pragma: no cover - drawn on a real desktop, c
             root.after(150, lambda: finish(box))  # the shade is gone from the screen first
 
         def finish(box):
+            if task_id != visible_task:
+                status.configure(text="The task changed. Select the region again for the new task.")
+                return
             try:
                 path = save_pointed(home, ImageGrab.grab(bbox=box, all_screens=True))
-                queue_instruction(home, point_instruction(path, entry.get()), None)
+                queue_instruction(home, point_instruction(path, entry.get()), None, task_id)
                 entry.delete(0, "end")
-                status.configure(text=f"Sent what you pointed at ({path}).")
+                status.configure(text="Sending the selected region to JARVIS…")
             except Exception:  # noqa: BLE001 - shown, never silently retried
                 status.configure(text="That part of the screen could not be captured.")
 
@@ -383,6 +406,7 @@ def run_bar(home: Path) -> int:  # pragma: no cover - drawn on a real desktop, c
             markers.append(marker)
 
     def tick():
+        nonlocal visible_task
         try:
             state = json.loads((home / "bar.json").read_text(encoding="utf-8"))
             missing_since[0] = None
@@ -392,13 +416,15 @@ def run_bar(home: Path) -> int:  # pragma: no cover - drawn on a real desktop, c
             if time.monotonic() - missing_since[0] > 60:
                 root.destroy()
                 return
-        if not state.get("task"):
+        task = state.get("task") or {}
+        visible_task = None
+        if not task:
             root.withdraw()
         else:
             agents = state.get("agents") or []
             dots.configure(text=" ".join(AGENTS[a["lane"] % LANES][2] for a in agents) or "○")
             mode = {"background": "Background", "rehearsal": "Rehearsal"}.get(
-                (state.get("task") or {}).get("mode"), "Live")
+                task.get("mode"), "Live")
             line.configure(text=f"{mode} · {summary(state)}"[:64])
             rows.configure(text="\n".join(
                 f"{AGENTS[a['lane'] % LANES][2]} {AGENTS[a['lane'] % LANES][0]}: {a['doing']} "
@@ -409,10 +435,11 @@ def run_bar(home: Path) -> int:  # pragma: no cover - drawn on a real desktop, c
                 details.pack_forget()
             sent = (state.get("instructions") or [])[-1:]
             if sent:
-                word = {"accepted": "Received by JARVIS", "rejected": "Not delivered: the task finished",
+                word = {"accepted": "Received by JARVIS", "rejected": "Not delivered to the original task",
                         "failed": "Not delivered yet; retrying"}.get(sent[0]["state"], "Sending…")
                 status.configure(text=f"{word}: {sent[0]['text'][:50]}")
             if attached_place(state):
+                visible_task = task.get("id")
                 root.deiconify()
             else:
                 root.withdraw()

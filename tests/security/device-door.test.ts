@@ -153,3 +153,31 @@ test("the background planner takes one task id per message; a bad message is dro
     `retry:${JSON.stringify({ taskId: failing })}`,
   ]);
 });
+
+test("signed companion instructions must name the task that originally received them", async () => {
+  const device = crypto.randomUUID();
+  const task = crypto.randomUUID();
+  const clientId = crypto.randomUUID();
+  const instruction = { op: "instruct", text: "Use a larger logo", lane: 1, clientId };
+  const unbound = await door("admitted", device, JSON.stringify(instruction));
+  assert.equal(unbound.reply.status, 409);
+  assert.equal(unbound.reply.body.error, "instruction_task_required");
+  assert.ok(!unbound.calls.some(({ fn }) => fn === "jarvis_add_instruction"));
+
+  const { reply, calls } = await door(
+    "admitted",
+    device,
+    JSON.stringify({ ...instruction, taskId: task }),
+    undefined,
+    { jarvis_add_instruction: crypto.randomUUID() },
+  );
+  assert.equal(reply.status, 200);
+  assert.deepEqual(calls.find(({ fn }) => fn === "jarvis_add_instruction")?.args, {
+    p_user: null,
+    p_task: task,
+    p_device: device,
+    p_text: instruction.text,
+    p_lane: instruction.lane,
+    p_client: clientId,
+  });
+});

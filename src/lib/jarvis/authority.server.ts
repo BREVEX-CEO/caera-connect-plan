@@ -1438,9 +1438,10 @@ export async function handleDeviceRequest(
     }
     if (parsed.op === "instruct") {
       // The person at the computer redirects its open task (plan 14F.4.4); a note, never a grant.
+      if (!parsed.taskId) return refuse(409, "instruction_task_required");
       const id = await call<string>(admin, "jarvis_add_instruction", {
         p_user: null,
-        p_task: null,
+        p_task: parsed.taskId,
         p_device: deviceId,
         p_text: parsed.text,
         p_lane: parsed.lane,
