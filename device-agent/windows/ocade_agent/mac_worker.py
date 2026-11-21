@@ -188,14 +188,14 @@ def _leased(window: dict):
     application = AX.AXUIElementCreateApplication(window["pid"])
     _expose_tree(application, window["pid"])
     for candidate in _attribute(application, "AXWindows") or []:
-        if _attribute(candidate, "AXMinimized"):
-            continue
         position, size = _point(_attribute(candidate, "AXPosition")), _point(_attribute(candidate, "AXSize"))
         if position and size and abs(position[0] - x) < 2 and abs(position[1] - y) < 2 \
                 and abs(size[0] - width) < 2 and abs(size[1] - height) < 2:
             matches.append(candidate)
     if len(matches) != 1:
         raise Refused("window_ambiguous" if matches else "window_changed")
+    if _attribute(matches[0], "AXMinimized"):
+        raise Refused("window_minimized")
     return matches[0], now["bounds"]
 
 
@@ -451,8 +451,12 @@ def ui_watch(window: dict, region: list | None = None, timeoutMs: int = 10000, s
     _leased(window)
 
     def grab():
-        _, (x, y, width, height) = _leased(window)  # the window as it is now, or refused
-        return ImageGrab.grab(bbox=(x, y, x + width, y + height))
+        if not _screen_capture_allowed():
+            raise Refused("screen_recording_permission_needed")
+        _leased(window)  # the window as it is now, or refused
+        image = ImageGrab.grab(window=window["hwnd"])
+        _leased(window)
+        return image
 
     with capture.HUB.use(json.dumps(window, sort_keys=True), capture.window_source(window, grab)) as stream:
         return capture.watch(stream, region, timeoutMs, show)

@@ -132,7 +132,9 @@ class WindowsUiLadder(unittest.TestCase):
                 out["after_invoke"] = self.note()
                 # ui.watch (plan 14F.9): a still window is not a change; a scroll run at the same time
                 # by another lane's own worker is seen as changed regions of the real window.
-                out["still"] = await run("ui.watch", {"window": window, "timeoutMs": 600})
+                out["still"] = await gateway.run(
+                    intent("ui.watch", {"window": window, "timeoutMs": 600}), gateway.epoch, 1
+                )
                 watched = {}
 
                 async def watch():
@@ -141,8 +143,10 @@ class WindowsUiLadder(unittest.TestCase):
 
                 async with anyio.create_task_group() as group:
                     group.start_soon(watch)
-                    await anyio.sleep(1.5)
-                    await run("ui.scroll", {"window": window, "element": rows, "direction": "down", "pages": 2})
+                    await anyio.sleep(0.5)
+                    out["watch_scroll"] = await run(
+                        "ui.scroll", {"window": window, "element": rows, "direction": "down", "pages": 2}
+                    )
                 out["watched"] = watched["result"]
                 # SkillForge (28.2.1): what a person does in the window, recorded as ordered steps.
                 recorded = {}
@@ -274,6 +278,8 @@ class WindowsUiLadder(unittest.TestCase):
             self.assertEqual((out["still"]["status"], out["still"]["errorCode"]), ("not_applied", "not_changed"),
                              out["still"])
             watched = out["watched"]
+            self.assertEqual(out["watch_scroll"]["status"], "observed", out["watch_scroll"])
+            self.assertGreater(out["watch_scroll"]["evidence"]["verticalPercent"], 0)
             self.assertEqual(watched["status"], "observed", watched)
             self.assertTrue(watched["evidence"]["regions"], watched)
             # The window's own native stream (14F.9.1), never a desktop recorder or silent polling.

@@ -129,7 +129,9 @@ class MacUiLadder(unittest.TestCase):
                 await anyio.sleep(0.5)
                 out["after_invoke"] = self.note()
                 # ui.watch (plan 14F.9): needs Screen Recording; without it the refusal says so.
-                out["still"] = await run("ui.watch", {"window": window, "timeoutMs": 600})
+                out["still"] = await gateway.run(
+                    intent("ui.watch", {"window": window, "timeoutMs": 600}), gateway.epoch, 1
+                )
                 # A real change while watching, on the window's own ScreenCaptureKit stream.
                 watched = {}
 
@@ -139,8 +141,10 @@ class MacUiLadder(unittest.TestCase):
 
                 async with anyio.create_task_group() as group:
                     group.start_soon(watch)
-                    await anyio.sleep(1.5)
-                    await run("ui.set_value", {"window": window, "element": box, "value": "changed while watched"})
+                    await anyio.sleep(0.5)
+                    out["watch_set"] = await run(
+                        "ui.set_value", {"window": window, "element": box, "value": "changed while watched"}
+                    )
                 out["watched"] = watched["result"]
                 await run("ui.set_value", {"window": window, "element": box, "value": ""})
                 out["keys"] = await run("ui.send_keys", {"window": window, "element": box, "keys": [
@@ -197,8 +201,14 @@ class MacUiLadder(unittest.TestCase):
 
                 ax_app = AX.AXUIElementCreateApplication(window["pid"])
                 _, windows = AX.AXUIElementCopyAttributeValue(ax_app, "AXWindows", None)
-                AX.AXUIElementSetAttributeValue(windows[0], "AXMinimized", True)
-                time.sleep(1.5)
+                note_window = next(
+                    item for item in windows
+                    if AX.AXUIElementCopyAttributeValue(item, "AXTitle", None) == (0, "Ledger Note")
+                )
+                self.assertEqual(AX.AXUIElementSetAttributeValue(note_window, "AXMinimized", True), 0)
+                with anyio.fail_after(5):
+                    while AX.AXUIElementCopyAttributeValue(note_window, "AXMinimized", None) != (0, True):
+                        await anyio.sleep(0.1)
                 out["minimized"] = await run("ui.set_value", {"window": window, "element": box, "value": "x"})
                 subprocess.run(["pkill", "-x", self.exe])
                 time.sleep(1.5)
@@ -213,6 +223,7 @@ class MacUiLadder(unittest.TestCase):
                              out["still"])
             if capture:
                 watched = out["watched"]
+                self.assertTrue(out["watch_set"]["evidence"].get("matches"), out["watch_set"])
                 self.assertEqual(watched["status"], "observed", watched)
                 self.assertEqual(watched["evidence"]["capture"], "screen_capture_kit", watched["evidence"])
                 self.assertTrue(watched.get("preview"), watched["evidence"])
@@ -268,7 +279,7 @@ class MacUiLadder(unittest.TestCase):
             self.assertEqual(out["click"]["status"], "observed", out["click"])
             self.assertEqual(out["after_click"], "saved by click")
         with self.subTest("MAC-009 a minimized window is not acted on"):
-            self.assertEqual(out["minimized"]["errorCode"], "window_minimized")
+            self.assertEqual(out["minimized"].get("errorCode"), "window_minimized", out["minimized"])
         with self.subTest("MAC-010 a closed window is gone"):
             self.assertEqual(out["closed"]["errorCode"], "window_gone")
         with self.subTest("MAC-011 an empty element description is ambiguous"):

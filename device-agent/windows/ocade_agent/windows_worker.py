@@ -110,10 +110,9 @@ def _on_secure_desktop() -> bool:
         desktop.CloseDesktop()
 
 
-def _leased(window: dict):
-    """The pywinauto window for an exact, still-valid lease, or a refusal."""
+def _window_handle(window: dict) -> int:
+    """The still-valid handle of the leased window."""
     import win32gui  # type: ignore[import-not-found]
-    from pywinauto import Application  # type: ignore[import-not-found]
 
     if _on_secure_desktop():
         raise Refused("secure_desktop")
@@ -134,6 +133,15 @@ def _leased(window: dict):
         # Windows silently drops input and many UIA calls from a lower integrity level (UIPI):
         # an action could report success while nothing happened. Refused, never attempted.
         raise Refused("window_elevated")
+    return hwnd
+
+
+def _leased(window: dict):
+    """The pywinauto window for an exact, still-valid lease, or a refusal."""
+    import win32gui  # type: ignore[import-not-found]
+    from pywinauto import Application  # type: ignore[import-not-found]
+
+    hwnd = _window_handle(window)
     try:
         # WM_NULL has no application effect. A bounded round trip tests the actual
         # message loop; IsHungAppWindow can miss a suspended thread waiting for input.
@@ -372,15 +380,15 @@ def ui_watch(window: dict, region: list | None = None, timeoutMs: int = 10000, s
     """Wait, without acting, until the leased window's picture changes, on the window's one shared
     capture (capture.py: Windows.Graphics.Capture, else bounded polling): which regions changed,
     compared locally. With `show`, the ordered keyframes come back as one small picture."""
-    import win32gui  # type: ignore[import-not-found]
     from PIL import ImageGrab
 
     _leased(window)
 
     def grab():
-        if not win32gui.IsWindow(window["hwnd"]):
-            raise Refused("window_gone")
-        return ImageGrab.grab(bbox=win32gui.GetWindowRect(window["hwnd"]), all_screens=True)
+        hwnd = _window_handle(window)
+        image = ImageGrab.grab(window=hwnd)
+        _window_handle(window)
+        return image
 
     with capture.HUB.use(json.dumps(window, sort_keys=True), capture.window_source(window, grab)) as stream:
         return capture.watch(stream, region, timeoutMs, show)

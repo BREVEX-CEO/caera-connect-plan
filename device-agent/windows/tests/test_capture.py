@@ -9,6 +9,7 @@ import sys
 import threading
 import time
 import unittest
+from contextlib import nullcontext
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
@@ -183,6 +184,34 @@ class ScreenCaptureKitTest(unittest.TestCase):
 
 
 class WatchTest(unittest.TestCase):
+    def test_polling_captures_an_exact_window_and_discards_a_replaced_lease(self):
+        from ocade_agent import mac_worker, windows_worker
+
+        for worker in (windows_worker, mac_worker):
+            for replaced in (False, True):
+                with self.subTest(worker=worker.__name__, replaced=replaced):
+                    lease = {"hwnd": 42}
+                    image = picture()
+                    terminal = Refused("window_changed") if replaced else 42
+                    native_lease = [42, 42, terminal] if worker is mac_worker else [42]
+                    with (
+                        patch.dict(sys.modules, {"ApplicationServices": SimpleNamespace(AXIsProcessTrusted=lambda: True)}),
+                        patch.object(worker, "_leased", side_effect=native_lease),
+                        patch.object(windows_worker, "_window_handle", side_effect=[42, terminal]),
+                        patch.object(mac_worker, "_screen_capture_allowed", return_value=True),
+                        patch("PIL.ImageGrab.grab", return_value=image) as grab,
+                        patch.object(capture.HUB, "use", return_value=nullcontext(None)),
+                        patch.object(capture, "watch", return_value={"changed": False}),
+                        patch.object(capture, "window_source", side_effect=lambda _lease, snapshot: snapshot()),
+                    ):
+                        result = worker.ui_watch(window=lease)
+                    grab.assert_called_once_with(window=42)
+                    if replaced:
+                        self.assertEqual(result["refused"], "window_changed")
+                        self.assertFalse(result["maybeChanged"])
+                    else:
+                        self.assertFalse(result["changed"])
+
     def test_a_real_change_is_reported_with_its_regions_and_the_capture_used(self):
         source = Scripted("windows_graphics_capture")
         stream = capture.Stream(source)
