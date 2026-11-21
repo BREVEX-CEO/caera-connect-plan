@@ -11,7 +11,7 @@ const BRANDS: Readonly<Record<string, readonly string[]>> = {
   paypal: ["paypal.com"],
   microsoft: ["microsoft.com", "live.com", "office.com", "microsoftonline.com", "outlook.com"],
   apple: ["apple.com", "icloud.com"],
-  google: ["google.com", "gmail.com", "youtube.com"],
+  google: ["google.com", "gmail.com"],
   amazon: ["amazon.com", "amazon.co.uk", "amazon.de", "amazon.in", "aws.amazon.com"],
   netflix: ["netflix.com"],
   facebook: ["facebook.com", "meta.com"],
