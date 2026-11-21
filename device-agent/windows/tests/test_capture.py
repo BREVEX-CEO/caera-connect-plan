@@ -71,8 +71,6 @@ class HubTest(unittest.TestCase):
         self.assertEqual(source.started, 1, "one capture, not one per agent")
         with hub.use("w2", Scripted()) as other:
             self.assertIsNot(other, first)
-        hub.close_all()
-        self.assertEqual(source.stopped, 1)
 
     def test_a_capture_nobody_uses_stops_and_an_ended_one_is_reopened(self):
         hub, old = capture.Hub(), Scripted()

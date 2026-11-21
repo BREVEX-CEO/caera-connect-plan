@@ -123,12 +123,6 @@ class Hub:
                 stream.users -= 1
                 stream.idle_since = time.monotonic()
 
-    def close_all(self) -> None:
-        with self._lock:
-            for stream in self._streams.values():
-                stream.close()
-            self._streams.clear()
-
 
 HUB = Hub()
 
