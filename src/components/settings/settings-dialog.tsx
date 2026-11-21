@@ -35,6 +35,7 @@ import { DataControlsSection } from "./DataControlsSection";
 import { NotificationsSection } from "./NotificationsSection";
 import { UsageSection } from "./UsageSection";
 import { TimeReclaimed } from "./TimeReclaimed";
+import { AnswerLanguage } from "./AnswerLanguage";
 import { BillingSection } from "./BillingSection";
 import { ByokSection } from "./ByokSection";
 import { MemorySection } from "./MemorySection";
@@ -143,6 +144,7 @@ export default function SettingsDialog({
               {category === "preferences" ? (
                 <>
                   <AppearanceSettings />
+                  <AnswerLanguage />
                   <JarvisVoiceSetting />
                   {user ? <NotificationsSection /> : null}
                   <ResetJarvis />

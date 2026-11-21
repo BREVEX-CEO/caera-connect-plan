@@ -1,3 +1,4 @@
+import { languageInstruction, readAnswerLanguage } from "./answer-language";
 import { HIGH_WARNING_VERSION, type IntelligenceQuality } from "@/lib/intelligence/quality";
 /**
  * EVERYTHING CHAT DOES, IN ONE HOOK.
@@ -644,7 +645,12 @@ export function useChat(): ChatState & ChatActions {
         // Only when there is something to cite: a standing instruction about
         // files on every request is tokens spent on nothing, and a model told
         // to cite sources that do not exist will invent one.
-        const instruction = citationInstruction(attachments);
+        const instruction = [
+          citationInstruction(attachments),
+          languageInstruction(readAnswerLanguage(lastAccount.current ?? "")),
+        ]
+          .filter(Boolean)
+          .join("\n\n");
         const history = instruction
           ? ([{ role: "system", content: instruction }, ...turns] as NormalizedMessage[])
           : turns;
