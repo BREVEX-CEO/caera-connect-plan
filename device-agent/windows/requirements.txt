@@ -32,9 +32,12 @@ winrt-windows-graphics-directx-direct3d11==4!10.0.28000.2957; sys_platform == "w
 winrt-windows-graphics-directx-direct3d11-interop==4.1.0; sys_platform == "win32"
 winrt-windows-graphics-imaging==4!10.0.28000.2957; sys_platform == "win32"
 # macOS-only native control: Accessibility, window list and events (MIT).
-pyobjc-framework-ApplicationServices==13.0; sys_platform == "darwin"
-pyobjc-framework-Quartz==13.0; sys_platform == "darwin"
-pyobjc-framework-Cocoa==13.0; sys_platform == "darwin"
+# CoreMedia 13.0's Intel wheel has an unresolved @rpath/libswiftCoreMedia.dylib.
+# Keep the bridge and frameworks on the compatible release together.
+pyobjc-core==12.2.2; sys_platform == "darwin"
+pyobjc-framework-ApplicationServices==12.2.2; sys_platform == "darwin"
+pyobjc-framework-Quartz==12.2.2; sys_platform == "darwin"
+pyobjc-framework-Cocoa==12.2.2; sys_platform == "darwin"
 # macOS-only live window capture (plan 14F.9.2): ScreenCaptureKit and CoreMedia (MIT).
-pyobjc-framework-ScreenCaptureKit==13.0; sys_platform == "darwin"
-pyobjc-framework-CoreMedia==13.0; sys_platform == "darwin"
+pyobjc-framework-ScreenCaptureKit==12.2.2; sys_platform == "darwin"
+pyobjc-framework-CoreMedia==12.2.2; sys_platform == "darwin"
