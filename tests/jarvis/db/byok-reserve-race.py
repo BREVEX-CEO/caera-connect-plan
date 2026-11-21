@@ -14,10 +14,27 @@ from concurrent.futures import ThreadPoolExecutor
 
 
 def main(database: str) -> None:
-    command = ["psql", "-q", "-X", "-A", "-t", "-v", "ON_ERROR_STOP=1", "-d", database, "-c"]
+    command = [
+        "psql",
+        "-q",
+        "-X",
+        "-A",
+        "-t",
+        "-v",
+        "ON_ERROR_STOP=1",
+        "-d",
+        database,
+        "-c",
+    ]
 
     def sql(statement: str) -> str:
-        result = subprocess.run(command + [statement], capture_output=True, text=True, timeout=30, check=False)
+        result = subprocess.run(
+            command + [statement],
+            capture_output=True,
+            text=True,
+            timeout=30,
+            check=False,
+        )
         if result.returncode:
             raise AssertionError(result.stderr.strip())
         return result.stdout.strip()
@@ -32,7 +49,7 @@ def main(database: str) -> None:
         sql(
             "SET ROLE service_role;"
             f"SELECT public.ocade_byok_models_save('{user}', '{connection}', "
-            "'[{\"model\": \"vendor/paid\", \"inputPrice\": 100000, \"outputPrice\": 200000}]');"
+            '\'[{"model": "vendor/paid", "inputPrice": 100000, "outputPrice": 200000}]\');'
             f"SELECT public.ocade_byok_policy('{user}', '{connection}', 'manual', 'custom', false, "
             "'USD', 'UTC', NULL, 1.0, NULL);"
         )
@@ -42,13 +59,20 @@ def main(database: str) -> None:
             f"'{user}', '{connection}', 'vendor/paid', 'none', 1, 1)"
         )
         with ThreadPoolExecutor(max_workers=12) as pool:
-            answers = [line.splitlines()[-1] for line in pool.map(lambda _: sql(reserve), range(12))]
+            answers = [
+                line.splitlines()[-1]
+                for line in pool.map(lambda _: sql(reserve), range(12))
+            ]
         reserved = answers.count("reserved")
         refused = answers.count("budget_day")
-        total = sql(f"SELECT sum(reserved) FROM public.byok_spend WHERE connection_id = '{connection}'")
+        total = sql(
+            f"SELECT sum(reserved) FROM public.byok_spend WHERE connection_id = '{connection}'"
+        )
         assert (reserved, refused) == (3, 9), answers
         assert float(total) <= 1.0, total
-        print("PASS concurrent reservations stay within one key's budget (3 of 12 reserved)")
+        print(
+            "PASS concurrent reservations stay within one key's budget (3 of 12 reserved)"
+        )
     finally:
         sql(f"DELETE FROM auth.users WHERE id = '{user}'")
 
