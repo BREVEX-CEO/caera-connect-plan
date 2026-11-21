@@ -300,7 +300,7 @@
   --muted-foreground: oklch(0.42 0 0);
   --accent: oklch(0.9 0 0);
   --accent-foreground: oklch(0.16 0 0);
-  --destructive: oklch(0.55 0.2 25);
+  --destructive: oklch(0.52 0.2 25); /* 4.9:1 on the muted rows, 6.1:1 on white (axe, 21 Nov) */
   --destructive-foreground: oklch(0.99 0 0);
   --border: oklch(0.2 0 0 / 15%);
   --input: oklch(0.2 0 0 / 17%);

@@ -491,7 +491,7 @@ jobs:
         env:
           OCADE_DISPOSABLE_POSTGRES_CONTAINER: ${{ job.services.postgres.id }}
         run: bash tests/jarvis/db/restore.sh
-      - name: Audit the built loopback site in Chromium, Firefox and WebKit
+      - name: Audit the built loopback site and its accessibility in Chromium, Firefox and WebKit
         if: success() || failure()
         run: |
           python -m playwright install --with-deps chromium firefox webkit
@@ -506,6 +506,8 @@ jobs:
           for engine in chromium firefox webkit; do
             python tests/web/surface_audit.py http://127.0.0.1:8787 --engine "$engine" --pwa
             python tests/web/objective_handoff.py http://127.0.0.1:8787 --engine "$engine"
+            # WCAG 2.2 A/AA (axe-core), 200% reflow and keyboard focus on every reachable page.
+            python tests/web/accessibility_audit.py http://127.0.0.1:8787 --engine "$engine"
           done
       - name: Launch readiness is computed only from existing evidence
         if: success() || failure()
