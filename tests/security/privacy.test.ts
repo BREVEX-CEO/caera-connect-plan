@@ -6,7 +6,7 @@
  */
 import assert from "node:assert/strict";
 import { readdirSync, readFileSync, statSync } from "node:fs";
-import { join } from "node:path";
+import { join, sep } from "node:path";
 import { test } from "node:test";
 import { buildHealthRecord } from "../../src/lib/telemetry/operation-health.ts";
 
@@ -69,7 +69,7 @@ test("server and edge code logs only health records", () => {
     const source = readFileSync(path, "utf8");
     for (const match of source.matchAll(/console\.(log|info|warn|error|debug)\(([^)\n]*)/g)) {
       if (!/buildHealthRecord|"ocade\.health"|^\s*$/.test(match[2])) {
-        const line = `${path}: ${match[0]}`;
+        const line = `${path.split(sep).join("/")}: ${match[0]}`;
         if (!allowed.has(line)) offenders.push(line);
       }
     }

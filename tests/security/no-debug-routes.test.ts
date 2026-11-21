@@ -6,14 +6,15 @@
  */
 import assert from "node:assert/strict";
 import { readdirSync, readFileSync, statSync } from "node:fs";
-import { join, relative } from "node:path";
+import { join, relative, sep } from "node:path";
 import { test } from "node:test";
+import { fileURLToPath } from "node:url";
 
-const root = new URL("../../src/routes/", import.meta.url).pathname;
+const root = fileURLToPath(new URL("../../src/routes/", import.meta.url));
 function files(dir: string): string[] {
   return readdirSync(dir).flatMap((name) => {
     const path = join(dir, name);
-    return statSync(path).isDirectory() ? files(path) : [relative(root, path)];
+    return statSync(path).isDirectory() ? files(path) : [relative(root, path).split(sep).join("/")];
   });
 }
 
