@@ -19,6 +19,53 @@ const SHAPES: { name: string; pattern: RegExp }[] = [
   { name: "a private key", pattern: /-----BEGIN [A-Z ]*PRIVATE KEY-----/ },
 ];
 
+/** Bearer tokens and JWTs, which are credentials in logs whatever issued them. */
+const LOG_ONLY: RegExp[] = [
+  /\bBearer\s+[A-Za-z0-9._~+/=-]{16,}/gi,
+  /\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}/g,
+];
+
+/**
+ * KEY-13: the same shapes (and bearer tokens and JWTs) replaced by a marker, for anything that is
+ * written to a log. The marker names the kind, never any part of the value.
+ */
+export function redactSecrets(text: string): string {
+  let out = text;
+  for (const shape of SHAPES)
+    out = out.replace(new RegExp(shape.pattern.source, "g"), `[redacted ${shape.name}]`);
+  for (const pattern of LOG_ONLY) out = out.replace(pattern, "[redacted token]");
+  return out;
+}
+
+/**
+ * Route every console method of this server through `redactSecrets` (KEY-13), once. Errors are
+ * logged by message and stack only, also redacted.
+ */
+export function redactConsole(target: Pick<Console, "log" | "info" | "warn" | "error" | "debug">) {
+  const marked = target as typeof target & { __ocadeRedacted?: boolean };
+  if (marked.__ocadeRedacted) return;
+  marked.__ocadeRedacted = true;
+  for (const level of ["log", "info", "warn", "error", "debug"] as const) {
+    const original = target[level].bind(target);
+    target[level] = (...args: unknown[]) =>
+      original(
+        ...args.map((arg) =>
+          typeof arg === "string"
+            ? redactSecrets(arg)
+            : arg instanceof Error
+              ? redactSecrets(`${arg.name}: ${arg.message}\n${arg.stack ?? ""}`)
+              : (() => {
+                  try {
+                    return redactSecrets(JSON.stringify(arg));
+                  } catch {
+                    return "[unloggable value]";
+                  }
+                })(),
+        ),
+      );
+  }
+}
+
 /** What the text seems to contain, or null. */
 export function secretShape(text: string): string | null {
   for (const shape of SHAPES) if (shape.pattern.test(text)) return shape.name;

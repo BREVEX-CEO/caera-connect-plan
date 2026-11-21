@@ -7,6 +7,10 @@ import {
   type OnlineHandlerDependencies,
 } from "../../../src/lib/intelligence/edge-handler.ts";
 import { gatewayAddress, resolvesPublic } from "../../../src/lib/intelligence/gateway-address.ts";
+import { redactConsole } from "../../../src/lib/security/secret-shape.ts";
+
+// KEY-13: nothing an Edge Function logs carries a credential (every function imports this file).
+redactConsole(console);
 import { SERVICE_USER_HEADER } from "../../../src/lib/intelligence/contract.ts";
 import { ONLINE_CONSENT_VERSION } from "../../../src/lib/intelligence/online-consent-version.ts";
 import { buildHealthRecord } from "../../../src/lib/telemetry/operation-health.ts";

@@ -4,6 +4,10 @@ import { isPublicAssetURL } from "#nitro/virtual/public-assets";
 import { useNitroApp as getNitroApp, useNitroHooks as getNitroHooks } from "nitro/app";
 
 import { canonicalOriginRedirect, withPublicSecurityHeaders } from "./lib/security/public-response";
+import { redactConsole } from "./lib/security/secret-shape";
+
+// KEY-13: nothing this Worker logs carries a credential.
+redactConsole(console);
 
 /** One bounded batch a minute: file deletions still owed, also for accounts already erased. */
 async function runErasureSweep(): Promise<void> {
