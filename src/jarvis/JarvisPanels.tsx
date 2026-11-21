@@ -730,6 +730,30 @@ export function TaskPanel({
             Proof Passport
           </button>
         ) : null}
+        {!open && task.status !== "completed" ? (
+          <button
+            type="button"
+            title="A summary to give a professional of your choice. OCADE does not contact anyone."
+            onClick={() =>
+              void buildPassport(task).then((passport) =>
+                download(
+                  `ocade-case-${task.id}.txt`,
+                  [
+                    "Case summary for a professional (prepared by OCADE at your request)",
+                    "Review before sharing: it names your files and what JARVIS did. OCADE has not contacted anyone.",
+                    "",
+                    `Open question: ${task.blocker ?? "The task did not finish as asked."}`,
+                    "",
+                    passportReport(passport),
+                  ].join("\n"),
+                ),
+              )
+            }
+            className="rounded-full border border-border px-3 py-1 hover:bg-accent"
+          >
+            Case summary for an expert
+          </button>
+        ) : null}
         {task.status === "completed" && task.checks.every((check) => check.state === "passed") ? (
           <button
             type="button"
