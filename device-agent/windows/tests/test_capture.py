@@ -194,8 +194,13 @@ class WatchTest(unittest.TestCase):
                     image = picture()
                     terminal = Refused("window_changed") if replaced else 42
                     native_lease = [42, 42, terminal] if worker is mac_worker else [42]
+                    modules = {
+                        "ApplicationServices": SimpleNamespace(AXIsProcessTrusted=lambda: True),
+                        "pythoncom": Mock(),
+                    }
                     with (
-                        patch.dict(sys.modules, {"ApplicationServices": SimpleNamespace(AXIsProcessTrusted=lambda: True)}),
+                        patch.dict(sys.modules, modules),
+                        patch.object(windows_worker, "WINDOWS", True),
                         patch.object(worker, "_leased", side_effect=native_lease),
                         patch.object(windows_worker, "_window_handle", side_effect=[42, terminal]),
                         patch.object(mac_worker, "_screen_capture_allowed", return_value=True),
