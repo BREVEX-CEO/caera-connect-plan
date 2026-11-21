@@ -36,6 +36,12 @@ else
   echo "FAIL task/receipt lock-order cases"
   failures=$((failures + 1))
 fi
+if python3 tests/jarvis/db/byok-reserve-race.py "$db"; then
+  :
+else
+  echo "FAIL concurrent key reservations"
+  failures=$((failures + 1))
+fi
 if bash tests/jarvis/db/rollback-roundtrip.sh; then
   :
 else
