@@ -66,7 +66,10 @@ def window_of(intent: dict) -> dict | None:
     """The leased app window a step acts on, when it names one."""
     window = (intent.get("arguments") or {}).get("window")
     if isinstance(window, dict) and isinstance(window.get("hwnd"), int):
-        return {"hwnd": window["hwnd"], "exe": str(window.get("exe", ""))[:80]}
+        found = {"hwnd": window["hwnd"], "exe": str(window.get("exe", ""))[:80]}
+        if isinstance(window.get("pid"), int):
+            found["pid"] = window["pid"]
+        return found
     return None
 
 
@@ -180,6 +183,27 @@ def summary(state: dict) -> str:
     if len(agents) == 1:
         return agents[0]["doing"]
     return f"{len(agents)} agents working · {agents[0]['doing']}"
+
+
+def mac_place(window: dict, pinned: bool, width: int):  # pragma: no cover - needs a Mac desktop
+    """Over the leased macOS window (by its window number), or False when another app is in front
+    and the bar is not pinned, or None when macOS cannot say where it is."""
+    try:
+        import AppKit  # type: ignore[import-not-found]
+        import Quartz  # type: ignore[import-not-found]
+
+        listed = Quartz.CGWindowListCopyWindowInfo(Quartz.kCGWindowListOptionIncludingWindow, window["hwnd"])
+        if not listed:
+            return None
+        bounds = listed[0].get("kCGWindowBounds") or {}
+        front = AppKit.NSWorkspace.sharedWorkspace().frontmostApplication()
+        if not pinned and window.get("pid") and front is not None and front.processIdentifier() not in (
+                window["pid"], os.getpid()):
+            return False
+        x, y, w = int(bounds.get("X", 0)), int(bounds.get("Y", 0)), int(bounds.get("Width", 0))
+        return max(x, x + (w - width) // 2), y + 30
+    except Exception:  # noqa: BLE001 - no position is a top-right bar, never a crash
+        return None
 
 
 def run_bar(home: Path) -> int:  # pragma: no cover - drawn on a real desktop, checked by hand and CI smoke
@@ -309,6 +333,13 @@ def run_bar(home: Path) -> int:  # pragma: no cover - drawn on a real desktop, c
                 return True
             except Exception:
                 pass
+        if sys.platform == "darwin" and window.get("hwnd"):
+            place = mac_place(window, pinned.get(), width)
+            if place is False:
+                return False
+            if place is not None:
+                root.geometry(f"+{place[0]}+{place[1]}")
+                return True
         root.geometry(f"+{root.winfo_screenwidth() - width - 24}+24")
         return True
 
