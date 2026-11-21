@@ -27,7 +27,7 @@ from pathlib import Path
 
 from mcp.server.mcpserver import MCPServer
 
-from . import discovery, refs, vision
+from . import capture, discovery, refs, skillforge, vision
 from . import keys as key_contract
 from .sandbox import Refused, guarded, mark_effect, preview_jpeg, resolve
 
@@ -368,9 +368,10 @@ def ui_inspect(window: dict, region: list | None = None, changesOnly: bool = Fal
 
 @app.tool()
 @_evidence
-def ui_watch(window: dict, region: list | None = None, timeoutMs: int = 10000) -> dict:
-    """Wait, without acting, until the leased window's picture changes (vision.watch): which
-    regions changed, compared locally. No picture leaves the computer here; ui.inspect shows one."""
+def ui_watch(window: dict, region: list | None = None, timeoutMs: int = 10000, show: bool = False) -> dict:
+    """Wait, without acting, until the leased window's picture changes, on the window's one shared
+    capture (capture.py: Windows.Graphics.Capture, else bounded polling): which regions changed,
+    compared locally. With `show`, the ordered keyframes come back as one small picture."""
     import win32gui  # type: ignore[import-not-found]
     from PIL import ImageGrab
 
@@ -381,8 +382,50 @@ def ui_watch(window: dict, region: list | None = None, timeoutMs: int = 10000) -
             raise Refused("window_gone")
         return ImageGrab.grab(bbox=win32gui.GetWindowRect(window["hwnd"]), all_screens=True)
 
-    facts, _ = vision.watch(grab, region, timeoutMs)
-    return facts
+    with capture.HUB.use(json.dumps(window, sort_keys=True), capture.window_source(window, grab)) as stream:
+        return capture.watch(stream, region, timeoutMs, show)
+
+
+@app.tool()
+@_evidence
+def ui_record(window: dict, seconds: int = 60) -> dict:
+    """SkillForge (skillforge.py): while the person works in the leased window for `seconds`, the
+    controls they press and the text they leave in fields, as ordered steps. OCADE does nothing in
+    the window; protected fields are never read; presses outside the window are ignored."""
+    import win32api  # type: ignore[import-not-found]
+    import win32con  # type: ignore[import-not-found]
+    import win32gui  # type: ignore[import-not-found]
+    from pywinauto import Desktop  # type: ignore[import-not-found]
+
+    target = _leased(window)
+    hwnd = window["hwnd"]
+
+    def inside(x, y):
+        left, top, right, bottom = win32gui.GetWindowRect(hwnd)
+        return left <= x < right and top <= y < bottom and \
+            win32gui.GetAncestor(win32gui.WindowFromPoint((x, y)), 2) == hwnd  # GA_ROOT
+
+    def element_at(x, y):
+        try:
+            return _describe(Desktop(backend="uia").from_point(x, y))
+        except Exception:  # noqa: BLE001 - nothing accessible under the pointer: not a step
+            return None
+
+    def snapshot():
+        try:
+            return [described for _, described, _ in _cached_descendants(target)[0]]
+        except Exception:  # noqa: BLE001 - a provider that cannot answer one query: no values this time
+            return []
+
+    return skillforge.record(
+        seconds,
+        button_down=lambda: bool(win32api.GetAsyncKeyState(win32con.VK_LBUTTON) & 0x8000),
+        pointer=win32api.GetCursorPos,
+        element_at=element_at,
+        inside=inside,
+        snapshot=snapshot,
+        alive=lambda: bool(win32gui.IsWindow(hwnd)),
+    )
 
 
 @app.tool()

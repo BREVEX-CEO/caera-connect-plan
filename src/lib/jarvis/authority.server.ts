@@ -12,6 +12,7 @@
  * The next decision is driven by the device's next receipt, so no in-memory
  * loop, timer or open connection is ever the only holder of a task.
  */
+import { proposeWorkflow } from "./skillforge.ts";
 import { z } from "zod";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Json } from "@/integrations/supabase/types";
@@ -1111,6 +1112,19 @@ export async function taskView(admin: Admin, userId: string, taskId: string) {
     // Anti-Scam Guardian (28.2.6): warning signs on pages this task opened, with the evidence.
     warnings: [...flaggedSites(parsedSteps).entries()].map(([site, signs]) => ({ site, signs })),
     mode: task.mode ?? "live",
+    // SkillForge (28.2.1): the newest demonstration, as an editable workflow the person may save.
+    learned:
+      parsedSteps
+        .filter(({ intent: step }) => step.operation === "ui.record")
+        .map(({ intent: step, receipt }) =>
+          receipt?.status === "observed"
+            ? proposeWorkflow(
+                (step.arguments as { window: { exe: string } }).window.exe,
+                receipt.evidence.steps,
+              )
+            : null,
+        )
+        .at(-1) ?? null,
     source: task.modelSource
       ? {
           alias: task.modelSource.alias ?? "deleted key",

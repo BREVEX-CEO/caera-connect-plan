@@ -44,8 +44,10 @@ if trust_file:
 
 native_modules = (
     collect_submodules("pywinauto") + ["win32timezone", "pyautogui"]
+    # Live window capture (capture.py): imported only when a window is watched.
+    + collect_submodules("winrt")
     if sys.platform == "win32"
-    else ["ApplicationServices", "AppKit", "Foundation", "Quartz"]
+    else ["ApplicationServices", "AppKit", "Foundation", "Quartz", "ScreenCaptureKit", "CoreMedia"]
 )
 
 block_cipher = None

@@ -26,6 +26,7 @@ import { Schedules } from "./Schedules";
 import { Skills } from "./Skills";
 import { buildPassport, passportReport } from "@/lib/jarvis/proof-passport";
 import { saveSkill } from "@/lib/jarvis/skills.functions";
+import { workflowBody } from "@/lib/jarvis/skillforge";
 import { PermissionGuide } from "./PermissionGuide";
 import { Watches } from "./Watches";
 import { useSession } from "@/lib/session";
@@ -581,6 +582,124 @@ function Instruct({ taskId, agents }: { taskId: string; agents: number[] }) {
  * OCADE's own design, with the destination still shown in the task; sending it answers JARVIS
  * and the task continues. Values stay as typed if sending fails.
  */
+/**
+ * SkillForge (28.2.1): what the person showed, as an editable workflow. They name it, rename the
+ * values that change each time, drop steps, and save it as their own skill; nothing runs here.
+ */
+function LearnedSkill({ workflow }: { workflow: NonNullable<Task["learned"]> }) {
+  const [title, setTitle] = useState("");
+  const [name, setName] = useState("");
+  const [keep, setKeep] = useState(() => workflow.steps.map(() => true));
+  const [names, setNames] = useState(() => workflow.parameters.map((p) => p.name));
+  const [busy, setBusy] = useState(false);
+  const edited = () => {
+    const renamed = new Map(workflow.parameters.map((p, i) => [p.name, names[i] || p.name]));
+    const steps = workflow.steps
+      .filter((_, i) => keep[i])
+      .map((step) =>
+        step.operation === "ui.set_value"
+          ? {
+              ...step,
+              value: step.value.replace(
+                /\{\{([a-z][a-z0-9_]*)\}\}/g,
+                (_, p: string) => `{{${renamed.get(p) ?? p}}}`,
+              ),
+            }
+          : step,
+      );
+    const used = new Set(
+      steps
+        .flatMap((s) => (s.operation === "ui.set_value" ? [s.value] : []))
+        .join(" ")
+        .match(/[a-z][a-z0-9_]*/g),
+    );
+    return {
+      ...workflow,
+      steps,
+      parameters: workflow.parameters
+        .map((p, i) => ({ name: names[i] || p.name, default: p.default }))
+        .filter((p) => used.has(p.name)),
+    };
+  };
+  return (
+    <details className="mt-2 rounded-xl border border-border p-3 text-xs">
+      <summary className="cursor-pointer font-medium">Make a skill from what you showed</summary>
+      <p className="mt-1 text-muted-foreground">
+        Run it later with /name and new values, for example{" "}
+        {workflow.parameters[0] ? `${workflow.parameters[0].name}="…"` : "/name"}. JARVIS repeats
+        these steps in {workflow.app} without asking the AI, stops at a control that is no longer
+        there, and still checks the result. A protected field is never recorded: you type it.
+      </p>
+      <ol className="mt-2 space-y-1">
+        {workflow.steps.map((step, i) => (
+          <li key={i} className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              aria-label={`Keep step ${i + 1}`}
+              checked={keep[i]}
+              onChange={(event) =>
+                setKeep(keep.map((k, j) => (j === i ? event.target.checked : k)))
+              }
+            />
+            <span>
+              {step.operation === "secret"
+                ? "You type into the protected field"
+                : step.operation === "ui.invoke"
+                  ? `Press "${step.label}"`
+                  : `Set "${step.label}" to ${step.value}`}
+            </span>
+          </li>
+        ))}
+      </ol>
+      {workflow.parameters.map((p, i) => (
+        <label key={p.name} className="mt-1 flex flex-wrap items-center gap-2">
+          <span className="text-muted-foreground">Value name for "{p.default.slice(0, 40)}"</span>
+          <input
+            className="rounded border border-border bg-background px-2 py-0.5"
+            value={names[i]}
+            pattern="[a-z][a-z0-9_]{0,39}"
+            onChange={(event) => setNames(names.map((n, j) => (j === i ? event.target.value : n)))}
+          />
+        </label>
+      ))}
+      <div className="mt-2 flex flex-wrap gap-2">
+        <input
+          aria-label="Skill title"
+          placeholder="What it does"
+          className="rounded border border-border bg-background px-2 py-0.5"
+          maxLength={120}
+          value={title}
+          onChange={(event) => setTitle(event.target.value)}
+        />
+        <input
+          aria-label="Skill name"
+          placeholder="name-for-slash"
+          className="rounded border border-border bg-background px-2 py-0.5"
+          maxLength={40}
+          value={name}
+          onChange={(event) => setName(event.target.value.toLowerCase())}
+        />
+        <button
+          type="button"
+          disabled={
+            busy || !title.trim() || !/^[a-z0-9][a-z0-9-]{0,39}$/.test(name) || !keep.some(Boolean)
+          }
+          onClick={() => {
+            setBusy(true);
+            saveSkill({ data: { id: null, name, title, body: workflowBody(title, edited()) } })
+              .then(() => toast.success(`Saved as /${name}.`))
+              .catch((error: Error) => toast.error(error.message))
+              .finally(() => setBusy(false));
+          }}
+          className="rounded-full border border-border px-3 py-1 hover:bg-accent disabled:opacity-50"
+        >
+          Save skill
+        </button>
+      </div>
+    </details>
+  );
+}
+
 function TaskForm({
   taskId,
   fields,
@@ -906,6 +1025,7 @@ export function TaskPanel({
           </p>
         </details>
       ) : null}
+      {task.learned ? <LearnedSkill workflow={task.learned} /> : null}
       {task.warnings.length ? (
         <div
           role="alert"

@@ -801,8 +801,10 @@ pyobjc-core==13.0 ; sys_platform == 'darwin' \
     #   pyautogui
     #   pyobjc-framework-applicationservices
     #   pyobjc-framework-cocoa
+    #   pyobjc-framework-coremedia
     #   pyobjc-framework-coretext
     #   pyobjc-framework-quartz
+    #   pyobjc-framework-screencapturekit
 pyobjc-framework-applicationservices==13.0 ; sys_platform == 'darwin' \
     --hash=sha256:048819e0b8dd840110d1dd59ce253d86c81876da8d360f841bd2fd82dc5f8f34 \
     --hash=sha256:0b5b8afb749172d366a01dc390cd2da41d66dd8fa9fd6b4df3773a9f4d55b0b6 \
@@ -827,8 +829,23 @@ pyobjc-framework-cocoa==13.0 ; sys_platform == 'darwin' \
     # via
     #   -r requirements.txt
     #   pyobjc-framework-applicationservices
+    #   pyobjc-framework-coremedia
     #   pyobjc-framework-coretext
     #   pyobjc-framework-quartz
+    #   pyobjc-framework-screencapturekit
+pyobjc-framework-coremedia==13.0 ; sys_platform == 'darwin' \
+    --hash=sha256:079f8095efd975d89ec7c1b2728056197177d8de69069b736d1883777c2db20e \
+    --hash=sha256:1668ca595246713f8d31fe60eca2ba639b8e01ded44564d046c4a4d86dd5ba1b \
+    --hash=sha256:297b7af373dc6f0fe116abc6d4689b331521924f9ba3b73077ccafd461687c87 \
+    --hash=sha256:59fbca3e5e4847af06a56dd88b7bd57963f313520b5e3284bbd258356b14a368 \
+    --hash=sha256:7e221a24cfbfa8148481abdef8bb8139821dd5a45d6cc288c1c4900072ca20eb \
+    --hash=sha256:bee0ab6bb26c6cbf85dbbf692edde7b552ee7a82c1e7da0faa00bb790e94a7d1 \
+    --hash=sha256:d95ef87f6f33ec98347439284f0add1f7d1d019b88cb8e218e81b39aec14d324 \
+    --hash=sha256:dd8eeb06bdab25725e1e9afa24aeacbd54a6d5eb066de069402074ff1379b8c6 \
+    --hash=sha256:edb151ff50868a16705228bf2f21348466156a8dc3ba9a2a093d2e0f0ca16a24
+    # via
+    #   -r requirements.txt
+    #   pyobjc-framework-screencapturekit
 pyobjc-framework-coretext==13.0 ; sys_platform == 'darwin' \
     --hash=sha256:0ee3b7e886ffa4be769402c5341b2101d949e31a33d1a468d64b3a3579d2aea1 \
     --hash=sha256:3800a5465dcff6c9c4aa02d94641e7eb9dcd1724dc4c2e2aea30815741546376 \
@@ -855,6 +872,17 @@ pyobjc-framework-quartz==13.0 ; sys_platform == 'darwin' \
     #   pyautogui
     #   pyobjc-framework-applicationservices
     #   pyobjc-framework-coretext
+pyobjc-framework-screencapturekit==13.0 ; sys_platform == 'darwin' \
+    --hash=sha256:036ee91a5566c053117120c423c747becdd803906dae1822c537ea61af976273 \
+    --hash=sha256:3df589f0fa2be7c0ef1836588a02a3c3c8060ca2ab56b1c0cef4a87a25257da9 \
+    --hash=sha256:4ea1d16badb714f2756595eff58d5997fd0e6951df72e4bf6d0e4794e6d61eaa \
+    --hash=sha256:5d66c6633518d6ab1f61cce6ac5326da31f4a0f352b0552deb83981ddc481966 \
+    --hash=sha256:700cb011b90b00ddc008f6a608d27b4874261bc666a400d4138c471dcc71bc2f \
+    --hash=sha256:aebf4f471a5b037659f4abbc5550c78bc8a46346e348d58e95235fe23b032186 \
+    --hash=sha256:e5f0f68ed43b4488474269b374e396a3aca7829045ce5f589dfc1358ba64c0a6 \
+    --hash=sha256:f4b7652b782a9773b24b8eef45afa458bddbf805e8fb866f270b63ac9c75545d \
+    --hash=sha256:f963a15eb5ab555a20753a9f945c29a59e56c4d606d19c5569597432789f210b
+    # via -r requirements.txt
 pypdf==6.21.4 \
     --hash=sha256:33e4fb41ca352810eb4e9838aa0d82d6888a5f8bf682f43e99cce5faa666255c \
     --hash=sha256:c8817e3f888d47a087872ded69812c1ef30cacb871d6e053e0c00bbaf0bc2163
@@ -1117,6 +1145,7 @@ typing-extensions==4.16.0 \
     #   referencing
     #   starlette
     #   typing-inspection
+    #   winrt-runtime
 typing-inspection==0.4.5 \
     --hash=sha256:7f16c411e7930dc79596d42ab44672a3fe5f60eb34b781a1647e7872363120c7 \
     --hash=sha256:bc210535442b39e1bf2805e0c7a17dfd6a4ace760c84c7f7d16245d23a6b1c39
@@ -1198,6 +1227,135 @@ websockets==15.0.1 \
     --hash=sha256:f7a866fbc1e97b5c617ee4116daaa09b722101d4a3c170c787450ba409f9736f \
     --hash=sha256:fcd5cf9e305d7b8338754470cf69cf81f420459dbae8a3b40cee57417f4614a7
     # via -r requirements.txt
+winrt-runtime==4.2.0 ; sys_platform == 'win32' \
+    --hash=sha256:02b18c21ac540b4ab2d32d9082ec2f8b752dcff5cc6488ea921a2266674467d9 \
+    --hash=sha256:05b99b481241a79154d939491076698fc39b1ff80cf64ee3a35b6b52e45a3b3b \
+    --hash=sha256:0b4dffdfeb084322a04a105cb08a5cc7912db255811ad462f679e9795a49db87 \
+    --hash=sha256:106370b37a811f9abdcea5cb90c0079185e1e50c0123b7c91a5a9166bbf773fa \
+    --hash=sha256:1121c14f52b92b628cee060f5878b1780a89bd20555bf829ef2cde14af4adbe0 \
+    --hash=sha256:15a49221e36892ca01f162a8f8126f2f17f790914ef94007bfe0d915196aefdc \
+    --hash=sha256:1f7d34ac39d9c4b54052bc95eadfe49aa15a8d88fdd482d21d8624982c935fb6 \
+    --hash=sha256:226ad984665960ba1abb507683b849e1b7215a7e935e0fd262c98d4a25226754 \
+    --hash=sha256:3368e4ffd2a0570a7bdee269f55953f43b7595840be1751605cf6b1fab301002 \
+    --hash=sha256:4f70deea3051681cc06fe1e322e4677ad64ce8b7ebae0afa7ee7b0f415d9860c \
+    --hash=sha256:571df5bed05eab552d71a6c9e25a3c1f61a09efa51fca1baf571272bd55467a0 \
+    --hash=sha256:5bf0aa040af4c00819941a0c7d6b9a103df96ddcab04f851e942744b36f41dcd \
+    --hash=sha256:5cc256e403e18cf00d2072890dc4b2b39d6c255d709a0a35e46a03efa7511f5e \
+    --hash=sha256:653f29c8b4bdfb375aa1a5830a952c9c549b583748e4dd8741f77e3ecc284a1e \
+    --hash=sha256:75a9a37c4cb171d944ca14e0c35452bc1ba4347913f708cdaf14d576103a9604 \
+    --hash=sha256:932382033d4dfefb07d3dd16b123689736554c2d7a95f15e1839f6448144102f \
+    --hash=sha256:9c25d15bd75b790b0e77517006bf0ec8326973c4eea25f992aaf7414866ca81b \
+    --hash=sha256:a008a907af83fce763951c7232bed3fa7044ed823a882c451e6953a38773cde0 \
+    --hash=sha256:a18362bf436fc80ce2d9b1607a9248fc5c411d6ec9b81d7ad25d2416e13346fa \
+    --hash=sha256:c31d5688e88df32c008d965f48a9fbfdc42812c73107a4d80c920b7512f91993 \
+    --hash=sha256:c3656bf858cbc9c3bc412a8b6b24cf1d7c86759afe001345f47d43bb6d19865c \
+    --hash=sha256:cd4240bce08da842f6b9b372e32280357d796e81a6c287f73448420b2628aa84
+    # via
+    #   -r requirements.txt
+    #   winrt-windows-foundation
+    #   winrt-windows-foundation-collections
+    #   winrt-windows-graphics
+    #   winrt-windows-graphics-capture
+    #   winrt-windows-graphics-capture-interop
+    #   winrt-windows-graphics-directx
+    #   winrt-windows-graphics-directx-direct3d11
+    #   winrt-windows-graphics-directx-direct3d11-interop
+    #   winrt-windows-graphics-imaging
+    #   winrt-windows-storage-streams
+winrt-windows-foundation==4!10.0.28000.2957 ; sys_platform == 'win32' \
+    --hash=sha256:0669de7ce480806a0f9a46d005837799e37f1738911b54c4bc04788b37974e69 \
+    --hash=sha256:6f7d8e932e283991cd931741f84dc7c2e8bc595b4df09de73d16c1d580fc678a
+    # via
+    #   -r requirements.txt
+    #   winrt-windows-foundation-collections
+    #   winrt-windows-graphics-capture
+    #   winrt-windows-graphics-directx-direct3d11
+    #   winrt-windows-graphics-imaging
+    #   winrt-windows-storage-streams
+winrt-windows-foundation-collections==4!10.0.28000.2957 ; sys_platform == 'win32' \
+    --hash=sha256:0401c1b6ed512d1fdad8ba1571698e9000ebee6a69781db9a01994ffcc54a503 \
+    --hash=sha256:38989873bbdace2346d24168ceb66359800b7429128ea2ef1a36da55b255af1e
+    # via
+    #   winrt-windows-foundation
+    #   winrt-windows-graphics-capture
+    #   winrt-windows-graphics-imaging
+    #   winrt-windows-storage-streams
+winrt-windows-graphics==4!10.0.28000.2957.1 ; sys_platform == 'win32' \
+    --hash=sha256:af9b64158a6dbf6e29e6d83c830a3c6639508c3359570e31292a57b9a4352e29 \
+    --hash=sha256:e371cae0446b13e2f2870d23a815c5ddef435225ddaa41b148c4a0b1fa7eef79
+    # via -r requirements.txt
+winrt-windows-graphics-capture==4!10.0.28000.2957 ; sys_platform == 'win32' \
+    --hash=sha256:0d1f8cbb16b23bd13fb862d87150dde330e52b121198eba918f86665b0eb1709 \
+    --hash=sha256:cf129d375f664c21e7d5b527485377e9045290d1a3cdd4d49cf6b69b1316fa48
+    # via
+    #   -r requirements.txt
+    #   winrt-windows-graphics-capture-interop
+winrt-windows-graphics-capture-interop==4.0.0 ; sys_platform == 'win32' \
+    --hash=sha256:183588fefe2064781cd4b69d84e4e09133b9a0eafb8a98ec95e32b6d06bedd1e \
+    --hash=sha256:23d4fb1a3f1209e88ecc63176bc7002a87140a79b71b8525403e8e6059c2bb1a \
+    --hash=sha256:2ae0571f53a0c3b9adcd27e2932849a13785f7162de1ad7ba8ef3720b7719ac9 \
+    --hash=sha256:360ed6a9d6495478e676b77259c46b9ddc4ebe2c976f85b422a9be59321f7cbd \
+    --hash=sha256:374b4f2ecd68ef77244365380d640ac5c24ac088bbb10d7f54d4bf0b6f4c8943 \
+    --hash=sha256:555c147e8253af758ae7a7068181248751ed4d089bcb8b292a75ba0b1f4ba748 \
+    --hash=sha256:5f77f9256037eb4a2c21c8c77b303501d77c1bb248630b11d9f55a5cbf0c0746 \
+    --hash=sha256:5fc1d9b9a79ad7eeed47a51a338a3b9315d84084b924a9a36f1e2d04b49ddf8e \
+    --hash=sha256:62be523656e38ca8296db67644ac0867f1c9d7fcbf2aa3cccf44ded7cd319ba2 \
+    --hash=sha256:6bdffec2e3b71a21cfb16907f4795249e775372d35e42423f72aaf0d06300423 \
+    --hash=sha256:6f7fc05bd2eb8f24c2c9971a31294cce739e0bbba91f36fee961de1d4fe1cca8 \
+    --hash=sha256:755cb030b373a2cbe88bf02feae8d038f0df5181408352ebe82a62ccecf31b5b \
+    --hash=sha256:76c937b0841d85c184397dcdb8d450fd2936e9d158849583394d1abf2a348bc6 \
+    --hash=sha256:818c6269b2a6d7bf7200176a75b7cbbf945f60ffd7bb42d53fa0ef7fd9d8e20a \
+    --hash=sha256:989a8e4dff52001fc34dd806342055a053e7e15a4b900d2d32a9539e64bff8f5 \
+    --hash=sha256:a365c1fdfabbf95876d9c34772ec870754ebb4549bcfdf5a534131898f87a1ce \
+    --hash=sha256:af0a45e03bf8be0626e7e1a504a329f73b4e0dd4be98841dd0a639a81dc1802b \
+    --hash=sha256:bdf3c50e1c3df9ca9a52179fb3e0a375066337d920c6ed72626e3a112eeb6b24 \
+    --hash=sha256:dc4aea502aace23fc98c6d4676da0065f42024d154b6a067852ce3d8a80cd81f \
+    --hash=sha256:deadae5f105d0f43d1fd593dbe4ca552fc148cf2fe1330488881f8d414d1e8a9 \
+    --hash=sha256:ee3baf2c1b02e51e0eccce492cf2468748fa3fc95691cff072619c2c4f911af0 \
+    --hash=sha256:f4d625889639c018e9e39015a83b9c3ba9504c805e6efa399193ce3b264bd626
+    # via -r requirements.txt
+winrt-windows-graphics-directx==4!10.0.28000.2957.1 ; sys_platform == 'win32' \
+    --hash=sha256:7a56a34756ce059ac940dad1d02d2512f14ef605d53ed245c72452f6fd896d06 \
+    --hash=sha256:a2f7ea991ec668d247690b3c2418aaa90aec3c02e555fbdcb82c240d7c87d7aa
+    # via -r requirements.txt
+winrt-windows-graphics-directx-direct3d11==4!10.0.28000.2957 ; sys_platform == 'win32' \
+    --hash=sha256:5d490cb99bfcd0f75e679fefcebe1865e211b04e5587a60d56062f7a23e6154a \
+    --hash=sha256:e831d6bfce8e28ed1fd74afd274740c4e31e2377228bab4c91b98294e3a4c2cb
+    # via
+    #   -r requirements.txt
+    #   winrt-windows-graphics-directx-direct3d11-interop
+winrt-windows-graphics-directx-direct3d11-interop==4.1.0 ; sys_platform == 'win32' \
+    --hash=sha256:160fed572114acd98a5b4d5c461b46ed449853a26bd31b01a37b9805632bb5de \
+    --hash=sha256:26ca379f59bcd9f5a8305f40407728926f4acd3f9bc4b33fdfd89e98b912bbd5 \
+    --hash=sha256:3259a7451806e4b09da9a1671add099d09db4e6b43913e72ce976a9560c18853 \
+    --hash=sha256:43622b79732e94976e462e40826443c3c660b6c50bdd3f236da37a64670c367c \
+    --hash=sha256:451091ac7aa471c84845758ee8de810ed6902ef0c8641e7c801763e7cd3208be \
+    --hash=sha256:4d2ac7b883c9ef8842dd6734a290081220b91b4cc4d7a77d0367d956659bf5ab \
+    --hash=sha256:565d20518e358d28e958fa18ba6efb43ad0747168097784f64c72338d2a614df \
+    --hash=sha256:5f5771801dc938caf42479e22e9d5155114b2762eb83692da079f01d99c5814a \
+    --hash=sha256:62e6918b4b3dbee0ff81ceb20457e8d73bda09b02b25451209afc70fdd2189bd \
+    --hash=sha256:763c7eaa9a42f15158a30fdaadbb2ca2dc2afe78f66c16c68686b1b2465fe4d8 \
+    --hash=sha256:7b3bb05395210bd5b90232e6be540476d37252f0705a21044c098bd8426e6cb2 \
+    --hash=sha256:801f41a8ac6b52d853756eafc721e26f99aa2f0b054e76f4727776b2c818be47 \
+    --hash=sha256:85b1c5f45093a1200854c76d04796eeddf9db50fe07348599bd0ed3777beaa02 \
+    --hash=sha256:925fdd44f7d01e18eccc44e99a932a40d454753428387aab1ad934fb500055a2 \
+    --hash=sha256:aa0bc28826bdfbca27c2c24cf92a2cbf2f687354f121b984ea253b7b510b89b9 \
+    --hash=sha256:af66bd06b79d6cbdd727cfbc4bdf7878f381d9681a896329461575ea51bfc76a \
+    --hash=sha256:b0daa82a47d3633117d666792b6bfee89981fa6cac5ff923df219f50ebbe5821 \
+    --hash=sha256:b412483ff145b4fd3fa550d97737497483fdf7af4d7f16149840364a943fdce1 \
+    --hash=sha256:b43c6771dad4732f2c3c31fb38b142ee6985780e48aff71201ede101396811b7 \
+    --hash=sha256:beee62e1e694c05125f343c2cfd80fccaf7b045c660f7c65b6f26a9faffae612 \
+    --hash=sha256:c50a398b6de3f133c2da46d3f4a0120ff21d33835b4b5b92d949dde5ab22bcf6 \
+    --hash=sha256:f61168255bd4c7bf8008fd6058d2afd9850238543a8e9bc99ae2747820ff9eed
+    # via -r requirements.txt
+winrt-windows-graphics-imaging==4!10.0.28000.2957 ; sys_platform == 'win32' \
+    --hash=sha256:af6f0b463cb0588b014e0a0c82d76e27c73be372d06d6cb2c25b63c573b204ac \
+    --hash=sha256:c73b020093a2bfaa42fee0fa1f92a3b72ef363452a9a3cb147b44ad07bcc5a11
+    # via -r requirements.txt
+winrt-windows-storage-streams==4!10.0.28000.2957 ; sys_platform == 'win32' \
+    --hash=sha256:6284341b4b01ab872007def0b8d29bf30d84d46f6922f6e42be1d738d6bf2ff7 \
+    --hash=sha256:e113832320f2e7f8b09cedfb400cb7eaf0ac769ad1f2038ddbe88801497916c4
+    # via winrt-windows-graphics-imaging
 xlsxwriter==3.3.1 \
     --hash=sha256:0867761912cceac76f97ffa76eeda18c623ae9217f601be8512f55b1af4bdb6e \
     --hash=sha256:8e2c89e59d733fe59e112317218c64fbbc276d90a8c144ebd6f7fa15e7ab184a

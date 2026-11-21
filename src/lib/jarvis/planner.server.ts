@@ -16,6 +16,7 @@
  */
 import { byokRefusal } from "../byok/refusals.ts";
 import { skillLines, type Skill } from "./skills.ts";
+import { leaseFor, workflowOf, workflowReplay } from "./skillforge.ts";
 import { flaggedSites } from "./scam.ts";
 import { maskSensitive, unmaskArguments } from "./sensitive-values.ts";
 import { z } from "zod";
@@ -473,7 +474,7 @@ const SYSTEM = [
   "the `ref` ui.inspect gave it (element: {ref}); a ref stays valid while its control keeps its name and type, and a",
   "changed one is refused. To look at a window again, ui.inspect it with changesOnly: only new or changed controls",
   "come back. After an action that opens or closes a dialog or a progress bar, ui.wait for the control you expect;",
-  "when nothing you can name will change (a render, a canvas, a video), ui.watch for the picture to change.",
+  "when nothing you can name will change (a render, a canvas, a video), ui.watch for the picture to change (with show when the motion itself matters).",
   "window_blocked means another window of that app (a dialog) holds its input: the refusal names it under `dialogs`",
   "with its exact lease; ui.inspect it and answer it as the outcome requires before acting on the first window again.",
   "Facts the person asks you to find (versions, dates, prices, names, figures) must come from what this task observed,",
@@ -1545,8 +1546,15 @@ export async function planStep(input: {
 
   // ELITE-02 / VERIFY-05 deterministic replay: while every replayed step applied as recorded,
   // the next recorded step (or the independent check) is queued without a model call. The first
-  // step that did not apply hands the task back to the planner below.
-  const replay = input.replay ?? [];
+  // step that did not apply hands the task back to the planner below. A named SkillForge skill
+  // (28.2.1) gives its workflow, with this request's values, as the replay.
+  const named = (await input.skills?.()) ?? [];
+  const learned = named.map((skill) => workflowOf(skill.body)).find(Boolean);
+  const replay = input.replay?.length
+    ? input.replay
+    : learned
+      ? workflowReplay(learned, input.objective)
+      : [];
   const replayed = steps.filter((step) => step.intent.key.startsWith("replay-"));
   if (
     replay.length &&
@@ -1555,32 +1563,44 @@ export async function planStep(input: {
   ) {
     const deadline = new Date(now.getTime() + 10 * 60_000);
     if (replayed.length < replay.length) {
-      const recorded = replay[replayed.length]!;
-      try {
-        const next = intent(
-          recorded.operation as Operation,
-          `replay-${replayed.length + 1}`,
-          recorded.arguments as never,
-          new Date(
-            Math.max(
-              deadline.getTime(),
-              now.getTime() +
-                ((OPERATIONS[recorded.operation as Operation] as { seconds?: number }).seconds ??
-                  0) *
-                  1000 +
-                60_000,
+      let recorded = replay[replayed.length]!;
+      // A learned step names its app; it acts on the window this task last found open for it,
+      // and when none is open the planner (below) opens it.
+      const app = (recorded.arguments.window as { app?: unknown } | undefined)?.app;
+      const lease = typeof app === "string" ? leaseFor(app, steps) : undefined;
+      if (typeof app === "string" && !lease && !steps.some((s) => s.intent.key === "skill-apps"))
+        return {
+          kind: "queue",
+          summary: `Finding the open ${app} window`,
+          intent: intent("apps.list", "skill-apps", {}, deadline),
+        };
+      if (lease) recorded = { ...recorded, arguments: { ...recorded.arguments, window: lease } };
+      if (lease !== null)
+        try {
+          const next = intent(
+            recorded.operation as Operation,
+            `replay-${replayed.length + 1}`,
+            recorded.arguments as never,
+            new Date(
+              Math.max(
+                deadline.getTime(),
+                now.getTime() +
+                  ((OPERATIONS[recorded.operation as Operation] as { seconds?: number }).seconds ??
+                    0) *
+                    1000 +
+                  60_000,
+              ),
             ),
-          ),
-        );
-        if (!missingGrant(next, input.grants))
-          return {
-            kind: "queue",
-            summary: `Repeating: ${stepSummary(recorded.operation as Operation, recorded.arguments)}`,
-            intent: next,
-          };
-      } catch {
-        // A recorded step this version no longer accepts: the planner takes over.
-      }
+          );
+          if (!missingGrant(next, input.grants))
+            return {
+              kind: "queue",
+              summary: `Repeating: ${stepSummary(recorded.operation as Operation, recorded.arguments)}`,
+              intent: next,
+            };
+        } catch {
+          // A recorded step this version no longer accepts: the planner takes over.
+        }
     } else if (!steps.some((step) => step.intent.operation === "verify.checks")) {
       return {
         kind: "queue",
@@ -1798,7 +1818,7 @@ export async function planStep(input: {
           .map((sign) => sign.sign)
           .join("; ")}). Nothing was run. Ask the person before doing anything there.`
       : null;
-  const recipes = skillLines((await input.skills?.()) ?? []);
+  const recipes = skillLines(named);
   let refusal = "";
   let answers = "";
   for (let attempt = 0; attempt < 2; attempt += 1) {

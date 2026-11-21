@@ -125,6 +125,18 @@ class MacUiLadder(unittest.TestCase):
                                                      "timeoutMs": 400})
                 # ui.watch (plan 14F.9): needs Screen Recording; without it the refusal says so.
                 out["still"] = await run("ui.watch", {"window": window, "timeoutMs": 600})
+                # A real change while watching, on the window's own ScreenCaptureKit stream.
+                watched = {}
+
+                async def watch():
+                    watched["result"] = await gateway.run(intent("ui.watch", {"window": window, "timeoutMs": 8000,
+                                                                              "show": True}), gateway.epoch, 1)
+
+                async with anyio.create_task_group() as group:
+                    group.start_soon(watch)
+                    await anyio.sleep(1.5)
+                    await run("ui.set_value", {"window": window, "element": box, "value": "changed while watched"})
+                out["watched"] = watched["result"]
                 # By the ref the inspection gave the button (P5), not by a description.
                 save = next(e["ref"] for e in out["inspect"]["evidence"]["elements"] if e["automationId"] == "saveButton")
                 out["invoke"] = await run("ui.invoke", {"window": window, "element": {"ref": save}})
@@ -199,6 +211,11 @@ class MacUiLadder(unittest.TestCase):
             self.assertEqual((out["still"]["status"], out["still"]["errorCode"]),
                              ("not_applied", "not_changed" if capture else "screen_recording_permission_needed"),
                              out["still"])
+            if capture:
+                watched = out["watched"]
+                self.assertEqual(watched["status"], "observed", watched)
+                self.assertEqual(watched["evidence"]["capture"], "screen_capture_kit", watched["evidence"])
+                self.assertTrue(watched.get("preview"), watched["evidence"])
         with self.subTest("MAC-001 an unseen installed app is discovered"):
             self.assertIn(self.exe, [a["exe"] for a in out["list"]["evidence"]["installed"]])
         with self.subTest("MAC-002 an app that is not installed is refused"):

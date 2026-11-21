@@ -95,6 +95,7 @@ class WindowsUiLadder(unittest.TestCase):
         return (self.root / "note.txt").read_text()
 
     def test_ui_ladder(self):
+        import win32api  # type: ignore[import-not-found]
         import win32con  # type: ignore[import-not-found]
         import win32gui  # type: ignore[import-not-found]
 
@@ -131,14 +132,35 @@ class WindowsUiLadder(unittest.TestCase):
                 watched = {}
 
                 async def watch():
-                    watched["result"] = await gateway.run(intent("ui.watch", {"window": window, "timeoutMs": 8000}),
-                                                          gateway.epoch, 1)
+                    watched["result"] = await gateway.run(intent("ui.watch", {"window": window, "timeoutMs": 8000,
+                                                                              "show": True}), gateway.epoch, 1)
 
                 async with anyio.create_task_group() as group:
                     group.start_soon(watch)
                     await anyio.sleep(1.5)
                     await run("ui.scroll", {"window": window, "element": rows, "direction": "down", "pages": 2})
-                out["moved"] = watched["result"]
+                out["watched"] = watched["result"]
+                # SkillForge (28.2.1): what a person does in the window, recorded as ordered steps.
+                recorded = {}
+
+                async def record():
+                    recorded["result"] = await gateway.run(intent("ui.record", {"window": window, "seconds": 6}),
+                                                           gateway.epoch, 1)
+
+                left, top, right, bottom = win32gui.GetWindowRect(window["hwnd"])
+                x0, y0, x1, y1 = next(e["box"] for e in out["inspect"]["evidence"]["elements"]
+                                      if e["automationId"] == "saveButton")
+                async with anyio.create_task_group() as group:
+                    group.start_soon(record)
+                    await anyio.sleep(1.5)
+                    await run("ui.set_value", {"window": window, "element": box, "value": "shown once"})
+                    await anyio.sleep(1)
+                    win32api.SetCursorPos((int(left + (x0 + x1) / 2 * (right - left)),
+                                           int(top + (y0 + y1) / 2 * (bottom - top))))
+                    win32api.mouse_event(win32con.MOUSEEVENTF_LEFTDOWN, 0, 0)
+                    await anyio.sleep(0.15)
+                    win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP, 0, 0)
+                out["recorded"] = recorded["result"]
                 # By the ref the newest inspection gave the button (P5), not by a description.
                 save = next(e["ref"] for e in out["region"]["evidence"]["elements"] if e["automationId"] == "saveButton")
                 out["invoke"] = await run("ui.invoke", {"window": window, "element": {"ref": save}})
@@ -252,9 +274,23 @@ class WindowsUiLadder(unittest.TestCase):
         with self.subTest("UIA-021 ui.watch sees a real change locally and refuses when nothing changes (14F.9)"):
             self.assertEqual((out["still"]["status"], out["still"]["errorCode"]), ("not_applied", "not_changed"),
                              out["still"])
-            self.assertEqual(out["moved"]["status"], "observed", out["moved"])
-            self.assertTrue(out["moved"]["evidence"]["regions"], out["moved"])
-            self.assertNotIn("preview", out["moved"], "no picture leaves the computer from ui.watch")
+            watched = out["watched"]
+            self.assertEqual(watched["status"], "observed", watched)
+            self.assertTrue(watched["evidence"]["regions"], watched)
+            # The window's own native stream (14F.9.1), never a desktop recorder or silent polling.
+            self.assertEqual(watched["evidence"]["capture"], "windows_graphics_capture", watched["evidence"])
+            # Asked to show, the ordered keyframes from the start to the change come back as one picture.
+            self.assertTrue(watched.get("preview"), "keyframes were asked for")
+            self.assertEqual(watched["evidence"]["keyframesAtMs"][0], 0, watched["evidence"])
+            self.assertNotIn("preview", out["still"], "no picture without a change and a request")
+        with self.subTest("UIA-022 ui.record turns what a person did in the window into steps (28.2.1)"):
+            recorded = out["recorded"]
+            self.assertEqual(recorded["status"], "observed", recorded)
+            steps = recorded["evidence"]["steps"]
+            self.assertIn(("set_value", {"automationId": "noteBox"}, "shown once"),
+                          [(s["kind"], s.get("element"), s.get("value")) for s in steps], steps)
+            self.assertIn("saveButton", [s.get("element", {}).get("automationId") for s in steps if s["kind"] == "invoke"],
+                          steps)
         with self.subTest("UIA-020 ui.scroll moves a list by pages and brings a listed item into view (plan v8 11.3)"):
             self.assertEqual(out["scroll_down"]["status"], "observed", out["scroll_down"])
             self.assertGreater(out["scroll_down"]["evidence"]["verticalPercent"], 0, out["scroll_down"])

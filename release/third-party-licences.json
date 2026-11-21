@@ -170,11 +170,19 @@
       "version": "13.0",
       "licence": "MIT"
     },
+    "pyobjc-framework-coremedia": {
+      "version": "13.0",
+      "licence": "MIT"
+    },
     "pyobjc-framework-coretext": {
       "version": "13.0",
       "licence": "MIT"
     },
     "pyobjc-framework-quartz": {
+      "version": "13.0",
+      "licence": "MIT"
+    },
+    "pyobjc-framework-screencapturekit": {
       "version": "13.0",
       "licence": "MIT"
     },
@@ -266,6 +274,50 @@
       "version": "15.0.1",
       "licence": "BSD-3-Clause"
     },
+    "winrt-runtime": {
+      "version": "4.2.0",
+      "licence": "MIT"
+    },
+    "winrt-windows-foundation": {
+      "version": "4!10.0.28000.2957",
+      "licence": "MIT"
+    },
+    "winrt-windows-foundation-collections": {
+      "version": "4!10.0.28000.2957",
+      "licence": "MIT"
+    },
+    "winrt-windows-graphics": {
+      "version": "4!10.0.28000.2957.1",
+      "licence": "MIT"
+    },
+    "winrt-windows-graphics-capture": {
+      "version": "4!10.0.28000.2957",
+      "licence": "MIT"
+    },
+    "winrt-windows-graphics-capture-interop": {
+      "version": "4.0.0",
+      "licence": "MIT"
+    },
+    "winrt-windows-graphics-directx": {
+      "version": "4!10.0.28000.2957.1",
+      "licence": "MIT"
+    },
+    "winrt-windows-graphics-directx-direct3d11": {
+      "version": "4!10.0.28000.2957",
+      "licence": "MIT"
+    },
+    "winrt-windows-graphics-directx-direct3d11-interop": {
+      "version": "4.1.0",
+      "licence": "MIT"
+    },
+    "winrt-windows-graphics-imaging": {
+      "version": "4!10.0.28000.2957",
+      "licence": "MIT"
+    },
+    "winrt-windows-storage-streams": {
+      "version": "4!10.0.28000.2957",
+      "licence": "MIT"
+    },
     "xlsxwriter": {
       "version": "3.3.1",
       "licence": "BSD-2-Clause"
@@ -299,7 +351,7 @@
       "redistributedParts": "Language weights and vision projector are governed by the same model licence.",
       "commercialUse": "Free commercial use is conditional on the licensee/Legal Entity having less than USD 10,000,000 annual revenue; otherwise obtain a separate commercial licence.",
       "ownerRevenueAttestation": {
-        "status": "OWNER-DECLARED — NOT INDEPENDENTLY VERIFIED",
+        "status": "OWNER-DECLARED \u2014 NOT INDEPENDENTLY VERIFIED",
         "date": "2026-11-20",
         "assertion": "The owner confirmed in conversation that OCADE's applicable legal entity has annual revenue below USD 10,000,000.",
         "nextReview": "Reconfirm annually and if revenue or corporate control changes; confirm Legal Entity scope and threshold with legal counsel before commercial release."

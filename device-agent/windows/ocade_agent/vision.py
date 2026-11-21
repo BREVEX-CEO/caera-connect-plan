@@ -139,24 +139,3 @@ def changed_regions(before: Image.Image, after: Image.Image) -> list[list[float]
                 found.append([round(column / GRID, 3), round(row / GRID, 3),
                               round((column + 1) / GRID, 3), round((row + 1) / GRID, 3)])
     return found
-
-
-def watch(grab, region: list | None, timeout_ms: int, interval: float = 0.25) -> tuple[dict, Image.Image]:
-    """`ui.watch` on both desktops (plan 14F.9-14F.10, V05/V06): capture the leased window (or one
-    region of it), then compare later captures of the same window, at most four a second and
-    locally (no model call per frame), until a region changes or `timeout_ms` passes. Returns the
-    facts and the last frame. A change seen is a change in pixels only, never proof of a saved
-    result; nothing changing in time is a refusal, like `ui.wait`."""
-    started = time.monotonic()
-    first = view(grab(), region)
-    frames = 1
-    while True:
-        time.sleep(interval)
-        now = view(grab(), region)
-        frames += 1
-        regions = changed_regions(first, now)
-        waited = round((time.monotonic() - started) * 1000)
-        if regions:
-            return {"changed": True, "regions": regions[:32], "waitedMs": waited, "frames": frames}, now
-        if waited >= timeout_ms:
-            raise Refused("not_changed", waitedMs=waited, frames=frames)

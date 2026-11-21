@@ -120,19 +120,3 @@ class WatchTest(unittest.TestCase):
         ImageDraw.Draw(after).rectangle((120, 120, 159, 159), fill="black")
         regions = vision.changed_regions(before, after)
         self.assertTrue(regions and all(r[0] >= 0.75 and r[1] >= 0.75 for r in regions), regions)
-
-        frames = iter([before, before, after])
-        facts, last = vision.watch(lambda: next(frames), None, 5000, interval=0.01)
-        self.assertTrue(facts["changed"])
-        self.assertEqual(facts["frames"], 3)
-
-    def test_nothing_changing_in_time_is_a_refusal(self):
-        from PIL import Image
-
-        from ocade_agent import vision
-        from ocade_agent.sandbox import Refused
-
-        still = Image.new("RGB", (64, 64), "white")
-        with self.assertRaises(Refused) as caught:
-            vision.watch(lambda: still, None, 50, interval=0.01)
-        self.assertEqual(caught.exception.code, "not_changed")

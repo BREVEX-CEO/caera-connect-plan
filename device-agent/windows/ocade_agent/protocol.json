@@ -2147,10 +2147,66 @@
             "type": "integer",
             "minimum": 500,
             "maximum": 15000
+          },
+          "show": {
+            "description": "Also attach the keyframes up to the change.",
+            "type": "boolean"
           }
         },
         "required": [
           "window"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "ui.record": {
+      "role": "ui_bridge",
+      "capability": "apps",
+      "risk": "read",
+      "seconds": 150,
+      "arguments": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "window": {
+            "type": "object",
+            "properties": {
+              "exe": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9 ._()+-]{1,80}$"
+              },
+              "pid": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              },
+              "hwnd": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              },
+              "started": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              }
+            },
+            "required": [
+              "exe",
+              "pid",
+              "hwnd",
+              "started"
+            ],
+            "additionalProperties": false
+          },
+          "seconds": {
+            "type": "integer",
+            "minimum": 5,
+            "maximum": 120
+          }
+        },
+        "required": [
+          "window",
+          "seconds"
         ],
         "additionalProperties": false
       }

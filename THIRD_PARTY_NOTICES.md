@@ -23,7 +23,6 @@ OCADE's Offline Mode includes LFM2.5-VL-450M by Liquid AI, Inc. Its language wei
 |---|---|---|
 | Chromium (Playwright build) | BSD-3-Clause | Bundled browser for the companion; its own credits file ships inside the browser folder. |
 | CPython runtime | PSF-2.0 | Frozen into the companion executable by PyInstaller. |
-| Tcl/Tk (with CPython's tkinter) | TCL | Draws the companion's floating JARVIS bar; frozen into the companion executable by PyInstaller. |
 | PyInstaller bootloader | GPL-2.0-or-later WITH Bootloader-exception | The exception explicitly permits distributing the bootloader with any program. |
 
 ## Companion (Python packages in the installer)
@@ -64,8 +63,10 @@ OCADE's Offline Mode includes LFM2.5-VL-450M by Liquid AI, Inc. Its language wei
 | pyobjc-core | 13.0 | MIT |
 | pyobjc-framework-applicationservices | 13.0 | MIT |
 | pyobjc-framework-cocoa | 13.0 | MIT |
+| pyobjc-framework-coremedia | 13.0 | MIT |
 | pyobjc-framework-coretext | 13.0 | MIT |
 | pyobjc-framework-quartz | 13.0 | MIT |
+| pyobjc-framework-screencapturekit | 13.0 | MIT |
 | pypdf | 6.21.4 | BSD-3-Clause |
 | pypdfium2 | 5.13.0 | Apache-2.0 OR BSD-3-Clause (PDFium: BSD-3-Clause) |
 | pyperclip | 1.11.0 | BSD-3-Clause |
@@ -88,6 +89,17 @@ OCADE's Offline Mode includes LFM2.5-VL-450M by Liquid AI, Inc. Its language wei
 | typing-inspection | 0.4.5 | MIT |
 | uvicorn | 0.54.0 | BSD-3-Clause |
 | websockets | 15.0.1 | BSD-3-Clause |
+| winrt-runtime | 4.2.0 | MIT |
+| winrt-windows-foundation | 4!10.0.28000.2957 | MIT |
+| winrt-windows-foundation-collections | 4!10.0.28000.2957 | MIT |
+| winrt-windows-graphics | 4!10.0.28000.2957.1 | MIT |
+| winrt-windows-graphics-capture | 4!10.0.28000.2957 | MIT |
+| winrt-windows-graphics-capture-interop | 4.0.0 | MIT |
+| winrt-windows-graphics-directx | 4!10.0.28000.2957.1 | MIT |
+| winrt-windows-graphics-directx-direct3d11 | 4!10.0.28000.2957 | MIT |
+| winrt-windows-graphics-directx-direct3d11-interop | 4.1.0 | MIT |
+| winrt-windows-graphics-imaging | 4!10.0.28000.2957 | MIT |
+| winrt-windows-storage-streams | 4!10.0.28000.2957 | MIT |
 | xlsxwriter | 3.3.1 | BSD-2-Clause |
 
 ## Website (production JavaScript packages)

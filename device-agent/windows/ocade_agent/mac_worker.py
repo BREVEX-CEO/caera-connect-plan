@@ -29,7 +29,7 @@ from pathlib import Path
 from mcp.server.mcpserver import MCPServer
 
 from . import keys as key_contract
-from . import refs, vision
+from . import capture, refs, skillforge, vision
 from .sandbox import Refused, guarded, mark_effect, preview_jpeg, resolve
 
 _seen: dict = {}  # the last image ui.inspect captured of each leased window
@@ -440,20 +440,68 @@ def ui_inspect(window: dict, region: list | None = None, changesOnly: bool = Fal
 
 @app.tool()
 @_evidence
-def ui_watch(window: dict, region: list | None = None, timeoutMs: int = 10000) -> dict:
-    """Wait, without acting, until the leased window's picture changes (vision.watch): which
-    regions changed, compared locally. No picture leaves the computer here; ui.inspect shows one."""
+def ui_watch(window: dict, region: list | None = None, timeoutMs: int = 10000, show: bool = False) -> dict:
+    """Wait, without acting, until the leased window's picture changes, on the window's one shared
+    capture (capture.py: ScreenCaptureKit, else bounded polling): which regions changed, compared
+    locally. With `show`, the ordered keyframes come back as one small picture."""
     from PIL import ImageGrab
 
     if not _screen_capture_allowed():
         raise Refused("screen_recording_permission_needed")
+    _leased(window)
 
     def grab():
         _, (x, y, width, height) = _leased(window)  # the window as it is now, or refused
         return ImageGrab.grab(bbox=(x, y, x + width, y + height))
 
-    facts, _ = vision.watch(grab, region, timeoutMs)
-    return facts
+    with capture.HUB.use(json.dumps(window, sort_keys=True), capture.window_source(window, grab)) as stream:
+        return capture.watch(stream, region, timeoutMs, show)
+
+
+@app.tool()
+@_evidence
+def ui_record(window: dict, seconds: int = 60) -> dict:
+    """SkillForge (skillforge.py): while the person works in the leased window for `seconds`, the
+    controls they press and the text they leave in fields, as ordered steps. OCADE does nothing in
+    the window; protected fields are never read; presses outside the window are ignored."""
+    import ApplicationServices as AX  # type: ignore[import-not-found]
+    import Quartz  # type: ignore[import-not-found]
+
+    target, bounds = _leased(window)
+    system = AX.AXUIElementCreateSystemWide()
+
+    def at(x, y):
+        error, element = AX.AXUIElementCopyElementAtPosition(system, x, y, None)
+        if error or element is None:
+            return None
+        error, pid = AX.AXUIElementGetPid(element, None)
+        return element if not error and pid == window["pid"] else None
+
+    def pointer():
+        location = Quartz.CGEventGetLocation(Quartz.CGEventCreate(None))
+        return location.x, location.y
+
+    def inside(x, y):
+        left, top, width, height = bounds
+        return left <= x < left + width and top <= y < top + height and at(x, y) is not None
+
+    def element_at(x, y):
+        element = at(x, y)
+        return _describe(element, bounds) if element is not None else None
+
+    def snapshot():
+        return [_describe(candidate, bounds) for candidate in list(_walk(target))[:300]]
+
+    return skillforge.record(
+        seconds,
+        button_down=lambda: bool(Quartz.CGEventSourceButtonState(
+            Quartz.kCGEventSourceStateCombinedSessionState, Quartz.kCGMouseButtonLeft)),
+        pointer=pointer,
+        element_at=element_at,
+        inside=inside,
+        snapshot=snapshot,
+        alive=lambda: any(w["hwnd"] == window["hwnd"] for w in open_windows(400)),
+    )
 
 
 @app.tool()

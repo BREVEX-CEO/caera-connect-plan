@@ -951,8 +951,23 @@ export const OPERATIONS = {
         .optional()
         .describe("[x0, y0, x1, y1] as window fractions: watch only this part."),
       timeoutMs: z.int().min(500).max(15_000).optional(),
+      show: z.boolean().optional().describe("Also attach the keyframes up to the change."),
     }),
     seconds: 20,
+    target: (a: { window: { exe: string } }): Target => ({ app: a.window.exe }),
+  },
+  "ui.record": {
+    summary:
+      "SkillForge: only when the person asked JARVIS to learn how they do something, watch the leased window, without acting, for `seconds` while they show it once; returns the controls they pressed and the text they left. Protected fields are never read. Tell them first with ask.",
+    engine: "desktop",
+    role: "ui_bridge",
+    capability: "apps",
+    risk: "read",
+    arguments: z.strictObject({
+      window: windowLease,
+      seconds: z.int().min(5).max(120),
+    }),
+    seconds: 150,
     target: (a: { window: { exe: string } }): Target => ({ app: a.window.exe }),
   },
   "ui.scroll": {
