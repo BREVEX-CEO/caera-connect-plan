@@ -2134,7 +2134,7 @@ Existing docs/PRD.md authority remains exactly SIX Settings groups in settings-p
 
 19.7. Deploy `ocade-intelligence-service` to production only after staging qualification (section 2.7).
 
-19.8. Per-run approval for staging benchmarks (B1), the Windows and macOS runner environment (A1) and real-computer tests (A2).
+19.8. **Benchmark and cloud-computer approvals (updated 21 Nov 2026):** The owner has already authorized no-additional-cost staging benchmarks (B1) and genuine GitHub-hosted Windows/macOS cloud-runner tests (A1) under 19.5–19.6, to execute ONLY when the preceding coding, security, debloat and green CI gates pass. Do not ask again merely for a routine authorized free rerun. Respect any platform-enforced per-run protected-environment confirmation. Testing an actual private/customer physical computer (A2), paid runners or paid model usage still requires a specific device/access or monetary scope; this is not permission to use an unspecified third-party device.
 
 19.9. Archiving the research tooling (item 14.3).
 
