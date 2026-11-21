@@ -88,6 +88,7 @@ const REFUSALS: Record<string, string> = {
   too_many_instructions: "This task already has 50 instructions. Stop it and start a new task.",
   approval_not_scopable: "This kind of step is always confirmed one by one.",
   live_needed: "This step types, clicks or opens a window. Switch the task to Live to allow it.",
+  live_mode_in_use: "Wait for the current Live step to finish, or stop the task before switching.",
   rehearsal_only:
     "A rehearsal only reads and writes under 'OCADE output/rehearsal'. Run the task for real to do this.",
   invalid_mode: "Choose Live, Background or Rehearsal.",
@@ -722,7 +723,13 @@ async function notePlannerCalls(
 export async function startTask(
   admin: Admin,
   userId: string,
-  input: { conversationId: string; deviceId: string; objective: string; sessionId?: string },
+  input: {
+    conversationId: string;
+    deviceId: string;
+    objective: string;
+    sessionId?: string;
+    mode?: "live" | "background";
+  },
 ) {
   const accepted = taskObjective.safeParse(input.objective);
   if (!accepted.success)
@@ -750,7 +757,7 @@ export async function startTask(
   // Opened without checks: they are fixed after a first read-only look (see `advance`).
   const [opened] = await call<{ task_id: string; status: string; reused: boolean }[]>(
     admin,
-    "jarvis_open_task",
+    input.mode ? "jarvis_open_task_with_mode" : "jarvis_open_task",
     {
       p_user: userId,
       p_conversation: input.conversationId,
@@ -758,6 +765,7 @@ export async function startTask(
       p_title: objective,
       p_outcome: null as unknown as Json,
       p_plan: [] as unknown as Json,
+      ...(input.mode ? { p_mode: input.mode } : {}),
       ...(input.sessionId ? { p_session: input.sessionId } : {}),
     },
   );

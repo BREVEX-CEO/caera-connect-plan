@@ -122,3 +122,26 @@ test("task startup preserves complete accepted requests and rejects invalid ones
     );
   }
 });
+
+test("task startup sends the selected mode to the same database transaction as admission", async () => {
+  const admin = {
+    rpc: async (name: string, args: Record<string, unknown>) => {
+      if (name === "jarvis_grants") return { data: ["files"], error: null };
+      if (name === "jarvis_online_consented") return { data: true, error: null };
+      assert.equal(name, "jarvis_open_task_with_mode");
+      assert.equal(args.p_mode, "background");
+      assert.equal(args.p_session, "current-session");
+      return { data: [{ task_id: "existing", status: "running", reused: true }], error: null };
+    },
+  } as unknown as Admin;
+  assert.deepEqual(
+    await startTask(admin, "user", {
+      conversationId: "conversation",
+      deviceId: "device",
+      objective: "Draft a summary of today’s notes",
+      sessionId: "current-session",
+      mode: "background",
+    }),
+    { taskId: "existing", reused: true },
+  );
+});

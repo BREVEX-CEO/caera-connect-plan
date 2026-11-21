@@ -14,7 +14,9 @@ export function useModalFocus(ref: RefObject<HTMLElement | null>, open: boolean)
     const opener = document.activeElement as HTMLElement | null;
     const focusable = () =>
       [...(ref.current?.querySelectorAll<HTMLElement>(FOCUSABLE) ?? [])].filter(
-        (element) => element.offsetParent !== null || element === document.activeElement,
+        (element) =>
+          element.tabIndex >= 0 &&
+          (element.offsetParent !== null || element === document.activeElement),
       );
     if (!ref.current?.contains(document.activeElement)) focusable()[0]?.focus();
     const onKey = (event: KeyboardEvent) => {
@@ -23,7 +25,10 @@ export function useModalFocus(ref: RefObject<HTMLElement | null>, open: boolean)
       if (items.length === 0) return;
       const first = items[0]!;
       const last = items[items.length - 1]!;
-      if (event.shiftKey && document.activeElement === first) {
+      if (!ref.current?.contains(document.activeElement)) {
+        event.preventDefault();
+        (event.shiftKey ? last : first).focus();
+      } else if (event.shiftKey && document.activeElement === first) {
         event.preventDefault();
         last.focus();
       } else if (!event.shiftKey && document.activeElement === last) {

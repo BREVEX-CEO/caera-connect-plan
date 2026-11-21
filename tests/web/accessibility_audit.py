@@ -26,7 +26,7 @@ import sys
 from pathlib import Path
 from urllib.parse import urljoin, urlsplit
 
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import expect, sync_playwright
 
 sys.path.insert(0, str(Path(__file__).parent))
 import surface_audit
@@ -159,6 +159,28 @@ def reflow(page, url: str) -> list[str]:
     return [f"scrolls sideways by {overflow}px at 200% zoom"] if overflow > 1 else []
 
 
+def jarvis_mobile_navigation(page, url: str) -> None:
+    page.set_viewport_size({"width": 320, "height": 740})
+    try:
+        page.goto(url, wait_until="networkidle")
+        opener = page.get_by_role("button", name="Open navigation")
+        opener.focus()
+        opener.press("Enter")
+        drawer = page.get_by_role("dialog", name="JARVIS navigation")
+        expect(drawer.get_by_role("button", name="Close navigation")).to_be_focused()
+        for key in ("Shift+Tab", *["Tab"] * 12):
+            page.keyboard.press(key)
+            assert drawer.evaluate("el => el.contains(document.activeElement)"), "navigation leaked focus"
+        drawer.get_by_role("button", name="Scheduled").click()
+        expect(drawer.get_by_role("heading", name="Scheduled")).to_be_visible()
+        assert drawer.evaluate("el => el.scrollWidth <= el.clientWidth"), "navigation overflows at 320px"
+        page.keyboard.press("Escape")
+        expect(drawer).to_have_count(0)
+        expect(opener).to_be_focused()
+    finally:
+        page.set_viewport_size({"width": 1366, "height": 900})
+
+
 def main(base: str, session: str | None, storage_key: str | None, engine: str) -> int:
     origin = surface_audit.site_origin(base)
     if session and os.environ.get("OCADE_AUDIT_SESSION_ORIGIN") != origin:
@@ -184,6 +206,11 @@ def main(base: str, session: str | None, storage_key: str | None, engine: str) -
                 queue.extend(link for link in links(page, origin) if link not in seen)
                 problems += opened_views(page, url)
                 problems += reflow(page, url)
+                if urlsplit(url).path == "/ocade-jarvis":
+                    try:
+                        jarvis_mobile_navigation(page, url)
+                    except AssertionError as error:
+                        problems.append(f"mobile JARVIS navigation: {str(error)[:200]}")
             except Exception as error:  # noqa: BLE001 - a page that cannot be audited is a finding
                 problems = [f"could not audit: {str(error)[:200]}"]
             report[urlsplit(url).path] = problems

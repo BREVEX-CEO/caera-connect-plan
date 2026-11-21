@@ -28,6 +28,7 @@ import { buildPassport, passportReport } from "@/lib/jarvis/proof-passport";
 import { saveSkill } from "@/lib/jarvis/skills.functions";
 import { workflowBody } from "@/lib/jarvis/skillforge";
 import { PermissionGuide } from "./PermissionGuide";
+import { ControlModePicker, type ControlMode } from "./ControlMode";
 import { Watches } from "./Watches";
 import { useSession } from "@/lib/session";
 import { toBase64 } from "@/lib/chat/attachments";
@@ -785,11 +786,24 @@ export function TaskPanel({
   onUseFile,
 }: {
   task: Task;
-  onChanged: () => void;
+  onChanged: () => void | Promise<unknown>;
   onRetry: (objective: string) => void;
   onUseFile: (path: string) => void;
 }) {
   const open = ["running", "waiting", "taken_over"].includes(task.status);
+  const [switching, setSwitching] = useState(false);
+  const switchMode = async (mode: ControlMode) => {
+    if (switching) return;
+    setSwitching(true);
+    try {
+      await setJarvisTaskMode({ data: { taskId: task.id, mode } });
+      await onChanged();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "JARVIS couldn't switch modes.");
+    } finally {
+      setSwitching(false);
+    }
+  };
   const parallel = new Set(task.steps.map((step) => step.lane)).size > 1;
   // The timeline (R12-09): filter by agent and by what happened; entries are the real steps.
   const [agentFilter, setAgentFilter] = useState<number | null>(null);
@@ -821,7 +835,7 @@ export function TaskPanel({
           <button
             type="button"
             onClick={() => act(takeOverJarvisTask({ data: { taskId: task.id } }))}
-            className="rounded-full border border-border px-3 py-1 hover:bg-accent"
+            className="min-h-11 rounded-full border border-border px-4 hover:bg-accent"
           >
             Take over
           </button>
@@ -961,41 +975,26 @@ export function TaskPanel({
           <button
             type="button"
             onClick={() => act(stopJarvisTask({ data: { taskId: task.id } }))}
-            className="rounded-full bg-destructive px-3 py-1 font-medium text-destructive-foreground"
+            className="min-h-11 rounded-full bg-destructive px-4 font-medium text-destructive-foreground"
           >
             STOP
           </button>
         ) : null}
       </div>
       {open ? (
-        <label className="mt-2 flex flex-wrap items-center gap-2 text-xs">
-          <span className="text-muted-foreground">Mode</span>
-          <select
-            value={task.mode}
-            onChange={(event) =>
-              act(
-                setJarvisTaskMode({
-                  data: {
-                    taskId: task.id,
-                    mode: event.target.value as "live" | "background" | "rehearsal",
-                  },
-                }),
-              )
-            }
-            className="rounded-full border border-border bg-background px-2 py-0.5"
-          >
-            <option value="live">Live</option>
-            <option value="background">Background</option>
-            <option value="rehearsal">Rehearsal (on copies)</option>
-          </select>
-          <span className="text-muted-foreground">
-            {task.mode === "rehearsal"
-              ? "Tries the work on copies in 'OCADE output/rehearsal' first; nothing else changes. Run it for real after you review it."
-              : task.mode === "background"
-                ? "Works without taking your mouse, keyboard or focus; it asks for Live when a step needs them."
-                : "JARVIS may type, click and open windows in front of you."}
-          </span>
-        </label>
+        <div className="mt-2">
+          {task.mode === "rehearsal" ? (
+            <p className="text-xs">
+              Rehearsal · Review the results in OCADE output/rehearsal before starting a live task.
+            </p>
+          ) : (
+            <ControlModePicker
+              mode={task.mode}
+              pending={switching}
+              onChange={(mode) => void switchMode(mode)}
+            />
+          )}
+        </div>
       ) : null}
       {task.blocker ? <p className="mt-1 text-muted-foreground">{task.blocker}</p> : null}
       <p className="mt-1 text-xs text-muted-foreground">

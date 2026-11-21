@@ -23,12 +23,14 @@ import {
   PanelLeftOpen,
   PenSquare,
   Settings,
+  X,
   type LucideIcon,
 } from "lucide-react";
 import { useSession } from "@/lib/session";
 import { ModelSource } from "@/components/settings/ModelSource";
 import { EnhancePrompt } from "@/components/chat/EnhancePrompt";
 import { useFollowBottom } from "@/lib/use-follow-bottom";
+import { useModalFocus } from "@/lib/use-modal-focus";
 import { Prose } from "@/components/chat/MessageList";
 import { useSettingsPanel } from "@/components/settings/settings-panel";
 import { loadChatMessages } from "@/lib/ocade-chat-store";
@@ -45,6 +47,7 @@ import { JARVIS_CONSENT_NEEDED } from "@/lib/jarvis/consent-needed";
 import { MAX_OBJECTIVE_LENGTH, taskObjective } from "@/lib/jarvis/objective";
 import { askOnlineConsent } from "@/lib/intelligence/online-consent-ask";
 import { PACKAGES, SIMPLIFY } from "@/lib/jarvis/packages";
+import { ControlModePicker, type ControlMode } from "./ControlMode";
 import { appendOcadeMessage, createConversation } from "@/lib/ocade.functions";
 import {
   listJarvisHabits,
@@ -113,6 +116,14 @@ export function JarvisWorkspace({
   }, [ask, navigate]);
   const [section, setSection] = useState<Section | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const drawer = useRef<HTMLDivElement>(null);
+  useModalFocus(drawer, drawerOpen);
+
+  useEffect(() => {
+    if (drawerOpen && !drawer.current?.contains(document.activeElement)) {
+      drawer.current?.querySelector<HTMLButtonElement>("button")?.focus();
+    }
+  }, [drawerOpen, section]);
 
   // ONE OWNER for everything on screen: this account and this conversation.
   const owner = `${user?.id ?? ""}:${conversationId ?? ""}`;
@@ -147,11 +158,19 @@ export function JarvisWorkspace({
   // The phone drawer closes with Escape, whatever section is open inside it.
   useEffect(() => {
     if (!drawerOpen) return;
+    const desktop = window.matchMedia("(min-width: 48rem)");
+    const onResize = () => {
+      if (desktop.matches) setDrawerOpen(false);
+    };
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") setDrawerOpen(false);
     };
+    desktop.addEventListener("change", onResize);
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    return () => {
+      desktop.removeEventListener("change", onResize);
+      window.removeEventListener("keydown", onKey);
+    };
   }, [drawerOpen]);
 
   const queryClient = useQueryClient();
@@ -189,6 +208,7 @@ export function JarvisWorkspace({
     if (settled) setReloads((n) => n + 1);
   }, [settled]);
   const [sending, setSending] = useState(false);
+  const [controlMode, setControlMode] = useState<ControlMode>("live");
   /* The @ being typed before the caret, and which suggestion the arrow keys are on. */
   const [mention, setMention] = useState<{ start: number; query: string } | null>(null);
   const [mentionActive, setMentionActive] = useState(0);
@@ -230,7 +250,9 @@ export function JarvisWorkspace({
         data: { conversationId: conversation, role: "user", content: objective },
       });
       const start = () =>
-        startJarvisTask({ data: { conversationId: conversation, deviceId: device.id, objective } });
+        startJarvisTask({
+          data: { conversationId: conversation, deviceId: device.id, objective, mode: controlMode },
+        });
       try {
         await start();
       } catch (error) {
@@ -371,22 +393,42 @@ export function JarvisWorkspace({
       <a href="#jarvis-composer" className="skip-link">
         Skip to the message box
       </a>
-      <div className="hidden h-full md:flex">
-        {rail(false)}
-        {sectionPanel}
-      </div>
+      {!drawerOpen ? (
+        <div className="hidden h-full md:flex">
+          {rail(false)}
+          {sectionPanel}
+        </div>
+      ) : null}
 
       {drawerOpen ? (
-        <div className="fixed inset-0 z-50 flex md:hidden">
+        <div
+          id="jarvis-navigation-drawer"
+          role="dialog"
+          aria-modal="true"
+          aria-label="JARVIS navigation"
+          ref={drawer}
+          className="fixed inset-0 z-50 flex md:hidden"
+        >
           <button
             type="button"
-            aria-label="Close navigation"
+            aria-hidden="true"
+            tabIndex={-1}
             className="absolute inset-0 bg-black/60"
             onClick={() => setDrawerOpen(false)}
           />
-          <div className="relative flex h-full max-w-full overflow-x-auto bg-background">
-            {rail(true)}
-            {sectionPanel}
+          <div className="relative flex h-full w-72 max-w-[85vw] flex-col bg-background">
+            <div className="flex shrink-0 items-center justify-between gap-2 border-b border-border px-3">
+              <span className="font-medium">JARVIS navigation</span>
+              <button
+                type="button"
+                aria-label="Close navigation"
+                onClick={() => setDrawerOpen(false)}
+                className="grid size-11 place-items-center rounded-md hover:bg-accent"
+              >
+                <X className="size-4" aria-hidden />
+              </button>
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto">{sectionPanel ?? rail(true)}</div>
           </div>
         </div>
       ) : null}
@@ -396,8 +438,10 @@ export function JarvisWorkspace({
           <button
             type="button"
             aria-label="Open navigation"
+            aria-expanded={drawerOpen}
+            aria-controls={drawerOpen ? "jarvis-navigation-drawer" : undefined}
             onClick={() => setDrawerOpen(true)}
-            className="grid h-9 w-9 place-items-center rounded-md text-muted-foreground hover:bg-accent md:hidden"
+            className="grid size-11 place-items-center rounded-md text-muted-foreground hover:bg-accent md:hidden"
           >
             <Menu className="h-4 w-4" aria-hidden />
           </button>
@@ -486,7 +530,7 @@ export function JarvisWorkspace({
               task={task.data}
               onRetry={draftForReview}
               onUseFile={(path) => draftForReview(`Use the file ${JSON.stringify(path)} to `)}
-              onChanged={() => void queryClient.invalidateQueries({ queryKey: ["jarvis"] })}
+              onChanged={() => queryClient.invalidateQueries({ queryKey: ["jarvis"] })}
             />
           ) : null}
           <div className="mx-auto max-w-2xl">
@@ -508,6 +552,11 @@ export function JarvisWorkspace({
                 </label>
               ) : null}
             </div>
+            {signedIn && !taskOpen ? (
+              <div className="mb-2">
+                <ControlModePicker mode={controlMode} onChange={setControlMode} pending={sending} />
+              </div>
+            ) : null}
             <form
               onSubmit={(event) => {
                 event.preventDefault();

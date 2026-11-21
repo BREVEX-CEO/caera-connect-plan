@@ -14,6 +14,7 @@ import { taskObjective } from "./objective";
 import { appPermission, DEVICE_SILENCE_MS } from "./contracts";
 
 const uuid = z.uuid();
+const controlMode = z.enum(["live", "background"]);
 
 function taskSessionId(claims: Record<string, unknown>): string {
   const session = uuid.safeParse(claims.session_id);
@@ -58,6 +59,7 @@ export const startJarvisTask = createServerFn({ method: "POST" })
         conversationId: uuid,
         deviceId: uuid,
         objective: taskObjective,
+        mode: controlMode.optional(),
       })
       .parse(i),
   )
@@ -200,7 +202,7 @@ export const answerJarvisForm = createServerFn({ method: "POST" })
 /** Live or Background (R12-01): switching keeps the task, its steps and its permissions. */
 export const setJarvisTaskMode = createServerFn({ method: "POST" })
   .middleware([requireSession])
-  .validator((i) => z.object({ taskId: uuid, mode: z.enum(["live", "background"]) }).parse(i))
+  .validator((i) => z.object({ taskId: uuid, mode: controlMode }).parse(i))
   .handler(async ({ data, context }) => {
     const { admin, setTaskMode } = await authority();
     return {

@@ -53,6 +53,13 @@ BEGIN
   PERFORM public.jarvis_set_task_mode(v_user, v_task.task_id, 'live');
   PERFORM public.jarvis_queue_actions(v_task.task_id, v_task.controller, v_step);
   PERFORM pg_temp.check((SELECT count(*) FROM public.jarvis_activity WHERE task_id = v_task.task_id) = 1, 'Live queues it, nothing was lost');
+  BEGIN
+    PERFORM public.jarvis_set_task_mode(v_user, v_task.task_id, 'background');
+    RAISE EXCEPTION 'mode: Background accepted an existing Live step';
+  EXCEPTION WHEN object_not_in_prerequisite_state THEN
+    IF SQLERRM <> 'live_mode_in_use' THEN RAISE; END IF;
+  END;
+  PERFORM pg_temp.check((public.jarvis_task_state(v_task.task_id) ->> 'mode') = 'live', 'refused transition leaves Live intact');
   -- Rehearsal (T12-06): writes only under the rehearsal folder; nothing consequential.
   PERFORM public.jarvis_set_task_mode(v_user, v_task.task_id, 'rehearsal');
   BEGIN
@@ -74,5 +81,27 @@ BEGIN
     RAISE EXCEPTION 'mode: a finished task changed mode';
   EXCEPTION WHEN no_data_found THEN NULL;
   END;
+  -- A first dispatch can only see the selected mode. An exact repeat preserves it.
+  SELECT * INTO v_task FROM public.jarvis_open_task_with_mode(
+    v_user, (SELECT c FROM m_ids), v_device, 'Second task', NULL, '[]', 'background'
+  );
+  PERFORM pg_temp.check(public.jarvis_claim_action(v_device) ->> 'mode' = 'background', 'first dispatch sees Background');
+  PERFORM pg_temp.check((SELECT reused FROM public.jarvis_open_task_with_mode(
+    v_user, (SELECT c FROM m_ids), v_device, 'Second task', NULL, '[]', 'background'
+  )), 'duplicate request with the same mode reuses the task');
+  BEGIN
+    PERFORM public.jarvis_open_task_with_mode(
+      v_user, (SELECT c FROM m_ids), v_device, 'Second task', NULL, '[]', 'live'
+    );
+    RAISE EXCEPTION 'mode: a duplicate request switched execution modes';
+  EXCEPTION WHEN lock_not_available THEN
+    IF SQLERRM <> 'busy' THEN RAISE; END IF;
+  END;
+  PERFORM pg_temp.check((public.jarvis_task_state(v_task.task_id) ->> 'mode') = 'background', 'different-mode repeat leaves the task unchanged');
 END $$;
+RESET ROLE;
+SELECT pg_temp.check(NOT has_function_privilege('anon', 'public.jarvis_open_task_with_mode(uuid, uuid, uuid, text, jsonb, jsonb, text, uuid)', 'EXECUTE'),
+  'anonymous clients cannot open tasks');
+SELECT pg_temp.check(NOT has_function_privilege('authenticated', 'public.jarvis_open_task_with_mode(uuid, uuid, uuid, text, jsonb, jsonb, text, uuid)', 'EXECUTE'),
+  'signed-in clients cannot bypass the server session fence');
 ROLLBACK;
