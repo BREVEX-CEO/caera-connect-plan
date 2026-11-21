@@ -22,6 +22,8 @@ export interface Step {
   unparsedReceipt?: unknown;
   /** The person's answer for a step whose effect was unknown; the step itself never runs again. */
   resolution?: "applied" | "not_applied" | null;
+  /** Which agent (lane) runs it (lanes.ts); absent: the first. */
+  lane?: number;
 }
 
 /** Ordered work selected by the model; checks always refer to the immutable task contract. */

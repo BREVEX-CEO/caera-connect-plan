@@ -17,6 +17,7 @@
 import { byokRefusal } from "../byok/refusals.ts";
 import { skillLines, type Skill } from "./skills.ts";
 import { leaseFor, workflowOf, workflowReplay } from "./skillforge.ts";
+import { conflicts, LANES, resources } from "./lanes.ts";
 import { flaggedSites } from "./scam.ts";
 import { maskSensitive, unmaskArguments } from "./sensitive-values.ts";
 import { z } from "zod";
@@ -1380,7 +1381,25 @@ export async function planStep(input: {
       kind: "block",
       reason: "The outcome's websites or applications are not authorized on this computer.",
     };
-  if (steps.some(open)) return { kind: "wait" };
+  /*
+   * AN ADAPTIVE TEAM (14D.3, 14F.3): while some agents' steps still run, a free agent is given
+   * work that needs none of their results and touches none of what they hold; anything else
+   * waits for them. Only in multi-agent mode, only alongside plain steps (never a confirmation,
+   * the verifier, a job or a prerequisite install), and only while an agent is free.
+   */
+  const running = steps.filter(open);
+  const alongside =
+    running.length > 0 &&
+    specialists &&
+    running.every(
+      (step) =>
+        step.status !== "needs_confirmation" &&
+        batchable(step.intent) &&
+        !/^(verify|job|system)\./.test(step.intent.operation),
+    ) &&
+    new Set(running.map((step) => step.lane ?? 0)).size < LANES;
+  if (running.length && !alongside) return { kind: "wait" };
+  const held = running.flatMap((step) => resources(step.intent));
   // REPO-48: a milestone whose kinds of work this computer cannot do at all fails before any step.
   const impossible = impossibleMilestone(
     phase.description,
@@ -1392,7 +1411,8 @@ export async function planStep(input: {
   const job = followJobs(steps, now);
   if (job) return job;
 
-  const last = phaseSteps.at(-1);
+  // Alongside running agents, the step checks below wait for every step to finish.
+  const last = alongside ? undefined : phaseSteps.at(-1);
   if (last?.receipt?.errorCode === "worker_rejected" && !last.intent.operation.startsWith("mcp.")) {
     return {
       kind: "wait",
@@ -1558,6 +1578,7 @@ export async function planStep(input: {
   const replayed = steps.filter((step) => step.intent.key.startsWith("replay-"));
   if (
     replay.length &&
+    !alongside &&
     phase.final &&
     replayed.every((step) => step.receipt?.status === "observed" && !step.receipt.errorCode)
   ) {
@@ -1651,11 +1672,18 @@ export async function planStep(input: {
         : `${OPERATIONS[name].summary} (${OPERATIONS[name].risk})`,
       parameters: deferred(name) ? { type: "object", properties: {} } : schemaOf(name),
     })),
-    {
-      name: "finish",
-      description: "The fixed checks should now hold; run the independent verifier.",
-      parameters: { type: "object", properties: {} },
-    },
+    alongside
+      ? {
+          name: "wait",
+          description:
+            "Nothing else can start until the other agents' running steps finish (it needs their results or what they hold).",
+          parameters: { type: "object", properties: {} },
+        }
+      : {
+          name: "finish",
+          description: "The fixed checks should now hold; run the independent verifier.",
+          parameters: { type: "object", properties: {} },
+        },
     {
       name: "expect",
       description:
@@ -1831,6 +1859,16 @@ export async function planStep(input: {
         `Outcome: ${JSON.stringify(input.objective)}`,
         `Fixed checks for this milestone: ${JSON.stringify(checks)}`,
         `Current milestone: ${JSON.stringify(phase.description)}; ${phase.stepBudget - phaseDecisions.length} steps remain.`,
+        alongside
+          ? `Other agents are still running (results not known yet): ${running
+              .map(
+                (step) =>
+                  `Agent ${(step.lane ?? 0) + 1}: ${stepSummary(step.intent.operation, step.intent.arguments)}`,
+              )
+              .join(
+                "; ",
+              )}. Give a free agent only work that needs none of their results and touches none of their files, apps or pages; otherwise call wait.`
+          : "",
         `allowed: ${JSON.stringify(allowed)}`,
         plannerSight.blind
           ? "You cannot see images: no screenshot or preview is shown to you. Work from the text and structure ui.inspect and the page observations report, never from a guessed position."
@@ -1909,6 +1947,11 @@ export async function planStep(input: {
       attempt -= 1; // asking specialists is not a refused proposal
       continue;
     }
+    if (call.name === "wait" && alongside) return { kind: "wait" };
+    if (call.name === "ask" && alongside) {
+      refusal = "Ask once the other agents' steps finish: call wait now.";
+      continue;
+    }
     if (call.name === "ask") {
       const reason = String(call.args.question ?? "JARVIS needs your decision.").slice(0, 300);
       const form = generatedForm.safeParse(call.args.fields);
@@ -1946,6 +1989,10 @@ export async function planStep(input: {
       }
       const proposal = queued(call.name, call.args, key);
       const first = { ...proposal, intent: guarded(proposal.intent, call.expect) };
+      if (alongside && conflicts(resources(first.intent), held)) {
+        refusal = `OCADE ran nothing: ${call.name} touches what another agent is still working on. Propose independent work, or call wait.`;
+        continue;
+      }
       const scam = scamRefusal(first.intent);
       if (scam) {
         refusal = scam;
@@ -1975,7 +2022,8 @@ export async function planStep(input: {
             if (
               missingGrant(action.intent, input.grants) ||
               outside(action.intent) ||
-              scamRefusal(action.intent)
+              scamRefusal(action.intent) ||
+              (alongside && conflicts(resources(action.intent), held))
             )
               break;
             batch.push({ summary: action.summary, intent: guarded(action.intent, next.expect) });

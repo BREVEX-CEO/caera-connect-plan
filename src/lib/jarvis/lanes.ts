@@ -82,6 +82,8 @@ export function conflicts(a: readonly string[], b: readonly string[]): boolean {
  */
 export function assignLanes(
   steps: readonly ActionIntent[],
+  /** Agents still running earlier steps: new groups go to free ones first. */
+  busy: ReadonlySet<number> = new Set(),
 ): { lane: number; resources: string[] }[] {
   const touched = steps.map(resources);
   const parent = steps.map((_, index) => index);
@@ -98,13 +100,18 @@ export function assignLanes(
   }
   const lanes = new Map<number, number>();
   const desktop = steps.some((_, i) => touched[i]!.includes(DESKTOP));
-  let next = desktop ? 1 : 0;
+  // Free agents first, in order; when every agent is busy, groups queue behind them in turn.
+  const all = Array.from({ length: LANES }, (_, lane) => lane).filter(
+    (lane) => !(desktop && lane === 0),
+  );
+  const order = [...all.filter((lane) => !busy.has(lane)), ...all.filter((lane) => busy.has(lane))];
+  let next = 0;
   return steps.map((_, i) => {
     const group = root(i);
     if (!lanes.has(group)) {
       const onDesktop = steps.some((_, j) => root(j) === group && touched[j]!.includes(DESKTOP));
-      lanes.set(group, onDesktop ? 0 : next);
-      if (!onDesktop) next = next + 1 >= LANES ? (desktop ? 1 : 0) : next + 1;
+      lanes.set(group, onDesktop ? 0 : order[next % order.length]!);
+      if (!onDesktop) next += 1;
     }
     return { lane: lanes.get(group)!, resources: touched[i]! };
   });

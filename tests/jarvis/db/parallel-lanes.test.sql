@@ -95,6 +95,16 @@ BEGIN
   v_state := public.jarvis_claim_action(v_device);
   PERFORM pg_temp.check(v_state #>> '{actions,0,intent,key}' = 'a2' AND jsonb_array_length(v_state -> 'actions') = 1,
                         'the lane continues in order');
+  -- 14D.3: while lane 0 still runs a2, a free agent is given independent work and starts at once;
+  -- work on what lane 0 holds is refused.
+  PERFORM pg_temp.fails(format('SELECT public.jarvis_queue_actions(%L, %L, %L)', v_task.task_id, v_task.controller,
+    pg_temp.batch('[{"key":"c0","path":"a/c.txt","lane":2}]', v_deadline)), 'lane_conflict');
+  PERFORM public.jarvis_queue_actions(v_task.task_id, v_task.controller,
+    pg_temp.batch('[{"key":"c1","path":"c","lane":2}]', v_deadline));
+  v_state := public.jarvis_claim_action(v_device);
+  SELECT string_agg(e #>> '{intent,key}', ',' ORDER BY (e ->> 'lane')::int) INTO v_seen
+    FROM jsonb_array_elements(v_state -> 'actions') AS e;
+  PERFORM pg_temp.check(v_seen = 'a2,c1', 'a free agent joins while another still runs: ' || coalesce(v_seen, 'none'));
   PERFORM public.jarvis_stop_task(v_user, v_task.task_id);
 
   -- An uncertain step in one lane: the other lane's running step stays its own, nothing new starts.

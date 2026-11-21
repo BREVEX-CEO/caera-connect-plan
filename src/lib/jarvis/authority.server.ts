@@ -340,6 +340,7 @@ export async function advance(admin: Admin, taskId: string, now = new Date()): P
       // Durable STOP/crash records may be incomplete. Keep their uncertainty for the shared fence.
       unparsedReceipt: receipt === null ? raw : undefined,
       resolution: step.resolution,
+      lane: step.lane ?? 0,
     };
   });
   const unknown = unresolvedEffect(steps);
@@ -566,8 +567,17 @@ async function decide(
           { summary: decision.summary, action: decision.intent },
           ...(decision.more ?? []).map((next) => ({ summary: next.summary, action: next.intent })),
         ];
-        // Independent steps of the turn run at the same time on separate workers (lanes.ts).
-        const lanes = assignLanes(batch.map((item) => item.action));
+        // Independent steps of the turn run at the same time on separate workers (lanes.ts),
+        // on agents that are free while others are still working (14D.3).
+        const busy = new Set(
+          task.steps
+            .filter((step) => ["queued", "claimed", "needs_confirmation"].includes(step.status))
+            .map((step) => step.lane ?? 0),
+        );
+        const lanes = assignLanes(
+          batch.map((item) => item.action),
+          busy,
+        );
         await call(admin, "jarvis_queue_actions", {
           p_task: taskId,
           p_controller: task.controller,
