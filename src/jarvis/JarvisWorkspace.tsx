@@ -117,11 +117,12 @@ export function JarvisWorkspace({
   const [section, setSection] = useState<Section | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const drawer = useRef<HTMLDivElement>(null);
+  const drawerClose = useRef<HTMLButtonElement>(null);
   useModalFocus(drawer, drawerOpen);
 
   useEffect(() => {
     if (drawerOpen && !drawer.current?.contains(document.activeElement)) {
-      drawer.current?.querySelector<HTMLButtonElement>("button")?.focus();
+      drawerClose.current?.focus();
     }
   }, [drawerOpen, section]);
 
@@ -422,6 +423,7 @@ export function JarvisWorkspace({
               <button
                 type="button"
                 aria-label="Close navigation"
+                ref={drawerClose}
                 onClick={() => setDrawerOpen(false)}
                 className="grid size-11 place-items-center rounded-md hover:bg-accent"
               >
