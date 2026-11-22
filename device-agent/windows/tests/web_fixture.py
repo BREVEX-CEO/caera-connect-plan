@@ -81,6 +81,8 @@ onblur="document.getElementById('committed').textContent = this.dataset.typed ? 
 <input id="file" type="file" name="file"><button id="go" type="submit">Upload</button></form>""",
     "/frame": """<h1>Frame host</h1><iframe id="inner" src="/inner" title="inner"></iframe>""",
     "/inner": """<p>Inside frame</p><input id="inframe" name="inframe">""",
+    "/frame-other": """<h1>Other-site frame</h1><iframe id="inner" title="inner"></iframe>
+<script>document.getElementById('inner').src = 'https://localhost:' + location.port + '/inner'</script>""",
     "/popup": """<h1>Popups</h1><button id="same" onclick="window.open('/pages/1')">Same site</button>
 <button id="other" onclick="window.open('https://localhost:' + location.port + '/pages/2')">Other site</button>
 <form target="_blank" action="/pages/1"><button id="form">Form into a new window</button></form>

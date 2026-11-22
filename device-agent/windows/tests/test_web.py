@@ -275,6 +275,11 @@ class WebLadder(unittest.TestCase):
             ]
             frame = (await run("web.open", {"url": base + "/frame"}))["evidence"]["page"]
             out["008"] = await run("web.fill", {"page": frame, "selector": "#inframe", "value": "in frame", "frame": "#inner"})
+            other = (await run("web.open", {"url": base + "/frame-other"}))["evidence"]["page"]
+            out["008b"] = [
+                await run("web.fill", {"page": other, "selector": "#inframe", "value": "x", "frame": "#inner"}),
+                await run("web.fill", {"page": other, "selector": "#inframe", "value": "x"}),
+            ]
             popup = (await run("web.open", {"url": base + "/popup"}))["evidence"]["page"]
             out["009"] = [
                 await run("web.click", {"page": popup, "selector": "#same"}),
@@ -389,6 +394,10 @@ class WebLadder(unittest.TestCase):
             self.assertIn("End 8", results["editable-read"]["evidence"]["text"])  # typed, then committed on blur
         with self.subTest("WEB-008 same-site iframe"):
             self.assertTrue(results["008"]["evidence"]["matches"])
+        with self.subTest("WEB-008b BROWSER-06 an other-site iframe is never acted in"):
+            framed, main = results["008b"]
+            self.assertEqual((framed["status"], framed["errorCode"]), ("not_applied", "frame_off_site"))
+            self.assertEqual(main["status"], "not_applied")  # the frame's field is not in the page
         with self.subTest("WEB-009 popups: same site bound, other site closed"):
             same, other = results["009"]
             self.assertEqual(len(same["evidence"]["popups"]), 1)

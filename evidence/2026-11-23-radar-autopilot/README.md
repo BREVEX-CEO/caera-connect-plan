@@ -13,6 +13,10 @@ it and served by `wrangler dev` on `http://127.0.0.1:8787`, synthetic accounts o
 | `tests/web/accessibility_audit.py`, signed in (3 routes) and signed out | PASS, 0 pages with problems (JSON here) |
 | `tests/web/surface_audit.py`, signed in, desktop and Android emulation | PASS, 4 pages, 51 controls |
 
+**Account erasure and stored files (PRIVACY-01):** `tests/web/account_erasure_storage.mjs` ran
+the real `eraseAccount` on the same stack for a synthetic account holding one Library object:
+`{"before":1,"pendingFiles":0,"objectsAfter":0,"rowsAfter":0,"identityGone":true}`.
+
 **Found and changed during the run:** the Radar listed every low-severity finding in full, so
 four cards pushed the LifeOS list below the fold for three obligations. Low findings now sit
 behind one "N more worth a look" disclosure (Selective Attention, Progressive Disclosure).
