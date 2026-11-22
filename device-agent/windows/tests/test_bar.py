@@ -18,19 +18,33 @@ from ocade_agent.journal import Journal
 
 
 class BarStateTest(unittest.TestCase):
+    def test_markers_require_the_foreground_lease_and_a_point_inside_it(self):
+        from ocade_agent.bar import visible_marks
+
+        window = {"hwnd": 42, "pid": 7, "exe": "x.exe", "started": 123.0}
+        other = {**window, "started": 456.0}
+        near = {"lane": 0, "x": 15, "y": 15, "at": 10, "window": window}
+        moved = {**near, "x": 35}
+        replaced = {**near, "window": other}
+        state = {"window": window, "marks": [near, moved, replaced, {**near, "at": 2}]}
+        self.assertEqual(visible_marks(state, (0, 0, 30, 30), now=11), [near])
+        self.assertEqual(visible_marks(state, None, now=11), [])
+
     def test_state_follows_the_steps_that_run(self):
         with tempfile.TemporaryDirectory() as directory:
             home = Path(directory)
             bar = BarState(home)
             bar.task_seen({"id": "t", "status": "running", "instructionRevision": None})
-            bar.started(0, {"operation": "ui.click_point", "arguments": {"window": {"hwnd": 42, "exe": "x.exe"}}})
+            click = {"operation": "ui.click_point",
+                     "arguments": {"window": {"hwnd": 42, "pid": 7, "exe": "x.exe", "started": 123.0}}}
+            bar.started(0, click)
             bar.started(2, {"operation": "fs.write_text", "arguments": {}})
             state = json.loads((home / "bar.json").read_text())
             self.assertEqual([a["lane"] for a in state["agents"]], [0, 2])
             self.assertEqual(state["window"]["hwnd"], 42)
             self.assertIn("instructionRevision", state["task"])
             self.assertEqual(summary(state), "2 agents working · Clicking in an app")
-            bar.finished(0, {"operation": "ui.click_point"}, {"evidence": {"clicked": [10, 20]}})
+            bar.finished(0, click, {"evidence": {"clicked": [10, 20]}})
             bar.finished(2, {"operation": "fs.write_text"}, {"evidence": {"clicked": [1, 1]}})
             state = json.loads((home / "bar.json").read_text())
             self.assertEqual([(m["lane"], m["x"], m["y"]) for m in state["marks"]], [(0, 10, 20)],
@@ -110,6 +124,24 @@ class InstructionTest(unittest.TestCase):
 
 
 class PointTest(unittest.TestCase):
+    def test_pointed_regions_in_the_same_second_keep_both_images(self):
+        from PIL import Image
+
+        from ocade_agent.bar import save_pointed
+
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = Path(directory, "ws")
+            home = Path(directory, "home")
+            workspace.mkdir()
+            home.mkdir()
+            (home / "device.json").write_text(json.dumps({"workspace": str(workspace)}))
+            first = save_pointed(home, Image.new("RGB", (20, 10), "red"), now=0)
+            second = save_pointed(home, Image.new("RGB", (20, 10), "blue"), now=0)
+            self.assertNotEqual(first, second)
+            with Image.open(workspace / first) as before, Image.open(workspace / second) as after:
+                self.assertEqual(before.getpixel((0, 0)), (255, 0, 0))
+                self.assertEqual(after.getpixel((0, 0)), (0, 0, 255))
+
     def test_a_pointed_region_is_kept_only_in_the_jarvis_folder_and_asked_about(self):
         from PIL import Image
 

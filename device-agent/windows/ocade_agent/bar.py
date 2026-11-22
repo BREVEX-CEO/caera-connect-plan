@@ -68,12 +68,22 @@ def describe(intent: dict) -> str:
 def window_of(intent: dict) -> dict | None:
     """The leased app window a step acts on, when it names one."""
     window = (intent.get("arguments") or {}).get("window")
-    if isinstance(window, dict) and isinstance(window.get("hwnd"), int):
-        found = {"hwnd": window["hwnd"], "exe": str(window.get("exe", ""))[:80]}
-        if isinstance(window.get("pid"), int):
-            found["pid"] = window["pid"]
-        return found
+    if (isinstance(window, dict) and isinstance(window.get("hwnd"), int)
+            and isinstance(window.get("pid"), int) and isinstance(window.get("exe"), str)
+            and isinstance(window.get("started"), (int, float))):
+        return {key: window[key] for key in ("hwnd", "pid", "exe", "started")}
     return None
+
+
+def visible_marks(state: dict, foreground_bounds: tuple[int, int, int, int] | None, now: float) -> list[dict]:
+    """A historical click can only mark its own lease while that window is in front."""
+    window = state.get("window")
+    if not window or foreground_bounds is None:
+        return []
+    left, top, right, bottom = foreground_bounds
+    return [mark for mark in state.get("marks") or []
+            if mark.get("window") == window and 0 <= now - mark["at"] <= 2.5
+            and left <= mark["x"] < right and top <= mark["y"] < bottom]
 
 
 class BarState:
@@ -110,9 +120,12 @@ class BarState:
     def finished(self, lane: int, intent: dict, result: dict) -> None:
         self.lanes.pop(lane, None)
         clicked = (result.get("evidence") or {}).get("clicked")
-        if intent.get("operation") == "ui.click_point" and isinstance(clicked, list) and len(clicked) == 2:
-            self.marks = [m for m in self.marks if time.time() - m["at"] < 3][-7:]
-            self.marks.append({"lane": lane, "x": int(clicked[0]), "y": int(clicked[1]), "at": time.time()})
+        window = window_of(intent)
+        if (window and intent.get("operation") == "ui.click_point" and isinstance(clicked, list)
+                and len(clicked) == 2 and all(isinstance(coordinate, int) for coordinate in clicked)):
+            now = time.time()
+            self.marks = [mark for mark in self.marks if now - mark["at"] < 3 and mark["lane"] != lane]
+            self.marks.append({"lane": lane, "x": clicked[0], "y": clicked[1], "at": now, "window": window})
         self.flush()
 
     def instruction(self, text: str, state: str) -> None:
@@ -159,12 +172,13 @@ def save_pointed(home: Path, image, now: float | None = None) -> str:
     """Point & Ask (plan 14E.5.3): keep the region the person selected as a picture in the JARVIS
     folder's 'OCADE output/pointed', the only place the planner can look at it from (with
     media.preview, and only with the screen permission). Returns its path in the JARVIS folder."""
+    from .sandbox import output_path, write_atomically
+
     config = json.loads((home / "device.json").read_text(encoding="utf-8"))
     workspace = Path(config["workspace"]).resolve()
-    name = f"OCADE output/pointed/{time.strftime('%Y%m%d-%H%M%S', time.localtime(now))}.png"
-    target = workspace / name
-    target.parent.mkdir(parents=True, exist_ok=True)
-    image.save(target)
+    timestamp = time.strftime("%Y%m%d-%H%M%S", time.localtime(now))
+    name = f"OCADE output/pointed/{timestamp}-{uuid.uuid4().hex}.png"
+    write_atomically(output_path(workspace, name), image.save)
     return name
 
 
@@ -232,24 +246,33 @@ def summary(state: dict) -> str:
     return f"{len(agents)} agents working · {agents[0]['doing']}"
 
 
-def mac_place(window: dict, pinned: bool, width: int):  # pragma: no cover - needs a Mac desktop
-    """Over the leased macOS window (by its window number), or False when another app is in front
-    and the bar is not pinned, or None when macOS cannot say where it is."""
+def mac_place(window: dict, width: int):  # pragma: no cover - needs a Mac desktop
+    """Place the bar only over a live leased window of the foreground app."""
     try:
         import AppKit  # type: ignore[import-not-found]
         import Quartz  # type: ignore[import-not-found]
 
-        listed = Quartz.CGWindowListCopyWindowInfo(Quartz.kCGWindowListOptionIncludingWindow, window["hwnd"])
-        if not listed:
-            return None
-        bounds = listed[0].get("kCGWindowBounds") or {}
+        from .jobs import process_start
+
         front = AppKit.NSWorkspace.sharedWorkspace().frontmostApplication()
-        if not pinned and window.get("pid") and front is not None and front.processIdentifier() not in (
-                window["pid"], os.getpid()):
-            return False
+        if front is None or front.processIdentifier() not in (window["pid"], os.getpid()):
+            return None
+        listed = Quartz.CGWindowListCopyWindowInfo(
+            Quartz.kCGWindowListOptionOnScreenOnly | Quartz.kCGWindowListExcludeDesktopElements,
+            Quartz.kCGNullWindowID,
+        )
+        # The first normal window of the app is in front of its other documents.
+        top = next((info for info in listed or [] if info.get("kCGWindowOwnerPID") == window["pid"]
+                    and info.get("kCGWindowLayer") == 0), None)
+        if not top or top.get("kCGWindowNumber") != window["hwnd"]:
+            return None
+        started = process_start(window["pid"])
+        if started is None or abs(started - window["started"]) > 1:
+            return None
+        bounds = top.get("kCGWindowBounds") or {}
         x, y, w = int(bounds.get("X", 0)), int(bounds.get("Y", 0)), int(bounds.get("Width", 0))
         return max(x, x + (w - width) // 2), y + 30
-    except Exception:  # noqa: BLE001 - no position is a top-right bar, never a crash
+    except Exception:  # noqa: BLE001 - an unverified window cannot anchor the bar
         return None
 
 
@@ -412,63 +435,70 @@ def run_bar(home: Path) -> int:  # pragma: no cover - drawn on a real desktop, c
     tk.Button(composer, text="Point", relief="flat", bg="#374151", fg="white", command=point).pack(side="left", padx=4)
 
     markers: list = []
+    drawn_marks: list[dict] = []
     missing_since = [None]
 
-    def attached_place(state: dict) -> bool:
-        """Over the target window when Windows can tell where it is; otherwise top-right."""
+    def attached_place(state: dict) -> tuple[bool, tuple[int, int, int, int] | None]:
+        """Returns whether the bar is visible, and the verified foreground bounds for markers."""
         root.update_idletasks()
         width = root.winfo_reqwidth()
         window = state.get("window") or {}
-        if sys.platform == "win32" and window.get("hwnd"):
+        if sys.platform == "win32" and window:
             try:
                 import win32gui  # type: ignore[import-not-found]
 
-                hwnd = window["hwnd"]
-                if not win32gui.IsWindow(hwnd):
-                    raise OSError
+                from .windows_worker import _window_handle
+
+                hwnd = _window_handle(window)
                 foreground = win32gui.GetAncestor(win32gui.GetForegroundWindow(), 2)
-                own = root.winfo_id()
-                if not pinned.get() and foreground not in (hwnd, win32gui.GetAncestor(own, 2)):
-                    return False  # another app is in front: the unpinned bar hides
-                left, top_edge, right, _ = win32gui.GetWindowRect(hwnd)
-                root.geometry(f"+{max(left, left + (right - left - width) // 2)}+{top_edge + 8}")
-                return True
+                own = win32gui.GetAncestor(root.winfo_id(), 2)
+                if foreground in (hwnd, own):
+                    bounds = win32gui.GetWindowRect(hwnd)
+                    left, top_edge, right, _ = bounds
+                    root.geometry(f"+{max(left, left + (right - left - width) // 2)}+{top_edge + 8}")
+                    return True, bounds if foreground == hwnd else None
             except Exception:
                 pass
-        if sys.platform == "darwin" and window.get("hwnd"):
-            place = mac_place(window, pinned.get(), width)
-            if place is False:
-                return False
+        if sys.platform == "darwin" and window:
+            place = mac_place(window, width)
             if place is not None:
                 root.geometry(f"+{place[0]}+{place[1]}")
-                return True
+                return True, None
+        if window and not pinned.get():
+            return False, None
         root.geometry(f"+{root.winfo_screenwidth() - width - 24}+24")
-        return True
+        return True, None
 
-    def draw_marks(state: dict) -> None:
+    def draw_marks(marks: list[dict]) -> None:
+        nonlocal drawn_marks
+        if marks == drawn_marks:
+            return
+        drawn_marks = marks
         for marker in markers:
             marker.destroy()
         markers.clear()
-        for mark in state.get("marks") or []:
-            if time.time() - mark["at"] > 2.5:
-                continue
+        for mark in marks:
             name, colour, shape = AGENTS[mark["lane"] % LANES]
             marker = tk.Toplevel(root)
+            marker.withdraw()
             marker.overrideredirect(True)
             marker.attributes("-topmost", True)
             tk.Label(marker, text=f"{shape} {name}", bg=colour, fg="white", font=("Segoe UI", 8)).pack()
             marker.geometry(f"+{mark['x'] + 6}+{mark['y'] + 6}")
-            if sys.platform == "win32":
-                try:  # click-through: the marker never takes the person's clicks
-                    import win32con  # type: ignore[import-not-found]
-                    import win32gui  # type: ignore[import-not-found]
+            marker.update_idletasks()
+            try:  # click-through: the marker never takes the person's clicks or focus
+                import win32con  # type: ignore[import-not-found]
+                import win32gui  # type: ignore[import-not-found]
 
-                    handle = win32gui.GetParent(marker.winfo_id()) or marker.winfo_id()
-                    style = win32gui.GetWindowLong(handle, win32con.GWL_EXSTYLE)
-                    win32gui.SetWindowLong(handle, win32con.GWL_EXSTYLE,
-                                           style | win32con.WS_EX_TRANSPARENT | win32con.WS_EX_LAYERED)
-                except Exception:
-                    pass
+                handle = win32gui.GetAncestor(marker.winfo_id(), 2)
+                style = win32gui.GetWindowLong(handle, win32con.GWL_EXSTYLE)
+                win32gui.SetWindowLong(handle, win32con.GWL_EXSTYLE,
+                                       style | win32con.WS_EX_TRANSPARENT | win32con.WS_EX_LAYERED
+                                       | win32con.WS_EX_NOACTIVATE)
+            except Exception:
+                marker.destroy()
+                continue
+            marker.deiconify()
             markers.append(marker)
 
     def tick():
@@ -484,6 +514,7 @@ def run_bar(home: Path) -> int:  # pragma: no cover - drawn on a real desktop, c
                 return
         task = state.get("task") or {}
         visible_task = None
+        bounds = None
         if not task:
             root.withdraw()
         else:
@@ -505,13 +536,14 @@ def run_bar(home: Path) -> int:  # pragma: no cover - drawn on a real desktop, c
                         "conflict": "Task changed; use Review draft",
                         "failed": "Not delivered yet; retrying"}.get(sent[0]["state"], "Sending…")
                 status.configure(text=f"{word}: {sent[0]['text'][:50]}")
-            if attached_place(state):
+            show, bounds = attached_place(state)
+            if show:
                 if task.get("id") and "instructionRevision" in task:
                     visible_task = (task["id"], task["instructionRevision"])
                 root.deiconify()
             else:
                 root.withdraw()
-            draw_marks(state)
+        draw_marks(visible_marks(state, bounds, time.time()))
         root.after(250, tick)
 
     root.after(0, tick)

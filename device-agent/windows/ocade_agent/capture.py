@@ -59,6 +59,8 @@ class Stream:
 
     def _arrived(self, image: Image.Image) -> None:
         with self._ready:
+            if self.ended:
+                return
             last = self._frames[-1] if self._frames else None
             if last is not None and not vision.changed(last.image, image):
                 return
@@ -69,6 +71,7 @@ class Stream:
     def _end(self, reason: str) -> None:
         with self._ready:
             self.ended = self.ended or reason
+            self._frames.clear()
             self._ready.notify_all()
 
     def latest(self) -> Frame | None:
@@ -87,9 +90,10 @@ class Stream:
                     return None
                 self._ready.wait(left)
 
-    def since(self, seq: int) -> list[Frame]:
+    def since(self, seq: int, before: int | None = None) -> list[Frame]:
         with self._ready:
-            return [frame for frame in self._frames if frame.seq >= seq]
+            return [frame for frame in self._frames if frame.seq >= seq
+                    and (before is None or frame.seq < before)]
 
     def close(self) -> None:
         self._end("closed")
@@ -104,7 +108,23 @@ class Hub:
 
     def __init__(self) -> None:
         self._streams: dict[str, Stream] = {}
+        self._expiry: dict[str, threading.Timer] = {}
         self._lock = threading.Lock()
+
+    def _cancel_expiry(self, key: str) -> None:
+        timer = self._expiry.pop(key, None)
+        if timer is not None:
+            timer.cancel()
+
+    def _discard(self, key: str) -> None:
+        self._cancel_expiry(key)
+        self._streams.pop(key).close()
+
+    def _expire(self, key: str) -> None:
+        with self._lock:
+            # A new subscriber may have canceled this timer and scheduled a different one.
+            if self._expiry.get(key) is threading.current_thread():
+                self._discard(key)
 
     @contextmanager
     def use(self, key: str, start):
@@ -112,17 +132,26 @@ class Hub:
             now = time.monotonic()
             for other, stream in list(self._streams.items()):
                 if stream.ended or (stream.users == 0 and now - stream.idle_since > IDLE_SECONDS):
-                    self._streams.pop(other).close()
+                    self._discard(other)
             stream = self._streams.get(key)
             if stream is None:
                 stream = self._streams[key] = Stream(start)
+            self._cancel_expiry(key)
             stream.users += 1
         try:
             yield stream
         finally:
             with self._lock:
                 stream.users -= 1
-                stream.idle_since = time.monotonic()
+                if stream.users == 0 and self._streams.get(key) is stream:
+                    if stream.ended:
+                        self._discard(key)
+                    else:
+                        stream.idle_since = time.monotonic()
+                        expiry = threading.Timer(IDLE_SECONDS, self._expire, args=(key,))
+                        expiry.daemon = True
+                        self._expiry[key] = expiry
+                        expiry.start()
 
 
 HUB = Hub()
@@ -430,7 +459,7 @@ def watch(stream: Stream, region: list | None, timeout_ms: int, show: bool = Fal
             if show:
                 from .sandbox import preview_jpeg
 
-                shown = keyframes(stream.since(first.seq))
+                shown = keyframes([first, *stream.since(first.seq + 1, before=now.seq), now])
                 facts["keyframesAtMs"] = [round((frame.at - first.at) * 1000) for frame in shown]
                 facts["preview"] = preview_jpeg(filmstrip(
                     [Frame(f.seq, f.at, vision.view(f.image, region)) for f in shown]), 30_000)

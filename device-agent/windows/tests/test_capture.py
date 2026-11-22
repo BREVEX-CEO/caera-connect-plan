@@ -65,8 +65,27 @@ class StreamTest(unittest.TestCase):
         self.assertLess(time.monotonic() - started, 1, "an ended capture does not wait out the timeout")
         self.assertEqual(stream.ended, "window_gone")
 
+    def test_closed_capture_cannot_deliver_buffered_or_late_frames(self):
+        source = Scripted()
+        stream = capture.Stream(source)
+        source.arrived(picture())
+        source.end("window_gone")
+        source.arrived(picture(100))
+        self.assertIsNone(stream.latest())
+        self.assertIsNone(stream.wait(0, 1))
+        self.assertEqual(stream.since(0), [])
+
 
 class HubTest(unittest.TestCase):
+    def test_idle_capture_stops_without_another_watch(self):
+        hub, source = capture.Hub(), Scripted()
+        stopped = threading.Event()
+        source.stop = stopped.set
+        with patch.object(capture, "IDLE_SECONDS", 0.05):
+            with hub.use("w1", source):
+                self.assertFalse(stopped.wait(0.10), "an active subscriber keeps capture open")
+            self.assertTrue(stopped.wait(1), "expiry must run even when no new watcher arrives")
+
     def test_every_watcher_of_one_window_shares_one_capture(self):
         hub, source = capture.Hub(), Scripted()
         with hub.use("w1", source) as first, hub.use("w1", source) as second:
@@ -271,6 +290,18 @@ class WatchTest(unittest.TestCase):
     def test_keyframes_keep_the_first_and_the_newest(self):
         frames = [capture.Frame(n, n, picture()) for n in range(1, 8)]
         self.assertEqual([f.seq for f in capture.keyframes(frames)], [1, 5, 6, 7])
+
+    def test_watch_preview_ends_at_the_detected_change_even_if_more_frames_arrived(self):
+        source = Scripted()
+        stream = capture.Stream(source)
+        source.arrived(picture())
+        first = stream.latest()
+        source.arrived(picture(80))
+        changed = stream.latest()
+        source.arrived(picture(0))
+        with patch.object(stream, "latest", return_value=first):
+            facts = capture.watch(stream, None, 1000, show=True)
+        self.assertEqual(facts["keyframesAtMs"], [0, round((changed.at - first.at) * 1000)])
 
 
 if __name__ == "__main__":
