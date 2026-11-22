@@ -225,7 +225,11 @@ def windows_graphics_capture(hwnd: int):
                 data = bytes(memoryview(reference))
             image = Image.frombuffer("RGBA", (bitmap.pixel_width, bitmap.pixel_height), data,
                                      "raw", "BGRA", plane.stride, 1)
-            return image.convert("RGB")
+            # The pool's surface can be larger than the window's content (the first frames, before
+            # the pool is recreated at the content size): only the content is the window's picture,
+            # so a still window gives same-sized, identical frames (hosted windows-2022 UIA-021).
+            width, height = current["size"]
+            return image.crop((0, 0, min(width, image.width), min(height, image.height))).convert("RGB")
 
         pool.add_frame_arrived(lambda *_: dirty.set())
         item.add_closed(lambda *_: end("window_gone"))
