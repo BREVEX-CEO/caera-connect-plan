@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Pause, Pencil, Play, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -65,6 +65,7 @@ export function Schedules() {
     queryFn: () => listJarvisDevices(),
   });
   const [editing, setEditing] = useState<Row | "new" | null>(null);
+  const newSchedule = useRef<HTMLButtonElement>(null);
   const refresh = () => void client.invalidateQueries({ queryKey });
 
   const toggle = useMutation({
@@ -98,18 +99,21 @@ export function Schedules() {
     <div className="flex flex-col gap-2">
       {editing ? (
         <ScheduleForm
+          key={editing === "new" ? "new" : editing.id}
           row={editing === "new" ? null : editing}
           computers={computers.map((d) => ({ id: d.id, name: d.name }))}
           onDone={() => {
             setEditing(null);
             refresh();
+            requestAnimationFrame(() => newSchedule.current?.focus());
           }}
         />
       ) : (
         <button
           type="button"
+          ref={newSchedule}
           onClick={() => setEditing("new")}
-          className="h-8 rounded-md border border-border px-2 text-sm hover:bg-accent"
+          className="min-h-11 rounded-md border border-border px-2 text-sm hover:bg-accent"
         >
           New schedule
         </button>
@@ -120,44 +124,59 @@ export function Schedules() {
         </p>
       ) : (
         <ul className="flex flex-col gap-1.5">
-          {schedules.data.map((row) => (
-            <li key={row.id} className="rounded-md border border-border/60 p-2">
-              <p className="break-words text-foreground">{row.what}</p>
-              <p className="text-xs text-muted-foreground">
-                {row.active ? describe(row) : "Paused"} · {deviceName(row.device_id)}
-              </p>
-              {row.last_outcome ? (
-                <p className="text-xs text-muted-foreground">Last run: {row.last_outcome}</p>
-              ) : null}
-              <div className="mt-1 flex gap-1">
-                <IconAction
-                  label={row.active ? `Pause ${row.what}` : `Resume ${row.what}`}
-                  onClick={() => toggle.mutate(row)}
-                >
-                  {row.active ? (
-                    <Pause className="h-4 w-4" aria-hidden />
-                  ) : (
-                    <Play className="h-4 w-4" aria-hidden />
-                  )}
-                </IconAction>
-                <IconAction label={`Edit ${row.what}`} onClick={() => setEditing(row)}>
-                  <Pencil className="h-4 w-4" aria-hidden />
-                </IconAction>
-                <IconAction
-                  label={`Delete ${row.what}`}
-                  onClick={() => {
-                    if (
-                      window.confirm("Delete this schedule? Runs already started are not undone.")
-                    ) {
-                      remove.mutate(row);
-                    }
-                  }}
-                >
-                  <Trash2 className="h-4 w-4" aria-hidden />
-                </IconAction>
-              </div>
-            </li>
-          ))}
+          {schedules.data.map((row) => {
+            const finished = !row.active && row.repeat === "none" && row.last_run_at !== null;
+            const changing =
+              (toggle.isPending && toggle.variables?.id === row.id) ||
+              (remove.isPending && remove.variables?.id === row.id);
+            return (
+              <li key={row.id} className="rounded-md border border-border/60 p-2">
+                <p className="break-words text-foreground">{row.what}</p>
+                <p className="text-xs text-muted-foreground">
+                  {row.active ? describe(row) : finished ? "Ended" : "Paused"} ·{" "}
+                  {deviceName(row.device_id)}
+                </p>
+                {row.last_outcome ? (
+                  <p className="text-xs text-muted-foreground">Last run: {row.last_outcome}</p>
+                ) : null}
+                <div className="mt-1 flex gap-1">
+                  {!finished ? (
+                    <IconAction
+                      label={row.active ? `Pause ${row.what}` : `Resume ${row.what}`}
+                      onClick={() => toggle.mutate(row)}
+                      disabled={changing}
+                    >
+                      {row.active ? (
+                        <Pause className="h-4 w-4" aria-hidden />
+                      ) : (
+                        <Play className="h-4 w-4" aria-hidden />
+                      )}
+                    </IconAction>
+                  ) : null}
+                  <IconAction
+                    label={`Edit ${row.what}`}
+                    onClick={() => setEditing(row)}
+                    disabled={changing}
+                  >
+                    <Pencil className="h-4 w-4" aria-hidden />
+                  </IconAction>
+                  <IconAction
+                    label={`Delete ${row.what}`}
+                    disabled={changing}
+                    onClick={() => {
+                      if (
+                        window.confirm("Delete this schedule? Runs already started are not undone.")
+                      ) {
+                        remove.mutate(row);
+                      }
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4" aria-hidden />
+                  </IconAction>
+                </div>
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>
@@ -168,10 +187,12 @@ function IconAction({
   label,
   onClick,
   children,
+  disabled,
 }: {
   label: string;
   onClick: () => void;
   children: React.ReactNode;
+  disabled: boolean;
 }) {
   return (
     <button
@@ -179,7 +200,8 @@ function IconAction({
       aria-label={label}
       title={label}
       onClick={onClick}
-      className="grid h-8 w-8 place-items-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
+      disabled={disabled}
+      className="grid size-11 place-items-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground disabled:opacity-50"
     >
       {children}
     </button>
@@ -197,6 +219,10 @@ function ScheduleForm({
 }) {
   const zone = row?.time_zone ?? localZone();
   const [problem, setProblem] = useState<string | null>(null);
+  const what = useRef<HTMLTextAreaElement>(null);
+  useEffect(() => {
+    what.current?.focus();
+  }, []);
   const save = useMutation({
     mutationFn: saveJarvisSchedule,
     onSuccess: onDone,
@@ -231,6 +257,7 @@ function ScheduleForm({
         What should JARVIS do, or remind you about?
       </label>
       <textarea
+        ref={what}
         id="schedule-what"
         name="what"
         required
@@ -294,14 +321,14 @@ function ScheduleForm({
         <button
           type="submit"
           disabled={save.isPending}
-          className="h-8 rounded-md bg-primary px-3 text-sm text-primary-foreground disabled:opacity-50"
+          className="min-h-11 rounded-md bg-primary px-3 text-sm text-primary-foreground disabled:opacity-50"
         >
           {save.isPending ? "Saving…" : row ? "Save changes" : "Schedule"}
         </button>
         <button
           type="button"
           onClick={onDone}
-          className="h-8 rounded-md px-3 text-sm text-muted-foreground hover:text-foreground"
+          className="min-h-11 rounded-md px-3 text-sm text-muted-foreground hover:text-foreground"
         >
           Cancel
         </button>

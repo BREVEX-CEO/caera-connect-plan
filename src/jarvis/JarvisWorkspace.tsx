@@ -7,7 +7,7 @@
  * server when the task settles, so history is the same whoever is watching.
  */
 import { Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
@@ -60,6 +60,9 @@ import {
 } from "@/lib/jarvis/functions";
 
 const OPEN_STATUSES = ["running", "waiting", "taken_over"];
+const OpportunityEngine = lazy(() =>
+  import("./OpportunityEngine").then(({ OpportunityEngine }) => ({ default: OpportunityEngine })),
+);
 
 interface Turn {
   id: string;
@@ -497,6 +500,7 @@ export function JarvisWorkspace({
                   </p>
                   <Habits account={user?.id ?? ""} onPick={(title) => setDraft(title)} />
                   <Packages
+                    key={user?.id ?? "guest"}
                     onPick={(starter) => {
                       setDraft(starter);
                       composer.current?.focus();
@@ -808,43 +812,44 @@ function Packages({ onPick }: { onPick: (starter: string) => void }) {
       >
         {open ? "Hide ready-made outcomes" : "Start from a ready-made outcome"}
       </button>
-      {open ? (
-        <div className="mt-3 grid gap-3 sm:grid-cols-2">
-          <BusinessWorkspace onPick={onPick} />
-          <section aria-label={SIMPLIFY.name} className="rounded-xl border border-border/60 p-3">
-            <h3 className="text-sm font-medium">Make something easier</h3>
-            <button
-              type="button"
-              onClick={() => onPick(SIMPLIFY.starter)}
-              className="mt-2 text-left text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
-            >
-              {SIMPLIFY.name}: explain a confusing page or app and ask only what matters
-            </button>
+      <div className={open ? "mt-3 grid gap-3 sm:grid-cols-2" : "hidden"}>
+        <BusinessWorkspace onPick={onPick} />
+        <Suspense fallback={<p role="status">Opening Opportunity Engine…</p>}>
+          <OpportunityEngine onPick={onPick} />
+        </Suspense>
+        <section aria-label={SIMPLIFY.name} className="rounded-xl border border-border/60 p-3">
+          <h3 className="text-sm font-medium">Make something easier</h3>
+          <button
+            type="button"
+            onClick={() => onPick(SIMPLIFY.starter)}
+            className="mt-2 text-left text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+          >
+            {SIMPLIFY.name}: explain a confusing page or app and ask only what matters
+          </button>
+        </section>
+        {PACKAGES.map((pack) => (
+          <section
+            key={pack.id}
+            aria-label={pack.name}
+            className="rounded-xl border border-border/60 p-3"
+          >
+            <h3 className="text-sm font-medium">{pack.name}</h3>
+            <ul className="mt-2 space-y-1">
+              {pack.products.map((product) => (
+                <li key={product.id}>
+                  <button
+                    type="button"
+                    onClick={() => onPick(product.starter)}
+                    className="text-left text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+                  >
+                    {product.name}
+                  </button>
+                </li>
+              ))}
+            </ul>
           </section>
-          {PACKAGES.map((pack) => (
-            <section
-              key={pack.id}
-              aria-label={pack.name}
-              className="rounded-xl border border-border/60 p-3"
-            >
-              <h3 className="text-sm font-medium">{pack.name}</h3>
-              <ul className="mt-2 space-y-1">
-                {pack.products.map((product) => (
-                  <li key={product.id}>
-                    <button
-                      type="button"
-                      onClick={() => onPick(product.starter)}
-                      className="text-left text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
-                    >
-                      {product.name}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ))}
-        </div>
-      ) : null}
+        ))}
+      </div>
     </div>
   );
 }

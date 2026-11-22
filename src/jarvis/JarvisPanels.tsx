@@ -1,5 +1,5 @@
 /** The rail's Conversations, and JARVIS's place in Settings. */
-import { useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Trash2, X } from "lucide-react";
 import { deleteConversation, listConversations } from "@/lib/ocade.functions";
@@ -24,7 +24,6 @@ import {
 import { toast } from "sonner";
 import { Schedules } from "./Schedules";
 import { Skills } from "./Skills";
-import { LifeOS } from "./LifeOS";
 import { buildPassport, passportReport } from "@/lib/jarvis/proof-passport";
 import { saveSkill } from "@/lib/jarvis/skills.functions";
 import { workflowBody } from "@/lib/jarvis/skillforge";
@@ -56,6 +55,8 @@ const TITLES: Record<Section, string> = {
   skills: "Skills",
   lifeos: "LifeOS",
 };
+
+const LifeOS = lazy(() => import("./LifeOS").then(({ LifeOS }) => ({ default: LifeOS })));
 
 export function SectionPanel({
   section,
@@ -97,7 +98,9 @@ export function SectionPanel({
         ) : section === "skills" ? (
           <Skills />
         ) : section === "lifeos" ? (
-          <LifeOS />
+          <Suspense fallback={<p role="status">Opening LifeOS…</p>}>
+            <LifeOS />
+          </Suspense>
         ) : (
           <Conversations
             activeConversation={activeConversation}

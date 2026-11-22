@@ -40,6 +40,38 @@ class SandboxTest(unittest.TestCase):
         os.symlink(self.outside, self.root / "link")
         self.refuses("link/secret.txt")
 
+    def test_rehearsal_rename_moves_a_copy_but_cannot_follow_a_link_to_live_files(self):
+        from ocade_agent import office_worker
+
+        live = self.root / "production"
+        live.mkdir()
+        original = live / "report.txt"
+        original.write_bytes(b"production")
+        rehearsal = self.root / "OCADE output" / "rehearsal"
+        rehearsal.mkdir(parents=True)
+        copy = rehearsal / "report.txt"
+        copy.write_bytes(original.read_bytes())
+        (rehearsal / "live").symlink_to(live, target_is_directory=True)
+        with patch.object(office_worker, "WORKSPACE", str(self.root)):
+            moved = office_worker.fs_manage(action="move", path="OCADE output/rehearsal/report.txt",
+                                            to="OCADE output/rehearsal/draft.txt")
+            self.assertEqual(moved.get("matches"), True, moved)
+            self.assertEqual((rehearsal / "draft.txt").read_bytes(), b"production")
+            self.assertFalse(copy.exists())
+            refused = office_worker.fs_manage(action="move", path="OCADE output/rehearsal/live/report.txt",
+                                              to="OCADE output/rehearsal/captured.txt")
+            self.assertEqual(refused, {"refused": "rehearsal_path_escape", "maybeChanged": False})
+        self.assertEqual(original.read_bytes(), b"production")
+        self.assertFalse((rehearsal / "captured.txt").exists())
+
+    def test_rehearsal_directory_cannot_be_redirected_into_the_workspace(self):
+        live = self.root / "production"
+        live.mkdir()
+        output = self.root / "OCADE output"
+        output.mkdir()
+        (output / "rehearsal").symlink_to(live, target_is_directory=True)
+        self.refuses("OCADE output/rehearsal/created.txt", "rehearsal_path_escape")
+
     def test_writes_only_new_files_under_output(self):
         with self.assertRaises(Refused) as caught:
             output_path(self.root, "book.xlsx")

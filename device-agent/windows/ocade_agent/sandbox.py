@@ -7,7 +7,7 @@ resolved here, once, before any file is opened:
 - absolute paths, drive letters, UNC and device paths, `..`, alternate data
   streams, reserved Windows names and control characters are refused;
 - the resolved real path (after symlinks and junctions) must stay inside the
-  real workspace;
+  real workspace and rehearsals must stay inside their own output folder;
 - writes go only under `OCADE output/`, never replace an existing file, and land
   atomically (temporary file, then no-replace publication in the same folder), so an original is
   never touched and a crash never leaves a half-written deliverable.
@@ -144,6 +144,11 @@ def resolve(workspace: str | os.PathLike, relative: str) -> Path:
     target = Path(os.path.realpath(root.joinpath(*parts)))
     if os.path.commonpath([root, target]) != str(root):
         raise Refused("path_outside_workspace")
+    if ([part.casefold() for part in parts[:2]] == [OUTPUT_DIR.casefold(), "rehearsal"]
+            and not target.is_relative_to(root / OUTPUT_DIR / "rehearsal")):
+        # Use the fixed subtree, not its realpath: the rehearsal directory itself
+        # may have been replaced by a link to production files inside the workspace.
+        raise Refused("rehearsal_path_escape")
     return target
 
 

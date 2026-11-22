@@ -427,6 +427,7 @@ export const listJarvisSchedules = createServerFn({ method: "GET" })
       .select(
         "id, conversation_id, device_id, what, next_at, repeat, time_zone, active, last_run_at, last_outcome",
       )
+      .is("watch_id", null)
       .order("next_at", { ascending: true });
     if (error) throw new Error("Your schedules could not be loaded just now.");
     return data ?? [];

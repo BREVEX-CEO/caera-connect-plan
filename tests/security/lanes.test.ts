@@ -84,15 +84,15 @@ test("R12-02: only backed-up local edits to an exact file can reuse approval", a
   const page = { id: "review", site: "example.com" };
   const window = { exe: "excel.exe", pid: 1, hwnd: 2, started: 3 };
   const edit = { path: "Drafts/notes.txt", text: "Review notes", expectSha256: "0".repeat(64) };
-  assert.equal(approvalScope(intent("fs.replace_text", "k1", edit, later)), 'for "Drafts/notes.txt"');
+  assert.equal(
+    approvalScope(intent("fs.replace_text", "k1", edit, later)),
+    'for "Drafts/notes.txt"',
+  );
   assert.equal(
     approvalScope(intent("ui.invoke", "k2", { window, element: { name: "Next" } }, later)),
     null,
   );
-  assert.equal(
-    approvalScope(intent("web.click", "k3", { page, selector: "@next" }, later)),
-    null,
-  );
+  assert.equal(approvalScope(intent("web.click", "k3", { page, selector: "@next" }, later)), null);
   assert.equal(
     approvalScope(intent("web.fill", "k4", { page, selector: "@field", value: "draft" }, later)),
     null,
