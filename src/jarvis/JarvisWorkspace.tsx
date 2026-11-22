@@ -17,6 +17,7 @@ import {
   MessagesSquare,
   BookMarked,
   CalendarClock,
+  ListTodo,
   Mic,
   LibraryBig,
   PanelLeftClose,
@@ -47,6 +48,7 @@ import { JARVIS_CONSENT_NEEDED } from "@/lib/jarvis/consent-needed";
 import { MAX_OBJECTIVE_LENGTH, taskObjective } from "@/lib/jarvis/objective";
 import { askOnlineConsent } from "@/lib/intelligence/online-consent-ask";
 import { PACKAGES, SIMPLIFY } from "@/lib/jarvis/packages";
+import { businessDraft, businessWorkflows } from "@/lib/jarvis/business-workspace";
 import { ControlModePicker, type ControlMode } from "./ControlMode";
 import { appendOcadeMessage, createConversation } from "@/lib/ocade.functions";
 import {
@@ -69,6 +71,7 @@ const SECTIONS: { id: Section; label: string; icon: LucideIcon }[] = [
   { id: "conversations", label: "Conversations", icon: MessagesSquare },
   { id: "schedules", label: "Scheduled", icon: CalendarClock },
   { id: "skills", label: "Skills", icon: BookMarked },
+  { id: "lifeos", label: "LifeOS", icon: ListTodo },
 ];
 
 export function JarvisWorkspace({
@@ -493,7 +496,12 @@ export function JarvisWorkspace({
                     result.
                   </p>
                   <Habits account={user?.id ?? ""} onPick={(title) => setDraft(title)} />
-                  <Packages onPick={(starter) => setDraft(starter)} />
+                  <Packages
+                    onPick={(starter) => {
+                      setDraft(starter);
+                      composer.current?.focus();
+                    }}
+                  />
                 </div>
               ) : null}
               {/* A question is a compact bubble; an answer is prose to read, as in Chat. */}
@@ -802,6 +810,7 @@ function Packages({ onPick }: { onPick: (starter: string) => void }) {
       </button>
       {open ? (
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
+          <BusinessWorkspace onPick={onPick} />
           <section aria-label={SIMPLIFY.name} className="rounded-xl border border-border/60 p-3">
             <h3 className="text-sm font-medium">Make something easier</h3>
             <button
@@ -837,5 +846,78 @@ function Packages({ onPick }: { onPick: (starter: string) => void }) {
         </div>
       ) : null}
     </div>
+  );
+}
+
+function BusinessWorkspace({ onPick }: { onPick: (draft: string) => void }) {
+  const [workflow, setWorkflow] = useState(businessWorkflows[0]!.id);
+  const [business, setBusiness] = useState("");
+  const [folder, setFolder] = useState("");
+  const [error, setError] = useState(false);
+  const field = "min-h-11 w-full rounded-md border border-border bg-background px-2 text-sm";
+  return (
+    <details className="rounded-xl border border-border/60 p-3 sm:col-span-2">
+      <summary className="flex min-h-11 cursor-pointer items-center gap-2 text-sm font-medium">
+        Business-in-a-Box
+      </summary>
+      <form
+        className="grid gap-3"
+        onSubmit={(event) => {
+          event.preventDefault();
+          const draft = businessDraft(workflow, business, folder);
+          setError(!draft);
+          if (draft) onPick(draft);
+        }}
+      >
+        <p className="text-xs text-muted-foreground">
+          Prepare drafts from records in one business folder on your paired computer.
+        </p>
+        <label className="grid gap-1 text-xs">
+          Outcome
+          <select
+            className={field}
+            value={workflow}
+            onChange={(event) => setWorkflow(event.target.value)}
+          >
+            {businessWorkflows.map((product) => (
+              <option key={product.id} value={product.id}>
+                {product.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="grid gap-1 text-xs">
+          Business name
+          <input
+            className={field}
+            required
+            maxLength={120}
+            value={business}
+            onChange={(event) => setBusiness(event.target.value)}
+          />
+        </label>
+        <label className="grid gap-1 text-xs">
+          Folder in your JARVIS workspace
+          <input
+            className={field}
+            required
+            maxLength={260}
+            value={folder}
+            onChange={(event) => setFolder(event.target.value)}
+          />
+        </label>
+        {error ? (
+          <p role="alert" className="text-xs text-destructive">
+            Enter a business name and a folder such as Clients/Example.
+          </p>
+        ) : null}
+        <button
+          type="submit"
+          className="min-h-11 justify-self-start rounded-md border border-border px-3 text-sm hover:bg-accent"
+        >
+          Review task draft
+        </button>
+      </form>
+    </details>
   );
 }

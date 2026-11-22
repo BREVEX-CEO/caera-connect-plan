@@ -10,7 +10,7 @@ import { advance, type Admin } from "../../src/lib/jarvis/authority.server.ts";
 import { PlannerUnavailable, plannerAccess } from "../../src/lib/jarvis/planner.server.ts";
 
 /** A running task whose checks are fixed; `turn` is what the database answers a turn request. */
-function taskAdmin(turn: number | null = 7) {
+function taskAdmin(turn: number | null = 7, rehearsal = false) {
   const recorded: { name: string; args: Record<string, unknown> }[] = [];
   const admin = {
     rpc: async (name: string, args: Record<string, unknown>) => {
@@ -24,6 +24,7 @@ function taskAdmin(turn: number | null = 7) {
                 status: "running",
                 controller: "epoch",
                 title: "Summarise notes.txt",
+                mode: rehearsal ? "rehearsal" : "live",
                 outcome: [
                   {
                     id: "out",
@@ -32,9 +33,23 @@ function taskAdmin(turn: number | null = 7) {
                     params: { path: "OCADE output/a.txt" },
                   },
                 ],
-                grants: ["files"],
+                grants: ["files", "mcp", "mcp:notes"],
                 engines: [],
-                mcp: [],
+                mcp: [
+                  {
+                    id: "notes",
+                    publisher: "Example",
+                    version: "1",
+                    tools: [
+                      {
+                        name: "summary",
+                        risk: "read",
+                        description: "Summarise notes",
+                        inputSchema: { type: "object" },
+                      },
+                    ],
+                  },
+                ],
                 steps: [],
               }
             : name === "jarvis_planner_turn"
@@ -119,8 +134,12 @@ test("every model call has its own permit key; the corrective ask keeps the turn
   const frame = (value: unknown) => `data: ${JSON.stringify(value)}\r\n\r\n`;
   const listing = { id: "c1", name: "fs_list", arguments: { path: "." } };
   let answers = 0;
+  const offers: string[][] = [];
   const service = createServer(async (request, response) => {
-    for await (const _ of request);
+    const chunks: Buffer[] = [];
+    for await (const chunk of request) chunks.push(chunk as Buffer);
+    const body = JSON.parse(Buffer.concat(chunks).toString()) as { tools: { name: string }[] };
+    offers.push(body.tools.map((tool) => tool.name));
     answers += 1;
     response.writeHead(200, { "content-type": "text/event-stream" });
     const toolCalls = answers === 1 ? [] : [listing];
@@ -177,8 +196,13 @@ test("every model call has its own permit key; the corrective ask keeps the turn
   });
 
   // The next request for work is a new holder with a new number: never the settled keys again.
-  const next = taskAdmin(8);
+  const next = taskAdmin(8, true);
   await advance(next.admin, "task");
   assert.equal(keys.at(-1), "jarvis-plan:task:8:1");
   assert.equal(new Set(keys).size, keys.length, "no attempt reuses a settled permit's key");
+  assert.ok(offers[0]?.includes("mcp__notes__summary"), "a granted tool is offered in Live");
+  assert.ok(
+    !offers.at(-1)?.some((name) => name.startsWith("mcp__")),
+    "Rehearsal has no third-party tools",
+  );
 });

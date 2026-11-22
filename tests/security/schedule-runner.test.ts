@@ -1,9 +1,6 @@
 /**
- * The scheduled-work sweep (REPO-60/70): a reminder is written once and notified; scheduled work
- * starts a NEW task through the normal starter (fresh checks) and links the occurrence; a refusal
- * is recorded and told, never retried around; a busy computer skips the run; a technical failure
- * is left claimed for the database to retry, then given up after an hour; a run whose task
- * already exists is not started twice; repeats move to their next local time.
+ * The scheduled-work sweep (REPO-60/70) runs and finishes only the current claim. A refusal
+ * is recorded and told. A technical failure is left claimed for retry for up to an hour.
  * The database steps themselves are tested in tests/jarvis/db/schedules.test.sql.
  */
 import assert from "node:assert/strict";
@@ -39,99 +36,93 @@ after(() => rmSync(workDir, { recursive: true, force: true }));
 
 class Refusal extends Error {}
 
-function fakeAdmin(claimed: Record<string, unknown>[], existingTask = false) {
+function fakeAdmin(claimed: Record<string, unknown>[], finishAccepted = true) {
   const finished: Record<string, unknown>[] = [];
-  const messages: Record<string, unknown>[] = [];
-  const linked: string[] = [];
   const admin = {
     async rpc(name: string, args: Record<string, unknown>) {
       if (name === "jarvis_claim_due_schedules") return { data: claimed, error: null };
       if (name === "jarvis_finish_schedule") {
         finished.push(args);
-        return { data: true, error: null };
+        return { data: finishAccepted, error: null };
       }
       throw new Error(`unexpected rpc ${name}`);
     },
-    from(table: string) {
-      return {
-        async insert(row: Record<string, unknown>) {
-          if (messages.some((m) => m.client_key === row.client_key)) {
-            return { error: { message: "duplicate key value violates unique constraint" } };
-          }
-          messages.push(row);
-          return { error: null };
-        },
-        select() {
-          return {
-            eq: () => ({
-              maybeSingle: async () => ({ data: existingTask ? { id: "old-task" } : null }),
-            }),
-          };
-        },
-        update(values: Record<string, unknown>) {
-          return {
-            eq: (_column: string, id: string) => ({
-              is: async () => {
-                if (table === "jarvis_tasks") linked.push(`${id}=${values.schedule_occurrence}`);
-                return { error: null };
-              },
-            }),
-          };
-        },
-      };
-    },
   };
-  return { admin, finished, messages, linked };
+  return { admin, finished };
 }
 
 const row = (over: Record<string, unknown> = {}) => ({
   id: "s1",
   user_id: "u1",
-  conversation_id: "c1",
-  device_id: "d1",
   what: "Tidy the downloads folder",
   repeat: "daily",
   time_zone: "Asia/Kolkata",
   occurrence: "2026-11-20T03:30:00.000Z",
+  claim_token: "lease1",
+  occurrence_key: "schedule:s1:2026-11-20T03:30:00.000Z",
   ...over,
 });
 const NOW = new Date("2026-11-20T03:30:30.000Z");
 
-test("scheduled work starts a new task through the normal starter and links the run", async () => {
+test("an invalidated claim cannot start, finish or publish a notification", async () => {
+  const fake = fakeAdmin([row()]);
+  const sweep = await runner.runDueSchedules(fake.admin as never, {
+    now: NOW,
+    runOccurrence: async () => ({ kind: "stale" }),
+    isRefusal: () => false,
+    notify: async () => assert.fail("a stale claim notified"),
+  });
+  assert.deepEqual(sweep, { claimed: 1, started: 0, reminded: 0, refused: 0, retrying: 0 });
+  assert.equal(fake.finished.length, 0);
+});
+
+test("a claim edited between the run and finish emits no stale notification", async () => {
+  const fake = fakeAdmin([row()], false);
+  const sweep = await runner.runDueSchedules(fake.admin as never, {
+    now: NOW,
+    runOccurrence: async () => ({ kind: "task" }),
+    isRefusal: () => false,
+    notify: async () => assert.fail("an edited schedule sent a stale notification"),
+  });
+  assert.equal(sweep.started, 0);
+  assert.equal(fake.finished.length, 1);
+});
+
+test("scheduled work runs and finishes the same lease, then notifies", async () => {
   const fake = fakeAdmin([row()]);
   const started: unknown[] = [];
   const notices: { title: string; idempotencyKey: string }[] = [];
   const sweep = await runner.runDueSchedules(fake.admin as never, {
     now: NOW,
-    startTask: async (_admin, userId, input) => {
+    runOccurrence: async (_admin, userId, input) => {
       started.push({ userId, ...input });
-      return { taskId: "t1", reused: false };
+      return { kind: "task" };
     },
     isRefusal: (e) => e instanceof Refusal,
     notify: async (n) => notices.push(n as never),
   });
   assert.equal(sweep.started, 1);
   assert.deepEqual(started, [
-    { userId: "u1", conversationId: "c1", deviceId: "d1", objective: "Tidy the downloads folder" },
+    { userId: "u1", id: "s1", occurrence: "2026-11-20T03:30:00.000Z", token: "lease1" },
   ]);
-  assert.deepEqual(fake.linked, ["t1=schedule:s1:2026-11-20T03:30:00.000Z"]);
+  assert.equal(fake.finished[0]!.p_claim_token, "lease1");
   assert.equal(fake.finished[0]!.p_next_at, "2026-11-21T03:30:00.000Z", "next 09:00 Kolkata");
   assert.equal(fake.finished[0]!.p_outcome, "Task started");
   assert.equal(notices[0]!.idempotencyKey, "schedule:s1:2026-11-20T03:30:00.000Z");
 });
 
-test("a reminder is written into its conversation once, even when the run repeats", async () => {
-  const reminder = row({ device_id: null, repeat: "none", what: "Call the bank" });
-  const fake = fakeAdmin([reminder, reminder]);
+test("a successful reminder notifies and ends a one-time schedule", async () => {
+  const fake = fakeAdmin([row({ repeat: "none", what: "Call the bank" })]);
+  const notices: { title: string; body?: string }[] = [];
   const sweep = await runner.runDueSchedules(fake.admin as never, {
     now: NOW,
-    startTask: async () => assert.fail("a reminder started a task"),
+    runOccurrence: async () => ({ kind: "reminder" }),
     isRefusal: () => false,
-    notify: async () => undefined,
+    notify: async (notice) => notices.push(notice),
   });
-  assert.equal(sweep.reminded, 2);
-  assert.equal(fake.messages.length, 1);
-  assert.equal(fake.messages[0]!.content, "Reminder: Call the bank");
+  assert.equal(sweep.reminded, 1);
+  assert.equal(notices[0]?.title, "Reminder");
+  assert.equal(notices[0]?.body, "Call the bank");
   assert.equal(fake.finished[0]!.p_next_at, null, "a one-time schedule ends");
 });
 
@@ -140,7 +131,7 @@ test("a refusal (e.g. permission removed) is recorded and told, not retried", as
   const notices: { body?: string }[] = [];
   const sweep = await runner.runDueSchedules(fake.admin as never, {
     now: NOW,
-    startTask: async () => {
+    runOccurrence: async () => {
       throw new Refusal("Turn on file access for that computer first.");
     },
     isRefusal: (e) => e instanceof Refusal,
@@ -151,19 +142,6 @@ test("a refusal (e.g. permission removed) is recorded and told, not retried", as
   assert.match(notices[0]!.body!, /file access/);
 });
 
-test("a busy computer skips the run instead of joining the person's task", async () => {
-  const fake = fakeAdmin([row()]);
-  const sweep = await runner.runDueSchedules(fake.admin as never, {
-    now: NOW,
-    startTask: async () => ({ taskId: "theirs", reused: true }),
-    isRefusal: () => false,
-    notify: async () => undefined,
-  });
-  assert.equal(sweep.refused, 1);
-  assert.deepEqual(fake.linked, [], "the person's own task is never marked as the schedule's");
-  assert.match(String(fake.finished[0]!.p_outcome), /already running a task/);
-});
-
 test("a technical failure is left claimed for an hour, then given up", async () => {
   const fail = async () => {
     throw new Error("network");
@@ -171,7 +149,7 @@ test("a technical failure is left claimed for an hour, then given up", async () 
   const early = fakeAdmin([row()]);
   const first = await runner.runDueSchedules(early.admin as never, {
     now: NOW,
-    startTask: fail,
+    runOccurrence: fail,
     isRefusal: () => false,
     notify: async () => undefined,
   });
@@ -181,21 +159,10 @@ test("a technical failure is left claimed for an hour, then given up", async () 
   const late = fakeAdmin([row()]);
   const second = await runner.runDueSchedules(late.admin as never, {
     now: new Date("2026-11-20T05:00:00.000Z"),
-    startTask: fail,
+    runOccurrence: fail,
     isRefusal: () => false,
     notify: async () => undefined,
   });
   assert.equal(second.refused, 1);
   assert.equal(late.finished.length, 1);
-});
-
-test("a run whose task already exists is not started again", async () => {
-  const fake = fakeAdmin([row()], true);
-  await runner.runDueSchedules(fake.admin as never, {
-    now: NOW,
-    startTask: async () => assert.fail("started a second task for one run"),
-    isRefusal: () => false,
-    notify: async () => undefined,
-  });
-  assert.equal(fake.finished[0]!.p_outcome, "Task started");
 });

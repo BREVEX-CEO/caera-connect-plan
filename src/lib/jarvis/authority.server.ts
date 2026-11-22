@@ -31,7 +31,7 @@ import {
 } from "./contracts.ts";
 import { assignLanes } from "./lanes.ts";
 import { namedSkills, type Skill } from "./skills.ts";
-import { builtInSkills } from "./packages.ts";
+import { builtInSkills, productDraftAllows } from "./packages.ts";
 import { flaggedSites } from "./scam.ts";
 import { ONLINE_CONSENT_VERSION } from "../intelligence/online-consent-version.ts";
 import {
@@ -73,6 +73,7 @@ export class JarvisRefusal extends Error {
 /** Database refusals the person can act on, in their words. Anything else stays generic. */
 const REFUSALS: Record<string, string> = {
   jarvis_paused: "JARVIS is paused by OCADE right now. Nothing was started.",
+  online_not_consented: JARVIS_CONSENT_NEEDED,
   session_ended: "Your sign-in ended. Sign in again before starting or continuing a JARVIS task.",
   conversation_not_found: "That conversation is not a JARVIS conversation of yours.",
   device_unavailable: "That computer is not paired with your account, or was removed.",
@@ -90,6 +91,7 @@ const REFUSALS: Record<string, string> = {
   approval_not_scopable: "This kind of step is always confirmed one by one.",
   live_needed: "This step types, clicks or opens a window. Switch the task to Live to allow it.",
   live_mode_in_use: "Wait for the current Live step to finish, or stop the task before switching.",
+  rehearsal_mode_fixed: "Start a new task to switch between Rehearsal and Live work.",
   rehearsal_only:
     "A rehearsal only reads and writes under 'OCADE output/rehearsal'. Run the task for real to do this.",
   invalid_mode: "Choose Live, Background or Rehearsal.",
@@ -575,6 +577,16 @@ async function decide(
           { summary: decision.summary, action: decision.intent },
           ...(decision.more ?? []).map((next) => ({ summary: next.summary, action: next.intent })),
         ];
+        if (batch.some(({ action }) => !productDraftAllows(task.title, action))) {
+          await call(admin, "jarvis_settle_task", {
+            p_task: taskId,
+            p_controller: task.controller,
+            p_verification: { passed: [], failed: [], unverified: [] },
+            p_summary:
+              "This workflow can prepare drafts and local files only. The proposed actions were not run.",
+          });
+          return;
+        }
         // Independent steps of the turn run at the same time on separate workers (lanes.ts),
         // on agents that are free while others are still working (14D.3).
         const busy = new Set(
@@ -780,6 +792,29 @@ export async function startTask(
   return { taskId: opened.task_id, reused: opened.reused };
 }
 
+/** Start or recover one occurrence using the current claim and scope locked by Postgres. */
+export async function runScheduledOccurrence(
+  admin: Admin,
+  userId: string,
+  claim: { id: string; occurrence: string; token: string },
+) {
+  const [run] = await call<{ task_id: string | null; wake_needed: boolean }[]>(
+    admin,
+    "jarvis_run_schedule",
+    {
+      p_user: userId,
+      p_id: claim.id,
+      p_occurrence: claim.occurrence,
+      p_claim_token: claim.token,
+      p_online_consent_version: ONLINE_CONSENT_VERSION,
+    },
+  );
+  if (!run) return { kind: "stale" } as const;
+  if (!run.task_id) return { kind: "reminder" } as const;
+  if (run.wake_needed) await planner(admin)(run.task_id);
+  return { kind: "task" } as const;
+}
+
 export async function stopTask(admin: Admin, userId: string, taskId: string) {
   const [stopped] = await call<{ status: string; cancelled: number; in_flight: number }[]>(
     admin,
@@ -943,30 +978,19 @@ export function clearApprovals(admin: Admin, userId: string, taskId: string) {
 }
 
 /**
- * What "allow steps like this for the rest of this task" would cover (R12-02), in the person's
- * words, or null when the step is consequential and is always confirmed one by one. Mirrors
- * `jarvis_approval_scope`, which decides.
+ * Label for repeat approval of a backed-up edit to this exact workspace file.
+ * The jarvis_approval_scope function enforces the same policy in the database.
  */
 export function approvalScope(intent: unknown): string | null {
   const parsed = actionIntent.safeParse(intent);
   if (!parsed.success) return null;
-  const { operation, target } = parsed.data;
+  const { operation, arguments: args } = parsed.data;
   if (
-    ["ui.invoke", "ui.set_value", "ui.send_keys", "ui.click_point", "apps.launch"].includes(
-      operation,
-    ) &&
-    target?.app
+    !["office.edit_document", "fs.replace_text", "fs.edit_text"].includes(operation) ||
+    typeof args.path !== "string"
   )
-    return `in ${target.app}`;
-  if (["web.fill", "web.select", "web.click"].includes(operation) && target?.site)
-    return `on ${target.site}`;
-  if (
-    ["office.edit_document", "office.edit_workbook", "fs.replace_text", "fs.edit_text"].includes(
-      operation,
-    )
-  )
-    return target?.app ? `in ${target.app}` : "in this task's files";
-  return null;
+    return null;
+  return 'for "' + args.path + '"';
 }
 
 /** The owner's view: status, checks and each step's summary — no controller, no raw evidence. */

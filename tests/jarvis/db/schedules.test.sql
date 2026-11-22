@@ -52,8 +52,12 @@ DECLARE
   dev_b uuid := (SELECT id FROM ids WHERE name = 'dev_b');
   s uuid;
   once uuid;
+  first_lease uuid;
+  task_id uuid;
   due timestamptz := now() + interval '30 seconds';
   claimed record;
+  reminder record;
+  run record;
   n integer;
 BEGIN
   -- Only the person's own JARVIS conversation and their own unrevoked computer.
@@ -77,32 +81,88 @@ BEGIN
   PERFORM pg_temp.check(n = 0, 'claimed before it was due');
 
   -- Due: both claimed once; a second claim in the same minute finds nothing.
-  SELECT count(*) INTO n FROM public.jarvis_claim_due_schedules(due + interval '1 second', 10);
-  PERFORM pg_temp.check(n = 2, 'both due schedules claimed');
+  SELECT c.claim_token INTO STRICT first_lease
+    FROM public.jarvis_claim_due_schedules(due + interval '1 second', 10) AS c WHERE c.id = s;
+  PERFORM pg_temp.check((SELECT claimed_occurrence = due FROM public.jarvis_schedules WHERE id = once),
+    'both due schedules claimed');
   SELECT count(*) INTO n FROM public.jarvis_claim_due_schedules(due + interval '2 seconds', 10);
   PERFORM pg_temp.check(n = 0, 'an occurrence was claimed twice');
 
   -- A claim left by a run that died is taken again after ten minutes, same occurrence.
   SELECT * INTO claimed FROM public.jarvis_claim_due_schedules(due + interval '11 minutes', 10) WHERE id = s;
-  PERFORM pg_temp.check(claimed.occurrence = due, 'a stale claim kept its occurrence');
+  PERFORM pg_temp.check(claimed.occurrence = due AND claimed.claim_token <> first_lease,
+    'a stale claim kept its occurrence and received a new lease');
+  PERFORM pg_temp.check(NOT EXISTS (SELECT FROM public.jarvis_run_schedule(a, s, due, first_lease, 'fixture-v1')),
+    'a reclaimed, stale lease could still start work');
+  PERFORM pg_temp.check(NOT EXISTS (SELECT FROM public.jarvis_run_schedule(
+    'b5b5b5b5-0000-4000-8000-000000000002', s, due, claimed.claim_token, 'fixture-v1')),
+    'another user ran an occurrence');
+  PERFORM pg_temp.fails(format('SELECT * FROM public.jarvis_run_schedule(%L, %L, %L, %L, %L)',
+    a, s, due, claimed.claim_token, 'fixture-v1'), 'online_not_consented');
+  UPDATE public.profiles SET online_ai_consent_at = now(), online_ai_consent_version = 'fixture-v1'
+   WHERE id = a;
+  INSERT INTO public.jarvis_permissions (user_id, device_id, capability, allowed) VALUES
+    (a, NULL, 'master', true), (a, dev_a, 'files', true)
+  ON CONFLICT DO NOTHING;
+
+  -- A manually started task is never adopted, even with an identical objective.
+  SELECT * INTO STRICT run FROM public.jarvis_open_task(a, conv, dev_a, claimed.what, NULL, '[]');
+  PERFORM pg_temp.fails(format('SELECT * FROM public.jarvis_run_schedule(%L, %L, %L, %L, %L)',
+    a, s, due, claimed.claim_token, 'fixture-v1'), 'busy');
+  PERFORM pg_temp.check((SELECT t.schedule_occurrence IS NULL FROM public.jarvis_tasks AS t WHERE t.id = run.task_id),
+    'a manual task received the schedule key');
+  PERFORM public.jarvis_stop_task(a, run.task_id);
+
+  -- Admission and deduplication commit together, before any worker can plan.
+  SELECT * INTO STRICT run FROM public.jarvis_run_schedule(a, s, due, claimed.claim_token, 'fixture-v1');
+  task_id := run.task_id;
+  PERFORM pg_temp.check(run.wake_needed AND
+    (SELECT t.schedule_occurrence = claimed.occurrence_key FROM public.jarvis_tasks AS t WHERE t.id = run.task_id),
+    'an admitted task was not atomically linked');
+  SELECT * INTO STRICT run FROM public.jarvis_run_schedule(a, s, due, claimed.claim_token, 'fixture-v1');
+  PERFORM pg_temp.check(run.task_id = task_id AND run.wake_needed, 'an unopened worker resumes the same task');
+  PERFORM public.jarvis_stop_task(a, task_id);
+  SELECT * INTO STRICT run FROM public.jarvis_run_schedule(a, s, due, claimed.claim_token, 'fixture-v1');
+  PERFORM pg_temp.check(run.task_id = task_id AND NOT run.wake_needed, 'retry reopened a settled task');
 
   -- Only that occurrence's claim finishes it.
-  PERFORM pg_temp.check(NOT public.jarvis_finish_schedule(s, due - interval '1 day', due + interval '1 day', 'x'),
+  PERFORM pg_temp.check(NOT public.jarvis_finish_schedule(s, due - interval '1 day', claimed.claim_token,
+    due + interval '1 day', 'x'),
     'a different occurrence finished the claim');
-  PERFORM pg_temp.check(public.jarvis_finish_schedule(s, due, due + interval '1 day', 'Task started'),
+  PERFORM pg_temp.check(NOT public.jarvis_finish_schedule(s, due, first_lease, due + interval '1 day', 'x'),
+    'a reclaimed lease finished the current run');
+  PERFORM pg_temp.check(public.jarvis_finish_schedule(s, due, claimed.claim_token,
+    due + interval '1 day', 'Task started'),
     'the claim finished');
   PERFORM pg_temp.check((SELECT next_at = due + interval '1 day' AND active AND claimed_at IS NULL
                            AND last_outcome = 'Task started' FROM public.jarvis_schedules WHERE id = s),
     'a repeat moves to its next run');
-  PERFORM pg_temp.check(NOT public.jarvis_finish_schedule(s, due, due + interval '2 days', 'again'),
+  PERFORM pg_temp.check(NOT public.jarvis_finish_schedule(s, due, claimed.claim_token, due + interval '2 days', 'again'),
     'a finished occurrence finished twice');
 
   -- A one-time schedule ends.
-  PERFORM pg_temp.check(public.jarvis_finish_schedule(once, due, NULL, 'Reminder sent'), 'one-time finished');
+  SELECT os.claim_token INTO STRICT reminder FROM public.jarvis_schedules AS os WHERE os.id = once;
+  SELECT * INTO STRICT run FROM public.jarvis_run_schedule(a, once, due, reminder.claim_token, 'fixture-v1');
+  PERFORM pg_temp.check(run.task_id IS NULL, 'a reminder created a task');
+  PERFORM public.jarvis_run_schedule(a, once, due, reminder.claim_token, 'fixture-v1');
+  PERFORM pg_temp.check((SELECT count(*) = 1 FROM public.ocade_messages
+    WHERE user_id = a AND content = 'Reminder: Call the bank'), 'the reminder was not written exactly once');
+  PERFORM pg_temp.check(public.jarvis_finish_schedule(once, due, reminder.claim_token, NULL, 'Reminder sent'),
+    'one-time finished');
   PERFORM pg_temp.check((SELECT NOT active FROM public.jarvis_schedules WHERE id = once), 'one-time ended');
 
   -- Pause stops claims; resume takes the next run given.
+  SELECT * INTO STRICT claimed
+    FROM public.jarvis_claim_due_schedules(due + interval '1 day', 10) AS c WHERE c.id = s;
+  SELECT * INTO STRICT run FROM public.jarvis_run_schedule(a, s, claimed.occurrence, claimed.claim_token, 'fixture-v1');
+  PERFORM pg_temp.check(run.task_id <> task_id AND run.wake_needed, 'a second cycle did not get its own task');
+  PERFORM public.jarvis_stop_task(a, run.task_id);
   PERFORM pg_temp.check(public.jarvis_set_schedule_active(a, s, false, NULL), 'paused');
+  PERFORM pg_temp.check(NOT EXISTS (
+    SELECT FROM public.jarvis_run_schedule(a, s, claimed.occurrence, claimed.claim_token, 'fixture-v1')
+  ), 'a paused claim still ran');
+  PERFORM pg_temp.check(NOT public.jarvis_finish_schedule(s, claimed.occurrence, claimed.claim_token, NULL, 'x'),
+    'a paused claim still finished');
   SELECT count(*) INTO n FROM public.jarvis_claim_due_schedules(due + interval '3 days', 10);
   PERFORM pg_temp.check(n = 0, 'a paused schedule was claimed');
   PERFORM pg_temp.check(public.jarvis_set_schedule_active(a, s, true, due + interval '4 days'), 'resumed');

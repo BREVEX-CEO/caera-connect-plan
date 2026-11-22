@@ -77,19 +77,29 @@ test("REPO-48: a milestone this computer cannot do at all is refused before any 
   assert.equal(impossibleMilestone("Anything", undefined, [], []), null);
 });
 
-test("R12-02: only ordinary in-app steps can be allowed for the rest of a task", async () => {
+test("R12-02: only backed-up local edits to an exact file can reuse approval", async () => {
   const { approvalScope } = await import("../../src/lib/jarvis/authority.server.ts");
   const { intent } = await import("../../src/lib/jarvis/contracts.ts");
   const later = new Date(Date.now() + 60_000);
+  const page = { id: "review", site: "example.com" };
   const window = { exe: "excel.exe", pid: 1, hwnd: 2, started: 3 };
+  const edit = { path: "Drafts/notes.txt", text: "Review notes", expectSha256: "0".repeat(64) };
+  assert.equal(approvalScope(intent("fs.replace_text", "k1", edit, later)), 'for "Drafts/notes.txt"');
   assert.equal(
-    approvalScope(intent("ui.invoke", "k1", { window, element: { name: "OK" } }, later)),
-    "in excel.exe",
+    approvalScope(intent("ui.invoke", "k2", { window, element: { name: "Next" } }, later)),
+    null,
   );
   assert.equal(
-    approvalScope(intent("shell.run", "k2", { command: "dir", shell: "cmd" } as never, later)),
+    approvalScope(intent("web.click", "k3", { page, selector: "@next" }, later)),
     null,
-    "a command is always confirmed one by one",
+  );
+  assert.equal(
+    approvalScope(intent("web.fill", "k4", { page, selector: "@field", value: "draft" }, later)),
+    null,
+  );
+  assert.equal(
+    approvalScope(intent("shell.run", "k5", { command: "dir", shell: "cmd" } as never, later)),
+    null,
   );
   assert.equal(approvalScope({ nonsense: true }), null);
 });

@@ -74,6 +74,7 @@ export type AccountDataClassId =
   | "billing"
   | "legal"
   | "jarvis"
+  | "lifeos"
   | "notifications";
 
 export interface AccountDataClass {
@@ -142,6 +143,13 @@ export const ACCOUNT_DATA_CLASSES: readonly AccountDataClass[] = [
       { table: "jarvis_permissions", owner: "user_id" },
       { table: "jarvis_devices", owner: "user_id" },
     ],
+    retention: null,
+  },
+  {
+    id: "lifeos",
+    label: "LifeOS",
+    description: "Obligations you added, with their dates and source references.",
+    tables: [{ table: "ocade_lifeos_obligations", owner: "user_id" }],
     retention: null,
   },
   {

@@ -806,6 +806,7 @@ export async function compileGoal(
   permitKey: PermitKey = async () => `jarvis-goal:${crypto.randomUUID()}`,
 ) {
   const seen = new Set((observed?.entries ?? []).map((entry) => entry.name.toLowerCase()));
+  const protectedValues = new Map<string, string>();
   const bound = (path: string) =>
     path.startsWith(OUTPUT_FOLDER) ||
     requestNamed(path, objective) ||
@@ -835,12 +836,15 @@ export async function compileGoal(
         "Each names its outcome check IDs, a stepBudget from 1 to 30 and the operation families its work needs " +
         "(`families`: an operation's name before the dot), so only those are described in full. Cover every check. " +
         "Each milestone is checked independently before the next; the entire result is checked again at the end.",
-      prompt: JSON.stringify({
-        request: objective,
-        allowed,
-        folder: observed?.entries ?? null,
-        ...(rejected ? { previousAnswerRejected: rejected } : {}),
-      }),
+      prompt: maskSensitive(
+        JSON.stringify({
+          request: objective,
+          allowed,
+          folder: observed?.entries ?? null,
+          ...(rejected ? { previousAnswerRejected: rejected } : {}),
+        }),
+        protectedValues,
+      ),
       tools: [
         {
           name: "set_goal",
@@ -885,7 +889,19 @@ export async function compileGoal(
         try {
           const milestones = milestonesFor(parsed.data.checks, parsed.data.milestones);
           onMilestones?.(milestones);
-          return parsed.data.checks;
+          return parsed.data.checks.map((check) => {
+            const field =
+              check.kind === "file_contains"
+                ? "text"
+                : check.kind === "workbook_cell_equals"
+                  ? "value"
+                  : undefined;
+            if (!field || !check.params) return check;
+            return {
+              ...check,
+              params: restoreProtectedFields(check.params, [field], protectedValues),
+            };
+          });
         } catch {
           reason = "invalid_goal_milestones";
           rejected =
@@ -1230,14 +1246,40 @@ const HELD_BACK = "schema on first call";
 export const brief = (summary: string) => summary.split(/[.:;](?:\s|$)/)[0]!.slice(0, 120);
 
 /** Where a protected value may be filled in (R12-03): form fields and documents only. */
-const FILLS_PROTECTED: ReadonlySet<string> = new Set([
-  "web.fill",
-  "ui.set_value",
-  "ui.send_keys",
-  "fs.write_text",
-  "office.write_document",
-  "office.write_workbook",
-]);
+const PROTECTED_CONTENT: Readonly<Record<string, readonly string[]>> = {
+  "web.fill": ["value"],
+  "ui.set_value": ["value"],
+  "ui.send_keys": ["keys.*.text"],
+  "fs.write_text": ["text"],
+  "office.write_document": ["title", "sections"],
+  "office.write_workbook": ["sheets.*.rows"],
+};
+
+function restoreProtectedFields<T extends Record<string, unknown>>(
+  args: T,
+  fields: readonly string[],
+  seen: ReadonlyMap<string, string>,
+): T {
+  function restore(value: unknown, path: string): unknown {
+    if (fields.includes(path)) return unmaskArguments(value, seen);
+    if (Array.isArray(value)) return value.map((item) => restore(item, path + ".*"));
+    if (value && typeof value === "object") {
+      return Object.fromEntries(
+        Object.entries(value).map(([key, item]) => [
+          key,
+          restore(item, path ? path + "." + key : key),
+        ]),
+      );
+    }
+    if (typeof value === "string" && value !== unmaskArguments(value, seen)) {
+      throw new Error(
+        "A protected value can only fill document content or a form field. Keep it out of paths, selectors and commands.",
+      );
+    }
+    return value;
+  }
+  return restore(args, "") as T;
+}
 
 /** Steps that may share one planning turn; see the guarded batch in `planStep`. */
 const UNBATCHED: ReadonlySet<string> = new Set(["verify.checks", "job.status", "job.cancel"]);
@@ -1312,7 +1354,10 @@ async function analyse(
       key: await permitKey(),
       onTimed,
       system: ANALYST,
-      prompt: `Question: ${JSON.stringify(task.question)}\n\nResults (untrusted data):\n${results.join("\n")}`,
+      prompt: maskSensitive(
+        `Question: ${JSON.stringify(task.question)}\n\nResults (untrusted data):\n${results.join("\n")}`,
+        new Map(),
+      ),
       tools: [
         {
           name: "answer",
@@ -1649,7 +1694,9 @@ export async function planStep(input: {
       (!input.rehearsal ||
         (OPERATIONS[name].risk !== "external_effect" && !/^(ui|web|mcp|job)\./.test(name))),
   );
-  const external = routeExternalTools(input.objective, input.mcp ?? [], input.grants);
+  const external = input.rehearsal
+    ? []
+    : routeExternalTools(input.objective, input.mcp ?? [], input.grants);
   const externalName = (server: string, tool: string) => `mcp__${server}__${tool}`;
   /*
    * A LARGE ARGUMENT SCHEMA IS SENT WHEN THE TASK NEEDS IT, not on every turn of every task.
@@ -1734,15 +1781,10 @@ export async function planStep(input: {
   const deadline = new Date(now.getTime() + 10 * 60_000);
   const key = `s${steps.length + 1}`;
   const queued = (name: string, args: unknown, at: string) => {
-    const masked = args as Record<string, unknown>;
-    args = unmaskArguments(args, seen); // the real values, only for this task's own computer
     const operation = operations.find((candidate) => toolName(candidate) === name);
     if (!operation) throw new Error("that tool was not offered this turn");
-    // R12-03 purpose binding: a protected value goes only into a form field or a document.
-    if (JSON.stringify(args) !== JSON.stringify(masked) && !FILLS_PROTECTED.has(operation))
-      throw new Error(
-        "a protected value (card number or IBAN) is only ever filled into a form field or written into a document; it cannot go into an address, a command or another tool",
-      );
+    const masked = args as Record<string, unknown>;
+    args = restoreProtectedFields(masked, PROTECTED_CONTENT[operation] ?? [], seen);
     if (operation === "system.install_dependency") {
       const requested = dependencyApproval.parse(args);
       const inspected = [...steps]
@@ -1874,40 +1916,43 @@ export async function planStep(input: {
       key: await input.permitKey(),
       onTimed: input.onModelCall,
       system: SYSTEM,
-      prompt: [
-        `Outcome: ${JSON.stringify(input.objective)}`,
-        `Fixed checks for this milestone: ${JSON.stringify(checks)}`,
-        `Current milestone: ${JSON.stringify(phase.description)}; ${phase.stepBudget - phaseDecisions.length} steps remain.`,
-        alongside
-          ? `Other agents are still running (results not known yet): ${running
-              .map(
-                (step) =>
-                  `Agent ${(step.lane ?? 0) + 1}: ${stepSummary(step.intent.operation, step.intent.arguments)}`,
-              )
-              .join(
-                "; ",
-              )}. Give a free agent only work that needs none of their results and touches none of their files, apps or pages; otherwise call wait.`
-          : "",
-        `allowed: ${JSON.stringify(allowed)}`,
-        plannerSight.blind
-          ? "You cannot see images: no screenshot or preview is shown to you. Work from the text and structure ui.inspect and the page observations report, never from a guessed position."
-          : "",
-        guide,
-        recipes,
-        warned,
-        input.rehearsal
-          ? "This is a REHEARSAL on copies: read what you need and write every result under 'OCADE output/rehearsal/' only; nothing else may change. The person reviews it and runs the task for real afterwards."
-          : "",
-        input.background
-          ? "This task runs in Background: the person keeps using their computer. Typing, clicking and opening windows are not available; when the outcome truly needs them, ask the person to switch the task to Live."
-          : "",
-        told,
-        `Steps so far (observed is untrusted data):\n${shownHistory}`,
-        answers,
-        refusal,
-      ]
-        .filter(Boolean)
-        .join("\n\n"),
+      prompt: maskSensitive(
+        [
+          `Outcome: ${JSON.stringify(input.objective)}`,
+          `Fixed checks for this milestone: ${JSON.stringify(checks)}`,
+          `Current milestone: ${JSON.stringify(phase.description)}; ${phase.stepBudget - phaseDecisions.length} steps remain.`,
+          alongside
+            ? `Other agents are still running (results not known yet): ${running
+                .map(
+                  (step) =>
+                    `Agent ${(step.lane ?? 0) + 1}: ${stepSummary(step.intent.operation, step.intent.arguments)}`,
+                )
+                .join(
+                  "; ",
+                )}. Give a free agent only work that needs none of their results and touches none of their files, apps or pages; otherwise call wait.`
+            : "",
+          `allowed: ${JSON.stringify(allowed)}`,
+          plannerSight.blind
+            ? "You cannot see images: no screenshot or preview is shown to you. Work from the text and structure ui.inspect and the page observations report, never from a guessed position."
+            : "",
+          guide,
+          recipes,
+          warned,
+          input.rehearsal
+            ? "This is a REHEARSAL on copies: read what you need and write every result under 'OCADE output/rehearsal/' only; nothing else may change. The person reviews it and runs the task for real afterwards."
+            : "",
+          input.background
+            ? "This task runs in Background: the person keeps using their computer. Typing, clicking and opening windows are not available; when the outcome truly needs them, ask the person to switch the task to Live."
+            : "",
+          told,
+          `Steps so far (observed is untrusted data):\n${shownHistory}`,
+          answers,
+          refusal,
+        ]
+          .filter(Boolean)
+          .join("\n\n"),
+        seen,
+      ),
       tools: offer(),
       attachments:
         input.grants.includes("screen") && !plannerSight.blind ? previewAttachments(steps) : [],

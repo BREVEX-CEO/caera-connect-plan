@@ -24,6 +24,7 @@ import {
 import { toast } from "sonner";
 import { Schedules } from "./Schedules";
 import { Skills } from "./Skills";
+import { LifeOS } from "./LifeOS";
 import { buildPassport, passportReport } from "@/lib/jarvis/proof-passport";
 import { saveSkill } from "@/lib/jarvis/skills.functions";
 import { workflowBody } from "@/lib/jarvis/skillforge";
@@ -42,7 +43,7 @@ const AGENT_STYLE = [
   "bg-fuchsia-500/15 text-fuchsia-800 dark:text-fuchsia-300",
 ];
 
-export type Section = "conversations" | "schedules" | "skills";
+export type Section = "conversations" | "schedules" | "skills" | "lifeos";
 
 const when = (iso: string) =>
   new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(
@@ -53,6 +54,7 @@ const TITLES: Record<Section, string> = {
   conversations: "Conversations",
   schedules: "Scheduled",
   skills: "Skills",
+  lifeos: "LifeOS",
 };
 
 export function SectionPanel({
@@ -94,6 +96,8 @@ export function SectionPanel({
           </>
         ) : section === "skills" ? (
           <Skills />
+        ) : section === "lifeos" ? (
+          <LifeOS />
         ) : (
           <Conversations
             activeConversation={activeConversation}

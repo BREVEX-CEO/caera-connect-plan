@@ -616,6 +616,7 @@ export type Database = {
         Row: {
           active: boolean
           checks: Json | null
+          claim_token: string | null
           claimed_at: string | null
           claimed_occurrence: string | null
           conversation_id: string
@@ -634,6 +635,7 @@ export type Database = {
         Insert: {
           active?: boolean
           checks?: Json | null
+          claim_token?: string | null
           claimed_at?: string | null
           claimed_occurrence?: string | null
           conversation_id: string
@@ -651,6 +653,7 @@ export type Database = {
         Update: {
           active?: boolean
           checks?: Json | null
+          claim_token?: string | null
           claimed_at?: string | null
           claimed_occurrence?: string | null
           conversation_id?: string
@@ -1396,6 +1399,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      ocade_lifeos_obligations: {
+        Row: {
+          completed: boolean
+          created_at: string
+          due_on: string | null
+          id: string
+          snoozed_until: string | null
+          source: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          completed?: boolean
+          created_at?: string
+          due_on?: string | null
+          id?: string
+          snoozed_until?: string | null
+          source?: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          completed?: boolean
+          created_at?: string
+          due_on?: string | null
+          id?: string
+          snoozed_until?: string | null
+          source?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       ocade_messages: {
         Row: {

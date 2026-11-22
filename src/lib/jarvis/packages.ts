@@ -1,4 +1,5 @@
-import type { Skill } from "./skills.ts";
+import type { ActionIntent } from "./contracts.ts";
+import { namedSkills, type Skill } from "./skills.ts";
 
 /**
  * THE FOUR OUTCOME PACKAGES AND EIGHT PRODUCTS (plan 27.3), as the plan scopes them: domain
@@ -143,4 +144,32 @@ export function builtInSkills(names: readonly string[]): Skill[] {
       ? [{ name: product.id, title: product.name, body: product.rules, version: 0 }]
       : [];
   });
+}
+
+/** Built-in drafts may inspect sources and create local deliverables. Direct actions in
+ * applications, websites, commands and external tools can carry effects beyond that scope. */
+const DRAFT_OPERATIONS = new Set([
+  "apps.list",
+  "ui.inspect",
+  "web.open",
+  "web.read",
+  "fs.list",
+  "fs.read_text",
+  "office.inspect_workbook",
+  "fs.write_text",
+  "office.write_document",
+  "office.write_workbook",
+  "office.write_presentation",
+  "verify.checks",
+]);
+
+export function productDraftAllows(objective: string, action: ActionIntent): boolean {
+  if (!namedSkills(objective).some((name) => PRODUCTS.has(name))) return true;
+  if (action.operation === "fs.manage") {
+    const args = action.arguments as { action: string; path: string };
+    return (
+      args.action === "copy" || (args.action === "mkdir" && args.path.startsWith("OCADE output/"))
+    );
+  }
+  return DRAFT_OPERATIONS.has(action.operation);
 }

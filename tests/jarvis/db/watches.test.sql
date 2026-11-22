@@ -60,6 +60,8 @@ BEGIN
   END LOOP;
   PERFORM pg_temp.check(public.jarvis_watch_fired(dev, w, 'f21', 'k21') = 'limited', 'at most 20 a day');
   UPDATE public.jarvis_watches SET active = false WHERE id = w;
+  PERFORM pg_temp.check(NOT EXISTS (SELECT 1 FROM public.jarvis_schedules WHERE watch_id = w AND active),
+                        'pausing a watch cancels its pending schedules');
   PERFORM pg_temp.check(public.jarvis_watch_fired(dev, w, 'late', 'late') = 'not_watched', 'an inactive watch starts nothing');
   PERFORM pg_temp.check(jsonb_array_length(public.jarvis_device_watches(dev)) = 0, 'an inactive watch is not sent');
 END $$;
@@ -78,5 +80,25 @@ BEGIN
     RAISE EXCEPTION 'watches: a person fired a watch';
   EXCEPTION WHEN insufficient_privilege THEN NULL;
   END;
+END $$;
+RESET ROLE;
+SET LOCAL ROLE service_role;
+DO $$
+DECLARE
+  v_watch uuid;
+  v_device uuid;
+  v_schedule uuid;
+BEGIN
+  SELECT id, device_id INTO v_watch, v_device FROM public.jarvis_watches LIMIT 1;
+  UPDATE public.jarvis_watches SET active = true WHERE id = v_watch;
+  DELETE FROM public.jarvis_watch_events WHERE watch_id = v_watch;
+  PERFORM public.jarvis_watch_fired(v_device, v_watch, 'later.pdf', 'later');
+  SELECT id INTO STRICT v_schedule FROM public.jarvis_schedules WHERE watch_id = v_watch AND active;
+  PERFORM set_config('request.jwt.claims', '{"sub": "d1d1d1d1-0000-4000-8000-000000000001", "role": "authenticated"}', true);
+  SET LOCAL ROLE authenticated;
+  DELETE FROM public.jarvis_watches WHERE id = v_watch;
+  PERFORM pg_temp.check(NOT EXISTS (SELECT 1 FROM public.jarvis_schedules WHERE id = v_schedule),
+                        'deleting a watch cannot orphan an active schedule');
+  RESET ROLE;
 END $$;
 ROLLBACK;
