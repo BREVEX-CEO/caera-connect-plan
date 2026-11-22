@@ -187,6 +187,10 @@ export function withPublicSecurityHeaders(
   for (const [name, value] of Object.entries(defaultSecurityHeaders(nonce))) {
     if (!headers.has(name)) headers.set(name, value);
   }
+  if (pathname?.startsWith("/_serverFn/")) {
+    // These handlers can return tenant data even on GET. Their outputs are never cacheable.
+    headers.set("cache-control", "private, no-store");
+  }
 
   const isolation = isolationHeadersFor(pathname ?? "/");
   headers.set("cross-origin-opener-policy", isolation["cross-origin-opener-policy"]);

@@ -6,6 +6,7 @@ import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
+import { build } from "esbuild";
 import { THEME_BOOT, THEME_BOOT_SHA256 } from "../../src/lib/theme-boot.ts";
 
 const sha256 = (text: string) => createHash("sha256").update(text).digest("base64");
@@ -25,4 +26,28 @@ test("script-src never allows arbitrary inline script", () => {
   assert.ok(scriptSrc.length > 0);
   assert.doesNotMatch(scriptSrc, /unsafe-inline/);
   assert.match(scriptSrc, /'nonce-\$\{nonce\}'/);
+});
+
+test("server functions cannot cache private responses even if a handler sets a public TTL", async () => {
+  const bundle = await build({
+    entryPoints: ["src/lib/security/public-response.ts"],
+    bundle: true,
+    write: false,
+    format: "esm",
+    platform: "node",
+    define: { "import.meta.env": "{}" },
+  });
+  const moduleUrl =
+    "data:text/javascript;base64," + Buffer.from(bundle.outputFiles[0]!.text).toString("base64");
+  const { withPublicSecurityHeaders } = await import(moduleUrl);
+  const response = () =>
+    new Response("synthetic", { headers: { "cache-control": "public, max-age=3600" } });
+  assert.equal(
+    withPublicSecurityHeaders(response(), "/_serverFn/list").headers.get("cache-control"),
+    "private, no-store",
+  );
+  assert.equal(
+    withPublicSecurityHeaders(response(), "/offline.html").headers.get("cache-control"),
+    "public, max-age=3600",
+  );
 });

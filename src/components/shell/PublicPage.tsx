@@ -12,6 +12,18 @@ import { useEffect, useRef, useState, type ReactNode, type RefObject } from "rea
 import { ArrowUp } from "lucide-react";
 import { BrandMark } from "./BrandMark";
 
+function keepFocusedControlVisible(control: HTMLElement) {
+  if (control.tabIndex < 0) return;
+  // WebKit can leave a sequentially focused link offscreen on long pages.
+  requestAnimationFrame(() => {
+    if (document.activeElement !== control) return;
+    const bounds = control.getBoundingClientRect();
+    if (bounds.bottom <= 0 || bounds.top >= window.innerHeight) {
+      control.scrollIntoView({ block: "nearest", inline: "nearest" });
+    }
+  });
+}
+
 const PUBLIC_LINKS = [
   { to: "/pricing", label: "Pricing" },
   { to: "/about", label: "About" },
@@ -41,7 +53,10 @@ export function PublicPage({
   const column = wide ? "max-w-5xl" : "max-w-3xl";
   const heading = useRef<HTMLHeadingElement>(null);
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div
+      className="min-h-screen bg-background text-foreground"
+      onFocus={(event) => keepFocusedControlVisible(event.target)}
+    >
       <a href="#content" tabIndex={0} className="skip-link">
         Skip to content
       </a>

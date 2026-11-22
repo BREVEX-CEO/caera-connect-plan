@@ -36,10 +36,21 @@ TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"]
 FAILING = {"serious", "critical"}
 TABS = 40
 
-FOCUS_VISIBLE = """() => {
+FOCUS_VISIBLE = """async () => {
   const el = document.activeElement;
   if (!el || el === document.body) return null;
-  const box = el.getBoundingClientRect();
+  const onScreen = () => {
+    const box = el.getBoundingClientRect();
+    return box.width > 0 && box.height > 0 && box.bottom > 0 && box.right > 0
+      && box.top < innerHeight && box.left < innerWidth;
+  };
+  // WebKit can update focus before scrolling it into view. Wait for that natural
+  // scroll before measuring or changing focus. A persistently hidden control still fails.
+  const deadline = performance.now() + 400;
+  while (!onScreen() && performance.now() < deadline && document.activeElement === el) {
+    await new Promise(resolve => setTimeout(resolve, 16));
+  }
+  const reachedViewport = onScreen();
   // What a focus indicator can change: the control or one of its three nearest ancestors
   // (a ring on the composer around a bare textarea counts), compared focused and unfocused.
   const chain = [el, el.parentElement, el.parentElement?.parentElement,
@@ -51,8 +62,7 @@ FOCUS_VISIBLE = """() => {
   const unfocused = look();
   el.focus({preventScroll: true});
   return {tag: el.tagName, label: (el.getAttribute('aria-label') || el.textContent || '').trim().slice(0, 60),
-          onScreen: box.width > 0 && box.height > 0 && box.bottom > 0 && box.right > 0
-            && box.top < innerHeight && box.left < innerWidth,
+          onScreen: reachedViewport,
           ring: focused !== unfocused, key: el.outerHTML.slice(0, 200)};
 }"""
 
@@ -241,7 +251,10 @@ def chat_first_draft(page, url: str) -> None:
         page.goto(url, wait_until="networkidle")
         drawer = page.get_by_role("dialog", name="Navigation", exact=True)
         expect(drawer).to_have_count(0)
-        page.get_by_role("button", name="Try an email draft").press("Enter")
+        example = page.get_by_role("button", name="Try an email draft")
+        example.focus()
+        expect(example).to_be_focused()
+        page.keyboard.press("Enter")
         composer = page.get_by_role("textbox", name="Message OCADE")
         expect(composer).to_be_focused()
         expect(composer).to_have_value(
@@ -287,6 +300,59 @@ def help_keyboard(page, url: str) -> None:
         page.set_viewport_size({"width": 1366, "height": 900})
 
 
+def legal_keyboard(page, url: str) -> None:
+    page.goto(url, wait_until="networkidle")
+    skip = page.get_by_role("link", name="Skip to content")
+    page.keyboard.press("Tab")
+    expect(skip).to_be_focused()
+    expect(skip).to_be_in_viewport()
+    page.keyboard.press("Enter")
+    expect(page.get_by_role("main")).to_be_focused()
+
+    nav = page.get_by_role("navigation", name="Public pages")
+    nav.get_by_role("link", name="Privacy").focus()
+    chat = page.get_by_role("link", name="Open Chat")
+    # Some engines also visit the inline legal links before reaching the footer.
+    for _ in range(TABS):
+        page.keyboard.press("Tab")
+        if chat.evaluate("element => document.activeElement === element"):
+            break
+    expect(chat).to_be_focused()
+    expect(chat).to_be_in_viewport()
+    top = page.get_by_role("button", name="Back to top")
+    expect(top).to_be_in_viewport()
+    page.keyboard.press("Tab")
+    expect(top).to_be_focused()
+    page.keyboard.press("Enter")
+    expect(page.get_by_role("heading", level=1)).to_be_focused()
+    assert page.evaluate("window.scrollY") == 0
+
+
+def library_mobile_filters(page, url: str) -> None:
+    page.set_viewport_size({"width": 320, "height": 740})
+    try:
+        page.goto(url, wait_until="networkidle")
+        expect(page.get_by_role("heading", name="Library", exact=True)).to_be_visible(timeout=15_000)
+        filters = page.get_by_role("group", name="Filter library")
+        all_items = filters.get_by_role("button", name="All", exact=True)
+        images = filters.get_by_role("button", name="Images", exact=True)
+        expect(all_items).to_have_attribute("aria-pressed", "true")
+        all_items.focus()
+        page.keyboard.press("Tab")
+        expect(images).to_be_focused()
+        page.keyboard.press("Space")
+        expect(images).to_have_attribute("aria-pressed", "true")
+        expect(all_items).to_have_attribute("aria-pressed", "false")
+        search = page.get_by_role("searchbox", name="Search your library")
+        search.fill("zz-audit-library-no-match")
+        expect(search).to_be_focused()
+        assert page.get_by_role("button", name="Add", exact=True).bounding_box()["height"] >= 44
+        assert search.bounding_box()["width"] >= 128
+        assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
+    finally:
+        page.set_viewport_size({"width": 1366, "height": 900})
+
+
 def main(base: str, session: str | None, storage_key: str | None, engine: str) -> int:
     origin = surface_audit.site_origin(base)
     if session and os.environ.get("OCADE_AUDIT_SESSION_ORIGIN") != origin:
@@ -313,7 +379,9 @@ def main(base: str, session: str | None, storage_key: str | None, engine: str) -
                 problems += opened_views(page, url)
                 problems += reflow(page, url)
                 interactions = {"/": (settings_keyboard, chat_mobile_navigation, chat_first_draft),
-                                "/ocade-jarvis": (jarvis_mobile_navigation,), "/help": (help_keyboard,)}
+                                "/ocade-jarvis": (jarvis_mobile_navigation,), "/help": (help_keyboard,),
+                                "/terms": (legal_keyboard,), "/privacy": (legal_keyboard,),
+                                "/library": (library_mobile_filters,) if login else ()}
                 for check in interactions.get(urlsplit(url).path, ()):
                     try:
                         check(page, url)
