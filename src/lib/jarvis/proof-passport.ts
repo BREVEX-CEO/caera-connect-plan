@@ -35,13 +35,13 @@ export function passportStatus(task: PassportInput): PassportStatus {
   if (task.steps.some((step) => step.disposition === "outcome unknown")) return "UNKNOWN EFFECT";
   if (!["completed", "blocked", "failed", "stopped"].includes(task.status)) return "NOT FINISHED";
   if (task.checks.some((check) => check.state === "failed")) return "FAILED";
+  if (task.steps.some((step) => step.resolution === "applied")) return "USER-ATTESTED";
   if (
     task.checks.length > 0 &&
     task.checks.every((check) => check.state === "passed") &&
     task.status === "completed"
   )
     return "VERIFIED";
-  if (task.steps.some((step) => step.resolution === "applied")) return "USER-ATTESTED";
   return task.checks.some((check) => check.state === "passed") ? "PARTIALLY VERIFIED" : "FAILED";
 }
 

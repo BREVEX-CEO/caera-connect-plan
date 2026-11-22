@@ -17,7 +17,7 @@ import {
   type LibraryItemRow,
 } from "@/lib/library/library.functions";
 import { cn } from "@/lib/utils";
-import { resumable, uploadResumable } from "@/lib/library/resumable-upload";
+import { fingerprint, resumable, uploadResumable } from "@/lib/library/resumable-upload";
 import { getSupabaseBrowserConfiguration, supabase } from "@/integrations/supabase/client";
 
 /** Files above this go straight to Storage, resumably, instead of through a server function. */
@@ -55,9 +55,11 @@ const FILTERS: { id: Filter; label: string }[] = [
 function LibraryPage() {
   const [filter, setFilter] = useState<Filter>("all");
   const [query, setQuery] = useState("");
+  const [notice, setNotice] = useState("");
   const [problem, setProblem] = useState<string | null>(null);
   const [fallback, setFallback] = useState<{ name: string; url: string } | null>(null);
   const picker = useRef<HTMLInputElement>(null);
+  const search = useRef<HTMLInputElement>(null);
   const client = useQueryClient();
 
   const items = useQuery<LibraryItemRow[]>({
@@ -68,7 +70,7 @@ function LibraryPage() {
   const refresh = () => client.invalidateQueries({ queryKey: ["library", "items"] });
 
   const [progress, setProgress] = useState<{ accepted: number; total: number } | null>(null);
-  const cancel = useRef<{ controller: AbortController; id: string } | null>(null);
+  const transfer = useRef<AbortController | null>(null);
 
   /** A large file goes straight to Storage, resumably, then is checked (plan 14E.4). */
   async function uploadLarge(file: File) {
@@ -76,15 +78,18 @@ function LibraryPage() {
     const { data: session } = await supabase.auth.getSession();
     if (!configuration.url || !configuration.publishableKey || !session.session)
       throw new Error("Sign in again to add a large file.");
+    const endpoint = new URL(`${configuration.url}/storage/v1/upload/resumable`);
     const begun = await beginLibraryUpload({
-      data: { size: file.size, resume: resumable(file)?.id ?? null },
+      data: { size: file.size, resume: resumable(file, endpoint)?.id ?? null },
     });
     const controller = new AbortController();
-    cancel.current = { controller, id: begun.id };
+    transfer.current = controller;
+    setNotice("Uploading file…");
+    setProgress({ accepted: 0, total: file.size });
     try {
       await uploadResumable({
         file,
-        endpoint: `${configuration.url}/storage/v1/upload/resumable`,
+        endpoint: endpoint.href,
         apiKey: configuration.publishableKey,
         accessToken: session.session.access_token,
         objectName: begun.objectName,
@@ -92,12 +97,21 @@ function LibraryPage() {
         signal: controller.signal,
         onProgress: (accepted, total) => setProgress({ accepted, total }),
       });
+      controller.signal.throwIfAborted();
+      transfer.current = null;
       setProgress(null);
+      setNotice("Checking file…");
       return await finishLibraryUpload({
         data: { id: begun.id, name: file.name, mime: file.type || "application/octet-stream" },
       });
+    } catch (error) {
+      if (!controller.signal.aborted) throw error;
+      const result = await cancelLibraryUpload({ data: { id: begun.id } });
+      window.localStorage.removeItem(fingerprint(file));
+      return result.cancelled ? "cancelled" : "already-added";
     } finally {
-      cancel.current = null;
+      transfer.current = null;
+      setProgress(null);
     }
   }
 
@@ -117,11 +131,20 @@ function LibraryPage() {
         },
       });
     },
-    onSuccess: () => {
-      setProblem(null);
-      void refresh();
+    onSuccess: (item) => {
+      setNotice(
+        item === "cancelled"
+          ? "Upload cancelled."
+          : item === "already-added"
+            ? "The file was already added."
+            : `Added ${item.name} to your library.`,
+      );
+      if (item !== "cancelled") void refresh();
     },
-    onError: (error: Error) => setProblem(error.message),
+    onError: (error: Error) => {
+      setNotice("");
+      setProblem(error.message);
+    },
   });
 
   const remove = useMutation({
@@ -133,7 +156,9 @@ function LibraryPage() {
           ? "Removed from your library. Its file is still being erased and will be retried."
           : null,
       );
+      setNotice(pending ? "" : "File deleted.");
       void refresh();
+      search.current?.focus();
     },
     onError: (error: Error) => setProblem(error.message),
   });
@@ -144,6 +169,8 @@ function LibraryPage() {
    * way a link that could not open is offered to press instead of nothing happening.
    */
   async function open(item: LibraryItemRow, download = false) {
+    setProblem(null);
+    setFallback(null);
     const tab = download ? null : window.open("", "_blank");
     if (tab) tab.opener = null;
     try {
@@ -172,36 +199,17 @@ function LibraryPage() {
   return (
     <AppShell>
       <div className="mx-auto w-full max-w-3xl px-5 py-8">
-        <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center justify-between gap-3">
           <h1 className="text-lg font-semibold tracking-tight text-foreground">Library</h1>
           <button
             type="button"
             onClick={() => picker.current?.click()}
             disabled={upload.isPending}
-            className="flex h-8 items-center gap-2 rounded-md border border-border px-3 text-sm text-foreground transition-colors hover:bg-accent disabled:opacity-50"
+            className="flex h-11 items-center gap-2 rounded-md border border-border px-3 text-sm text-foreground transition-colors hover:bg-accent disabled:opacity-50"
           >
             <Upload className="h-4 w-4" aria-hidden />
-            {upload.isPending
-              ? progress
-                ? `${Math.floor((progress.accepted / progress.total) * 100)}% received`
-                : "Adding…"
-              : "Add"}
+            Add
           </button>
-          {upload.isPending && progress ? (
-            <button
-              type="button"
-              onClick={() => {
-                const running = cancel.current;
-                if (!running) return;
-                running.controller.abort();
-                void cancelLibraryUpload({ data: { id: running.id } });
-                setProgress(null);
-              }}
-              className="h-8 rounded-md px-3 text-sm text-muted-foreground hover:bg-accent"
-            >
-              Cancel upload
-            </button>
-          ) : null}
           <input
             ref={picker}
             type="file"
@@ -210,22 +218,56 @@ function LibraryPage() {
             onChange={(event) => {
               const file = event.target.files?.[0];
               event.target.value = "";
-              if (file) upload.mutate(file);
+              if (file) {
+                setProblem(null);
+                setNotice("Preparing file…");
+                upload.mutate(file);
+              }
             }}
           />
         </div>
+        <div
+          role="status"
+          className={cn(notice && "mt-3 break-words text-sm text-muted-foreground")}
+        >
+          {notice}
+        </div>
+        {progress ? (
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <progress
+              className="min-w-24 flex-1"
+              aria-label="Upload received by Storage"
+              max={progress.total}
+              value={progress.accepted}
+            />
+            <button
+              type="button"
+              onClick={() => {
+                transfer.current?.abort();
+                setProgress(null);
+                setNotice("Stopping upload…");
+              }}
+              className="h-11 rounded-md px-3 text-sm text-foreground hover:bg-accent"
+            >
+              Cancel upload
+            </button>
+          </div>
+        ) : null}
 
         <div className="mt-5 flex flex-wrap items-center gap-3">
-          <div className="flex rounded-md border border-border p-0.5" role="tablist">
+          <div
+            className="flex rounded-md border border-border p-0.5"
+            role="group"
+            aria-label="Filter library"
+          >
             {FILTERS.map((entry) => (
               <button
                 key={entry.id}
                 type="button"
-                role="tab"
-                aria-selected={filter === entry.id}
+                aria-pressed={filter === entry.id}
                 onClick={() => setFilter(entry.id)}
                 className={cn(
-                  "h-7 rounded px-3 text-sm transition-colors",
+                  "h-11 rounded px-3 text-sm transition-colors",
                   filter === entry.id
                     ? "bg-accent text-foreground"
                     : "text-muted-foreground hover:text-foreground",
@@ -236,17 +278,19 @@ function LibraryPage() {
             ))}
           </div>
 
-          <label className="relative min-w-0 flex-1">
+          <label className="relative min-w-32 flex-1">
             <span className="sr-only">Search your library</span>
             <Search
               className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
               aria-hidden
             />
             <input
+              ref={search}
+              type="search"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Search"
-              className="h-8 w-full rounded-md border border-border bg-transparent pl-8 pr-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus-visible:border-ring"
+              className="h-11 w-full rounded-md border border-border bg-transparent pl-8 pr-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus-visible:border-ring"
             />
           </label>
         </div>
@@ -286,7 +330,7 @@ function LibraryPage() {
             />
           </div>
         ) : visible.length === 0 ? (
-          <p className="mt-10 text-sm text-muted-foreground">
+          <p className="mt-10 text-sm text-muted-foreground" role="status">
             {(items.data ?? []).length === 0
               ? "Nothing here yet. Files and images you add, and the ones OCADE produces, appear here."
               : "No matches."}
@@ -294,7 +338,7 @@ function LibraryPage() {
         ) : (
           <ul className="mt-6 divide-y divide-border/50 border-y border-border/50">
             {visible.map((item) => (
-              <li key={item.id} className="group flex items-center gap-3 py-3">
+              <li key={item.id} className="flex items-center gap-2 py-2 sm:gap-3">
                 {item.kind === "image" ? (
                   <ImageIcon className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
                 ) : (
@@ -303,7 +347,7 @@ function LibraryPage() {
                 <button
                   type="button"
                   onClick={() => void open(item)}
-                  className="min-w-0 flex-1 truncate text-left text-sm text-foreground hover:underline"
+                  className="min-h-11 min-w-0 flex-1 break-words text-left text-sm text-foreground hover:underline"
                 >
                   {item.name}
                 </button>
@@ -340,9 +384,8 @@ function LibraryPage() {
   );
 }
 
-/** Always visible on touch screens (there is no hover there); revealed on hover or focus elsewhere. */
 const ROW_ACTION =
-  "grid h-9 w-9 shrink-0 place-items-center rounded-md text-muted-foreground transition-opacity hover:bg-accent hover:text-foreground focus-visible:opacity-100 [@media(hover:hover)]:h-7 [@media(hover:hover)]:w-7 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100";
+  "grid h-11 w-11 shrink-0 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground";
 
 /** "2.4 MB" — a size somebody can judge, not a byte count. */
 function describeSize(bytes: number): string {

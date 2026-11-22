@@ -20,6 +20,24 @@ export interface ResumeRecord {
   id: string;
 }
 
+function trustedUploadLocation(value: string, endpoint: URL): string | null {
+  try {
+    const location = new URL(value, endpoint);
+    const prefix = `${endpoint.pathname}/`;
+    if (
+      location.origin !== endpoint.origin ||
+      location.username ||
+      location.password ||
+      !location.pathname.startsWith(prefix) ||
+      location.pathname === prefix
+    )
+      return null;
+    return location.href;
+  } catch {
+    return null;
+  }
+}
+
 function acknowledgedOffset(response: Response, maximum: number): number {
   const header = response.headers.get("upload-offset");
   const offset = Number(header);
@@ -42,24 +60,23 @@ export async function uploadResumable(input: {
 }): Promise<void> {
   const { file, signal } = input;
   const store = input.storage ?? window.localStorage;
+  const endpoint = new URL(input.endpoint);
   const auth = {
     authorization: `Bearer ${input.accessToken}`,
     apikey: input.apiKey,
     "tus-resumable": "1.0.0",
   };
   const interrupted = "The upload was interrupted. Choose the file again to resume.";
+  // Storage credentials and file data belong only on the configured TUS route.
+  const request = (url: string, init: RequestInit) =>
+    fetch(url, { ...init, signal, redirect: "error" });
   const send = (url: string, init: RequestInit) =>
-    fetch(url, { ...init, signal }).catch((error: unknown) => {
+    request(url, init).catch((error: unknown) => {
       if (signal?.aborted) throw error;
       return null;
     });
   const key = fingerprint(file);
-  let record: ResumeRecord | null = null;
-  try {
-    record = JSON.parse(store.getItem(key) ?? "null") as ResumeRecord | null;
-  } catch {
-    record = null;
-  }
+  let record = resumable(file, endpoint, store);
   let offset = 0;
   if (record && record.id === input.id) {
     const head = await send(record.url, { method: "HEAD", headers: auth, cache: "no-store" });
@@ -68,9 +85,8 @@ export async function uploadResumable(input: {
     else throw new Error(interrupted);
   } else record = null;
   if (!record) {
-    const created = await fetch(input.endpoint, {
+    const created = await request(endpoint.href, {
       method: "POST",
-      signal,
       headers: {
         ...auth,
         "upload-length": String(file.size),
@@ -85,7 +101,9 @@ export async function uploadResumable(input: {
     });
     const location = created.headers.get("location");
     if (!created.ok || !location) throw new Error("The upload could not start. Try again.");
-    record = { url: new URL(location, input.endpoint).toString(), id: input.id };
+    const url = trustedUploadLocation(location, endpoint);
+    if (!url) throw new Error("Storage returned an unexpected upload location.");
+    record = { url, id: input.id };
     store.setItem(key, JSON.stringify(record));
   }
   input.onProgress?.(offset, file.size);
@@ -123,9 +141,18 @@ export async function uploadResumable(input: {
 }
 
 /** The record of an unfinished upload of this file on this device, to resume it. */
-export function resumable(file: File, storage: Pick<Storage, "getItem"> = window.localStorage) {
+export function resumable(
+  file: File,
+  endpoint: URL,
+  storage: Pick<Storage, "getItem"> = window.localStorage,
+): ResumeRecord | null {
   try {
-    return JSON.parse(storage.getItem(fingerprint(file)) ?? "null") as ResumeRecord | null;
+    const record = JSON.parse(
+      storage.getItem(fingerprint(file)) ?? "null",
+    ) as Partial<ResumeRecord> | null;
+    if (typeof record?.url !== "string" || typeof record.id !== "string") return null;
+    const url = trustedUploadLocation(record.url, endpoint);
+    return url ? { url, id: record.id } : null;
   } catch {
     return null;
   }

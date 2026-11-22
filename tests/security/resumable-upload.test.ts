@@ -144,3 +144,71 @@ test("invalid server progress cannot finish a partial upload", async () => {
   assert.equal(s.received(), CHUNK);
   assert.ok(store.map.has(fingerprint(file)), "the partial upload is still resumable");
 });
+
+const endpoint = "https://x.test/storage/v1/upload/resumable";
+
+test("upload creation and transfer credentials stay on the configured Storage route", async () => {
+  const originals = { fetch: globalThis.fetch };
+  const calls: { url: string; method?: string; redirect?: RequestRedirect }[] = [];
+  const fixture = server();
+  globalThis.fetch = (async (url: string, init: RequestInit) => {
+    calls.push({ url, method: init.method, redirect: init.redirect });
+    return fixture.fetch(url, init);
+  }) as never;
+  const storage = memory();
+  storage.setItem(
+    fingerprint(file),
+    JSON.stringify({ url: "https://other.example/storage/v1/upload/resumable/abc", id: "id5" }),
+  );
+  try {
+    await uploadResumable({
+      file,
+      endpoint,
+      apiKey: "fixture-key",
+      accessToken: "fixture-token",
+      objectName: "u/id5",
+      id: "id5",
+      storage,
+    });
+    assert.deepEqual(
+      calls.map(({ method }) => method),
+      ["POST", "PATCH", "PATCH", "PATCH"],
+    );
+    assert.ok(calls.every(({ url, redirect }) => url.startsWith(endpoint) && redirect === "error"));
+  } finally {
+    globalThis.fetch = originals.fetch;
+  }
+});
+
+test("an unexpected creation location is neither requested nor stored", async () => {
+  const originalFetch = globalThis.fetch;
+  for (const location of [
+    "https://other.example/storage/v1/upload/resumable/abc",
+    "https://x.test/auth/v1/user",
+  ]) {
+    const calls: string[] = [];
+    globalThis.fetch = (async (url: string) => {
+      calls.push(url);
+      return new Response(null, { status: 201, headers: { location } });
+    }) as never;
+    const storage = memory();
+    try {
+      await assert.rejects(
+        uploadResumable({
+          file,
+          endpoint,
+          apiKey: "fixture-key",
+          accessToken: "fixture-token",
+          objectName: "u/id6",
+          id: "id6",
+          storage,
+        }),
+        /unexpected upload location/,
+      );
+      assert.deepEqual(calls, [endpoint]);
+      assert.equal(storage.getItem(fingerprint(file)), null);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  }
+});

@@ -84,3 +84,14 @@ test("user attestations and rehearsal evidence are distinguished in the export",
   assert.equal(passport.steps[0]?.outcome, "user-attested");
   assert.match(passportReport(passport), /Rehearsal/);
 });
+
+test("passed checks do not independently verify a manually reconciled effect", async () => {
+  const attested = {
+    ...task,
+    steps: [...task.steps, { status: "done", disposition: "executed", resolution: "applied" }],
+  };
+  const passport = await buildPassport(attested);
+  assert.equal(passport.status, "USER-ATTESTED");
+  assert.ok(passport.checks.every((check) => check.state === "passed"));
+  assert.equal(passport.steps.at(-1)?.outcome, "user-attested");
+});

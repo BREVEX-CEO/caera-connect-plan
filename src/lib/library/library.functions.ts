@@ -350,12 +350,16 @@ export const cancelLibraryUpload = createServerFn({ method: "POST" })
   .middleware([requireSession])
   .validator(z.object({ id: uuid }).parse)
   .handler(async ({ data, context }) => {
-    const { data: listed } = await context.supabase
+    const { data: listed, error: listingError } = await context.supabase
       .from("ocade_library_items")
       .select("id")
       .eq("id", data.id)
       .maybeSingle();
-    if (!listed)
-      await context.supabase.storage.from("library").remove([`${context.userId}/${data.id}`]);
+    if (listingError) throw new Error("Upload stopped. Storage cleanup could not be confirmed.");
+    if (listed) return { cancelled: false };
+    const { error } = await context.supabase.storage
+      .from("library")
+      .remove([`${context.userId}/${data.id}`]);
+    if (error) throw new Error("Upload stopped. Storage cleanup could not be confirmed.");
     return { cancelled: true };
   });
