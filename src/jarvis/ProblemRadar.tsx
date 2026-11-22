@@ -3,7 +3,7 @@ import { useState } from "react";
 import { listJarvisDevices, listJarvisSchedules, listJarvisWatches } from "@/lib/jarvis/functions";
 import { civilDate } from "@/lib/jarvis/lifeos";
 import { listObligations } from "@/lib/jarvis/lifeos.functions";
-import { problemRadar, type RadarSource } from "@/lib/jarvis/problem-radar";
+import { problemRadar, type Finding, type RadarSource } from "@/lib/jarvis/problem-radar";
 
 const button =
   "min-h-11 rounded-md border border-border px-2 text-xs hover:bg-accent disabled:opacity-60";
@@ -76,6 +76,10 @@ export function ProblemRadar({ account }: { account: string }) {
   });
   const shown = findings.filter((finding) => !dismissed.includes(finding.fingerprint));
   const hidden = findings.length - shown.length;
+  // Most urgent first and in full; minor ones one click away (plan 27.5: no overwhelming list).
+  const urgent = shown.filter((finding) => finding.severity !== "low");
+  const minor = shown.filter((finding) => finding.severity === "low");
+  const dismiss = (fingerprint: string) => remember([...dismissed, fingerprint]);
 
   return (
     <section aria-labelledby="problem-radar" className="grid gap-2">
@@ -94,31 +98,14 @@ export function ProblemRadar({ account }: { account: string }) {
           Not checked: {unread.join(", ")} could not be read just now.
         </p>
       ) : null}
-      {shown.length ? (
-        <ul className="grid gap-2">
-          {shown.map((finding) => (
-            <li
-              key={finding.fingerprint}
-              className={`grid gap-1 rounded-lg border p-2 text-xs [overflow-wrap:anywhere] ${
-                finding.severity === "high" ? "border-destructive" : "border-border"
-              }`}
-            >
-              <p className="font-medium">
-                {SEVERITY[finding.severity]} · {finding.source}
-              </p>
-              <strong className="text-sm">{finding.title}</strong>
-              <p>{finding.evidence}</p>
-              <p>Fix: {finding.fix}</p>
-              <button
-                className={`${button} justify-self-start`}
-                type="button"
-                onClick={() => remember([...dismissed, finding.fingerprint])}
-              >
-                Dismiss
-              </button>
-            </li>
-          ))}
-        </ul>
+      {urgent.length ? <FindingList findings={urgent} onDismiss={dismiss} /> : null}
+      {minor.length ? (
+        <details>
+          <summary className="min-h-11 cursor-pointer py-3 text-xs">
+            {minor.length} more worth a look
+          </summary>
+          <FindingList findings={minor} onDismiss={dismiss} />
+        </details>
       ) : null}
       {hidden ? (
         <button
@@ -130,5 +117,40 @@ export function ProblemRadar({ account }: { account: string }) {
         </button>
       ) : null}
     </section>
+  );
+}
+
+function FindingList({
+  findings,
+  onDismiss,
+}: {
+  findings: Finding[];
+  onDismiss: (fingerprint: string) => void;
+}) {
+  return (
+    <ul className="grid gap-2">
+      {findings.map((finding) => (
+        <li
+          key={finding.fingerprint}
+          className={`grid gap-1 rounded-lg border p-2 text-xs [overflow-wrap:anywhere] ${
+            finding.severity === "high" ? "border-destructive" : "border-border"
+          }`}
+        >
+          <p className="font-medium">
+            {SEVERITY[finding.severity]} · {finding.source}
+          </p>
+          <strong className="text-sm">{finding.title}</strong>
+          <p>{finding.evidence}</p>
+          <p>Fix: {finding.fix}</p>
+          <button
+            className={`${button} justify-self-start`}
+            type="button"
+            onClick={() => onDismiss(finding.fingerprint)}
+          >
+            Dismiss
+          </button>
+        </li>
+      ))}
+    </ul>
   );
 }
