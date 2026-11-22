@@ -70,7 +70,7 @@ export default function SettingsDialog({
   const { user } = useSession();
   const location = useLocation();
   const self = useRef<HTMLDivElement>(null);
-  useModalFocus(self, true);
+  useModalFocus(self, true, onClose);
 
   return (
     <div
@@ -78,101 +78,102 @@ export default function SettingsDialog({
       role="dialog"
       aria-modal="true"
       aria-label="Settings"
+      data-allows-command-palette
       className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-0 sm:items-center sm:p-6"
+      onClick={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
     >
-      <button
-        type="button"
-        aria-label="Close settings"
-        className="absolute inset-0"
-        onClick={onClose}
-      />
+      <div className="glass-strong flex h-[88dvh] w-full max-w-4xl flex-col overflow-hidden rounded-t-2xl sm:h-[min(40rem,88dvh)] sm:rounded-2xl">
+        <div className="flex shrink-0 items-center justify-between border-b border-border/60 px-4 py-1">
+          <h2 className="text-base font-semibold text-foreground">Settings</h2>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close settings"
+            className="grid size-11 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          >
+            <X className="h-4 w-4" aria-hidden />
+          </button>
+        </div>
 
-      <div className="glass-strong relative flex h-[88vh] w-full max-w-4xl flex-col overflow-hidden rounded-t-2xl sm:h-[min(40rem,88vh)] sm:flex-row sm:rounded-2xl">
-        {/* On a phone the categories are one scrollable row of chips above the settings. */}
-        <nav
-          className="ocade-scroll flex shrink-0 gap-1 overflow-x-auto border-b border-border/60 p-2 sm:block sm:w-[12.5rem] sm:overflow-x-visible sm:overflow-y-auto sm:border-b-0 sm:border-r sm:p-3"
-          aria-label="Settings categories"
-        >
-          {CATEGORIES.map(({ id, label, icon: Icon }) => (
-            <button
-              key={id}
-              type="button"
-              onClick={() => onCategoryChange(id)}
-              aria-current={category === id ? "true" : undefined}
-              className={cn(
-                "flex h-9 shrink-0 items-center gap-2.5 whitespace-nowrap rounded-full px-3 text-[0.9375rem] transition-colors duration-150 sm:mb-0.5 sm:w-full",
-                category === id
-                  ? "bg-accent text-foreground"
-                  : "text-muted-foreground hover:bg-accent/60 hover:text-foreground",
-              )}
-            >
-              <Icon className="h-4 w-4" aria-hidden />
-              {label}
-            </button>
-          ))}
-        </nav>
-
-        <div className="ocade-scroll min-w-0 flex-1 overflow-y-auto p-5">
-          <div className="mb-4 flex items-start justify-between gap-4">
-            <h2 className="text-base font-semibold text-foreground">
-              {CATEGORIES.find((entry) => entry.id === category)?.label}
-            </h2>
-            <button
-              type="button"
-              onClick={onClose}
-              aria-label="Close settings"
-              className="grid h-8 w-8 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-            >
-              <X className="h-4 w-4" aria-hidden />
-            </button>
-          </div>
-
-          {!user && category !== "preferences" ? (
-            <div className="space-y-3 text-sm">
-              <p className="text-muted-foreground">Sign in to manage your account settings.</p>
-              <Link
-                to="/auth"
-                search={{ next: location.pathname + location.searchStr }}
-                className="inline-flex h-9 items-center rounded-md border border-border px-3 text-foreground hover:bg-accent"
+        <div className="flex min-h-0 flex-1 flex-col sm:flex-row">
+          {/* On a phone the categories are one scrollable row of chips above the settings. */}
+          <nav
+            className="ocade-scroll flex shrink-0 gap-1 overflow-x-auto border-b border-border/60 p-2 sm:block sm:w-[12.5rem] sm:overflow-x-visible sm:overflow-y-auto sm:border-b-0 sm:border-r sm:p-3"
+            aria-label="Settings categories"
+          >
+            {CATEGORIES.map(({ id, label, icon: Icon }) => (
+              <button
+                key={id}
+                type="button"
+                onClick={() => onCategoryChange(id)}
+                aria-current={category === id ? "true" : undefined}
+                className={cn(
+                  "flex h-11 shrink-0 items-center gap-2.5 whitespace-nowrap rounded-full px-3 text-[0.9375rem] transition-colors duration-150 sm:mb-0.5 sm:h-9 sm:w-full",
+                  category === id
+                    ? "bg-accent text-foreground"
+                    : "text-muted-foreground hover:bg-accent/60 hover:text-foreground",
+                )}
               >
-                Sign in
-              </Link>
-            </div>
-          ) : (
-            <>
-              {category === "account" ? <AccountSettings /> : null}
-              {category === "preferences" ? (
-                <>
-                  <AppearanceSettings />
-                  <AnswerLanguage />
-                  <JarvisVoiceSetting />
-                  {user ? <NotificationsSection /> : null}
-                  <ResetJarvis />
-                </>
-              ) : null}
-              {category === "devices" ? (
-                <>
-                  <JarvisAccess />
-                  <AppsAndWebsites />
-                </>
-              ) : null}
-              {category === "privacy" ? (
-                <>
-                  <MemorySection />
-                  <DataControlsSection />
-                  <AdvancedSection />
-                </>
-              ) : null}
-              {category === "billing" ? (
-                <>
-                  <UsageSection />
-                  <TimeReclaimed />
-                  <BillingSection />
-                </>
-              ) : null}
-              {category === "byok" ? <ByokSection /> : null}
-            </>
-          )}
+                <Icon className="h-4 w-4" aria-hidden />
+                {label}
+              </button>
+            ))}
+          </nav>
+
+          <div className="ocade-scroll min-w-0 flex-1 overflow-y-auto p-5">
+            <h3 className="mb-4 text-base font-semibold text-foreground">
+              {CATEGORIES.find((entry) => entry.id === category)?.label}
+            </h3>
+
+            {!user && category !== "preferences" ? (
+              <div className="space-y-3 text-sm">
+                <p className="text-muted-foreground">Sign in to manage your account settings.</p>
+                <Link
+                  to="/auth"
+                  search={{ next: location.pathname + location.searchStr }}
+                  className="inline-flex h-9 items-center rounded-md border border-border px-3 text-foreground hover:bg-accent"
+                >
+                  Sign in
+                </Link>
+              </div>
+            ) : (
+              <>
+                {category === "account" ? <AccountSettings /> : null}
+                {category === "preferences" ? (
+                  <>
+                    <AppearanceSettings />
+                    <AnswerLanguage />
+                    <JarvisVoiceSetting />
+                    {user ? <NotificationsSection /> : null}
+                    <ResetJarvis />
+                  </>
+                ) : null}
+                {category === "devices" ? (
+                  <>
+                    <JarvisAccess />
+                    <AppsAndWebsites />
+                  </>
+                ) : null}
+                {category === "privacy" ? (
+                  <>
+                    <MemorySection />
+                    <DataControlsSection />
+                    <AdvancedSection />
+                  </>
+                ) : null}
+                {category === "billing" ? (
+                  <>
+                    <UsageSection />
+                    <TimeReclaimed />
+                    <BillingSection />
+                  </>
+                ) : null}
+                {category === "byok" ? <ByokSection /> : null}
+              </>
+            )}
+          </div>
         </div>
       </div>
     </div>

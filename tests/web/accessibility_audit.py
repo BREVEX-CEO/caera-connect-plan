@@ -181,6 +181,112 @@ def jarvis_mobile_navigation(page, url: str) -> None:
         page.set_viewport_size({"width": 1366, "height": 900})
 
 
+def settings_keyboard(page, url: str) -> None:
+    """A stacked command palette dismisses independently of Settings."""
+    page.set_viewport_size({"width": 320, "height": 740})
+    try:
+        page.goto(url + "?settings=preferences", wait_until="networkidle")
+        settings = page.get_by_role("dialog", name="Settings", exact=True)
+        close = settings.get_by_role("button", name="Close settings", exact=True)
+        expect(close).to_be_focused()
+        assert close.bounding_box()["width"] >= 44
+
+        page.keyboard.press("Control+k")
+        palette = page.get_by_role("dialog", name="Search commands and settings", exact=True)
+        search = palette.get_by_role("combobox", name="Search commands and settings", exact=True)
+        expect(search).to_be_focused()
+        search.fill("no-command-matches-this")
+        expect(palette.get_by_role("status")).to_contain_text("Nothing matches")
+        controlled = palette.locator("#" + search.get_attribute("aria-controls"))
+        expect(controlled).to_have_count(1)
+
+        page.keyboard.press("Escape")
+        expect(palette).to_have_count(0)
+        expect(close).to_be_focused()
+        page.keyboard.press("Escape")
+        expect(settings).to_have_count(0)
+    finally:
+        page.set_viewport_size({"width": 1366, "height": 900})
+
+
+def chat_mobile_navigation(page, url: str) -> None:
+    page.set_viewport_size({"width": 320, "height": 740})
+    try:
+        page.goto(url, wait_until="networkidle")
+        opener = page.get_by_role("button", name="Open navigation")
+        opener.focus()
+        opener.press("Enter")
+        drawer = page.get_by_role("dialog", name="Navigation", exact=True)
+        close = drawer.get_by_role("button", name="Close navigation", exact=True)
+        expect(close).to_be_focused()
+        assert 44 <= close.bounding_box()["width"] <= 64
+        for key in ("Shift+Tab", *["Tab"] * 10):
+            page.keyboard.press(key)
+            assert drawer.evaluate("el => el.contains(document.activeElement)")
+
+        page.keyboard.press("Escape")
+        expect(drawer).to_have_count(0)
+        expect(opener).to_be_focused()
+
+        opener.press("Enter")
+        drawer.get_by_role("link", name="New chat").click()
+        expect(drawer).to_have_count(0)
+    finally:
+        page.set_viewport_size({"width": 1366, "height": 900})
+
+
+def chat_first_draft(page, url: str) -> None:
+    page.set_viewport_size({"width": 320, "height": 400})
+    try:
+        page.goto(url, wait_until="networkidle")
+        drawer = page.get_by_role("dialog", name="Navigation", exact=True)
+        expect(drawer).to_have_count(0)
+        page.get_by_role("button", name="Try an email draft").press("Enter")
+        composer = page.get_by_role("textbox", name="Message OCADE")
+        expect(composer).to_be_focused()
+        expect(composer).to_have_value(
+            "Draft a short email to reschedule a meeting. Suggest Tuesday morning or Thursday afternoon."
+        )
+        send = page.get_by_role("button", name="Send", exact=True)
+        expect(send).to_be_enabled()
+        assert send.bounding_box()["height"] >= 44
+        assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
+    finally:
+        page.set_viewport_size({"width": 1366, "height": 900})
+
+
+def help_keyboard(page, url: str) -> None:
+    """Help supports a word-order-independent search and a keyboard return from long answers."""
+    page.set_viewport_size({"width": 320, "height": 740})
+    try:
+        page.goto(url, wait_until="networkidle")
+        page.keyboard.press("Tab")
+        skip = page.get_by_role("link", name="Skip to content")
+        expect(skip).to_be_focused()
+        page.keyboard.press("Enter")
+        expect(page.get_by_role("main")).to_be_focused()
+
+        search = page.get_by_role("searchbox", name="Search Help")
+        search.fill("expired pairing")
+        question = page.get_by_role("button", name="The pairing code does not work")
+        expect(question).to_be_visible()
+        question.focus()
+        page.keyboard.press("Enter")
+        expect(question).to_have_attribute("aria-expanded", "true")
+        expect(page.get_by_text("A pairing code works once", exact=False)).to_be_visible()
+
+        search.fill("")
+        page.evaluate("window.scrollTo(0, document.documentElement.scrollHeight)")
+        top = page.get_by_role("button", name="Back to top")
+        expect(top).to_be_visible()
+        top.focus()
+        page.keyboard.press("Enter")
+        expect(page.get_by_role("heading", name="Help", exact=True)).to_be_focused()
+        assert page.evaluate("window.scrollY") == 0
+    finally:
+        page.set_viewport_size({"width": 1366, "height": 900})
+
+
 def main(base: str, session: str | None, storage_key: str | None, engine: str) -> int:
     origin = surface_audit.site_origin(base)
     if session and os.environ.get("OCADE_AUDIT_SESSION_ORIGIN") != origin:
@@ -206,11 +312,13 @@ def main(base: str, session: str | None, storage_key: str | None, engine: str) -
                 queue.extend(link for link in links(page, origin) if link not in seen)
                 problems += opened_views(page, url)
                 problems += reflow(page, url)
-                if urlsplit(url).path == "/ocade-jarvis":
+                interactions = {"/": (settings_keyboard, chat_mobile_navigation, chat_first_draft),
+                                "/ocade-jarvis": (jarvis_mobile_navigation,), "/help": (help_keyboard,)}
+                for check in interactions.get(urlsplit(url).path, ()):
                     try:
-                        jarvis_mobile_navigation(page, url)
+                        check(page, url)
                     except AssertionError as error:
-                        problems.append(f"mobile JARVIS navigation: {str(error)[:200]}")
+                        problems.append(f"{check.__name__}: {str(error)[:200]}")
             except Exception as error:  # noqa: BLE001 - a page that cannot be audited is a finding
                 problems = [f"could not audit: {str(error)[:200]}"]
             report[urlsplit(url).path] = problems

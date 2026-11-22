@@ -1,4 +1,5 @@
-import { useCallback, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { loadSupabaseClient } from "@/integrations/supabase/on-demand";
 import { movePushToThisSession } from "@/lib/notifications/push-device";
 import { answerChallenge, listVerifiedFactors } from "@/lib/security/mfa";
@@ -39,15 +40,20 @@ export function useConfirmIdentity(): {
   const [problem, setProblem] = useState<string | null>(null);
   const settle = useRef<((proved: boolean) => void) | null>(null);
   const form = useRef<HTMLFormElement>(null);
-  useModalFocus(form, step.kind !== "idle");
+  const codeInput = useRef<HTMLInputElement>(null);
 
-  const finish = (proved: boolean) => {
+  const finish = useCallback((proved: boolean) => {
     settle.current?.(proved);
     settle.current = null;
     setStep({ kind: "idle" });
     setCode("");
     setProblem(null);
-  };
+  }, []);
+  const cancel = useCallback(() => finish(false), [finish]);
+  useModalFocus(form, step.kind !== "idle", cancel);
+  useEffect(() => {
+    codeInput.current?.focus();
+  }, [step.kind]);
 
   const ask = useCallback(async (): Promise<boolean> => {
     setStep({ kind: "loading" });
@@ -150,65 +156,68 @@ export function useConfirmIdentity(): {
   };
 
   const dialog =
-    step.kind === "idle" ? null : (
-      <div className="fixed inset-0 z-[60] grid place-items-center bg-black/60 p-4">
-        <form
-          ref={form}
-          role="dialog"
-          aria-modal="true"
-          aria-label="Confirm it's you"
-          onSubmit={(event) => {
-            event.preventDefault();
-            if (code.replace(/\D/g, "").length >= 6 && !busy) void submit();
-          }}
-          className="w-full max-w-sm rounded-xl border border-border bg-background p-4 text-sm"
-        >
-          <p className="font-medium text-foreground">Confirm it&apos;s you</p>
-          <p className="mt-1 text-[0.8125rem] leading-5 text-muted-foreground">
-            {step.kind === "loading"
-              ? "One moment…"
-              : step.kind === "totp"
-                ? "Enter the code your authenticator app shows now."
-                : step.email
-                  ? `Enter the numeric verification code from the latest email to ${step.email}. If it contains only a sign-in link, cancel: code email delivery must be configured first.`
-                  : "OCADE could not send a code."}
-          </p>
-          {step.kind === "totp" || (step.kind === "email" && step.email) ? (
-            <input
-              value={code}
-              onChange={(event) => setCode(event.target.value.replace(/\D/g, "").slice(0, 8))}
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              autoFocus
-              aria-label="Verification code"
-              placeholder="123456"
-              className="mt-3 h-10 w-full rounded-md border border-border bg-transparent px-3 text-center font-mono tracking-[0.3em] text-foreground outline-none focus-visible:border-ring"
-            />
-          ) : null}
-          {problem ? (
-            <p role="alert" className="mt-2 text-[0.8125rem] text-destructive">
-              {problem}
-            </p>
-          ) : null}
-          <div className="mt-3 flex justify-end gap-2">
-            <button
-              type="button"
-              onClick={() => finish(false)}
-              className="h-8 rounded-md px-3 text-sm text-muted-foreground hover:text-foreground"
+    step.kind === "idle"
+      ? null
+      : createPortal(
+          <div className="fixed inset-0 z-[60] grid place-items-center overflow-y-auto bg-black/60 p-4">
+            <form
+              ref={form}
+              role="dialog"
+              aria-modal="true"
+              aria-label="Confirm it's you"
+              onSubmit={(event) => {
+                event.preventDefault();
+                if (code.replace(/\D/g, "").length >= 6 && !busy) void submit();
+              }}
+              className="w-full max-w-sm rounded-xl border border-border bg-background p-4 text-sm"
             >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={busy || code.replace(/\D/g, "").length < 6}
-              className="h-8 rounded-md bg-foreground px-3 text-sm text-background disabled:opacity-40"
-            >
-              {busy ? "Checking…" : "Confirm"}
-            </button>
-          </div>
-        </form>
-      </div>
-    );
+              <p className="font-medium text-foreground">Confirm it&apos;s you</p>
+              <p className="mt-1 text-[0.8125rem] leading-5 text-muted-foreground">
+                {step.kind === "loading"
+                  ? "One moment…"
+                  : step.kind === "totp"
+                    ? "Enter the code your authenticator app shows now."
+                    : step.email
+                      ? `Enter the numeric verification code from the latest email to ${step.email}. If it contains only a sign-in link, cancel: code email delivery must be configured first.`
+                      : "OCADE could not send a code."}
+              </p>
+              {step.kind === "totp" || (step.kind === "email" && step.email) ? (
+                <input
+                  ref={codeInput}
+                  value={code}
+                  onChange={(event) => setCode(event.target.value.replace(/\D/g, "").slice(0, 8))}
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  aria-label="Verification code"
+                  placeholder="123456"
+                  className="mt-3 h-11 w-full rounded-md border border-border bg-transparent px-3 text-center font-mono text-base tracking-[0.3em] text-foreground focus-visible:border-ring"
+                />
+              ) : null}
+              {problem ? (
+                <p role="alert" className="mt-2 text-[0.8125rem] text-destructive">
+                  {problem}
+                </p>
+              ) : null}
+              <div className="mt-3 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={cancel}
+                  className="h-11 rounded-md px-3 text-sm text-muted-foreground hover:text-foreground sm:h-8"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={busy || code.replace(/\D/g, "").length < 6}
+                  className="h-11 rounded-md bg-foreground px-3 text-sm text-background disabled:opacity-40 sm:h-8"
+                >
+                  {busy ? "Checking…" : "Confirm"}
+                </button>
+              </div>
+            </form>
+          </div>,
+          document.body,
+        );
 
   return { withProof, dialog };
 }

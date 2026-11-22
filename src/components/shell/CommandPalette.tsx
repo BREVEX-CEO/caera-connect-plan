@@ -1,5 +1,5 @@
 import { useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSettingsPanel, type SettingsCategory } from "@/components/settings/settings-panel";
 import { matchScore } from "@/lib/jarvis/mentions";
 import { useModalFocus } from "@/lib/use-modal-focus";
@@ -108,18 +108,20 @@ export function CommandPalette() {
   const navigate = useNavigate();
   const panel = useSettingsPanel();
   const dialog = useRef<HTMLDivElement>(null);
-  useModalFocus(dialog, open);
+  const close = useCallback(() => setOpen(false), []);
+  useModalFocus(dialog, open, close);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
-      if ((event.ctrlKey || event.metaKey) && !event.shiftKey && event.code === "KeyK") {
-        event.preventDefault();
-        setOpen((current) => !current);
-        setQuery("");
-        setActive(0);
-      } else if (event.key === "Escape") {
-        setOpen(false);
-      }
+      if (event.defaultPrevented || event.isComposing || event.repeat) return;
+      if ((!event.ctrlKey && !event.metaKey) || event.shiftKey || event.code !== "KeyK") return;
+      // Leave approvals, consent and identity confirmation in control of focus.
+      const top = document.activeElement?.closest('[aria-modal="true"]');
+      if (top && top !== dialog.current && !top.hasAttribute("data-allows-command-palette")) return;
+      event.preventDefault();
+      setOpen((current) => !current);
+      setQuery("");
+      setActive(0);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -127,6 +129,7 @@ export function CommandPalette() {
 
   const signedIn = Boolean(useSession().user);
   const results = useMemo(() => rankCommands(query, signedIn), [query, signedIn]);
+  const activeIndex = Math.min(active, results.length - 1);
   if (!open) return null;
 
   const run = (command: Command | undefined) => {
@@ -137,7 +140,7 @@ export function CommandPalette() {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 px-4 pt-[15vh]"
+      className="fixed inset-0 z-[55] flex items-start justify-center bg-black/40 px-4 pt-[15dvh]"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) setOpen(false);
       }}
@@ -150,61 +153,64 @@ export function CommandPalette() {
         className="w-full max-w-lg overflow-hidden rounded-xl border border-border bg-background shadow-xl"
       >
         <input
-          autoFocus
           value={query}
           onChange={(event) => {
             setQuery(event.target.value);
             setActive(0);
           }}
           onKeyDown={(event) => {
+            if (event.nativeEvent.isComposing) return;
             if (event.key === "ArrowDown" || event.key === "ArrowUp") {
               event.preventDefault();
-              const count = Math.max(results.length, 1);
-              setActive((index) => (index + (event.key === "ArrowDown" ? 1 : count - 1)) % count);
+              const count = results.length;
+              if (!count) return;
+              const next = (activeIndex + (event.key === "ArrowDown" ? 1 : count - 1)) % count;
+              setActive(next);
+              document
+                .getElementById(`ocade-command-${next}`)
+                ?.scrollIntoView({ block: "nearest" });
             } else if (event.key === "Enter") {
               event.preventDefault();
-              run(results[active]);
+              run(results[activeIndex]);
             }
           }}
           role="combobox"
-          aria-expanded="true"
+          aria-label="Search commands and settings"
+          aria-expanded={results.length > 0}
           aria-controls="ocade-commands"
-          aria-activedescendant={results.length ? `ocade-command-${active}` : undefined}
+          aria-activedescendant={activeIndex >= 0 ? `ocade-command-${activeIndex}` : undefined}
           placeholder="Search commands and settings"
-          className="h-12 w-full border-b border-border bg-transparent px-4 text-[0.9375rem] outline-none placeholder:text-muted-foreground"
+          className="h-12 w-full border-b border-border bg-transparent px-4 text-base placeholder:text-muted-foreground focus-visible:outline-offset-[-2px]"
         />
+        <ul
+          id="ocade-commands"
+          role="listbox"
+          aria-label="Commands"
+          hidden={results.length === 0}
+          className="max-h-[min(20rem,65dvh)] overflow-y-auto py-1"
+        >
+          {results.map((command, index) => (
+            <li
+              key={command.label}
+              id={`ocade-command-${index}`}
+              role="option"
+              aria-selected={index === activeIndex}
+              onMouseEnter={() => setActive(index)}
+              onClick={() => run(command)}
+              className={
+                "flex min-h-11 cursor-pointer items-center px-4 py-2 text-sm text-foreground " +
+                (index === activeIndex ? "bg-accent" : "")
+              }
+            >
+              {command.label}
+            </li>
+          ))}
+        </ul>
         {results.length === 0 ? (
           <p className="px-4 py-3 text-sm text-muted-foreground" role="status">
             Nothing matches. Try another word.
           </p>
-        ) : (
-          <ul
-            id="ocade-commands"
-            role="listbox"
-            aria-label="Commands"
-            className="max-h-80 overflow-y-auto py-1"
-          >
-            {results.map((command, index) => (
-              <li
-                key={command.label}
-                id={`ocade-command-${index}`}
-                role="option"
-                aria-selected={index === active}
-                onMouseEnter={() => setActive(index)}
-                onMouseDown={(event) => {
-                  event.preventDefault();
-                  run(command);
-                }}
-                className={
-                  "cursor-pointer px-4 py-2 text-sm text-foreground " +
-                  (index === active ? "bg-accent" : "")
-                }
-              >
-                {command.label}
-              </li>
-            ))}
-          </ul>
-        )}
+        ) : null}
       </div>
     </div>
   );

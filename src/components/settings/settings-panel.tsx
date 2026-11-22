@@ -85,15 +85,6 @@ export function SettingsPanelProvider({ children }: { children: ReactNode }) {
     window.history.replaceState(window.history.state, "", url.pathname + url.search + url.hash);
   }, []);
 
-  useEffect(() => {
-    if (!category) return;
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") close();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [category, close]);
-
   return (
     <SettingsPanelContext.Provider value={value}>
       {children}

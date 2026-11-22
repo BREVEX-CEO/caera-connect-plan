@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useId, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { PublicPage } from "@/components/shell/PublicPage";
 import { cn } from "@/lib/utils";
@@ -382,10 +382,11 @@ const SEARCHED = QUESTIONS.map((entry) =>
 function HelpPage() {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<Category | null>(null);
-  const words = query.trim().toLowerCase();
+  const words = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
   const shown = QUESTIONS.filter(
     (entry, at) =>
-      (!category || entry.category === category) && (!words || SEARCHED[at]!.includes(words)),
+      (!category || entry.category === category) &&
+      words.every((word) => SEARCHED[at]!.includes(word)),
   );
   return (
     <PublicPage title="Help" intro="Short answers, in plain words." backToTop>
@@ -398,7 +399,7 @@ function HelpPage() {
         value={query}
         onChange={(event) => setQuery(event.target.value)}
         placeholder="Search Help"
-        className="h-11 w-full rounded-xl border border-border/70 bg-transparent px-4 text-sm outline-none focus-visible:border-foreground/40"
+        className="h-11 w-full rounded-xl border border-border/70 bg-transparent px-4 text-base focus-visible:border-foreground/40"
       />
       <div className="mt-3 flex flex-wrap gap-2" role="group" aria-label="Topics">
         {CATEGORIES.map((name) => (
@@ -408,7 +409,7 @@ function HelpPage() {
             aria-pressed={category === name}
             onClick={() => setCategory((current) => (current === name ? null : name))}
             className={cn(
-              "rounded-full border px-3 py-1 text-xs transition-colors",
+              "min-h-9 rounded-full border px-3 py-1 text-xs transition-colors",
               category === name
                 ? "border-foreground bg-foreground text-background"
                 : "border-border/70 text-muted-foreground hover:text-foreground",
@@ -419,17 +420,24 @@ function HelpPage() {
         ))}
       </div>
 
-      <div className="mt-6 divide-y divide-border/50 border-y border-border/50">
+      <p role="status" className={shown.length ? "sr-only" : "mt-6 text-sm text-muted-foreground"}>
+        {words.length || category
+          ? shown.length === 0
+            ? "No matches. Try fewer words or choose another topic."
+            : `${shown.length} ${shown.length === 1 ? "answer" : "answers"} found.`
+          : ""}
+      </p>
+      <div
+        className={cn(
+          "mt-6",
+          shown.length > 0 && "divide-y divide-border/50 border-y border-border/50",
+        )}
+      >
         {shown.map((entry) => (
           <Faq key={entry.question} question={entry.question}>
             {entry.answer}
           </Faq>
         ))}
-        {shown.length === 0 ? (
-          <p className="py-6 text-sm text-muted-foreground">
-            Nothing matches that. Try fewer words.
-          </p>
-        ) : null}
       </div>
 
       <p className="mt-8 text-sm text-muted-foreground">
@@ -443,12 +451,14 @@ function HelpPage() {
 
 function Faq({ question, children }: { question: string; children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
+  const answer = useId();
   return (
     <div>
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
         aria-expanded={open}
+        aria-controls={answer}
         className="flex w-full items-center justify-between gap-4 py-3.5 text-left text-sm text-foreground"
       >
         {question}
@@ -460,11 +470,13 @@ function Faq({ question, children }: { question: string; children: React.ReactNo
           aria-hidden
         />
       </button>
-      {open ? (
-        <div className="pb-4 text-sm leading-6 text-muted-foreground [&_a]:text-foreground [&_a]:underline">
-          {children}
-        </div>
-      ) : null}
+      <div
+        id={answer}
+        hidden={!open}
+        className="pb-4 text-sm leading-6 text-muted-foreground [&_a]:text-foreground [&_a]:underline"
+      >
+        {open ? children : null}
+      </div>
     </div>
   );
 }

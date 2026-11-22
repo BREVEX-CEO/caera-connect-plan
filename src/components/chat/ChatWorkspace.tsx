@@ -54,8 +54,15 @@ const CHOICES: { id: IntelligenceChoice; label: string }[] = [
 ];
 
 /** A choice under More closes it; the chip beside the composer then says it is on. */
-const closeMore = (event: MouseEvent<HTMLElement>) =>
-  event.currentTarget.closest("details")?.removeAttribute("open");
+const closeMore = (event: MouseEvent<HTMLElement>) => {
+  const details = event.currentTarget.closest("details");
+  if (!details) return;
+  details.open = false;
+  details.querySelector("summary")?.focus();
+};
+
+const EMAIL_DRAFT_EXAMPLE =
+  "Draft a short email to reschedule a meeting. Suggest Tuesday morning or Thursday afternoon.";
 
 /**
  * A message written before signing in is held here, in this tab, and sent once
@@ -372,7 +379,7 @@ export function ChatWorkspace() {
         ) : null
       }
     >
-      <div className="flex h-[calc(100vh-3rem)] flex-col md:h-screen">
+      <div className="flex h-[calc(100dvh-3rem)] flex-col md:h-dvh">
         {/*
           EMPTY IS ONE CENTRED GROUP, NOT A HEADING ADRIFT FROM A COMPOSER PINNED
           TO THE FLOOR. The reference puts the question and the thing you answer
@@ -401,19 +408,27 @@ export function ChatWorkspace() {
           </button>
         ) : null}
         {empty ? null : (
-          <MessageList
-            messages={chat.messages}
-            streaming={chat.streaming}
-            loading={chat.loadingMessages}
-            failed={chat.messagesFailed}
-            onRetryLoad={() => void chat.reloadMessages()}
-            busy={chat.busy}
-            onResend={(id, text) => void chat.resend(id, choice, text, quality)}
-            onRemove={(id) => void chat.removeMessage(id)}
-          />
+          <>
+            <h1 className="sr-only">Chat</h1>
+            <MessageList
+              messages={chat.messages}
+              streaming={chat.streaming}
+              loading={chat.loadingMessages}
+              failed={chat.messagesFailed}
+              onRetryLoad={() => void chat.reloadMessages()}
+              busy={chat.busy}
+              onResend={(id, text) => void chat.resend(id, choice, text, quality)}
+              onRemove={(id) => void chat.removeMessage(id)}
+            />
+          </>
         )}
 
-        <div className={cn("px-5", empty ? "flex flex-1 flex-col justify-center pb-24" : "pb-6")}>
+        <div
+          className={cn(
+            "px-5",
+            empty ? "flex flex-1 flex-col justify-center py-4 sm:pb-24" : "pb-6",
+          )}
+        >
           <div className="mx-auto w-full max-w-3xl">
             {empty ? (
               <h1 className="mb-6 text-center text-[1.75rem] font-semibold tracking-tight text-foreground">
@@ -495,7 +510,7 @@ export function ChatWorkspace() {
                   }
                 }}
                 placeholder="Ask anything"
-                className="ocade-scroll max-h-60 w-full resize-none bg-transparent px-1 text-[0.9375rem] leading-6 text-foreground outline-none placeholder:text-muted-foreground"
+                className="ocade-scroll max-h-60 w-full resize-none bg-transparent px-1 text-base leading-6 text-foreground placeholder:text-muted-foreground sm:text-[0.9375rem]"
               />
 
               {/*
@@ -573,8 +588,6 @@ export function ChatWorkspace() {
                       disabled={chat.busy}
                     />
                   ) : null}
-                  {choice === "online" && user ? <ModelSource surface="chat" /> : null}
-
                   {/* Each option that is on shows as a chip; its x turns it off. */}
                   {[
                     canResearch && research && { label: "Research", off: () => setResearch(false) },
@@ -693,7 +706,7 @@ export function ChatWorkspace() {
                       type="button"
                       onClick={chat.stop}
                       aria-label="Stop"
-                      className="grid h-8 w-8 place-items-center rounded-md bg-secondary text-secondary-foreground transition-opacity hover:opacity-90"
+                      className="grid size-11 place-items-center rounded-md border border-destructive/50 text-destructive transition-colors hover:bg-destructive/10 sm:size-8"
                     >
                       <Square className="h-3.5 w-3.5" aria-hidden />
                     </button>
@@ -703,13 +716,19 @@ export function ChatWorkspace() {
                       onClick={() => void send()}
                       disabled={draft.trim().length === 0 || offlineGated}
                       aria-label="Send"
-                      className="grid h-8 w-8 place-items-center rounded-md bg-primary text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-40"
+                      className="grid size-11 place-items-center rounded-md bg-primary text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-40 sm:size-8"
                     >
                       <ArrowUp className="h-4 w-4" aria-hidden />
                     </button>
                   )}
                 </div>
               </div>
+
+              {user && online && choice !== "offline" ? (
+                <div className="mt-1 flex justify-end">
+                  <ModelSource surface="chat" automatic={choice === "auto"} />
+                </div>
+              ) : null}
 
               {/*
                 SUBTLE, BUT SAID, AND IN ITS OWN PLACE.
@@ -729,6 +748,22 @@ export function ChatWorkspace() {
                 </p>
               ) : null}
             </div>
+
+            {empty && !draft && !offlineGated ? (
+              <div className="mt-2 flex justify-center">
+                <button
+                  type="button"
+                  className="min-h-11 rounded-md px-3 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                  onClick={() => {
+                    setDraft(EMAIL_DRAFT_EXAMPLE);
+                    textarea.current?.focus();
+                    window.setTimeout(grow, 0);
+                  }}
+                >
+                  Try an email draft
+                </button>
+              </div>
+            ) : null}
 
             {/*
               ONE LINE, AND ONLY ONE OF THEM AT A TIME. A failure and a
@@ -936,7 +971,7 @@ function IconButton({
       title={title ?? label}
       disabled={disabled}
       onClick={onClick}
-      className="grid h-8 w-8 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
+      className="grid size-11 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:pointer-events-none disabled:opacity-40 sm:size-8"
     >
       {children}
     </button>

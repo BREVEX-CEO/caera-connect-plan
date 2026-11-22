@@ -12,7 +12,7 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from "react";
 import {
   ArrowUpCircle,
   Images,
@@ -20,7 +20,6 @@ import {
   Menu,
   MessageSquare,
   Orbit,
-  PanelLeftClose,
   PenSquare,
   Settings as SettingsIcon,
   ShieldCheck,
@@ -58,26 +57,28 @@ export function AppShell({
   sidebarExtra?: ReactNode;
 }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const closeDrawer = useCallback(() => setDrawerOpen(false), []);
   const pathname = useRouterState({ select: (state) => state.location.pathname });
 
   // A navigation always closes the drawer; leaving it open over the new screen
   // is the classic way a mobile drawer becomes a trap.
-  useEffect(() => setDrawerOpen(false), [pathname]);
+  useEffect(closeDrawer, [pathname, closeDrawer]);
   const drawer = useRef<HTMLDivElement>(null);
-  useModalFocus(drawer, drawerOpen);
+  useModalFocus(drawer, drawerOpen, closeDrawer);
 
   useEffect(() => {
     if (!drawerOpen) return;
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setDrawerOpen(false);
+    const desktop = window.matchMedia("(min-width: 48rem)");
+    const onResize = () => {
+      if (desktop.matches) closeDrawer();
     };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [drawerOpen]);
+    desktop.addEventListener("change", onResize);
+    return () => desktop.removeEventListener("change", onResize);
+  }, [drawerOpen, closeDrawer]);
 
   return (
     <div className="flex min-h-screen bg-background text-foreground">
-      <a href="#workspace" className="skip-link">
+      <a href="#workspace" tabIndex={0} className="skip-link">
         Skip to content
       </a>
 
@@ -93,18 +94,17 @@ export function AppShell({
           role="dialog"
           aria-modal="true"
           aria-label="Navigation"
-          className="fixed inset-0 z-50 md:hidden"
+          className="fixed inset-0 z-50 bg-black/60 md:hidden"
           onClickCapture={(event) => {
-            if ((event.target as HTMLElement).closest("[data-closes-drawer]")) setDrawerOpen(false);
+            if (event.target === event.currentTarget) closeDrawer();
+            if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+            if (event.target instanceof Element && event.target.closest("a[href]")) closeDrawer();
           }}
         >
-          <button
-            type="button"
-            aria-label="Close navigation"
-            className="absolute inset-0 bg-black/60"
-            onClick={() => setDrawerOpen(false)}
-          />
-          <Sidebar className="relative flex h-full w-72 max-w-[85vw] border-r border-border/60 bg-background">
+          <Sidebar
+            closeDrawer={closeDrawer}
+            className="relative flex h-full w-72 max-w-[85vw] border-r border-border/60 bg-background"
+          >
             {sidebarExtra}
           </Sidebar>
         </div>
@@ -116,14 +116,16 @@ export function AppShell({
             type="button"
             onClick={() => setDrawerOpen(true)}
             aria-label="Open navigation"
-            className="grid h-9 w-9 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+            aria-haspopup="dialog"
+            aria-expanded={drawerOpen}
+            className="grid size-11 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
           >
             <Menu className="h-4.5 w-4.5" aria-hidden />
           </button>
           <BrandMark />
         </header>
 
-        <main id="workspace" className="min-w-0 flex-1">
+        <main id="workspace" tabIndex={-1} className="min-w-0 flex-1">
           {children}
         </main>
       </div>
@@ -131,18 +133,33 @@ export function AppShell({
   );
 }
 
-function Sidebar({ className, children }: { className?: string; children?: ReactNode }) {
+function Sidebar({
+  className,
+  children,
+  closeDrawer,
+}: {
+  className?: string;
+  children?: ReactNode;
+  closeDrawer?: () => void;
+}) {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
 
   return (
     <aside className={cn("flex-col bg-background/60", className)}>
-      <div className="flex h-14 items-center justify-between px-4">
-        <Link to="/" aria-label="OCADE home" className="rounded-md p-1">
+      <div className="flex h-14 shrink-0 flex-row-reverse items-center justify-between px-4">
+        {closeDrawer ? (
+          <button
+            type="button"
+            aria-label="Close navigation"
+            onClick={closeDrawer}
+            className="grid size-11 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          >
+            <X className="h-4 w-4" aria-hidden />
+          </button>
+        ) : null}
+        <Link to="/" aria-label="OCADE home" className="mr-auto rounded-md p-1">
           <BrandMark />
         </Link>
-        <span className="hidden text-muted-foreground md:inline-flex">
-          <PanelLeftClose className="h-4 w-4 opacity-0" aria-hidden />
-        </span>
       </div>
 
       <nav className="px-3" aria-label="Primary">
@@ -278,6 +295,7 @@ function AccountRow() {
   const [open, setOpen] = useState(false);
   const menuId = useId();
   const container = useRef<HTMLDivElement>(null);
+  const trigger = useRef<HTMLButtonElement>(null);
   const settings = useSettingsPanel();
   const usage = useCommercialUsage(Boolean(user) && !loading);
 
@@ -287,7 +305,10 @@ function AccountRow() {
       if (!container.current?.contains(event.target as Node)) setOpen(false);
     };
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setOpen(false);
+      if (event.key === "Escape" && !event.defaultPrevented) {
+        setOpen(false);
+        if (container.current?.contains(document.activeElement)) trigger.current?.focus();
+      }
     };
     document.addEventListener("pointerdown", onPointerDown);
     document.addEventListener("keydown", onKey);
@@ -329,6 +350,7 @@ function AccountRow() {
             type="button"
             role="menuitem"
             onClick={() => {
+              trigger.current?.focus();
               setOpen(false);
               settings.open();
             }}
@@ -381,6 +403,7 @@ function AccountRow() {
       ) : null}
 
       <button
+        ref={trigger}
         type="button"
         aria-haspopup="menu"
         aria-expanded={open}

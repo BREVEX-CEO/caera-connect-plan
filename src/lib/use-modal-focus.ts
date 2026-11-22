@@ -10,7 +10,11 @@ const openModals: HTMLElement[] = [];
  * whatever opened it when it closes (F-048). Without this, Tab walked out of
  * the dialog into the page behind it, and closing left focus on nothing.
  */
-export function useModalFocus(ref: RefObject<HTMLElement | null>, open: boolean): void {
+export function useModalFocus(
+  ref: RefObject<HTMLElement | null>,
+  open: boolean,
+  onClose?: () => void,
+): void {
   useEffect(() => {
     const modal = ref.current;
     if (!open || !modal) return;
@@ -26,14 +30,12 @@ export function useModalFocus(ref: RefObject<HTMLElement | null>, open: boolean)
       );
     if (!modal.contains(document.activeElement)) focusable()[0]?.focus();
     const onKey = (event: KeyboardEvent) => {
-      if (
-        event.key !== "Tab" ||
-        event.ctrlKey ||
-        event.metaKey ||
-        event.defaultPrevented ||
-        openModals.at(-1) !== modal
-      )
-        return;
+      if (event.defaultPrevented || event.isComposing || openModals.at(-1) !== modal) return;
+      if (event.key === "Escape" && onClose) {
+        event.preventDefault();
+        onClose();
+      }
+      if (event.key !== "Tab" || event.ctrlKey || event.metaKey) return;
       const items = focusable();
       if (items.length === 0) return;
       // The browser may omit links from its native tab order, so handle each step.
@@ -53,5 +55,5 @@ export function useModalFocus(ref: RefObject<HTMLElement | null>, open: boolean)
       openModals.splice(index, 1);
       if (index === openModals.length && opener?.isConnected) opener.focus();
     };
-  }, [ref, open]);
+  }, [ref, open, onClose]);
 }

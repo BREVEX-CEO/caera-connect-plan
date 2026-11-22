@@ -8,7 +8,7 @@
  * crawler fetches.
  */
 import { Link } from "@tanstack/react-router";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 import { ArrowUp } from "lucide-react";
 import { BrandMark } from "./BrandMark";
 
@@ -39,9 +39,10 @@ export function PublicPage({
   wide?: boolean;
 }) {
   const column = wide ? "max-w-5xl" : "max-w-3xl";
+  const heading = useRef<HTMLHeadingElement>(null);
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <a href="#content" className="skip-link">
+      <a href="#content" tabIndex={0} className="skip-link">
         Skip to content
       </a>
 
@@ -54,11 +55,11 @@ export function PublicPage({
         whatever the width; the desktop header is unchanged. The taller phone
         padding is the touch target the 13 px row did not have.
       */}
-      <header className="sticky top-0 z-10 border-b border-border/60 bg-background/80 backdrop-blur print:hidden">
+      <header className="border-b border-border/60 print:hidden">
         <div
           className={`mx-auto flex ${column} flex-col gap-1 px-5 py-2 sm:h-14 sm:flex-row sm:items-center sm:justify-between sm:gap-0 sm:py-0`}
         >
-          <Link to="/" aria-label="OCADE home" className="rounded-md">
+          <Link to="/" aria-label="OCADE home" tabIndex={0} className="rounded-md">
             <BrandMark showWordmark />
           </Link>
           <nav
@@ -69,6 +70,7 @@ export function PublicPage({
               <Link
                 key={link.to}
                 to={link.to}
+                tabIndex={0}
                 className="rounded-md px-2.5 py-2 text-[0.8125rem] text-muted-foreground transition-colors hover:bg-accent hover:text-foreground sm:py-1.5"
                 activeProps={{ className: "text-foreground" }}
               >
@@ -79,8 +81,14 @@ export function PublicPage({
         </div>
       </header>
 
-      <main id="content" className={`mx-auto ${column} px-5 py-12`}>
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground">{title}</h1>
+      <main id="content" tabIndex={-1} className={`mx-auto ${column} px-5 py-12`}>
+        <h1
+          ref={heading}
+          tabIndex={-1}
+          className="text-2xl font-semibold tracking-tight text-foreground"
+        >
+          {title}
+        </h1>
         {updated ? <p className="mt-2 text-xs text-muted-foreground">{updated}</p> : null}
         {intro ? <p className="mt-3 text-sm leading-6 text-muted-foreground">{intro}</p> : null}
         <div className="mt-8">{children}</div>
@@ -93,6 +101,7 @@ export function PublicPage({
           <span>OCADE by CARCC</span>
           <Link
             to="/"
+            tabIndex={0}
             className="inline-flex min-h-6 items-center transition-colors hover:text-foreground"
           >
             Open Chat
@@ -100,13 +109,13 @@ export function PublicPage({
         </div>
       </footer>
 
-      {backToTop ? <BackToTop /> : null}
+      {backToTop ? <BackToTop heading={heading} /> : null}
     </div>
   );
 }
 
 /** Appears only once there is enough page behind you to make it useful. */
-function BackToTop() {
+function BackToTop({ heading }: { heading: RefObject<HTMLHeadingElement | null> }) {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -121,8 +130,11 @@ function BackToTop() {
   return (
     <button
       type="button"
-      onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-      className="glass fixed bottom-6 right-6 grid h-10 w-10 place-items-center rounded-full text-foreground transition-colors hover:bg-accent print:hidden"
+      onClick={() => {
+        window.scrollTo({ top: 0 });
+        heading.current?.focus({ preventScroll: true });
+      }}
+      className="glass fixed bottom-6 right-6 grid size-11 place-items-center rounded-full text-foreground transition-colors hover:bg-accent print:hidden"
       aria-label="Back to top"
     >
       <ArrowUp className="h-4 w-4" aria-hidden />
