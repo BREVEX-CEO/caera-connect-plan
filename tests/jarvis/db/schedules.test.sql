@@ -206,4 +206,62 @@ BEGIN
   GET DIAGNOSTICS n = ROW_COUNT;
   PERFORM pg_temp.check(n = 1, 'the owner removed their schedule');
 END $$;
+-- Outcome Autopilot (plan 28.1.2): a goal states when it stops. A person cannot set it directly;
+-- a count ends the schedule on its last run; an end date ends it instead of claiming a later run.
+DO $$
+BEGIN
+  PERFORM public.jarvis_set_schedule_goal('a5a5a5a5-0000-4000-8000-000000000001',
+    (SELECT id FROM ids WHERE name = 's'), NULL, 2);
+  RAISE EXCEPTION 'schedules: a person set a stop condition directly';
+EXCEPTION WHEN insufficient_privilege THEN NULL;
+END $$;
+RESET ROLE;
+SET LOCAL ROLE service_role;
+DO $$
+DECLARE
+  a uuid := 'a5a5a5a5-0000-4000-8000-000000000001';
+  conv uuid := 'a5a5a5a5-1111-4000-8000-000000000001';
+  due timestamptz := now() + interval '30 seconds';
+  counted uuid;
+  dated uuid;
+  c record;
+BEGIN
+  counted := public.jarvis_save_schedule(a, NULL, conv, NULL, 'Chase invoices', due, 'daily', 'UTC');
+  dated := public.jarvis_save_schedule(a, NULL, conv, NULL, 'Renewal papers', due, 'daily', 'UTC');
+  PERFORM pg_temp.fails(format('SELECT public.jarvis_set_schedule_goal(%L, %L, now() - interval ''1 day'', NULL)',
+    a, dated), 'schedule_end_in_past');
+  PERFORM pg_temp.fails(format('SELECT public.jarvis_set_schedule_goal(%L, %L, NULL, 0)', a, counted),
+    'jarvis_schedules_max_runs_check');
+  PERFORM pg_temp.check(NOT public.jarvis_set_schedule_goal('b5b5b5b5-0000-4000-8000-000000000002', counted, NULL, 2),
+    'another person set a stop condition');
+  PERFORM pg_temp.check(public.jarvis_set_schedule_goal(a, counted, NULL, 2), 'count set');
+  PERFORM pg_temp.check(public.jarvis_set_schedule_goal(a, dated, due + interval '12 hours', NULL), 'end date set');
+
+  -- First run of each: the counted one keeps going; the dated one's next run falls after its end.
+  FOR c IN SELECT * FROM public.jarvis_claim_due_schedules(due + interval '1 second', 10)
+            WHERE id IN (counted, dated) LOOP
+    PERFORM pg_temp.check(public.jarvis_finish_schedule(c.id, c.occurrence, c.claim_token,
+      c.occurrence + interval '1 day', 'Reminder sent'), 'run finished');
+  END LOOP;
+  PERFORM pg_temp.check((SELECT active AND runs_done = 1 FROM public.jarvis_schedules WHERE id = counted),
+    'a counted goal stopped before its count');
+  PERFORM pg_temp.check((SELECT NOT active FROM public.jarvis_schedules WHERE id = dated),
+    'a goal ran on past its end date');
+
+  -- Second run reaches the count and ends it.
+  SELECT * INTO STRICT c FROM public.jarvis_claim_due_schedules(due + interval '1 day 1 second', 10)
+   WHERE id = counted;
+  PERFORM pg_temp.check(public.jarvis_finish_schedule(c.id, c.occurrence, c.claim_token,
+    c.occurrence + interval '1 day', 'Reminder sent'), 'second run finished');
+  PERFORM pg_temp.check((SELECT NOT active AND runs_done = 2 FROM public.jarvis_schedules WHERE id = counted),
+    'a counted goal became perpetual');
+
+  -- An end date moved before a waiting run ends the schedule at its time, without claiming it.
+  UPDATE public.jarvis_schedules SET active = true, next_at = due + interval '3 days',
+         run_until = due + interval '2 days' WHERE id = dated;
+  PERFORM pg_temp.check(NOT EXISTS (SELECT FROM public.jarvis_claim_due_schedules(due + interval '4 days', 10)
+                                     WHERE id = dated), 'a run after the end date was claimed');
+  PERFORM pg_temp.check((SELECT NOT active AND last_outcome = 'Ended on its end date'
+                           FROM public.jarvis_schedules WHERE id = dated), 'an ended goal stayed active');
+END $$;
 ROLLBACK;

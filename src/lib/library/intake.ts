@@ -27,6 +27,18 @@ const REASONS: Record<IntakeRefusal, string> = {
 
 const RUNNABLE_NAMES =
   /\.(exe|dll|sys|scr|com|pif|cpl|msi|msix|msp|appx|bat|cmd|ps1|psm1|vbs|vbe|js|jse|wsf|wsh|hta|lnk|url|reg|inf|jar|sh|bash|zsh|command|app|scpt|applescript|workflow|desktop|apk|deb|rpm|iso|img|dmg|vhd|vhdx)$/i;
+/**
+ * A file name as the person will see it (threat UPLOAD-08). Unicode is composed (NFC), and
+ * characters that change how a name is displayed without being visible are removed: bidirectional
+ * overrides and isolates (Unicode "format" characters, which make "invoice\u202Efdp.exe" read as "invoiceexe.pdf"), zero-width
+ * characters and control characters. The checks below then see the same name the person reads.
+ */
+export function libraryName(name: string): string {
+  return name
+    .normalize("NFC")
+    .replace(/\p{Cc}|\p{Cf}/gu, "")
+    .trim();
+}
 const MACRO_NAMES = /\.(docm|dotm|xlsm|xltm|xlam|pptm|potm|ppsm|ppam)$/i;
 
 function starts(bytes: Uint8Array, ...magic: number[]): boolean {

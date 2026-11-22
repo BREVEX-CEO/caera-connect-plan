@@ -52,7 +52,28 @@ function describe(row: Row): string {
     timeZone: row.time_zone,
   }).format(new Date(row.next_at));
   const repeat = REPEATS.find((r) => r.id === row.repeat)?.label ?? row.repeat;
-  return `${repeat} · next ${when} (${row.time_zone})`;
+  return `${repeat} · next ${when} (${row.time_zone})${stopRule(row)}`;
+}
+
+/** The goal's stop condition in plain words (Outcome Autopilot, plan 28.1.2). */
+function stopRule(row: Pick<Row, "run_until" | "max_runs" | "runs_done" | "time_zone">): string {
+  const parts: string[] = [];
+  if (row.max_runs) parts.push(`stops after ${row.max_runs} runs (${row.runs_done} done)`);
+  if (row.run_until) {
+    const until = new Intl.DateTimeFormat(undefined, {
+      dateStyle: "medium",
+      timeZone: row.time_zone,
+    }).format(new Date(row.run_until));
+    parts.push(`ends ${until}`);
+  }
+  return parts.length ? ` · ${parts.join(", ")}` : "";
+}
+
+type Stop = "never" | "count" | "date";
+
+/** The end of a calendar day in a zone, so "ends 30 Nov" includes that day's run. */
+function dayEnd(value: string, zone: string): Date | null {
+  return fieldInstant(`${value}T23:59`, zone);
 }
 
 export function Schedules() {
@@ -125,7 +146,13 @@ export function Schedules() {
       ) : (
         <ul className="flex flex-col gap-1.5">
           {schedules.data.map((row) => {
-            const finished = !row.active && row.repeat === "none" && row.last_run_at !== null;
+            const finished =
+              !row.active &&
+              row.last_run_at !== null &&
+              (row.repeat === "none" ||
+                (row.max_runs !== null && row.runs_done >= row.max_runs) ||
+                row.last_outcome === "Ended on its end date" ||
+                (row.run_until !== null && Date.parse(row.next_at) > Date.parse(row.run_until)));
             const changing =
               (toggle.isPending && toggle.variables?.id === row.id) ||
               (remove.isPending && remove.variables?.id === row.id);
@@ -219,6 +246,10 @@ function ScheduleForm({
 }) {
   const zone = row?.time_zone ?? localZone();
   const [problem, setProblem] = useState<string | null>(null);
+  const [repeats, setRepeats] = useState((row?.repeat ?? "none") !== "none");
+  const [stop, setStop] = useState<Stop>(
+    row?.max_runs ? "count" : row?.run_until ? "date" : "never",
+  );
   const what = useRef<HTMLTextAreaElement>(null);
   useEffect(() => {
     what.current?.focus();
@@ -238,6 +269,20 @@ function ScheduleForm({
     const at = fieldInstant(String(form.get("when") ?? ""), zone);
     if (!at || at.getTime() < Date.now()) return setProblem("Choose a time in the future.");
     const device = String(form.get("device") ?? "");
+    const repeat = String(form.get("repeat")) as ScheduleRepeat;
+    let runUntil: string | null = null;
+    let maxRuns: number | null = null;
+    if (repeat !== "none" && stop === "count") {
+      maxRuns = Number(form.get("runs"));
+      if (!Number.isInteger(maxRuns) || maxRuns < 1 || maxRuns > 1000)
+        return setProblem("Choose between 1 and 1000 runs.");
+    }
+    if (repeat !== "none" && stop === "date") {
+      const end = dayEnd(String(form.get("until") ?? ""), zone);
+      if (!end || end.getTime() < at.getTime())
+        return setProblem("Choose an end date on or after the first run.");
+      runUntil = end.toISOString();
+    }
     setProblem(null);
     save.mutate({
       data: {
@@ -245,8 +290,10 @@ function ScheduleForm({
         deviceId: device || null,
         what: String(form.get("what") ?? "").trim(),
         nextAt: at.toISOString(),
-        repeat: String(form.get("repeat")) as ScheduleRepeat,
+        repeat,
         timeZone: zone,
+        runUntil,
+        maxRuns,
       },
     });
   };
@@ -284,6 +331,7 @@ function ScheduleForm({
         id="schedule-repeat"
         name="repeat"
         defaultValue={row?.repeat ?? "none"}
+        onChange={(event) => setRepeats(event.target.value !== "none")}
         className="h-8 rounded-md border border-border bg-background px-2 text-sm"
       >
         {REPEATS.map((r) => (
@@ -292,6 +340,45 @@ function ScheduleForm({
           </option>
         ))}
       </select>
+      {repeats ? (
+        <>
+          <label className="text-xs text-muted-foreground" htmlFor="schedule-stop">
+            Stop
+          </label>
+          <select
+            id="schedule-stop"
+            value={stop}
+            onChange={(event) => setStop(event.target.value as Stop)}
+            className="h-8 rounded-md border border-border bg-background px-2 text-sm"
+          >
+            <option value="never">When I pause or delete it</option>
+            <option value="count">After a number of runs</option>
+            <option value="date">On a date</option>
+          </select>
+          {stop === "count" ? (
+            <input
+              aria-label="Number of runs"
+              name="runs"
+              type="number"
+              inputMode="numeric"
+              min={1}
+              max={1000}
+              required
+              defaultValue={row?.max_runs ?? 4}
+              className="h-8 rounded-md border border-border bg-transparent px-2 text-sm"
+            />
+          ) : stop === "date" ? (
+            <input
+              aria-label={`Last day (${zone})`}
+              name="until"
+              type="date"
+              required
+              defaultValue={row?.run_until ? fieldValue(row.run_until, zone).slice(0, 10) : ""}
+              className="h-8 rounded-md border border-border bg-transparent px-2 text-sm"
+            />
+          ) : null}
+        </>
+      ) : null}
       <label className="text-xs text-muted-foreground" htmlFor="schedule-device">
         Computer
       </label>

@@ -9,6 +9,7 @@
  * decides who may do what; the database does, and this file says it in words.
  */
 import { createServerFn } from "@tanstack/react-start";
+import { logRefusedChange } from "./refusal-log";
 import { z } from "zod";
 import { requireSession } from "@/lib/security/session-middleware";
 import { HIGH_RISK, requireAssurance } from "@/lib/security/assurance-middleware";
@@ -52,7 +53,7 @@ const reason = z.string().trim().min(10).max(500);
 const uuid = z.string().uuid();
 
 /** The database's refusals are written for an operator; anything else is one sentence. */
-function staffFailure(message: string): string {
+function staffFailure(message: string, actor: string): string {
   const known = [
     "Not found",
     "That is not a staff role.",
@@ -88,6 +89,7 @@ function staffFailure(message: string): string {
   ];
   if (/Confirm (it is you|the code from your authenticator app)/i.test(message)) return message;
   const sentence = known.find((known) => message.includes(known)) ?? "That change was not applied.";
+  logRefusedChange("staff", actor, sentence);
   // The database still says "Backup Owner"; the product calls every other owner an Owner.
   return sentence.replace(/(a|the) Backup Owner/, "another Owner");
 }
@@ -215,7 +217,7 @@ export const grantStaff = createServerFn({ method: "POST" })
       p_role: data.role,
       p_reason: data.reason,
     });
-    if (error) throw new Error(staffFailure(error.message));
+    if (error) throw new Error(staffFailure(error.message, context.userId));
     return { status: (result as { status: "granted" | "invited" }).status };
   });
 
@@ -238,7 +240,7 @@ export const setStaffPermissions = createServerFn({ method: "POST" })
       p_denied: data.denied,
       p_reason: data.reason,
     });
-    if (error) throw new Error(staffFailure(error.message));
+    if (error) throw new Error(staffFailure(error.message, context.userId));
     return { changed: changed === true };
   });
 
@@ -250,7 +252,7 @@ export const revokeStaff = createServerFn({ method: "POST" })
       p_user: data.userId,
       p_reason: data.reason,
     });
-    if (error) throw new Error(staffFailure(error.message));
+    if (error) throw new Error(staffFailure(error.message, context.userId));
     return { removed: removed === true };
   });
 
@@ -264,7 +266,7 @@ export const withdrawStaffInvite = createServerFn({ method: "POST" })
       p_invite: data.inviteId,
       p_reason: data.reason,
     });
-    if (error) throw new Error(staffFailure(error.message));
+    if (error) throw new Error(staffFailure(error.message, context.userId));
     return { withdrawn: withdrawn === true };
   });
 
@@ -277,7 +279,7 @@ export const transferOwnership = createServerFn({ method: "POST" })
       p_reason: data.reason,
       p_stay_owner: data.stayOwner,
     });
-    if (error) throw new Error(staffFailure(error.message));
+    if (error) throw new Error(staffFailure(error.message, context.userId));
     return { ok: true };
   });
 
@@ -295,7 +297,7 @@ export const grantUnlimited = createServerFn({ method: "POST" })
       p_until: data.until as string,
       p_reason: data.reason,
     });
-    if (error) throw new Error(staffFailure(error.message));
+    if (error) throw new Error(staffFailure(error.message, context.userId));
     return { ok: true };
   });
 
@@ -308,7 +310,7 @@ export const revokeUnlimited = createServerFn({ method: "POST" })
       p_user: data.userId,
       p_reason: data.reason,
     });
-    if (error) throw new Error(staffFailure(error.message));
+    if (error) throw new Error(staffFailure(error.message, context.userId));
     return { revoked: revoked === true };
   });
 
@@ -320,7 +322,7 @@ export const endAllStaffSessions = createServerFn({ method: "POST" })
     const { data: ended, error } = await context.supabase.rpc("ocade_staff_end_all_sessions", {
       p_reason: data.reason,
     });
-    if (error) throw new Error(staffFailure(error.message));
+    if (error) throw new Error(staffFailure(error.message, context.userId));
     return { ended: Number(ended ?? 0) };
   });
 
@@ -459,7 +461,7 @@ export const endCustomerSessions = createServerFn({ method: "POST" })
       p_user: data.userId,
       p_reason: data.reason,
     });
-    if (error) throw new Error(staffFailure(error.message));
+    if (error) throw new Error(staffFailure(error.message, context.userId));
     return { ended: Number(ended ?? 0) };
   });
 
@@ -483,7 +485,7 @@ export const removeCustomerDevice = createServerFn({ method: "POST" })
       device: data.deviceId,
       remove_reason: data.reason,
     });
-    if (error) throw new Error(staffFailure(error.message));
+    if (error) throw new Error(staffFailure(error.message, context.userId));
     return { removed: removed === true };
   });
 
@@ -505,7 +507,7 @@ export const resetCustomerSecondFactor = createServerFn({ method: "POST" })
       p_user: data.userId,
       p_reason: data.reason,
     });
-    if (error) throw new Error(staffFailure(error.message));
+    if (error) throw new Error(staffFailure(error.message, context.userId));
     if (allowed !== true) return { removed: 0 };
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: factors, error: listError } = await supabaseAdmin.auth.admin.mfa.listFactors({
@@ -567,7 +569,7 @@ export const adjustCustomerUsage = createServerFn({ method: "POST" })
       p_delta_hundredths: Math.round(data.uses * 100),
       p_reason: data.reason,
     });
-    if (error) throw new Error(staffFailure(error.message));
+    if (error) throw new Error(staffFailure(error.message, context.userId));
     return { used: Number(used ?? 0) / 100 };
   });
 
@@ -592,7 +594,7 @@ export const suspendCustomer = createServerFn({ method: "POST" })
       p_suspend: data.suspend,
       p_reason: data.reason,
     });
-    if (error) throw new Error(staffFailure(error.message));
+    if (error) throw new Error(staffFailure(error.message, context.userId));
     return { ok: true };
   });
 
@@ -619,7 +621,7 @@ export const deleteCustomerAccount = createServerFn({ method: "POST" })
         p_email: data.email,
         p_reason: `${data.reason.slice(0, 480)} (${reference})`,
       });
-      if (error) throw new Error(staffFailure(error.message));
+      if (error) throw new Error(staffFailure(error.message, context.userId));
       const { eraseAccount } = await import("@/lib/account/erase.server");
       const { pendingFiles } = await eraseAccount(data.userId).catch((cause: unknown) => {
         throw new Error(
@@ -671,7 +673,7 @@ export const openCase = createServerFn({ method: "POST" })
       p_conversation: data.conversationId,
       ...(data.assigneeId ? { p_assignee: data.assigneeId } : {}),
     });
-    if (error || !id) throw new Error(staffFailure(error?.message ?? ""));
+    if (error || !id) throw new Error(staffFailure(error?.message ?? "", context.userId));
     // The customer is told, in their own notifications, that OCADE opened
     // access and until when. Access to a conversation is never silent.
     const { sendNotification } = await import("@/lib/notifications/send.server");
@@ -697,7 +699,7 @@ export const listCustomerConversations = createServerFn({ method: "GET" })
     const { data: rows, error } = await context.supabase.rpc("ocade_case_conversations", {
       p_customer: data.userId,
     });
-    if (error) throw new Error(staffFailure(error.message));
+    if (error) throw new Error(staffFailure(error.message, context.userId));
     return (rows ?? []).map((row) => ({ id: row.id, title: row.title }));
   });
 
@@ -709,7 +711,7 @@ export const closeCase = createServerFn({ method: "POST" })
       p_case: data.caseId,
       p_reason: data.reason,
     });
-    if (error) throw new Error(staffFailure(error.message));
+    if (error) throw new Error(staffFailure(error.message, context.userId));
     return { closed: closed === true };
   });
 
@@ -774,7 +776,7 @@ export const readCaseConversation = createServerFn({ method: "GET" })
       p_case: data.caseId,
       p_conversation: data.conversationId,
     });
-    if (error) throw new Error(staffFailure(error.message));
+    if (error) throw new Error(staffFailure(error.message, context.userId));
     return (rows ?? []).map((row) => ({
       role: row.role,
       content: row.content,
@@ -818,7 +820,7 @@ export const readServiceControls = createServerFn({ method: "GET" })
   .middleware([requireSession])
   .handler(async ({ context }): Promise<ServiceControl[]> => {
     const { data, error } = await context.supabase.rpc("ocade_read_service_controls");
-    if (error) throw new Error(staffFailure(error.message));
+    if (error) throw new Error(staffFailure(error.message, context.userId));
     return (data ?? []).map((row) => ({
       key: row.key,
       paused: row.paused,
@@ -848,7 +850,7 @@ export const setServiceControl = createServerFn({ method: "POST" })
       pause: data.pause,
       change_reason: data.reason,
     });
-    if (error) throw new Error(staffFailure(error.message));
+    if (error) throw new Error(staffFailure(error.message, context.userId));
     return { paused: changed?.paused === true };
   });
 

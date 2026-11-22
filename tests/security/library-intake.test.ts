@@ -7,7 +7,12 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { randomBytes } from "node:crypto";
 import { deflateRawSync } from "node:zlib";
-import { intakeRefusal, intakeRefusalStored, zipEntries } from "../../src/lib/library/intake.ts";
+import {
+  intakeRefusal,
+  intakeRefusalStored,
+  libraryName,
+  zipEntries,
+} from "../../src/lib/library/intake.ts";
 
 /** A real ZIP built in memory: stored or deflated entries with a correct central directory. */
 function zip(files: { name: string; data: Buffer; claimSize?: number }[]): Uint8Array {
@@ -176,4 +181,16 @@ test("a stored large file gets the same decision without being held in memory (1
     assert.equal(refused?.code ?? null, expected, name);
     assert.equal(intakeRefusal(data, name)?.code ?? null, expected, `${name} in memory`);
   }
+});
+
+test("UPLOAD-08: a name reads the same as it is checked; invisible and direction characters go", () => {
+  // "invoice<RLO>fdp.exe" displays as "invoiceexe.pdf"; without the override it is plainly a program.
+  const disguised = "invoice\u202Efdp.exe";
+  assert.equal(libraryName(disguised), "invoicefdp.exe");
+  assert.equal(intakeRefusal(new Uint8Array([1, 2, 3]), libraryName(disguised))?.code, "script");
+  assert.equal(libraryName("re\u200Bport\u2066.pdf\u2069"), "report.pdf");
+  assert.equal(libraryName("tab\tand\u0000null.txt"), "tabandnull.txt");
+  // Composed and decomposed forms of one name are one name.
+  assert.equal(libraryName("café.txt"), libraryName("café.txt"));
+  assert.equal(libraryName("  ordinary name.docx "), "ordinary name.docx");
 });

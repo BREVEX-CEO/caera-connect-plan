@@ -24,6 +24,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "audit:secrets": "node scripts/scan-bundle-secrets.mjs",
+    "audit:install-scripts": "node scripts/check-install-scripts.mjs",
     "supabase:types-check": "node scripts/check-supabase-types.mjs",
     "deploy:check": "node scripts/deploy.mjs --check",
     "deploy:web": "node scripts/deploy.mjs --execute",

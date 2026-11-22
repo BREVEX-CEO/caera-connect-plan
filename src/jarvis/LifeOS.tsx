@@ -8,6 +8,7 @@ import {
   type ObligationView,
 } from "@/lib/jarvis/lifeos";
 import { useSession } from "@/lib/session";
+import { ProblemRadar } from "./ProblemRadar";
 import { saveFile } from "@/lib/utils";
 
 type Item = Awaited<ReturnType<typeof listObligations>>[number];
@@ -27,7 +28,12 @@ const button =
 
 export function LifeOS() {
   const { user } = useSession();
-  return user ? <ObligationList key={user.id} account={user.id} /> : null;
+  return user ? (
+    <div key={user.id} className="grid gap-4">
+      <ProblemRadar account={user.id} />
+      <ObligationList account={user.id} />
+    </div>
+  ) : null;
 }
 
 function ObligationList({ account }: { account: string }) {

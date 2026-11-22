@@ -625,8 +625,11 @@ export type Database = {
           id: string
           last_outcome: string | null
           last_run_at: string | null
+          max_runs: number | null
           next_at: string
           repeat: string
+          run_until: string | null
+          runs_done: number
           time_zone: string
           user_id: string
           watch_id: string | null
@@ -644,8 +647,11 @@ export type Database = {
           id?: string
           last_outcome?: string | null
           last_run_at?: string | null
+          max_runs?: number | null
           next_at: string
           repeat?: string
+          run_until?: string | null
+          runs_done?: number
           time_zone?: string
           user_id: string
           what: string
@@ -662,8 +668,11 @@ export type Database = {
           id?: string
           last_outcome?: string | null
           last_run_at?: string | null
+          max_runs?: number | null
           next_at?: string
           repeat?: string
+          run_until?: string | null
+          runs_done?: number
           time_zone?: string
           user_id?: string
           watch_id?: string | null

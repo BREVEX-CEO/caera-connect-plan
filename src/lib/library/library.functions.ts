@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { intakeRefusal } from "./intake";
+import { intakeRefusal, libraryName } from "./intake";
 import { z } from "zod";
 import { requireSession } from "@/lib/security/session-middleware";
 import { imageMediaType, isMediaType } from "@/lib/media-type";
@@ -95,7 +95,7 @@ export const addLibraryItem = createServerFn({ method: "POST" })
   .middleware([requireSession])
   .validator(
     z.object({
-      name: z.string().trim().min(1).max(300),
+      name: z.string().max(600).transform(libraryName).pipe(z.string().min(1).max(300)),
       /*
        * Shaped like a media type, because it is recorded as one. It is never
        * acted on — see the stored content type below — but a column that says
@@ -289,7 +289,7 @@ export const finishLibraryUpload = createServerFn({ method: "POST" })
   .validator(
     z.object({
       id: uuid,
-      name: z.string().trim().min(1).max(300),
+      name: z.string().max(600).transform(libraryName).pipe(z.string().min(1).max(300)),
       mime: z.string().trim().min(1).max(200).refine(isMediaType, "That file type is not valid."),
       conversationId: uuid.nullish(),
     }).parse,

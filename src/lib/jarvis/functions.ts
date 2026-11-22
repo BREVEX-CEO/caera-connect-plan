@@ -401,12 +401,17 @@ const scheduleInput = z.object({
   nextAt: z.iso.datetime(),
   repeat: z.enum(["none", "daily", "weekdays", "weekly"]),
   timeZone: z.string().min(1).max(64),
+  /** Outcome Autopilot stop condition (plan 28.1.2): no run after this instant… */
+  runUntil: z.iso.datetime().nullable().default(null),
+  /** …and none after this many runs. Both omitted: it repeats until paused or deleted. */
+  maxRuns: z.number().int().min(1).max(1000).nullable().default(null),
 });
 
 const SCHEDULE_REFUSALS: Record<string, string> = {
   schedule_conversation_unavailable: "That conversation is not one of your JARVIS conversations.",
   schedule_device_unavailable: "That computer is not paired with your account, or was removed.",
   schedule_in_past: "Choose a time in the future.",
+  schedule_end_in_past: "Choose an end date in the future.",
   schedule_limit: "You already have 50 schedules. Delete one first.",
   schedule_not_found: "That schedule no longer exists.",
 };
@@ -425,7 +430,7 @@ export const listJarvisSchedules = createServerFn({ method: "GET" })
     const { data, error } = await context.supabase
       .from("jarvis_schedules")
       .select(
-        "id, conversation_id, device_id, what, next_at, repeat, time_zone, active, last_run_at, last_outcome",
+        "id, conversation_id, device_id, what, next_at, repeat, time_zone, active, last_run_at, last_outcome, run_until, max_runs, runs_done",
       )
       .is("watch_id", null)
       .order("next_at", { ascending: true });
@@ -469,6 +474,16 @@ export const saveJarvisSchedule = createServerFn({ method: "POST" })
       } as never,
     );
     if (error) throw scheduleRefusal(error.message);
+    const goal = await admin.rpc(
+      "jarvis_set_schedule_goal" as never,
+      {
+        p_user: context.userId,
+        p_id: id,
+        p_run_until: data.runUntil,
+        p_max_runs: data.maxRuns,
+      } as never,
+    );
+    if (goal.error) throw scheduleRefusal(goal.error.message);
     return { id: id as unknown as string };
   });
 

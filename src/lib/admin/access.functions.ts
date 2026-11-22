@@ -21,6 +21,7 @@
  * token can see a grant at all.
  */
 import { createServerFn } from "@tanstack/react-start";
+import { logRefusedChange } from "./refusal-log";
 import { z } from "zod";
 import { requireSession } from "@/lib/security/session-middleware";
 import { HIGH_RISK, requireAssurance } from "@/lib/security/assurance-middleware";
@@ -257,7 +258,7 @@ export const grantAccountAccess = createServerFn({ method: "POST" })
       grant_reason: data.reason,
       days: data.days,
     });
-    if (error) throw new Error(adminFailure(error.message));
+    if (error) throw new Error(adminFailure(error.message, context.userId));
     return { ok: true };
   });
 
@@ -275,7 +276,7 @@ export const revokeAccountAccess = createServerFn({ method: "POST" })
       grant_id: data.grantId,
       revoke_reason: data.reason,
     });
-    if (error) throw new Error(adminFailure(error.message));
+    if (error) throw new Error(adminFailure(error.message, context.userId));
     return { revoked: revoked === true };
   });
 
@@ -286,7 +287,7 @@ export const revokeAccountAccess = createServerFn({ method: "POST" })
  * An operator who is told "needs a recent second factor" can act. One told
  * "something went wrong" opens a ticket.
  */
-function adminFailure(message: string): string {
+function adminFailure(message: string, actor: string): string {
   const known = [
     "Only support admins may grant an entitlement.",
     "Only support admins may revoke an entitlement.",
@@ -298,5 +299,7 @@ function adminFailure(message: string): string {
     "Only support admins may read service controls.",
     "Say why, in at least ten characters.",
   ];
-  return known.find((sentence) => message.includes(sentence)) ?? "That change was not applied.";
+  const sentence = known.find((known) => message.includes(known)) ?? "That change was not applied.";
+  logRefusedChange("support", actor, sentence);
+  return sentence;
 }
