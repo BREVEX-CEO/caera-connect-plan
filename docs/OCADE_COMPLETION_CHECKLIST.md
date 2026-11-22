@@ -47,8 +47,22 @@ real hardware, real models or staging.
 | Install-script allowlist gate in `verify:full`                | SUPPLY-05   | `npm run audit:install-scripts`                               |
 | Refused staff/support changes logged with actor               | ADMIN-08    | `admin-refusal-log.test.ts`                                   |
 
-## 3. Gates at the head of this batch
+## 3. Gates
 
-Local, before push: `verify:full` 8/8, TypeScript security + JARVIS suites 387 pass / 0 real
-failures (one test needs Python Playwright on PATH), companion suite 340 OK (17 platform skips),
-database suite all groups + 57 rollbacks. Hosted run links are recorded in the session report.
+Local before push: `verify:full` 8/8; TypeScript security and JARVIS suites green (one test needs
+Python Playwright on PATH); companion suite 340 OK with 17 platform skips; database suite with 57
+rollbacks; signed-in local-stack browser audits (`evidence/2026-11-23-radar-autopilot/`).
+
+Hosted on `2185730`: CI, macOS bundle, static security and JARVIS cloud validation (dispatched,
+full matrix) green except one windows-2022 companion job that hung in asyncio's Proactor loop
+close after `test_fs_ops.Diagnostics` (a known intermittent hang first recorded 20 Nov; root
+cause not found without a Windows machine). Final-SHA runs are listed in the session report.
+
+## 4. Blockers that need the owner
+
+- **Staging schema:** staging lacks 17 branch migrations; Stage 5 benchmarks (single vs team,
+  `jarvis-staging-evaluation.yml` campaign `benchmark`) would test the new authority code against
+  an old schema. Applying migrations to the shared staging project needs the owner's go-ahead.
+- **Stage 6:** no consumer Windows 10/11 or macOS machine is attached; hosted runners are not
+  customer machines.
+- **Windows-2022 teardown hang:** needs a Windows machine to reproduce.
