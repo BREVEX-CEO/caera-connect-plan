@@ -41,7 +41,39 @@ BEGIN
 END;
 $$;
 
-
+CREATE OR REPLACE FUNCTION public.jarvis_resume_task(p_user uuid, p_task uuid, p_session uuid DEFAULT NULL)
+RETURNS uuid
+LANGUAGE plpgsql
+SECURITY INVOKER
+SET search_path TO ''
+AS $$
+DECLARE
+  v_controller uuid := gen_random_uuid();
+BEGIN
+  IF public.jarvis_paused() THEN
+    RAISE EXCEPTION 'jarvis_paused' USING ERRCODE = '42501';
+  END IF;
+  IF p_session IS NOT NULL AND NOT public.ocade_session_is_live(p_user, p_session) THEN
+    RAISE EXCEPTION 'session_ended' USING ERRCODE = '42501';
+  END IF;
+  UPDATE public.jarvis_tasks AS t
+     SET status = 'running', controller = v_controller, blocker = NULL,
+         checkpoint = CASE WHEN p_session IS NULL THEN t.checkpoint
+                      ELSE coalesce(t.checkpoint, '{}'::jsonb) || jsonb_build_object('authorizedSessionId', p_session) END,
+         user_wait_ms = t.user_wait_ms
+           + coalesce((extract(epoch FROM statement_timestamp() - t.paused_at) * 1000)::bigint, 0),
+         paused_at = NULL, updated_at = statement_timestamp()
+   WHERE t.id = p_task AND t.user_id = p_user AND t.status IN ('taken_over', 'waiting')
+     AND (p_session IS NOT NULL OR t.checkpoint ->> 'authorizedSessionId' IS NULL
+          OR public.ocade_session_is_live(p_user, (t.checkpoint ->> 'authorizedSessionId')::uuid))
+     AND EXISTS (SELECT 1 FROM public.jarvis_devices AS d
+                  WHERE d.id = t.device_id AND d.user_id = p_user AND d.revoked_at IS NULL);
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'task_not_found' USING ERRCODE = 'P0002';
+  END IF;
+  RETURN v_controller;
+END;
+$$;
 
 CREATE OR REPLACE FUNCTION public.jarvis_answer_form(p_user uuid, p_task uuid, p_values jsonb, p_client uuid)
 RETURNS uuid
