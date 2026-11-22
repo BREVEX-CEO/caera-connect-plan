@@ -1,11 +1,12 @@
 /** Repeated, verified outcomes of one person (R12-10): at least two, newest wording, top three. */
-import { countOutcomeChecks } from "./time-reclaimed.ts";
+import { countOutcomeChecks, isActualTask } from "./time-reclaimed.ts";
 
 export function habits(
-  tasks: readonly { title: string; checkpoint: unknown; outcome: unknown }[],
+  tasks: readonly { title: string; mode?: string; checkpoint: unknown; outcome: unknown }[],
 ): { title: string; times: number }[] {
   const groups = new Map<string, { title: string; times: number }>();
   for (const task of tasks) {
+    if (!isActualTask(task)) continue;
     const { checks, passed } = countOutcomeChecks(task.outcome, task.checkpoint);
     // Only work JARVIS proved: every one of its checks passed.
     if (!checks || passed !== checks) continue;

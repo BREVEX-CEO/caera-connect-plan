@@ -13,14 +13,15 @@ import {
 import { useSession } from "@/lib/session";
 import { Row } from "./rows";
 
-/** The person's own JARVIS tasks (RLS), newest first, at most 1,000. */
+/** The person's own live or background JARVIS tasks (RLS), newest first, at most 1,000. */
 const listTaskRecords = createServerFn({ method: "GET" })
   .middleware([requireSession])
   .handler(async ({ context }): Promise<TaskRecord[]> => {
     const { data, error } = await context.supabase
       .from("jarvis_tasks")
-      .select("title, status, created_at, finished_at, user_wait_ms, outcome, checkpoint")
+      .select("title, status, mode, created_at, finished_at, user_wait_ms, outcome, checkpoint")
       .eq("user_id", context.userId)
+      .in("mode", ["live", "background"])
       .order("created_at", { ascending: false })
       .limit(1000);
     if (error) throw new Error("Your JARVIS results could not be read just now.");

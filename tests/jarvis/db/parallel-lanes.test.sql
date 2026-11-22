@@ -14,12 +14,13 @@ BEGIN
 END $$;
 CREATE FUNCTION pg_temp.fails(p_sql text, p_expected text) RETURNS void LANGUAGE plpgsql AS $$
 BEGIN
-  EXECUTE p_sql;
-  RAISE EXCEPTION 'expected failure "%" but it succeeded: %', p_expected, p_sql;
-EXCEPTION WHEN OTHERS THEN
-  IF SQLERRM NOT LIKE '%' || p_expected || '%' THEN
+  BEGIN
+    EXECUTE p_sql;
+  EXCEPTION WHEN OTHERS THEN
+    IF SQLERRM LIKE '%' || p_expected || '%' THEN RETURN; END IF;
     RAISE EXCEPTION 'expected "%", got "%" for: %', p_expected, SQLERRM, p_sql;
-  END IF;
+  END;
+  RAISE EXCEPTION 'expected "%", but statement succeeded: %', p_expected, p_sql;
 END $$;
 CREATE TEMP TABLE lane_ids AS SELECT gen_random_uuid() AS user_id, gen_random_uuid() AS conversation_id;
 INSERT INTO auth.users (id, email) SELECT user_id, user_id::text || '@example.test' FROM lane_ids;

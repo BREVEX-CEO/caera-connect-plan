@@ -86,11 +86,13 @@ def record(seconds: int, button_down, pointer, element_at, inside, snapshot, ali
            now=time.monotonic, sleep=time.sleep) -> dict:
     """Run one bounded recording. Each argument is the desktop's own probe (see the workers)."""
     seconds = max(5, min(MAX_SECONDS, int(seconds)))
-    demo = Demonstration(snapshot())
     started, last_values, was_down = now(), now(), False
+    if not alive():
+        return {"steps": [], "recordedSeconds": 0, "complete": False}
+    demo = Demonstration(snapshot())
     while now() - started < seconds and len(demo.steps) < MAX_STEPS:
         if not alive():
-            break
+            return {"steps": [], "recordedSeconds": round(now() - started, 1), "complete": False}
         down = button_down()
         if was_down and not down:  # a completed press
             x, y = pointer()
@@ -102,5 +104,8 @@ def record(seconds: int, button_down, pointer, element_at, inside, snapshot, ali
             demo.values(snapshot())
             last_values = now()
         sleep(0.05)
-    demo.values(snapshot())
-    return {"steps": demo.steps, "recordedSeconds": round(now() - started, 1), "complete": alive()}
+    if alive():
+        demo.values(snapshot())
+    complete = alive()
+    return {"steps": demo.steps if complete else [], "recordedSeconds": round(now() - started, 1),
+            "complete": complete}

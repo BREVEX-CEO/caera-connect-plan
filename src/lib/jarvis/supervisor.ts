@@ -138,7 +138,12 @@ export const formField = z.strictObject({
   name: z.string().regex(/^[a-z][a-z0-9_]{0,39}$/),
   label: z.string().min(1).max(120),
   type: z.enum(["text", "number", "date", "choice", "long_text"]),
-  options: z.array(z.string().min(1).max(80)).min(2).max(20).optional(),
+  options: z
+    .array(z.string().min(1).max(80))
+    .min(2)
+    .max(20)
+    .refine((options) => new Set(options).size === options.length)
+    .optional(),
   required: z.boolean().optional(),
 });
 export type FormField = z.infer<typeof formField>;

@@ -83,6 +83,24 @@ class RecorderTest(unittest.TestCase):
         self.assertFalse(gone["complete"])
         self.assertLess(gone["recordedSeconds"], 1)
 
+    def test_a_lost_lease_does_not_read_the_window_at_start_or_at_stop(self):
+        for closes_at in [0, 0.25]:
+            with self.subTest(closes_at=closes_at):
+                clock = Clock()
+                snapshots = []
+
+                def snapshot():
+                    snapshots.append(clock.now())
+                    return []
+
+                result = skillforge.record(
+                    10, lambda: False, lambda: (0, 0), lambda x, y: None, lambda x, y: False,
+                    snapshot, lambda: clock.now() < closes_at, now=clock.now, sleep=clock.sleep,
+                )
+                self.assertFalse(result["complete"])
+                self.assertEqual(result["steps"], [])
+                self.assertTrue(all(at < closes_at for at in snapshots), snapshots)
+
 
 if __name__ == "__main__":
     unittest.main()

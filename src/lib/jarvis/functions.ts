@@ -88,22 +88,33 @@ export const instructJarvisTask = createServerFn({ method: "POST" })
         text: z.string().trim().min(1).max(2000),
         lane: z.number().int().min(0).max(3).nullable().default(null),
         clientId: uuid,
+        previous: uuid.nullable(),
       })
       .parse(i),
   )
   .handler(async ({ data, context }) => {
-    const { admin, addInstruction } = await authority();
+    const { admin, addInstruction, JarvisRefusal } = await authority();
     await admit(context.userId, "instruct_task");
-    return guarded(async () => ({
-      id: await addInstruction(
-        admin,
-        context.userId,
-        data.taskId,
-        data.text,
-        data.lane,
-        data.clientId,
-      ),
-    }));
+    return guarded(async () => {
+      try {
+        const id = await addInstruction(
+          admin,
+          context.userId,
+          data.taskId,
+          data.text,
+          data.lane,
+          data.clientId,
+          data.previous,
+          taskSessionId(context.claims),
+        );
+        return { status: "accepted" as const, id };
+      } catch (error) {
+        if (error instanceof JarvisRefusal && error.code === "instruction_conflict") {
+          return { status: "conflict" as const };
+        }
+        throw error;
+      }
+    });
   });
 
 export const getJarvisTask = createServerFn({ method: "GET" })
@@ -188,14 +199,28 @@ export const answerJarvisForm = createServerFn({ method: "POST" })
     z
       .object({
         taskId: uuid,
-        values: z.record(z.string().regex(/^[a-z][a-z0-9_]{0,39}$/), z.string().max(1000)),
+        formId: uuid,
+        values: z
+          .record(z.string().regex(/^[a-z][a-z0-9_]{0,39}$/), z.string().max(1000))
+          .refine((values) => Object.keys(values).length <= 12),
         clientId: uuid,
       })
       .parse(i),
   )
   .handler(async ({ data, context }) => {
     const { admin, answerForm } = await authority();
-    await guarded(() => answerForm(admin, context.userId, data.taskId, data.values, data.clientId));
+    const sessionId = taskSessionId(context.claims);
+    await guarded(() =>
+      answerForm(
+        admin,
+        context.userId,
+        data.taskId,
+        data.formId,
+        data.values,
+        data.clientId,
+        sessionId,
+      ),
+    );
     return { answered: true };
   });
 
@@ -600,9 +625,10 @@ export const listJarvisHabits = createServerFn({ method: "GET" })
     if (!profile?.memory_enabled) return [];
     const { data, error } = await context.supabase
       .from("jarvis_tasks")
-      .select("title, checkpoint, outcome")
+      .select("title, mode, checkpoint, outcome")
       .eq("user_id", context.userId)
       .eq("status", "completed")
+      .in("mode", ["live", "background"])
       .gte("created_at", new Date(Date.now() - 90 * 86_400_000).toISOString())
       .order("created_at", { ascending: false })
       .limit(200);

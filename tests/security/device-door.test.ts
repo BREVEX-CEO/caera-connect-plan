@@ -116,7 +116,7 @@ test("a receipt is answered at once; its planning turn is handed to the planner,
     async (taskId) => void planned.push(taskId),
     {
       jarvis_submit_receipt: [{ outcome: "recorded", task_id: task }],
-      jarvis_claim_action: { action: null },
+      jarvis_claim_with_instruction: { action: null },
     },
   );
   const { reply, calls } = await pending;
@@ -162,22 +162,28 @@ test("signed companion instructions must name the task that originally received 
   const unbound = await door("admitted", device, JSON.stringify(instruction));
   assert.equal(unbound.reply.status, 409);
   assert.equal(unbound.reply.body.error, "instruction_task_required");
-  assert.ok(!unbound.calls.some(({ fn }) => fn === "jarvis_add_instruction"));
+  assert.ok(!unbound.calls.some(({ fn }) => fn === "jarvis_redirect_task"));
+
+  const stale = await door("admitted", device, JSON.stringify({ ...instruction, taskId: task }));
+  assert.equal(stale.reply.status, 409);
+  assert.equal(stale.reply.body.error, "instruction_revision_required");
+  assert.ok(!stale.calls.some(({ fn }) => fn === "jarvis_redirect_task"));
 
   const { reply, calls } = await door(
     "admitted",
     device,
-    JSON.stringify({ ...instruction, taskId: task }),
+    JSON.stringify({ ...instruction, taskId: task, previous: null }),
     undefined,
-    { jarvis_add_instruction: crypto.randomUUID() },
+    { jarvis_redirect_task: crypto.randomUUID() },
   );
   assert.equal(reply.status, 200);
-  assert.deepEqual(calls.find(({ fn }) => fn === "jarvis_add_instruction")?.args, {
+  assert.deepEqual(calls.find(({ fn }) => fn === "jarvis_redirect_task")?.args, {
     p_user: null,
     p_task: task,
     p_device: device,
     p_text: instruction.text,
     p_lane: instruction.lane,
     p_client: clientId,
+    p_previous: null,
   });
 });

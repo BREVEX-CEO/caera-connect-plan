@@ -85,6 +85,7 @@ const REFUSALS: Record<string, string> = {
   task_not_found: "That task does not exist.",
   task_not_open: "That task has already finished. Start a new task instead.",
   invalid_instruction: "Write the instruction in at most 2,000 characters.",
+  instruction_conflict: "Another instruction was received while you were writing.",
   too_many_instructions: "This task already has 50 instructions. Stop it and start a new task.",
   approval_not_scopable: "This kind of step is always confirmed one by one.",
   live_needed: "This step types, clicks or opens a window. Switch the task to Live to allow it.",
@@ -93,7 +94,9 @@ const REFUSALS: Record<string, string> = {
     "A rehearsal only reads and writes under 'OCADE output/rehearsal'. Run the task for real to do this.",
   invalid_mode: "Choose Live, Background or Rehearsal.",
   form_not_open: "That form was already answered, or the task moved on.",
-  invalid_answers: "Fill in the required fields (at most 1,000 characters each).",
+  form_answer_needed: "Send the requested details to continue this task.",
+  invalid_answers:
+    "Check the required fields, numbers, dates and choices. Use up to 1,000 characters per field.",
   not_replayable:
     "Only a finished task whose checks all passed, with file or document steps, can be run again this way.",
   unknown_code: "That pairing code is wrong or has expired.",
@@ -132,14 +135,18 @@ export async function addInstruction(
   text: string,
   lane: number | null,
   clientId: string,
+  previous: string | null,
+  sessionId: string,
 ): Promise<string> {
-  return call<string>(admin, "jarvis_add_instruction", {
+  return call<string>(admin, "jarvis_redirect_task", {
     p_user: userId,
     p_task: taskId,
     p_device: null,
     p_text: text,
     p_lane: lane,
     p_client: clientId,
+    p_previous: previous,
+    p_session: sessionId,
   });
 }
 
@@ -905,16 +912,20 @@ export async function answerForm(
   admin: Admin,
   userId: string,
   taskId: string,
+  formId: string,
   values: Record<string, string>,
   clientId: string,
+  sessionId: string,
 ) {
   await call(admin, "jarvis_answer_form", {
     p_user: userId,
     p_task: taskId,
+    p_form: formId,
     p_values: values,
     p_client: clientId,
+    p_session: sessionId,
   });
-  await resumeTask(admin, userId, taskId);
+  await planner(admin)(taskId);
 }
 
 /** Live or Background for one of the person's own open tasks (R12-01). */
@@ -964,11 +975,20 @@ export async function taskView(admin: Admin, userId: string, taskId: string) {
   if (!task || task.userId !== userId)
     throw new JarvisRefusal("task_not_found", REFUSALS.task_not_found);
   // Steps the person allowed "for the rest of this task" (R12-02), so the view can offer "ask again".
-  const approvals = await call<number>(admin, "jarvis_task_approvals", { p_task: taskId });
+  const [approvals, instructionHistory] = await Promise.all([
+    call<number>(admin, "jarvis_task_approvals", { p_task: taskId }),
+    call<(Instruction & { id: string })[]>(admin, "jarvis_task_instructions", { p_task: taskId }),
+  ]);
   const parsedSteps = task.steps.flatMap((step) => {
     const parsed = actionIntent.safeParse(step.intent);
     if (!parsed.success) return [];
-    return [{ intent: parsed.data, receipt: actionReceipt.safeParse(step.receipt).data ?? null }];
+    return [
+      {
+        status: step.status,
+        intent: parsed.data,
+        receipt: actionReceipt.safeParse(step.receipt).data ?? null,
+      },
+    ];
   });
   const verification = (task.checkpoint?.verification ?? null) as {
     passed?: string[];
@@ -1050,6 +1070,13 @@ export async function taskView(admin: Admin, userId: string, taskId: string) {
   return {
     id: task.id,
     status: task.status,
+    instructionRevision: instructionHistory.at(-1)?.id ?? null,
+    instructionHistory: instructionHistory.map(({ id, text, lane, from }) => ({
+      id,
+      text,
+      lane,
+      from,
+    })),
     title: task.title,
     canRetry,
     milestones,
@@ -1058,10 +1085,10 @@ export async function taskView(admin: Admin, userId: string, taskId: string) {
     result: task.result,
     checks: (task.outcome ?? []).map((check) => ({
       ...check,
-      state: verification?.passed?.includes(check.id)
-        ? "passed"
-        : verification?.failed?.includes(check.id)
-          ? "failed"
+      state: verification?.failed?.includes(check.id)
+        ? "failed"
+        : verification?.passed?.includes(check.id)
+          ? "passed"
           : verification?.unverified?.includes(check.id)
             ? "unverified"
             : "unchecked",
@@ -1099,6 +1126,7 @@ export async function taskView(admin: Admin, userId: string, taskId: string) {
         lane: step.lane ?? 0,
         durationMs: timing.stepDurationsMs[index],
         summary: step.summary,
+        operation: intent.success ? intent.data.operation : undefined,
         status: step.status,
         disposition,
         needsConfirmation: step.status === "needs_confirmation",
@@ -1116,15 +1144,30 @@ export async function taskView(admin: Admin, userId: string, taskId: string) {
     // Automatic Context Discovery (R12-07): what this task actually read, so the person sees it.
     contextUsed: [
       ...new Set(
-        parsedSteps.flatMap(({ intent: step }) =>
-          ["fs.read_text", "office.inspect_workbook", "media.inspect", "media.preview"].includes(
-            step.operation,
-          ) && typeof (step.arguments as { path?: unknown }).path === "string"
-            ? [(step.arguments as { path: string }).path]
-            : step.operation === "web.read" || step.operation === "web.open"
-              ? [step.target?.site ?? ""].filter(Boolean)
-              : [],
-        ),
+        parsedSteps.flatMap(({ status, intent: step, receipt }) => {
+          if (status !== "done" || receipt?.status !== "observed") return [];
+          switch (step.operation) {
+            case "fs.list":
+            case "fs.read_text":
+            case "office.inspect_workbook":
+            case "media.analyze":
+            case "media.inspect":
+            case "media.preview": {
+              const { path } = step.arguments;
+              return typeof path === "string" ? [path === "." ? "JARVIS folder" : path] : [];
+            }
+            case "web.open":
+            case "web.read":
+            case "web.scroll":
+              return step.target?.site ? [step.target.site] : [];
+            case "ui.inspect":
+            case "ui.wait":
+            case "ui.watch":
+              return step.target?.app ? [step.target.app] : [];
+            default:
+              return [];
+          }
+        }),
       ),
     ].slice(0, 30),
     // Anti-Scam Guardian (28.2.6): warning signs on pages this task opened, with the evidence.
@@ -1135,7 +1178,7 @@ export async function taskView(admin: Admin, userId: string, taskId: string) {
       parsedSteps
         .filter(({ intent: step }) => step.operation === "ui.record")
         .map(({ intent: step, receipt }) =>
-          receipt?.status === "observed"
+          receipt?.status === "observed" && receipt.evidence.complete === true
             ? proposeWorkflow(
                 (step.arguments as { window: { exe: string } }).window.exe,
                 receipt.evidence.steps,
@@ -1156,9 +1199,10 @@ export async function taskView(admin: Admin, userId: string, taskId: string) {
       : null,
     // R12-06: the few details JARVIS asked for, while the task waits for them.
     form:
-      task.status === "waiting"
-        ? (generatedForm.safeParse(task.checkpoint?.form).data ?? null)
+      task.status === "waiting" && typeof task.checkpoint?.formId === "string"
+        ? (generatedForm.safeParse(task.checkpoint.form).data ?? null)
         : null,
+    formId: typeof task.checkpoint?.formId === "string" ? task.checkpoint.formId : null,
     approvalsForTask: approvals ?? 0,
     device: task.deviceName,
     // An outage is said plainly: the step in hand stays put and nothing new starts until contact.
@@ -1439,13 +1483,15 @@ export async function handleDeviceRequest(
     if (parsed.op === "instruct") {
       // The person at the computer redirects its open task (plan 14F.4.4); a note, never a grant.
       if (!parsed.taskId) return refuse(409, "instruction_task_required");
-      const id = await call<string>(admin, "jarvis_add_instruction", {
+      if (parsed.previous === undefined) return refuse(409, "instruction_revision_required");
+      const id = await call<string>(admin, "jarvis_redirect_task", {
         p_user: null,
         p_task: parsed.taskId,
         p_device: deviceId,
         p_text: parsed.text,
         p_lane: parsed.lane,
         p_client: parsed.clientId,
+        p_previous: parsed.previous,
       });
       return { status: 200, body: { instruction: "accepted", id } };
     }
@@ -1461,7 +1507,7 @@ export async function handleDeviceRequest(
       );
       await plan(recorded.task_id);
       // The next step rides on this answer when it is already queued (W2).
-      const next = await call<Record<string, unknown>>(admin, "jarvis_claim_action", {
+      const next = await call<Record<string, unknown>>(admin, "jarvis_claim_with_instruction", {
         p_device: deviceId,
       });
       return { status: 200, body: { receipt: recorded.outcome, ...next } };
@@ -1470,19 +1516,19 @@ export async function handleDeviceRequest(
       task?: { id?: string; status?: string } | null;
       action?: unknown;
       paused?: boolean;
-    }>(admin, "jarvis_claim_action", { p_device: deviceId });
+    }>(admin, "jarvis_claim_with_instruction", { p_device: deviceId });
     if (!state.paused && state.task?.status === "waiting") {
       // A task that waited only for a busy planner and is now due runs again (D10).
       const due = await call<string | null>(admin, "jarvis_resume_due", { p_device: deviceId });
       if (due) {
         await plan(due);
-        state = await call(admin, "jarvis_claim_action", { p_device: deviceId });
+        state = await call(admin, "jarvis_claim_with_instruction", { p_device: deviceId });
       }
     }
     if (!state.paused && state.task?.status === "running" && state.task.id && !state.action) {
       // A milestone can advance without a queued device action.
       await plan(state.task.id);
-      state = await call(admin, "jarvis_claim_action", { p_device: deviceId });
+      state = await call(admin, "jarvis_claim_with_instruction", { p_device: deviceId });
     }
     return { status: 200, body: state };
   } catch (error) {

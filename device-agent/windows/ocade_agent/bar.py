@@ -90,14 +90,16 @@ class BarState:
     def task_seen(self, task: dict | None, mode: str | None = None) -> None:
         task = task or {}
         mode = mode if mode in ("live", "background", "rehearsal") else self.task.get("mode", "live")
-        if (task.get("id"), task.get("status"), mode) != (self.task.get("id"), self.task.get("status"),
-                                                          self.task.get("mode")):
+        next_task = {"id": task.get("id"), "status": task.get("status"), "mode": mode}
+        if "instructionRevision" in task:
+            next_task["instructionRevision"] = task["instructionRevision"]
+        if next_task != self.task:
             if task.get("id") != self.task.get("id"):
                 self.lanes.clear()
                 self.marks.clear()
                 self.window = None
                 self.sent.clear()
-            self.task = {"id": task.get("id"), "status": task.get("status"), "mode": mode}
+            self.task = next_task
             self.flush()
 
     def started(self, lane: int, intent: dict) -> None:
@@ -130,7 +132,7 @@ class BarState:
             pass
 
 
-def queue_instruction(home: Path, text: str, lane: int | None, task_id: str) -> Path:
+def queue_instruction(home: Path, text: str, lane: int | None, task_id: str, previous: str | None) -> Path:
     """What the person typed in the bar, for the agent loop to deliver (the bar has no key)."""
     global _last_instruction_at
 
@@ -142,12 +144,14 @@ def queue_instruction(home: Path, text: str, lane: int | None, task_id: str) -> 
     if not isinstance(task_id, str):
         raise ValueError("no task to instruct")
     task_id = str(uuid.UUID(task_id))
+    previous = str(uuid.UUID(previous)) if previous is not None else None
     client_id = str(uuid.uuid4())
     with _instruction_lock:
         # Windows can return the same wall time for successive writes.
         _last_instruction_at = max(time.time_ns(), _last_instruction_at + 1)
         path = home / "instructions" / f"{_last_instruction_at}-{client_id}.json"
-        write_json(path, {"text": text, "lane": lane, "clientId": client_id, "taskId": task_id})
+        write_json(path, {"text": text, "lane": lane, "clientId": client_id, "taskId": task_id,
+                          "previous": previous})
     return path
 
 
@@ -172,12 +176,21 @@ def point_instruction(path: str, question: str) -> str:
 
 def pending_instructions(home: Path) -> list[tuple[Path, dict]]:
     """Queued instructions, oldest first; an unreadable file is dropped, never sent."""
+    return _instruction_files(home / "instructions", limit=10)
+
+
+def instruction_to_review(home: Path, task_id: str) -> tuple[Path, dict] | None:
+    """A conflict requires the person's explicit review before writing another instruction."""
+    return next(iter(_instruction_files(home / "instructions" / "review", limit=1, task_id=task_id)), None)
+
+
+def _instruction_files(folder: Path, limit: int, task_id: str | None = None) -> list[tuple[Path, dict]]:
     def order(path: Path) -> tuple[str, str]:
         timestamp, _, suffix = path.stem.partition("-")
         return timestamp.zfill(20), suffix
 
     found = []
-    for path in sorted((home / "instructions").glob("*.json"), key=order)[:10]:
+    for path in sorted(folder.glob("*.json"), key=order):
         try:
             item = json.loads(path.read_text(encoding="utf-8"))
             text, lane = item["text"], item.get("lane")
@@ -189,8 +202,17 @@ def pending_instructions(home: Path) -> list[tuple[Path, dict]]:
                 raise ValueError
             # Older files carry no task identity and receive a final refusal from the server.
             task = {"taskId": str(uuid.UUID(item["taskId"]))} if "taskId" in item else {}
+            if task_id is not None and task.get("taskId") != task_id:
+                continue
+            if "previous" in item:
+                previous = item["previous"]
+                if previous is not None and not isinstance(previous, str):
+                    raise ValueError
+                task["previous"] = str(uuid.UUID(previous)) if previous is not None else None
             found.append((path, {"text": text.strip()[:2000], "lane": lane, "clientId": client, **task}))
-        except (OSError, ValueError, KeyError, TypeError):
+            if len(found) == limit:
+                break
+        except (OSError, ValueError, KeyError, TypeError, AttributeError):
             path.unlink(missing_ok=True)
     return found
 
@@ -266,7 +288,8 @@ def run_bar(home: Path) -> int:  # pragma: no cover - drawn on a real desktop, c
     # The composer is always present, outside the agent list (14F.4.4).
     composer = tk.Frame(root, bg="#111827")
     composer.pack(fill="x", padx=8, pady=(2, 6), side="bottom")
-    entry = tk.Entry(composer, width=36)
+    text = tk.StringVar()
+    entry = tk.Entry(composer, textvariable=text, width=36)
     entry.pack(side="left", fill="x", expand=True)
     who = tk.OptionMenu(composer, target, "Everyone", *[name for name, _, _ in AGENTS])
     who.configure(bg="#1f2937", fg="white", relief="flat", highlightthickness=0)
@@ -274,30 +297,73 @@ def run_bar(home: Path) -> int:  # pragma: no cover - drawn on a real desktop, c
     status = tk.Label(root, text="", bg="#111827", fg="#9ca3af", font=("Segoe UI", 8), anchor="w")
     status.pack(fill="x", padx=8, side="bottom")
     visible_task = None
+    draft_task = None
+    reviewed_path = None
+
+    def bind_draft(*_):
+        nonlocal draft_task
+        if not text.get():
+            draft_task = None
+        elif draft_task is None:
+            draft_task = visible_task
+
+    text.trace_add("write", bind_draft)
 
     def send(_event=None):
+        nonlocal reviewed_path
         if visible_task is None:
-            status.configure(text="There is no open task to send this to.")
+            status.configure(text="Waiting for the task's instructions to sync.")
+            return "break"
+        if draft_task is None or draft_task[0] != visible_task[0]:
+            status.configure(text="This draft belongs to another task. Copy it before clearing.")
             return "break"
         name = target.get()
         lane = next((i for i, (n, _, _) in enumerate(AGENTS) if n == name), None)
         try:
-            queue_instruction(home, entry.get(), lane, visible_task)
+            queue_instruction(home, text.get(), lane, *draft_task)
         except (ValueError, OSError):
             return "break"
-        entry.delete(0, "end")  # the draft goes only once it is queued for delivery
+        text.set("")  # the draft goes only once it is queued for delivery
+        if reviewed_path is not None and reviewed_path[0] == visible_task[0]:
+            try:
+                reviewed_path[1].unlink(missing_ok=True)
+            except OSError:
+                pass
+            reviewed_path = None
         status.configure(text="Sending to JARVIS…")
         return "break"
 
     entry.bind("<Return>", send)
     tk.Button(composer, text="Send", relief="flat", bg="#374151", fg="white", command=send).pack(side="left")
 
+    def review():
+        nonlocal reviewed_path
+        if visible_task is None:
+            status.configure(text="Waiting for the task's instructions to sync.")
+            return
+        if text.get():
+            status.configure(text="Save the current draft before loading the earlier one.")
+            return
+        item = instruction_to_review(home, visible_task[0])
+        if item is None:
+            status.configure(text="No earlier draft for this task.")
+            return
+        path, draft = item
+        reviewed_path = (visible_task[0], path)
+        text.set(draft["text"])
+        target.set("Everyone" if draft["lane"] is None else AGENTS[draft["lane"]][0])
+        status.configure(text="Review the draft. Send it again when ready.")
+        entry.focus_set()
+
+    tk.Button(composer, text="Review draft", relief="flat", bg="#374151", fg="white",
+              command=review).pack(side="left", padx=4)
+
     def point():
         """Point & Ask: the person drags a rectangle; only that region is captured, once."""
         from PIL import ImageGrab
 
-        task_id = visible_task
-        if task_id is None:
+        source = draft_task or visible_task
+        if source is None or visible_task is None or source[0] != visible_task[0]:
             status.configure(text="Open a task before pointing at something.")
             return
         shade = tk.Toplevel(root)
@@ -327,13 +393,13 @@ def run_bar(home: Path) -> int:  # pragma: no cover - drawn on a real desktop, c
             root.after(150, lambda: finish(box))  # the shade is gone from the screen first
 
         def finish(box):
-            if task_id != visible_task:
+            if visible_task is None or source[0] != visible_task[0]:
                 status.configure(text="The task changed. Select the region again for the new task.")
                 return
             try:
                 path = save_pointed(home, ImageGrab.grab(bbox=box, all_screens=True))
-                queue_instruction(home, point_instruction(path, entry.get()), None, task_id)
-                entry.delete(0, "end")
+                queue_instruction(home, point_instruction(path, text.get()), None, *source)
+                text.set("")
                 status.configure(text="Sending the selected region to JARVIS…")
             except Exception:  # noqa: BLE001 - shown, never silently retried
                 status.configure(text="That part of the screen could not be captured.")
@@ -436,10 +502,12 @@ def run_bar(home: Path) -> int:  # pragma: no cover - drawn on a real desktop, c
             sent = (state.get("instructions") or [])[-1:]
             if sent:
                 word = {"accepted": "Received by JARVIS", "rejected": "Not delivered to the original task",
+                        "conflict": "Task changed; use Review draft",
                         "failed": "Not delivered yet; retrying"}.get(sent[0]["state"], "Sending…")
                 status.configure(text=f"{word}: {sent[0]['text'][:50]}")
             if attached_place(state):
-                visible_task = task.get("id")
+                if task.get("id") and "instructionRevision" in task:
+                    visible_task = (task["id"], task["instructionRevision"])
                 root.deiconify()
             else:
                 root.withdraw()

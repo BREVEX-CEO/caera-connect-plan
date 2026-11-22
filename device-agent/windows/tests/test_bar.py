@@ -13,7 +13,7 @@ from unittest.mock import patch
 import anyio
 
 from ocade_agent.agent import Agent
-from ocade_agent.bar import BarState, pending_instructions, queue_instruction, summary
+from ocade_agent.bar import BarState, instruction_to_review, pending_instructions, queue_instruction, summary
 from ocade_agent.journal import Journal
 
 
@@ -22,12 +22,13 @@ class BarStateTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             home = Path(directory)
             bar = BarState(home)
-            bar.task_seen({"id": "t", "status": "running"})
+            bar.task_seen({"id": "t", "status": "running", "instructionRevision": None})
             bar.started(0, {"operation": "ui.click_point", "arguments": {"window": {"hwnd": 42, "exe": "x.exe"}}})
             bar.started(2, {"operation": "fs.write_text", "arguments": {}})
             state = json.loads((home / "bar.json").read_text())
             self.assertEqual([a["lane"] for a in state["agents"]], [0, 2])
             self.assertEqual(state["window"]["hwnd"], 42)
+            self.assertIn("instructionRevision", state["task"])
             self.assertEqual(summary(state), "2 agents working · Clicking in an app")
             bar.finished(0, {"operation": "ui.click_point"}, {"evidence": {"clicked": [10, 20]}})
             bar.finished(2, {"operation": "fs.write_text"}, {"evidence": {"clicked": [1, 1]}})
@@ -48,14 +49,15 @@ class InstructionTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory, closing(Journal(Path(directory) / "j.sqlite")) as journal:
             home = Path(directory)
             task_id = str(uuid.uuid4())
+            previous = str(uuid.uuid4())
             with patch("ocade_agent.bar.time.time_ns", return_value=1_800_000_000_000_000_000):
-                queue_instruction(home, "  Use the blue logo ", None, task_id)
-                queue_instruction(home, "Smaller", 1, task_id)
+                queue_instruction(home, "  Use the blue logo ", None, task_id, previous)
+                queue_instruction(home, "Smaller", 1, task_id, previous)
             (home / "instructions" / "0-broken.json").write_text("{not json")
             with self.assertRaises(ValueError):
-                queue_instruction(home, "   ", None, task_id)
+                queue_instruction(home, "   ", None, task_id, previous)
             with self.assertRaises(ValueError):
-                queue_instruction(home, "x", 9, task_id)
+                queue_instruction(home, "x", 9, task_id, previous)
 
             class Device:
                 def __init__(self):
@@ -76,8 +78,35 @@ class InstructionTest(unittest.TestCase):
             self.assertEqual([p["text"] for p in sent[1:]], ["Use the blue logo", "Smaller"])
             self.assertEqual(sent[0]["clientId"], sent[1]["clientId"], "a retry is the same instruction")
             self.assertTrue(all(payload["taskId"] == task_id for payload in sent))
+            self.assertTrue(all(payload["previous"] == previous for payload in sent))
             self.assertEqual(sent[2]["lane"], 1)
             self.assertEqual(pending_instructions(home), [])
+
+    def test_conflicted_draft_can_be_reviewed_after_restart_without_auto_retry(self):
+        with tempfile.TemporaryDirectory() as directory, closing(Journal(Path(directory) / "j.sqlite")) as journal:
+            home = Path(directory)
+            task = str(uuid.uuid4())
+            other_task = str(uuid.uuid4())
+            queue_instruction(home, "A useful instruction", 1, task, None)
+
+            class Device:
+                calls = 0
+
+                def request(self, _payload):
+                    self.calls += 1
+                    return 409, {"error": "instruction_conflict"}
+
+            device = Device()
+            device.home = home
+            agent = Agent(device, journal, object(), home / "STOP")
+            anyio.run(agent.deliver_instructions)
+            anyio.run(agent.deliver_instructions)
+            self.assertEqual(device.calls, 1)
+            self.assertIsNone(instruction_to_review(home, other_task))
+            path, draft = instruction_to_review(home, task)
+            self.assertTrue(path.is_file())
+            self.assertEqual(draft["text"], "A useful instruction")
+            self.assertEqual(draft["lane"], 1)
 
 
 class PointTest(unittest.TestCase):

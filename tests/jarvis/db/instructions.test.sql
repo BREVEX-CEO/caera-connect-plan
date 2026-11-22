@@ -11,16 +11,19 @@ BEGIN
 END $$;
 CREATE FUNCTION pg_temp.fails(p_sql text, p_expected text) RETURNS void LANGUAGE plpgsql AS $$
 BEGIN
-  EXECUTE p_sql;
-  RAISE EXCEPTION 'expected failure "%" but it succeeded: %', p_expected, p_sql;
-EXCEPTION WHEN OTHERS THEN
-  IF SQLERRM NOT LIKE '%' || p_expected || '%' THEN
+  BEGIN
+    EXECUTE p_sql;
+  EXCEPTION WHEN OTHERS THEN
+    IF SQLERRM LIKE '%' || p_expected || '%' THEN RETURN; END IF;
     RAISE EXCEPTION 'expected "%", got "%" for: %', p_expected, SQLERRM, p_sql;
-  END IF;
+  END;
+  RAISE EXCEPTION 'expected "%", but statement succeeded: %', p_expected, p_sql;
 END $$;
-CREATE TEMP TABLE ins_ids AS SELECT gen_random_uuid() AS a, gen_random_uuid() AS b, gen_random_uuid() AS conv;
+CREATE TEMP TABLE ins_ids AS SELECT gen_random_uuid() AS a, gen_random_uuid() AS b,
+  gen_random_uuid() AS conv, gen_random_uuid() AS session_id;
 INSERT INTO auth.users (id, email) SELECT a, a::text || '@example.test' FROM ins_ids
   UNION ALL SELECT b, b::text || '@example.test' FROM ins_ids;
+INSERT INTO auth.sessions (id, user_id) SELECT session_id, a FROM ins_ids;
 INSERT INTO public.ocade_conversations (id, user_id, title, surface) SELECT conv, a, 'I', 'jarvis' FROM ins_ids;
 GRANT SELECT ON ins_ids TO service_role, authenticated;
 SET LOCAL ROLE service_role;
@@ -28,6 +31,7 @@ DO $$
 DECLARE
   v_a uuid := (SELECT a FROM ins_ids);
   v_b uuid := (SELECT b FROM ins_ids);
+  v_session uuid := (SELECT session_id FROM ins_ids);
   v_key text := repeat(replace(v_a::text, '-', ''), 4);
   v_device uuid;
   v_task record;
@@ -55,6 +59,37 @@ BEGIN
                         'invalid_instruction');
   PERFORM pg_temp.fails(format('SELECT public.jarvis_add_instruction(NULL, NULL, NULL, %L, NULL, %L)', 'x', gen_random_uuid()),
                         'task_not_open');
+  -- A stale draft must not silently redirect after another device made a change.
+  DECLARE
+    v_latest uuid := public.jarvis_instruction_revision(v_task.task_id);
+    v_other_client uuid := gen_random_uuid();
+    v_fresh_client uuid := gen_random_uuid();
+    v_other uuid;
+  BEGIN
+    PERFORM pg_temp.check(v_latest IS NOT NULL AND v_latest <> v_one, 'the second note is the revision');
+    PERFORM pg_temp.fails(format('SELECT public.jarvis_redirect_task(%L, %L, NULL, %L, NULL, %L, %L)',
+                          v_a, v_task.task_id, 'Use the green logo', v_other_client, v_latest),
+                          'session_ended');
+    v_other := public.jarvis_redirect_task(v_a, v_task.task_id, NULL, 'Use the green logo',
+                                          NULL, v_other_client, v_latest, v_session);
+    PERFORM pg_temp.fails(format('SELECT public.jarvis_redirect_task(NULL, %L, %L, %L, NULL, %L, %L)',
+                          v_task.task_id, v_device, 'Use the small logo', v_fresh_client, v_latest),
+                          'instruction_conflict');
+    PERFORM pg_temp.check(public.jarvis_instruction_revision(v_task.task_id) = v_other,
+                          'a stale composer left no instruction');
+    PERFORM pg_temp.check(public.jarvis_redirect_task(v_a, v_task.task_id, NULL, 'Use the green logo',
+                                                       NULL, v_other_client, v_latest, v_session) = v_other,
+                          'reply loss can retry the same submission against its original base');
+    PERFORM pg_temp.fails(format('SELECT public.jarvis_redirect_task(%L, %L, NULL, %L, NULL, %L, %L, %L)',
+                          v_a, v_task.task_id, 'Use the green logo', v_other_client, v_other, v_session),
+                          'instruction_conflict');
+    PERFORM pg_temp.fails(format('SELECT public.jarvis_redirect_task(%L, %L, NULL, %L, NULL, %L, %L, %L)',
+                          v_a, v_task.task_id, 'Changed draft', v_other_client, v_latest, v_session),
+                          'instruction_conflict');
+    PERFORM pg_temp.check(public.jarvis_redirect_task(NULL, v_task.task_id, v_device, 'Use the small logo', NULL, v_fresh_client, v_other) IS DISTINCT FROM v_other,
+                          'an explicit rebase admits a fresh instruction');
+  END;
+
   PERFORM public.jarvis_stop_task(v_a, v_task.task_id);
   PERFORM pg_temp.fails(format('SELECT public.jarvis_add_instruction(%L, %L, NULL, %L, NULL, %L)', v_a, v_task.task_id, 'late', gen_random_uuid()),
                         'task_not_open');
@@ -64,6 +99,10 @@ BEGIN
                         v_old_task, v_device, 'Queued before reconnect', gen_random_uuid()), 'task_not_open');
   PERFORM pg_temp.check(public.jarvis_task_instructions(v_task.task_id) = '[]'::jsonb,
                         'reconnecting does not redirect a queued instruction to a new task on the same device');
+  UPDATE public.jarvis_tasks SET checkpoint = checkpoint || jsonb_build_object('authorizedSessionId', gen_random_uuid())
+   WHERE id = v_task.task_id;
+  PERFORM pg_temp.fails(format('SELECT public.jarvis_redirect_task(NULL, %L, %L, %L, NULL, %L, NULL)',
+                        v_task.task_id, v_device, 'Queued before sign-out', gen_random_uuid()), 'session_ended');
 END $$;
 RESET ROLE;
 SET LOCAL ROLE authenticated;

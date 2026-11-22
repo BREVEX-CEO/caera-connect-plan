@@ -1642,6 +1642,7 @@ export const deviceRequest = z.discriminatedUnion("op", [
     .object({
       op: z.literal("instruct"),
       taskId: z.uuid().optional(),
+      previous: z.uuid().nullable().optional(),
       text: z.string().trim().min(1).max(2000),
       lane: z.number().int().min(0).max(3).nullable(),
       clientId: z.uuid(),

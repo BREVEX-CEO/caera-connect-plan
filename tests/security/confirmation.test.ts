@@ -117,6 +117,57 @@ test("app grants use the identity in the signed action contract", () => {
   }
 });
 
+test("task context shows only successful observations and omits contents", async () => {
+  const at = deadline.toISOString();
+  const step = (
+    action: ReturnType<typeof intent>,
+    status: string,
+    observation: "observed" | "not_applied" | null,
+  ) => ({
+    id: action.key,
+    intent: action,
+    status,
+    summary: "Synthetic read",
+    createdAt: at,
+    completedAt: observation ? at : null,
+    receipt: observation
+      ? { status: observation, maybeChanged: false, observedAtUtc: at, evidence: { text: nonce } }
+      : null,
+  });
+  const task = {
+    id: nonce,
+    userId: "synthetic-account",
+    title: "Read source material",
+    status: "running",
+    timing: { acceptedAt: at, now: at, pausedMs: 0, modelCalls: 0, modelMs: 0 },
+    steps: [
+      step(intent("fs.list", "list", { path: "." }, deadline), "done", "observed"),
+      step(intent("fs.read_text", "file", { path: "Statement.csv" }, deadline), "done", "observed"),
+      step(
+        intent("fs.read_text", "again", { path: "Statement.csv" }, deadline),
+        "done",
+        "observed",
+      ),
+      step(intent("fs.read_text", "later", { path: "Pending.csv" }, deadline), "queued", null),
+      step(intent("web.scroll", "site", { page, direction: "down" }, deadline), "done", "observed"),
+      step(
+        intent("web.open", "denied", { url: "https://refused.example/" }, deadline),
+        "failed",
+        "not_applied",
+      ),
+      step(intent("ui.inspect", "app", { window }, deadline), "done", "observed"),
+    ],
+  };
+  const admin = {
+    rpc: async (name: string) => ({
+      data: name === "jarvis_task_state" ? task : name === "jarvis_task_instructions" ? [] : 0,
+      error: null,
+    }),
+  } as unknown as Admin;
+  const view = await taskView(admin, task.userId, task.id);
+  assert.deepEqual(view.contextUsed, ["JARVIS folder", "Statement.csv", page.site, window.exe]);
+});
+
 test("task views show milestone evidence, saved hashes and safe retry availability", async () => {
   const output = "OCADE output/" + nonce + ".txt";
   const requested = intent("fs.write_text", "saved", { path: output, text: nonce }, deadline);
@@ -157,10 +208,24 @@ test("task views show milestone evidence, saved hashes and safe retry availabili
       },
     ],
   };
+  const history = [
+    { id: "one", text: "Use the blue logo", lane: 1, from: "computer" },
+    { id: "two", text: "Answered the task form.", lane: null, from: "website" },
+  ];
   const admin = {
-    rpc: async () => ({ data: task, error: null }),
+    rpc: async (name: string) => ({
+      data:
+        name === "jarvis_task_state"
+          ? task
+          : name === "jarvis_task_instructions"
+            ? [history[0], { ...history[1], answers: { field: "Private fixture" } }]
+            : 0,
+      error: null,
+    }),
   } as unknown as Admin;
   const view = await taskView(admin, task.userId, task.id);
+  assert.equal(view.instructionRevision, "two");
+  assert.deepEqual(view.instructionHistory, history);
   assert.deepEqual(
     view.milestones.map((stage) => stage.state),
     ["verified", "current"],

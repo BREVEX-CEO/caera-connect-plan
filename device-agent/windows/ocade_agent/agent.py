@@ -251,6 +251,18 @@ class Agent:
                 status, answer = 503, {}
             if status == 200:
                 state = "accepted"
+            elif status == 409 and item.get("taskId") and answer.get("error") in (
+                "instruction_conflict", "instruction_revision_required",
+            ):
+                review = path.parent / "review"
+                try:
+                    review.mkdir(exist_ok=True)
+                    path.replace(review / path.name)
+                except OSError:
+                    return  # keep the queued file if the draft could not be saved
+                if self.bar is not None:
+                    self.bar.instruction(item["text"], "conflict")
+                continue
             elif status in (400, 404, 409, 422):
                 state = "rejected"
             else:

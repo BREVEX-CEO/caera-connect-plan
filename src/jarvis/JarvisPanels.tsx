@@ -517,31 +517,71 @@ function Elapsed({ timing, live }: { timing: Timing; live: boolean }) {
  * Tell an open task something new (plan 14F.4.4): for everyone or one agent. The draft stays while
  * it is sending or if sending fails; accepted means recorded for JARVIS's next turn, not done.
  */
-function Instruct({ taskId, agents }: { taskId: string; agents: number[] }) {
-  const [text, setText] = useState("");
-  const [lane, setLane] = useState<number | null>(null);
-  const [state, setState] = useState<"idle" | "sending" | "accepted">("idle");
-  const client = useRef<string>(crypto.randomUUID());
-  const send = () => {
-    if (!text.trim() || state === "sending") return;
-    setState("sending");
-    instructJarvisTask({ data: { taskId, text, lane, clientId: client.current } })
-      .then(() => {
-        setText("");
-        client.current = crypto.randomUUID();
-        setState("accepted");
-      })
-      .catch((error: Error) => {
-        setState("idle");
-        toast.error(error.message);
-      });
+function Instruct({
+  taskId,
+  agents,
+  revision,
+  onChanged,
+}: {
+  taskId: string;
+  agents: number[];
+  revision: string | null;
+  onChanged: () => void | Promise<unknown>;
+}) {
+  type Draft = { text: string; lane: number | null; previous: string | null };
+  const [draft, setDraft] = useState<Draft>({ text: "", lane: null, previous: revision });
+  const [state, setState] = useState<"idle" | "sending" | "accepted" | "conflict">("idle");
+  const attempt = useRef<{ draft: Draft; id: string } | null>(null);
+  const accepted = useRef<{ previous: string | null; id: string } | null>(null);
+  const sending = useRef(false);
+  const edit = (change: Partial<Pick<Draft, "text" | "lane">>) => {
+    const last = accepted.current;
+    const currentRevision = last && last.previous === revision ? last.id : revision;
+    setDraft((current) => ({
+      ...current,
+      previous: current.text.trim() || state === "sending" ? current.previous : currentRevision,
+      ...change,
+    }));
+    if (state === "accepted") setState("idle");
   };
+  const send = async () => {
+    if (!draft.text.trim() || sending.current || state === "conflict") return;
+    sending.current = true;
+    const submission =
+      attempt.current?.draft === draft ? attempt.current : { draft, id: crypto.randomUUID() };
+    attempt.current = submission;
+    setState("sending");
+    try {
+      const result = await instructJarvisTask({
+        data: { taskId, ...draft, clientId: submission.id },
+      });
+      if (result.status === "conflict") {
+        setState("conflict");
+      } else {
+        accepted.current = { previous: draft.previous, id: result.id };
+        setDraft((current) => ({
+          ...current,
+          text: current === draft ? "" : current.text,
+          previous: result.id,
+        }));
+        setState("accepted");
+      }
+      void onChanged();
+    } catch (error) {
+      setState("idle");
+      toast.error(error instanceof Error ? error.message : "Could not send this instruction.");
+    } finally {
+      sending.current = false;
+    }
+  };
+  const visibleAgents =
+    draft.lane !== null && !agents.includes(draft.lane) ? [...agents, draft.lane] : agents;
   return (
     <form
       className="mt-2 flex flex-wrap items-center gap-2"
       onSubmit={(event) => {
         event.preventDefault();
-        send();
+        void send();
       }}
     >
       <label className="sr-only" htmlFor={`instruct-${taskId}`}>
@@ -549,26 +589,23 @@ function Instruct({ taskId, agents }: { taskId: string; agents: number[] }) {
       </label>
       <input
         id={`instruct-${taskId}`}
-        value={text}
+        value={draft.text}
         maxLength={2000}
-        onChange={(event) => {
-          setText(event.target.value);
-          if (state === "accepted") setState("idle");
-        }}
+        onChange={(event) => edit({ text: event.target.value })}
         placeholder="Change something while it works…"
-        className="min-w-0 flex-1 rounded-full border border-border bg-background px-3 py-1 text-sm"
+        className="min-h-11 min-w-0 flex-1 rounded-full border border-border bg-background px-3 py-1 text-base sm:text-sm"
       />
-      {agents.length > 1 ? (
+      {visibleAgents.length > 1 || draft.lane !== null ? (
         <select
           aria-label="Who the instruction is for"
-          value={lane ?? ""}
+          value={draft.lane ?? ""}
           onChange={(event) =>
-            setLane(event.target.value === "" ? null : Number(event.target.value))
+            edit({ lane: event.target.value === "" ? null : Number(event.target.value) })
           }
-          className="rounded-full border border-border bg-background px-2 py-1 text-xs"
+          className="min-h-11 rounded-full border border-border bg-background px-2 py-1 text-sm"
         >
           <option value="">Everyone</option>
-          {agents.map((agent) => (
+          {visibleAgents.map((agent) => (
             <option key={agent} value={agent}>
               Agent {agent + 1}
             </option>
@@ -577,14 +614,33 @@ function Instruct({ taskId, agents }: { taskId: string; agents: number[] }) {
       ) : null}
       <button
         type="submit"
-        disabled={!text.trim() || state === "sending"}
-        className="rounded-full border border-border px-3 py-1 text-xs hover:bg-accent disabled:opacity-50"
+        disabled={!draft.text.trim() || state === "sending" || state === "conflict"}
+        className="min-h-11 rounded-full border border-border px-3 py-1 text-sm hover:bg-accent disabled:opacity-50"
       >
         {state === "sending" ? "Sending…" : "Send"}
       </button>
+      {state === "conflict" ? (
+        <div className="basis-full space-y-1 text-xs">
+          <p role="alert">The task received a newer instruction. Your draft is still here.</p>
+          <button
+            type="button"
+            onClick={() => {
+              if (revision === draft.previous) {
+                void onChanged();
+                return;
+              }
+              setDraft((current) => ({ ...current, previous: revision }));
+              setState("idle");
+            }}
+            className="min-h-11 rounded-full border border-border px-3 text-sm hover:bg-accent"
+          >
+            {revision === draft.previous ? "Refresh task" : "Use latest task state"}
+          </button>
+        </div>
+      ) : null}
       {state === "accepted" ? (
         <span role="status" className="basis-full text-xs text-muted-foreground">
-          Received. JARVIS uses it from its next step; finished steps stay as they are.
+          Received. JARVIS reads it when planning again. Check Activity for steps already queued.
         </span>
       ) : null}
     </form>
@@ -716,40 +772,65 @@ function LearnedSkill({ workflow }: { workflow: NonNullable<Task["learned"]> }) 
 
 function TaskForm({
   taskId,
+  formId,
+  question,
   fields,
   onDone,
 }: {
   taskId: string;
+  formId: string;
+  question: string | null;
   fields: NonNullable<Task["form"]>;
   onDone: () => void;
 }) {
   const [values, setValues] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
-  const client = useRef(crypto.randomUUID());
+  const [error, setError] = useState<string | null>(null);
+  const attempt = useRef<{ payload: string; clientId: string } | null>(null);
   const missing = fields.some((field) => field.required && !values[field.name]?.trim());
   return (
     <form
       aria-label="Details JARVIS needs"
+      aria-describedby={question ? `question-${formId}` : undefined}
       className="mt-2 space-y-2 rounded-xl border border-border p-3"
       onSubmit={(event) => {
         event.preventDefault();
         if (missing || busy) return;
         setBusy(true);
-        void answerJarvisForm({ data: { taskId, values, clientId: client.current } })
+        setError(null);
+        const payload = JSON.stringify(values);
+        if (attempt.current?.payload !== payload)
+          attempt.current = { payload, clientId: crypto.randomUUID() };
+        void answerJarvisForm({
+          data: { taskId, formId, values, clientId: attempt.current.clientId },
+        })
           .then(onDone)
-          .catch((error: Error) => toast.error(error.message))
+          .catch((error: unknown) =>
+            setError(
+              error instanceof Error && !(error instanceof TypeError)
+                ? error.message
+                : "Could not send your answers. Your entries are still here.",
+            ),
+          )
           .finally(() => setBusy(false));
       }}
     >
+      {question ? (
+        <p id={`question-${formId}`} className="text-sm">
+          {question}
+        </p>
+      ) : null}
       {fields.map((field) => {
-        const id = `form-${taskId}-${field.name}`;
+        const id = `form-${formId}-${field.name}`;
         const common = {
           id,
           value: values[field.name] ?? "",
           required: field.required,
+          disabled: busy,
           onChange: (event: { target: { value: string } }) =>
-            setValues({ ...values, [field.name]: event.target.value }),
-          className: "mt-1 w-full rounded-md border border-border bg-background px-2 py-1",
+            setValues((previous) => ({ ...previous, [field.name]: event.target.value })),
+          className:
+            "mt-1 min-h-11 w-full rounded-md border border-border bg-background px-2 py-1 text-base",
         };
         return (
           <label key={field.name} htmlFor={id} className="block text-xs">
@@ -772,16 +853,22 @@ function TaskForm({
               <input
                 {...common}
                 type={field.type === "number" ? "number" : field.type === "date" ? "date" : "text"}
+                step={field.type === "number" ? "any" : undefined}
                 maxLength={1000}
               />
             )}
           </label>
         );
       })}
+      {error ? (
+        <p role="alert" className="text-sm text-destructive">
+          {error}
+        </p>
+      ) : null}
       <button
         type="submit"
         disabled={missing || busy}
-        className="rounded-full bg-foreground px-3 py-1 text-xs text-background disabled:opacity-50"
+        className="min-h-11 rounded-full bg-foreground px-3 py-1 text-sm text-background disabled:opacity-50"
       >
         {busy ? "Sending…" : "Send to JARVIS"}
       </button>
@@ -791,6 +878,109 @@ function TaskForm({
 
 /** One task: what JARVIS is doing, what it proved, and the person's controls. */
 type Task = Awaited<ReturnType<typeof getJarvisTask>>;
+
+function TaskEvidence({ task }: { task: Task }) {
+  const [caseReport, setCaseReport] = useState<string | null>(null);
+  const [question, setQuestion] = useState("");
+  const [busy, setBusy] = useState<"passport" | "case" | null>(null);
+  const caseButton = useRef<HTMLButtonElement>(null);
+  const casePacket = caseReport
+    ? ["Case summary for a professional", question.trim(), caseReport].filter(Boolean).join("\n\n")
+    : null;
+
+  const prepare = async (type: "passport" | "case") => {
+    setBusy(type);
+    try {
+      const passport = await buildPassport(task);
+      const report = passportReport(passport);
+      if (type === "case") {
+        setCaseReport(report);
+        return;
+      }
+      download(`ocade-proof-${task.id}.json`, JSON.stringify(passport, null, 2));
+      download(`ocade-proof-${task.id}.txt`, report);
+      toast.success("Proof Passport saved with private details omitted.");
+    } catch {
+      toast.error("Couldn’t prepare the report. Try again.");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  return (
+    <>
+      <button
+        type="button"
+        disabled={busy !== null}
+        onClick={() => void prepare("passport")}
+        className="min-h-11 rounded-full border border-border px-3 hover:bg-accent disabled:opacity-60"
+      >
+        {busy === "passport" ? "Preparing Passport…" : "Proof Passport"}
+      </button>
+      {task.status !== "completed" ? (
+        <button
+          ref={caseButton}
+          type="button"
+          disabled={busy !== null}
+          aria-expanded={casePacket !== null}
+          onClick={() => (casePacket === null ? void prepare("case") : setCaseReport(null))}
+          className="min-h-11 rounded-full border border-border px-3 hover:bg-accent disabled:opacity-60"
+        >
+          {busy === "case" ? "Preparing case summary…" : "Prepare a case summary"}
+        </button>
+      ) : null}
+      {casePacket !== null ? (
+        <section
+          aria-label="Case summary"
+          className="min-w-0 basis-full space-y-3 rounded-lg border p-3"
+        >
+          <p className="text-muted-foreground">
+            Review what you’ll save for a professional of your choice. OCADE saves this on your
+            device.
+          </p>
+          <label className="block space-y-1">
+            <span className="font-medium">Question for the professional (optional)</span>
+            <textarea
+              rows={2}
+              maxLength={2000}
+              className="block w-full rounded-md border border-border bg-background p-2 text-base"
+              value={question}
+              onChange={(event) => setQuestion(event.target.value)}
+            />
+          </label>
+          <label className="block space-y-1">
+            <span className="font-medium">Download preview</span>
+            <textarea
+              readOnly
+              rows={6}
+              className="block w-full rounded-md border border-border bg-background p-2 text-base"
+              value={casePacket}
+            />
+          </label>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => download(`ocade-case-${task.id}.txt`, casePacket)}
+              className="min-h-11 rounded-full bg-primary px-4 font-medium text-primary-foreground"
+            >
+              Download summary
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setCaseReport(null);
+                caseButton.current?.focus();
+              }}
+              className="min-h-11 rounded-full border border-border px-4 hover:bg-accent"
+            >
+              Close preview
+            </button>
+          </div>
+        </section>
+      ) : null}
+    </>
+  );
+}
 
 export function TaskPanel({
   task,
@@ -821,6 +1011,7 @@ export function TaskPanel({
   // The timeline (R12-09): filter by agent and by what happened; entries are the real steps.
   const [agentFilter, setAgentFilter] = useState<number | null>(null);
   const [statusFilter, setStatusFilter] = useState<"all" | "problems" | "waiting">("all");
+  const [previewOpen, setPreviewOpen] = useState(true);
   const shown = task.steps.filter(
     (step) =>
       (agentFilter === null || step.lane === agentFilter) &&
@@ -829,8 +1020,10 @@ export function TaskPanel({
           ? ["failed", "blocked", "cancelled"].includes(step.status) || step.needsAnswer
           : ["queued", "claimed", "needs_confirmation"].includes(step.status))),
   );
-  // Passive next-action preview (R12-08): the next step JARVIS has actually planned, not a guess.
+  // Passive preview (R12-08): use the actual activity, and let the timeline own approval controls.
   const next = task.steps.find((step) => ["queued", "needs_confirmation"].includes(step.status));
+  const executing =
+    task.status === "running" ? task.steps.find((step) => step.status === "claimed") : undefined;
   const act = (work: Promise<unknown>) =>
     void work.then(onChanged).catch((error: Error) => toast.error(error.message));
   return (
@@ -853,7 +1046,7 @@ export function TaskPanel({
             Take over
           </button>
         ) : null}
-        {task.status === "taken_over" || task.status === "waiting" ? (
+        {task.status === "taken_over" || (task.status === "waiting" && !task.form) ? (
           <button
             type="button"
             onClick={() => act(resumeJarvisTask({ data: { taskId: task.id } }))}
@@ -862,44 +1055,7 @@ export function TaskPanel({
             Continue
           </button>
         ) : null}
-        {!open ? (
-          <button
-            type="button"
-            onClick={() =>
-              void buildPassport(task).then((passport) => {
-                download(`ocade-proof-${task.id}.json`, JSON.stringify(passport, null, 2));
-                download(`ocade-proof-${task.id}.txt`, passportReport(passport));
-              })
-            }
-            className="rounded-full border border-border px-3 py-1 hover:bg-accent"
-          >
-            Proof Passport
-          </button>
-        ) : null}
-        {!open && task.status !== "completed" ? (
-          <button
-            type="button"
-            title="A summary to give a professional of your choice. OCADE does not contact anyone."
-            onClick={() =>
-              void buildPassport(task).then((passport) =>
-                download(
-                  `ocade-case-${task.id}.txt`,
-                  [
-                    "Case summary for a professional (prepared by OCADE at your request)",
-                    "Review before sharing: it names your files and what JARVIS did. OCADE has not contacted anyone.",
-                    "",
-                    `Open question: ${task.blocker ?? "The task did not finish as asked."}`,
-                    "",
-                    passportReport(passport),
-                  ].join("\n"),
-                ),
-              )
-            }
-            className="rounded-full border border-border px-3 py-1 hover:bg-accent"
-          >
-            Case summary for an expert
-          </button>
-        ) : null}
+        {!open ? <TaskEvidence key={task.id} task={task} /> : null}
         {task.status === "completed" && task.checks.every((check) => check.state === "passed") ? (
           <button
             type="button"
@@ -1009,7 +1165,9 @@ export function TaskPanel({
           )}
         </div>
       ) : null}
-      {task.blocker ? <p className="mt-1 text-muted-foreground">{task.blocker}</p> : null}
+      {task.blocker && !task.form ? (
+        <p className="mt-1 text-muted-foreground">{task.blocker}</p>
+      ) : null}
       <p className="mt-1 text-xs text-muted-foreground">
         {task.source
           ? `Your key: ${task.source.alias} · ${task.source.model}${
@@ -1032,8 +1190,8 @@ export function TaskPanel({
             ))}
           </ul>
           <p className="mt-1 text-muted-foreground">
-            Only from the folders and sites this computer allows. To keep JARVIS out of a file, move
-            it out of the JARVIS folder or say so in your request.
+            These are the folders, files, websites and apps JARVIS successfully inspected for this
+            task. Change what this computer can access in Settings.
           </p>
         </details>
       ) : null}
@@ -1060,7 +1218,16 @@ export function TaskPanel({
           </p>
         </div>
       ) : null}
-      {task.form ? <TaskForm taskId={task.id} fields={task.form} onDone={onChanged} /> : null}
+      {task.form && task.formId ? (
+        <TaskForm
+          key={task.formId}
+          taskId={task.id}
+          formId={task.formId}
+          question={task.blocker}
+          fields={task.form}
+          onDone={onChanged}
+        />
+      ) : null}
       {open && task.agents.active + task.agents.waiting + task.agents.paused > 1 ? (
         <p className="mt-1 text-muted-foreground" aria-live="polite">
           {[
@@ -1077,9 +1244,28 @@ export function TaskPanel({
       ) : null}
       {open ? (
         <Instruct
+          key={task.id}
           taskId={task.id}
           agents={[...new Set(task.steps.map((step) => step.lane))].sort()}
+          revision={task.instructionRevision}
+          onChanged={onChanged}
         />
+      ) : null}
+      {task.instructionHistory.length ? (
+        <details className="mt-2 rounded-xl border border-border px-3 py-1">
+          <summary className="min-h-11 content-center cursor-pointer">Recent instructions</summary>
+          <ol className="space-y-2 pb-2">
+            {task.instructionHistory.map((instruction) => (
+              <li key={instruction.id}>
+                <p className="text-muted-foreground">
+                  {instruction.from === "computer" ? "Companion" : "Website"} ·{" "}
+                  {instruction.lane === null ? "Everyone" : `Agent ${instruction.lane + 1}`}
+                </p>
+                <p className="whitespace-pre-wrap break-words">{instruction.text}</p>
+              </li>
+            ))}
+          </ol>
+        </details>
       ) : null}
       {task.deviceOffline ? (
         <p className="mt-1 text-muted-foreground">
@@ -1106,13 +1292,31 @@ export function TaskPanel({
           ) : null}
         </ol>
       ) : null}
-      {open && next ? (
-        <p className="mt-2 text-xs text-muted-foreground" aria-live="polite">
-          <span className="font-medium text-foreground">
-            {next.status === "needs_confirmation" ? "Needs your approval:" : "Next:"}
-          </span>{" "}
-          {next.summary}
-        </p>
+      {open && (next || executing) ? (
+        <details
+          className="mt-2 rounded-xl border border-border px-3"
+          open={previewOpen}
+          onToggle={(event) => setPreviewOpen(event.currentTarget.open)}
+        >
+          <summary className="min-h-11 content-center cursor-pointer font-medium">
+            Action preview
+          </summary>
+          <div className="space-y-1 pb-2 text-sm text-muted-foreground" aria-live="polite">
+            {executing ? (
+              <p>
+                <span className="font-medium text-foreground">Executing</span> {executing.summary}
+              </p>
+            ) : null}
+            {next ? (
+              <p>
+                <span className="font-medium text-foreground">
+                  {next.status === "needs_confirmation" ? "Needs your approval" : "Planned"}
+                </span>{" "}
+                {next.summary}
+              </p>
+            ) : null}
+          </div>
+        </details>
       ) : null}
       {task.steps.length > 6 ? (
         <div className="mt-2 flex flex-wrap gap-2 text-xs" role="group" aria-label="Filter steps">

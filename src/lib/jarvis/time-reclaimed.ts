@@ -7,6 +7,8 @@
 export interface TaskRecord {
   title: string;
   status: string;
+  /** Older callers may omit the mode. Stored rows always provide it. */
+  mode?: string;
   created_at: string;
   finished_at: string | null;
   user_wait_ms: number | null;
@@ -33,6 +35,7 @@ export function countOutcomeChecks(outcome: unknown, checkpoint: unknown) {
 export function record(row: {
   title: string;
   status: string;
+  mode?: string;
   created_at: string;
   finished_at: string | null;
   user_wait_ms: number | null;
@@ -42,6 +45,7 @@ export function record(row: {
   return {
     title: row.title,
     status: row.status,
+    mode: row.mode,
     created_at: row.created_at,
     finished_at: row.finished_at,
     user_wait_ms: row.user_wait_ms,
@@ -62,7 +66,11 @@ export function recordsInPeriod(tasks: readonly TaskRecord[], period: Period, no
       : period === "today"
         ? new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()
         : now.getTime() - (period === "week" ? 7 : 30) * 86_400_000;
-  return tasks.filter((task) => Date.parse(task.created_at) >= from);
+  return tasks.filter((task) => isActualTask(task) && Date.parse(task.created_at) >= from);
+}
+
+export function isActualTask(task: { mode?: string }) {
+  return task.mode === undefined || task.mode === "live" || task.mode === "background";
 }
 
 export function reclaimed(
@@ -97,15 +105,17 @@ export function csv(tasks: readonly TaskRecord[]): string {
   };
   return [
     "title,status,verified,accepted_at,finished_at,waited_on_you_seconds",
-    ...tasks.map((task) =>
-      [
-        cell(task.title),
-        task.status,
-        verified(task) ? "yes" : "no",
-        task.created_at,
-        task.finished_at ?? "",
-        Math.round((task.user_wait_ms ?? 0) / 1000),
-      ].join(","),
-    ),
+    ...tasks
+      .filter(isActualTask)
+      .map((task) =>
+        [
+          cell(task.title),
+          task.status,
+          verified(task) ? "yes" : "no",
+          task.created_at,
+          task.finished_at ?? "",
+          Math.round((task.user_wait_ms ?? 0) / 1000),
+        ].join(","),
+      ),
   ].join("\n");
 }

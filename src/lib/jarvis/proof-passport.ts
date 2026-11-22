@@ -2,29 +2,46 @@
  * PROOF PASSPORT (plan 28.1.7 T12-07): a portable record of what a JARVIS task changed, what was
  * checked and what remains uncertain, built only from the task's own records (checks, step
  * outcomes, delivered files and their SHA-256 as the computer reported them). A versioned JSON
- * manifest with an integrity hash of its own content, plus a short readable report. It is not
- * signed (no trusted signing key exists yet) and says so; it never certifies more than its checks.
+ * manifest with an integrity hash of its own content, plus a short readable report. Portable
+ * exports carry only structured evidence because task text can contain private information.
  */
+import { OPERATIONS, outcomeCheck } from "./contracts.ts";
+
 export type PassportStatus =
-  "VERIFIED" | "PARTIALLY VERIFIED" | "FAILED" | "UNKNOWN EFFECT" | "NOT FINISHED";
+  | "VERIFIED"
+  | "PARTIALLY VERIFIED"
+  | "FAILED"
+  | "UNKNOWN EFFECT"
+  | "USER-ATTESTED"
+  | "NOT FINISHED";
 
 export interface PassportInput {
   id: string;
-  title: string;
   status: string;
-  device?: string | null;
-  checks: { id: string; description: string; state: string }[];
-  steps: { summary: string; status: string; disposition: string | null; lane?: number }[];
-  artifactFiles: { path: string; sha256: string }[];
+  mode?: string;
+  checks: { kind?: string; state: string }[];
+  steps: {
+    operation?: string;
+    status: string;
+    disposition: string | null;
+    resolution?: string | null;
+    lane?: number;
+  }[];
+  artifactFiles: { sha256: string }[];
   timing: { acceptedAt: string; finishedAt: string | null };
 }
 
 export function passportStatus(task: PassportInput): PassportStatus {
   if (task.steps.some((step) => step.disposition === "outcome unknown")) return "UNKNOWN EFFECT";
   if (!["completed", "blocked", "failed", "stopped"].includes(task.status)) return "NOT FINISHED";
-  if (!task.checks.length || task.checks.some((check) => check.state === "failed")) return "FAILED";
-  if (task.checks.every((check) => check.state === "passed") && task.status === "completed")
+  if (task.checks.some((check) => check.state === "failed")) return "FAILED";
+  if (
+    task.checks.length > 0 &&
+    task.checks.every((check) => check.state === "passed") &&
+    task.status === "completed"
+  )
     return "VERIFIED";
+  if (task.steps.some((step) => step.resolution === "applied")) return "USER-ATTESTED";
   return task.checks.some((check) => check.state === "passed") ? "PARTIALLY VERIFIED" : "FAILED";
 }
 
@@ -46,24 +63,46 @@ async function sha256(text: string): Promise<string> {
 
 export async function buildPassport(task: PassportInput, generatedAt = new Date()) {
   const body = {
-    format: "ocade-proof-passport/1",
+    format: "ocade-proof-passport/2",
     taskId: task.id,
-    outcome: task.title,
     status: passportStatus(task),
-    device: task.device ?? null,
+    rehearsal: task.mode === "rehearsal",
     acceptedAt: task.timing.acceptedAt,
     finishedAt: task.timing.finishedAt,
     generatedAt: generatedAt.toISOString(),
-    checks: task.checks.map(({ id, description, state }) => ({ id, description, state })),
-    steps: task.steps.map((step) => ({
-      summary: step.summary,
-      outcome: step.disposition ?? step.status,
-      ...(step.lane ? { agent: step.lane + 1 } : {}),
+    checks: task.checks.map(({ kind, state }, index) => ({
+      number: index + 1,
+      method: outcomeCheck.shape.kind.safeParse(kind).data ?? null,
+      state: ["passed", "failed", "unverified"].includes(state) ? state : "unchecked",
     })),
-    files: task.artifactFiles.map(({ path, sha256 }) => ({ path, sha256 })),
-    // Sent, published or submitted effects cannot be undone by OCADE; they are recorded only.
-    limits:
-      "Checks are OCADE's own independent checks on this computer's results. Not signed by a third party.",
+    steps: task.steps.map(({ operation, resolution, disposition, status, lane }, index) => {
+      const outcome = disposition ?? status;
+      return {
+        number: index + 1,
+        operation: operation && Object.hasOwn(OPERATIONS, operation) ? operation : null,
+        outcome:
+          resolution === "applied"
+            ? "user-attested"
+            : [
+                  "outcome unknown",
+                  "verified",
+                  "executed",
+                  "refused",
+                  "failed",
+                  "cancelled",
+                ].includes(outcome)
+              ? outcome
+              : "unchecked",
+        agent:
+          typeof lane === "number" && Number.isInteger(lane) && lane >= 0 && lane <= 3
+            ? lane + 1
+            : null,
+      };
+    }),
+    files: task.artifactFiles
+      .filter(({ sha256 }) => /^[0-9a-f]{64}$/.test(sha256))
+      .map(({ sha256 }, index) => ({ number: index + 1, sha256 })),
+    limits: "This unsigned report contains OCADE's check results and recorded file hashes.",
     signature: null,
   };
   return { ...body, integrity: { sha256: await sha256(canonical(body)) } };
@@ -80,19 +119,30 @@ export async function passportIntact(manifest: Record<string, unknown>): Promise
 export function passportReport(passport: Awaited<ReturnType<typeof buildPassport>>): string {
   return [
     `OCADE Proof Passport — ${passport.status}`,
-    `Outcome: ${passport.outcome}`,
-    `Task ${passport.taskId}${passport.device ? ` on ${passport.device}` : ""}`,
-    `Accepted ${passport.acceptedAt}; finished ${passport.finishedAt ?? "not yet"}`,
+    ...(passport.rehearsal ? ["Rehearsal results only"] : []),
+    `Task ${passport.taskId}`,
+    `Accepted ${passport.acceptedAt}. Finished ${passport.finishedAt ?? "not yet"}.`,
     "",
-    "Checks:",
-    ...passport.checks.map((check) => `- [${check.state}] ${check.description}`),
+    "Checks",
+    ...(passport.checks.length
+      ? passport.checks.map(
+          (check) =>
+            `- Check ${check.number} · ${check.method?.replaceAll("_", " ") ?? "method unavailable"} · ${check.state}`,
+        )
+      : ["- None recorded"]),
     "",
-    "Files delivered (SHA-256):",
+    "Recorded file hashes (SHA-256)",
     ...(passport.files.length
-      ? passport.files.map((file) => `- ${file.path}  ${file.sha256}`)
-      : ["- none"]),
+      ? passport.files.map((file) => `- File ${file.number}  ${file.sha256}`)
+      : ["- None recorded"]),
     "",
-    `Steps: ${passport.steps.length}`,
+    "Steps",
+    ...(passport.steps.length
+      ? passport.steps.map(
+          (step) =>
+            `- Step ${step.number} · ${step.operation?.replace(/[._]/g, " ") ?? "action unavailable"} · ${step.outcome}`,
+        )
+      : ["- None recorded"]),
     passport.limits,
     `Manifest integrity SHA-256: ${passport.integrity.sha256}`,
   ].join("\n");

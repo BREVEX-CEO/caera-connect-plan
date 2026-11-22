@@ -36,7 +36,17 @@ test("a running task says plainly when its computer is unreachable", async () =>
   });
   const view = async (status: string, seen: number | null) =>
     taskView(
-      { rpc: async () => ({ data: state(status, seen), error: null }) } as unknown as Admin,
+      {
+        rpc: async (name: string) => ({
+          data:
+            name === "jarvis_task_state"
+              ? state(status, seen)
+              : name === "jarvis_task_instructions"
+                ? []
+                : 0,
+          error: null,
+        }),
+      } as unknown as Admin,
       "u",
       "t",
     );

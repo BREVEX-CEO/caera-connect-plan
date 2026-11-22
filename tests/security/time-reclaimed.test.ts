@@ -42,3 +42,22 @@ test("duplicate and unrelated checks cannot inflate outcomes or exported verific
   assert.equal(reclaimed([notVerified], "today", 10, now).verified, 0);
   assert.match(csv([notVerified]), /"'=1\+1",completed,no/);
 });
+
+test("verified rehearsals cannot add to completed tasks, time saved, or exports", () => {
+  const simulated = record({
+    ...row("completed", 2, 1),
+    title: "Rename those copies in a rehearsal",
+    mode: "rehearsal",
+    outcome: [{ id: "a" }],
+    checkpoint: { verification: { passed: ["a"] } },
+  });
+  const actual = row("completed", 2, 2);
+  assert.deepEqual(reclaimed([simulated, actual], "today", 10, now), {
+    total: 1,
+    verified: 1,
+    failed: 0,
+    other: 0,
+    savedMinutes: 10,
+  });
+  assert.doesNotMatch(csv([simulated, actual]), /Rename those copies/);
+});

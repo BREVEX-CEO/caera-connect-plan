@@ -5,12 +5,13 @@ SET client_min_messages = warning;
 
 CREATE FUNCTION pg_temp.fails(p_sql text, p_expected text) RETURNS void LANGUAGE plpgsql AS $$
 BEGIN
-  EXECUTE p_sql;
-  RAISE EXCEPTION 'expected failure "%" but it succeeded: %', p_expected, p_sql;
-EXCEPTION WHEN OTHERS THEN
-  IF SQLERRM NOT LIKE '%' || p_expected || '%' THEN
+  BEGIN
+    EXECUTE p_sql;
+  EXCEPTION WHEN OTHERS THEN
+    IF SQLERRM LIKE '%' || p_expected || '%' THEN RETURN; END IF;
     RAISE EXCEPTION 'expected "%", got "%" for: %', p_expected, SQLERRM, p_sql;
-  END IF;
+  END;
+  RAISE EXCEPTION 'expected "%", but statement succeeded: %', p_expected, p_sql;
 END $$;
 
 CREATE FUNCTION pg_temp.check(p_ok boolean, p_what text) RETURNS void LANGUAGE plpgsql AS $$
@@ -153,7 +154,7 @@ DECLARE
   reclaim jsonb;
 BEGIN
   PERFORM pg_temp.fails(format('SELECT public.jarvis_queue_actions(%L, %L, %L)', task, gen_random_uuid(), pg_temp.act('k1')), 'stale_controller');
-  PERFORM pg_temp.fails(format('SELECT public.jarvis_queue_actions(%L, %L, %L)', task, ctl, pg_temp.act('k1', 'external_effect')), 'risk_not_supported');
+  PERFORM pg_temp.fails(format('SELECT public.jarvis_queue_actions(%L, %L, %L)', task, ctl, pg_temp.act('k1', 'unsupported')), 'risk_not_supported');
   PERFORM pg_temp.fails(format('SELECT public.jarvis_queue_actions(%L, %L, %L)', task, ctl, pg_temp.act('k1', 'read', 'terminal')), 'permission_required');
   PERFORM pg_temp.check(public.jarvis_queue_actions(task, ctl, pg_temp.act('k1')) = 1, 'queued');
   PERFORM pg_temp.check(public.jarvis_queue_actions(task, ctl, pg_temp.act('k1')) = 0, 'same key not queued twice');
