@@ -545,7 +545,7 @@ The original exact text for out-of-scope IDs is preserved in `docs/archive/plan-
 | 68 | No unnecessary desktop icons | CODED (VERIFIED 23 Nov: `ocade-agent.iss` [Icons] creates Start-menu entries only, no desktop icon; Always-On is an unchecked task) | Consumer-PC check (Stage 6) |
 | 69 | Safe process cleanup | PARTIAL | — |
 | 70 | Trusted reconnection | PARTIAL | Test after sleep and network loss |
-| 71 | No repeated email verification for pairing | UNKNOWN | Part 5.5 |
+| 71 | No repeated email verification for pairing | CODED (VERIFIED 23 Nov: the companion opens `#pair=<code>` on the signed-in website; the person confirms with Pair, no email step, `JarvisPanels.tsx` pairing panel → `jarvis_approve_device`) | Consumer-PC pairing check (Stage 6) |
 | 72 | Unrestricted testing usage | Unlimited grants exist (VERIFIED: `Unlimited` in `entitlement-resolver.ts`) | Assign them to test accounts; provider budgets still apply |
 | 73 | Usage within safety and infrastructure limits | Belongs with 72 | Global budget switch |
 
