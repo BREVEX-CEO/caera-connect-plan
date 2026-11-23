@@ -38,6 +38,173 @@ USE THE "UX LAWS AND PRINCIPLES" AT AN EXTREME AND USE THEM ALL EFFECTIVELY. App
 
 **Heading numbering:** A legacy numbered Part may appear physically in a later stage because its original ID is a stable cross-reference. Nested Appendix F §4–§11 and Appendix H §19 are historical subsections, not new top-level Parts or permission to benchmark early.
 
+## Part 0A. Active 148-item execution checklist (owner prompt, 23 November 2026)
+
+Source: owner prompt of 23 Nov 2026, starting commit `1cf164bd629015df4bb27d64e90c057683e66862` on `ocade/p00-p22-implementation`. Item wording is copied exactly. Order is the owner's dependency order and matches the master checklist stage order (coding → UX → security → debloat → green CI → staging benchmarks → cloud qualification → launch). `M§n` = section n of [`docs/OCADE_MASTER_COMPLETION_CHECKLIST.md`](docs/OCADE_MASTER_COMPLETION_CHECKLIST.md); `S` = [`docs/OCADE_MASTER_SECURITY_CHECKLIST.md`](docs/OCADE_MASTER_SECURITY_CHECKLIST.md). A box is checked only with independently verified evidence on a named SHA; status words: OPEN, IN PROGRESS, DONE (evidence), BLOCKED (exact blocker).
+
+Cross-check (23 Nov 2026): every master-checklist section M§0–M§17 maps to at least one item below; every item maps to at least one master section. No master section is uncovered.
+
+
+### Implementation and verification
+
+- [ ] 1. Verify latest GitHub HEAD, synchronize safely, preserve existing commits and inspect the entire repository. — map: M§0 — status: OPEN
+- [ ] 2. Read every section, subsection and appendix of `plan.md`; identify every incomplete, partial, missing, broken or unverified requirement. — map: M§1 — status: OPEN
+- [ ] 3. Audit all 120 owner requirements, preserving original wording and identifying missing source information. — map: M§2, M§16 — status: OPEN
+- [ ] 4. Audit all 266 original requirements individually; complete every applicable missing coding requirement. — map: M§3 — status: OPEN
+- [ ] 5. Audit all 84 architecture concepts; complete missing implementations and acceptance tests. — map: M§4 — status: OPEN
+- [ ] 6. Audit all 72 repository-integration requirements; finish every applicable incomplete integration. — map: M§5 — status: OPEN
+- [ ] 7. Reconcile all 236 research dispositions and 38 consolidated architecture proposals without duplicating unnecessary functionality. — map: M§6 (14C), M§16 — status: OPEN
+- [ ] 8. Finish every remaining coding requirement throughout Parts 0–26, 14A–14F, 27 and 28. — map: M§1, M§6 — status: OPEN
+- [ ] 9. Complete JARVIS planning, independent verification, durable task execution and autonomous recovery. — map: M§6 (P0–P3, 14A) — status: OPEN
+- [ ] 10. Complete Windows/macOS native computer control, application discovery, accessibility and browser automation. — map: M§6 (P0–P3, 14F) — status: OPEN
+- [ ] 11. Complete parallel AI agents, resource coordination, work distribution, safety and cancellation. — map: M§6 (14D, 14F) — status: OPEN
+- [ ] 12. Complete Live Vision, continuous capture, screen understanding, change detection and correct visual targeting. — map: M§6 (14F.8–14F.12) — status: OPEN
+- [ ] 13. Complete the floating agent composer, agent indicators, background work and foreground-safe controls. — map: M§6 (14F.4–14F.6) — status: OPEN
+- [ ] 14. Complete Online Chat, streaming, conversations, model selection, files, history and recovery. — map: M§6 (14B, 14E) — status: OPEN
+- [ ] 15. Complete Offline Chat, local model integration and offline website functionality. — map: M§6 (14B.2) — status: OPEN
+- [ ] 16. Complete universal model-provider adapters, secure routing, capability discovery and failure handling. — map: M§6 (14A, 14D.4–14D.4A) — status: OPEN
+- [ ] 17. Complete Supabase owner-managed credentials, customer BYOK, independent budgets, quotas and usage tracking. — map: M§6 (14B.1A–14B.1B) — status: OPEN
+- [ ] 18. Complete authentication, accounts, permissions, settings, privacy, Library, devices, notifications and customer data management. — map: M§6 (14B, 14E) — status: OPEN
+- [ ] 19. Complete R12-01: Live/Background Mode. — map: M§7 R12-01 — status: OPEN
+- [ ] 20. Complete R12-02: Smart Approvals. — map: M§7 R12-02 — status: OPEN
+- [ ] 21. Complete R12-03: Intelligent Privacy. — map: M§7 R12-03 — status: OPEN
+- [ ] 22. Complete R12-04: Seamless Tool Access. — map: M§7 R12-04 — status: OPEN
+- [ ] 23. Complete R12-05: Animated Permission Guide. — map: M§7 R12-05 — status: OPEN
+- [ ] 24. Complete R12-06: Live App Generator. — map: M§7 R12-06 — status: OPEN
+- [ ] 25. Complete R12-07: Automatic Context Discovery. — map: M§7 R12-07 — status: OPEN
+- [ ] 26. Complete R12-08: Passive Ghost Preview. — map: M§7 R12-08 — status: OPEN
+- [ ] 27. Complete R12-09: Time-Travel Timeline. — map: M§7 R12-09 — status: OPEN
+- [ ] 28. Complete R12-10: Private Habit Intelligence. — map: M§7 R12-10 — status: OPEN
+- [ ] 29. Complete R12-11: Simplification Mode. — map: M§7 R12-11 — status: OPEN
+- [ ] 30. Complete R12-12: Cross-Device Handoff. — map: M§7 R12-12 — status: OPEN
+- [ ] 31. Complete Business Money Assistant: Invoice Recovery and Cashflow Guardian. — map: M§7 packages — status: OPEN
+- [ ] 32. Complete Universal Forms & Claims Assistant: Deadline Guardian, Refund Assistant and Job Application Assistant. — map: M§7 packages — status: OPEN
+- [ ] 33. Complete Personal & Family Assistant: Micro-Business Ledger and Family Administration. — map: M§7 packages — status: OPEN
+- [ ] 34. Complete Business Launch Assistant: Client Onboarding Autopilot. — map: M§7 packages — status: OPEN
+- [ ] 35. Complete T12-01: OCADE LifeOS, including authorized automatic discovery and organization. — map: M§8 T12-01 — status: OPEN
+- [ ] 36. Complete T12-02: Outcome Autopilot, including quiet hours, goals, schedules, budgets and recovery. — map: M§8 T12-02 — status: OPEN
+- [ ] 37. Complete T12-03: Problem Radar, including authorized monitoring, deduplication, alerts and solutions. — map: M§8 T12-03 — status: OPEN
+- [ ] 38. Complete T12-04: Business-in-a-Box, including business records, permissions and integrations. — map: M§8 T12-04 — status: OPEN
+- [ ] 39. Complete T12-05: Opportunity Engine, including opportunity discovery, matching and application tracking. — map: M§8 T12-05 — status: OPEN
+- [ ] 40. Complete T12-06: Work Simulation, including safe rehearsal and verified before/after effects. — map: M§8 T12-06 — status: OPEN
+- [ ] 41. Complete T12-07: Proof Passport, including reliable, privacy-safe evidence of completed work. — map: M§8 T12-07 — status: OPEN
+- [ ] 42. Complete T12-08: Recovery Intelligence, including checkpoints, reconciliation and reliable resumption. — map: M§8 T12-08 — status: OPEN
+- [ ] 43. Complete T12-09: Personal Knowledge Vault, including secure storage, search, portability and deletion. — map: M§8 T12-09 — status: OPEN
+- [ ] 44. Complete T12-10: Human Expert Escalation, including explicit approval and safe handoff. — map: M§8 T12-10 — status: OPEN
+- [ ] 45. Complete T12-11: Verified Skill Network, including reusable private skills and authorized sharing. — map: M§8 T12-11 — status: OPEN
+- [ ] 46. Complete T12-12: Time Reclaimed Dashboard, using measured and verified work results. — map: M§8 T12-12 — status: OPEN
+- [ ] 47. Complete all applicable SkillForge, CheckPoint and LegacyBridge requirements. — map: M§8 SkillForge/CheckPoint/LegacyBridge — status: OPEN
+- [ ] 48. Complete Ghost Cursor, Instant Mini-Apps and Anti-Scam Guardian. — map: M§8 Ghost Cursor/Mini-Apps/Anti-Scam — status: OPEN
+- [ ] 49. Complete UI Repair Network, smart screen understanding and dynamic resource selection. — map: M§8 UI Repair/Smart Screen — status: OPEN
+- [ ] 50. Complete independent approvals, native Background Control and remaining technical improvements. — map: M§8 Independent approvals — status: OPEN
+- [ ] 51. Audit Skill Marketplace and other optional features against explicit owner approval; do not launch unapproved services. — map: M§8 Skill Marketplace, M§16 — status: OPEN
+- [ ] 52. Complete positive, negative, failure, cancellation and independent acceptance tests for every Part 27/28 capability. — map: M§7, M§8, plan 27.6/28.5 — status: OPEN
+- [ ] 53. Re-read the complete `plan.md` and all linked inventories, find overlooked coding gaps and finish them before advancing. — map: M§0, M§16 — status: OPEN
+
+### All 34 UX principles — apply throughout every relevant OCADE page, feature and device
+
+- [ ] 54. UX-01 — Aesthetic-Usability Effect: premium visual consistency, clarity and accessibility. — map: M§9 — status: OPEN
+- [ ] 55. UX-02 — Choice Overload: reduce unnecessary decisions and competing controls. — map: M§9 — status: OPEN
+- [ ] 56. UX-03 — Chunking: organize complex information into understandable groups. — map: M§9 — status: OPEN
+- [ ] 57. UX-04 — Cognitive Bias: truthful labels, neutral choices and no misleading defaults. — map: M§9 — status: OPEN
+- [ ] 58. UX-05 — Cognitive Load: simplify every task, form and interaction. — map: M§9 — status: OPEN
+- [ ] 59. UX-06 — Doherty Threshold: provide fast, perceptible feedback without pretending work has finished. — map: M§9 — status: OPEN
+- [ ] 60. UX-07 — Fitts's Law: improve control sizes, placement and accessibility. — map: M§9 — status: OPEN
+- [ ] 61. UX-08 — Flow: minimize interruptions during authorized work. — map: M§9 — status: OPEN
+- [ ] 62. UX-09 — Goal-Gradient Effect: display accurate, evidence-based task progress. — map: M§9 — status: OPEN
+- [ ] 63. UX-10 — Hick's Law: simplify navigation and choices. — map: M§9 — status: OPEN
+- [ ] 64. UX-11 — Jakob's Law: use familiar, intuitive interface conventions. — map: M§9 — status: OPEN
+- [ ] 65. UX-12 — Law of Common Region: visually group related controls. — map: M§9 — status: OPEN
+- [ ] 66. UX-13 — Law of Proximity: place related information and actions together. — map: M§9 — status: OPEN
+- [ ] 67. UX-14 — Law of Prägnanz: favor simple, immediately understandable layouts. — map: M§9 — status: OPEN
+- [ ] 68. UX-15 — Law of Similarity: maintain consistent interface patterns. — map: M§9 — status: OPEN
+- [ ] 69. UX-16 — Law of Uniform Connectedness: clearly connect related workflow steps. — map: M§9 — status: OPEN
+- [ ] 70. UX-17 — Mental Model: match customer expectations for safe AI computer control. — map: M§9 — status: OPEN
+- [ ] 71. UX-18 — Miller's Law: minimize memorization through grouping and search. — map: M§9 — status: OPEN
+- [ ] 72. UX-19 — Occam's Razor: remove unnecessary interaction complexity. — map: M§9 — status: OPEN
+- [ ] 73. UX-20 — Paradox of the Active User: support immediate use without mandatory tutorials. — map: M§9 — status: OPEN
+- [ ] 74. UX-21 — Pareto Principle: prioritize high-impact usability problems. — map: M§9 — status: OPEN
+- [ ] 75. UX-22 — Parkinson's Law: keep workflows bounded and efficient. — map: M§9 — status: OPEN
+- [ ] 76. UX-23 — Peak-End Rule: improve verified deliverables and task-completion experiences. — map: M§9 — status: OPEN
+- [ ] 77. UX-24 — Postel's Law: accept reasonable input variations while enforcing safe outputs. — map: M§9 — status: OPEN
+- [ ] 78. UX-25 — Selective Attention: distinguish critical controls from ordinary information. — map: M§9 — status: OPEN
+- [ ] 79. UX-26 — Serial Position Effect: prioritize essential beginning and ending actions. — map: M§9 — status: OPEN
+- [ ] 80. UX-27 — Tesler's Law: handle necessary complexity internally where safe. — map: M§9 — status: OPEN
+- [ ] 81. UX-28 — Von Restorff Effect: make important warnings and STOP controls distinctive. — map: M§9 — status: OPEN
+- [ ] 82. UX-29 — Working Memory: preserve context, drafts and user selections. — map: M§9 — status: OPEN
+- [ ] 83. UX-30 — Zeigarnik Effect: clearly distinguish and recover unfinished work. — map: M§9 — status: OPEN
+- [ ] 84. UX-31 — Visual Hierarchy: establish predictable information and action priority. — map: M§9 — status: OPEN
+- [ ] 85. UX-32 — Progressive Disclosure: reveal advanced controls when needed. — map: M§9 — status: OPEN
+- [ ] 86. UX-33 — Recognition over Recall: show relevant resources, devices and recent actions. — map: M§9 — status: OPEN
+- [ ] 87. UX-34 — Feedback Loops: provide accurate progress, success, error and recovery feedback. — map: M§9 — status: OPEN
+- [ ] 88. Verify all applicable UX principles across every route, signed-in/out state, desktop, mobile, tablet, keyboard and screen reader; record actual evidence and justified exceptions. — map: M§9, M§10 — status: OPEN
+- [ ] 89. Remove duplicate UI components and unnecessary interactions; optimize consistency, responsiveness, accessibility and customer task completion. — map: M§9, M§12 — status: OPEN
+
+### Security, optimization and final engineering verification
+
+- [ ] 90. Read and independently review both complete security ledgers. — map: M§11, S (security checklist) — status: OPEN
+- [ ] 91. Recheck all 16 code-observed security findings and their remaining gaps. — map: M§11, S, docs/OCADE_THREAT_TRIAGE.md — status: OPEN
+- [ ] 92. Re-audit all 192 security risk hypotheses individually, including previously FIXED entries. — map: M§11, S — status: OPEN
+- [ ] 93. Implement and independently execute all applicable security tests from the 1,152 proposed negative scenarios. — map: M§11, S — status: OPEN
+- [ ] 94. Resolve all applicable OPEN/PARTIAL security findings, including malware intake, external MCP isolation, account separation and unauthorized effects. — map: M§11, M§16, S — status: OPEN
+- [ ] 95. Verify all 16 API-key security requirements and complete tenant, privacy, quota, provider and admin safeguards. — map: M§6 (14B.5–14B.6), M§11 — status: OPEN
+- [ ] 96. Fix every remaining reproducible security vulnerability and release-blocking defect without weakening protections. — map: M§11 — status: OPEN
+- [ ] 97. Review the entire repository for unnecessary, duplicated, obsolete and unreachable code. — map: M§12 — status: OPEN
+- [ ] 98. Remove only proven useless code, dependencies and files while preserving working features, security, user data and historical evidence. — map: M§12 — status: OPEN
+- [ ] 99. Measure and optimize website loading, task responsiveness, memory, CPU, GPU, network usage, model calls and cost. — map: M§12, plan Part 15 — status: OPEN
+- [ ] 100. Optimize JARVIS for lower execution time, fewer unnecessary actions, high accuracy and verified output quality. — map: M§12, plan Part 25 — status: OPEN
+- [ ] 101. Independently measure performance before and after every meaningful optimization; reject regressions. — map: M§12 — status: OPEN
+- [ ] 102. Re-audit the entire codebase against `plan.md` after cleanup and resolve any missing or broken requirement. — map: M§0, M§12 — status: OPEN
+- [ ] 103. Run complete typechecking, formatting, linting, builds, database migrations and rollback tests. — map: M§13 — status: OPEN
+- [ ] 104. Run all mandatory GitHub Actions for the entire website, backend, security and Windows/macOS companions on the SAME final SHA. — map: M§13 — status: OPEN
+- [ ] 105. Fix every failed mandatory job and investigate recurring Windows test hangs until the required checks pass with acceptable repeatability. — map: M§13, M§16 — status: OPEN
+- [ ] 106. Independently inspect all CI evidence; do not count older commits, unapproved skips or successful retries as proof of a fixed underlying defect. — map: M§13, M§17 — status: OPEN
+- [ ] 107. Obtain required staging authorization, reconcile outstanding migrations and validate staging configuration. — map: M§14, M§16 — status: OPEN
+- [ ] 108. Verify authorized real AI providers, model capabilities, quotas, pricing, prompts and safety requirements. — map: M§14 — status: OPEN
+- [ ] 109. Benchmark single-agent versus multi-agent performance on identical tasks, with independent verification. — map: M§14 — status: OPEN
+- [ ] 110. Measure first-attempt accuracy, execution speed, p50/p95 latency, model calls, tokens, costs, recoveries and resource usage. — map: M§14 — status: OPEN
+- [ ] 111. Improve speed and accuracy through genuine general-purpose fixes, without hardcoding tasks, lowering success thresholds or weakening safety. — map: M§14, M§0 — status: OPEN
+- [ ] 112. Rerun mandatory coding/security checks after fixes and continue approved benchmark iterations until their acceptance criteria pass or a documented blocker remains. — map: M§14, M§0 — status: OPEN
+- [ ] 113. Complete the initial 16-run, two-model Windows/macOS real-application comparison using the specified independent outcomes. — map: M§15 — status: OPEN
+- [ ] 114. Complete E1–E3 and E4, including at least 100 hidden tasks over at least three days and at least 90% independently verified first-attempt success. — map: M§15 — status: OPEN
+- [ ] 115. Complete full Windows/macOS cloud-computer testing across real supported applications, AI agents, desktop control, files, permissions and recovery. — map: M§15 — status: OPEN
+- [ ] 116. Test every website route and feature, including all Parts 27/28 products, accounts, settings, Chat, JARVIS, Library, BYOK, offline functions, support and policies. — map: M§10, M§15 — status: OPEN
+- [ ] 117. Test realistic user journeys, network failures, interruptions, parallel work, revocation, STOP, Take Over and wrong-account access. — map: M§15 — status: OPEN
+- [ ] 118. Test actual consumer Windows 10/11 and macOS computers only after obtaining the required explicit authorization. — map: M§15, M§0 — status: OPEN
+- [ ] 119. Complete true offline testing, including model download, complete internet disconnection, website reopening, local inference and reconnection. — map: M§15 — status: OPEN
+- [ ] 120. For every failure, preserve evidence, repair the general cause, repeat required security and CI gates, and retest the failed workflow. — map: M§0, M§15 — status: OPEN
+- [ ] 121. Confirm zero known unresolved applicable mandatory failures or launch-blocking bugs within the independently tested scope. — map: M§17 — status: OPEN
+
+### Customer readiness and public-launch checklist
+
+- [ ] 122. Verify a new customer can register, authenticate and start using OCADE successfully. — map: M§10, M§17 — status: OPEN
+- [ ] 123. Verify onboarding clearly explains OCADE, available features, limitations and required permissions. — map: M§10, M§6 (14B.8) — status: OPEN
+- [ ] 124. Verify customers can complete a useful first task without unnecessary setup or assistance. — map: M§6 (14E.7), M§17 — status: OPEN
+- [ ] 125. Verify complete Chat and JARVIS customer journeys from instruction to real, independently verified deliverable. — map: M§6 (14E.7), M§17 — status: OPEN
+- [ ] 126. Verify customers can connect, inspect, revoke and remove authorized apps, websites, devices and AI providers. — map: M§6 (14E.6), M§17 — status: OPEN
+- [ ] 127. Verify installation, startup, pairing, update, repair and uninstallation of supported computer companions. — map: M§6 (P1), M§17 — status: OPEN
+- [ ] 128. Verify every advertised feature actually works for customers under its stated supported conditions. — map: M§6 (14B.7), M§17 — status: OPEN
+- [ ] 129. Verify mobile, tablet and desktop usability, accessibility, keyboard navigation and responsive design. — map: M§9, M§10 — status: OPEN
+- [ ] 130. Verify customer files, conversations, personal memory, tasks and settings persist correctly and remain private. — map: M§6 (14E.1), M§11 — status: OPEN
+- [ ] 131. Verify complete account deletion, data export, recovery, retention rules and cross-account isolation. — map: M§6 (P2), M§11 — status: OPEN
+- [ ] 132. Verify customer pricing, subscriptions, limits, billing, BYOK costs and usage reporting are transparent and enforced; obtain authorization before payment activation. — map: M§6 (14B.1B), M§0 — status: OPEN
+- [ ] 133. Verify quota exhaustion, offline operation, provider downtime and unavailable capabilities produce understandable recovery options. — map: M§6 (14B), M§15 — status: OPEN
+- [ ] 134. Verify STOP, Take Over, cancellation and sensitive-action approval work reliably in real customer workflows. — map: M§6 (P0), M§15 — status: OPEN
+- [ ] 135. Verify scheduled tasks, notifications, background operations and recurring automations obey customer permissions and budgets. — map: M§8 T12-02, M§6 (REPO-60/70) — status: OPEN
+- [ ] 136. Verify no unsupported, misleading or unverifiable product promises appear on the website. — map: M§6 (14B.7), M§17 — status: OPEN
+- [ ] 137. Verify Help, FAQ, troubleshooting, contact/support, Terms, Privacy, licensing and required customer-facing legal notices. — map: M§6 (14B.8), M§16 — status: OPEN
+- [ ] 138. Verify customer support, issue reporting, incident response, service monitoring, backup and disaster recovery procedures. — map: M§6 (14B.8), M§17 — status: OPEN
+- [ ] 139. Verify production configuration, domain, TLS, secret management, database access, storage protection and release artifacts. — map: M§6 (14B.6), M§17 — status: OPEN
+- [ ] 140. Verify supported platform requirements, installer signing, third-party licenses and applicable commercial/legal obligations. — map: M§16, M§17 — status: OPEN
+- [ ] 141. Perform final independent security review, full customer-journey regression and cross-device acceptance. — map: M§0, M§17 — status: OPEN
+- [ ] 142. Confirm all mandatory tests are green on the final SHA, with no unresolved applicable critical/high safety defects. — map: M§13, M§17 — status: OPEN
+- [ ] 143. Verify actual customer-facing speed, reliability, performance, accessibility and recovery meet documented acceptance targets. — map: M§17, plan Part 15 — status: OPEN
+- [ ] 144. Confirm every mandatory requirement in both master checklists has a verified disposition, with all genuine external blockers documented. — map: M§17 — status: OPEN
+- [ ] 145. Produce a final independent evidence report with exact commits, test results, benchmark metrics, remaining limitations and accurate coding versus launch-readiness scores. — map: M§0, M§17 — status: OPEN
+- [ ] 146. Obtain explicit owner approval for production deployment, public access, payment activation and any authorized `main` merge. — map: M§0, M§17 — status: OPEN
+- [ ] 147. Complete approved production release checks, smoke tests, rollback readiness and customer access verification. — map: M§17 — status: OPEN
+- [ ] 148. Mark OCADE CUSTOMER READY FOR PUBLIC LAUNCH only when every applicable mandatory launch condition has independently passed, no release-blocking issues remain, and explicit launch authorization has been granted. — map: M§17 — status: OPEN
+
 ## Part 1. What OCADE is and what success means
 
 1.1. OCADE BY CARCC is an autonomous computer-control agent. A customer describes a result once on the OCADE website. OCADE then plans and carries out the work on the customer's own Windows or macOS computer, checks the result independently and delivers editable files.
