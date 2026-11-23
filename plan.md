@@ -146,8 +146,8 @@ Cross-check (23 Nov 2026): every master-checklist section M§0–M§17 maps to a
 - [ ] 91. Recheck all 16 code-observed security findings and their remaining gaps. — map: M§11, S, docs/OCADE_THREAT_TRIAGE.md — status: OPEN
 - [ ] 92. Re-audit all 192 security risk hypotheses individually, including previously FIXED entries. — map: M§11, S — status: IN PROGRESS (23 Nov: VERIFY-07 OPEN to PARTIAL with a 10-run flake campaign, totals now 129 FIXED, 43 PARTIAL, 2 OPEN, 11 OWNER, 7 N/A; remaining rows not yet individually re-audited this session)
 - [ ] 93. Implement and independently execute all applicable security tests from the 1,152 proposed negative scenarios. — map: M§11, S — status: OPEN
-- [ ] 94. Resolve all applicable OPEN/PARTIAL security findings, including malware intake, external MCP isolation, account separation and unauthorized effects. — map: M§11, M§16, S — status: OPEN
-- [ ] 95. Verify all 16 API-key security requirements and complete tenant, privacy, quota, provider and admin safeguards. — map: M§6 (14B.5–14B.6), M§11 — status: OPEN
+- [ ] 94. Resolve all applicable OPEN/PARTIAL security findings, including malware intake, external MCP isolation, account separation and unauthorized effects. — map: M§11, M§16, S — status: IN PROGRESS (23 Nov: UPLOAD-06 fixed (deletion epoch), BROWSER-05 secret fields masked; still open: MALWARE-02 antivirus/content disarm (no engine chosen), O-05 OS-level MCP sandbox, two-tenant route matrix O-10)
+- [ ] 95. Verify all 16 API-key security requirements and complete tenant, privacy, quota, provider and admin safeguards. — map: M§6 (14B.5–14B.6), M§11 — status: IN PROGRESS (23 Nov: TENANT-05 cache headers audited on a served build and FIXED; the 16 key checks of 14B.5 not re-run this session)
 - [ ] 96. Fix every remaining reproducible security vulnerability and release-blocking defect without weakening protections. — map: M§11 — status: OPEN
 - [ ] 97. Review the entire repository for unnecessary, duplicated, obsolete and unreachable code. — map: M§12 — status: OPEN
 - [ ] 98. Remove only proven useless code, dependencies and files while preserving working features, security, user data and historical evidence. — map: M§12 — status: OPEN
@@ -159,19 +159,19 @@ Cross-check (23 Nov 2026): every master-checklist section M§0–M§17 maps to a
 - [ ] 104. Run all mandatory GitHub Actions for the entire website, backend, security and Windows/macOS companions on the SAME final SHA. — map: M§13 — status: OPEN
 - [ ] 105. Fix every failed mandatory job and investigate recurring Windows test hangs until the required checks pass with acceptable repeatability. — map: M§13, M§16 — status: OPEN
 - [ ] 106. Independently inspect all CI evidence; do not count older commits, unapproved skips or successful retries as proof of a fixed underlying defect. — map: M§13, M§17 — status: OPEN
-- [ ] 107. Obtain required staging authorization, reconcile outstanding migrations and validate staging configuration. — map: M§14, M§16 — status: OPEN
+- [ ] 107. Obtain required staging authorization, reconcile outstanding migrations and validate staging configuration. — map: M§14, M§16 — status: BLOCKED (owner): applying the 17+ outstanding branch migrations (now incl. `20261123120000`, `20261123150000`) to shared staging needs the owner's go-ahead
 - [ ] 108. Verify authorized real AI providers, model capabilities, quotas, pricing, prompts and safety requirements. — map: M§14 — status: OPEN
 - [ ] 109. Benchmark single-agent versus multi-agent performance on identical tasks, with independent verification. — map: M§14 — status: OPEN
 - [ ] 110. Measure first-attempt accuracy, execution speed, p50/p95 latency, model calls, tokens, costs, recoveries and resource usage. — map: M§14 — status: OPEN
 - [ ] 111. Improve speed and accuracy through genuine general-purpose fixes, without hardcoding tasks, lowering success thresholds or weakening safety. — map: M§14, M§0 — status: OPEN
 - [ ] 112. Rerun mandatory coding/security checks after fixes and continue approved benchmark iterations until their acceptance criteria pass or a documented blocker remains. — map: M§14, M§0 — status: OPEN
-- [ ] 113. Complete the initial 16-run, two-model Windows/macOS real-application comparison using the specified independent outcomes. — map: M§15 — status: OPEN
-- [ ] 114. Complete E1–E3 and E4, including at least 100 hidden tasks over at least three days and at least 90% independently verified first-attempt success. — map: M§15 — status: OPEN
-- [ ] 115. Complete full Windows/macOS cloud-computer testing across real supported applications, AI agents, desktop control, files, permissions and recovery. — map: M§15 — status: OPEN
+- [ ] 113. Complete the initial 16-run, two-model Windows/macOS real-application comparison using the specified independent outcomes. — map: M§15 — status: BLOCKED: needs Stage 4 green on the final SHA, owner-authorized staging and hosted Windows/macOS real-app runners with real model quota
+- [ ] 114. Complete E1–E3 and E4, including at least 100 hidden tasks over at least three days and at least 90% independently verified first-attempt success. — map: M§15 — status: BLOCKED: as 113, plus 100 hidden tasks over at least three days
+- [ ] 115. Complete full Windows/macOS cloud-computer testing across real supported applications, AI agents, desktop control, files, permissions and recovery. — map: M§15 — status: BLOCKED: as 113
 - [ ] 116. Test every website route and feature, including all Parts 27/28 products, accounts, settings, Chat, JARVIS, Library, BYOK, offline functions, support and policies. — map: M§10, M§15 — status: OPEN
 - [ ] 117. Test realistic user journeys, network failures, interruptions, parallel work, revocation, STOP, Take Over and wrong-account access. — map: M§15 — status: OPEN
-- [ ] 118. Test actual consumer Windows 10/11 and macOS computers only after obtaining the required explicit authorization. — map: M§15, M§0 — status: OPEN
-- [ ] 119. Complete true offline testing, including model download, complete internet disconnection, website reopening, local inference and reconnection. — map: M§15 — status: OPEN
+- [ ] 118. Test actual consumer Windows 10/11 and macOS computers only after obtaining the required explicit authorization. — map: M§15, M§0 — status: BLOCKED (owner): no consumer Windows 10/11 or macOS computer attached; requires explicit authorization
+- [ ] 119. Complete true offline testing, including model download, complete internet disconnection, website reopening, local inference and reconnection. — map: M§15 — status: BLOCKED: Stage 6, last; needs an approved real browser/device
 - [ ] 120. For every failure, preserve evidence, repair the general cause, repeat required security and CI gates, and retest the failed workflow. — map: M§0, M§15 — status: OPEN
 - [ ] 121. Confirm zero known unresolved applicable mandatory failures or launch-blocking bugs within the independently tested scope. — map: M§17 — status: OPEN
 
@@ -187,7 +187,7 @@ Cross-check (23 Nov 2026): every master-checklist section M§0–M§17 maps to a
 - [ ] 129. Verify mobile, tablet and desktop usability, accessibility, keyboard navigation and responsive design. — map: M§9, M§10 — status: OPEN
 - [ ] 130. Verify customer files, conversations, personal memory, tasks and settings persist correctly and remain private. — map: M§6 (14E.1), M§11 — status: OPEN
 - [ ] 131. Verify complete account deletion, data export, recovery, retention rules and cross-account isolation. — map: M§6 (P2), M§11 — status: OPEN
-- [ ] 132. Verify customer pricing, subscriptions, limits, billing, BYOK costs and usage reporting are transparent and enforced; obtain authorization before payment activation. — map: M§6 (14B.1B), M§0 — status: OPEN
+- [ ] 132. Verify customer pricing, subscriptions, limits, billing, BYOK costs and usage reporting are transparent and enforced; obtain authorization before payment activation. — map: M§6 (14B.1B), M§0 — status: BLOCKED (owner): no payment provider chosen; activation needs explicit approval
 - [ ] 133. Verify quota exhaustion, offline operation, provider downtime and unavailable capabilities produce understandable recovery options. — map: M§6 (14B), M§15 — status: OPEN
 - [ ] 134. Verify STOP, Take Over, cancellation and sensitive-action approval work reliably in real customer workflows. — map: M§6 (P0), M§15 — status: OPEN
 - [ ] 135. Verify scheduled tasks, notifications, background operations and recurring automations obey customer permissions and budgets. — map: M§8 T12-02, M§6 (REPO-60/70) — status: OPEN
@@ -195,15 +195,15 @@ Cross-check (23 Nov 2026): every master-checklist section M§0–M§17 maps to a
 - [ ] 137. Verify Help, FAQ, troubleshooting, contact/support, Terms, Privacy, licensing and required customer-facing legal notices. — map: M§6 (14B.8), M§16 — status: OPEN
 - [ ] 138. Verify customer support, issue reporting, incident response, service monitoring, backup and disaster recovery procedures. — map: M§6 (14B.8), M§17 — status: OPEN
 - [ ] 139. Verify production configuration, domain, TLS, secret management, database access, storage protection and release artifacts. — map: M§6 (14B.6), M§17 — status: OPEN
-- [ ] 140. Verify supported platform requirements, installer signing, third-party licenses and applicable commercial/legal obligations. — map: M§16, M§17 — status: OPEN
+- [ ] 140. Verify supported platform requirements, installer signing, third-party licenses and applicable commercial/legal obligations. — map: M§16, M§17 — status: BLOCKED (owner): installer signing needs a certificate; legal review is the owner's
 - [ ] 141. Perform final independent security review, full customer-journey regression and cross-device acceptance. — map: M§0, M§17 — status: OPEN
 - [ ] 142. Confirm all mandatory tests are green on the final SHA, with no unresolved applicable critical/high safety defects. — map: M§13, M§17 — status: OPEN
 - [ ] 143. Verify actual customer-facing speed, reliability, performance, accessibility and recovery meet documented acceptance targets. — map: M§17, plan Part 15 — status: OPEN
 - [ ] 144. Confirm every mandatory requirement in both master checklists has a verified disposition, with all genuine external blockers documented. — map: M§17 — status: OPEN
 - [ ] 145. Produce a final independent evidence report with exact commits, test results, benchmark metrics, remaining limitations and accurate coding versus launch-readiness scores. — map: M§0, M§17 — status: OPEN
-- [ ] 146. Obtain explicit owner approval for production deployment, public access, payment activation and any authorized `main` merge. — map: M§0, M§17 — status: OPEN
-- [ ] 147. Complete approved production release checks, smoke tests, rollback readiness and customer access verification. — map: M§17 — status: OPEN
-- [ ] 148. Mark OCADE CUSTOMER READY FOR PUBLIC LAUNCH only when every applicable mandatory launch condition has independently passed, no release-blocking issues remain, and explicit launch authorization has been granted. — map: M§17 — status: OPEN
+- [ ] 146. Obtain explicit owner approval for production deployment, public access, payment activation and any authorized `main` merge. — map: M§0, M§17 — status: BLOCKED (owner): explicit approval for production deployment, public access, payment activation and any `main` merge
+- [ ] 147. Complete approved production release checks, smoke tests, rollback readiness and customer access verification. — map: M§17 — status: BLOCKED: depends on 146
+- [ ] 148. Mark OCADE CUSTOMER READY FOR PUBLIC LAUNCH only when every applicable mandatory launch condition has independently passed, no release-blocking issues remain, and explicit launch authorization has been granted. — map: M§17 — status: BLOCKED: depends on every launch condition and on 146; NOT customer ready
 
 ## Part 1. What OCADE is and what success means
 
