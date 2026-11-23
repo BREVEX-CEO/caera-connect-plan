@@ -289,6 +289,9 @@ def help_keyboard(page, url: str) -> None:
         expect(page.get_by_text("A pairing code works once", exact=False)).to_be_visible()
 
         search.fill("")
+        # The full list renders after the search clears; scrolling a still-short page would
+        # never pass the button's 800 px threshold (a race seen in WebKit on a hosted runner).
+        page.wait_for_function("document.documentElement.scrollHeight > innerHeight + 900")
         page.evaluate("window.scrollTo(0, document.documentElement.scrollHeight)")
         top = page.get_by_role("button", name="Back to top")
         expect(top).to_be_visible()

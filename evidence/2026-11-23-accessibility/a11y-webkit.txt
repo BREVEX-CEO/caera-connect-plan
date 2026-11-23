@@ -1,0 +1,7 @@
+{
+  "engine": "webkit",
+  "signedIn": false,
+  "pages": 10,
+  "pagesWithProblems": 0,
+  "problems": {}
+}

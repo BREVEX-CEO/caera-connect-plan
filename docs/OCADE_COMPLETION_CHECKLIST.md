@@ -65,4 +65,13 @@ cause not found without a Windows machine). Final-SHA runs are listed in the ses
   an old schema. Applying migrations to the shared staging project needs the owner's go-ahead.
 - **Stage 6:** no consumer Windows 10/11 or macOS machine is attached; hosted runners are not
   customer machines.
-- **Windows-2022 teardown hang:** needs a Windows machine to reproduce.
+- **Windows-2022 teardown hang:** needs a Windows machine to reproduce. Recurred on dispatched run
+  [45238233189](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/45238233189) at
+  `5f366b8` (23 Nov), at the same place as on 20 Nov: right after
+  `test_fs_ops.Diagnostics.test_processes_environment_and_refusals` (which runs `tasklist` and
+  `wevtutil` inside the office worker), the SDK logs that the worker PID is "still alive after the
+  kill escalation" while psutil already reports that PID gone, and `anyio.run` then never returns
+  from `IocpProactor.close` (`windows_events.py` `_poll`). So the worker exited but asyncio never
+  observed its exit, and the proactor waits forever for that pending wait. windows-2025, macOS and
+  Linux passed the same suite. Not fixed: forcing the proactor closed without proof risks freeing
+  live overlapped buffers.
