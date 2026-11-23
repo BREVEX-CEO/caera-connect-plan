@@ -29,6 +29,8 @@ const NOT_EXPORTED: Record<string, string> = {
     "which source serves Chat and JARVIS, shown in Settings > BYOK; removed with the account",
   byok_models:
     "the models a person's own key lists, and which they permit, shown in Settings > BYOK; removed with the connection and the account",
+  ocade_library_epochs:
+    "when the person last emptied their Library (one time, no content), used only to refuse uploads begun before it; removed with the account",
   byok_spend:
     "per-call reservations and costs on the person's own key (model, amount; no content), shown in Settings > BYOK; removed with the connection and the account",
 };

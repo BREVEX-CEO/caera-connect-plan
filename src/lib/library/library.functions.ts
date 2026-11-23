@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { intakeRefusal, libraryName } from "./intake";
+import { fencedUpload, timeOrderedId } from "./upload-fence";
 import { z } from "zod";
 import { requireSession } from "@/lib/security/session-middleware";
 import { imageMediaType, isMediaType } from "@/lib/media-type";
@@ -279,7 +280,7 @@ export const beginLibraryUpload = createServerFn({ method: "POST" })
       )
       .map((object) => `${context.userId}/${object.name}`);
     if (stale.length) await context.supabase.storage.from("library").remove(stale.slice(0, 100));
-    const id = data.resume ?? crypto.randomUUID();
+    const id = data.resume ?? timeOrderedId();
     return { id, objectName: `${context.userId}/${id}` };
   });
 
@@ -297,6 +298,21 @@ export const finishLibraryUpload = createServerFn({ method: "POST" })
   .handler(async ({ data, context }): Promise<LibraryItemRow> => {
     const storagePath = `${context.userId}/${data.id}`;
     const bucket = context.supabase.storage.from("library");
+    const [tombstone, epoch] = await Promise.all([
+      context.supabase
+        .from("storage_tombstones")
+        .select("id")
+        .eq("bucket", "library")
+        .eq("storage_path", storagePath)
+        .maybeSingle(),
+      context.supabase.from("ocade_library_epochs").select("cleared_at").maybeSingle(),
+    ]);
+    if (tombstone.error || epoch.error) throw new Error("That upload could not be checked.");
+    const fenced = fencedUpload(data.id, Boolean(tombstone.data), epoch.data?.cleared_at);
+    if (fenced) {
+      if (!tombstone.data) await bucket.remove([storagePath]);
+      throw new Error(fenced);
+    }
     const { data: found } = await bucket.list(context.userId, { search: data.id, limit: 5 });
     const object = found?.find((entry) => entry.name === data.id);
     const size = Number((object?.metadata as { size?: unknown } | undefined)?.size ?? 0);

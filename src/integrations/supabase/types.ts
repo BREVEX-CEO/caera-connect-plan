@@ -1365,6 +1365,21 @@ export type Database = {
         }
         Relationships: []
       }
+      ocade_library_epochs: {
+        Row: {
+          cleared_at: string
+          user_id: string
+        }
+        Insert: {
+          cleared_at?: string
+          user_id: string
+        }
+        Update: {
+          cleared_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       ocade_library_items: {
         Row: {
           conversation_id: string | null
@@ -2698,6 +2713,7 @@ export type Database = {
         }[]
       }
       ocade_delete_all_library_items: { Args: never; Returns: number }
+      ocade_fence_library_uploads: { Args: never; Returns: undefined }
       ocade_delete_messages_from: {
         Args: { p_conversation_id: string; p_from: string }
         Returns: number
