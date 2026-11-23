@@ -534,6 +534,49 @@ class WebLadder(unittest.TestCase):
 
 
 
+@unittest.skipUnless(READY, "needs a display and a Chromium executable")
+class SecretFieldsAreMasked(unittest.TestCase):
+    """BROWSER-05: a capture (the planner's preview and a saved screenshot) never shows the
+    contents of password, card or one-time-code fields; ordinary fields stay visible."""
+
+    def test_secret_fields_are_painted_over_and_plain_ones_are_not(self):
+        from playwright.async_api import async_playwright
+
+        from ocade_agent import web_worker
+
+        fields = [("password", 'type="password"'), ("card", 'autocomplete="cc-number"'),
+                  ("code", 'autocomplete="one-time-code"'), ("name", 'autocomplete="name"')]
+        inputs = "".join(
+            f'<input id="{name}" {attrs} value="SECRETVALUE123" '
+            'style="display:block;margin:20px;width:300px;height:40px;font-size:28px;'
+            'background:#ffffff;color:#ff0000;border:0">'
+            for name, attrs in fields
+        )
+
+        async def go():
+            async with async_playwright() as playwright:
+                browser = await playwright.chromium.launch(executable_path=BROWSER)
+                try:
+                    page = await browser.new_page(viewport={"width": 400, "height": 400})
+                    await page.set_content(f"<body style='margin:0;background:#ffffff'>{inputs}</body>")
+                    boxes = {name: await page.locator(f"#{name}").bounding_box() for name, _ in fields}
+                    return boxes, await web_worker._capture(page)
+                finally:
+                    await browser.close()
+
+        boxes, image = anyio.run(go)
+        with Image.open(io.BytesIO(image)) as shot:
+            shot = shot.convert("RGB")
+            for name, box in boxes.items():
+                region = shot.crop((int(box["x"]) + 2, int(box["y"]) + 2,
+                                    int(box["x"] + box["width"]) - 2, int(box["y"] + box["height"]) - 2))
+                colours = {colour for _, colour in region.getcolors(maxcolors=100_000)}
+                if name == "name":
+                    self.assertTrue(any(r > 200 and g < 80 for r, g, _ in colours), "plain text stays visible")
+                else:
+                    self.assertEqual(colours, {(0, 0, 0)}, f"{name} must be painted over")
+
+
 class BrowserObservationContract(unittest.TestCase):
     def test_a_tab_cannot_reuse_another_tabs_control_or_a_detached_element(self):
         from unittest.mock import AsyncMock

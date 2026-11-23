@@ -642,10 +642,21 @@ async def _observe(page_id: str) -> dict:
     return observed
 
 
+# Fields whose contents are secrets by their own declaration (BROWSER-05): password, card and
+# one-time-code inputs are painted over in every capture, the preview sent to the planner and
+# a saved screenshot alike. Text a page prints in the open is not detected here.
+SECRET_FIELDS = (
+    'input[type="password" i], input[autocomplete*="password" i], input[autocomplete^="cc-" i],'
+    ' input[autocomplete*=" cc-" i], input[autocomplete="one-time-code" i]'
+)
+MASK_COLOR = "#000000"
+
+
 async def _capture(current) -> bytes:
     """What the page shows, once it has painted: capturing a page before its first frame
     (a window that just opened) fails with "Unable to capture screenshot". One more try
-    after raising the tab covers a window the display has not mapped yet; then it fails."""
+    after raising the tab covers a window the display has not mapped yet; then it fails.
+    Secret fields are masked (SECRET_FIELDS)."""
     for attempt in (1, 2):
         try:
             painted = current.evaluate("() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))")
@@ -653,7 +664,9 @@ async def _capture(current) -> bytes:
         except Exception:
             pass  # the capture below reports honestly either way
         try:
-            return await current.screenshot(full_page=False)
+            return await current.screenshot(
+                full_page=False, mask=[current.locator(SECRET_FIELDS)], mask_color=MASK_COLOR
+            )
         except Exception:
             if attempt == 2:
                 raise
