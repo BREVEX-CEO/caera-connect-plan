@@ -41,6 +41,7 @@ const T = {
   unit: "tests/jarvis/contracts.test.ts",
   e2e: "tests/jarvis/e2e.test.ts",
   db: "tests/jarvis/db/authority.test.sql",
+  expiry: "tests/jarvis/db/permission-expiry.test.sql",
   gateway: "device-agent/windows/tests/test_gateway.py",
   agent: "device-agent/windows/tests/test_agent.py",
   recovery: "device-agent/windows/tests/test_agent_recovery.py",
@@ -310,7 +311,13 @@ const C = {
     "request signatures tested; signed binary updates blocked (no certificate)",
   ],
   66: ["PASS", "L2", ["migration", "authority"], ["e2e", "db"], ""],
-  67: ["PARTIAL", "L2", ["migration"], ["db"], "grants persist per device; no purpose or expiry"],
+  67: [
+    "PARTIAL",
+    "L2",
+    ["migration"],
+    ["db", "expiry"],
+    "grants persist per app, site and device with an optional end (1 h, 1 day, 1 week) enforced in jarvis_allowed; expired and other-account grants refused; no stored purpose text",
+  ],
   68: [
     "PARTIAL",
     "L2",

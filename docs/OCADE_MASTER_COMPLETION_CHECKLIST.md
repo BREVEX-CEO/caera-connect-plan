@@ -6,6 +6,7 @@
 > All checkboxes are unchecked until independently reverified against the latest implementation. Historical PASS/BUILDS/FIXED and previous CI runs do not by themselves prove current-SHA or production readiness. No bogus completion percentages; record exact evidence and honest block reasons.
 
 ## 0. Checkpoint, traceability, re-audit and mandatory ordering
+
 - [ ] Sync newest development-branch HEAD, safely preserve concurrent/local-only changes, inspect actual code, tests, migrations, app screens, `CLAUDE.md`, `AGENTS.md` and every governing plan section.
 - [ ] Make a persistent per-ID ledger: exact source, current code owner and caller, real tests, platform, SHA, missing behavior, blocker, authorized decision, priority and reproducible proof.
 - [ ] Distinguish CODED/PARTIAL/MISSING/BROKEN/LOCAL-TESTED/CI-GREEN/RUNTIME-VERIFIED/BLOCKED/INAPPLICABLE; prior status is evidence to check, not a PASS by inheritance.
@@ -23,6 +24,7 @@
 - [ ] Final independent source/code/test/UX/security/runtime review with exact links, blocked-items list and truthful GO/NO-GO; real launch requires separate owner approval.
 
 ## 1. EVERY plan.md section, subsection and appendix — inspect every nested requirement
+
 - [ ] **Part 0. How to read this plan** — map all child requirements to working code or justified historical/owner-only state; test and close omissions. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L10)
 - [ ] **Part 1. What OCADE is and what success means** — map all child requirements to working code or justified historical/owner-only state; test and close omissions. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L41)
 - [ ] **Part 3. Fixed owner decisions (unchanged wording kept in Appendix A; conflicts listed in Part 21)** — map all child requirements to working code or justified historical/owner-only state; test and close omissions. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L68)
@@ -285,6 +287,7 @@
 - [ ] **FINAL CLAUDE/CODEX REPORT — STATUS DEFINITIONS, COMPLETION CONDITIONS AND PROGRESS (ONLY HERE)** — map all child requirements to working code or justified historical/owner-only state; test and close omissions. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L4336)
 
 ## 2. Owner's 120 top-level customer requirements (Part 8)
+
 - [ ] **OWNER-001** — Planning. Prior status: PARTIAL. Earlier remaining: Goal-time families, postcondition guards (Part 10). [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L279)
 - [ ] **OWNER-002** — Efficient AI calls. Prior status: FAILING (VERIFIED by the token measurement). Earlier remaining: Turns cut to about 4,000 tokens. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L280)
 - [ ] **OWNER-003** — Tool calling. Prior status: DEFECT (VERIFIED). Earlier remaining: Forced function calls. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L281)
@@ -407,6 +410,7 @@
 - [ ] **OWNER-120** — Verifiable evidence for every mandatory requirement. Prior status: The coding ledger records commit identifiers. Earlier remaining: . [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L433)
 
 ## 3. Exact 266-ID historical owner requirement list — individually re-audit against current code
+
 - [ ] **REQ-001** — Continue directly from the current OCADE development session. Do not restart the project, repeat completed research unnecessarily, or create another architecture proposal without implementing the required changes. · Old independent review PASS; later Appendix E coding class not individually classified in current excerpt. Prove required code/tests/consumer-runtime acceptance and record missing/blocked cases. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/evidence/2026-11-01-audit/requirements-266.md#L15)
 - [ ] **REQ-002** — Work exclusively on `ocade/p00-p22-implementation` in `BREVEX-CEO/caera-connect-plan`. Never merge into `main`, deploy to production, enable payments, spend money, or access my physical computer without my explicit approval. · Old independent review PASS; later Appendix E coding class not individually classified in current excerpt. Prove required code/tests/consumer-runtime acceptance and record missing/blocked cases. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/evidence/2026-11-01-audit/requirements-266.md#L16)
 - [ ] **REQ-003** — Your objective is to make **OCADE BY CARCC** a genuinely functional, independently verified, public-ready commercial software product across every officially supported component and platform. · Old independent review PARTIAL; later Appendix E coding class QUALIFICATION-ONLY/QUALIFICATION-ONLY; harness BUILDS. Prove required code/tests/consumer-runtime acceptance and record missing/blocked cases. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/evidence/2026-11-01-audit/requirements-266.md#L17)
@@ -675,6 +679,7 @@
 - [ ] **REQ-266** — **Do not ask me to repeat settled decisions. Do not replace coding with planning. Do not hardcode task-specific answers. Do not fake success. Fix root causes, optimize execution, verify everything, and report genuine commercial-launch progress in 10% milestones.** · Old independent review PASS; later Appendix E coding class not individually classified in current excerpt. Prove required code/tests/consumer-runtime acceptance and record missing/blocked cases. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/evidence/2026-11-01-audit/requirements-266.md#L280)
 
 ## 4. All 84 architecture concepts, exact implementation and proof
+
 - [ ] **CONCEPT-01: OD-AVGHHC — Outcome-Driven Adaptive Verifier-Gated Hierarchical Hybrid Control** — historical PARTIAL. Implement: One outcome state machine owns authorization, milestones, tool effects and completion; connect authenticated task authority to the model pilot, gateway, durable journal and independent verifier.. Independent acceptance: Trace one task across every boundary; reject unverified completion and unowned mutations.. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L3015)
 - [ ] **CONCEPT-02: Architecture C — Unified Hybrid Control** — historical PARTIAL. Implement: Use one local-first hybrid execution spine, not a second planner or agent swarm; supervisor delegates only scoped tool calls to device-side generic executors.. Independent acceptance: A single trace links web request, server task, device lease, worker receipt and verifier.. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L3016)
 - [ ] **CONCEPT-03: Five Primary Architectural Components** — historical PASS. Implement: Assign one owner each for supervisor, registry, process manager/MCP gateway, execution bridge and independent verifier; connect through versioned contracts.. Independent acceptance: No overlapping owners or duplicate executable paths; contract tests pass.. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L3017)
@@ -761,6 +766,7 @@
 - [ ] **CONCEPT-84: Zero Known Critical Safety-Defect Release Gate** — historical FAIL. Implement: Require zero known critical/high-severity release blockers and green mandatory architecture tests.. Independent acceptance: Any proven credential leak, wrong-target mutation or unsafe retry vetoes task acceptance and release.. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L3128)
 
 ## 5. All 72 repository-integration entries — source check, implementation and acceptance
+
 - [ ] Verify all six primary sources: Hermes, OpenClaw, CUA, UFO, Nod and Ruflo; inspect actual source versions, licenses, security, OS support and current OCADE callers.
 - [ ] For each source item choose KEEP/IMPROVE/MERGE/ADD/REPLACE/VERIFY/justified DEFER with code owner, tests, runtime evidence, cost and latency comparison.
 - [ ] Reconcile old `docs/JARVIS_REPO_LEDGER.md` with current code; no duplicate execution engine or hidden permission bypass.
@@ -840,6 +846,7 @@
 ## 6. Additional explicit coding clauses in Parts 10–14F
 
 ### P0–P3 core companion and safety
+
 - [ ] 10.0. **Make the coding gate green and synchronise.** [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L450)
 - [ ] 10.2. **Send complete action rules.** [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L468)
 - [ ] 10.3. **Offer only the needed families of operations.** [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L474)
@@ -872,6 +879,7 @@
 - [ ] 13.4. **Parallel independent milestones.** Milestones that touch disjoint windows, files or pages run in parallel under the same authority and locks. **16 November acceptance clarification:** real concurrent device jobs and independent subagent action streams are required, with per-agent colored activity identity and app-scoped monitoring; do not implement a single mouse controller whose actions are merely drawn as many simultaneous cursors. Resource conflicts, shared app main-thread operations and physical desktop pointer/keyboard actions remain arbitrated. See Part 14F. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L606)
 
 ### 14A upstream integration and model gateway
+
 - [ ] 1. **NousResearch Hermes Agent** — https://github.com/NousResearch/hermes-agent — constrained tool programs, delegation, skill learning, checkpointing and model-context efficiency. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L630)
 - [ ] 2. **OpenClaw** — https://github.com/openclaw/openclaw — skill security, extension lifecycle, gateway trust, diagnosis and state recovery. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L631)
 - [ ] 3. **trycua CUA** — https://github.com/trycua/cua — native computer drivers, action contracts, screen/element grounding, isolated testing and real-device verification. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L632)
@@ -1190,6 +1198,7 @@
 - [ ] - **Deduplication:** This expands the earlier Nod item rather than creating a second executor or duplicate database. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L1300)
 
 ### 14B online/offline Chat, BYOK, web/settings/policies
+
 - [ ] 1. **Model-agnostic backend.** Expose a provider-neutral planning/chat API, unified capability contract and streaming state, while preserving distinct chat and JARVIS permissions. Support model families beyond Gemini/Gemma through approved provider adapters; choose by actual vision, tool schema, latency, context, safety and cost rather than hardcoded brand identifiers. The initial 16-run comparison remains Gemini 3.5 Flash-Lite versus Gemma 4 31B and does not authorize live use of untested models. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L1313)
 - [ ] 2. **Supabase key registry.** Register any number of already-authorized key slots against real provider/project/account/model identities, encrypted server-side. Selection uses health, remaining lawful quota, task permission, data-region eligibility, configured priority and service cost. Health rotation handles revoked or failing keys; not quota evasion. Multiple keys in the same project share project-level quota where provider rules say so. Never copy keys from chat, screenshots or test output. Separate staging and production. Require owner-approved secret access and do not assume Supabase/CI secrets have been checked. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L1314)
 - [ ] 3. **Online chat functionality.** Code complete chat initiation, new/edit/regenerate conversation, streaming answer, STOP, history persistence, clear error states, optional attachments, safe file previews, token/status usage, model selector, clipboard copy, exports where supported, context and model availability, rate-limit handling, protected deletion and per-account isolation. Use the same design primitives, not the JARVIS command authority. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L1315)
@@ -1295,6 +1304,7 @@
 - [ ] 5. **Public site health:** responsive Chrome/Edge/Safari checks, protected pages access checks, HTTPS, CSP, genuine privacy controls, metadata and link previews, search indexing of public-only routes, correct contact methods, backup drill, meaningful 404/500, safe robots rules, page speed and mobile performance measurement. Optional WhatsApp/chat widget only if actually supported and useful. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L1515)
 
 ### 14C elite optimization and product upgrades
+
 - [ ] - **ELITE-01 | P0 | Verified Outcome Contracts.** Capture approved artifact/output schema, exact preconditions, irreversible effects and independent acceptance oracle before executing; reject completion without receipt. **Acceptance:** Wrong totals or missing files cannot settle as completed. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L1527)
 - [ ] - **ELITE-02 | P0 | Deterministic Workflow Compiler.** Compile repeated verified recipes into parameterized native/file/DOM execution with postcondition guards, semantic version checks and STOP fencing. **Acceptance:** Held-out repeated workflows use fewer model calls without reducing verified success. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L1528)
 - [ ] - **ELITE-03 | P0 | Cost-Aware Model Router.** Choose authorized qualified model by observed cost per verified task, latency, capability and risk, honoring immutable BYOK/OCADE source. **Acceptance:** No cross-source inference call and lower cost at equal success on matched tasks. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L1529)
@@ -1344,7 +1354,7 @@
 - [ ] 1. **Hermes Agent.** Main-branch files agent/credential_pool.py, hermes_cli/runtime_provider.py, hermes_cli/checkpoints.py. Source patterns: persistent credential health states including permanently dead vs temporarily exhausted, classification-aware/reset-aware cooldown, per-model failure scope, careful refresh persistence, bounded selection and checkpoint cleanup. Adopt in a secure Supabase multi-tenant registry only after testing; never equate different keys with independent project quota. https://github.com/NousResearch/hermes-agent [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L1588)
 - [ ] 2. **OpenClaw.** Main-branch src/agents/auth-profiles/order.ts, usage-state.ts, credential-state.ts, advance.ts. Source patterns: auth-profile eligibility, explicit provider matching, OAuth refresh fencing, model-scoped cooldown versus provider-wide billing blocks, candidate advancement and reason-coded diagnostics. Adapt to strict user-versus-owner funding pool isolation and consent; do not copy unrestricted fallback behavior. https://github.com/openclaw/openclaw [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L1589)
 - [ ] 3. **CUA.** Main-branch libs/cua-driver/README.md and docs/perception-extension.md. Source patterns: versioned typed desktop/MCP driver, background accessibility where supported, capture/snapshot identity on visual targets, stale-capture refusal and reobservation. Review licensing, especially optional AGPL perception assets, before considering code reuse; never force Docker/VM on customers. https://github.com/trycua/cua [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L1590)
-- [ ] 4. **UFO³.** Main-branch galaxy/README.md, galaxy/constellation/__init__.py, ufo/llm/base.py. Source patterns: dependency-checked typed DAG nodes, bounded dynamic graph edits, capability-based agent/device placement, safe asynchronous locks and provider-specific model adapters. Keep original OCADE authoritative task graph and forbid permissions or funding-source expansion during DAG rewrites. https://github.com/microsoft/UFO [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L1591)
+- [ ] 4. **UFO³.** Main-branch galaxy/README.md, galaxy/constellation/**init**.py, ufo/llm/base.py. Source patterns: dependency-checked typed DAG nodes, bounded dynamic graph edits, capability-based agent/device placement, safe asynchronous locks and provider-specific model adapters. Keep original OCADE authoritative task graph and forbid permissions or funding-source expansion during DAG rewrites. https://github.com/microsoft/UFO [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L1591)
 - [ ] 5. **Nod.** Main-branch src/ports/models.ts, src/providers/pi/models.ts and src/providers/pi/checkpoint.ts. Source patterns: provider-specific credential/endpoint types, dynamic model catalogs, request cost reserve/settle contract, model capability deviations and fail-closed corrupt session checkpoint handling. Reuse trust boundary and UI principle without porting its entire agent runtime. https://github.com/n8n-io/nod [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L1592)
 - [ ] 6. **All source adoptions:** Record source URL/path, inspected revision, exact licensed scope, threat model, proof and rollback in existing REPO-01..72 ledger; no claim of reading every file in all five and no source code automatically assumed compatible. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L1593)
 - [ ] 1. **STRAT-01 | P0 | Cost-to-verified-success admission.** Predict and reserve a bounded per-task spend allowance including delegated/verification calls before work starts; cut off or explicitly ask for approval if exhausted. Accept: shared atomic budget is never exceeded under 100 concurrent simulations. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L1597)
@@ -1361,6 +1371,7 @@
 - [ ] - **Competitive claims:** benchmark on matched environments and identical signed objectives, with first-attempt success, p95 completion time, cost per verified success, unsafe effects, interventions, support and uncertainty. Never assert OCADE is 100% better than all five without independently reproduced representative evidence. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L1611)
 
 ### 14D advanced multi-agent/model work
+
 - [ ] 1. **One project truth:** A durable, versioned and authenticated project contract records objective, customer constraints, approvals, output acceptance, team/role assignments, artifact manifest, dependency graph, reference frames and units where applicable, funding source, budget, current decisions, task status, input hashes, output hashes and STOP epoch. Each worker sees the current authorized revision, relevant immutable inputs and exactly what it owns; no worker silently redefines the goal. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L1621)
 - [ ] 2. **Parallel independent production; exclusive conflicting writes:** Agents concurrently create or transform different approved portions, using isolated workspaces, files or applications. A resource-scoped exclusive lease protects every shared document, file path, app session, window, external account or integration commit where changes could conflict. Read-only work can parallelize when safe. One PC input controller per overlapping session remains authoritative, including for the coordinator. Unowned changes are denied. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L1622)
 - [ ] 3. **Dependency-aware live synchronization:** Every work package has explicit prerequisites, output schema, acceptance rules and input versions. When an accepted upstream decision/artifact changes, only dependent items are marked stale, notified and reworked. Unaffected work continues. The coordinator cannot accept an old result against a new project revision. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L1623)
@@ -1433,6 +1444,7 @@
 - [ ] - **Never assert guarantee:** Agent count is not a measure of correctness; no system can ensure zero model mistakes or unlimited provider throughput. Qualification is explicit and measured, and no public deployment, merge, API-key mutation or paid operation occurs without the required approval. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L1732)
 
 ### 14E memory, dynamic composer, files and auth
+
 - [ ] 1. **Useful personal context, not unlimited surveillance.** OCADE should understand an authenticated customer through their authorized chats, accepted project results, consented preferences and optionally connected data. It must not claim literally complete knowledge of a person, automatically scan private files/screens/accounts, or silently create a sensitive profile. Optional long-term memory defaults and scope must be explained and user-controllable. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L1740)
 - [ ] 2. **Ownership invariant:** User A's chat, profile, memories, summaries, inferred preferences, embeddings, vector hits, search indices, uploaded files, source citations, screenshots, task and agent context, cached results, API keys, connected accounts, projects, browser tabs, telemetry and derived training-like records MUST NEVER be retrieved for, injected into a prompt for, exposed to, or influence recommendations to User B. Identical names, provider models, accounts at the same vendor, devices, groups or shared API-key projects do not permit leakage. Owner/staff access is not a privacy bypass. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L1741)
 - [ ] 3. **Scopes and namespaces:** Distinguish temporary turn context, private conversation memory, private project/task memory, optional user-profile long-term memory, and separately permissioned organization-shared data. Only an explicitly granted shared-project resource enters shared context; personal profile memory never becomes organization memory by default. Preserve provenance, consent/source type, creation/update time, sensitivity class, confidence, expiration, owner and effective access scope for every record. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L1742)
@@ -1502,6 +1514,7 @@
 - [ ] - **External UX research:** At implementation time review other public AI products' onboarding/composer/resource-picker/attachment/loading/consent/error experiences along with W3C WCAG 2.2 (https://www.w3.org/TR/WCAG22/) and Microsoft's responsible AI interaction guidance (https://fluent2.microsoft.design/responsible-AI); adapt measurable best practices while respecting intellectual property and the OCADE design language. User testing must check trust and comprehension, not merely visuals. The final exact 30-law UI checklist is intentionally placed at the END of the pre-benchmark plan, immediately before Appendix H. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L1837)
 
 ### 14F parallel agents, floating bar, native live vision
+
 - [ ] 1. **REAL parallel work:** Multiple admitted subagents each own a genuine concurrently executable workstream with independent task identity, capabilities, process/worker context where applicable, input versions, output ownership, progress events, verification and cancel state. An agent's activity must correspond to actual dispatched/observed work. Several colored pointers driven by ONE serial automation worker are NOT an acceptable implementation. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L1847)
 - [ ] 2. **ONE customer project:** The subagents collaborate toward one authorized goal, publish independent artifacts and dependencies, and integrate only through versioned, verified state. A coordinator may itself work on an independently leased item. The number of active agents is determined by useful ready work and resource constraints, not a decorative swarm count. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L1848)
 - [ ] 3. **Actual computer, actual installed tools:** Prefer the user's own Windows/macOS machine and genuinely installed applications, supported plug-ins, scripts, presets, licenses, files and profiles. No mandatory VM, Docker, cloud desktop, duplicated user desktop or remote app installation for the normal customer experience. Isolated local subprocesses and separate application sessions are allowed when supported and licensed. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L1849)
@@ -1602,6 +1615,7 @@
 ## 7. Part 27 — ALL twelve revised R12 abilities + four packages + eight products
 
 ### R12-01 — Live / Background Mode (P0).
+
 - [ ] Implement the COMPLETE R12-01 contract and all positive/negative acceptance cases with actual UI, permissions, recovery and app behavior. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2212)
 - [ ] - **Exact UI:** One compact two-option dropdown labeled **Live** and **Background**, shown in the relevant task/agent controls (website and app-attached overlay where appropriate), with current mode, status and a short plain-language explanation. Do not expose separate "cloud", "dual", "hidden desktop" or "VM" modes as the primary customer decision. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2214)
 - [ ] - **Live:** The user can see the AI's real work and per-agent colored, action-backed cursors on the target application, subject to actual window/capture/OS capabilities. If GUI input is needed, request a deliberate time-limited handoff for the target app; user STOP/Take Over wins. The shared OS pointer/keyboard is arbitrated, while other independent agents can still work concurrently. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2215)
@@ -1610,6 +1624,7 @@
 - [ ] - **Tests:** Mode switching during render, typing, fullscreen game, app minimize, agent STOP, lost focus and permission revocation; verify no unintended OS input or duplicate job, and truthful task continuity. Integrate with Part 14F.2–14F.6. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2218)
 
 ### R12-02 — Smart Approvals (P0).
+
 - [ ] Implement the COMPLETE R12-02 contract and all positive/negative acceptance cases with actual UI, permissions, recovery and app behavior. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2220)
 - [ ] - **Default:** No repetitive approval popup for each ordinary click, file read, navigation, app script, local draft, form field or reversible edit already covered by a scoped task grant. Use a short initial scope summary: who/which account, app, folders/sites, operation types, destinations, time/usage limits and STOP. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2222)
 - [ ] - **Escalation:** Request a single focused approval when the actual operation would transfer money, delete important data, publish/deploy, send sensitive data externally, sign/submit a legally consequential claim, change security permissions, share with a new recipient, purchase something, expose secrets, or materially exceed the existing grant. Differentiate a harmless form draft from final submission. Never hide the provider's own MFA/OAuth/OS dialogs. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2223)
@@ -1618,6 +1633,7 @@
 - [ ] - **Tests:** A 50-step benign authorized task should not generate 50 prompts; a newly discovered sensitive external send must still block; expired/denied/changed scopes must fence all subagents. No repeated prompt loops after refusal. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2226)
 
 ### R12-03 — Intelligent Privacy (P0).
+
 - [ ] Implement the COMPLETE R12-03 contract and all positive/negative acceptance cases with actual UI, permissions, recovery and app behavior. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2228)
 - [ ] - **Correct owner meaning:** OCADE MAY read and fill the user's **real bank details** and other sensitive task data when specifically authorized and needed for the requested work. It must not replace needed values with stars or fictitious placeholders inside the authorized form. Protect data from unnecessary external recipients and models rather than making the actual task impossible. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2230)
 - [ ] - **Field-level purpose binding:** Each sensitive value carries source/account, user grant, purpose, target site/form, permitted recipient, retention and destination. Keep values locally where possible; send only the necessary fields to the intended legitimate service. Redact irrelevant values from LLM prompts, screenshots, screen-share previews, task history, diagnostics, notifications and third-party integrations. Never transmit raw banking credentials, MFA codes or secrets to arbitrary models/tools. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2231)
@@ -1626,6 +1642,7 @@
 - [ ] - **Tests:** Real authorized field is filled accurately at the intended destination; unrelated provider, worker, model, analytics and logs see masked/absent value; revoke mid-task prevents new exposure; no hidden external sharing. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2234)
 
 ### R12-04 — Seamless Tool Access (P0).
+
 - [ ] Implement the COMPLETE R12-04 contract and all positive/negative acceptance cases with actual UI, permissions, recovery and app behavior. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2236)
 - [ ] - **Connect once, work continuously within scope:** Search/discover supported plugins, skills, MCP tools, local apps and OAuth accounts; connect with provider-required consent once, select resource/account scope and allow OCADE to call the permitted actions across one task or an explicitly scoped ongoing workflow without approval for every harmless tool call. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2238)
 - [ ] - **No needless restrictions:** Remove artificial UI friction, duplicate "allow this tool" prompts, separate plugin approval loops and re-selection of the same authorized account. Do NOT remove actual provider OAuth, platform scopes, security validation, token renewal, rate limits, purchase controls or high-risk confirmations. Tool results are untrusted data. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2239)
@@ -1634,6 +1651,7 @@
 - [ ] - **Tests:** Multi-tool benign workflow runs after one scoped connection without approval spam; revoked plugin cannot execute from queued subagent; malicious tool output cannot grant filesystem/network permissions; correct account/tenant is used. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2242)
 
 ### R12-05 — Animated Permission Guide (P0).
+
 - [ ] Implement the COMPLETE R12-05 contract and all positive/negative acceptance cases with actual UI, permissions, recovery and app behavior. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2244)
 - [ ] - **Exact look and controls:** A restrained premium **glass-gradient** onboarding/repair overlay with clear short animated instructions, highlighted relevant OS/browser/app settings, current step, expected permission, reason, progress, Retry/Verify, optional "Open settings", accessible text alternative and an obvious **top-right × close button**. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2246)
 - [ ] - **Real permission state:** Explain Windows/macOS screen capture, Accessibility, app automation, filesystem/folder, microphone/camera (only if used), browser profile and connector OAuth separately. Where OS APIs permit, open the genuine system settings pane; where they do not, show accurate user-driven steps. Never fake a permission grant or click through secure OS consent on behalf of the user. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2247)
@@ -1642,6 +1660,7 @@
 - [ ] - **Tests:** Windows/macOS denied and reauthorized flows, OS updates, reduced motion, guide close/reopen, wrong window, disconnected device, accessibility navigation and no misleading success states. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2250)
 
 ### R12-06 — Live App Generator (P0 platform, P1 expanded coverage).
+
 - [ ] Implement the COMPLETE R12-06 contract and all positive/negative acceptance cases with actual UI, permissions, recovery and app behavior. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2252)
 - [ ] - **Goal:** Automatically turn complicated websites, enterprise software and native app workflows into a **beautiful, simple, task-specific generated form** that asks only for the fields required to accomplish the user's objective. It is a temporary, verified interaction layer over the authorized target, not a new independent hosted application or a bypass of the original site's rules. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2254)
 - [ ] - **Build:** Discover current authorized DOM/accessibility/native app form schema, validation rules, labels, required fields, options, dependencies, attachments, dynamic sections, account/recipient identity and final action semantics. Generate a typed JSON-schema-like internal representation and OCADE design-system form with clear sections, field help, defaults from authorized context, edit/review, errors, draft save and provenance for auto-filled values. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2255)
@@ -1650,6 +1669,7 @@
 - [ ] - **Tests:** Complex dynamic form simplifies without losing required fields, values round-trip exactly, user edits persist, changed source form invalidates stale mapping, and the original site independently confirms success. Accessible on mobile/desktop. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2258)
 
 ### R12-07 — Automatic Context Discovery (P0).
+
 - [ ] Implement the COMPLETE R12-07 contract and all positive/negative acceptance cases with actual UI, permissions, recovery and app behavior. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2260)
 - [ ] - **Replace Smart Dropzones as primary workflow:** The user should not have to manually drag relevant documents into a special Smart Dropzone for ordinary tasks. OCADE discovers relevant **already-authorized** files, folders, browser tabs, connected accounts, app projects, calendars and open applications using the shared capability/context graph. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2262)
 - [ ] - **Discovery process:** Extract the task intent and needed resource types; search only permissioned scopes; rank by relevance, current project, file metadata, recent activity, user-selected account, app identity and verified content matches. Present the chosen resources and why; ask one targeted question only if ambiguity materially affects correctness or privacy. Support explicit override, exclude, pin and "don't search this location". [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2263)
@@ -1658,6 +1678,7 @@
 - [ ] - **Tests:** Task discovers correct authorized invoice/project without manual upload; denies unauthorized directories; handles two similarly named files with a clarification; detects stale/moved files; no unrelated data appears in logs or prompts. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2266)
 
 ### R12-08 — Passive Ghost Preview (P0).
+
 - [ ] Implement the COMPLETE R12-08 contract and all positive/negative acceptance cases with actual UI, permissions, recovery and app behavior. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2268)
 - [ ] - **Behavior:** Show a nonblocking preview of the AI's **next planned meaningful action** (e.g., "Will add three invoice reminders", "Next: update Blender lighting", "Preparing claim draft") in the app-scoped overlay or website task view. Ordinary authorized actions require **no approval buttons**; preview is informational and can be collapsed/hidden. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2270)
 - [ ] - **Truth:** Distinguish "Planned", "Executing", "Completed", "Blocked" and "Needs confirmation" from actual event receipts. If the plan changes, update the preview. Do not show speculative cursor animation as evidence of an executed action or imply certainty when the target app has changed. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2271)
@@ -1666,6 +1687,7 @@
 - [ ] - **Tests:** Preview accurately predicts next authorized step, updates on replan, cannot accidentally authorize a high-risk action, has minimal latency/CPU cost and does not steal focus. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2274)
 
 ### R12-09 — Time-Travel Timeline (P0 history, P1 safe restoration).
+
 - [ ] Implement the COMPLETE R12-09 contract and all positive/negative acceptance cases with actual UI, permissions, recovery and app behavior. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2276)
 - [ ] - **Goal:** Let users inspect completed steps, errors, agent actions, revisions, files, approvals, external effects and recovery points in one chronological task timeline. Filter by agent, app, resource, status and time; link entries to actual receipts and changed artifacts. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2278)
 - [ ] - **Checkpoints:** Before significant reversible edits, preserve a safe version/undo point where supported; show "View before", "Compare", "Restore draft" and "Resume from checkpoint" only when technically valid. Coordinate restoration with other agents and newer user edits; never silently roll back accepted work. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2279)
@@ -1674,6 +1696,7 @@
 - [ ] - **Tests:** Multi-agent concurrent events appear in causal order, partial failures and retries are visible, safe local file restore succeeds, irreversible external effects cannot be mislabeled undoable, and stale checkpoint restore is rejected. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2282)
 
 ### R12-10 — Private Habit Intelligence (P1 opt-in).
+
 - [ ] Implement the COMPLETE R12-10 contract and all positive/negative acceptance cases with actual UI, permissions, recovery and app behavior. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2284)
 - [ ] - **Goal:** Learn the individual's recurring workflows and preferred choices from that user's **consented, verified** task history; offer useful one-click repeats, prefilled templates, suggestions and optional scheduled routines. No cross-user memory sharing, pooled personal histories, default public training or accidental organization-to-personal leakage. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2286)
 - [ ] - **Memory boundary:** User-specific, purpose-bound, inspectable, editable, exportable and forgettable. Store workflow patterns and verified preferences rather than raw passwords, PINs, MFA tokens, bank secrets or complete private documents. If user memory is disabled, no habit learning or covert reconstitution through another store. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2287)
@@ -1682,6 +1705,7 @@
 - [ ] - **Tests:** Two users with identical workflows never share memory, disabled memory leaves no new habit record, forget/revoke works across devices, and no saved habit bypasses action permissions. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2290)
 
 ### R12-11 — Simplification Mode (P0 basic, P1 broad app coverage).
+
 - [ ] Implement the COMPLETE R12-11 contract and all positive/negative acceptance cases with actual UI, permissions, recovery and app behavior. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2292)
 - [ ] - **Goal:** Make confusing websites and installed applications easier to understand and operate without forcing the user to learn their entire interface. Provide an optional contextual simplified view: clear next step, essential controls, explanations, accessible navigation, form generation and task-specific guidance. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2294)
 - [ ] - **Architecture:** Build on Live App Generator, semantic DOM/accessibility/native app state and OCADE's app-attached overlay. Use one capability and permission model; do not create an unsupported universal replacement shell that claims to work for every custom GPU canvas or closed app. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2295)
@@ -1689,6 +1713,7 @@
 - [ ] - **Tests:** Novice user completes a representative complex authorized task with fewer errors/steps than original, and a source UI update triggers revalidation rather than silent wrong-field actions; keyboard and screen-reader use remain functional. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2297)
 
 ### R12-12 — Cross-Device Handoff (P1).
+
 - [ ] Implement the COMPLETE R12-12 contract and all positive/negative acceptance cases with actual UI, permissions, recovery and app behavior. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2299)
 - [ ] - **Goal:** Continue one OCADE task across the **website, phone/mobile web experience and authorized Windows/macOS desktop companion** without losing the plan, conversation, accepted artifacts, timeline, approvals, agent status or pending instructions. Do not promise a native iOS/Android app unless one is actually built. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2301)
 - [ ] - **Task identity:** Reuse one durable task ID, revisioned event stream, authenticated user identity, per-device capability map, resource manifests and encrypted checkpoint metadata. The phone may inspect, reply, approve or redirect where supported; local PC work continues only while its own companion remains paired and authorized. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2302)
@@ -1697,6 +1722,7 @@
 - [ ] - **Tests:** Start on desktop, inspect/edit from phone, resume website, preserve task/STOP/approval receipts, reject a stolen device token and verify that an unpaired device cannot execute local PC actions. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2305)
 
 ### Four packages and eight exact user products
+
 - [ ] **Package BMA: Business Money Assistant (P1; two products).** — complete integration, user benefit, real data and artifact proof. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2311)
 - [ ] **BMA-01 Invoice Recovery.** — Discover user-authorized invoices, customer records, payment terms, dates, receipts and communications from permitted files, email, bookkeeping/CRM tools or manual entry. Normalize invoice ID, customer, amount, currency, due date, paid/unpaid/partially paid/disputed state and evidence source. Detect unpaid or overdue invoices; propose a ranked follow-up plan; prepare polite personalized reminders and supporting invoice attachments; prevent duplicate sends and messages to the wrong customer. Show a human-readable timeline of reminder drafts, sent receipts and replies. Send only within an explicitly authorized recipient/audience and communication scope; confirm new recipients or sensitive external disclosures. A disputed invoice must not be falsely marked collectible; do not threaten or misstate legal rights. Verify paid status against real authorized evidence, not an LLM guess.. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2313)
 - [ ] **BMA-02 Cashflow Guardian.** — Read authorized balances, invoice receivables, expense commitments, payroll/rent dates and recurring outflows; produce a transparent cash-in/cash-out calendar, rolling cash runway and conservative/base/optimistic scenarios. Separate confirmed transactions from estimated payments and uncertain assumptions. Flag upcoming cash shortages with date, amount range, source and proposed nonfinancial next actions such as preparing a reminder or reviewing expenses. Never present fabricated bank balances or guaranteed forecasts. Do not execute, schedule or autonomously authorize payments, transfers or purchases.. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2314)
@@ -1770,6 +1796,7 @@
 ## 8. Part 28 — ALL twelve transformative T12 features and ten named technical concepts
 
 ### T12-01 — OCADE LifeOS (P1; personal administration workspace)
+
 - [ ] Complete T12-01 full contract: input sources, exact authority, UI/actions, privacy and data, failure and independent acceptance. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2433)
 - [ ] 1. **User outcome:** A private, coherent view of unfinished personal administration across documents, deadlines, applications, subscriptions, renewals and tasks. This is a workspace within existing OCADE Chat/JARVIS/Library, not a new OS, independent memory engine or replacement file manager. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2435)
 - [ ] 2. **Entry and interface:** Show a compact Today / Upcoming / Waiting / Completed view; group obligations by person, project and urgency; allow search, filters, source links, dismiss, edit, snooze and user-created items. Present one best next action with a transparent reason, not an overwhelming dashboard or forced setup. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2436)
@@ -1781,6 +1808,7 @@
 - [ ] 8. **Acceptance:** Two test users with overlapping filenames never see each other's cards; duplicate sources yield one obligation with both citations; timezone correction updates reminder; revoked source stops new reads; user can export/delete LifeOS data without deleting unrelated task history. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2442)
 
 ### T12-02 — Outcome Autopilot (P1 after single-task reliability; persistent authorized goals)
+
 - [ ] Complete T12-02 full contract: input sources, exact authority, UI/actions, privacy and data, failure and independent acceptance. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2444)
 - [ ] 1. **User outcome:** Set an ongoing outcome such as “keep invoices followed up weekly” or “prepare required renewal documents” once; OCADE continues only within explicit, revocable scope rather than needing repeated prompts. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2446)
 - [ ] 2. **Goal contract:** Store goal ID, desired measurable outcome, permitted source/resource IDs, action classes, recipient/audience, schedule/event triggers, budget and rate limits, quiet hours, expiration, confirmation policy, success check, stop condition and owner. Display the contract in plain language before activation. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2447)
@@ -1793,6 +1821,7 @@
 - [ ] 9. **Acceptance:** A recurring invoice task runs once per scheduled cycle, does not duplicate an email on reconnect, obeys quiet hours and recipient scope, pauses on revoked authorization and never exceeds its atomic budget. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2454)
 
 ### T12-03 — Problem Radar (P1; consented proactive detection)
+
 - [ ] Complete T12-03 full contract: input sources, exact authority, UI/actions, privacy and data, failure and independent acceptance. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2456)
 - [ ] 1. **User outcome:** Detect relevant problems before the user notices them: missing documents, approaching deadlines, inconsistent records, failed automations, unverified submissions and expired connections. Offer an evidence-backed fix, or perform a previously authorized low-risk correction. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2458)
 - [ ] 2. **Consent boundary:** Explicit per-source monitoring opt-in with exact category, cadence, data retention and alert destination. No covert always-on microphone, full-desktop capture, indiscriminate mail scanning or monitoring of unselected people/accounts. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2459)
@@ -1804,6 +1833,7 @@
 - [ ] 8. **Acceptance:** Detect a synthetic missing attachment and impending deadline; suppress duplicates; show exact evidence; reject ungranted folder monitoring; a revoked connector stops checks; uncertain findings never display as confirmed facts. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2465)
 
 ### T12-04 — Business-in-a-Box (P1/P2; coherent small-business operations)
+
 - [ ] Complete T12-04 full contract: input sources, exact authority, UI/actions, privacy and data, failure and independent acceptance. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2467)
 - [ ] 1. **User outcome:** An AI-assisted operations workspace for small businesses using their EXISTING software for invoicing, receivables, reconciliation, client records, onboarding and administration. It packages the approved Business Money Assistant, Business Launch Assistant and relevant forms/ledger workflows; it does not replace those four packages. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2469)
 - [ ] 2. **Onboarding:** Identify business entity, jurisdiction, role, connected accounting/CRM/mail/project apps, customer records, currencies, fiscal calendar, invoice numbering and permitted users. Show supported integrations honestly; do not pretend a legacy app has an API. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2470)
@@ -1816,6 +1846,7 @@
 - [ ] 9. **Acceptance:** Correctly reconcile paid/partial/disputed invoices, detect duplicate imported receipts, isolate two businesses, create one verified onboarding workspace, block unauthorized mass mail and prove no autonomous payment path exists. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2477)
 
 ### T12-05 — Opportunity Engine (P1/P2; relevant opportunities without spam)
+
 - [ ] Complete T12-05 full contract: input sources, exact authority, UI/actions, privacy and data, failure and independent acceptance. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2479)
 - [ ] 1. **User outcome:** Discover suitable jobs, clients, grants and business opportunities; explain fit; prepare truthful applications or outreach; require the correct authorization before external submission. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2481)
 - [ ] 2. **Profile:** User-controlled skills, résumé/portfolio, business capabilities, region, budget, eligibility, preferred sectors, exclusions, availability, desired compensation and application history. Mark inferred preferences as editable suggestions, not verified qualifications. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2482)
@@ -1827,6 +1858,7 @@
 - [ ] 8. **Acceptance:** Reject an expired grant and a fake credential requirement; detect a duplicate job; draft an accurate application; require consent for external submission; preserve a real receipt; stop when source access is revoked. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2488)
 
 ### T12-06 — Work Simulation (P1; safe rehearsal before consequential changes)
+
 - [ ] Complete T12-06 full contract: input sources, exact authority, UI/actions, privacy and data, failure and independent acceptance. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2490)
 - [ ] 1. **User outcome:** Rehearse a potentially destructive or expensive workflow on a copy, preview or safe environment and show the likely differences before modifying real resources. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2492)
 - [ ] 2. **Eligibility:** Classify each planned step as pure/read-only, locally copyable, API dry-run capable, sandboxable, externally irreversible or NOT SIMULATABLE. Never claim a real bank transfer, email delivery, government submission or live third-party action was safely simulated when no faithful sandbox exists. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2493)
@@ -1838,6 +1870,7 @@
 - [ ] 8. **Acceptance:** Simulated bulk file rename changes only copies; production files stay byte-identical until approved; a changed source version invalidates simulation; an external payment cannot be marked simulated; replaying a simulation never sends real messages. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2499)
 
 ### T12-07 — Proof Passport (P1; portable verified outcome evidence)
+
 - [ ] Complete T12-07 full contract: input sources, exact authority, UI/actions, privacy and data, failure and independent acceptance. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2501)
 - [ ] 1. **User outcome:** Every completed consequential task may produce a user-inspectable, portable evidence package showing what changed, what was checked, and what remains uncertain. Extend the existing ELITE-04 Customer ProofPack, task journal, verifier and Part 27 timeline; do not create a second unverifiable receipt service. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2503)
 - [ ] 2. **Manifest:** Passport ID, task/goal ID, time, executing device/app version where permitted, authorized resource identifiers, source revision/hash, action summary, output hashes, verifier method/version, checks passed/failed, unresolved exceptions, irreversible effects and evidence expiration. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2504)
@@ -1849,6 +1882,7 @@
 - [ ] 8. **Acceptance:** Independent verifier recomputes a file hash; manifest cannot say VERIFIED when a check fails; a redacted export contains no sensitive fixture; an altered manifest fails integrity validation; unknown external effect is explicitly UNKNOWN. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2510)
 
 ### T12-08 — Recovery Intelligence (P0/P1; verified checkpoint recovery)
+
 - [ ] Complete T12-08 full contract: input sources, exact authority, UI/actions, privacy and data, failure and independent acceptance. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2512)
 - [ ] 1. **User outcome:** Recover from interrupted, failed or partially completed work without losing verified progress or repeating consequential actions. Extend existing checkpointing, task state machine, idempotency keys, STOP fencing, Time-Travel Timeline and Part 14F parallel coordination. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2514)
 - [ ] 2. **Checkpoint contract:** Record task/goal ID, worker and lease owner, causal event sequence, dependency versions, source hashes, external action IDs, preconditions, known side effects, durable outputs, permission epoch and last independently verified state. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2515)
@@ -1860,6 +1894,7 @@
 - [ ] 8. **Acceptance:** Inject crash after an email API success but before local acknowledgment; reconcile one send only. Inject two parallel workers on the same file; one conflict must fail safely. STOP/revocation must prevent resumed side effects; verified outputs survive restart. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2521)
 
 ### T12-09 — Personal Knowledge Vault (P1; encrypted user-controlled portable knowledge)
+
 - [ ] Complete T12-09 full contract: input sources, exact authority, UI/actions, privacy and data, failure and independent acceptance. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2523)
 - [ ] 1. **User outcome:** An inspectable, exportable, encrypted history of user-consented documents, preferences, facts, project knowledge and completed work, private to that user. Extend existing Part 14E private memory and Library rather than constructing a separate shadow memory store. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2525)
 - [ ] 2. **Ingestion:** Per-source opt-in and explicit source type (uploaded file, selected folder, permitted connector, task result, user-entered note). Record content owner, provenance, observed time, extraction method, confidence, retention class and source permissions. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2526)
@@ -1871,6 +1906,7 @@
 - [ ] 8. **Acceptance:** Cross-tenant retrieval tests return zero foreign facts; correcting a false preference changes future suggestions; deleted/disabled source stops retrieval; export is readable and complete for permitted records; token/secret fixtures never enter memory. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2532)
 
 ### T12-10 — Human Expert Escalation (P2; explicit qualified specialist handoff)
+
 - [ ] Complete T12-10 full contract: input sources, exact authority, UI/actions, privacy and data, failure and independent acceptance. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2534)
 - [ ] 1. **User outcome:** When a task reaches a regulated, ambiguous or high-stakes boundary, the user may explicitly request an appropriately qualified human specialist while preserving task context. This is an opt-in referral/handoff workflow, not automatic outsourcing. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2536)
 - [ ] 2. **Triggers:** User request, unresolved legal/tax/medical/financial interpretation, contested evidence, repeated verifier failure, inaccessible official process or a consequential decision beyond supported AI authority. Clearly state what OCADE can and cannot verify; do not pretend an expert has been engaged. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2537)
@@ -1882,6 +1918,7 @@
 - [ ] 8. **Acceptance:** A mock unlicensed partner is rejected; zero private files leave before consent; a user can exclude a document; quoted fees remain nonbinding until verified; expert response cannot silently execute a bank payment or delete a file. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2543)
 
 ### T12-11 — Verified Skill Network (P1 private / P2 optional sharing)
+
 - [ ] Complete T12-11 full contract: input sources, exact authority, UI/actions, privacy and data, failure and independent acceptance. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2545)
 - [ ] 1. **User outcome:** Convert successful workflows into reusable tested procedures, with optional publication of sanitized skills to others. Extend existing Part 14E Skills, verified-route replay, ELITE-05 Certified Workflow Library and one capability registry. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2547)
 - [ ] 2. **Skill schema:** Skill ID/version, author/owner, task intent, parameter types, required app/OS/provider versions, dependencies, requested capabilities, exact permission scopes, cost bounds, action classes, pre/postconditions, supported locales and tests. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2548)
@@ -1893,6 +1930,7 @@
 - [ ] 8. **Acceptance:** Private skill replays without repeated model clicks; sanitized export has no fixture secrets; revoked connector blocks a skill; changed selector quarantines rather than misclicks; one user's skill never reads another user's memory. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2554)
 
 ### T12-12 — Time Reclaimed Dashboard (P1; evidence-based value reporting)
+
 - [ ] Complete T12-12 full contract: input sources, exact authority, UI/actions, privacy and data, failure and independent acceptance. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2556)
 - [ ] 1. **User outcome:** Show verified work completed, errors prevented, estimated time reclaimed and actual costs so users can judge OCADE's value. Extend STRAT-05 outcome dashboard and Proof Passport; avoid a separate analytics truth source. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2558)
 - [ ] 2. **Metrics:** Completed tasks by verified status, durable artifacts, success/failure/unknown counts, corrections, recoveries, human interventions, actual platform fees, model usage attributable to OCADE where observable and recurring goal outcomes. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2559)
@@ -1904,6 +1942,7 @@
 - [ ] 8. **Acceptance:** Recompute totals from independently verified task fixtures; a failed task does not count as completed; unknown baseline displays “time saved unavailable”; duplicate retries count once; exported report matches on-screen values. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2565)
 
 ### SkillForge — learn once, execute deterministically (P1)
+
 - [ ] Implement and independently test named technical/product concept, or record properly owner-deferred status. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2569)
 - [ ] - **Product behavior:** With explicit recording consent, observe a bounded demonstration in a selected application/window, identify task goal, input parameters, actions and success conditions; show an editable proposed workflow before saving. Provide visible recording status and immediate STOP; no covert whole-desktop recording. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2571)
 - [ ] - **Architecture:** Combine native app/DOM/accessibility events with permitted targeted video evidence from Part 14F; infer stable semantic selectors and parameterized steps, then compile a guarded workflow using ELITE-02. Store user-private skill version, dependency and capability manifest in the existing skill store. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2572)
@@ -1911,6 +1950,7 @@
 - [ ] - **Acceptance:** A repeated supported workflow replays with fewer model calls, correct new parameters and independently verified output; stale selectors fail closed; a user can edit, disable and delete the learned skill. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2574)
 
 ### CheckPoint — independent effect approval and verified result (P0/P1)
+
 - [ ] Implement and independently test named technical/product concept, or record properly owner-deferred status. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2576)
 - [ ] - **Product behavior:** One reusable sensitive-action boundary showing exact operation, affected account/resource, recipient, data, cost, reversibility and approval expiry. Routine preauthorized operations do not cause repeated popups. For material risks use a confirmation channel outside untrusted AI-generated content. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2578)
 - [ ] - **Architecture:** Implement as a presentation of the EXISTING effect gate, STOP epoch, identity/session assurance, task journal and verifier. Connect to Part 27 Smart Approvals, Proof Passport and Recovery Intelligence; no second permissions database. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2579)
@@ -1918,6 +1958,7 @@
 - [ ] - **Acceptance:** One routine 50-step task has no approval spam; one sensitive send is blocked until the real user confirms; altered payload after approval is rejected; verified result matches authoritative readback. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2581)
 
 ### LegacyBridge — reliable operation of older software (P1)
+
 - [ ] Implement and independently test named technical/product concept, or record properly owner-deferred status. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2583)
 - [ ] - **Product behavior:** Support authorized installed business/desktop software lacking modern APIs through the user's native companion, supported file import/export, command interfaces, OS accessibility, app scripting and targeted vision. Do not require a VM or replacement cloud desktop. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2585)
 - [ ] - **Adapter contract:** App identity/version, capability list, safe read/write methods, window/session identity, foreground requirement, required license/plugin, expected latency, rollback support, observation source, confidence and test fixture. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2586)
@@ -1925,12 +1966,14 @@
 - [ ] - **Acceptance:** Complete a supported legacy-app fixture using real local software and verify saved output; a version change invalidates unsafe automation; app crash and permission denial recover without unrelated desktop input. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2588)
 
 ### Ghost Cursor — passive preview, not simulated authority (P0)
+
 - [ ] Implement and independently test named technical/product concept, or record properly owner-deferred status. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2590)
 - [ ] - **Product behavior:** Reuse Part 27 Passive Ghost Preview and Part 14F colored agent cursor overlays. Show the next intended target and actual agent ownership with a distinct planned/active/verified/blocked visual state. Never render fictional parallel cursor work. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2592)
 - [ ] - **Security:** A ghost preview is not approval; no ordinary-action approval buttons; consequential effects still pass the independent effect gate. Overlays must not intercept user input, leak unrelated windows or steal focus. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2593)
 - [ ] - **Acceptance:** Replan invalidates an old preview; a failed action changes to blocked, not success; two real agents have distinct stable identities; the system cursor remains under the user's control in Background mode. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2594)
 
 ### Instant Mini-Apps — generated task-specific forms (P0/P1)
+
 - [ ] Implement and independently test named technical/product concept, or record properly owner-deferred status. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2596)
 - [ ] - **Product behavior:** Alias of Part 27 Live App Generator and Simplification Mode: create a temporary, attractive, accessible form for a complex website or desktop application without claiming the original app was replaced. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2598)
 - [ ] - **Mapping:** Generate typed fields, dependencies, validation, source references, current-value readback and action bindings from authorized app state; preserve required legal disclosures, error messages and the original-view escape. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2599)
@@ -1938,6 +1981,7 @@
 - [ ] - **Acceptance:** Multi-page conditional form correctly maps required fields; stale mapping blocks submit; screen reader/keyboard use works; the user can switch to original app without losing their draft. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2601)
 
 ### Anti-Scam Guardian — evidence-based safety warnings (P1; opt-in)
+
 - [ ] Implement and independently test named technical/product concept, or record properly owner-deferred status. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2603)
 - [ ] - **Product behavior:** Warn about suspicious links, look-alike domains, unexpected recipient/payment-detail changes, credential-harvesting forms, malicious document instructions and anomalous external-sharing requests encountered during an AUTHORIZED OCADE workflow. This is not a blanket promise of fraud prevention. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2605)
 - [ ] - **Detection:** Use domain/account identity, authenticated source provenance, known safe/blocked indicators, changed payee details, link/redirect analysis and explainable rule evidence. Use model reasoning only for ambiguous signals; report uncertainty and false-positive controls. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2606)
@@ -1945,6 +1989,7 @@
 - [ ] - **Acceptance:** Detect a synthetic invoice payee swap and a look-alike login domain; a trusted but unusual workflow can be reviewed; warning contains source evidence; injected web text cannot suppress checks or authorize sending secrets. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2608)
 
 ### Skill Marketplace — conditional optional distribution (P2, NOT approved launch)
+
 - [ ] Implement and independently test named technical/product concept, or record properly owner-deferred status. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2610)
 - [ ] - **Product behavior:** A potential catalog for reviewed reusable skills with clear compatibility, publisher, permissions, price (if any), evidence, support and update history. The existing Plugins/Skills directory remains the default UI; do not create a second store or assume a public marketplace is already available. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2612)
 - [ ] - **Governance:** Owner approval, actual demand, publisher verification, licensing/IP review, malware/secret scanning, signed/versioned manifests, independent fixture tests, refund/support policy and secure payment integration are prerequisites to any public paid offering. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2613)
@@ -1952,6 +1997,7 @@
 - [ ] - **Acceptance:** Unreviewed skill cannot publish; revoked permission blocks execution; malicious manifest is rejected; compatibility and price are never fabricated. This is a conditional research/design track, not a production release requirement until approved. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2615)
 
 ### UI Repair Network — safely adapt broken workflows (P2)
+
 - [ ] Implement and independently test named technical/product concept, or record properly owner-deferred status. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2617)
 - [ ] - **Product behavior:** Detect when a previously verified workflow fails because an app layout/selector/version changed; propose a locally tested repair and, optionally, distribute a sanitized generalized fix after review. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2619)
 - [ ] - **Repair pipeline:** Detect drift → quarantine old skill → observe current authorized UI → propose new semantic selector/action → run negative and positive regression fixtures → verify real postconditions → version and stage release → monitor and roll back. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2620)
@@ -1959,12 +2005,14 @@
 - [ ] - **Acceptance:** Changed-site fixture quarantines unsafe automation; repaired skill passes held-out tests; a private user's repair does not expose their data; failed staged update rolls back without duplicate effects. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2622)
 
 ### Smart Screen Understanding and dynamic @ picker — named technical priorities (P0)
+
 - [ ] Implement and independently test named technical/product concept, or record properly owner-deferred status. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2624)
 - [ ] - **Vision:** Implement Part 14F V01–V10 hybrid perception: native app state, DOM/CDP, accessibility, app-scoped continuous window capture, event/diff gating, selective temporal model analysis, targeted screenshots, OCR parsing and verified replay. One bounded observation stream serves concurrent agents; no requirement to send every local video frame to a cloud model. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2626)
 - [ ] - **Context picker:** Reuse Part 14E authorized @ catalog for apps, individual windows/tabs, files, folders, agents and tools. Show exact account/window identity, permissions, freshness and availability; typed @ chips do not grant new access. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2627)
 - [ ] - **Acceptance:** Correct app/window target under focus changes, zero denied-resource suggestions, stale-frame refusal, truthful frame/model cost separation, no extra model calls for unchanged frames and successful independently verified saved output. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2628)
 
 ### Independent approvals, Background Control and five technical-report priority corrections (P0)
+
 - [ ] Implement and independently test named technical/product concept, or record properly owner-deferred status. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2630)
 - [ ] - **Five source priorities, all covered by binding contracts:** Smart screen understanding → Part 14F; learn/replay workflows → ELITE-02/SkillForge; background computer control → Part 14F and Part 27 Live/Background; independent approval system → CheckPoint/Part 27 Smart Approvals; dynamic @ picker → Part 14E/28.2.9. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2632)
 - [ ] - **Unified acceptance:** A task can execute authorized native operations in Background without disturbing active keyboard/mouse use, uses only fresh permitted context, resumes after a safe interruption, and requests confirmation only for the correct consequential boundary. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L2633)
@@ -2014,6 +2062,7 @@
 - [ ] Reconcile the 30 idea/100-feature research source gaps. The plan says complete original texts were NOT supplied: do not invent absent items or count them as implemented.
 
 ## 9. ALL 34 UX principles applied meaningfully on every relevant route
+
 - [ ] Build exact UX-01..34 × every applicable route/state/platform evidence matrix; N/A only when explained, no duplicate widgets built solely to satisfy a law.
 - [ ] Verify every visible component responsive/mobile/desktop/keyboard/screen-reader/zoom/reflow/high contrast/reduced motion, meaningful feedback and error restoration.
 - [ ] Measure time-to-first-value, task completion, first-time user understanding, STOP response, honest progress, action count, focus accuracy and error rate.
@@ -2054,6 +2103,7 @@
 - [ ] **UX-34: Feedback Loops** — Every request and state transition gets clear success, error, progress and recovery feedback with honest timing. **Verification:** Include a relevant accessible screen/interaction test and a reasoned exception where the rule does not apply.. Map every relevant page and state to actual design choice + focus/accessibility/user-flow evidence, with justified N/A for irrelevant components. [Source](https://github.com/BREVEX-CEO/caera-connect-plan/blob/166328b973ee2533356fcbdc92d946a783fd9a2e/plan.md#L1434)
 
 ## 10. Full-site route and device acceptance matrix
+
 - [ ] **Landing / conversion / authenticated onboarding** — verify all applicable features, UI states, security boundaries, 34 UX laws, performance, error recovery, consent and independent saved-output proof.
 - [ ] **Authentication / MFA / OAuth / recovery / account delete** — verify all applicable features, UI states, security boundaries, 34 UX laws, performance, error recovery, consent and independent saved-output proof.
 - [ ] **Online Chat / streaming / edit / history / models / STOP** — verify all applicable features, UI states, security boundaries, 34 UX laws, performance, error recovery, consent and independent saved-output proof.
@@ -2076,6 +2126,7 @@
 - [ ] **Signed native OS packages / clean install / upgrade / uninstall / OS permissions** — verify all applicable features, UI states, security boundaries, 34 UX laws, performance, error recovery, consent and independent saved-output proof.
 
 ## 11. BOTH security ledgers — 16 findings, all 192 roots, all 1,152 scenario-specific negative cases
+
 - [ ] Finish every entry of [full security subchecklist](https://github.com/BREVEX-CEO/caera-connect-plan/blob/ocade/p00-p22-implementation/docs/OCADE_MASTER_SECURITY_CHECKLIST.md); preserve each root/OT test ID, current source SHA and original risk wording.
 - [ ] Recheck prior 129 FIXED / 42 PARTIAL / 3 OPEN / 11 OWNER / 7 N/A root triage statuses as prior evidence only; address every applicable partial and open gap.
 - [ ] Verify complete two-tenant isolation, anti-malware and upload quarantine, signed/malicious MCP tool sandbox, model/key custody, prompt injection, billing/role restrictions and unknown effect non-replay.
@@ -2084,6 +2135,7 @@
 - [ ] Zero known unresolved applicable security defects, zero failing mandatory security tests, and no high/critical unknown blocker before later stages.
 
 ## 12. Measured debloat, source cleanup and performance AFTER security
+
 - [ ] Read `docs/DEBLOAT_REPORT.md` and `ToRemove.md`; record initial payload, bundle/JS/CSS, installed dependencies, companion size, startup, CPU/RAM/GPU, battery, model calls and wall-clock p50/p95.
 - [ ] Trace actual callers, dead code, redundant helpers, duplicate framework paths, obsolete planners, stale dependencies and research-only assets; never blindly delete needed code.
 - [ ] For every proposed removal, verify no callers and preserve user data, historical evidence, tests, security, STOP/Take Over, task journals, permissions and independent verifier.
@@ -2092,6 +2144,7 @@
 - [ ] Repeat full plan audit and all coding/security regressions after removals.
 
 ## 13. Final-SHA all-green GitHub Actions before any benchmark
+
 - [ ] Run current full-site build, lint, formatter, types, contract/protocol, security, DB migrations/rollback/restore, account isolation, native Windows and macOS companion, installers, accessibility and all other required tests.
 - [ ] Run **CI**, **JARVIS full cloud validation**, **macOS package/bundle qualification**, **private-repo dependency/static security**, and any newly mandatory workflow on exact same final SHA.
 - [ ] Check every Windows/macOS/Linux applicable job is complete and GREEN; pending, cancelled, red, timed out and unjustified skips are NOT PASS.
@@ -2099,6 +2152,7 @@
 - [ ] After ANY commit that changes the candidate SHA, run the mandatory gates again and preserve workflow links/results for exact SHA.
 
 ## 14. Approved staging setup and real AI/solo-team planner benchmarks (Stage 5)
+
 - [ ] Check the claimed 17 missing migrations against shared staging history and obtain explicit write approval/backup/rollback before applying.
 - [ ] Prove staging schema, RLS, Edge Functions, auth accounts, required models, clean fixtures and no unauthorised model/provider/cost use.
 - [ ] Benchmark identical scenarios under single agent vs multiple agents, same approvals/data/oracles; verify real first-attempt outputs and wrong-target safety.
@@ -2107,6 +2161,7 @@
 - [ ] If a benchmark fails, preserve failure, make general repair and return through security, debloat and same-SHA full green CI before retesting.
 
 ## 15. Exact 16-run cloud benchmark, E1–E4 and entire website/cloud-computer campaign (Stage 6)
+
 - [ ] Use actual hosted Windows/macOS real applications: 4 predefined tasks × Gemini 3.5 Flash-Lite/Gemma 4 31B × Windows/macOS = 16 independent, identical-seed baseline runs.
 - [ ] Independently verify every real saved artifact, effect receipt, objective check, original first-attempt result, retry result, source SHA, OS, time and provider usage.
 - [ ] Do NOT start wider cloud-site testing if initial baseline fails. Apply general non-hardcoded fix, regain all previous green gates, rerun baseline.
@@ -2122,6 +2177,7 @@
 - [ ] Continue within authorized time/quota/resource limits until all applicable test gates pass or specific external approval/hardware blocker; never claim absolute bug-free software.
 
 ## 16. Additional likely-missed or blocked items requiring reconciliation
+
 - [ ] Review 236 Appendix C research dispositions, 38 Part14C improvements, Part14D–F integrations, 16 key-security checks and 266 archive against new feature additions; preserve historical data.
 - [ ] Part 8 states exact original owner wording was never supplied for 72–73 and 86–87; source-recover rather than invent.
 - [ ] Part 28 original 30 business ideas, 100 technical ideas, five add-ons each were not fully supplied; source missing or owner decision, not a completed feature.
@@ -2132,6 +2188,7 @@
 - [ ] Re-open entire current `plan.md` and both security ledgers after checklist generation; capture ANY newly discovered requirement before any closure.
 
 ## 17. Final independent release acceptance (Stage 7)
+
 - [ ] Account for all 120 owner summaries, 266 original IDs, 84 architecture concepts, 72 integration entries, 12+12 Part27/28 features, eight products, 34 UX principles and 16+192/1152 security checks without duplicate implementation accounting.
 - [ ] Each applicable feature has actual reachable code + UI, positive and adversarial tests, independent verified output and exact source SHA.
 - [ ] All applicable UX screen-law pairs proven, no mandatory incomplete functionality, zero known critical/high safety gaps, and no unapproved test skips.

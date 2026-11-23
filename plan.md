@@ -47,7 +47,7 @@ Cross-check (23 Nov 2026): every master-checklist section M§0–M§17 maps to a
 
 ### Implementation and verification
 
-- [ ] 1. Verify latest GitHub HEAD, synchronize safely, preserve existing commits and inspect the entire repository. — map: M§0 — status: OPEN
+- [x] 1. Verify latest GitHub HEAD, synchronize safely, preserve existing commits and inspect the entire repository. — map: M§0 — status: DONE (23 Nov: local clone was shallow at `2ddbd54`; unshallowed, confirmed ancestor of remote `1cf164b`, fast-forwarded with no local-only commits lost. Baseline on `1cf164b`: `verify:full` 8/8 after Prettier on two master checklists; security TS 352/352; JARVIS TS 36 pass/0 fail; companion 340 OK (40 platform skips, deps from requirements.txt + reportlab/opentimelineio as in CI); DB suite all PASS incl. 57 rollbacks on local PostgreSQL 16.)
 - [ ] 2. Read every section, subsection and appendix of `plan.md`; identify every incomplete, partial, missing, broken or unverified requirement. — map: M§1 — status: OPEN
 - [ ] 3. Audit all 120 owner requirements, preserving original wording and identifying missing source information. — map: M§2, M§16 — status: OPEN
 - [ ] 4. Audit all 266 original requirements individually; complete every applicable missing coding requirement. — map: M§3 — status: OPEN

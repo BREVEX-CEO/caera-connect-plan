@@ -582,6 +582,7 @@ export type Database = {
           allowed: boolean
           capability: string
           device_id: string | null
+          expires_at: string | null
           id: string
           updated_at: string
           user_id: string
@@ -590,6 +591,7 @@ export type Database = {
           allowed: boolean
           capability: string
           device_id?: string | null
+          expires_at?: string | null
           id?: string
           updated_at?: string
           user_id: string
@@ -598,6 +600,7 @@ export type Database = {
           allowed?: boolean
           capability?: string
           device_id?: string | null
+          expires_at?: string | null
           id?: string
           updated_at?: string
           user_id?: string

@@ -12,7 +12,7 @@ import {
   setJarvisTaskMode,
   getJarvisTask,
   instructJarvisTask,
-  listJarvisAccess,
+  listJarvisGrants,
   listJarvisDevices,
   pairJarvisDevice,
   removeJarvisDevice,
@@ -184,6 +184,9 @@ function Conversations({
   );
 }
 
+/** How long a newly turned-on permission lasts; undefined: until the person turns it off. */
+type GrantHours = 1 | 24 | 168 | undefined;
+
 const ACCESS: { capability: string; label: string }[] = [
   { capability: "files", label: "Files in its JARVIS folder" },
   { capability: "apps", label: "Open and use allowed apps" },
@@ -327,21 +330,32 @@ function DeviceAccess({
 }) {
   const { user } = useSession();
   const granted = useQuery({
-    queryKey: ["jarvis", "access", user?.id ?? "", device.id],
-    queryFn: () => listJarvisAccess({ data: { deviceId: device.id } }),
+    queryKey: ["jarvis", "grants", user?.id ?? "", device.id],
+    queryFn: () => listJarvisGrants({ data: { deviceId: device.id } }),
     enabled: Boolean(user) && !device.revoked_at,
   });
   const [site, setSite] = useState("");
-  const has = (capability: string) => granted.data?.includes(capability) ?? false;
+  const [hours, setHours] = useState<GrantHours>(undefined);
+  const grant = (capability: string) => granted.data?.find((g) => g.capability === capability);
+  const has = (capability: string) => Boolean(grant(capability));
   const set = (capability: string, allowed: boolean) =>
-    void setJarvisAccess({ data: { deviceId: device.id, capability, allowed } })
+    void setJarvisAccess({ data: { deviceId: device.id, capability, allowed, hours } })
       .then(onChanged)
       .catch((error: Error) => toast.error(error.message));
+  const until = (capability: string) => {
+    const end = grant(capability)?.expiresAt;
+    return end ? (
+      <span className="text-xs text-muted-foreground">
+        {" "}
+        · until {new Date(end).toLocaleString()}
+      </span>
+    ) : null;
+  };
   const apps = (Array.isArray(device.installed_apps) ? device.installed_apps : []) as {
     name: string;
     exe: string;
   }[];
-  const sites = (granted.data ?? []).filter((c) => c.startsWith("site:"));
+  const sites = (granted.data ?? []).map((g) => g.capability).filter((c) => c.startsWith("site:"));
   const servers = ((device.capabilities as { mcp?: { id: string; publisher: string }[] } | null)
     ?.mcp ?? []) as { id: string; publisher: string }[];
   return (
@@ -387,6 +401,23 @@ function DeviceAccess({
           Permissions could not be loaded.
         </p>
       ) : null}
+      {!device.revoked_at ? (
+        <label className="flex items-center gap-2 text-xs text-muted-foreground">
+          New permissions last
+          <select
+            value={hours ?? ""}
+            onChange={(e) =>
+              setHours(e.target.value ? (Number(e.target.value) as GrantHours) : undefined)
+            }
+            className="rounded-md border border-border bg-background px-1 py-0.5"
+          >
+            <option value="">until you turn them off</option>
+            <option value="1">1 hour</option>
+            <option value="24">1 day</option>
+            <option value="168">1 week</option>
+          </select>
+        </label>
+      ) : null}
       {!device.revoked_at &&
         ACCESS.map(({ capability, label }) => (
           <label key={capability} className="flex items-center gap-2">
@@ -396,7 +427,10 @@ function DeviceAccess({
               disabled={!granted.isSuccess}
               onChange={(e) => set(capability, e.target.checked)}
             />
-            {label}
+            <span>
+              {label}
+              {until(capability)}
+            </span>
           </label>
         ))}
       {has("apps") && apps.length ? (
@@ -410,7 +444,10 @@ function DeviceAccess({
                   checked={has(`app:${app.exe}`)}
                   onChange={(e) => set(`app:${app.exe}`, e.target.checked)}
                 />
-                <span className="truncate">{app.name}</span>
+                <span className="truncate">
+                  {app.name}
+                  {until(`app:${app.exe}`)}
+                </span>
               </label>
             ))}
           </div>

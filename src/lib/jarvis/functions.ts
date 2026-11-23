@@ -284,7 +284,17 @@ const capability = z.union([
  */
 export const setJarvisAccess = createServerFn({ method: "POST" })
   .middleware([requireSession])
-  .validator((i) => z.object({ deviceId: uuid, capability, allowed: z.boolean() }).parse(i))
+  .validator((i) =>
+    z
+      .object({
+        deviceId: uuid,
+        capability,
+        allowed: z.boolean(),
+        /** Omitted: the grant lasts until the person turns it off. */
+        hours: z.union([z.literal(1), z.literal(24), z.literal(168)]).optional(),
+      })
+      .parse(i),
+  )
   .handler(async ({ data, context }) => {
     const { data: device, error: lookupError } = await context.supabase
       .from("jarvis_devices")
@@ -307,9 +317,21 @@ export const setJarvisAccess = createServerFn({ method: "POST" })
         device_id: data.deviceId,
         capability: data.capability,
         allowed: data.allowed,
+        expires_at:
+          data.allowed && data.hours
+            ? new Date(Date.now() + data.hours * 3_600_000).toISOString()
+            : null,
       },
       ...(data.allowed
-        ? [{ user_id: context.userId, device_id: null, capability: "master", allowed: true }]
+        ? [
+            {
+              user_id: context.userId,
+              device_id: null,
+              capability: "master",
+              allowed: true,
+              expires_at: null,
+            },
+          ]
         : []),
     ];
     const { error } = await context.supabase
@@ -319,16 +341,37 @@ export const setJarvisAccess = createServerFn({ method: "POST" })
     return { allowed: data.allowed };
   });
 
+/** A decision counts only while it is on and has not reached its end; the database agrees. */
+const live = (row: { allowed: boolean; expires_at: string | null }, now: number) =>
+  row.allowed && (row.expires_at === null || Date.parse(row.expires_at) > now);
+
+/** The computer's live grants, each with its end (null: until turned off). */
+export const listJarvisGrants = createServerFn({ method: "GET" })
+  .middleware([requireSession])
+  .validator((i) => z.object({ deviceId: uuid }).parse(i))
+  .handler(async ({ data, context }) => {
+    const { data: rows, error } = await context.supabase
+      .from("jarvis_permissions")
+      .select("capability, allowed, expires_at")
+      .eq("device_id", data.deviceId);
+    if (error) throw new Error("JARVIS could not read that computer's permissions just now.");
+    const now = Date.now();
+    return (rows ?? [])
+      .filter((row) => live(row, now))
+      .map((row) => ({ capability: row.capability, expiresAt: row.expires_at }));
+  });
+
 export const listJarvisAccess = createServerFn({ method: "GET" })
   .middleware([requireSession])
   .validator((i) => z.object({ deviceId: uuid }).parse(i))
   .handler(async ({ data, context }) => {
     const { data: rows, error } = await context.supabase
       .from("jarvis_permissions")
-      .select("capability, allowed")
+      .select("capability, allowed, expires_at")
       .eq("device_id", data.deviceId);
     if (error) throw new Error("JARVIS could not read that computer's permissions just now.");
-    return (rows ?? []).filter((row) => row.allowed).map((row) => row.capability);
+    const now = Date.now();
+    return (rows ?? []).filter((row) => live(row, now)).map((row) => row.capability);
   });
 
 export const listJarvisDevices = createServerFn({ method: "GET" })
@@ -346,7 +389,7 @@ export const listJarvisDevices = createServerFn({ method: "GET" })
         .order("created_at", { ascending: false }),
       context.supabase
         .from("jarvis_permissions")
-        .select("device_id, capability, allowed")
+        .select("device_id, capability, allowed, expires_at")
         .eq("user_id", account)
         .in("capability", ["master", "files"]),
       context.supabase
@@ -359,11 +402,13 @@ export const listJarvisDevices = createServerFn({ method: "GET" })
       throw new Error("JARVIS could not list your computers just now.");
     const active = new Set(tasks.data?.map((task) => task.device_id));
     const granted = permissions.data ?? [];
+    const now = Date.now();
     const master = granted.some(
       (permission) =>
-        permission.device_id === null && permission.capability === "master" && permission.allowed,
+        permission.device_id === null &&
+        permission.capability === "master" &&
+        live(permission, now),
     );
-    const now = Date.now();
     return (devices.data ?? []).map((device) => {
       const allowed =
         master &&
@@ -371,7 +416,7 @@ export const listJarvisDevices = createServerFn({ method: "GET" })
           (permission) =>
             permission.device_id === device.id &&
             permission.capability === "files" &&
-            permission.allowed,
+            live(permission, now),
         );
       const state = device.revoked_at
         ? "removed"
