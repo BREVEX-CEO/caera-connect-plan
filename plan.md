@@ -49,9 +49,9 @@ Cross-check (23 Nov 2026): every master-checklist section M§0–M§17 maps to a
 
 - [x] 1. Verify latest GitHub HEAD, synchronize safely, preserve existing commits and inspect the entire repository. — map: M§0 — status: DONE (23 Nov: local clone was shallow at `2ddbd54`; unshallowed, confirmed ancestor of remote `1cf164b`, fast-forwarded with no local-only commits lost. Baseline on `1cf164b`: `verify:full` 8/8 after Prettier on two master checklists; security TS 352/352; JARVIS TS 36 pass/0 fail; companion 340 OK (40 platform skips, deps from requirements.txt + reportlab/opentimelineio as in CI); DB suite all PASS incl. 57 rollbacks on local PostgreSQL 16.)
 - [ ] 2. Read every section, subsection and appendix of `plan.md`; identify every incomplete, partial, missing, broken or unverified requirement. — map: M§1 — status: OPEN
-- [ ] 3. Audit all 120 owner requirements, preserving original wording and identifying missing source information. — map: M§2, M§16 — status: OPEN
+- [ ] 3. Audit all 120 owner requirements, preserving original wording and identifying missing source information. — map: M§2, M§16 — status: IN PROGRESS (23 Nov: rows 3, 4, 20, 22, 33, 52, 59, 67, 68, 71 re-checked against code with cited evidence; wording of 72–73 and 86–87 still missing from the repository, owner must supply)
 - [ ] 4. Audit all 266 original requirements individually; complete every applicable missing coding requirement. — map: M§3 — status: OPEN
-- [ ] 5. Audit all 84 architecture concepts; complete missing implementations and acceptance tests. — map: M§4 — status: OPEN
+- [ ] 5. Audit all 84 architecture concepts; complete missing implementations and acceptance tests. — map: M§4 — status: IN PROGRESS (23 Nov: 47 PASS, 36 PARTIAL, 1 FAIL (the aggregate gate 84); 18, 21, 50 moved to PASS after code re-check; 45 and 67 coded further; 71 note corrected; ledger `evidence/2026-11-23-traceability/`)
 - [ ] 6. Audit all 72 repository-integration requirements; finish every applicable incomplete integration. — map: M§5 — status: OPEN
 - [ ] 7. Reconcile all 236 research dispositions and 38 consolidated architecture proposals without duplicating unnecessary functionality. — map: M§6 (14C), M§16 — status: OPEN
 - [ ] 8. Finish every remaining coding requirement throughout Parts 0–26, 14A–14F, 27 and 28. — map: M§1, M§6 — status: OPEN
@@ -137,14 +137,14 @@ Cross-check (23 Nov 2026): every master-checklist section M§0–M§17 maps to a
 - [ ] 85. UX-32 — Progressive Disclosure: reveal advanced controls when needed. — map: M§9 — status: OPEN
 - [ ] 86. UX-33 — Recognition over Recall: show relevant resources, devices and recent actions. — map: M§9 — status: OPEN
 - [ ] 87. UX-34 — Feedback Loops: provide accurate progress, success, error and recovery feedback. — map: M§9 — status: OPEN
-- [ ] 88. Verify all applicable UX principles across every route, signed-in/out state, desktop, mobile, tablet, keyboard and screen reader; record actual evidence and justified exceptions. — map: M§9, M§10 — status: OPEN
+- [ ] 88. Verify all applicable UX principles across every route, signed-in/out state, desktop, mobile, tablet, keyboard and screen reader; record actual evidence and justified exceptions. — map: M§9, M§10 — status: IN PROGRESS (23 Nov: signed-out Chromium axe/reflow/keyboard audit 10 pages 0 problems; surface audit desktop and Android emulation; `evidence/2026-11-23-accessibility/`. Signed-in, tablet, screen reader, Firefox/WebKit locally: open)
 - [ ] 89. Remove duplicate UI components and unnecessary interactions; optimize consistency, responsiveness, accessibility and customer task completion. — map: M§9, M§12 — status: OPEN
 
 ### Security, optimization and final engineering verification
 
 - [ ] 90. Read and independently review both complete security ledgers. — map: M§11, S (security checklist) — status: OPEN
 - [ ] 91. Recheck all 16 code-observed security findings and their remaining gaps. — map: M§11, S, docs/OCADE_THREAT_TRIAGE.md — status: OPEN
-- [ ] 92. Re-audit all 192 security risk hypotheses individually, including previously FIXED entries. — map: M§11, S — status: OPEN
+- [ ] 92. Re-audit all 192 security risk hypotheses individually, including previously FIXED entries. — map: M§11, S — status: IN PROGRESS (23 Nov: VERIFY-07 OPEN to PARTIAL with a 10-run flake campaign, totals now 129 FIXED, 43 PARTIAL, 2 OPEN, 11 OWNER, 7 N/A; remaining rows not yet individually re-audited this session)
 - [ ] 93. Implement and independently execute all applicable security tests from the 1,152 proposed negative scenarios. — map: M§11, S — status: OPEN
 - [ ] 94. Resolve all applicable OPEN/PARTIAL security findings, including malware intake, external MCP isolation, account separation and unauthorized effects. — map: M§11, M§16, S — status: OPEN
 - [ ] 95. Verify all 16 API-key security requirements and complete tenant, privacy, quota, provider and admin safeguards. — map: M§6 (14B.5–14B.6), M§11 — status: OPEN

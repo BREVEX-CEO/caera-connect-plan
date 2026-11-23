@@ -316,7 +316,7 @@ const C = {
     "L2",
     ["authority", "ui"],
     ["e2e"],
-    "files land in the device folder; no download/read-back from the UI tested",
+    "files land in the device folder; the task view reads a chosen local copy back and accepts it only when its SHA-256 matches the receipt, then offers download, preview and Library upload (JarvisPanels); no automated browser test of that path",
   ],
   72: [
     "PARTIAL",
