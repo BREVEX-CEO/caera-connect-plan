@@ -485,7 +485,7 @@ In plain terms: Gemma's practical speed, reliability and suitability for custome
 | 30 | Progress | PARTIAL | Shows real receipts |
 | 31 | Editable deliverables | PARTIAL | glTF export, defect D19 |
 | 32 | Interrupted-session recovery | Passes at the authority level (LEDGER) | Browser-reload test |
-| 33 | Accessibility | UNKNOWN | Automated accessibility audit with no serious findings |
+| 33 | Accessibility | PARTIAL (VERIFIED 23 Nov: axe WCAG 2.2 A/AA, 200% reflow and keyboard focus on 10 signed-out pages in Chromium, 0 problems, `evidence/2026-11-23-accessibility/`; the hosted job also runs Firefox and WebKit) | Signed-in routes, assistive-technology user check |
 | 34 | Localisation | UNKNOWN | English first; another language only after owner approval |
 
 8.5. **Out-of-scope historical IDs 35–40 and 42; retained engineering obligations 41 and 43.**
