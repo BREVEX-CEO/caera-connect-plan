@@ -217,7 +217,7 @@ const C = {
     "L2",
     ["catalog", "discovery"],
     ["catalog"],
-    "pinned manifests and start-up health; no health TTL cache",
+    "pinned manifests; health checked at activation, a server that fails it is withdrawn and the inventory re-reported at once (test_catalog); inventory refreshed every 10 min; a manifest removed while the companion runs stays offered until restart",
   ],
   46: [
     "PARTIAL",

@@ -158,8 +158,17 @@ class Catalog(unittest.TestCase):
     def test_drifted_tool_list_and_replaced_executable_are_rejected(self):
         self.write("a.json", manifest(extra=["--extra"]))
         external, _ = catalog.load(self.home)
-        [drift], _ = self.call(external, ("mcp.read", {"server": "echo", "tool": "echo", "arguments": {"text": "x"}}))
+        self.assertEqual([d["id"] for d in catalog.describe(external)], ["echo"])
+        [drift, again], _ = self.call(
+            external,
+            ("mcp.read", {"server": "echo", "tool": "echo", "arguments": {"text": "x"}}),
+            ("mcp.read", {"server": "echo", "tool": "echo", "arguments": {"text": "x"}}),
+        )
         self.assertEqual(drift["errorCode"], "worker_rejected")
+        # Concept 45: a server that failed its health check is no longer offered or started.
+        self.assertEqual(external["echo"]["state"], "unhealthy")
+        self.assertEqual(again["errorCode"], "server_not_trusted")
+        self.assertEqual(catalog.describe(external), [])
 
         # The server script is replaced after approval: the interpreter is unchanged, the script is not.
         copy = Path(tempfile.mkdtemp()) / "echo.py"

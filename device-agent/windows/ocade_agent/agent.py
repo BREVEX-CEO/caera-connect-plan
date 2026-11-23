@@ -389,6 +389,7 @@ class Agent:
              "engines": await anyio.to_thread.run_sync(discovery.engines)},
         )
         self.inventory_at = time.monotonic()
+        self.gateway.inventory_stale = False
         return answer or {}
 
     async def run(self, until_idle: bool = False) -> None:
@@ -468,12 +469,15 @@ class Agent:
                 raise LocalStop()
             await self.deliver_instructions()
             await self.watch_folders()
-            if self.inventory_at is not None and time.monotonic() - self.inventory_at >= INVENTORY_SECONDS:
+            if self.inventory_at is not None and (
+                self.gateway.inventory_stale or time.monotonic() - self.inventory_at >= INVENTORY_SECONDS
+            ):
                 # A permission granted in System Settings, or an app installed, shows on the website.
                 try:
                     await self.report_inventory()
-                except OSError:
+                except OSError:  # the next periodic report carries the change
                     self.inventory_at = time.monotonic()
+                    self.gateway.inventory_stale = False
             if state is None and answers:
                 answer = answers.pop()  # the latest answer carries the server's state after it
                 answers.clear()

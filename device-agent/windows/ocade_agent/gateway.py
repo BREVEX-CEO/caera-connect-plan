@@ -157,6 +157,8 @@ class Gateway:
         self.external = external or {}
         self.max_external = max_external
         self.epoch = 0
+        # True when an external server's state changed since the last inventory was reported.
+        self.inventory_stale = False
         self._workers: dict[str, dict] = {}
 
     async def __aenter__(self) -> "Gateway":
@@ -262,7 +264,13 @@ class Gateway:
         await worker["started"].wait()
         if "session" not in worker:
             await self._discard(key)
-            raise worker.get("error") or RuntimeError("worker ended during start-up")
+            error = worker.get("error") or RuntimeError("worker ended during start-up")
+            if key.startswith("mcp:") and key[4:] in self.external:
+                # Failed its health check (did not start, or listed other tools): no longer offered
+                # until the companion starts again and re-checks it (plan concept 45).
+                self.external[key[4:]]["state"] = "unhealthy"
+                self.inventory_stale = True
+            raise error
         return worker["session"]
 
     def _tool_problem(self, key: str, tools: dict[str, dict]) -> str | None:
