@@ -1,0 +1,11 @@
+{
+  "runs": 10,
+  "tests": 37,
+  "seconds": 795.5,
+  "flaky": {},
+  "flakeRate": 0.0,
+  "alwaysFailing": {},
+  "alwaysSkipped": [],
+  "python": "3.13.18",
+  "platform": "linux"
+}
