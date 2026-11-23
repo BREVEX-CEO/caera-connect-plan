@@ -43,6 +43,7 @@ const T = {
   db: "tests/jarvis/db/authority.test.sql",
   expiry: "tests/jarvis/db/permission-expiry.test.sql",
   milestones: "tests/jarvis/db/milestones.test.sql",
+  lanes: "tests/jarvis/db/parallel-lanes.test.sql",
   gateway: "device-agent/windows/tests/test_gateway.py",
   agent: "device-agent/windows/tests/test_agent.py",
   recovery: "device-agent/windows/tests/test_agent_recovery.py",
@@ -241,13 +242,7 @@ const C = {
     ["unit", "db"],
     "Guarded step lists require E1 accuracy qualification (W4)",
   ],
-  50: [
-    "PARTIAL",
-    "L2",
-    ["migration"],
-    ["db"],
-    "one open task per device; no per-file lock across devices",
-  ],
+  50: ["PASS", "L2", ["migration"], ["db", "lanes"], ""],
   51: [
     "PARTIAL",
     "L2",
