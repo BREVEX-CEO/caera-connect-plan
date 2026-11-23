@@ -1,0 +1,4 @@
+{"engine": "chromium", "firstVisitScriptBytes": 902739, "budget": 950000}
+[chromium/desktop] audited 12 pages
+[chromium/android-emulation] audited 12 pages
+[chromium] 134 controls on 9 routes
