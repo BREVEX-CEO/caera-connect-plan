@@ -89,7 +89,9 @@ class BrowserUnavailable(unittest.TestCase):
             async with Gateway(tempfile.mkdtemp()) as gateway:
                 return await gateway.run(intent("web.open", {"url": "https://example.com/"}), gateway.epoch)
 
-        with patch.dict(os.environ, {"OCADE_BROWSER_EXECUTABLE": str(Path(tempfile.mkdtemp()) / "no-browser")}):
+        # The address check is not under test: a runner's DNS answer for example.com must not decide it.
+        with patch.dict(os.environ, {"OCADE_BROWSER_EXECUTABLE": str(Path(tempfile.mkdtemp()) / "no-browser"),
+                                     "OCADE_ALLOW_PRIVATE_WEB": "1"}):
             result = anyio.run(go)
         self.assertEqual((result["status"], result["errorCode"]), ("not_applied", "browser_unavailable"))
 
@@ -102,7 +104,7 @@ class BrowserUnavailable(unittest.TestCase):
             async with Gateway(tempfile.mkdtemp(), home=tempfile.mkdtemp()) as gateway:
                 return await gateway.run(intent("web.open", {"url": "https://example.com/"}), gateway.epoch)
 
-        environment = {"PLAYWRIGHT_BROWSERS_PATH": tempfile.mkdtemp()}
+        environment = {"PLAYWRIGHT_BROWSERS_PATH": tempfile.mkdtemp(), "OCADE_ALLOW_PRIVATE_WEB": "1"}
         with patch.dict(os.environ, environment), patch.dict(os.environ, {"OCADE_BROWSER_EXECUTABLE": ""}):
             result = anyio.run(go)
         if result["status"] == "observed":
