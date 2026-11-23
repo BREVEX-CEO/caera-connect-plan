@@ -1,0 +1,17 @@
+== POST /api/jarvis/device
+HTTP/1.1 426 Upgrade Required
+Cache-Control: no-store
+== GET /api/jarvis/device
+HTTP/1.1 405 Method Not Allowed
+== GET /_serverFn/anything
+HTTP/1.1 403 Forbidden
+Cache-Control: private, no-store
+== POST /_serverFn/anything
+HTTP/1.1 403 Forbidden
+Cache-Control: private, no-store
+== GET /settings
+HTTP/1.1 404 Not Found
+== GET /library
+HTTP/1.1 200 OK
+== GET /
+HTTP/1.1 200 OK
