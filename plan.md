@@ -445,8 +445,8 @@ In plain terms: Gemma's practical speed, reliability and suitability for custome
 |---|---|---|---|
 | 1 | Planning | PARTIAL | Goal-time families, postcondition guards (Part 10) |
 | 2 | Efficient AI calls | FAILING (VERIFIED by the token measurement) | Turns cut to about 4,000 tokens |
-| 3 | Tool calling | DEFECT (VERIFIED) | Forced function calls |
-| 4 | Complete schemas | DEFECT (VERIFIED) | Full JSON Schema |
+| 3 | Tool calling | CODED (VERIFIED 23 Nov: a JARVIS turn is sent with `forced_call` — Gemini mode ANY, `tool_choice` any/required for Anthropic, OpenAI and Workers AI — in `src/lib/intelligence/edge-handler.ts`, `anthropic.ts`, `byok-handler.ts`, `workers-ai.ts`; tests `tests/security/model-route.test.ts`, `anthropic.test.ts`, `openai-responses.test.ts`) | Live provider qualification (Stage 5) |
+| 4 | Complete schemas | CODED (VERIFIED 23 Nov: `operationSchema` sends each operation's full JSON Schema from its zod contract, `src/lib/jarvis/planner.server.ts`; `tests/jarvis/contracts.test.ts` "operation schemas are converted once and match a fresh conversion") | Live provider qualification (Stage 5) |
 | 5 | Prompt optimisation | PARTIAL | Stable prompt prefix, smaller history, deterministic planner fixtures |
 | 6 | Guarded action batching | PARTIAL (VERIFIED: batches stop on failure but carry no postconditions) | Postconditions |
 | 7 | Autonomous error recovery | PARTIAL | Refusal hints and fault-injection tests |
@@ -467,9 +467,9 @@ In plain terms: Gemma's practical speed, reliability and suitability for custome
 | 17 | Exact window targeting | PARTIAL | Wrong-window suite on both systems |
 | 18 | STOP | PARTIAL (gates: stop PARTIAL) | Mid-batch STOP tests, real-device proof |
 | 19 | Take Over | PARTIAL | Resume reconciliation test |
-| 20 | Complete approvals | UNKNOWN, owner reports truncation | Approval text never truncated |
+| 20 | Complete approvals | CODED (VERIFIED 23 Nov: an approval shows `exactEffect` — the exact operation and every argument, untrimmed — in a scrollable block, and the step summary wraps instead of truncating, `authority.server.ts`, `JarvisPanels.tsx`; `tests/jarvis/contracts.test.ts` exact-effect case) | Browser check at 320 px and screen reader (Stage 6 UX pass) |
 | 21 | File protection | PASSES (LEDGER) | — |
-| 22 | Installers | FAILING (gates: 0 of 4) | Clean install, upgrade, rollback, uninstall |
+| 22 | Installers | PARTIAL (VERIFIED 23 Nov: unsigned Inno Setup build with install, diagnose, repair, uninstall checks in `device-agent/windows/packaging/test_install.ps1` and update checks in `test_update.py`, run on hosted Windows runners; macOS bundle workflow) | Code signing needs a certificate (owner); consumer-PC install is Stage 6 |
 | 23 | Device pairing | Secure today (LEDGER) | No-email flow of Part 5.5 |
 | 24 | Resource management | PARTIAL | Idle CPU and memory measured |
 | 25 | Failure containment | PARTIAL | Restricted Windows token for commands |
@@ -521,14 +521,14 @@ The original exact text for out-of-scope IDs is preserved in `docs/archive/plan-
 
 | # | Requirement | Status | Remaining work |
 |---|---|---|---|
-| 52 | Green CI | RED (VERIFIED formatting failure) | Fix |
+| 52 | Green CI | PARTIAL (23 Nov: the formatting failure on `1cf164b`/`853a9a9` came from two unformatted master checklists, fixed in `8556701`; `verify:full` 8/8 locally) | Same-SHA all-green hosted run on the final SHA (Stage 4) |
 | 53 | Integration tests | Green locally except the database suite, which needs PostgreSQL | Run the database suite |
 | 54 | 90 percent first-attempt success | FAILING | — |
 | 55 | Two-model qualification | 0 of 16 | — |
 | 56 | E1 to E4 | E1 at 56 percent | — |
 | 57 | Real Windows and macOS testing | BLOCKED on approval A2 | — |
 | 58 | Complete customer workflows | PARTIAL | — |
-| 59 | Debloating | NOT STARTED | — |
+| 59 | Debloating | PARTIAL (Stage 3 report `docs/DEBLOAT_REPORT.md`, 21 Nov: research archive moved out, dead capture code removed, measured) | Re-run after security closure on the final SHA |
 | 60 | Source-bound release evidence | PASSES (LEDGER) | — |
 | 61 | Operational readiness | PARTIAL | — |
 
@@ -541,8 +541,8 @@ The original exact text for out-of-scope IDs is preserved in `docs/archive/plan-
 | 64 | Dependency discovery and authorised preparation | CODED (LEDGER) | — |
 | 65 | Very fast startup | UNKNOWN | Target: ready within 2 seconds of a cold start |
 | 66 | Developer-side Docker only | Satisfied by design (VERIFIED: the companion has no Docker dependency) | Recorded in Part 5.7 |
-| 67 | Temporary system tray | NOT CODED (VERIFIED) | Part 5.4 |
-| 68 | No unnecessary desktop icons | UNKNOWN | Installer creates no desktop shortcut by default |
+| 67 | Temporary system tray | CODED (VERIFIED 23 Nov: `device-agent/windows/ocade_agent/tray.py` Windows notification-area icon and macOS menu-bar control with local STOP and Open JARVIS; `tests/test_tray.py` on the Windows runner) | Consumer-PC check (Stage 6) |
+| 68 | No unnecessary desktop icons | CODED (VERIFIED 23 Nov: `ocade-agent.iss` [Icons] creates Start-menu entries only, no desktop icon; Always-On is an unchecked task) | Consumer-PC check (Stage 6) |
 | 69 | Safe process cleanup | PARTIAL | — |
 | 70 | Trusted reconnection | PARTIAL | Test after sleep and network loss |
 | 71 | No repeated email verification for pairing | UNKNOWN | Part 5.5 |
