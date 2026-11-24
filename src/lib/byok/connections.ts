@@ -18,6 +18,8 @@ export interface ByokConnection {
   enabled: boolean;
   status: string;
   sees_images: boolean | null;
+  /** The person allows pictures to go to this provider (BYOK-07). */
+  send_images: boolean;
   calls_tools: boolean | null;
   checked_at: string | null;
   model_mode: "manual" | "auto";
@@ -147,13 +149,24 @@ async function token(): Promise<string | null> {
   return data.session?.access_token ?? null;
 }
 
+/** BYOK-07: whether pictures may go to this key's provider; the person's own row only (RLS). */
+export async function setByokImages(connectionId: string, allowed: boolean): Promise<void> {
+  const { supabase } = await import("@/integrations/supabase/client");
+  const { data, error } = await supabase
+    .from("byok_connections")
+    .update({ send_images: allowed })
+    .eq("id", connectionId)
+    .select("id");
+  if (error || !data?.length) throw new Error("That choice could not be saved. Try again.");
+}
+
 export async function readByok(): Promise<ByokState> {
   const { supabase } = await import("@/integrations/supabase/client");
   const [connections, choices, calls] = await Promise.all([
     supabase
       .from("byok_connections")
       .select(
-        "id, alias, protocol, endpoint, model, fingerprint, enabled, status, sees_images, calls_tools, checked_at, model_mode, spend_mode, free_tier, budget_currency, budget_time_zone, budget_task, budget_day, budget_month, models_listed_at",
+        "id, alias, protocol, endpoint, model, fingerprint, enabled, status, sees_images, send_images, calls_tools, checked_at, model_mode, spend_mode, free_tier, budget_currency, budget_time_zone, budget_task, budget_day, budget_month, models_listed_at",
       )
       .order("created_at"),
     supabase.from("byok_choices").select("surface, connection_id"),

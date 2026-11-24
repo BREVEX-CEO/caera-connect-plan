@@ -146,6 +146,7 @@ export type Database = {
           protocol: string
           secret_id: string
           sees_images: boolean | null
+          send_images: boolean
           spend_mode: string
           status: string
           updated_at: string
@@ -172,6 +173,7 @@ export type Database = {
           protocol: string
           secret_id: string
           sees_images?: boolean | null
+          send_images?: boolean
           spend_mode?: string
           status?: string
           updated_at?: string
@@ -198,6 +200,7 @@ export type Database = {
           protocol?: string
           secret_id?: string
           sees_images?: boolean | null
+          send_images?: boolean
           spend_mode?: string
           status?: string
           updated_at?: string

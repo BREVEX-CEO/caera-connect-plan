@@ -5,6 +5,7 @@ import {
   STATUS_TEXT,
   changeByok,
   readByok,
+  setByokImages,
   readModels,
   type ByokConnection,
   type ByokModel,
@@ -149,6 +150,15 @@ function Connection({
     },
     onError: (error) => setProblem(error.message),
   });
+  // BYOK-07: off means this key's models are treated as unable to see; nothing visual is sent.
+  const images = useMutation({
+    mutationFn: (allowed: boolean) => setByokImages(connection.id, allowed),
+    onSuccess: () => {
+      setProblem(null);
+      onChanged();
+    },
+    onError: (error) => setProblem(error.message),
+  });
   const status = STATUS_TEXT[connection.status] ?? { label: connection.status };
   const sight =
     connection.sees_images === true
@@ -183,7 +193,8 @@ function Connection({
           </>
         }
       >
-        <div className="flex flex-wrap gap-2">
+        {/* Five actions wrap into two lines so the key's details keep a readable width. */}
+        <div className="flex flex-wrap gap-2 sm:max-w-[17rem] sm:justify-end">
           <Action label="Test" busy={act.isPending} onClick={() => setTesting(true)} />
           <Action
             label={models ? "Hide models & spending" : "Models & spending"}
@@ -198,6 +209,16 @@ function Connection({
           <Action label="Delete" destructive onClick={() => setDeleting(true)} />
         </div>
       </Row>
+      <label className="mt-1 flex min-h-8 cursor-pointer items-center gap-2 text-sm text-muted-foreground">
+        <input
+          type="checkbox"
+          checked={connection.send_images}
+          disabled={images.isPending}
+          onChange={(event) => images.mutate(event.target.checked)}
+          className="h-4 w-4"
+        />
+        <span>Send pictures (screenshots and images you attach) to this provider</span>
+      </label>
       {testing ? (
         <div className="flex flex-wrap items-center justify-between gap-3 pb-2 text-[0.8125rem] text-muted-foreground">
           <span>A test sends two small requests to your provider and may use your quota.</span>
