@@ -50,6 +50,11 @@ every migration applied), the site built against it and served by `wrangler dev`
   did not grow with a long instruction; it now shows the whole hint and grows to 160 px like
   Chat's (`jarvis-composer-phone.png`).
 
+- Clipped text (UX-14): a new check fails when a container cuts text off without an ellipsis. It
+  found the Apps & Websites state text ("Not available yet: OCADE has not finished registering…")
+  cut off on a phone in Settings > Devices (confirmed by re-introducing the old layout: the check
+  fails); the state now wraps. Re-run signed in and out in Chromium, Firefox and WebKit: PASS.
+
 ## Matrix
 
 "Automated" names a check that fails the build when the principle regresses. "Applied in" names
@@ -71,7 +76,7 @@ plan 14B.4A user studies with real people remain an owner action and are not cla
 | UX-11 | Jakob's Law | familiar chat layout, skip link, brand links home, Escape closes dialogs | language, title, way home (`ux_laws_audit.py`); keyboard (`accessibility_audit.py`) | — |
 | UX-12 | Common Region | bordered sections for each package, Settings rows, task panel | — | visual review |
 | UX-13 | Proximity | delete next to its conversation; status next to the composer that it blocks | — | visual review |
-| UX-14 | Prägnanz | one-column empty states; one heading per page | one h1 (`ux_laws_audit.py`) | — |
+| UX-14 | Prägnanz | one-column empty states; one heading per page; no clipped text | one h1 and no text cut off without an ellipsis (`ux_laws_audit.py`) | — |
 | UX-15 | Similarity | shared row and button classes (`settings/rows.tsx`) | — | visual review |
 | UX-16 | Uniform Connectedness | task steps listed as one connected plan; schedule shows its runs | — | visual review |
 | UX-17 | Mental Model | "Live" vs "Background" control mode spelled out under the picker; STOP / Take over named as in Help | — | first-use comprehension study |

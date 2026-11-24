@@ -100,7 +100,7 @@ export function AppsAndWebsites() {
                   {entry.device ? ` · ${entry.device}` : ""}
                 </span>
               </span>
-              <span className="shrink-0 text-right text-xs text-muted-foreground">
+              <span className="max-w-[50%] text-right text-xs text-muted-foreground">
                 {STATE[entry.state]}
               </span>
             </li>

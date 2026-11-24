@@ -14,6 +14,7 @@ it catches the regressions that break one. The per-principle evidence matrix in
 - UX-06 Doherty Threshold: the page's document is ready within 1 s on a loopback site.
 - UX-08 Flow / UX-01: with reduced motion requested, nothing animates for longer than 10 ms.
 - UX-28 Von Restorff Effect: a visible STOP control does not share its colour with any other button.
+- UX-14 Prägnanz / UX-31: no text is cut off by its container without an ellipsis.
 
     python3 tests/web/ux_laws_audit.py http://127.0.0.1:8787 [session.json storage-key] [--engine E]
 """
@@ -78,6 +79,21 @@ MEASURE = """({minTarget, maxNav, opened}) => {
     if (!visible(nav)) continue;
     const items = [...nav.querySelectorAll('a[href], button')].filter(visible);
     if (items.length > maxNav) out.push(`UX-10 navigation ${JSON.stringify(nav.getAttribute('aria-label') || '')} shows ${items.length} choices at once`);
+  }
+  // UX-14/UX-31: text a container cuts off without an ellipsis cannot be read at all.
+  for (const box of document.querySelectorAll('body *')) {
+    if (!visible(box) || box.scrollWidth <= box.clientWidth + 1) continue;
+    const s = getComputedStyle(box);
+    if (!['hidden', 'clip', 'auto', 'scroll'].includes(s.overflowX)) continue;
+    if (['auto', 'scroll'].includes(s.overflowX) && box.scrollWidth > box.clientWidth) {
+      // A scroll container is fine when it says so: chips rows and code scroll on purpose.
+      if (box.matches('nav, pre, code, table, [role="tablist"], .ocade-scroll') || box.closest('pre')) continue;
+    }
+    if (s.textOverflow === 'ellipsis') continue;
+    const edge = box.getBoundingClientRect().right + 2;
+    const cut = [...box.querySelectorAll('*')].find(child => child.childElementCount === 0
+      && (child.textContent || '').trim() && visible(child) && child.getBoundingClientRect().right > edge);
+    if (cut) out.push(`UX-14 text cut off: ${JSON.stringify(name(cut))}`);
   }
   // UX-11/UX-31 describe the page, not a dialog opened on top of it.
   if (opened) return out.concat(postelAndStop());
