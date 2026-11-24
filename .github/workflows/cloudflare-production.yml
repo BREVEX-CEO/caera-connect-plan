@@ -11,6 +11,10 @@ on:
         description: Currently deployed Cloudflare version ID (the deploymentId at /api/health)
         required: true
         type: string
+      live_schema_version:
+        description: Newest migration applied to the production project (supabase migration list)
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -32,6 +36,7 @@ jobs:
       OCADE_DEPLOY_HEALTH_URL: https://ocade.in/api/health
       OCADE_DEPLOY_APPROVAL: ${{ inputs.deploy_approval }}
       OCADE_ROLLBACK_VERSION_ID: ${{ inputs.rollback_version_id }}
+      OCADE_LIVE_SCHEMA_VERSION: ${{ inputs.live_schema_version }}
       OCADE_SUPABASE_PROJECT_REF: sazhgaisyhkdbrooycdv
       VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
       VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}

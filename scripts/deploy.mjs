@@ -66,6 +66,17 @@ function validSupabaseBuildUrl(raw, projectRef) {
   }
 }
 
+/** The newest migration version in this checkout (its 14-digit file prefix), or null. */
+export function newestMigration(cwd) {
+  const directory = path.join(cwd, "supabase", "migrations");
+  if (!existsSync(directory)) return null;
+  const versions = readdirSync(directory)
+    .map((name) => /^(\d{14})_.+\.sql$/.exec(name)?.[1])
+    .filter(Boolean)
+    .sort();
+  return versions.at(-1) ?? null;
+}
+
 function realRunner(command, args, options = {}) {
   return spawnSync(command, args, {
     cwd: options.cwd,
@@ -168,6 +179,19 @@ export function createDeploymentPlan({
   }
 
   if (mode === "deploy") {
+    /*
+     * OPS-02: the website must not go live ahead of its database. The approver reads the newest
+     * migration applied to the target project (`supabase migration list`) and types it in; it
+     * has to be this checkout's newest migration, or the code would call what is not there.
+     */
+    const newest = newestMigration(cwd);
+    if (newest === null) blockers.push("no database migration found in supabase/migrations");
+    else if (env.OCADE_LIVE_SCHEMA_VERSION !== newest) {
+      blockers.push(
+        `the live database must have migration ${newest} applied before this deploy ` +
+          "(set OCADE_LIVE_SCHEMA_VERSION to the newest migration applied to the project)",
+      );
+    }
     if (env.OCADE_DEPLOY_APPROVAL !== DEPLOY_APPROVAL) {
       blockers.push("explicit production deploy approval is missing");
     }
