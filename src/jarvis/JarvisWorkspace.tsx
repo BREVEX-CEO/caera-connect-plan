@@ -94,6 +94,14 @@ export function JarvisWorkspace({
   const [turns, setTurns] = useState<Turn[]>([]);
   const [draft, setDraft] = useState("");
   const composer = useRef<HTMLTextAreaElement>(null);
+  // The box grows with what is typed (as Chat's does), so a long instruction stays readable
+  // (Working Memory); empty, CSS sizes it to its whole hint instead of clipping it on a phone.
+  useEffect(() => {
+    const element = composer.current;
+    if (!element) return;
+    element.style.height = "";
+    if (draft) element.style.height = `${Math.min(element.scrollHeight, 160)}px`;
+  }, [draft]);
   const reader = useReadAloud(prefs.voice);
   const dictation = useJarvisDictation(signedIn, (text) =>
     setDraft((current) => [current, text].filter(Boolean).join(" ").slice(0, MAX_OBJECTIVE_LENGTH)),
@@ -665,7 +673,7 @@ export function JarvisWorkspace({
                     if (!sendBlockedReason) event.currentTarget.form?.requestSubmit(); // same gate as Send
                   }
                 }}
-                className="max-h-40 min-h-10 flex-1 resize-none bg-transparent px-2 py-2 text-[0.9375rem] outline-none placeholder:text-muted-foreground"
+                className="max-h-40 min-h-10 flex-1 resize-none bg-transparent px-2 py-2 [field-sizing:content] text-[0.9375rem] outline-none placeholder:text-muted-foreground"
               />
               {signedIn && dictation.supported ? (
                 <button

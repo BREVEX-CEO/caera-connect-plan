@@ -44,6 +44,12 @@ every migration applied), the site built against it and served by `wrangler dev`
   loopback stack (`stop-response-chromium.json`). Focus used to fall to the top of the page when
   the pressed button disappeared; it now stays on the task panel.
 
+- Phone task panel (R12-12, UX-31): the task title was cut to "M…" beside the controls; it now
+  takes its own line and names the computer doing the work ("· on Test PC",
+  `task-phone-device.png`). The JARVIS message box clipped its hint to one line on a phone and
+  did not grow with a long instruction; it now shows the whole hint and grows to 160 px like
+  Chat's (`jarvis-composer-phone.png`).
+
 ## Matrix
 
 "Automated" names a check that fails the build when the principle regresses. "Applied in" names

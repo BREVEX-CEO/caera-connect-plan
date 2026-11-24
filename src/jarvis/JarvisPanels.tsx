@@ -1135,7 +1135,12 @@ export function TaskPanel({
         <span role="status" className="font-medium">
           {STATUS_WORDS[task.status] ?? task.status}
         </span>
-        <span className="min-w-0 flex-1 truncate text-muted-foreground">{task.title}</span>
+        {/* On a phone the title gets its own line under the controls instead of "M…". R12-12:
+            the computer actually doing the work is named wherever the person looks from. */}
+        <span className="order-last min-w-0 basis-full truncate text-muted-foreground sm:order-none sm:basis-0 sm:flex-1">
+          {task.title}
+          {task.device ? <span className="text-xs"> · on {task.device}</span> : null}
+        </span>
         <Elapsed timing={task.timing} live={open} />
         {task.status === "running" ? (
           <button
