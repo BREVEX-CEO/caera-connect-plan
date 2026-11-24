@@ -17,6 +17,11 @@ verify_jwt = true
 [auth.rate_limit]
 # Verifications (email codes, links) per 5 minutes per IP address.
 token_verifications = 30
+# AUTH-06 (24 Nov 2026): measured on a local stack, a wrong password for a real account takes
+# about 56 ms (password hash check) and an unknown account about 3 ms, so response time can tell
+# them apart. The auth server owns that path; this limit bounds how fast anyone can probe.
+# Sign-ins and sign-ups per 5 minutes per IP address.
+sign_in_sign_ups = 30
 
 [auth.email]
 # An emailed code is valid for 10 minutes, not an hour.
