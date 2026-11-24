@@ -39,6 +39,11 @@ every migration applied), the site built against it and served by `wrangler dev`
   phone (`long-content-phone-byok.png`). On a phone, a Settings category opened by address now
   scrolls its chip into view (UX-33).
 
+- STOP response and focus (14B.4A item 1, UX-06/25/28/34): `tests/web/stop_response.py` presses
+  STOP on a seeded running task five times; the panel says "Stopped" after 99–106 ms on this
+  loopback stack (`stop-response-chromium.json`). Focus used to fall to the top of the page when
+  the pressed button disappeared; it now stays on the task panel.
+
 ## Matrix
 
 "Automated" names a check that fails the build when the principle regresses. "Applied in" names

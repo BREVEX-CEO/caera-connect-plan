@@ -1115,10 +1115,21 @@ export function TaskPanel({
     task.status === "running" ? task.steps.find((step) => step.status === "claimed") : undefined;
   const act = (work: Promise<unknown>) =>
     void work.then(onChanged).catch((error: Error) => toast.error(error.message));
+  // STOP, Take over and Resume remove the pressed button: keep keyboard focus on the task
+  // (it would otherwise fall back to the top of the page).
+  const panel = useRef<HTMLElement>(null);
+  const shownStatus = useRef(task.status);
+  useEffect(() => {
+    if (shownStatus.current === task.status) return; // not on first render
+    shownStatus.current = task.status;
+    if (document.activeElement === document.body) panel.current?.focus({ preventScroll: true });
+  }, [task.status]);
   return (
     <section
+      ref={panel}
+      tabIndex={-1}
       aria-label="JARVIS task"
-      className="mx-auto mb-2 w-full max-w-2xl rounded-2xl border border-border/60 p-3 text-sm"
+      className="mx-auto mb-2 w-full max-w-2xl rounded-2xl border border-border/60 p-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
       <div className="flex flex-wrap items-center gap-2">
         <span role="status" className="font-medium">
