@@ -447,7 +447,8 @@ jobs:
     needs: [planner-safety, windows-effects-safety, database-safety]
     name: Portable build / model contracts / ephemeral DB · Linux
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    # The UX-law audit (three engines, phone and desktop, every opened view) added ~12 minutes.
+    timeout-minutes: 70
     services:
       postgres:
         image: postgres:16
