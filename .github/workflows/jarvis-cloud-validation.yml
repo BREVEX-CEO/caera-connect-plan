@@ -287,10 +287,21 @@ jobs:
         run: python -m tests.run_required --tests tests.test_effect_scope
       - name: Install the real media engine for containment controls
         if: success() || failure()
+        timeout-minutes: 10
         run: |
           if ! command -v ffmpeg >/dev/null || ! command -v ffprobe >/dev/null; then
-            sudo apt-get -o Acquire::Retries=1 -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20 update -qq
-            sudo apt-get -o Acquire::Retries=1 -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20 install -y -qq ffmpeg
+            # As the coding gate: install from the runner's lists first; a stalled mirror (a hung
+            # apt-get update ran this job into its time limit on 24 Nov) falls back to the archive.
+            apt_options=(-o Acquire::Retries=1 -o Acquire::http::Timeout=15 -o Acquire::https::Timeout=15)
+            if ! sudo timeout --kill-after=10s 240s env DEBIAN_FRONTEND=noninteractive apt-get "${apt_options[@]}" install -y -qq ffmpeg; then
+              . /etc/os-release
+              ubuntu_sources="$RUNNER_TEMP/ocade-ubuntu.sources"
+              printf 'Types: deb\nURIs: https://archive.ubuntu.com/ubuntu/\nSuites: %s %s-updates %s-security\nComponents: main restricted universe multiverse\nSigned-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg\n' \
+                "$VERSION_CODENAME" "$VERSION_CODENAME" "$VERSION_CODENAME" > "$ubuntu_sources"
+              apt_options+=(-o "Dir::Etc::sourcelist=$ubuntu_sources" -o Dir::Etc::sourceparts=-)
+              sudo timeout --kill-after=5s 90s apt-get "${apt_options[@]}" update --error-on=any
+              sudo timeout --kill-after=10s 240s env DEBIAN_FRONTEND=noninteractive apt-get "${apt_options[@]}" install -y -qq ffmpeg
+            fi
           fi
           ffmpeg -version
           ffprobe -version
