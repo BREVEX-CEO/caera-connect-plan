@@ -58,6 +58,15 @@ DO $$ BEGIN PERFORM pg_temp.none('a read policy does not keep rows to their owne
    WHERE p.schemaname = 'public' AND p.cmd IN ('SELECT', 'ALL')
      AND p.roles <> ARRAY['service_role']::name[]
      AND coalesce(p.qual, '') !~ '(auth\.uid\(\) AS uid\) = user_id|user_id = \( SELECT auth\.uid\(\) AS uid\))'$q$); END $$;
+-- O-10: stored files. No bucket is public, and every permissive storage policy a caller can use
+-- keeps objects inside the caller's own top folder (restrictive session checks only narrow).
+DO $$ BEGIN PERFORM pg_temp.none('a public storage bucket', $q$
+  SELECT id FROM storage.buckets WHERE public$q$); END $$;
+DO $$ BEGIN PERFORM pg_temp.none('a storage policy does not keep files to their owner', $q$
+  SELECT p.policyname FROM pg_policies p
+   WHERE p.schemaname = 'storage' AND p.permissive = 'PERMISSIVE'
+     AND p.roles && ARRAY['authenticated', 'anon', 'public']::name[]
+     AND coalesce(p.qual, p.with_check, '') !~ 'foldername\(name\)\)\[1\] = \(\( SELECT auth\.uid\(\) AS uid\)\)::text'$q$); END $$;
 -- Every public table is filtered per account by row level security.
 DO $$ BEGIN PERFORM pg_temp.none('a table without row level security', $q$
   SELECT c.relname FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
