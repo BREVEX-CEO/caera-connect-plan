@@ -36,6 +36,28 @@ DO $$ BEGIN PERFORM pg_temp.none('anonymous callers can execute an account funct
   SELECT n.nspname || '.' || p.proname FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
    WHERE n.nspname IN ('public', 'private') AND has_function_privilege('anon', p.oid, 'EXECUTE')
      AND p.proname <> 'ocade_enforce_second_factor'$q$); END $$;
+-- DB-06: a view or materialized view could read past row level security. Any view a signed-in
+-- or anonymous caller can read must run as that caller; a materialized view must not be
+-- readable by them at all.
+DO $$ BEGIN PERFORM pg_temp.none('a readable view runs as its owner', $q$
+  SELECT c.relname FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+   WHERE n.nspname = 'public' AND c.relkind = 'v'
+     AND (has_table_privilege('authenticated', c.oid, 'SELECT') OR has_table_privilege('anon', c.oid, 'SELECT'))
+     AND NOT coalesce(c.reloptions, '{}') && ARRAY['security_invoker=true', 'security_invoker=on']$q$); END $$;
+DO $$ BEGIN PERFORM pg_temp.none('a materialized view is readable by callers', $q$
+  SELECT c.relname FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+   WHERE n.nspname = 'public' AND c.relkind = 'm'
+     AND (has_table_privilege('authenticated', c.oid, 'SELECT') OR has_table_privilege('anon', c.oid, 'SELECT'))$q$); END $$;
+-- DB-06/TENANT-01: on every table that names an owner, every policy that lets a caller read rows
+-- keeps them to their own (user_id = auth.uid()), except a named staff permission or the
+-- server's own role.
+DO $$ BEGIN PERFORM pg_temp.none('a read policy does not keep rows to their owner', $q$
+  SELECT p.tablename || '.' || p.policyname FROM pg_policies p
+    JOIN information_schema.columns c
+      ON c.table_schema = 'public' AND c.table_name = p.tablename AND c.column_name = 'user_id'
+   WHERE p.schemaname = 'public' AND p.cmd IN ('SELECT', 'ALL')
+     AND p.roles <> ARRAY['service_role']::name[]
+     AND coalesce(p.qual, '') !~ '(auth\.uid\(\) AS uid\) = user_id|user_id = \( SELECT auth\.uid\(\) AS uid\))'$q$); END $$;
 -- Every public table is filtered per account by row level security.
 DO $$ BEGIN PERFORM pg_temp.none('a table without row level security', $q$
   SELECT c.relname FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
