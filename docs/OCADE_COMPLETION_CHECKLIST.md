@@ -81,4 +81,4 @@ cause not found without a Windows machine). Final-SHA runs are listed in the ses
   so that wait can never complete. `gateway._keep_stopped_worker_handles` keeps the process object
   (and so the handle) alive until its exit is observed; nothing is closed or freed early. Result:
   it recurred on `605fade` anyway (attempt 1 of run 45340701204), so garbage collection is not
-  the cause; the re-run passed. Open.
+  the cause; the re-run passed. The mitigation was removed again (no effect). Open.

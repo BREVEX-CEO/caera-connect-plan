@@ -8,7 +8,6 @@ Fakes are used only to make workers misbehave; they never stand in for output.
 import json
 import os
 import tempfile
-import sys
 import unittest
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -724,32 +723,3 @@ class ResultBoundary(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-
-
-class StoppedWorkerHandles(unittest.TestCase):
-    """Plan item 105: on Windows a stopped worker's process object is kept until its exit is
-    observed, so asyncio's registered wait on its handle can complete; elsewhere nothing changes."""
-
-    def test_the_sdk_close_keeps_the_handle_only_on_windows(self):
-        from mcp.client import stdio as sdk
-
-        import ocade_agent.gateway  # noqa: F401 - installs the guard on import
-
-        name = sdk._close_subprocess_transport.__name__
-        if sys.platform == "win32":
-            self.assertEqual(name, "close_keeping_the_handle")
-            closed = []
-
-            class Exited:
-                returncode = 0
-
-                class _process:
-                    class _transport:
-                        @staticmethod
-                        def close():
-                            closed.append(True)
-
-            sdk._close_subprocess_transport(Exited())
-            self.assertEqual(closed, [True], "the transport is still closed as before")
-        else:
-            self.assertEqual(name, "_close_subprocess_transport")

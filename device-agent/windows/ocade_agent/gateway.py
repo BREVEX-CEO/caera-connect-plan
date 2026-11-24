@@ -33,33 +33,6 @@ from mcp.client.stdio import StdioServerParameters, get_default_environment, std
 
 from .redact import redact, redact_text
 
-
-def _keep_stopped_worker_handles() -> None:
-    """Windows (plan item 105, the windows-2022 teardown hang): asyncio waits for a worker's exit
-    with RegisterWaitForSingleObject on the process handle. When the MCP SDK gives up on a worker
-    whose exit it has not observed yet, it closes the transport and drops the process; garbage
-    collection then closes that handle while the wait is still registered, the wait never
-    completes, and the event loop's close() waits for it forever. Keeping the stopped process
-    object alive until its exit is observed keeps the handle open, so the wait completes. Only
-    references are kept: nothing is killed, closed or freed early. Entries whose exit was
-    observed are dropped on the next stop."""
-    if sys.platform != "win32":
-        return
-    from mcp.client import stdio as sdk
-
-    original = sdk._close_subprocess_transport
-    kept: list = []
-
-    def close_keeping_the_handle(process) -> None:
-        kept[:] = [p for p in kept if getattr(p, "returncode", None) is None]
-        kept.append(process)
-        original(process)
-
-    sdk._close_subprocess_transport = close_keeping_the_handle
-
-
-_keep_stopped_worker_handles()
-
 PROTOCOL = json.loads((Path(__file__).parent / "protocol.json").read_text(encoding="utf-8"))
 WORKERS = {
     "fs_sandbox": "ocade_agent.office_worker",
