@@ -218,6 +218,8 @@ export async function sendPush(input: {
       "content-encoding": "aes128gcm",
       "content-type": "application/octet-stream",
       ttl: String(24 * 3600),
+      // RFC 8030 Topic: a resend of the same notification replaces the queued copy (EFFECT-08).
+      ...(pushTopic(input.message.tag) ? { topic: pushTopic(input.message.tag) } : {}),
       urgency: input.urgent ? "high" : "normal",
     },
     body,
@@ -228,4 +230,9 @@ export async function sendPush(input: {
   if (response.status === 404 || response.status === 410) return "gone";
   if (response.ok) return "sent";
   return response.status === 429 || response.status >= 500 ? "refused" : "rejected";
+}
+
+/** A Topic is at most 32 URL-safe base64 characters: a notification uuid without its dashes. */
+export function pushTopic(tag: string): string {
+  return tag.replace(/[^A-Za-z0-9]/g, "").slice(0, 32);
 }

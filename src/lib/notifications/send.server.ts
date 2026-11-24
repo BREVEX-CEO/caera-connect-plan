@@ -234,7 +234,7 @@ export async function postToChat(input: {
   deepLink?: string | null;
 }): Promise<DeliveryState> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { chatHookKind, chatRequest } = await import("./chat-hook");
+  const { chatHookKind, chatRequest, chatRetryAllowed } = await import("./chat-hook");
   const { data: hook, error } = await supabaseAdmin
     .from("ocade_chat_hooks")
     .select("url, failures")
@@ -250,16 +250,19 @@ export async function postToChat(input: {
     link: new URL(input.deepLink ?? "/", COMPANY_FACTS.siteOrigin).toString(),
   });
   let ok = false;
-  for (let attempt = 1; attempt <= DELIVERY_ATTEMPTS && !ok; attempt += 1) {
+  for (let attempt = 1; attempt <= DELIVERY_ATTEMPTS; attempt += 1) {
     if (attempt > 1) await new Promise((resolve) => setTimeout(resolve, 400 * attempt));
-    ok = await fetch(hook.url, {
+    const status = await fetch(hook.url, {
       method: "POST",
       redirect: "manual",
       signal: AbortSignal.timeout(5000),
       ...request,
     })
-      .then((response) => response.ok)
-      .catch(() => false);
+      .then((response) => response.status)
+      .catch(() => null);
+    ok = status !== null && status >= 200 && status < 300;
+    // Never a second copy of a message the provider may already have posted (EFFECT-08).
+    if (ok || !chatRetryAllowed(status)) break;
   }
   const row = supabaseAdmin.from("ocade_chat_hooks");
   if (ok) await row.update({ failures: 0 }).eq("user_id", input.userId);

@@ -45,3 +45,20 @@ test("each provider gets bounded text in its own format", () => {
   assert.equal(ntfy.headers.Title, "Fertig ");
   assert.match(ntfy.body, /ocade-jarvis$/);
 });
+
+test("a chat message the provider may have posted is never sent twice (EFFECT-08)", async () => {
+  const { chatRetryAllowed } = await import("../../src/lib/notifications/chat-hook.ts");
+  assert.equal(chatRetryAllowed(429), true, "rate limited: not taken, may be retried");
+  for (const maybePosted of [null, 500, 502, 503, 504, 408, 200, 400, 404]) {
+    assert.equal(chatRetryAllowed(maybePosted), false, String(maybePosted));
+  }
+});
+
+test("a push Topic is the notification id, URL-safe and at most 32 characters", async () => {
+  const { pushTopic } = await import("../../src/lib/notifications/web-push.ts");
+  assert.equal(
+    pushTopic("7d4f2c1a-9b3e-4c5d-8e6f-0a1b2c3d4e5f"),
+    "7d4f2c1a9b3e4c5d8e6f0a1b2c3d4e5f",
+  );
+  assert.equal(pushTopic("a/b c"), "abc");
+});

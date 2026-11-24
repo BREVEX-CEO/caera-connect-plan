@@ -59,3 +59,12 @@ export function chatRequest(
   const json = kind === "discord" ? { content: text.slice(0, 1900) } : { text };
   return { body: JSON.stringify(json), headers: { "Content-Type": "application/json" } };
 }
+
+/**
+ * EFFECT-08: chat webhooks take no idempotency key, so a message the provider may already have
+ * accepted is never sent again. Only an explicit "too many requests" (429) says it was not taken;
+ * a timeout, a lost connection or a server error might have posted it, so those are not retried.
+ */
+export function chatRetryAllowed(status: number | null): boolean {
+  return status === 429;
+}
