@@ -118,7 +118,7 @@ export function Skills() {
                       <button
                         type="button"
                         onClick={() => restore.mutate({ id: row.id, version: version.version })}
-                        className="rounded-full border border-border px-2 py-0.5 hover:bg-accent"
+                        className="rounded-full border border-border min-h-7 px-2 py-1 hover:bg-accent"
                       >
                         Restore this text
                       </button>

@@ -392,12 +392,12 @@ function StaffRow({
                     aria-label={`${permission.name}${added ? " (added)" : removed ? " (taken away)" : ""}`}
                     className={
                       added
-                        ? "rounded-full bg-success/15 px-2 py-0.5 text-xs text-success"
+                        ? "rounded-full bg-success/15 min-h-7 px-2 py-1 text-xs text-success"
                         : removed
-                          ? "rounded-full bg-destructive/15 px-2 py-0.5 text-xs text-destructive line-through"
+                          ? "rounded-full bg-destructive/15 min-h-7 px-2 py-1 text-xs text-destructive line-through"
                           : on(permission.id)
-                            ? "rounded-full bg-accent px-2 py-0.5 text-xs text-foreground"
-                            : "rounded-full border border-border px-2 py-0.5 text-xs text-muted-foreground"
+                            ? "rounded-full bg-accent min-h-7 px-2 py-1 text-xs text-foreground"
+                            : "rounded-full border border-border min-h-7 px-2 py-1 text-xs text-muted-foreground"
                     }
                   >
                     {permission.name}

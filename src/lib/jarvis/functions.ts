@@ -271,6 +271,20 @@ export const latestJarvisTask = createServerFn({ method: "GET" })
     return { taskId: row?.id ?? null };
   });
 
+/** The person's unfinished tasks (RLS: own rows only), so the conversation list can mark them. */
+export const listOpenJarvisTasks = createServerFn({ method: "GET" })
+  .middleware([requireSession])
+  .handler(async ({ context }) => {
+    const { data, error } = await context.supabase
+      .from("jarvis_tasks")
+      .select("conversation_id, status")
+      .in("status", ["running", "waiting", "taken_over"])
+      .order("updated_at", { ascending: false })
+      .limit(100);
+    if (error) throw new Error("Your unfinished tasks could not be loaded.");
+    return data ?? [];
+  });
+
 const capability = z.union([
   z.enum(["files", "apps", "browser", "screen", "computer_control", "mcp", "background"]),
   z.string().regex(/^mcp:[a-z][a-z0-9_]{1,30}$/),

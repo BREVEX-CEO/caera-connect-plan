@@ -106,7 +106,11 @@ export function Schedules() {
     return (
       <p className="text-muted-foreground" role="alert">
         Your schedules could not be loaded.{" "}
-        <button type="button" className="underline" onClick={() => void schedules.refetch()}>
+        <button
+          type="button"
+          className="inline-block py-1 underline"
+          onClick={() => void schedules.refetch()}
+        >
           Try again
         </button>
       </p>

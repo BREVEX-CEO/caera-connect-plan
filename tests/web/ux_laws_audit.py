@@ -1,0 +1,219 @@
+"""Measurable UX-law checks on every reachable page of a running OCADE site (plan 14B.4, 14B.4A).
+
+Each check is a fact a browser can measure. It does not certify that a principle is "applied";
+it catches the regressions that break one. The per-principle evidence matrix in
+`evidence/2026-11-24-ux-laws/MATRIX.md` says which check backs which principle and what stays a human review.
+
+- UX-07 Fitts's Law: every visible control is at least 24 x 24 CSS px (WCAG 2.5.8), except a link
+  inside running text.
+- UX-10 Hick's Law / UX-18 Miller's Law: a navigation landmark shows at most 9 choices at once.
+- UX-11 Jakob's Law: the page has a language, a title and a way home.
+- UX-31 Visual Hierarchy: exactly one visible level-1 heading; heading levels never skip.
+- UX-24 Postel's Law: email and password fields say what they hold (`type`/`autocomplete`), so
+  browsers and password managers fill them.
+- UX-06 Doherty Threshold: the page's document is ready within 1 s on a loopback site.
+- UX-08 Flow / UX-01: with reduced motion requested, nothing animates for longer than 10 ms.
+- UX-28 Von Restorff Effect: a visible STOP control does not share its colour with any other button.
+
+    python3 tests/web/ux_laws_audit.py http://127.0.0.1:8787 [session.json storage-key] [--engine E]
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import re
+import sys
+from pathlib import Path
+from urllib.parse import urlsplit
+
+from playwright.sync_api import sync_playwright
+
+sys.path.insert(0, str(Path(__file__).parent))
+import accessibility_audit
+import surface_audit
+
+MIN_TARGET = 24
+MAX_NAV_CHOICES = 9
+READY_MS = 1000
+
+MEASURE = """({minTarget, maxNav, opened}) => {
+  const out = [];
+  const visible = el => {
+    const s = getComputedStyle(el);
+    const b = el.getBoundingClientRect();
+    return s.visibility !== 'hidden' && s.display !== 'none' && b.width > 0 && b.height > 0
+      && !el.closest('[aria-hidden="true"], [inert], .sr-only');
+  };
+  const name = el => (el.getAttribute('aria-label') || el.textContent || el.getAttribute('placeholder') || el.tagName)
+    .trim().replace(/\\s+/g, ' ').slice(0, 50);
+  // UX-07: target size. A link inside running text is exempt (WCAG 2.5.8 inline exception).
+  const controls = document.querySelectorAll('a[href], button, [role="button"], input:not([type="hidden"]), select, textarea, summary');
+  for (const el of controls) {
+    if (!visible(el)) continue;
+    const b = el.getBoundingClientRect();
+    if (b.width >= minTarget && b.height >= minTarget) continue;
+    const inline = el.tagName === 'A' && getComputedStyle(el).display === 'inline'
+      && el.parentElement && /^(P|LI|SPAN|SMALL|TD|DD|LABEL|EM|STRONG)$/.test(el.parentElement.tagName);
+    if (inline) continue;
+    // A checkbox or radio inside its label: the label is the target.
+    if ((el.type === 'checkbox' || el.type === 'radio') && el.closest('label')) {
+      const l = el.closest('label').getBoundingClientRect();
+      if (l.width >= minTarget && l.height >= minTarget) continue;
+    }
+    // WCAG 2.5.8 spacing exception: a 24 px circle centred on the target touches no other target.
+    const cx = b.left + b.width / 2, cy = b.top + b.height / 2;
+    let crowded = false;
+    for (const other of controls) {
+      if (other === el || !visible(other) || other.contains(el) || el.contains(other)) continue;
+      const o = other.getBoundingClientRect();
+      const dx = Math.max(o.left - cx, 0, cx - o.right), dy = Math.max(o.top - cy, 0, cy - o.bottom);
+      if (Math.hypot(dx, dy) < minTarget / 2) { crowded = true; break; }
+    }
+    if (crowded) out.push(`UX-07 target ${Math.round(b.width)}x${Math.round(b.height)}px too small: ${el.tagName} ${JSON.stringify(name(el))}`);
+  }
+  // UX-10/UX-18: choices per navigation landmark.
+  for (const nav of document.querySelectorAll('nav, [role="navigation"]')) {
+    if (!visible(nav)) continue;
+    const items = [...nav.querySelectorAll('a[href], button')].filter(visible);
+    if (items.length > maxNav) out.push(`UX-10 navigation ${JSON.stringify(nav.getAttribute('aria-label') || '')} shows ${items.length} choices at once`);
+  }
+  // UX-11/UX-31 describe the page, not a dialog opened on top of it.
+  if (opened) return out.concat(postelAndStop());
+  // UX-11: language, title, a way home.
+  if (!document.documentElement.lang) out.push('UX-11 page has no language');
+  if (!document.title.trim()) out.push('UX-11 page has no title');
+  const home = [...document.querySelectorAll('a[href]')].some(a => {
+    const u = new URL(a.href, location.href); return u.origin === location.origin && u.pathname === '/';
+  });
+  if (!home && location.pathname !== '/') out.push('UX-11 no link back to the home page');
+  // UX-31: one h1; no skipped heading levels.
+  const headings = [...document.querySelectorAll('h1, h2, h3, h4, h5, h6')].filter(visible);
+  const h1 = headings.filter(h => h.tagName === 'H1').length;
+  if (h1 !== 1) out.push(`UX-31 ${h1} visible level-1 headings (want 1)`);
+  let last = 0;
+  for (const h of headings) {
+    const level = Number(h.tagName[1]);
+    if (last && level > last + 1) out.push(`UX-31 heading jumps from h${last} to h${level}: ${JSON.stringify(name(h))}`);
+    last = level;
+  }
+  return out.concat(postelAndStop());
+  function postelAndStop() {
+  const out = [];
+  // UX-24: fields that hold an email or a password say so.
+  for (const input of document.querySelectorAll('input')) {
+    if (!visible(input)) continue;
+    const hint = `${input.name} ${input.id} ${input.getAttribute('aria-label') || ''} ${input.placeholder}`.toLowerCase();
+    if (/e-?mail/.test(hint) && input.type !== 'email' && !/email/.test(input.autocomplete))
+      out.push(`UX-24 email field without type=email or autocomplete: ${JSON.stringify(name(input))}`);
+    if (input.type === 'password' && !input.getAttribute('autocomplete'))
+      out.push(`UX-24 password field without autocomplete: ${JSON.stringify(name(input))}`);
+  }
+  // UX-28: STOP is visually distinct from every other button.
+  const buttons = [...document.querySelectorAll('button')].filter(visible);
+  const paint = el => { const s = getComputedStyle(el); return `${s.backgroundColor}|${s.color}|${s.borderColor}`; };
+  for (const stop of buttons.filter(b => /^stop\\b/i.test(name(b)))) {
+    const same = buttons.filter(b => b !== stop && !/^stop\\b/i.test(name(b)) && paint(b) === paint(stop));
+    if (same.length) out.push(`UX-28 STOP looks like ${JSON.stringify(name(same[0]))}`);
+  }
+  return out;
+  }
+}"""
+
+READY = "() => { const n = performance.getEntriesByType('navigation')[0]; return n ? n.domContentLoadedEventEnd : 0; }"
+LONG_MOTION = """() => document.getAnimations().filter(a => {
+  const t = a.effect && a.effect.getComputedTiming(); return a.playState === 'running' && t && t.duration > 10;
+}).map(a => (a.animationName || a.transitionProperty || 'animation') + ' on ' + (a.effect.target && a.effect.target.tagName))"""
+
+
+def audit_page(page, url: str) -> list[str]:
+    response = page.goto(url, wait_until="networkidle")
+    if response and not (response.headers.get("content-type") or "").startswith("text/html"):
+        return []
+    problems = page.evaluate(MEASURE, {"minTarget": MIN_TARGET, "maxNav": MAX_NAV_CHOICES, "opened": False})
+    ready = page.evaluate(READY)
+    if ready > READY_MS:
+        problems.append(f"UX-06 document ready after {round(ready)} ms (want <= {READY_MS})")
+    moving = page.evaluate(LONG_MOTION)
+    if moving:
+        problems.append(f"UX-08 animates under reduced motion: {sorted(set(moving))[:3]}")
+    return problems
+
+
+def opened_views(page, url: str) -> list[str]:
+    """The same checks on what each dialog, menu and disclosure shows when opened (Settings, the
+    account menu, Skills...), one at a time, as accessibility_audit.opened_views does for axe."""
+    problems = []
+    named = re.compile(r"^(Settings|Skills|Scheduled|Files|Conversations|LifeOS|Open Devices|Expand)$")
+
+    def openers():
+        found = page.locator(accessibility_audit.OPENERS)
+        by_name = page.get_by_role("button", name=named)
+        return [found.nth(i) for i in range(found.count())] + [by_name.nth(i) for i in range(by_name.count())]
+
+    for index in range(min(len(openers()), 16)):
+        page.goto(url, wait_until="networkidle")
+        found = openers()
+        if index >= len(found):
+            break
+        try:
+            if not found[index].is_visible():
+                continue
+            label = (found[index].get_attribute("aria-label") or found[index].inner_text() or "").strip()[:40]
+            found[index].click(timeout=3000)
+            page.wait_for_timeout(300)
+        except Exception:  # noqa: BLE001, S112 - an unpressable control is the surface audit's finding
+            continue
+        for problem in page.evaluate(MEASURE, {"minTarget": MIN_TARGET, "maxNav": MAX_NAV_CHOICES, "opened": True}):
+            problems.append(f"after opening {label!r}: {problem}")
+        page.keyboard.press("Escape")
+    return problems
+
+
+def main(base: str, session: str | None, storage_key: str | None, engine: str) -> int:
+    origin = surface_audit.site_origin(base)
+    if session and os.environ.get("OCADE_AUDIT_SESSION_ORIGIN") != origin:
+        raise ValueError("set the exact disposable audit origin before loading a synthetic session")
+    login = surface_audit.session_script(origin, storage_key, Path(session).read_text(encoding="utf-8")) \
+        if session else None
+    report: dict[str, list[str]] = {}
+    pages: list[str] = []
+    with sync_playwright() as playwright:
+        browser = surface_audit.launch_audit_browser(playwright, engine)
+        for profile, options in surface_audit.browser_profiles(playwright, engine):
+            context = browser.new_context(**options, reduced_motion="reduce")
+            page = context.new_page()
+            if login:
+                page.add_init_script(login)
+            queue = [origin + path for path in ("/", "/library", "/ocade-jarvis")]
+            seen: set[str] = set()
+            while queue and len(seen) < 80:
+                url = queue.pop(0)
+                if url in seen:
+                    continue
+                seen.add(url)
+                try:
+                    problems = audit_page(page, url)
+                    queue.extend(link for link in accessibility_audit.links(page, origin) if link not in seen)
+                    problems += opened_views(page, url)
+                except Exception as error:  # noqa: BLE001 - a page that cannot be audited is a finding
+                    problems = [f"could not audit: {str(error)[:200]}"]
+                pages.append(f"{profile} {urlsplit(page.url).path}")
+                if problems:
+                    report[f"{profile} {urlsplit(url).path}"] = problems
+            context.close()
+        browser.close()
+    print(json.dumps({"engine": engine, "signedIn": bool(login), "pages": pages,
+                      "pagesWithProblems": len(report),
+                      "problems": report}, indent=2))
+    return 1 if report else 0
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("base")
+    parser.add_argument("session", nargs="?")
+    parser.add_argument("storage_key", nargs="?")
+    parser.add_argument("--engine", choices=surface_audit.ENGINES, default="chromium")
+    sys.exit(main(**vars(parser.parse_args())))

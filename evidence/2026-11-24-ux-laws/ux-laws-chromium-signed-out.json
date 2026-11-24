@@ -1,0 +1,28 @@
+{
+  "engine": "chromium",
+  "signedIn": false,
+  "pages": [
+    "desktop /",
+    "desktop /auth",
+    "desktop /ocade-jarvis",
+    "desktop /auth",
+    "desktop /terms",
+    "desktop /privacy",
+    "desktop /help",
+    "desktop /pricing",
+    "desktop /about",
+    "desktop /legal/lfm-open-license-v1.0.txt",
+    "android-emulation /",
+    "android-emulation /auth",
+    "android-emulation /ocade-jarvis",
+    "android-emulation /auth",
+    "android-emulation /terms",
+    "android-emulation /privacy",
+    "android-emulation /help",
+    "android-emulation /pricing",
+    "android-emulation /about",
+    "android-emulation /legal/lfm-open-license-v1.0.txt"
+  ],
+  "pagesWithProblems": 0,
+  "problems": {}
+}

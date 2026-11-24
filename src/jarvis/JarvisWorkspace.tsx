@@ -305,61 +305,63 @@ export function JarvisWorkspace({
                     : null;
 
   const rail = (mobile: boolean, expanded = mobile || prefs.railExpanded) => (
-    <nav
-      aria-label="JARVIS"
+    <div
       className={cn(
         "flex h-full flex-col gap-1 border-r border-border/60 bg-background/80 p-2",
         expanded ? "w-56" : "w-14",
       )}
     >
-      <Link
-        to="/"
-        aria-label={expanded ? undefined : "Chat"}
-        title="Chat"
-        className="flex h-10 items-center gap-3 rounded-lg px-2.5 text-sm text-muted-foreground transition-colors hover:bg-accent/60 hover:text-foreground"
-      >
-        <MessageSquare className="h-[18px] w-[18px] shrink-0" aria-hidden />
-        {expanded ? <span className="truncate">Chat</span> : null}
-      </Link>
-      <RailButton
-        icon={PenSquare}
-        label="New conversation"
-        expanded={expanded}
-        onClick={() => {
-          setDrawerOpen(false);
-          void navigate({ to: "/ocade-jarvis", search: {} });
-        }}
-      />
-      <div className="my-1 h-px bg-border/60" />
-      {SECTIONS.map(({ id, label, icon }) => (
+      {/* UX-10 Hick's Law: the landmark holds destinations only; view controls sit outside it. */}
+      <nav aria-label="JARVIS" className="flex flex-1 flex-col gap-1">
+        <Link
+          to="/"
+          aria-label={expanded ? undefined : "Chat"}
+          title="Chat"
+          className="flex h-10 items-center gap-3 rounded-lg px-2.5 text-sm text-muted-foreground transition-colors hover:bg-accent/60 hover:text-foreground"
+        >
+          <MessageSquare className="h-[18px] w-[18px] shrink-0" aria-hidden />
+          {expanded ? <span className="truncate">Chat</span> : null}
+        </Link>
         <RailButton
-          key={id}
-          icon={icon}
-          label={label}
+          icon={PenSquare}
+          label="New conversation"
           expanded={expanded}
-          active={section === id}
-          onClick={() => setSection((current) => (current === id ? null : id))}
+          onClick={() => {
+            setDrawerOpen(false);
+            void navigate({ to: "/ocade-jarvis", search: {} });
+          }}
         />
-      ))}
-      <Link
-        to="/library"
-        aria-label={expanded ? undefined : "Files"}
-        title="Files"
-        className="flex h-10 items-center gap-3 rounded-lg px-2.5 text-sm text-muted-foreground transition-colors hover:bg-accent/60 hover:text-foreground"
-      >
-        <LibraryBig className="h-[18px] w-[18px] shrink-0" aria-hidden />
-        {expanded ? <span className="truncate">Files</span> : null}
-      </Link>
-      <div className="flex-1" />
-      <RailButton
-        icon={Settings}
-        label="Settings"
-        expanded={expanded}
-        onClick={() => {
-          setDrawerOpen(false);
-          settings.open();
-        }}
-      />
+        <div className="my-1 h-px bg-border/60" />
+        {SECTIONS.map(({ id, label, icon }) => (
+          <RailButton
+            key={id}
+            icon={icon}
+            label={label}
+            expanded={expanded}
+            active={section === id}
+            onClick={() => setSection((current) => (current === id ? null : id))}
+          />
+        ))}
+        <Link
+          to="/library"
+          aria-label={expanded ? undefined : "Files"}
+          title="Files"
+          className="flex h-10 items-center gap-3 rounded-lg px-2.5 text-sm text-muted-foreground transition-colors hover:bg-accent/60 hover:text-foreground"
+        >
+          <LibraryBig className="h-[18px] w-[18px] shrink-0" aria-hidden />
+          {expanded ? <span className="truncate">Files</span> : null}
+        </Link>
+        <div className="flex-1" />
+        <RailButton
+          icon={Settings}
+          label="Settings"
+          expanded={expanded}
+          onClick={() => {
+            setDrawerOpen(false);
+            settings.open();
+          }}
+        />
+      </nav>
       {mobile ? null : (
         <RailButton
           icon={prefs.railExpanded ? PanelLeftClose : PanelLeftOpen}
@@ -379,7 +381,7 @@ export function JarvisWorkspace({
           Sign in
         </Link>
       )}
-    </nav>
+    </div>
   );
 
   const sectionPanel = section ? (
@@ -717,7 +719,7 @@ export function JarvisWorkspace({
                   <button
                     type="button"
                     onClick={() => settings.open("devices")}
-                    className="underline"
+                    className="inline-block py-1 underline"
                   >
                     Open Devices
                   </button>
@@ -840,7 +842,7 @@ function Packages({ onPick }: { onPick: (starter: string) => void }) {
                   <button
                     type="button"
                     onClick={() => onPick(product.starter)}
-                    className="text-left text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+                    className="inline-flex min-h-8 items-center text-left text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
                   >
                     {product.name}
                   </button>

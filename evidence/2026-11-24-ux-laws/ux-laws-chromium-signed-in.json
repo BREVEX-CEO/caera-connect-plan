@@ -1,0 +1,14 @@
+{
+  "engine": "chromium",
+  "signedIn": true,
+  "pages": [
+    "desktop /",
+    "desktop /library",
+    "desktop /ocade-jarvis",
+    "android-emulation /",
+    "android-emulation /library",
+    "android-emulation /ocade-jarvis"
+  ],
+  "pagesWithProblems": 0,
+  "problems": {}
+}

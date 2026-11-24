@@ -16,6 +16,7 @@ import {
   listJarvisDevices,
   pairJarvisDevice,
   removeJarvisDevice,
+  listOpenJarvisTasks,
   resumeJarvisTask,
   setJarvisAccess,
   stopJarvisTask,
@@ -27,6 +28,7 @@ import { Skills } from "./Skills";
 import { buildPassport, passportReport } from "@/lib/jarvis/proof-passport";
 import { saveSkill } from "@/lib/jarvis/skills.functions";
 import { workflowBody } from "@/lib/jarvis/skillforge";
+import { unfinishedByConversation } from "@/lib/jarvis/unfinished";
 import { PermissionGuide } from "./PermissionGuide";
 import { ControlModePicker, type ControlMode } from "./ControlMode";
 import { Watches } from "./Watches";
@@ -128,6 +130,14 @@ function Conversations({
     queryKey,
     queryFn: () => listConversations({ data: { surface: "jarvis" } }),
   });
+  // UX-30: unfinished work stays visible where the person looks for it.
+  const open = useQuery({
+    queryKey: ["jarvis", "open-tasks", user?.id ?? ""],
+    queryFn: () => listOpenJarvisTasks(),
+    enabled: Boolean(user),
+    refetchInterval: 30_000,
+  });
+  const unfinished = unfinishedByConversation(open.data ?? []);
   if (conversations.isPending) return null;
   if (conversations.isError) {
     return <p className="text-muted-foreground">Your conversations could not be loaded.</p>;
@@ -159,7 +169,14 @@ function Conversations({
               className="min-w-0 flex-1 rounded-md px-2 py-1.5 text-left hover:bg-accent"
             >
               <span className="block truncate">{item.title}</span>
-              <span className="block text-xs text-muted-foreground">{when(item.updated_at)}</span>
+              <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                {unfinished.has(item.id) ? (
+                  <span className="shrink-0 whitespace-nowrap rounded-full bg-accent px-1.5 font-medium text-foreground">
+                    {unfinished.get(item.id)}
+                  </span>
+                ) : null}
+                {when(item.updated_at)}
+              </span>
             </button>
             <button
               type="button"
@@ -1371,7 +1388,7 @@ export function TaskPanel({
               onChange={(event) =>
                 setAgentFilter(event.target.value === "" ? null : Number(event.target.value))
               }
-              className="rounded-full border border-border bg-background px-2 py-0.5"
+              className="rounded-full border border-border bg-background min-h-7 px-2 py-1"
             >
               <option value="">All agents</option>
               {[...new Set(task.steps.map((step) => step.lane))].sort().map((lane) => (
@@ -1385,7 +1402,7 @@ export function TaskPanel({
             aria-label="Steps shown"
             value={statusFilter}
             onChange={(event) => setStatusFilter(event.target.value as typeof statusFilter)}
-            className="rounded-full border border-border bg-background px-2 py-0.5"
+            className="rounded-full border border-border bg-background min-h-7 px-2 py-1"
           >
             <option value="all">All steps</option>
             <option value="problems">Problems only</option>
@@ -1434,7 +1451,7 @@ export function TaskPanel({
                       }),
                     )
                   }
-                  className="rounded-full bg-foreground px-3 py-0.5 text-xs text-background"
+                  className="rounded-full bg-foreground min-h-7 px-3 py-1 text-xs text-background"
                 >
                   Allow this step
                 </button>
@@ -1451,7 +1468,7 @@ export function TaskPanel({
                         ),
                       )
                     }
-                    className="rounded-full border border-border px-3 py-0.5 text-xs hover:bg-accent"
+                    className="rounded-full border border-border min-h-7 px-3 py-1 text-xs hover:bg-accent"
                   >
                     Allow steps like this {step.scope} for this task
                   </button>
@@ -1459,7 +1476,7 @@ export function TaskPanel({
                 <button
                   type="button"
                   onClick={() => act(stopJarvisTask({ data: { taskId: task.id } }))}
-                  className="rounded-full border border-border px-3 py-0.5 text-xs hover:bg-accent"
+                  className="rounded-full border border-border min-h-7 px-3 py-1 text-xs hover:bg-accent"
                 >
                   Deny and stop
                 </button>
@@ -1482,7 +1499,7 @@ export function TaskPanel({
                     onClick={() =>
                       act(resolveJarvisStep({ data: { activityId: step.id, resolution } }))
                     }
-                    className="rounded-full border border-border px-3 py-0.5 hover:bg-accent"
+                    className="rounded-full border border-border min-h-7 px-3 py-1 hover:bg-accent"
                   >
                     {label}
                   </button>
@@ -1653,11 +1670,15 @@ function ArtifactItem({
           type="button"
           onClick={() => picker.current?.click()}
           disabled={checking || uploading}
-          className="underline"
+          className="inline-block py-1 underline"
         >
           {checking ? "Checking file…" : "Choose local copy"}
         </button>
-        <button type="button" onClick={() => onUseFile(file.path)} className="underline">
+        <button
+          type="button"
+          onClick={() => onUseFile(file.path)}
+          className="inline-block py-1 underline"
+        >
           Use in next task
         </button>
         {selected ? (
@@ -1667,19 +1688,19 @@ function ArtifactItem({
                 href={selected.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="underline"
+                className="inline-block py-1 underline"
               >
                 Preview
               </a>
             ) : null}
-            <a href={selected.url} download={name} className="underline">
+            <a href={selected.url} download={name} className="inline-block py-1 underline">
               Download copy
             </a>
             <button
               type="button"
               onClick={() => void save()}
               disabled={uploading}
-              className="underline"
+              className="inline-block py-1 underline"
             >
               {uploading ? "Uploading…" : "Upload copy to Library"}
             </button>

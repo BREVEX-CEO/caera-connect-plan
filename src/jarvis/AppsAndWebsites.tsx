@@ -78,7 +78,7 @@ export function AppsAndWebsites() {
             role="tab"
             aria-selected={tab === item.id}
             onClick={() => setTab(item.id)}
-            className={`rounded-full px-3 py-0.5 text-xs ${tab === item.id ? "bg-foreground text-background" : "border border-border hover:bg-accent"}`}
+            className={`min-h-7 rounded-full px-3 py-1 text-xs ${tab === item.id ? "bg-foreground text-background" : "border border-border hover:bg-accent"}`}
           >
             {item.label}
           </button>

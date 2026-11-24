@@ -509,6 +509,8 @@ jobs:
             python tests/web/objective_handoff.py http://127.0.0.1:8787 --engine "$engine"
             # WCAG 2.2 A/AA (axe-core), 200% reflow and keyboard focus on every reachable page.
             python tests/web/accessibility_audit.py http://127.0.0.1:8787 --engine "$engine"
+            # Measurable UX-law checks (target size, choices per navigation, hierarchy, motion, STOP).
+            python tests/web/ux_laws_audit.py http://127.0.0.1:8787 --engine "$engine"
           done
       - name: Launch readiness is computed only from existing evidence
         if: success() || failure()
