@@ -75,3 +75,8 @@ cause not found without a Windows machine). Final-SHA runs are listed in the ses
   observed its exit, and the proactor waits forever for that pending wait. windows-2025, macOS and
   Linux passed the same suite. Not fixed: forcing the proactor closed without proof risks freeing
   live overlapped buffers.
+  24 Nov: recurred on `5254aaa` at the same place. Mitigation (hypothesis, not yet proven on a
+  Windows machine): the SDK drops an abandoned worker whose exit asyncio has not observed, garbage
+  collection then closes its process handle while `RegisterWaitForSingleObject` still waits on it,
+  so that wait can never complete. `gateway._keep_stopped_worker_handles` keeps the process object
+  (and so the handle) alive until its exit is observed; nothing is closed or freed early.
