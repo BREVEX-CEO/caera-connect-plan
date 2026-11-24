@@ -67,7 +67,13 @@ function run<T>(
   return opened.then((database) =>
     new Promise<T>((resolve, reject) => {
       // Durable means committed: a request can succeed and its transaction still abort.
-      const transaction = database.transaction(store, mode);
+      // OFFLINE-07: "strict" flushes a write to disk before it counts as committed, so a turn the
+      // journal reported as kept survives a power cut, not only a closed tab.
+      const transaction = database.transaction(
+        store,
+        mode,
+        mode === "readwrite" ? { durability: "strict" } : undefined,
+      );
       const request = act(transaction.objectStore(store));
       request.onerror = () => reject(request.error);
       transaction.oncomplete = () => resolve(request.result);

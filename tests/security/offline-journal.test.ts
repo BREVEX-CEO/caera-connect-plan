@@ -96,3 +96,27 @@ test("the stored rows are ciphertext, never the typed words", async () => {
     assert.doesNotMatch(new TextDecoder().decode(row.data), /note/);
   }
 });
+
+test("every journal write asks for strict durability (OFFLINE-07)", async () => {
+  const original = IDBDatabase.prototype.transaction;
+  const asked: { mode?: string; durability?: string }[] = [];
+  IDBDatabase.prototype.transaction = function (
+    this: IDBDatabase,
+    ...args: Parameters<IDBDatabase["transaction"]>
+  ) {
+    asked.push({ mode: args[1], durability: args[2]?.durability });
+    return original.apply(this, args);
+  };
+  try {
+    await journal.openJournal("durable-account");
+    assert.equal(await journal.rememberUnsyncedTurn(turn("d1", "kept")), true);
+  } finally {
+    IDBDatabase.prototype.transaction = original;
+  }
+  const writes = asked.filter((entry) => entry.mode === "readwrite");
+  assert.ok(writes.length > 0, "the turn was written");
+  assert.ok(
+    writes.every((entry) => entry.durability === "strict"),
+    JSON.stringify(asked),
+  );
+});
