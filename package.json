@@ -39,7 +39,9 @@
     "readiness": "node scripts/launch-readiness.mjs",
     "model:availability": "node --experimental-strip-types --no-warnings scripts/model-availability.ts",
     "licences:check": "node scripts/licence-inventory.mjs --check",
-    "licences:write": "node scripts/licence-inventory.mjs --write"
+    "licences:write": "node scripts/licence-inventory.mjs --write",
+    "sbom:check": "node scripts/sbom.mjs --check",
+    "sbom:write": "node scripts/sbom.mjs --write"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.110.7",

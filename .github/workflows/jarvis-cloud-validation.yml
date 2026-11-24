@@ -130,6 +130,7 @@ jobs:
           npm run jarvis:protocol-check
           npm run jarvis:no-hardcoded
           npm run licences:check
+          npm run sbom:check
           npm run supabase:types-check
       - name: Compile the scene interchange shader
         if: success() || failure()
