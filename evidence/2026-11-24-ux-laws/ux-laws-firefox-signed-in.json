@@ -1,0 +1,14 @@
+{
+  "engine": "firefox",
+  "signedIn": true,
+  "pages": [
+    "desktop /",
+    "desktop /library",
+    "desktop /ocade-jarvis",
+    "phone-viewport /",
+    "phone-viewport /library",
+    "phone-viewport /ocade-jarvis"
+  ],
+  "pagesWithProblems": 0,
+  "problems": {}
+}

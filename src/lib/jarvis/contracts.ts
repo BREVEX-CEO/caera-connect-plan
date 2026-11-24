@@ -1137,6 +1137,16 @@ export const OPERATIONS = {
     }),
     target: (a: { page: { site: string } }): Target => ({ site: a.page.site }),
   },
+  "web.sign_in": {
+    summary:
+      "Fill the open page's sign-in form with the sign-in the person saved on their computer for exactly this site (the password is never shown to you); then press its Sign in button with web.click.",
+    engine: "browser",
+    role: "web_automation",
+    capability: "browser",
+    risk: "external_effect",
+    arguments: z.strictObject({ page, frame: selector.optional() }),
+    target: (a: { page: { site: string } }): Target => ({ site: a.page.site }),
+  },
   "web.select": {
     summary: "Choose an option in a drop-down of an open web page.",
     engine: "browser",

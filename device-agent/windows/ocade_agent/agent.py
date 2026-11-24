@@ -924,6 +924,12 @@ def main(argv: list[str] | None = None) -> int:
                 browser = (bundled_browsers / marker.read_text(encoding="utf8").strip()).resolve()
                 if browser.is_file() and browser.is_relative_to(bundled_browsers.resolve()):
                     os.environ["OCADE_BROWSER_EXECUTABLE"] = str(browser)
+    words = sys.argv[1:] if argv is None else argv
+    if words[:1] == ["vault"]:
+        # The person's own sign-ins, typed here and kept by the operating system (REPO-55).
+        from .vault import cli as vault_cli
+
+        return vault_cli(words[1:])
     parser = argparse.ArgumentParser(prog="ocade_agent")
     parser.add_argument(
         "command", nargs="?", default="run" if getattr(sys, "frozen", False) else None,

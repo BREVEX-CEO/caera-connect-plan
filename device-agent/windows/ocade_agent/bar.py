@@ -49,7 +49,7 @@ WORDS = {
     "ui.set_value": "Filling a field", "ui.send_keys": "Typing in an app", "ui.click_point": "Clicking in an app",
     "shell.run": "Running a command", "job.start": "Starting a long job", "job.status": "Checking a long job",
     "job.cancel": "Ending a long job", "verify.checks": "Checking the result", "web.open": "Opening a page",
-    "web.read": "Reading a page", "web.fill": "Filling a form", "web.click": "Clicking on a page",
+    "web.read": "Reading a page", "web.fill": "Filling a form", "web.sign_in": "Signing in", "web.click": "Clicking on a page",
 }
 
 

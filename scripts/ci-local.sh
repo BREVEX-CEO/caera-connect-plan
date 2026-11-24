@@ -35,5 +35,6 @@ if [[ "$mode" != --core-only ]]; then
     "needs a Windows desktop" "needs Windows process handles" \
     "needs Windows UI Automation and COM" \
     "needs a Mac desktop with Accessibility granted" \
+    "needs the Windows credential store" "needs the macOS Keychain" \
     "needs a display and OCADE_PUBLIC_WEB=1"
 fi

@@ -865,6 +865,54 @@ async def web_fill(page: dict, selector: str, value: str, frame: str | None = No
     return {"matches": shown.strip() == value.strip()}
 
 
+_USER_FIELD = """(password) => {
+  const visible = e => { const b = e.getBoundingClientRect(); return b.width > 0 && b.height > 0; };
+  const scope = password.form || password.ownerDocument;
+  const fields = [...scope.querySelectorAll('input')].filter(e => visible(e) && !e.disabled
+    && ['text', 'email', 'tel', ''].includes((e.getAttribute('type') || '').toLowerCase()));
+  const before = fields.filter(e => e.compareDocumentPosition(password) & Node.DOCUMENT_POSITION_FOLLOWING);
+  return before.at(-1) || null;
+}"""
+
+
+@app.tool()
+@_refusals
+async def web_sign_in(page: dict, frame: str | None = None) -> dict:
+    """Fill this page's own sign-in form with the sign-in the person saved on this computer for
+    exactly this page's origin (REPO-55/65). JARVIS never sees, types or chooses the password; a
+    look-alike or different origin finds nothing. Nothing is submitted: pressing Sign in is a
+    separate, confirmed step."""
+    from .vault import VaultUnavailable, sign_in_for
+
+    entry = _bound(page)
+    scope = await _scope(entry, frame)
+    if _origin(scope.url) != entry["origin"]:
+        raise Refused("frame_off_site")
+    try:
+        saved = sign_in_for(scope.url)
+    except VaultUnavailable:
+        raise Refused("no_credential_store")
+    if saved is None:
+        raise Refused("no_saved_sign_in")
+    passwords = scope.locator('input[type="password" i]:visible')
+    if await passwords.count() != 1:
+        raise Refused("sign_in_form_not_found")
+    password_field = passwords.first
+    user_field = (await password_field.evaluate_handle(_USER_FIELD)).as_element()
+    user, secret = saved
+    async with _browser_interaction(entry):
+        mark_effect()
+        try:
+            if user_field is not None and user:
+                await user_field.fill(user, timeout=10_000)
+            await password_field.fill(secret, timeout=10_000)
+        except Exception:
+            raise Refused("sign_in_failed") from None  # never an error text that could echo a value
+        finally:
+            secret = ""
+    return {"filled": ["user name", "password"] if user_field is not None and user else ["password"]}
+
+
 @app.tool()
 @_refusals
 async def web_select(page: dict, selector: str, option: str, frame: str | None = None) -> dict:

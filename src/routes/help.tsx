@@ -151,6 +151,21 @@ const QUESTIONS: {
     ),
   },
   {
+    category: "JARVIS",
+    question: "Can JARVIS sign in to a website for me?",
+    words: "sign in login password credential vault keychain credential manager website account",
+    answer: (
+      <p>
+        Only with a sign-in you saved on your own computer. In a terminal on that computer, run the
+        companion with <code>vault add https://the-site.example</code> and type the user name and
+        password there; they are kept by Windows Credential Manager or the macOS Keychain, never by
+        OCADE&apos;s servers. JARVIS can then fill that exact site&apos;s sign-in form without ever
+        seeing the password, and asks you before pressing Sign in. A look-alike address gets
+        nothing. <code>vault remove</code> stops it at once.
+      </p>
+    ),
+  },
+  {
     category: "Chat",
     question: "Can I use my own AI provider key?",
     words: "byok own key api provider openai gemini bill billing base url model",

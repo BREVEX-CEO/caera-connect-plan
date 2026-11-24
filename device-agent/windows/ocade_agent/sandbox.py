@@ -250,8 +250,8 @@ def cap_memory(limit: int = PARSER_MEMORY_LIMIT) -> str:
     worker with an out-of-memory error instead of exhausting the computer. Called once by each
     parser worker before it serves; the worker's children inherit the cap.
 
-    Windows: the worker joins a job object with a per-process memory limit. Linux: RLIMIT_AS.
-    macOS does not enforce an address-space limit, so there it returns "unsupported".
+    Windows: the worker joins a job object with a per-process memory limit. Linux: RLIMIT_DATA.
+    macOS does not enforce these limits, so there it returns "unsupported".
     """
     if sys.platform == "win32":
         import win32api  # type: ignore[import-not-found]
@@ -268,8 +268,10 @@ def cap_memory(limit: int = PARSER_MEMORY_LIMIT) -> str:
     if sys.platform.startswith("linux"):
         import resource
 
-        _, hard = resource.getrlimit(resource.RLIMIT_AS)
-        resource.setrlimit(resource.RLIMIT_AS, (limit if hard == resource.RLIM_INFINITY else min(limit, hard), hard))
+        # RLIMIT_DATA counts memory actually written to (heap and private mappings), not address
+        # space a browser engine only reserves: RLIMIT_AS made Chromium's renderer fail to start.
+        _, hard = resource.getrlimit(resource.RLIMIT_DATA)
+        resource.setrlimit(resource.RLIMIT_DATA, (limit if hard == resource.RLIM_INFINITY else min(limit, hard), hard))
         return "rlimit"
     return "unsupported"
 
