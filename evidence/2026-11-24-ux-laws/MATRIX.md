@@ -29,6 +29,10 @@ every migration applied), the site built against it and served by `wrangler dev`
   control" or "Working", from the task's own status (`src/lib/jarvis/unfinished.ts`,
   `tests/security/unfinished.test.ts`, screenshot `zeigarnik-conversations.png`).
 
+- UX-09 Goal-Gradient: a running task now shows "N of M verified" with a progress bar that
+  counts only milestones the verifier confirmed. Checked on a seeded running task (desktop and
+  phone): UX-law checks and axe pass, STOP is distinct from Take over (`task-progress-stop.png`).
+
 ## Matrix
 
 "Automated" names a check that fails the build when the principle regresses. "Applied in" names
@@ -45,7 +49,7 @@ plan 14B.4A user studies with real people remain an owner action and are not cla
 | UX-06 | Doherty Threshold | streamed Chat replies; optimistic toasts only after server success | document ready ≤ 1 s (`ux_laws_audit.py`); cold-load baseline (`evidence/2026-11-23-web-performance`) | perceived speed on customer hardware |
 | UX-07 | Fitts's Law | 24 px minimum targets; full-row buttons in lists | target size on every page and opened view (`ux_laws_audit.py`) | — |
 | UX-08 | Flow | background mode never takes focus; reduced-motion CSS (`styles.css` `prefers-reduced-motion`) | no animation > 10 ms under reduced motion (`ux_laws_audit.py`) | interruption count in real tasks |
-| UX-09 | Goal-Gradient | task panel shows the real current step of the plan (`JarvisPanels.tsx`) | progress comes from `jarvis_tasks.current_step` (DB tests) | — |
+| UX-09 | Goal-Gradient | task panel shows verified/current/pending milestones and a progress bar counted only from verified milestones (`MilestoneProgress` in `JarvisPanels.tsx`; screenshot `task-progress-stop.png`) | progress comes from `jarvis_tasks.current_step` (DB tests) | — |
 | UX-10 | Hick's Law | ≤ 9 choices per navigation landmark | `ux_laws_audit.py` | — |
 | UX-11 | Jakob's Law | familiar chat layout, skip link, brand links home, Escape closes dialogs | language, title, way home (`ux_laws_audit.py`); keyboard (`accessibility_audit.py`) | — |
 | UX-12 | Common Region | bordered sections for each package, Settings rows, task panel | — | visual review |

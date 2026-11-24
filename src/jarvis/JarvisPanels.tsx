@@ -1043,6 +1043,34 @@ function TaskEvidence({ task }: { task: Task }) {
   );
 }
 
+/**
+ * UX-09 Goal-Gradient: how far the task has got, counted only from milestones the verifier has
+ * already confirmed, so the bar never runs ahead of the evidence.
+ */
+function MilestoneProgress({ verified, total }: { verified: number; total: number }) {
+  return (
+    <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+      <div
+        role="progressbar"
+        aria-label="Milestones verified"
+        aria-valuemin={0}
+        aria-valuemax={total}
+        aria-valuenow={verified}
+        aria-valuetext={`${verified} of ${total} milestones verified`}
+        className="h-1.5 flex-1 overflow-hidden rounded-full bg-accent"
+      >
+        <div
+          className="h-full rounded-full bg-foreground transition-[width] duration-300 motion-reduce:transition-none"
+          style={{ width: `${(verified / total) * 100}%` }}
+        />
+      </div>
+      <span>
+        {verified} of {total} verified
+      </span>
+    </div>
+  );
+}
+
 export function TaskPanel({
   task,
   onChanged,
@@ -1333,6 +1361,12 @@ export function TaskPanel({
           {task.device ?? "Your computer"} is not reachable. JARVIS continues when it reconnects;
           nothing new starts until then.
         </p>
+      ) : null}
+      {task.milestones.length ? (
+        <MilestoneProgress
+          verified={task.milestones.filter((m) => m.state === "verified").length}
+          total={task.milestones.length}
+        />
       ) : null}
       {task.milestones.length ? (
         <ol aria-label="Task milestones" className="mt-2 space-y-1 text-xs">
