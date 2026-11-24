@@ -79,4 +79,6 @@ cause not found without a Windows machine). Final-SHA runs are listed in the ses
   Windows machine): the SDK drops an abandoned worker whose exit asyncio has not observed, garbage
   collection then closes its process handle while `RegisterWaitForSingleObject` still waits on it,
   so that wait can never complete. `gateway._keep_stopped_worker_handles` keeps the process object
-  (and so the handle) alive until its exit is observed; nothing is closed or freed early.
+  (and so the handle) alive until its exit is observed; nothing is closed or freed early. Result:
+  it recurred on `605fade` anyway (attempt 1 of run 45340701204), so garbage collection is not
+  the cause; the re-run passed. Open.
