@@ -11,7 +11,7 @@ every migration applied), the site built against it and served by `wrangler dev`
 | Run | Result |
 |---|---|
 | `tests/web/ux_laws_audit.py`, signed out (10 pages × 2 profiles) | PASS, `ux-laws-chromium-signed-out.json` |
-| `tests/web/ux_laws_audit.py`, signed in (3 routes × 2 profiles, plus every dialog, menu and disclosure they open) | PASS, `ux-laws-chromium-signed-in.json` |
+| `tests/web/ux_laws_audit.py`, signed in (3 routes × 2 profiles, plus every dialog, menu and disclosure they open and all six Settings categories) | PASS, `ux-laws-chromium-signed-in.json` |
 | `tests/web/accessibility_audit.py`, signed in and out (axe WCAG 2.2 AA, 200% reflow, keyboard) | PASS, 0 pages with problems |
 | `tests/web/surface_audit.py`, signed in (every control pressed) | PASS, 4 pages, 51 controls |
 
@@ -22,7 +22,7 @@ every migration applied), the site built against it and served by `wrangler dev`
   controls sit outside it.
 - UX-07 Fitts's Law: the eight outcome products, "Open Devices", the Apps & Websites filter tabs
   (22 px tall), task approval buttons (Approve / Deny and stop / step resolutions), the saved-file
-  actions, the schedule "Try again", skill "Restore this text" and the staff permission chips were
+  actions, Chat's "Try again" / "Try with High", the Offline Mode offer, two-step "Copy key" / "Start again", the schedule "Try again", skill "Restore this text" and the staff permission chips were
   under the 24 × 24 px minimum. All now meet it (28–32 px).
 - UX-30 Zeigarnik Effect: unfinished JARVIS work was visible only inside its own conversation.
   The Conversations list now marks each conversation with open work as "Needs you", "You have

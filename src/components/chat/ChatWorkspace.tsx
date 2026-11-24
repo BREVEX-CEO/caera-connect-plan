@@ -784,7 +784,7 @@ export function ChatWorkspace() {
                       type="button"
                       disabled={chat.busy}
                       onClick={() => void chat.resend(lastQuestionId, choice, undefined, quality)}
-                      className="text-foreground underline underline-offset-2 disabled:opacity-40"
+                      className="inline-block py-1 text-foreground underline underline-offset-2 disabled:opacity-40"
                     >
                       Try again
                     </button>
@@ -796,7 +796,7 @@ export function ChatWorkspace() {
                         type="button"
                         disabled={chat.busy}
                         onClick={() => setOfferingHigh(true)}
-                        className="text-foreground underline underline-offset-2 disabled:opacity-40"
+                        className="inline-block py-1 text-foreground underline underline-offset-2 disabled:opacity-40"
                       >
                         Try with High
                       </button>

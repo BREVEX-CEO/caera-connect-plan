@@ -171,6 +171,19 @@ def opened_views(page, url: str) -> list[str]:
     return problems
 
 
+def settings_categories(page, url: str) -> list[str]:
+    """Each of the six Settings categories, opened by its address (`?settings=<category>`)."""
+    problems = []
+    for category in ("account", "preferences", "devices", "privacy", "billing", "byok"):
+        page.goto(f"{url}?settings={category}", wait_until="networkidle")
+        if not page.get_by_role("dialog", name="Settings", exact=True).is_visible():
+            problems.append(f"Settings > {category} did not open")
+            continue
+        for problem in page.evaluate(MEASURE, {"minTarget": MIN_TARGET, "maxNav": MAX_NAV_CHOICES, "opened": True}):
+            problems.append(f"Settings > {category}: {problem}")
+    return problems
+
+
 def main(base: str, session: str | None, storage_key: str | None, engine: str) -> int:
     origin = surface_audit.site_origin(base)
     if session and os.environ.get("OCADE_AUDIT_SESSION_ORIGIN") != origin:
@@ -197,6 +210,8 @@ def main(base: str, session: str | None, storage_key: str | None, engine: str) -
                     problems = audit_page(page, url)
                     queue.extend(link for link in accessibility_audit.links(page, origin) if link not in seen)
                     problems += opened_views(page, url)
+                    if login and urlsplit(url).path == "/":
+                        problems += settings_categories(page, url)
                 except Exception as error:  # noqa: BLE001 - a page that cannot be audited is a finding
                     problems = [f"could not audit: {str(error)[:200]}"]
                 pages.append(f"{profile} {urlsplit(page.url).path}")

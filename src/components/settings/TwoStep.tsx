@@ -216,7 +216,7 @@ export function TwoStep() {
                       () => setCopied(false),
                     );
                   }}
-                  className="text-foreground underline underline-offset-2"
+                  className="inline-block py-1 text-foreground underline underline-offset-2"
                 >
                   {copied ? "Key copied" : "Copy key"}
                 </button>
@@ -271,7 +271,7 @@ export function TwoStep() {
                 type="button"
                 disabled={busy}
                 onClick={() => void begin()}
-                className="text-foreground underline underline-offset-2"
+                className="inline-block py-1 text-foreground underline underline-offset-2"
               >
                 Start again with a new key
               </button>

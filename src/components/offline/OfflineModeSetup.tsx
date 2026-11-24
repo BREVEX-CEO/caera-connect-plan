@@ -182,7 +182,7 @@ export function OfflineModeOffer() {
             }
           })
         }
-        className="text-foreground underline underline-offset-2"
+        className="inline-block py-1 text-foreground underline underline-offset-2"
       >
         Set up Offline Mode
       </button>
@@ -196,7 +196,7 @@ export function OfflineModeOffer() {
           }
           setHidden(true);
         }}
-        className="text-muted-foreground underline underline-offset-2 hover:text-foreground"
+        className="inline-block py-1 text-muted-foreground underline underline-offset-2 hover:text-foreground"
       >
         Not now
       </button>
