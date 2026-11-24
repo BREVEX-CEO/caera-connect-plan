@@ -42,13 +42,8 @@ Stop analysing when the next piece of information would not change the decision.
 - **Record:** Save evidence, unresolved issues and completion status where the next agent can find them.
 - **Next:** Continue with the next dependency-ready task.
 
-## Graphify
+## Repository navigation
 
-Codex Cloud setup and maintenance scripts and the trusted local Codex
-`SessionStart` hook initialize Graphify. If session startup did not initialize
-it, run `sh scripts/setup-graphify.sh` in the repository.
-For architecture and system-relationship questions, run
-`sh scripts/graphify-cli.sh query "question"` and read
-`graphify-out/GRAPH_REPORT.md` before searching application source.
-The wrapper repairs a missing installation or unusable graph.
-Use the repository wrapper for commands in `.agents/skills/graphify/SKILL.md`.
+Use the overview and relevant entries in CODEMAP.md to locate files. Verify
+against source, callers and tests. Search the repository directly when the
+index is stale or incomplete.

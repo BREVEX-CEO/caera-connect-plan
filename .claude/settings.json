@@ -1,47 +1,33 @@
 {
   "hooks": {
-    "PreToolUse": [
+    "SessionStart": [
       {
-        "matcher": "Bash|Grep",
         "hooks": [
           {
             "type": "command",
-            "command": "cd \"${CLAUDE_PROJECT_DIR:-$(git rev-parse --show-toplevel)}\" && sh scripts/graphify-cli.sh hook-guard search",
-            "timeout": 10
-          }
-        ]
-      },
-      {
-        "matcher": "Read|Glob",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "cd \"${CLAUDE_PROJECT_DIR:-$(git rev-parse --show-toplevel)}\" && sh scripts/graphify-cli.sh hook-guard read",
-            "timeout": 10
+            "command": "cd \"${CLAUDE_PROJECT_DIR:-$(git rev-parse --show-toplevel)}\" && python3 scripts/codemap.py",
+            "timeout": 60
           }
         ]
       }
     ],
-    "SessionStart": [
-      {
-        "matcher": "compact",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "cd \"${CLAUDE_PROJECT_DIR:-$(git rev-parse --show-toplevel)}\" && sh scripts/graphify-cli.sh hook-guard compact",
-            "timeout": 10
-          }
-        ]
-      },
+    "Stop": [
       {
         "hooks": [
           {
             "type": "command",
-            "command": "cd \"${CLAUDE_PROJECT_DIR:-$(git rev-parse --show-toplevel)}\" && sh scripts/setup-graphify.sh",
-            "timeout": 1200
+            "command": "cd \"${CLAUDE_PROJECT_DIR:-$(git rev-parse --show-toplevel)}\" && python3 scripts/codemap.py",
+            "timeout": 60
+          },
+          {
+            "type": "command",
+            "command": "cd \"${CLAUDE_PROJECT_DIR:-$(git rev-parse --show-toplevel)}\" && python3 scripts/autopilot.py",
+            "timeout": 30
           }
         ]
       }
     ]
-  }
+  },
+  "model": "sonnet",
+  "advisorModel": "opus"
 }

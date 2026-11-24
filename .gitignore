@@ -43,7 +43,4 @@ device-agent/windows/packaging/Output/
 # Persistent exhaustive source-research inventory, receipts and private findings.
 .source-research/
 
-# graphify knowledge graph (generated, rebuilt by hooks)
-graphify-out/
-src/graphify-out/
 evidence/source-research/pinned-git-trees.jsonl.gz

@@ -1,3 +1,0 @@
-#!/bin/sh
-# Finish before returning so a later checkout cannot race a detached builder.
-sh scripts/graphify-refresh.sh || echo 'Graphify hook failed; see scripts/graphify-status.sh' >&2
