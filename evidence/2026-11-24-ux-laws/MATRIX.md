@@ -33,6 +33,12 @@ every migration applied), the site built against it and served by `wrangler dev`
   counts only milestones the verifier confirmed. Checked on a seeded running task (desktop and
   phone): UX-law checks and axe pass, STOP is distinct from Take over (`task-progress-stop.png`).
 
+- Long content (plan 14B.4A item 4): an 80-character account email, a 186-character conversation
+  title and a BYOK key with a 100-character gateway address and a 70-character model name cause no
+  sideways scroll on Chat, JARVIS, Library, Settings > Account and Settings > BYOK, desktop or
+  phone (`long-content-phone-byok.png`). On a phone, a Settings category opened by address now
+  scrolls its chip into view (UX-33).
+
 ## Matrix
 
 "Automated" names a check that fails the build when the principle regresses. "Applied in" names

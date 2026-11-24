@@ -71,6 +71,13 @@ export default function SettingsDialog({
   const location = useLocation();
   const self = useRef<HTMLDivElement>(null);
   useModalFocus(self, true, onClose);
+  const categories = useRef<HTMLElement>(null);
+  // On a phone the categories scroll sideways: keep the open one in view (Recognition over Recall).
+  useEffect(() => {
+    categories.current
+      ?.querySelector<HTMLElement>('[aria-current="true"]')
+      ?.scrollIntoView({ block: "nearest", inline: "nearest" });
+  }, [category]);
 
   return (
     <div
@@ -100,6 +107,7 @@ export default function SettingsDialog({
         <div className="flex min-h-0 flex-1 flex-col sm:flex-row">
           {/* On a phone the categories are one scrollable row of chips above the settings. */}
           <nav
+            ref={categories}
             className="ocade-scroll flex shrink-0 gap-1 overflow-x-auto border-b border-border/60 p-2 sm:block sm:w-[12.5rem] sm:overflow-x-visible sm:overflow-y-auto sm:border-b-0 sm:border-r sm:p-3"
             aria-label="Settings categories"
           >
