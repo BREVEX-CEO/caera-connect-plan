@@ -1,0 +1,28 @@
+{
+  "engine": "webkit",
+  "signedIn": false,
+  "pages": [
+    "desktop /",
+    "desktop /auth",
+    "desktop /ocade-jarvis",
+    "desktop /auth",
+    "desktop /terms",
+    "desktop /privacy",
+    "desktop /help",
+    "desktop /pricing",
+    "desktop /about",
+    "desktop /legal/lfm-open-license-v1.0.txt",
+    "ios-emulation /",
+    "ios-emulation /auth",
+    "ios-emulation /ocade-jarvis",
+    "ios-emulation /auth",
+    "ios-emulation /terms",
+    "ios-emulation /privacy",
+    "ios-emulation /help",
+    "ios-emulation /pricing",
+    "ios-emulation /about",
+    "ios-emulation /legal/lfm-open-license-v1.0.txt"
+  ],
+  "pagesWithProblems": 0,
+  "problems": {}
+}

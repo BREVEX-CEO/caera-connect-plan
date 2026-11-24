@@ -1,0 +1,28 @@
+{
+  "engine": "firefox",
+  "signedIn": false,
+  "pages": [
+    "desktop /",
+    "desktop /auth",
+    "desktop /ocade-jarvis",
+    "desktop /auth",
+    "desktop /terms",
+    "desktop /privacy",
+    "desktop /help",
+    "desktop /pricing",
+    "desktop /about",
+    "desktop /legal/lfm-open-license-v1.0.txt",
+    "phone-viewport /",
+    "phone-viewport /auth",
+    "phone-viewport /ocade-jarvis",
+    "phone-viewport /auth",
+    "phone-viewport /terms",
+    "phone-viewport /privacy",
+    "phone-viewport /help",
+    "phone-viewport /pricing",
+    "phone-viewport /about",
+    "phone-viewport /legal/lfm-open-license-v1.0.txt"
+  ],
+  "pagesWithProblems": 0,
+  "problems": {}
+}
