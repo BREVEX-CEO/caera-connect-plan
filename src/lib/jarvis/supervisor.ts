@@ -48,6 +48,16 @@ export const milestonePlan = z
          * offered by name and receives its schema the moment the model calls it.
          */
         families: z.array(z.enum(OPERATION_FAMILIES)).min(1).max(12).optional(),
+        /**
+         * REPO-41: the milestones (by position in this list) whose verified results this one
+         * needs first, e.g. an export after the model it exports. The plan is run in an order
+         * that respects them; a cycle is refused before anything runs.
+         */
+        after: z
+          .array(z.number().int().min(0).max(5))
+          .max(5)
+          .optional()
+          .describe("Positions (from 0) of milestones whose results this one needs first."),
       })
       .strict(),
   )
@@ -86,7 +96,40 @@ export function milestonesFor(checks: OutcomeCheck[], plan: unknown): Milestone[
     milestone.checks.forEach((id) => covered.add(id));
   }
   if (covered.size !== known.size) throw new Error("Every outcome check needs a milestone.");
-  return milestones;
+  return inDependencyOrder(milestones);
+}
+
+/**
+ * REPO-41: a dependency-aware order. Milestones stay in the order given unless one needs a later
+ * one first; then each runs only after everything it names in `after`. Positions in `after` are
+ * renumbered to the new order, so a saved plan is already ordered (every `after` points back).
+ * A milestone that names itself, a position that does not exist, or a cycle is refused.
+ */
+export function inDependencyOrder(milestones: Milestone[]): Milestone[] {
+  const needs = milestones.map((milestone, index) => {
+    const after = [...new Set(milestone.after ?? [])];
+    if (after.some((other) => other === index || other >= milestones.length)) {
+      throw new Error("A milestone depends on itself or on a milestone that does not exist.");
+    }
+    return after;
+  });
+  const order: number[] = [];
+  const placed = new Set<number>();
+  while (order.length < milestones.length) {
+    const next = milestones.findIndex(
+      (_, index) => !placed.has(index) && needs[index]!.every((other) => placed.has(other)),
+    );
+    if (next < 0) throw new Error("The milestones depend on each other in a cycle.");
+    order.push(next);
+    placed.add(next);
+  }
+  const position = new Map(order.map((original, at) => [original, at]));
+  return order.map((original) => {
+    const milestone = { ...milestones[original]! };
+    if (milestone.after?.length) milestone.after = needs[original]!.map((o) => position.get(o)!);
+    else delete milestone.after;
+    return milestone;
+  });
 }
 
 /** Progress is durable data, never inferred from the model's conversation or a success message. */
