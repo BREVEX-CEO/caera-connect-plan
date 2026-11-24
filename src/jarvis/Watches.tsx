@@ -71,36 +71,43 @@ export function Watches() {
         <p className="text-xs text-muted-foreground">Pair a computer first.</p>
       ) : (
         <form onSubmit={submit} className="space-y-2">
+          {/* Visible labels, examples as placeholders: nothing to remember once typing starts. */}
           {live.length > 1 ? (
-            <select
-              aria-label="Computer"
-              value={deviceId || live[0]!.id}
-              onChange={(event) => setDeviceId(event.target.value)}
-              className="w-full rounded-md border border-border bg-background px-2 py-1"
-            >
-              {live.map((device) => (
-                <option key={device.id} value={device.id}>
-                  {device.name}
-                </option>
-              ))}
-            </select>
+            <label className="block text-xs text-muted-foreground">
+              Computer
+              <select
+                value={deviceId || live[0]!.id}
+                onChange={(event) => setDeviceId(event.target.value)}
+                className="mt-1 w-full rounded-md border border-border bg-background px-2 py-1 text-sm text-foreground"
+              >
+                {live.map((device) => (
+                  <option key={device.id} value={device.id}>
+                    {device.name}
+                  </option>
+                ))}
+              </select>
+            </label>
           ) : null}
-          <input
-            aria-label="Folder inside the JARVIS folder"
-            value={folder}
-            onChange={(event) => setFolder(event.target.value)}
-            placeholder="Folder, for example Invoices"
-            maxLength={200}
-            className="w-full rounded-md border border-border bg-background px-2 py-1"
-          />
-          <input
-            aria-label="What JARVIS does with each new file"
-            value={what}
-            onChange={(event) => setWhat(event.target.value)}
-            placeholder="What to do, for example add it to the invoice ledger"
-            maxLength={400}
-            className="w-full rounded-md border border-border bg-background px-2 py-1"
-          />
+          <label className="block text-xs text-muted-foreground">
+            Folder inside the JARVIS folder
+            <input
+              value={folder}
+              onChange={(event) => setFolder(event.target.value)}
+              placeholder="Invoices"
+              maxLength={200}
+              className="mt-1 w-full rounded-md border border-border bg-background px-2 py-1 text-sm text-foreground"
+            />
+          </label>
+          <label className="block text-xs text-muted-foreground">
+            What JARVIS does with each new file
+            <input
+              value={what}
+              onChange={(event) => setWhat(event.target.value)}
+              placeholder="Add it to the invoice ledger"
+              maxLength={400}
+              className="mt-1 w-full rounded-md border border-border bg-background px-2 py-1 text-sm text-foreground"
+            />
+          </label>
           <button
             type="submit"
             disabled={add.isPending || !folder.trim() || !what.trim()}
