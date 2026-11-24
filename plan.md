@@ -55,15 +55,15 @@ Cross-check (23 Nov 2026): every master-checklist section M§0–M§17 maps to a
 - [ ] 6. Audit all 72 repository-integration requirements; finish every applicable incomplete integration. — map: M§5 — status: OPEN
 - [ ] 7. Reconcile all 236 research dispositions and 38 consolidated architecture proposals without duplicating unnecessary functionality. — map: M§6 (14C), M§16 — status: OPEN
 - [ ] 8. Finish every remaining coding requirement throughout Parts 0–26, 14A–14F, 27 and 28. — map: M§1, M§6 — status: OPEN
-- [ ] 9. Complete JARVIS planning, independent verification, durable task execution and autonomous recovery. — map: M§6 (P0–P3, 14A) — status: OPEN
+- [ ] 9. Complete JARVIS planning, independent verification, durable task execution and autonomous recovery. — map: M§6 (P0–P3, 14A) — status: IN PROGRESS (24 Nov: dependency-aware milestones with cycle refusal before any step (REPO-41/48, `task-graph.test.ts`))
 - [ ] 10. Complete Windows/macOS native computer control, application discovery, accessibility and browser automation. — map: M§6 (P0–P3, 14F) — status: OPEN
-- [ ] 11. Complete parallel AI agents, resource coordination, work distribution, safety and cancellation. — map: M§6 (14D, 14F) — status: OPEN
+- [ ] 11. Complete parallel AI agents, resource coordination, work distribution, safety and cancellation. — map: M§6 (14D, 14F) — status: IN PROGRESS (24 Nov: resource governor: an extra lane waits up to 10 s while CPU >= 90% or memory >= 92% (`test_lanes.ResourceGovernorTest`))
 - [ ] 12. Complete Live Vision, continuous capture, screen understanding, change detection and correct visual targeting. — map: M§6 (14F.8–14F.12) — status: OPEN
 - [ ] 13. Complete the floating agent composer, agent indicators, background work and foreground-safe controls. — map: M§6 (14F.4–14F.6) — status: OPEN
 - [ ] 14. Complete Online Chat, streaming, conversations, model selection, files, history and recovery. — map: M§6 (14B, 14E) — status: OPEN
 - [ ] 15. Complete Offline Chat, local model integration and offline website functionality. — map: M§6 (14B.2) — status: OPEN
 - [ ] 16. Complete universal model-provider adapters, secure routing, capability discovery and failure handling. — map: M§6 (14A, 14D.4–14D.4A) — status: OPEN
-- [ ] 17. Complete Supabase owner-managed credentials, customer BYOK, independent budgets, quotas and usage tracking. — map: M§6 (14B.1A–14B.1B) — status: OPEN
+- [ ] 17. Complete Supabase owner-managed credentials, customer BYOK, independent budgets, quotas and usage tracking. — map: M§6 (14B.1A–14B.1B) — status: IN PROGRESS (24 Nov: per-key choice whether pictures go to the person's provider (BYOK-07, migration `20261124090000`); explicit one-turn opt-in to OCADE models after a key failure (O-08))
 - [ ] 18. Complete authentication, accounts, permissions, settings, privacy, Library, devices, notifications and customer data management. — map: M§6 (14B, 14E) — status: OPEN
 - [ ] 19. Complete R12-01: Live/Background Mode. — map: M§7 R12-01 — status: OPEN
 - [ ] 20. Complete R12-02: Smart Approvals. — map: M§7 R12-02 — status: OPEN
@@ -76,7 +76,7 @@ Cross-check (23 Nov 2026): every master-checklist section M§0–M§17 maps to a
 - [ ] 27. Complete R12-09: Time-Travel Timeline. — map: M§7 R12-09 — status: OPEN
 - [ ] 28. Complete R12-10: Private Habit Intelligence. — map: M§7 R12-10 — status: OPEN
 - [ ] 29. Complete R12-11: Simplification Mode. — map: M§7 R12-11 — status: OPEN
-- [ ] 30. Complete R12-12: Cross-Device Handoff. — map: M§7 R12-12 — status: OPEN
+- [ ] 30. Complete R12-12: Cross-Device Handoff. — map: M§7 R12-12 — status: IN PROGRESS (24 Nov: the task panel names the computer doing the work; an @-named app found only on another computer is pointed out with an explicit switch (REPO-43))
 - [ ] 31. Complete Business Money Assistant: Invoice Recovery and Cashflow Guardian. — map: M§7 packages — status: OPEN
 - [ ] 32. Complete Universal Forms & Claims Assistant: Deadline Guardian, Refund Assistant and Job Application Assistant. — map: M§7 packages — status: OPEN
 - [ ] 33. Complete Personal & Family Assistant: Micro-Business Ledger and Family Administration. — map: M§7 packages — status: OPEN
@@ -132,13 +132,13 @@ Cross-check (23 Nov 2026): every master-checklist section M§0–M§17 maps to a
 - [ ] 80. UX-27 — Tesler's Law: handle necessary complexity internally where safe. — map: M§9 — status: OPEN
 - [ ] 81. UX-28 — Von Restorff Effect: make important warnings and STOP controls distinctive. — map: M§9 — status: OPEN
 - [ ] 82. UX-29 — Working Memory: preserve context, drafts and user selections. — map: M§9 — status: OPEN
-- [ ] 83. UX-30 — Zeigarnik Effect: clearly distinguish and recover unfinished work. — map: M§9 — status: OPEN
+- [ ] 83. UX-30 — Zeigarnik Effect: clearly distinguish and recover unfinished work. — map: M§9 — status: IN PROGRESS (24 Nov: Conversations list marks unfinished JARVIS work (Needs you / You have control / Working))
 - [ ] 84. UX-31 — Visual Hierarchy: establish predictable information and action priority. — map: M§9 — status: OPEN
 - [ ] 85. UX-32 — Progressive Disclosure: reveal advanced controls when needed. — map: M§9 — status: OPEN
 - [ ] 86. UX-33 — Recognition over Recall: show relevant resources, devices and recent actions. — map: M§9 — status: OPEN
 - [ ] 87. UX-34 — Feedback Loops: provide accurate progress, success, error and recovery feedback. — map: M§9 — status: OPEN
 - [ ] 88. Verify all applicable UX principles across every route, signed-in/out state, desktop, mobile, tablet, keyboard and screen reader; record actual evidence and justified exceptions. — map: M§9, M§10 — status: IN PROGRESS (24 Nov: new `tests/web/ux_laws_audit.py` measures UX-06/07/08/10/11/18/24/28/31 on every page and opened view, wired into hosted CI for three engines; signed in and out PASS in Chromium after fixing the JARVIS rail (10 choices), under-24px targets and adding unfinished-work labels (UX-30); matrix `evidence/2026-11-24-ux-laws/MATRIX.md`. 23 Nov: signed-out Chromium axe/reflow/keyboard audit 10 pages 0 problems; surface audit desktop and Android emulation; `evidence/2026-11-23-accessibility/`. Signed-in, tablet, screen reader, Firefox/WebKit locally: open)
-- [ ] 89. Remove duplicate UI components and unnecessary interactions; optimize consistency, responsiveness, accessibility and customer task completion. — map: M§9, M§12 — status: OPEN
+- [ ] 89. Remove duplicate UI components and unnecessary interactions; optimize consistency, responsiveness, accessibility and customer task completion. — map: M§9, M§12 — status: IN PROGRESS (24 Nov: no duplicated UI component found (only three unrelated `Action` helpers); placeholder-only fields given visible labels)
 
 ### Security, optimization and final engineering verification
 
@@ -149,9 +149,9 @@ Cross-check (23 Nov 2026): every master-checklist section M§0–M§17 maps to a
 - [ ] 94. Resolve all applicable OPEN/PARTIAL security findings, including malware intake, external MCP isolation, account separation and unauthorized effects. — map: M§11, M§16, S — status: IN PROGRESS (24 Nov: O-10 static server-function tenant matrix, O-11 FIXED by a permit race harness, MALWARE-03 parser memory caps. 23 Nov: UPLOAD-06 fixed (deletion epoch), BROWSER-05 secret fields masked; still open: MALWARE-02 antivirus/content disarm (no engine chosen), O-05 OS-level MCP sandbox, two-tenant route matrix O-10)
 - [ ] 95. Verify all 16 API-key security requirements and complete tenant, privacy, quota, provider and admin safeguards. — map: M§6 (14B.5–14B.6), M§11 — status: IN PROGRESS (23 Nov: TENANT-05 cache headers audited on a served build and FIXED; the 16 key checks of 14B.5 not re-run this session)
 - [ ] 96. Fix every remaining reproducible security vulnerability and release-blocking defect without weakening protections. — map: M§11 — status: OPEN
-- [ ] 97. Review the entire repository for unnecessary, duplicated, obsolete and unreachable code. — map: M§12 — status: OPEN
+- [ ] 97. Review the entire repository for unnecessary, duplicated, obsolete and unreachable code. — map: M§12 — status: IN PROGRESS (24 Nov: knip re-scan: nothing new to remove (`docs/DEBLOAT_REPORT.md`))
 - [ ] 98. Remove only proven useless code, dependencies and files while preserving working features, security, user data and historical evidence. — map: M§12 — status: OPEN
-- [ ] 99. Measure and optimize website loading, task responsiveness, memory, CPU, GPU, network usage, model calls and cost. — map: M§12, plan Part 15 — status: OPEN
+- [ ] 99. Measure and optimize website loading, task responsiveness, memory, CPU, GPU, network usage, model calls and cost. — map: M§12, plan Part 15 — status: IN PROGRESS (24 Nov: first visit to `/` downloads 903,240 script bytes, within the 950,000 budget (Chromium, local build))
 - [ ] 100. Optimize JARVIS for lower execution time, fewer unnecessary actions, high accuracy and verified output quality. — map: M§12, plan Part 25 — status: OPEN
 - [ ] 101. Independently measure performance before and after every meaningful optimization; reject regressions. — map: M§12 — status: OPEN
 - [ ] 102. Re-audit the entire codebase against `plan.md` after cleanup and resolve any missing or broken requirement. — map: M§0, M§12 — status: OPEN
