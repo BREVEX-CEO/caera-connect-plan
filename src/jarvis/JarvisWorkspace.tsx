@@ -43,6 +43,7 @@ import { confirmSendWithSecret } from "@/lib/security/secret-shape";
 import { MentionList } from "./MentionPicker";
 import { useMentionCandidates } from "./use-mentions";
 import { insertMention, mentionQuery } from "@/lib/jarvis/mentions";
+import { appOnAnotherComputer } from "@/lib/jarvis/device-match";
 import { useJarvisDictation, useReadAloud } from "./use-voice";
 import { JARVIS_CONSENT_NEEDED } from "@/lib/jarvis/consent-needed";
 import { MAX_OBJECTIVE_LENGTH, taskObjective } from "@/lib/jarvis/objective";
@@ -227,6 +228,8 @@ export function JarvisWorkspace({
   /* The @ being typed before the caret, and which suggestion the arrow keys are on. */
   const [mention, setMention] = useState<{ start: number; query: string } | null>(null);
   const [mentionActive, setMentionActive] = useState(0);
+  // REPO-43: an @-named app that only another computer has is pointed out, never moved to silently.
+  const elsewhere = appOnAnotherComputer(draft, device, available);
   const mentions = useMentionCandidates(device, mention?.query ?? null, user?.id ?? "");
   const readMention = (element: HTMLTextAreaElement) => {
     const next = mentionQuery(element.value, element.selectionStart ?? element.value.length);
@@ -576,6 +579,19 @@ export function JarvisWorkspace({
                 </label>
               ) : null}
             </div>
+            {elsewhere ? (
+              <p role="status" className="mb-2 text-xs text-muted-foreground">
+                @{elsewhere.app} is on {elsewhere.computers.map((c) => c.name).join(" or ")}, not on{" "}
+                {device?.name}.{" "}
+                <button
+                  type="button"
+                  onClick={() => setDeviceId(elsewhere.computers[0]!.id)}
+                  className="inline-block py-1 underline"
+                >
+                  Use {elsewhere.computers[0]!.name}
+                </button>
+              </p>
+            ) : null}
             {signedIn && !taskOpen ? (
               <div className="mb-2">
                 <ControlModePicker mode={controlMode} onChange={setControlMode} pending={sending} />
