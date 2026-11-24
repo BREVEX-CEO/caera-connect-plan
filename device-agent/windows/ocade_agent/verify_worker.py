@@ -971,6 +971,7 @@ def _window_exists(exe: str, title_part: str | None) -> bool:
     from ctypes import wintypes
 
     user32, kernel32 = ctypes.windll.user32, ctypes.windll.kernel32
+    exe = exe.lower()  # Windows file names are case-insensitive: "Notepad.exe" is notepad.exe
     found = []
 
     @ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HWND, wintypes.LPARAM)

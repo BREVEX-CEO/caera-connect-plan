@@ -547,3 +547,30 @@ class SceneInterchange(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class WindowExists(unittest.TestCase):
+    """VERIFY-03: the window check is the verifier's own EnumWindows read. Off Windows it answers
+    'unknown', never a pass; a window that is not open is never found."""
+
+    def test_open_windows_are_found_closed_ones_are_not_and_elsewhere_it_is_unknown(self):
+        import subprocess
+        import time
+
+        from ocade_agent import verify_worker
+
+        if sys.platform != "win32":
+            self.assertIsNone(verify_worker._check("window_exists", {"exe": "notepad.exe"}, {}))
+            return
+        self.assertFalse(verify_worker._window_exists("ocade-no-such-program.exe", None))
+        notepad = subprocess.Popen(["notepad.exe"])
+        try:
+            found = False
+            for _ in range(40):
+                found = verify_worker._window_exists("Notepad.EXE", None)
+                if found:
+                    break
+                time.sleep(0.25)
+            self.assertTrue(found)
+        finally:
+            notepad.kill()
