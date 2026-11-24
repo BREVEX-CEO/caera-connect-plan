@@ -242,6 +242,41 @@ def non_public_address(text: str) -> bool:
 _SE_PRIVILEGE_REMOVED = 0x4
 
 
+PARSER_MEMORY_LIMIT = 4 * 1024**3
+
+
+def cap_memory(limit: int = PARSER_MEMORY_LIMIT) -> str:
+    """MALWARE-03: a document or media file crafted to explode in memory ends its own parser
+    worker with an out-of-memory error instead of exhausting the computer. Called once by each
+    parser worker before it serves; the worker's children inherit the cap.
+
+    Windows: the worker joins a job object with a per-process memory limit. Linux: RLIMIT_AS.
+    macOS does not enforce an address-space limit, so there it returns "unsupported".
+    """
+    if sys.platform == "win32":
+        import win32api  # type: ignore[import-not-found]
+        import win32job  # type: ignore[import-not-found]
+
+        job = win32job.CreateJobObject(None, "")
+        limits = win32job.QueryInformationJobObject(job, win32job.JobObjectExtendedLimitInformation)
+        limits["BasicLimitInformation"]["LimitFlags"] = win32job.JOB_OBJECT_LIMIT_PROCESS_MEMORY
+        limits["ProcessMemoryLimit"] = limit
+        win32job.SetInformationJobObject(job, win32job.JobObjectExtendedLimitInformation, limits)
+        win32job.AssignProcessToJobObject(job, win32api.GetCurrentProcess())
+        _memory_jobs.append(job)  # the job lives as long as this worker
+        return "job"
+    if sys.platform.startswith("linux"):
+        import resource
+
+        _, hard = resource.getrlimit(resource.RLIMIT_AS)
+        resource.setrlimit(resource.RLIMIT_AS, (limit if hard == resource.RLIM_INFINITY else min(limit, hard), hard))
+        return "rlimit"
+    return "unsupported"
+
+
+_memory_jobs: list = []
+
+
 def run_restricted(module: str) -> None:
     """Windows (plan v8 11.9): this worker, and so every command, tracked job and verifier re-run
     it starts (children inherit the token), gives up every privilege except change-notify for

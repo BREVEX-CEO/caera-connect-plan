@@ -1,4 +1,6 @@
 import os
+import subprocess
+import sys
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -113,6 +115,26 @@ class SandboxTest(unittest.TestCase):
             write_atomically(target, crash)
         self.assertFalse(target.exists())
         self.assertEqual(list(target.parent.iterdir()), [])
+
+
+class ParserMemoryCap(unittest.TestCase):
+    """MALWARE-03: a parser worker that tries to hold more than its cap fails alone."""
+
+    @unittest.skipIf(sys.platform == "darwin", "macOS does not enforce an address-space limit")
+    def test_a_capped_worker_cannot_allocate_past_its_limit(self):
+        program = (
+            "from ocade_agent.sandbox import cap_memory\n"
+            "print(cap_memory(512 * 1024**2), flush=True)\n"
+            "try:\n"
+            "    block = bytearray(1024**3)\n"
+            "    print('allocated')\n"
+            "except MemoryError:\n"
+            "    print('refused')\n"
+        )
+        result = subprocess.run([sys.executable, "-c", program], capture_output=True, text=True, timeout=60,
+                                cwd=Path(__file__).resolve().parents[1])
+        self.assertEqual(result.stdout.split(), ["job" if sys.platform == "win32" else "rlimit", "refused"],
+                         result.stderr)
 
 
 if __name__ == "__main__":
