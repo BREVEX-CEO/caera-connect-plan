@@ -96,6 +96,18 @@ def dead_buttons(browser, url: str, names: list[str]) -> list[str]:
 ENGINES = ("chromium", "firefox", "webkit")
 
 
+def open_page(page, url: str):
+    """page.goto, once more when Firefox reports NS_BINDING_ABORTED: a navigation the page itself
+    started (the router settling, the service worker taking control) superseded ours. Any other
+    failure, or a second abort, is still the audit's finding."""
+    try:
+        return page.goto(url, wait_until="networkidle")
+    except Exception as error:  # noqa: BLE001 - narrowed below
+        if "NS_BINDING_ABORTED" not in str(error):
+            raise
+        return page.goto(url, wait_until="networkidle")
+
+
 def browser_profiles(playwright, engine: str) -> list[tuple[str, dict]]:
     desktop = ("desktop", {"viewport": {"width": 1366, "height": 900}})
     if engine == "webkit":

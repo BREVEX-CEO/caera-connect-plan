@@ -144,7 +144,7 @@ LONG_MOTION = """() => document.getAnimations().filter(a => {
 
 
 def audit_page(page, url: str) -> list[str]:
-    response = page.goto(url, wait_until="networkidle")
+    response = surface_audit.open_page(page, url)
     if response and not (response.headers.get("content-type") or "").startswith("text/html"):
         return []
     problems = page.evaluate(MEASURE, {"minTarget": MIN_TARGET, "maxNav": MAX_NAV_CHOICES, "opened": False})
