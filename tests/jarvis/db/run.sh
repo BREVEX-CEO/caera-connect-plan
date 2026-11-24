@@ -42,6 +42,12 @@ else
   echo "FAIL concurrent key reservations"
   failures=$((failures + 1))
 fi
+if python3 tests/jarvis/db/permit-race.py "$db"; then
+  :
+else
+  echo "FAIL replayed and raced generation permits"
+  failures=$((failures + 1))
+fi
 if bash tests/jarvis/db/rollback-roundtrip.sh; then
   :
 else
