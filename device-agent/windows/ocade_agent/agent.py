@@ -56,6 +56,31 @@ RECEIPT_RETRY_DELAYS = (1.0, 2.0, 4.0, 8.0)
 # Parallel lanes (plan 14F.3): the server hands out at most one step per lane at a time.
 LANES = 4
 LANE_REASK_SECONDS = 10.0
+# Resource governor (RELIABILITY-05, AGENTS-08): an extra parallel lane waits, at most this long,
+# while the person's computer is already this busy, so OCADE never piles more work onto it.
+BUSY_CPU_PERCENT = 90.0
+BUSY_MEMORY_PERCENT = 92.0
+GOVERNOR_WAIT_SECONDS = 10.0
+
+
+def computer_busy() -> bool:
+    """Whether the computer is too loaded to start another parallel step right now."""
+    import psutil
+
+    return (psutil.cpu_percent(interval=None) >= BUSY_CPU_PERCENT
+            or psutil.virtual_memory().percent >= BUSY_MEMORY_PERCENT)
+
+
+async def room_for_another_lane(busy=None) -> bool:
+    """Wait, up to GOVERNOR_WAIT_SECONDS, until the computer has room. True if it had room; False
+    when the wait ran out (the step then starts anyway: it is already this device's to run)."""
+    busy = busy or computer_busy
+    deadline = time.monotonic() + GOVERNOR_WAIT_SECONDS
+    while busy():
+        if time.monotonic() >= deadline:
+            return False
+        await anyio.sleep(0.5)
+    return True
 INVENTORY_SECONDS = 600.0
 
 
@@ -503,6 +528,10 @@ class Agent:
                 await anyio.to_thread.run_sync(jobs.cancel_all, str(self.device.home))
             for action in handed_out(state):
                 if action["id"] not in running:
+                    if running:  # an extra lane: only when the computer has room (or after a bound)
+                        await room_for_another_lane()
+                        if self.stopped_here():
+                            break
                     running.add(action["id"])
                     group.start_soon(lane, action)
             if running:

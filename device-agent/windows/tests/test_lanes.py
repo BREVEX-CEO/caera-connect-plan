@@ -66,6 +66,12 @@ class TwoLanes:
 
 
 class LanesTest(unittest.TestCase):
+    def setUp(self):
+        # Timing assertions below assume an idle computer; the governor has its own tests.
+        original = agent_module.computer_busy
+        agent_module.computer_busy = lambda: False
+        self.addCleanup(setattr, agent_module, "computer_busy", original)
+
     def test_answers_are_read_old_and_new(self):
         self.assertEqual(handed_out({"action": {"id": "x", "intent": {}}}), [{"id": "x", "intent": {}}])
         self.assertEqual(still_ours({"actions": [{"id": "a"}], "running": ["b"]}), {"a", "b"})
@@ -166,3 +172,29 @@ if __name__ == "__main__":
     unittest.main()
 
 
+class ResourceGovernorTest(unittest.TestCase):
+    """RELIABILITY-05 / AGENTS-08: an extra lane waits while the computer is busy, but never
+    beyond the bound, and starts at once when there is room."""
+
+    def test_waits_while_busy_then_starts(self):
+        answers = iter([True, True, False])
+        started = time.monotonic()
+        had_room = anyio.run(agent_module.room_for_another_lane, lambda: next(answers))
+        self.assertTrue(had_room)
+        self.assertGreaterEqual(time.monotonic() - started, 0.9)
+
+    def test_never_waits_beyond_the_bound(self):
+        original = agent_module.GOVERNOR_WAIT_SECONDS
+        agent_module.GOVERNOR_WAIT_SECONDS = 1.0
+        self.addCleanup(setattr, agent_module, "GOVERNOR_WAIT_SECONDS", original)
+        started = time.monotonic()
+        self.assertFalse(anyio.run(agent_module.room_for_another_lane, lambda: True))
+        self.assertLess(time.monotonic() - started, 2.0)
+
+    def test_an_idle_computer_starts_at_once(self):
+        started = time.monotonic()
+        self.assertTrue(anyio.run(agent_module.room_for_another_lane, lambda: False))
+        self.assertLess(time.monotonic() - started, 0.1)
+
+    def test_the_real_reading_answers(self):
+        self.assertIsInstance(agent_module.computer_busy(), bool)
