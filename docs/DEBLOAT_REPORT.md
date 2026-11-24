@@ -39,3 +39,11 @@ on the final SHA. Every number below was read, not estimated.
 - Startup time and memory were not measured in a real customer browser or on a real customer
   computer; the hosted campaign and Stage 6 measure them.
 - No bundle-size change from code removal: the scans found no dead module to remove.
+
+## Re-scan, 24 November 2026
+
+`npx knip@5 --include dependencies,unlisted,files` at the head after the UX-law changes: the 17
+"unused files" are the same entry points listed above (server and Worker entries, service worker,
+Edge Functions and their shared modules, test-only scripts, archived evidence). `axe-core` is read
+by path from `tests/web/accessibility_audit.py`; the "unlisted" `esbuild` and
+`@tanstack/router-generator` come with `vite` and `@tanstack/react-start`. Nothing to remove.
