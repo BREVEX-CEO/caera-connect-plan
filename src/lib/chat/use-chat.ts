@@ -113,6 +113,8 @@ export interface ChatState {
   problem: string | null;
   /** The problem is Standard being busy or unavailable: High may be offered, never chosen for them. */
   standardBusy: boolean;
+  /** The problem is the person's own key (BYOK): OCADE's models may be offered, never chosen. */
+  ownKeyFailed: boolean;
   loadingConversations: boolean;
   /** The history read failed. Not the same as an account with no history. */
   conversationsFailed: boolean;
@@ -142,6 +144,11 @@ export interface ChatActions {
     prepare?: () => Promise<void>,
     quality?: IntelligenceQuality,
   ): Promise<boolean>;
+  /**
+   * O-08: ask the same question again, this once with OCADE-managed models, because the person
+   * pressed for it after their own key failed. Their key stays chosen for every later turn.
+   */
+  resendWithOcadeModels(userMessageId: string, choice: IntelligenceChoice): Promise<void>;
   /** Edit, Regenerate and Retry, which are the same operation. */
   resend(
     userMessageId: string,
@@ -208,6 +215,9 @@ export function useChat(): ChatState & ChatActions {
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
   const [busyProblem, setBusyProblem] = useState<string | null>(null);
+  const [ownKeyProblem, setOwnKeyProblem] = useState<string | null>(null);
+  /** Read once by the next send, then cleared: one turn only. */
+  const oneTurnSource = useRef<"ocade" | null>(null);
   const [loadingConversations, setLoadingConversations] = useState(false);
   const [conversationsFailed, setConversationsFailed] = useState(false);
   const [loadingMessages, setLoadingMessages] = useState(false);
@@ -458,6 +468,8 @@ export function useChat(): ChatState & ChatActions {
        * charges for one question. A ref is written and read synchronously,
        * which is the only thing that can close a window that is one tick wide.
        */
+      const source = oneTurnSource.current;
+      oneTurnSource.current = null;
       if (!text || sending.current) return false;
       sending.current = true;
       setProblem(null);
@@ -660,6 +672,7 @@ export function useChat(): ChatState & ChatActions {
         let shown = "";
         let refusal: string | null = null;
         let refusalCode: string | null = null;
+        let ownKey = false;
 
         try {
           for await (const event of ocadeIntelligence().stream({
@@ -667,6 +680,7 @@ export function useChat(): ChatState & ChatActions {
             generationId: billed.permit.generationId,
             idempotencyKey: billed.permit.idempotencyKey,
             surface: "chat",
+            ...(source === "ocade" ? { source } : {}),
             mode: MODE_FOR[choice],
             messages: history,
             tools: [],
@@ -698,6 +712,7 @@ export function useChat(): ChatState & ChatActions {
             } else if (event.type === "refusal") {
               refusal = event.reason;
               refusalCode = event.code;
+              ownKey = event.ownKey === true;
             }
           }
         } catch (cause) {
@@ -747,6 +762,7 @@ export function useChat(): ChatState & ChatActions {
             const busy =
               refusalCode === "provider_rate_limited" || refusalCode === "online_unavailable";
             setBusyProblem(busy && choice === "online" && quality === "standard" ? said : null);
+            setOwnKeyProblem(ownKey ? said : null);
           }
           // Accepted: the question is in the transcript, and Retry re-asks it
           // from there. Returning it to the composer would make two of it.
@@ -922,6 +938,18 @@ export function useChat(): ChatState & ChatActions {
       setMessages(before);
     },
     [send, setMessages, temporary, conversationId],
+  );
+
+  const resendWithOcadeModels = useCallback(
+    async (userMessageId: string, choice: IntelligenceChoice) => {
+      oneTurnSource.current = "ocade";
+      try {
+        await resend(userMessageId, choice);
+      } finally {
+        oneTurnSource.current = null;
+      }
+    },
+    [resend],
   );
 
   /** Remove one turn, from the screen and from the account. */
@@ -1104,6 +1132,7 @@ export function useChat(): ChatState & ChatActions {
       busy,
       problem,
       standardBusy: problem !== null && problem === busyProblem,
+      ownKeyFailed: problem !== null && problem === ownKeyProblem,
       loadingConversations,
       conversationsFailed,
       loadingMessages,
@@ -1111,6 +1140,7 @@ export function useChat(): ChatState & ChatActions {
       temporary,
       send,
       resend,
+      resendWithOcadeModels,
       removeMessage,
       stop,
       openConversation,
@@ -1135,6 +1165,7 @@ export function useChat(): ChatState & ChatActions {
       busy,
       problem,
       busyProblem,
+      ownKeyProblem,
       loadingConversations,
       conversationsFailed,
       loadingMessages,
@@ -1142,6 +1173,7 @@ export function useChat(): ChatState & ChatActions {
       temporary,
       send,
       resend,
+      resendWithOcadeModels,
       removeMessage,
       stop,
       openConversation,

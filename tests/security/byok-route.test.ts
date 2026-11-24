@@ -307,3 +307,82 @@ test("an Anthropic connection gets a Messages body and its stream ends the turn"
   assert.ok(Array.isArray(body?.messages) && !("contents" in body!), "Messages, not Gemini, body");
   assert.deepEqual(seen.calls, [{ model: "claude-alice", slot: "customer", customer: "conn-a1" }]);
 });
+
+function chatRequest(extra: Record<string, unknown> = {}): Request {
+  const permit = {
+    id: "p2",
+    generationId: "g2",
+    idempotencyKey: "k2",
+    surface: "chat",
+    source: "server",
+  };
+  return new Request("http://web/", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      authorization: "Bearer person-token",
+      origin: "https://ocade.example",
+    },
+    body: JSON.stringify({
+      permit,
+      generationId: "g2",
+      idempotencyKey: "k2",
+      surface: "chat",
+      messages: [{ role: "user", content: "Hello" }],
+      tools: [],
+      attachments: [],
+      privacy: { onlineInferenceConsented: true, sealed: false },
+      ...extra,
+    }),
+  });
+}
+
+test("O-08: only the person's one-turn request answers a Chat turn with OCADE's models", async () => {
+  const text = sse({ choices: [{ index: 0, delta: { content: "Hi" }, finish_reason: "stop" }] });
+  let asked = 0;
+  const run = async (extra: Record<string, unknown>) => {
+    const seen = fresh();
+    const handler = deps(
+      async () => (asked++, chosen({ status: "invalid" })),
+      () => new Response(text, { headers: { "content-type": "text/event-stream" } }),
+      seen,
+      {
+        verifyJwt: async () => ({ userId: alice }),
+        allowedOrigins: new Set(["https://ocade.example"]),
+      },
+    );
+    const response = await handleOnlineIntelligence(chatRequest(extra), handler);
+    return { response, seen };
+  };
+  // Without the request, the failed key is reported and nothing else is used.
+  const refused = await run({});
+  assert.equal(refused.response.status, 409);
+  assert.deepEqual(refused.seen.calls, []);
+  // With it, this turn skips the key: OCADE's model answers, the key is not even read.
+  asked = 0;
+  const once = await run({ source: "ocade" });
+  await once.response.text();
+  assert.equal(asked, 0, "the customer's route was not read");
+  assert.ok(
+    once.seen.calls.length > 0 && once.seen.calls.every((call) => call.slot !== "customer"),
+  );
+  assert.deepEqual(once.seen.bound, [], "the permit is not marked as the customer's key");
+});
+
+test("O-08: JARVIS turns and unknown sources cannot skip the person's key", async () => {
+  for (const req of [request({ source: "ocade" }), chatRequest({ source: "other" })]) {
+    const seen = fresh();
+    const handler = deps(
+      async () => chosen(),
+      () => new Response(openaiCall),
+      seen,
+      {
+        verifyJwt: async () => ({ userId: alice }),
+        allowedOrigins: new Set(["https://ocade.example"]),
+      },
+    );
+    const response = await handleOnlineIntelligence(req, handler);
+    assert.equal(response.status, 400);
+    assert.deepEqual(seen.calls, []);
+  }
+});

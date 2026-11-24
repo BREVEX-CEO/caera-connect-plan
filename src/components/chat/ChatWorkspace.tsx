@@ -802,6 +802,20 @@ export function ChatWorkspace() {
                       </button>
                     </>
                   ) : null}
+                  {/* O-08: the person's own key failed. OCADE's models only if they ask, once. */}
+                  {chat.ownKeyFailed && lastQuestionId && choice !== "offline" ? (
+                    <>
+                      {" "}
+                      <button
+                        type="button"
+                        disabled={chat.busy}
+                        onClick={() => void chat.resendWithOcadeModels(lastQuestionId, choice)}
+                        className="inline-block py-1 text-foreground underline underline-offset-2 disabled:opacity-40"
+                      >
+                        Answer this once with OCADE-managed models (uses your OCADE allowance)
+                      </button>
+                    </>
+                  ) : null}
                 </p>
                 {chat.standardBusy && lastQuestionId && offeringHigh ? (
                   <HighConfirm

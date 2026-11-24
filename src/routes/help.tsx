@@ -173,9 +173,10 @@ const QUESTIONS: {
       <p>
         Yes. In Settings, BYOK, add a connection with your provider, model and key, test it, then
         choose it for Chat, JARVIS or both. Requests on that connection are billed to you by your
-        provider, never to OCADE, and OCADE never falls back to its own models when your key fails.
-        The key is stored encrypted and is never shown again; you can replace or delete it at any
-        time.
+        provider, never to OCADE, and OCADE never switches to its own models on its own when your
+        key fails: in Chat you can ask it to answer that one question with OCADE-managed models,
+        which uses your OCADE allowance. The key is stored encrypted and is never shown again; you
+        can replace or delete it at any time.
       </p>
     ),
   },

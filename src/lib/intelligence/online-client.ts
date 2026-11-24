@@ -180,6 +180,7 @@ export function createOnlineIntelligenceTransport(
         research: request.research === true,
         quality: request.quality,
         highModeAcknowledged: request.highModeAcknowledged,
+        ...(request.source === "ocade" ? { source: "ocade" } : {}),
       });
       let response = await send(token);
       if (response.status === 401 && deps.refreshAccessToken) {
@@ -254,6 +255,7 @@ export function createOnlineIntelligenceTransport(
             code: "provider_failed",
             reason: own,
             retryable: false,
+            ownKey: true,
             ...(later ? { retryAfterMs: later } : {}),
           };
           return;

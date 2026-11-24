@@ -123,6 +123,8 @@ interface OnlineRequestBody {
   research?: boolean;
   quality?: IntelligenceQuality;
   highModeAcknowledged?: string;
+  /** O-08: the person asked for OCADE-managed models for this one Chat turn. */
+  source?: "ocade";
 }
 
 /**
@@ -456,7 +458,8 @@ function parseBody(value: unknown): OnlineRequestBody | null {
     privacy.onlineInferenceConsented !== true ||
     privacy.sealed !== false ||
     (value.quality !== undefined && value.quality !== "standard" && value.quality !== "high") ||
-    (value.quality === "high" && value.highModeAcknowledged !== HIGH_WARNING_VERSION)
+    (value.quality === "high" && value.highModeAcknowledged !== HIGH_WARNING_VERSION) ||
+    (value.source !== undefined && (value.source !== "ocade" || value.surface !== "chat"))
   ) {
     return null;
   }
@@ -1337,16 +1340,18 @@ async function runOnlineIntelligence(
    * chosen for this surface serves the whole turn; a choice that cannot be read sends nothing.
    */
   let customer: CustomerRoute | null = null;
-  try {
-    customer =
-      (await deps.byok?.route(
-        identity.userId,
-        body.surface === "jarvis" ? "jarvis" : "chat",
-        body.permit,
-      )) ?? null;
-  } catch {
-    return json(503, { error: "byok_unavailable" }, origin);
-  }
+  // O-08: only the person's explicit one-turn request skips their key; JARVIS never does.
+  if (body.source !== "ocade")
+    try {
+      customer =
+        (await deps.byok?.route(
+          identity.userId,
+          body.surface === "jarvis" ? "jarvis" : "chat",
+          body.permit,
+        )) ?? null;
+    } catch {
+      return json(503, { error: "byok_unavailable" }, origin);
+    }
   if (customer) {
     const refusal = !customer.id
       ? "byok_missing"

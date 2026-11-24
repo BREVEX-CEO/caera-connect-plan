@@ -108,6 +108,11 @@ export interface IntelligenceRequest {
   quality?: IntelligenceQuality;
   highModeAcknowledged?: string;
   /**
+   * O-08: "ocade" answers this one Chat turn with OCADE-managed models although the person chose
+   * their own key, because they asked for that after their key failed. Never set automatically.
+   */
+  source?: "ocade";
+  /**
    * Deliberate before answering.
    *
    * Only the local runtime honours it: the one artifact carries both modes and
@@ -174,6 +179,8 @@ export type IntelligenceEvent =
       retryable: boolean;
       /** When capacity returns, if the boundary knows it is a long way off (a daily limit). */
       retryAfterMs?: number;
+      /** The person's own key (BYOK) refused or failed; OCADE's models were not used. */
+      ownKey?: true;
     }
   | { type: "final"; response: NormalizedResponse };
 
