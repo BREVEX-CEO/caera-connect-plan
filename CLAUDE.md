@@ -1,3 +1,30 @@
+MANDATORY FIRST ACTION: At the beginning of every session and every user message, always run '/caveman ultra' first (if available and not already active); otherwise apply its concise style directly. Never falsely claim activation.
+
+## Mandatory automatic startup — every session and message
+
+- Immediately after Caveman Ultra, read the current relevant overview and entries in 'CODEMAP.md' before exploring source. Do not scan or reread the entire repository by default. Read only the actual files, callers, tests and plan sections needed for the task; use targeted search if the map is missing, incomplete or stale. Preserve exhaustive audit requirements when explicitly authorized, with incremental evidence rather than repeated whole-repo reads.
+- At session start and after context reset, read these installed project instructions and skill definitions once; reuse unchanged context on subsequent messages: 'CLAUDE.md', 'AGENTS.md', 'CODEMAP.md', 'TASKS.md', '.claude/settings.json', '.claude/agents/scout.md', '.claude/agents/checker.md', '.claude/agents/verifier.md', '.claude/skills/codemap/SKILL.md', '.claude/skills/plan-runner/SKILL.md', '.claude/skills/engineering-discipline/SKILL.md'. Consult 'plan.md' by current heading and required line range; consult 'scripts/codemap.py', 'scripts/autopilot.py' and 'scripts/quiet-check.py' when verifying their behavior. Do not recursively reload the instruction files.
+- Automatically apply the following skill defaults from the Claude token-saving setup before substantive work on each message, without waiting for the owner to repeat commands. Invoke each slash skill only through the supported skill mechanism if exposed; if unavailable, apply the corresponding instructions directly. Do not run slash commands as shell programs or claim an unavailable skill ran.
+
+| Skill/file | Command or activation rule |
+| --- | --- |
+| Caveman | '/caveman ultra' — first action; routine progress exactly one word, one line; blockers, safety, questions and final reports remain complete. |
+| 'token-diet.zip' | '/token-diet' — automatically apply targeted search, minimal context and concise output. |
+| 'quiet-output.zip' | '/quiet-output' if exposed; automatically apply concise command output using 'scripts/quiet-check.py' with original exit codes and retained diagnostics. |
+| 'test-focus.zip' | '/test-focus' if exposed; automatically apply focused regression tests, then broader required gates at the correct stage. |
+| 'codemap.zip' | '/codemap' — use the existing map first; refresh with 'python3 scripts/codemap.py' if stale or missing. Existing SessionStart/Stop hooks maintain it. Do not repeat one-time setup. |
+| 'engineering-discipline.zip' | '/engineering-discipline' — apply root-cause analysis, smallest complete fix and independent verification on every coding task. |
+| 'plan-runner.zip' | '/plan-runner' — apply on authorized plan work, resume 'TASKS.md' and preserve its current status; never start a paused plan without owner direction. |
+| 'handoff.zip' | '/handoff' — persist verified work before context clearing, unrelated task changes or safe session handoff. |
+| Cavecrew | Apply automatically when available for suitable cheap read-only delegation; retain the configured Haiku Scout/Checker and Opus Verifier roles. |
+| Ponytail | '/ponytail ultra' — mandatory before authorized codebase debloating; use '/ponytail-audit' when available to identify proven redundancy. Apply smallest-correct-code principles to routine coding. Never remove required safety, tests, accessibility or features. |
+| 'repo-map.zip' | '/repo-map' — retired; never run or recreate the redundant map. Codemap replaces it. |
+| 'install-kit.sh' | One-time installer already applied; do not rerun on every message or overwrite progress. |
+
+- Verify session model defaults: '/model sonnet' and '/advisor opus' when needed and supported. Use Haiku Scout for targeted discovery and Haiku Checker for command execution; use Opus Verifier for independent verification. Preserve owner-selected overrides. Use '/effort low' only for simple tasks when supported and appropriate, not complex security or correctness work.
+- Other available commands are conditional, not blindly repeated: '/caveman-compress CLAUDE.md' only during authorized instruction optimization, '/caveman-stats' and '/context' or '/usage' when diagnosing usage, '/compact' only when needed, '/handoff' before '/clear' when switching unrelated work, '/rename' and '/resume' when managing sessions, '/mcp' when managing unused connectors, '/rewind' only when authorized to undo work. Use '/goal' for an authorized measurable long-running goal; '/goal clear' only when stopping it. Do not automatically clear, reset, overwrite, or restart an active goal.
+- These defaults apply without extra user commands, but must respect STOP, owner scope, permissions, budget, stage order, actual skill availability and exact-candidate GitHub verification. No redundant Repo Map, Graphify, or repeated full-repo scans. Never sacrifice correctness or evidence to save tokens.
+
 # CLAUDE.md
 
 Owner: CARCC (does not write code). Product: OCADE. @AGENTS.md product and safety rules apply. The latest owner-authorized scope and plan.md physical stage order control. Never infer release or spending approval.
