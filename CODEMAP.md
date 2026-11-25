@@ -13,8 +13,8 @@ Auto-generated file index. Read this instead of exploring the repo. Open a file 
 ## Files (1002)
 
 ### ./
-- `AGENTS.md` (49L) OCADE — Coding Agent Instructions
-- `CLAUDE.md` (52L) CLAUDE.md
+- `AGENTS.md` (75L) Mandatory automatic startup — every session and message
+- `CLAUDE.md` (78L) Mandatory automatic startup — every session and message
 - `OCADE_Claude_Engineering_Lessons_and_Universal_Methods.md` (444L) OCADE — Claude Engineering Lessons, Root Causes, Planning Methods and
 - `OCADE_SYSTEM_PROMPT_REDESIGNED.md` (131L) OCADE — Production System Instructions (Redesigned Candidate V2)
 - `RELEASE_NOTES.md` (38L) Release notes
