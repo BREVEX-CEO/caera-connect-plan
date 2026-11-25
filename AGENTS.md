@@ -6,19 +6,19 @@ MANDATORY FIRST ACTION: Load '/caveman ultra' once at session start when availab
 - At startup and after context reset, use automatically loaded project instructions and relevant CODEMAP.md/TASKS.md entries. Read skill definitions, agent files and scripts only when needed; reuse unchanged context. Never recursively reload instructions or preload all skills.
 - Apply token-saving behavior before substantive work: CODEMAP first, targeted reads, RTK and quiet output with preserved exit codes and raw evidence, focused tests and required gates. Use relevant skills only when their behavior is needed; never preload or repeatedly reload skills.
 
-| Skill/file | Command or activation rule |
-| --- | --- |
-| Caveman | '/caveman ultra' — load once; maintain two-word, one-line routine replies throughout. |
-| 'token-diet.zip' | '/token-diet' — automatically apply targeted search, minimal context and concise output. |
-| 'quiet-output.zip' | '/quiet-output' if exposed; automatically apply concise command output using 'scripts/quiet-check.py' with original exit codes and retained diagnostics. |
-| 'test-focus.zip' | '/test-focus' if exposed; automatically apply focused regression tests, then broader required gates at the correct stage. |
-| 'codemap.zip' | '/codemap' — use the existing map first; refresh with 'python3 scripts/codemap.py' if stale or missing. Existing SessionStart/Stop hooks maintain it. Do not repeat one-time setup. |
-| 'engineering-discipline.zip' | '/engineering-discipline' — apply root-cause analysis, smallest complete fix and independent verification on every coding task. |
-| 'plan-runner.zip' | '/plan-runner' — apply on authorized plan work, resume 'TASKS.md' and preserve its current status; never start a paused plan without owner direction. |
-| 'handoff.zip' | '/handoff' — persist verified work before context clearing, unrelated task changes or safe session handoff. |
-| Superpowers | Use executing-plans only when plan-runner is unavailable for applicable long tasks; preserve TASKS.md, stage order and verification gates. |
-| Ponytail | '/ponytail-audit' — only for authorized debloating; identify proven redundancy, then implement smallest complete fixes in tested batches. Never remove required functionality, security, accessibility or tests. |
-| 'repo-map.zip' | '/repo-map' — retired; never run or recreate the redundant map. Codemap replaces it. |
+| Skill/file                   | Command or activation rule                                                                                                                                                                                       |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Caveman                      | '/caveman ultra' — load once; maintain two-word, one-line routine replies throughout.                                                                                                                            |
+| 'token-diet.zip'             | '/token-diet' — automatically apply targeted search, minimal context and concise output.                                                                                                                         |
+| 'quiet-output.zip'           | '/quiet-output' if exposed; automatically apply concise command output using 'scripts/quiet-check.py' with original exit codes and retained diagnostics.                                                         |
+| 'test-focus.zip'             | '/test-focus' if exposed; automatically apply focused regression tests, then broader required gates at the correct stage.                                                                                        |
+| 'codemap.zip'                | '/codemap' — use the existing map first; refresh with 'python3 scripts/codemap.py' if stale or missing. Existing SessionStart/Stop hooks maintain it. Do not repeat one-time setup.                              |
+| 'engineering-discipline.zip' | '/engineering-discipline' — apply root-cause analysis, smallest complete fix and independent verification on every coding task.                                                                                  |
+| 'plan-runner.zip'            | '/plan-runner' — apply on authorized plan work, resume 'TASKS.md' and preserve its current status; never start a paused plan without owner direction.                                                            |
+| 'handoff.zip'                | '/handoff' — persist verified work before context clearing, unrelated task changes or safe session handoff.                                                                                                      |
+| Superpowers                  | Use executing-plans only when plan-runner is unavailable for applicable long tasks; preserve TASKS.md, stage order and verification gates.                                                                       |
+| Ponytail                     | '/ponytail-audit' — only for authorized debloating; identify proven redundancy, then implement smallest complete fixes in tested batches. Never remove required functionality, security, accessibility or tests. |
+| 'repo-map.zip'               | '/repo-map' — retired; never run or recreate the redundant map. Codemap replaces it.                                                                                                                             |
 
 - Default: Sonnet Medium as sole writer; Haiku Medium Scout for independent parallel research; Haiku Medium Checker for sequential checks; Opus Medium Verifier for independent meaningful-batch and final verification. No standing advisor. Verify actual model assignments and preserve explicit owner overrides. Skip unnecessary helpers for trivial work without bypassing mandatory gates.
 - Use supported skills only when relevant, including handoff before a necessary session transition. Session-management slash commands are owner-operated unless explicitly supported by an available tool; never pretend to run them or reset an active task. Preserve authorized goals, progress and evidence.
