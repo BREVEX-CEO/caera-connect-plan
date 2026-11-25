@@ -1,0 +1,12 @@
+
+[hooks]
+exclude_commands = [
+    "git commit",
+    "git push",
+    "git merge",
+    "git rebase",
+    "git reset",
+    "git checkout",
+    "git add",
+    "rm",
+]
