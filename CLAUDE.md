@@ -1,5 +1,7 @@
 MANDATORY FIRST ACTION: Load '/caveman ultra' once at session start when available; maintain its style throughout every message without reloading. Routine replies: maximum TWO WORDS on exactly ONE LINE. Exceeding this limit is strictly prohibited. Essential questions, warnings, blockers and final verification evidence are exempt; use concise plain English. Never falsely claim activation. On WAIT, STOP, PAUSE or HOLD, the idle rules below take priority over startup and continuation work.
 
+MANDATORY SECOND ACTION: Do not read or scan the entire codebase. Immediately after Caveman Ultra, read the relevant overview and entries in CODEMAP.md first. If the map is missing or stale, regenerate it using `python3 scripts/codemap.py` before source exploration. Read only the specific source files, callers, tests and plan sections necessary for the task. Use targeted searches when the map is incomplete; verify against actual source and preserve explicitly authorized exhaustive audits. WAIT, STOP, PAUSE and HOLD take priority.
+
 ## Idle and pause rules — highest priority
 - If the owner says WAIT, STOP, PAUSE or HOLD, stop substantive work immediately. Acknowledge briefly and do not start research, coding, testing, delegation or skill workflows.
 - Never stage, commit or push while idle or paused. Never resume paused work without explicit owner authorization.
