@@ -49,5 +49,5 @@
     ]
   },
   "model": "sonnet",
-  "advisorModel": "opus"
+  "effortLevel": "medium"
 }
