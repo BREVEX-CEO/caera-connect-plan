@@ -5,6 +5,11 @@
         "hooks": [
           {
             "type": "command",
+            "command": "cd \"${CLAUDE_PROJECT_DIR:-$(git rev-parse --show-toplevel)}\" && python3 .claude/agents/register.py",
+            "timeout": 60
+          },
+          {
+            "type": "command",
             "command": "cd \"${CLAUDE_PROJECT_DIR:-$(git rev-parse --show-toplevel)}\" && python3 scripts/codemap.py",
             "timeout": 60
           }
