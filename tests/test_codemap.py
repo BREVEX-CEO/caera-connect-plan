@@ -169,6 +169,30 @@ class CodeMapTests(unittest.TestCase):
         self.runmap("--guard-read", code=2, event={"tool_input": {"file_path": str(self.map)}})
         self.runmap("--guard-read", event={"tool_input": {"file_path": str(self.map), "limit": 100}})
 
+    def test_diagnostics_disappear_after_repair(self):
+        self.write("api.ts", "export function load() {}\n")
+        self.write("route.ts", 'import { load } from "./missing";\nload();\n')
+        self.runmap("--require-ast")
+        self.assertIn("UNRESOLVED IMPORT ./missing", self.map.read_text())
+        self.assertIn("UNRESOLVED IMPORT ./missing", self.runmap("--diagnostics"))
+        self.write("route.ts", 'import { load } from "./api";\nload();\n')
+        self.assertIn("No indexed import diagnostics", self.runmap("--diagnostics"))
+        self.assertNotIn("UNRESOLVED IMPORT ./missing", self.map.read_text())
+        self.assertIn("route.ts:2 => api.ts", self.runmap("--trace", "load"))
+        self.runmap("--check", "--require-ast")
+
+    def test_missing_export_and_reexport(self):
+        self.write("api.ts", "export function load() {}\n")
+        self.write("barrel.ts", 'export { load } from "./api";\n')
+        self.write("route.ts", 'import { load } from "./barrel";\nload();\n')
+        self.assertIn("No indexed import diagnostics", self.runmap("--diagnostics", "--require-ast"))
+        self.write("api.ts", "export function renamed() {}\n")
+        self.assertIn("EXPORT NOT INDEXED load", self.runmap("--diagnostics", "--require-ast"))
+        self.assertNotIn("EDGE call | barrel.ts", self.map.read_text())
+        self.write("barrel.ts", 'export { renamed as load } from "./api";\n')
+        self.assertIn("No indexed import diagnostics", self.runmap("--diagnostics", "--require-ast"))
+        self.runmap("--check", "--require-ast")
+
     def test_parallel_refresh(self):
         procs = [subprocess.Popen([sys.executable, str(self.root / "scripts" / "codemap.py")],
                                   cwd=self.root, stdout=subprocess.PIPE, stderr=subprocess.PIPE)

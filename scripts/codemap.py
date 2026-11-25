@@ -224,7 +224,7 @@ def index(full=False, check=False, require_ast=False):
         raw = p.read_bytes()
         read += len(raw)
         digest = hashlib.sha256(raw).hexdigest()
-        if prev.get("hash") == digest and "facts" in prev:
+        if not full and prev.get("hash") == digest and "facts" in prev:
             files[name] = {**prev, "stamp": stamp}
             continue
         changed += 1
@@ -290,6 +290,7 @@ def resolve(name, module, files, python=False, imported=""):
 def relationships(files):
     edges, forward, reverse = defaultdict(list), defaultdict(set), defaultdict(set)
     db = defaultdict(set)
+    exports = {p: {f[1] for f in r["facts"] if f[0] in ("export", "reexport")} for p, r in files.items()}
     for name, record in files.items():
         for kind, symbol, _, _ in record["facts"]:
             if kind in ("table", "db-function"):
@@ -307,7 +308,12 @@ def relationships(files):
                 target = resolve(name, module, files, kind == "import-py", original)
                 if target:
                     edge(name, target, kind, line, symbol + " => " + original + " [RESOLVED MODULE]")
-                    bindings[symbol].add((target, original))
+                    if kind != "import-py" and original not in ("", "*", "default") and files[target]["parser"] == "typescript-ast" and not {original, "*"} & exports[target]:
+                        edges[name].append(("diagnostic-export", target, line, original))
+                    else:
+                        bindings[symbol].add((target, original))
+                elif module.startswith(".") or (kind != "import-py" and module.startswith("@/")):
+                    edges[name].append(("diagnostic-import", module, line, symbol))
         for kind, symbol, line, detail in record["facts"]:
             if kind in ("call", "inherits"):
                 root, _, rest = symbol.partition(".")
@@ -350,6 +356,10 @@ def fact_line(path, fact):
 
 def edge_line(path, e):
     kind, target, line, label = e
+    if kind == "diagnostic-import":
+        return f"UNRESOLVED IMPORT {target} | {path}:{line} | {label} [INDEX HINT]"
+    if kind == "diagnostic-export":
+        return f"EXPORT NOT INDEXED {label} | {path}:{line} => {target} [VERIFY SOURCE]"
     return f"EDGE {kind} | {path}:{line} => {target} | {label}"
 
 
@@ -491,6 +501,7 @@ def main():
     for mode in ("query", "search", "trace", "impact", "tests", "security", "related", "explain"):
         group.add_argument("--" + mode)
     group.add_argument("--path", nargs=2)
+    group.add_argument("--diagnostics", action="store_true", help="List unresolved local module/export hints")
     parser.add_argument("--check", action="store_true")
     parser.add_argument("--remote", action="store_true")
     parser.add_argument("--summary", action="store_true")
@@ -530,6 +541,9 @@ def main():
                 print(summary(head, files, edges, reverse, found))
             if args.stats:
                 print(json.dumps(stats, sort_keys=True))
+            if args.diagnostics:
+                issues = [edge_line(p, e) for p, entries in edges.items() for e in entries if e[0].startswith("diagnostic-")]
+                print(bounded([f"{len(issues)} indexed import diagnostics (hints, not compiler errors)", *issues] if issues else ["No indexed import diagnostics; not a type check."], args.budget))
             for mode in ("query", "search", "trace", "impact", "tests", "security", "related", "explain", "path"):
                 value = getattr(args, mode)
                 if value:

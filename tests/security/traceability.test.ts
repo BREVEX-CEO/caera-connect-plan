@@ -7,11 +7,11 @@ import { join } from "node:path";
 import { test } from "node:test";
 
 test("architecture regeneration preserves the current independent ledger", () => {
-  const markdown = readFileSync("evidence/2026-11-23-traceability/architecture-ledger.md", "utf8");
-  const expected = [...markdown.matchAll(/^\| (\d+) \| [^|]+ \| (\w+) \|/gm)].map((match) => ({
-    n: Number(match[1]),
-    status: match[2],
-  }));
+  // The retained independent JSON ledger has the same 84 statuses as the archived Markdown.
+  const independentLedger = JSON.parse(
+    readFileSync("evidence/2026-11-23-traceability/architecture-ledger.json", "utf8"),
+  ) as { n: number; status: string }[];
+  const expected = independentLedger.map(({ n, status }) => ({ n, status }));
   assert.equal(expected.length, 84);
   assert.deepEqual(
     expected.map((row) => row.n),
