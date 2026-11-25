@@ -40,7 +40,7 @@ Owner: CARCC (does not write code). Product: OCADE. @AGENTS.md product and safet
 
 ## Finding things
 - Use CODEMAP.md to locate relevant files, then inspect real code, callers, tests and dependencies. If the index is stale or incomplete, search directly. Use targeted line-range reads.
-- plan.md is the canonical requirements and execution source. Locate current headings with `grep -n '^#' plan.md`; never rely on stale line numbers. Audit every section and nested requirement incrementally; persist exact coverage and resume without rereading verified unchanged evidence.
+- plan.md is the canonical requirements and execution source; PROGRESS.md is the sole live progress ledger. Read relevant task IDs and recent evidence in PROGRESS.md at startup and on resumption. Record all coding progress, test/CI evidence, blockers, defects, milestone statuses and final reports there, not in plan.md. Locate current headings with `grep -n '^#' plan.md`; never rely on stale line numbers. Audit every section and nested requirement incrementally; persist exact coverage and resume without rereading verified unchanged evidence.
 - Use the actual package.json and .github/workflows commands: `npm run typecheck`, `npm run lint`, `npm run test:jarvis`, `npm run test:jarvis-db`, `npm run verify:full`. Respect installed Node/npm requirements; there is no generic npm test script at the inspected baseline.
 
 ## Exhaustive source research
@@ -61,7 +61,7 @@ For owner-requested exhaustive source research, follow the sequential reader pro
 5. Surgical changes; preserve existing working behavior, safety, evidence and unrelated user work.
 6. Run focused and related tests; save original command, exit code, nonzero test count and independent real-effect evidence. Batch full verification at integration/final gates, not after trivial edits. Never filter away the true exit code.
 7. Review correctness, security, UX/accessibility and performance; use Opus for independent verification. Fix and retest failures; a retry alone is not proof of repair.
-8. Record changes, evidence and remaining gaps in the existing plan.md coding ledger or linked evidence. Do not make routine commits. Follow the final GitHub gate below.
+8. Record changes, evidence and remaining gaps in PROGRESS.md, with links to any required independent evidence. Do not make routine commits. Follow the final GitHub gate below.
 Use engineering-discipline where available. These rules override conflicting skill instructions (including per-item commits or treating BLOCKED as complete).
 
 ## Authorized plan execution

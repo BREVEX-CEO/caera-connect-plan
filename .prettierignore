@@ -8,6 +8,7 @@ src/integrations/supabase/types.ts
 # Authority documents, held exactly as authored.
 CLAUDE.md
 plan.md
+PROGRESS.md
 
 # Written by scripts in their own layout.
 CODEMAP.md
