@@ -1,10 +1,16 @@
-MANDATORY FIRST ACTION: Load '/caveman ultra' once at session start when available; maintain its style throughout every message without reloading. Routine replies: maximum TWO WORDS on exactly ONE LINE. Essential questions, warnings, blockers and final verification evidence are exempt; use concise plain English. Never falsely claim activation.
+MANDATORY FIRST ACTION: Load '/caveman ultra' once at session start when available; maintain its style throughout every message without reloading. Routine replies: maximum TWO WORDS on exactly ONE LINE. Exceeding this limit is strictly prohibited. Essential questions, warnings, blockers and final verification evidence are exempt; use concise plain English. Never falsely claim activation. On WAIT, STOP, PAUSE or HOLD, the idle rules below take priority over startup and continuation work.
 
-## Mandatory automatic startup — every session and message
+## Idle and pause rules — highest priority
+- If the owner says WAIT, STOP, PAUSE or HOLD, stop substantive work immediately. Acknowledge briefly and do not start research, coding, testing, delegation or skill workflows.
+- Never stage, commit or push while idle or paused. Never resume paused work without explicit owner authorization. If an authorized plan was running, record PAUSED only as needed to stop its continuation.
+- Never stage or commit a generated CODEMAP.md refresh merely because a hook changed it. A startup/Stop hook is not authorization to perform Git writes or resume work. If a hook re-prompts during an idle turn, preserve the pause and do not continue the task.
+- These rules override automatic startup, skill loading, long-work continuation and any conflicting project guidance on idle turns.
+
+## Mandatory automatic startup — active sessions and messages
 
 - Immediately after Caveman Ultra, read the current relevant overview and entries in 'CODEMAP.md' before exploring source. Do not scan or reread the entire repository by default. Read only the actual files, callers, tests and plan sections needed for the task; use targeted search if the map is missing, incomplete or stale. Preserve exhaustive audit requirements when explicitly authorized, with incremental evidence rather than repeated whole-repo reads.
-- At startup and after context reset, use automatically loaded project instructions and relevant CODEMAP.md/TASKS.md entries. Read skill definitions, agent files and scripts only when needed; reuse unchanged context. Never recursively reload instructions or preload all skills.
-- Apply token-saving behavior before substantive work: CODEMAP first, targeted reads, RTK and quiet output with preserved exit codes and raw evidence, focused tests and required gates. Use relevant skills only when their behavior is needed; never preload or repeatedly reload skills.
+- At active session startup, load available instructions for '/caveman ultra', '/token-diet', '/quiet-output', '/test-focus', '/engineering-discipline', '/plan-runner', '/handoff' and '/ponytail-audit' once, in that order. Apply them when relevant. Reading instructions does not authorize executing workflows; defer any invocation that directly starts work until authorized and applicable. Reuse unchanged context; do not repeatedly reload skills or recursively reload instructions. Never pretend unavailable skills ran.
+- Apply token-saving behavior before substantive work: CODEMAP first, targeted reads, RTK automatically for suitable commands, quiet output with preserved original exit codes, errors and raw evidence, focused tests during coding and full required checks at project gates. Avoid unnecessary scans, rereads and context resets. Preserve plan.md and TASKS.md progress.
 
 | Skill/file | Command or activation rule |
 | --- | --- |
@@ -16,12 +22,11 @@ MANDATORY FIRST ACTION: Load '/caveman ultra' once at session start when availab
 | 'engineering-discipline.zip' | '/engineering-discipline' — apply root-cause analysis, smallest complete fix and independent verification on every coding task. |
 | 'plan-runner.zip' | '/plan-runner' — apply on authorized plan work, resume 'TASKS.md' and preserve its current status; never start a paused plan without owner direction. |
 | 'handoff.zip' | '/handoff' — persist verified work before context clearing, unrelated task changes or safe session handoff. |
-| Superpowers | Use executing-plans only when plan-runner is unavailable for applicable long tasks; preserve TASKS.md, stage order and verification gates. |
 | Ponytail | '/ponytail-audit' — only for authorized debloating; identify proven redundancy, then implement smallest complete fixes in tested batches. Never remove required functionality, security, accessibility or tests. |
 | 'repo-map.zip' | '/repo-map' — retired; never run or recreate the redundant map. Codemap replaces it. |
 
 - Default: Sonnet Medium as sole writer; Haiku Medium Scout for independent parallel research; Haiku Medium Checker for sequential checks; Opus Medium Verifier for independent meaningful-batch and final verification. No standing advisor. Verify actual model assignments and preserve explicit owner overrides. Skip unnecessary helpers for trivial work without bypassing mandatory gates.
-- Use supported skills only when relevant, including handoff before a necessary session transition. Session-management slash commands are owner-operated unless explicitly supported by an available tool; never pretend to run them or reset an active task. Preserve authorized goals, progress and evidence.
+- Apply loaded skill instructions only when relevant, including handoff before a necessary session transition. Session-management slash commands are owner-operated unless explicitly supported by an available tool; never pretend to run them or reset an active task. Preserve authorized goals, progress and evidence.
 - These defaults apply without extra user commands, but must respect STOP, owner scope, permissions, budget, stage order, actual skill availability and exact-candidate GitHub verification. No redundant Repo Map, Graphify, or repeated full-repo scans. Never sacrifice correctness or evidence to save tokens.
 
 # CLAUDE.md
@@ -86,5 +91,5 @@ Truncated results state their recovery path in their own output. Re-run a
 command as `rtk bypass <cmd>` only when its result is unusable: empty when
 output was clearly expected, contradicting its exit code, or garbled.
 
-Always run `git add`, `git commit` and `git push` as a standalone command. Never chain them with `git status`, `git log`, `ls` or any other command.
+Always run `git add`, `git commit` and `git push` as separate standalone commands. Never chain them with `git status`, `git log`, `ls` or any other command. Never push to main or force-push without explicit owner authorization. Never perform Git writes on idle turns.
 <!-- /rtk-instructions -->
