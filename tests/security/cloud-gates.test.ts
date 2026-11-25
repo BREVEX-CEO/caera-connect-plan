@@ -323,7 +323,7 @@ test("the browser audit never sends a synthetic session to redirects or subframe
         "from surface_audit import ENGINES, browser_profiles, route_url, session_script",
         "from playwright.sync_api import sync_playwright",
         "with sync_playwright() as driver:",
-        "    assert all(len(browser_profiles(driver, engine)) == 2 for engine in ENGINES)",
+        "    assert all(len(browser_profiles(driver, engine)) == 3 for engine in ENGINES)",
         'assert route_url("https://audit.example/", "/library?view=summary#items") == "https://audit.example/library?view=summary"',
         'assert route_url("https://audit.example/", "http://audit.example/library") is None',
         'assert route_url("https://audit.example/", "https://other.example/library") is None',

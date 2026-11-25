@@ -110,11 +110,13 @@ def open_page(page, url: str):
 
 def browser_profiles(playwright, engine: str) -> list[tuple[str, dict]]:
     desktop = ("desktop", {"viewport": {"width": 1366, "height": 900}})
+    # A tablet-width touch viewport on every engine: the layout between phone and desktop is its own case.
+    tablet = ("tablet", {"viewport": {"width": 820, "height": 1180}, "has_touch": True})
     if engine == "webkit":
-        return [desktop, ("ios-emulation", playwright.devices["iPhone 13"])]
+        return [desktop, tablet, ("ios-emulation", playwright.devices["iPhone 13"])]
     if engine == "chromium":
-        return [desktop, ("android-emulation", playwright.devices["Pixel 5"])]
-    return [desktop, ("phone-viewport", {"viewport": {"width": 390, "height": 844}, "has_touch": True})]
+        return [desktop, tablet, ("android-emulation", playwright.devices["Pixel 5"])]
+    return [desktop, tablet, ("phone-viewport", {"viewport": {"width": 390, "height": 844}, "has_touch": True})]
 
 
 def launch_audit_browser(playwright, engine: str):
