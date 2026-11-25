@@ -76,3 +76,14 @@ Production or public deploys, payment activation, deleting data or branches, for
 
 ## Tokens
 Use concise command summaries, preserve true exit codes and relevant diagnostics, avoid repeated reads of unchanged evidence, and avoid pasting whole source files. Before changing unrelated scope, persist progress and use handoff/context clearing only when safe. Do not sacrifice correctness, security or verification to save tokens.
+
+<!-- rtk-instructions v2 -->
+# Command output
+
+Command output here is condensed to save tokens, keeping every signal and
+dropping costly noise. Treat it as the complete result: run commands
+normally, and batch related commands into one call to avoid extra turns.
+Truncated results state their recovery path in their own output. Re-run a
+command as `rtk bypass <cmd>` only when its result is unusable: empty when
+output was clearly expected, contradicting its exit code, or garbled.
+<!-- /rtk-instructions -->
