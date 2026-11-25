@@ -11,7 +11,10 @@ Use the short startup summary; do not read the complete CODEMAP.md. Query first:
 - `python3 scripts/codemap.py --tests "path or symbol"` (candidate related tests)
 - `python3 scripts/codemap.py --security "path or symbol"` (security hints)
 - `python3 scripts/codemap.py --related "path or symbol"`
-- `python3 scripts/codemap.py --diagnostics` (unresolved imports and unindexed exports; verify against compiler/source)
+- `python3 scripts/codemap.py --diagnostics` (parse errors, unresolved imports and unindexed exports; verify against compiler/source)
+- `python3 scripts/codemap.py --cycles` (static dependency cycle witnesses)
+- `python3 scripts/codemap.py --unused` (TypeScript module-private function candidates)
+- `python3 scripts/codemap.py --duplicates` (byte-identical parsed files)
 - `python3 scripts/codemap.py --path "source" "target"` (directed file dependency path)
 
 Each query refreshes changed files automatically and caps output by character budget; verify exact source lines before changes. Use targeted source search when necessary. Never treat inferred calls, migration hints, filename-based security hints or missing results as proof.

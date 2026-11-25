@@ -73,6 +73,11 @@ jobs:
         run: |
           npm ci --no-audit --no-fund
           python -m pip install --require-hashes -r device-agent/windows/requirements.lock
+      - name: Run CodeMap product regressions in Chromium
+        timeout-minutes: 8
+        run: |
+          node node_modules/playwright-core/cli.js install --with-deps --only-shell chromium
+          node --test tests/codemap-product-regressions.mjs
       - name: Verify CodeMap generation and freshness
         run: |
           NODE_PATH="$PWD/node_modules" python3 -m unittest discover -s tests -p test_codemap.py -v

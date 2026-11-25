@@ -771,3 +771,48 @@ The existing `tests.run_required.main` loads selected modules/classes/methods or
 ## Historical GO / NO-GO status (Part 20.1)
 
 20.1. Current status is NO-GO for public deployment until runtime evidence is independently verified.
+
+## CodeMap upgrade and product regression evidence (2026-11-26)
+
+Baseline `b9795f6d7f54`. Local work only. Ranked fuzzy search, JSX and local call hints, parse diagnostics, checksum recovery, duplicate and unused candidates, and related test discovery added to the existing generator. Three browser defects reproduced and repaired: account language on switch, Help punctuation, and Help contact guidance after filtering. Three browser regressions, 14 CodeMap tests and all eight portable gates passed. Each repair replay reparsed exactly one file.
+
+| Metric | Old CodeMap | Upgraded CodeMap | Graphify |
+|---|---:|---:|---:|
+| Cold index | 1.620 s | 1.269 s | 9.112 s |
+| Warm refresh | 0.364 s | 0.159 s | 0.548 s |
+| One TypeScript file edit | 0.597 s | 0.345 s | 5.008 s |
+| Query latency | 0.562 s | 0.256 s | 0.519 s |
+| Cold CPU time | 2.33 s | 1.87 s | 21.92 s |
+| Cold largest-process peak RSS | 180.5 MiB | 146.7 MiB | 143.3 MiB |
+| Warm largest-process peak RSS | 51.6 MiB | 55.3 MiB | 42.3 MiB |
+| Index and cache footprint | 7.61 MiB | 8.17 MiB | 21.56 MiB |
+| Successful query output tokens | 227 | 167 | 423 |
+| Expected path in successful response | 15/18 | 15/18 | 12/18 |
+
+GitHub candidate checks and independent Opus review remain open. No completion or universal superiority claim.
+
+## CodeMap final optimization candidate (2026-11-26)
+
+The branch remains at `b9795f6d7f549edf60dc3497c541464ab681c727`. The patch changes and the follow-up optimization are in the local working tree.
+
+Search now scores query concepts across paths and symbols, recognizes related word forms, recovers misspellings, and limits repeated files in the short result. The route for login verification ranks first for the original failing prompt. Scoped calls and receiver methods carry inferred locations. Cache data is compressed and integrity checked. A render receipt avoids regenerating an unchanged Markdown map. Verification mode still rebuilds and compares the expected map independently. The existing non-deploying workflow now declares a Chromium step for the three product regressions.
+
+| Metric | Branch CodeMap | Final candidate | Graphify |
+| --- | ---: | ---: | ---: |
+| Expected file in successful output | 48/102 | 102/102 | 87/102 |
+| Cold indexing | 1.509 s | 1.209 s | 9.136 s |
+| Warm refresh | 0.375 s | 0.124 s | 0.552 s |
+| Single-file edit | 0.522 s | 0.392 s | 5.311 s |
+| Query latency | 0.499 s | 0.221 s | 0.521 s |
+| Cold CPU | 2.15 s | 1.83 s | 19.57 s |
+| Cold largest process RSS | 166.12 MiB | 144.51 MiB | 143.20 MiB |
+| Index and cache | 7.61 MiB | 6.31 MiB | 21.56 MiB |
+| Successful output tokens | 241.5 | 184 | 427 |
+| Cold process tree RSS | 222.10 MiB | 180.32 MiB | 653.35 MiB |
+| Warm process tree RSS | 37.89 MiB | 33.08 MiB | 42.47 MiB |
+
+The original six-query suite improved from 15/18 to 18/18. All three browser repairs were replayed. Each automatic update reparsed one file. All 34 comparison tasks were preselected; results cover three trials. The process-tree RSS includes shared pages. CLI tokens are a proxy for context, not total agent use.
+
+Sixteen CodeMap tests, three Chromium regressions, eight portable verification gates, and 39 database suites passed locally. The database replay also passed the concurrency checks and all 60 rollback round trips. The first full companion attempt ran 321 tests with five missing-ReportLab errors and 18 skips. After installing the pinned CI dependencies, targeted catalog, media and Chromium proxy cases passed. Xvfb could not open its required sockets, so DISPLAY-gated cases remained blocked. Eleven evaluation tests also passed. The security and contract suite produced 401 passes, nine skips, and one failure. The same privilege-drop test fails on the unchanged base because this workspace has no `sudo`. The full hosted companion matrix remains unverified. Explicit upstream verification passed after raising its Git timeout separately from session startup.
+
+Exact-candidate GitHub Actions and the independent Opus review remain open. There is no final candidate commit or CI result. The workspace does not have an authenticated GitHub CLI, the connector exposes reruns but no workflow dispatch, and no Opus verifier is available here.

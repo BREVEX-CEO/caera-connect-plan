@@ -12,6 +12,10 @@ import { Row } from "./rows";
 export function AnswerLanguage() {
   const { user } = useSession();
   const account = user?.id ?? "";
+  return <AnswerLanguageSelect key={account} account={account} />;
+}
+
+function AnswerLanguageSelect({ account }: { account: string }) {
   const [language, setLanguage] = useState<Language>(() => readAnswerLanguage(account));
   return (
     <Row

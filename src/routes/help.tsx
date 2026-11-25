@@ -38,6 +38,20 @@ const CATEGORIES = [
 ] as const;
 type Category = (typeof CATEGORIES)[number];
 
+const CONTACT = {
+  category: "Privacy & security",
+  question: "How do I contact OCADE?",
+  words: "contact support email grievance privacy request ticket",
+  answer: (
+    <p>
+      Dedicated support, privacy, security and grievance email addresses are not published yet:
+      OCADE publishes an address only once it is activated and verified, and this answer will name
+      it then. Until then, what you can do for your own account is in Settings: download a copy of
+      your data, delete conversations, files or the whole account, and sign out every session.
+    </p>
+  ),
+} as const;
+
 /** `words` is what search reads, so an answer is found by what it says. */
 const QUESTIONS: {
   category: Category;
@@ -304,19 +318,7 @@ const QUESTIONS: {
       </p>
     ),
   },
-  {
-    category: "Privacy & security",
-    question: "How do I contact OCADE?",
-    words: "contact support email grievance privacy request ticket",
-    answer: (
-      <p>
-        Dedicated support, privacy, security and grievance email addresses are not published yet:
-        OCADE publishes an address only once it is activated and verified, and this answer will name
-        it then. Until then, what you can do for your own account is in Settings: download a copy of
-        your data, delete conversations, files or the whole account, and sign out every session.
-      </p>
-    ),
-  },
+  CONTACT,
   {
     category: "Troubleshooting",
     question: "Voice does not start",
@@ -391,14 +393,20 @@ function textOf(node: React.ReactNode): string {
   return props ? textOf(props.children) : "";
 }
 
+function searchWords(value: string): string[] {
+  return value.toLowerCase().match(/[\p{L}\p{N}]+/gu) ?? [];
+}
+
 const SEARCHED = QUESTIONS.map((entry) =>
-  `${entry.question} ${entry.words} ${entry.category} ${textOf(entry.answer)}`.toLowerCase(),
+  searchWords(`${entry.question} ${entry.words} ${entry.category} ${textOf(entry.answer)}`).join(
+    " ",
+  ),
 );
 
 function HelpPage() {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<Category | null>(null);
-  const words = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  const words = searchWords(query);
   const shown = QUESTIONS.filter(
     (entry, at) =>
       (!category || entry.category === category) &&
@@ -456,9 +464,13 @@ function HelpPage() {
         ))}
       </div>
 
+      {!shown.includes(CONTACT) ? (
+        <div className="mt-6 border-y border-border/50">
+          <Faq question={CONTACT.question}>{CONTACT.answer}</Faq>
+        </div>
+      ) : null}
       <p className="mt-8 text-sm text-muted-foreground">
-        Still stuck? &ldquo;How do I contact OCADE?&rdquo; above says what is available today. The{" "}
-        <Link to="/terms">Terms &amp; Conditions</Link> and{" "}
+        The <Link to="/terms">Terms &amp; Conditions</Link> and{" "}
         <Link to="/privacy">Privacy Policy</Link> carry the formal answers.
       </p>
     </PublicPage>

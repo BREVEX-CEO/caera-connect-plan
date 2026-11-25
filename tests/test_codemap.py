@@ -193,6 +193,66 @@ class CodeMapTests(unittest.TestCase):
         self.assertIn("No indexed import diagnostics", self.runmap("--diagnostics", "--require-ast"))
         self.runmap("--check", "--require-ast")
 
+    def test_context_fuzzy_and_corrupt_cache_recovery(self):
+        self.write("settings.ts", "export function refreshPreference() {}")
+        result = self.runmap("--query", "where is refresh prefernce", "--require-ast")
+        self.assertIn("FUNCTION refreshPreference | settings.ts:1", result)
+        cache = self.root / ".git" / "codemap-v2.json"
+        receipt, payload = cache.read_bytes().split(b"\n", 1)
+        cache.write_bytes(receipt + b"\n" + payload[:-1] + bytes([payload[-1] ^ 1]))
+        result = self.runmap("--query", "refreshPreference", "--stats", "--require-ast")
+        self.assertGreater(json.loads(result.splitlines()[0])["parsed"], 1)
+        self.assertIn("FUNCTION refreshPreference | settings.ts:1", result)
+
+    def test_local_calls_parse_errors_and_review_candidates(self):
+        self.write("feature.ts", "export function feature() { helper(); }\nfunction helper() {}\nfunction spare() {}")
+        self.write("broken.ts", "export const broken = ;")
+        self.assertIn("PARSE-ERROR TS", self.runmap("--diagnostics"))
+        self.assertIn("broken.ts:1", self.runmap("--diagnostics"))
+        trace = self.runmap("--trace", "helper")
+        self.assertIn("feature => helper:2 [INFERRED LOCAL]", trace)
+        unused = self.runmap("--unused")
+        self.assertIn("spare | feature.ts:3", unused)
+        self.assertNotIn("helper", unused)
+        self.write("broken.ts", "export const broken = 1;")
+        self.assertNotIn("broken.ts:1", self.runmap("--diagnostics"))
+
+    def test_route_concepts_rank_over_unrelated_verification(self):
+        routes = self.root / "routes"
+        routes.mkdir()
+        self.write("routes/auth.verify.ts", 'export const Route = createFileRoute("/auth/verify");')
+        self.write("worker.ts", "export function checkWorkVerification() {}")
+        output = self.runmap("--query", "how does login verification work", "--require-ast")
+        self.assertIn("routes/auth.verify.ts:1", output.splitlines()[1])
+
+    def test_rename_refreshes_scoped_calls_and_recovers_render(self):
+        self.write("feature.ts", """export class Feature {
+  run() { this.refresh(); }
+  refresh() {}
+}
+""")
+        self.write("consumer.ts", 'import {Feature} from "./feature"; export const current = new Feature();')
+        self.runmap("--require-ast")
+        self.assertIn("Feature.run => Feature.refresh:3 [INFERRED LOCAL]", self.map.read_text())
+        (self.root / "feature.ts").rename(self.root / "new-feature.ts")
+        self.write("new-feature.ts", """export class Feature {
+  run() { this.reload(); }
+  reload() {}
+}
+""")
+        self.write("consumer.ts", 'import {Feature} from "./new-feature"; export const current = new Feature();')
+        stats = json.loads(self.runmap("--stats", "--require-ast"))
+        self.assertEqual((stats["parsed"], stats["deleted"]), (2, 1))
+        correct = self.map.read_bytes()
+        self.assertIn(b"Feature.run => Feature.reload:3", correct)
+        self.assertIn(b"consumer.ts:1 => new-feature.ts", correct)
+        self.assertNotIn(b"Feature.refresh", correct)
+        self.assertNotIn(b"FILE feature.ts", correct)
+        self.map.write_bytes(correct + b"\xff")
+        self.runmap("--check", code=1)
+        self.runmap("--query", "Feature.reload")
+        self.assertEqual(self.map.read_bytes(), correct)
+
     def test_parallel_refresh(self):
         procs = [subprocess.Popen([sys.executable, str(self.root / "scripts" / "codemap.py")],
                                   cwd=self.root, stdout=subprocess.PIPE, stderr=subprocess.PIPE)

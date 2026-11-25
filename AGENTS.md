@@ -72,6 +72,8 @@ Stop analysing when the next piece of information would not change the decision.
 
 ## Repository navigation
 
+Architecture: `src/routes` owns web entry points, `src/lib` owns shared app and server logic, `supabase` owns migrations and edge functions, and `device-agent` owns the desktop companion.
+
 Use the startup CodeMap summary and a bounded built-in query to locate files. Verify
 against source, callers and tests. Search the repository directly when the
 index is stale or incomplete.
