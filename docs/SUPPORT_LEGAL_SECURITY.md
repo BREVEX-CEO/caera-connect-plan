@@ -1,6 +1,6 @@
 # OCADE security, privacy, support and commerce contracts
 
-This document owns security, privacy, privileged operations, support access and commercial integrity. [Open work](../BLOCKED_TESTS.md) owns unresolved implementation and verification; [ARCHITECTURE.md](ARCHITECTURE.md) owns execution design; [TESTING.md](TESTING.md) owns proof and release procedures. These are requirements, not claims that every requirement is implemented.
+This document owns security, privacy, privileged operations, support access and commercial integrity. [Open work](../PROGRESS.md) owns unresolved implementation and verification; [ARCHITECTURE.md](https://github.com/BREVEX-CEO/caera-connect-plan/blob/5b88b0c5c830ad719dd4cabd8635db53a7a18586/docs/ARCHITECTURE.md) owns execution design; [TESTING.md](https://github.com/BREVEX-CEO/caera-connect-plan/blob/5b88b0c5c830ad719dd4cabd8635db53a7a18586/docs/TESTING.md) owns proof and release procedures. These are requirements, not claims that every requirement is implemented.
 
 The documentation mission changes no application source, schema, infrastructure, customer data, credentials or deployments. Source findings below were inspected against `f521e23529542d709a9627181341b0e904a8b0c3`; deployed enforcement requires separate evidence. Reproduce on the implementation baseline before fixing. Historical reports of failed TOTP enrolment are reproduction leads, not proof of a current failure.
 
@@ -131,7 +131,7 @@ Maintain `src/lib/account/data-classes.ts`: export/delete covers active classes,
 
 Keep shared erasure, trigger-created tombstones and owner-scoped paths. Add bounded monitored retry through the existing scheduling boundary after inspecting `src/cloudflare-entry.ts` and scheduled jobs; do not add a second scheduler blindly. Obligations survive identity deletion until Storage confirms. Track attempts/error/next retry and operator visibility. Unavailable count is unknown/error, never zero.
 
-Receipts distinguish database deletion, pending files, identity deletion, retained exceptions and completion time. Retry partial erasure idempotently; revoke sessions/devices and cancel work. Recovery cannot resurrect intentionally deleted content. Tests live in [TESTING.md](TESTING.md).
+Receipts distinguish database deletion, pending files, identity deletion, retained exceptions and completion time. Retry partial erasure idempotently; revoke sessions/devices and cancel work. Recovery cannot resurrect intentionally deleted content. Tests live in [TESTING.md](https://github.com/BREVEX-CEO/caera-connect-plan/blob/5b88b0c5c830ad719dd4cabd8635db53a7a18586/docs/TESTING.md).
 
 ## 10. Commercial authority and future billing
 
@@ -153,7 +153,7 @@ Current hosting is Cloudflare **Workers with static assets and R2**, not Pages-o
 
 Secrets stay server-side, never source, built assets, debug output or screenshots. Signing needs key identifiers, rotation/overlap/expiry, revoked-key behaviour and recovery. Never weaken signature verification to pass an update. Sign exact packaged bytes; install atomically, recover interruptions and retain a verified compatible prior version. Rollback must not reintroduce a known compromised build.
 
-Keep `scripts/deploy.mjs` and the manual production workflow. Web, Edge Function, schema, artifact and native/Android releases are separate. Health identifies routing/version liveness, not RLS, provider quality, workflow correctness or physical safety. [TESTING.md](TESTING.md) owns full release/rollback procedure.
+Keep `scripts/deploy.mjs` and the manual production workflow. Web, Edge Function, schema, artifact and native/Android releases are separate. Health identifies routing/version liveness, not RLS, provider quality, workflow correctness or physical safety. [TESTING.md](https://github.com/BREVEX-CEO/caera-connect-plan/blob/5b88b0c5c830ad719dd4cabd8635db53a7a18586/docs/TESTING.md) owns full release/rollback procedure.
 
 ## 12. Incident response and support
 

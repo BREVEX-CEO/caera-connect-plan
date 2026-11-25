@@ -1,5 +1,7 @@
 # OCADE — PROGRESS
 
+Historical paths in preserved progress entries refer to the pre-cleanup repository snapshot at https://github.com/BREVEX-CEO/caera-connect-plan/blob/5b88b0c5c830ad719dd4cabd8635db53a7a18586/plan.md; use the same commit for retired documents. Current progress belongs here.
+
 ## Documentation cleanup (25 November 2026)
 
 The owner retired obsolete Markdown reports, archived plans, prior research notes and evidence Markdown from the tracked working tree. All 266 historical requirement IDs are now present in plan.md, and its 84 architecture concept rows and 148 task IDs remain intact. The pre-cleanup snapshot is [`5b88b0c5c830ad719dd4cabd8635db53a7a18586`](https://github.com/BREVEX-CEO/caera-connect-plan/tree/5b88b0c5c830ad719dd4cabd8635db53a7a18586). Historical paths in the copied reports below refer to that snapshot when the files no longer exist in the current tree. The retired [72-entry repository ledger](https://github.com/BREVEX-CEO/caera-connect-plan/blob/5b88b0c5c830ad719dd4cabd8635db53a7a18586/docs/JARVIS_REPO_LEDGER.md) is historical evidence; record any new REPO-01–72 dispositions here. Retain raw non-Markdown evidence and all automated verification. No readiness status is promoted by this cleanup.
@@ -235,7 +237,7 @@ The 41-repository integration research (`docs/OCADE_INTEGRATION_RESEARCH.md`) an
 
 ## Appendix D — Defect register (single live list)
 
-**Active view:** open, partial, mitigated, code-fixed (not yet verified on the stated platform) and candidate defects. Fixed defects (D1, D2, D3, D5, D6, D7, D12, D13, D14, D17, D18, D20, D21, D27, D30, D31, D32, D33, D34, D35, D36, D37, D38, D39, D40, D41) and the closed-defect history are archived verbatim in [archive Appendix D](docs/archive/plan-v6-2026-11-07.md); their regression tests stay in the required suites. D22 and D24 stay here: fixed on the hosted runners, not yet on consumer machines.
+**Active view:** open, partial, mitigated, code-fixed (not yet verified on the stated platform) and candidate defects. Fixed defects (D1, D2, D3, D5, D6, D7, D12, D13, D14, D17, D18, D20, D21, D27, D30, D31, D32, D33, D34, D35, D36, D37, D38, D39, D40, D41) and the closed-defect history are archived verbatim in [archive Appendix D](https://github.com/BREVEX-CEO/caera-connect-plan/blob/5b88b0c5c830ad719dd4cabd8635db53a7a18586/docs/archive/plan-v6-2026-11-07.md); their regression tests stay in the required suites. D22 and D24 stay here: fixed on the hosted runners, not yet on consumer machines.
 
 Severity: CRITICAL = unauthorised action, data loss, secret exposure or wrong-target mutation; HIGH = release-blocking correctness, safety or product failure; MEDIUM; LOW. Sources: run logs and `evidence/2026-11-01-audit/codex-continuation.md`. Record hypothesis → result here so no defect is investigated twice.
 
