@@ -1,4 +1,4 @@
-MANDATORY FIRST ACTION: At the beginning of every session and every user message, always run '/caveman ultra' first (if available and not already active); otherwise apply its concise style directly. Never falsely claim activation.
+MANDATORY FIRST ACTION: Always use '/caveman ultra' in every session and every message. Always reply in at most TWO WORDS on exactly ONE LINE; exceeding this limit is strictly prohibited as a project rule, except for mandatory questions, safety warnings, real blockers and verification reports specified below. If the skill is unavailable, apply its style directly; never falsely claim activation.
 
 ## Mandatory automatic startup — every session and message
 
