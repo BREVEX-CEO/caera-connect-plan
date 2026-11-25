@@ -115,6 +115,60 @@ class CodeMapTests(unittest.TestCase):
         shutil.rmtree(self.root / ".git")
         self.runmap(code=1)
 
+    def test_ast_query_and_real_bug_fix(self):
+        # Reproduce a missing typed export and a broken import, then repair the import.
+        self.write("auth.ts", "export const login: () => number = () => 1;\n")
+        self.write("route.ts", 'import { login } from "./missing";\nexport function run() { return login(); }\n')
+        first = self.runmap("--query", "login", "--require-ast")
+        self.assertIn("FUNCTION login | auth.ts:1", first)
+        self.assertNotIn("route.ts:1 => auth.ts", first)
+        self.write("route.ts", 'import { login } from "./auth";\nexport function run() { return login(); }\n')
+        result = self.runmap("--trace", "login", "--require-ast")
+        self.assertIn("route.ts:1 => auth.ts", result)
+        self.assertIn("route.ts:2 => auth.ts", result)
+        self.assertIn("[INFERRED]", result)
+        self.assertIn("EXPORT login | auth.ts:1", self.map.read_text())
+        self.runmap("--check", "--require-ast")
+
+    def test_route_database_security_test_impact_and_path(self):
+        self.write("api.ts", 'export function load() { return db.from("profiles"); }\n')
+        self.write("route.ts", 'import { load } from "./api";\nexport const Route = createFileRoute("/login")({ loader: load });\n')
+        self.write("schema.sql", 'CREATE TABLE public.profiles(id int);\nALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;\nCREATE POLICY p ON public.profiles USING (true);\n')
+        self.write("api.test.ts", 'import { load } from "./api";\nload();\n')
+        self.runmap("--require-ast")
+        text = self.map.read_text()
+        self.assertIn("ROUTE /login | route.ts:2", text)
+        self.assertIn("api.ts:1 => schema.sql", text)
+        self.assertIn("POLICY public.profiles | schema.sql:3", text)
+        self.assertIn("TESTS api.test.ts", self.runmap("--tests", "api.ts"))
+        self.assertIn("IMPACT route.ts", self.runmap("--impact", "api.ts"))
+        self.assertIn("route.ts => api.ts => schema.sql", self.runmap("--path", "route.ts", "schema.sql"))
+
+    def test_incremental_reuse_and_deleted_relationship(self):
+        self.write("other.py", "from example import old\nold()\n")
+        first = json.loads(self.runmap("--stats"))
+        self.assertGreater(first["parsed"], 0)
+        warm = json.loads(self.runmap("--stats"))
+        self.assertEqual(warm["parsed"], 0)
+        self.assertEqual(warm["read_bytes"], 0)
+        self.write("example.py", "def new():\n    return 1\n")
+        update = json.loads(self.runmap("--stats"))
+        self.assertEqual(update["parsed"], 1)
+        (self.root / "example.py").unlink()
+        self.assertIn("No indexed matches", self.runmap("--query", "example.py"))
+        self.assertNotIn("=> example.py", self.map.read_text())
+        self.runmap("--check")
+
+    def test_cycles_and_bounded_queries(self):
+        self.write("a.ts", 'import "./b";\nexport function alpha() {}\n')
+        self.write("b.ts", 'import "./a";\nexport function beta() {}\n')
+        self.runmap("--require-ast")
+        self.assertIn("CYCLE a.ts => b.ts => a.ts", self.map.read_text())
+        self.assertLessEqual(len(self.runmap("--query", "a.ts", "--budget", "50")), 151)
+        self.assertLessEqual(len(self.runmap("--summary")), 4201)
+        self.runmap("--guard-read", code=2, event={"tool_input": {"file_path": str(self.map)}})
+        self.runmap("--guard-read", event={"tool_input": {"file_path": str(self.map), "limit": 100}})
+
     def test_parallel_refresh(self):
         procs = [subprocess.Popen([sys.executable, str(self.root / "scripts" / "codemap.py")],
                                   cwd=self.root, stdout=subprocess.PIPE, stderr=subprocess.PIPE)

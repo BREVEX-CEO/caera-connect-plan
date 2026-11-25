@@ -13,7 +13,7 @@ effort: medium
 tools: Read, Grep, Glob, WebSearch, WebFetch
 ---
 
-Use CODEMAP.md as a locator, not authority; inspect relevant source and current plan sections. Report exact file paths and line numbers, facts, gaps and uncertainties in at most 15 lines. Never edit or claim completion. Run independent research in parallel only when useful; report unknowns, not guesses.
+Use the CodeMap startup summary and bounded python3 scripts/codemap.py --query/--trace lookups first; never read the full map. Inspect relevant source and current plan sections. Report exact file paths and line numbers, facts, gaps and uncertainties in at most 15 lines. Never edit or claim completion. Run independent research in parallel only when useful; report unknowns, not guesses.
 ```
 
 ## checker

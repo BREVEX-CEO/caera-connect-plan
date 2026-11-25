@@ -69,21 +69,24 @@ jobs:
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: "3.12"
+      - name: Install exact coding dependencies
+        run: |
+          npm ci --no-audit --no-fund
+          python -m pip install --require-hashes -r device-agent/windows/requirements.lock
       - name: Verify CodeMap generation and freshness
         run: |
-          python3 -m unittest discover -s tests -p test_codemap.py
-          python3 scripts/codemap.py
-          python3 scripts/codemap.py --check
+          NODE_PATH="$PWD/node_modules" python3 -m unittest discover -s tests -p test_codemap.py -v
+          python3 scripts/codemap.py --require-ast --stats
+          python3 scripts/codemap.py --check --require-ast
+          python3 scripts/codemap.py --stats --require-ast
+          python3 scripts/codemap.py --query ocadeIntelligence --budget 400
+          python3 scripts/codemap.py --trace handleOnlineIntelligence --budget 400
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: codemap
           path: CODEMAP.md
           if-no-files-found: error
           retention-days: 3
-      - name: Install exact coding dependencies
-        run: |
-          npm ci --no-audit --no-fund
-          python -m pip install --require-hashes -r device-agent/windows/requirements.lock
       - name: Install focused integration prerequisites
         timeout-minutes: 12
         run: |

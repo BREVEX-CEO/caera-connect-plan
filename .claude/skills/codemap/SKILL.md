@@ -1,8 +1,18 @@
 ---
 name: codemap
-description: Locate OCADE code, tests and configuration using the repository index. Use for orientation or to refresh the file index and architecture overview.
+description: Query OCADE code, dependencies, calls, routes, database hints, tests and change impact through a single incremental index.
 ---
 
-Read the overview and search `CODEMAP.md` for the relevant directories and symbols. Open the real files to confirm ownership, behavior and tests. Use targeted Git or text search when the index is incomplete.
+Use the short startup summary; do not read the complete CODEMAP.md. Query first:
 
-Run `python3 scripts/codemap.py` to regenerate the index. `--check` verifies the local commit and indexed content without rewriting; `--check --remote` additionally verifies the configured upstream HEAD without pulling. The generator preserves the overview between its markers. Update the overview when verified architecture or development commands change. Hooks refresh on session start, prompts, edit/command completion, before reading the map, and session stop. Do not commit the generated local map. Remote pushes produce a CodeMap artifact for the exact tested commit; synchronize safely before using remote source changes.
+- `python3 scripts/codemap.py --query "task or symbol" --budget 650`
+- `python3 scripts/codemap.py --trace "symbol"` (calls and relationships)
+- `python3 scripts/codemap.py --impact "path or symbol"` (bounded reverse dependencies)
+- `python3 scripts/codemap.py --tests "path or symbol"` (candidate related tests)
+- `python3 scripts/codemap.py --security "path or symbol"` (security hints)
+- `python3 scripts/codemap.py --related "path or symbol"`
+- `python3 scripts/codemap.py --path "source" "target"` (directed file dependency path)
+
+Each query refreshes changed files automatically and caps output by character budget; verify exact source lines before changes. Use targeted source search when necessary. Never treat inferred calls, migration hints, filename-based security hints or missing results as proof.
+
+Run `python3 scripts/codemap.py --summary` for the short overview, `--stats` for cache activity, `--check` for full content freshness, and `--check --remote` for read-only upstream comparison. The TypeScript parser uses the project's existing installed TypeScript package; coverage is explicitly reported. Python AST needs no dependencies. No AI inference or new package installs. Never commit the generated map or internal cache.
