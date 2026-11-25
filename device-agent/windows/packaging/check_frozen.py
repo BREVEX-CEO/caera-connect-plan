@@ -178,8 +178,8 @@ async def main(executable: str, path: str) -> None:
     program = root.parent if sys.platform == "darwin" else root
     files = [file for file in program.rglob("*") if file.is_file()]
     # Redistribution (180, 182): the notices ship with the program (the spec refuses GPL modules).
-    if not any(file.name == "THIRD_PARTY_NOTICES.md" for file in files):
-        raise RuntimeError("the installer is missing THIRD_PARTY_NOTICES.md")
+    if not any(file.name == "THIRD_PARTY_NOTICES.txt" for file in files):
+        raise RuntimeError("the installer is missing THIRD_PARTY_NOTICES.txt")
     print("OCADE_FROZEN_BUNDLE:" + json.dumps({
         "browserBundled": True, "files": len(files),
         "bytes": sum(file.stat().st_size for file in files),

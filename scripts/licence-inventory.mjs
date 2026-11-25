@@ -7,7 +7,7 @@
  * in device-agent/windows/requirements.lock (the companion installer) and every production
  * package in package-lock.json (the website bundle). A package that is not allowed may stay
  * only if it is marked not bundled and the installer spec really excludes it.
- * `--write` regenerates THIRD_PARTY_NOTICES.md from the same data.
+ * `--write` regenerates THIRD_PARTY_NOTICES.txt from the same data.
  */
 import { readFileSync, writeFileSync } from "node:fs";
 
@@ -162,7 +162,7 @@ ${rows(bundledPython)}
 ${rows(npm.sort((a, b) => a.name.localeCompare(b.name)))}
 `;
   writeFileSync(
-    "THIRD_PARTY_NOTICES.md",
+    "THIRD_PARTY_NOTICES.txt",
     text.replace(
       "## Native and runtime components",
       modelNoticeSection + "## Native and runtime components",
@@ -173,7 +173,7 @@ ${rows(npm.sort((a, b) => a.name.localeCompare(b.name)))}
 if (process.argv.includes("--check")) {
   for (const [item, action] of Object.entries(inventory.ownerReview ?? {}))
     console.log(`OWNER REVIEW: ${item}: ${action}`);
-  const notices = readFileSync("THIRD_PARTY_NOTICES.md", "utf8");
+  const notices = readFileSync("THIRD_PARTY_NOTICES.txt", "utf8");
   for (const [name, entry] of modelEntries)
     if (
       !notices.includes(`| ${name} |`) ||
@@ -182,7 +182,7 @@ if (process.argv.includes("--check")) {
       problems.push(`model ${name}: missing third-party notice or customer licence link`);
   for (const { name } of npm)
     if (!notices.includes(`| ${name} |`)) {
-      console.error(`THIRD_PARTY_NOTICES.md is out of date (${name}); run npm run licences:write`);
+      console.error(`THIRD_PARTY_NOTICES.txt is out of date (${name}); run npm run licences:write`);
       process.exit(1);
     }
   if (problems.length) {

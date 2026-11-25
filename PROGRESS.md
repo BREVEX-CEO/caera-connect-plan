@@ -1,5 +1,9 @@
 # OCADE — PROGRESS
 
+## Documentation cleanup (25 November 2026)
+
+The owner retired obsolete Markdown reports, archived plans, prior research notes and evidence Markdown from the tracked working tree. All 266 historical requirement IDs are now present in plan.md, and its 84 architecture concept rows and 148 task IDs remain intact. The pre-cleanup snapshot is [`5b88b0c5c830ad719dd4cabd8635db53a7a18586`](https://github.com/BREVEX-CEO/caera-connect-plan/tree/5b88b0c5c830ad719dd4cabd8635db53a7a18586). Historical paths in the copied reports below refer to that snapshot when the files no longer exist in the current tree. The retired [72-entry repository ledger](https://github.com/BREVEX-CEO/caera-connect-plan/blob/5b88b0c5c830ad719dd4cabd8635db53a7a18586/docs/JARVIS_REPO_LEDGER.md) is historical evidence; record any new REPO-01–72 dispositions here. Retain raw non-Markdown evidence and all automated verification. No readiness status is promoted by this cleanup.
+
 Sole live progress ledger. plan.md remains the sole requirements and stage-order authority. Record changes, exact commit SHA, affected IDs, code/test paths, independent verification, blockers, defects and remaining work here; do not claim current verification from historical evidence. Update once per meaningful coding batch and when a gate changes; preserve prior evidence. Task numbers refer to Part 0A of [plan.md](plan.md). A checked box requires independent verification; blocked work is incomplete. Statuses copied from the previous plan are historical until rechecked. No automatic execution hook.
 
 Source: plan.md at `a96cba4ab1d63b8360a7dd8af3851b57729364d3`. Part 0A status notes and the four historical sections below were transferred without altering their evidence.
