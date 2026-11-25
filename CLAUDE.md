@@ -1,14 +1,14 @@
-MANDATORY FIRST ACTION: Always apply '/caveman ultra' first in every session and message; invoke only if available and not already active. Routine replies: maximum TWO WORDS on exactly ONE LINE. Exceeding this limit is prohibited, except essential questions, safety warnings, real blockers and final verification evidence. Never falsely claim activation.
+MANDATORY FIRST ACTION: Load '/caveman ultra' once at session start when available; maintain its style throughout every message without reloading. Routine replies: maximum TWO WORDS on exactly ONE LINE. Essential questions, warnings, blockers and final verification evidence are exempt; use concise plain English. Never falsely claim activation.
 
 ## Mandatory automatic startup — every session and message
 
 - Immediately after Caveman Ultra, read the current relevant overview and entries in 'CODEMAP.md' before exploring source. Do not scan or reread the entire repository by default. Read only the actual files, callers, tests and plan sections needed for the task; use targeted search if the map is missing, incomplete or stale. Preserve exhaustive audit requirements when explicitly authorized, with incremental evidence rather than repeated whole-repo reads.
 - At startup and after context reset, use automatically loaded project instructions and relevant CODEMAP.md/TASKS.md entries. Read skill definitions, agent files and scripts only when needed; reuse unchanged context. Never recursively reload instructions or preload all skills.
-- Before substantive work, apply token-saving defaults in order: '/caveman ultra', '/codemap', '/token-diet', '/quiet-output', '/test-focus' when available and applicable. Load each needed skill once; do not blindly invoke it again. Use RTK for suitable commands and preserve original exit codes, raw logs and evidence. Invoke skills only through supported mechanisms; if unavailable apply the relevant principles directly.
+- Apply token-saving behavior before substantive work: CODEMAP first, targeted reads, RTK and quiet output with preserved exit codes and raw evidence, focused tests and required gates. Use relevant skills only when their behavior is needed; never preload or repeatedly reload skills.
 
 | Skill/file | Command or activation rule |
 | --- | --- |
-| Caveman | '/caveman ultra' — first action; routine replies maximum two words, exactly one line; essential questions, blockers, safety and final evidence exempt. |
+| Caveman | '/caveman ultra' — load once; maintain two-word, one-line routine replies throughout. |
 | 'token-diet.zip' | '/token-diet' — automatically apply targeted search, minimal context and concise output. |
 | 'quiet-output.zip' | '/quiet-output' if exposed; automatically apply concise command output using 'scripts/quiet-check.py' with original exit codes and retained diagnostics. |
 | 'test-focus.zip' | '/test-focus' if exposed; automatically apply focused regression tests, then broader required gates at the correct stage. |
@@ -16,13 +16,12 @@ MANDATORY FIRST ACTION: Always apply '/caveman ultra' first in every session and
 | 'engineering-discipline.zip' | '/engineering-discipline' — apply root-cause analysis, smallest complete fix and independent verification on every coding task. |
 | 'plan-runner.zip' | '/plan-runner' — apply on authorized plan work, resume 'TASKS.md' and preserve its current status; never start a paused plan without owner direction. |
 | 'handoff.zip' | '/handoff' — persist verified work before context clearing, unrelated task changes or safe session handoff. |
-| Cavecrew | Apply only for suitable read-only Haiku research; do not duplicate Scout work or spawn unnecessary agents. |
-| Superpowers | Use executing-plans for applicable long tasks; respect existing plan-runner, TASKS.md and stage/verification gates. No duplicate planning or automatic per-item reviewers. |
+| Superpowers | Use executing-plans only when plan-runner is unavailable for applicable long tasks; preserve TASKS.md, stage order and verification gates. |
 | Ponytail | '/ponytail-audit' — only for authorized debloating; identify proven redundancy, then implement smallest complete fixes in tested batches. Never remove required functionality, security, accessibility or tests. |
 | 'repo-map.zip' | '/repo-map' — retired; never run or recreate the redundant map. Codemap replaces it. |
 
 - Default: Sonnet Medium as sole writer; Haiku Medium Scout for independent parallel research; Haiku Medium Checker for sequential checks; Opus Medium Verifier for independent meaningful-batch and final verification. No standing advisor. Verify actual model assignments and preserve explicit owner overrides. Skip unnecessary helpers for trivial work without bypassing mandatory gates.
-- Other available commands are conditional, not blindly repeated: '/caveman-compress CLAUDE.md' only during authorized instruction optimization, '/caveman-stats' and '/context' or '/usage' when diagnosing usage, '/compact' only when needed, '/handoff' before '/clear' when switching unrelated work, '/rename' and '/resume' when managing sessions, '/mcp' when managing unused connectors, '/rewind' only when authorized to undo work. Use '/goal' for an authorized measurable long-running goal; '/goal clear' only when stopping it. Do not automatically clear, reset, overwrite, or restart an active goal.
+- Use supported skills only when relevant, including handoff before a necessary session transition. Session-management slash commands are owner-operated unless explicitly supported by an available tool; never pretend to run them or reset an active task. Preserve authorized goals, progress and evidence.
 - These defaults apply without extra user commands, but must respect STOP, owner scope, permissions, budget, stage order, actual skill availability and exact-candidate GitHub verification. No redundant Repo Map, Graphify, or repeated full-repo scans. Never sacrifice correctness or evidence to save tokens.
 
 # CLAUDE.md
