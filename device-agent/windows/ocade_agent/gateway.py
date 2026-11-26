@@ -60,6 +60,33 @@ DISCARD_SECONDS = 15
 PURE_READ_OPERATIONS = frozenset(PROTOCOL.get("pureReads", ()))
 # Network and browser settings the device owner chose, and the Windows system folders app
 # discovery reads (the SDK's minimal set omits them); never account credentials or tokens.
+# A proxy address may carry the person's proxy login (http://user:password@host). Commands, the
+# verifier and the other workers never need it, and what a command can read a model can ask for, so
+# only the browser worker (Chromium signs in to the proxy itself; page scripts cannot read the
+# environment) receives the address as it was written; every other worker gets it without the login.
+PROXY_VARIABLES = ("HTTPS_PROXY", "HTTP_PROXY", "https_proxy", "http_proxy", "ALL_PROXY", "all_proxy")
+KEEPS_PROXY_LOGIN = ("ocade_agent.web_worker",)
+
+
+def without_proxy_login(address: str) -> str:
+    """`address` with any user:password@ removed from its authority; unparsable text is dropped."""
+    from urllib.parse import urlsplit, urlunsplit
+
+    try:
+        parts = urlsplit(address)
+        if parts.username is None and parts.password is None and "@" not in parts.netloc:
+            return address
+        host = parts.hostname or ""
+        if not host:
+            return ""
+        if ":" in host:
+            host = f"[{host}]"  # an IPv6 address keeps its brackets
+        netloc = host + (f":{parts.port}" if parts.port else "")
+        return urlunsplit((parts.scheme, netloc, parts.path, parts.query, parts.fragment))
+    except ValueError:
+        return ""
+
+
 PASS_THROUGH = (
     "HTTPS_PROXY", "HTTP_PROXY", "NO_PROXY", "DISPLAY", "XAUTHORITY",
     "OCADE_BROWSER_EXECUTABLE", "PLAYWRIGHT_BROWSERS_PATH", "OCADE_ALLOW_PRIVATE_WEB",
@@ -223,6 +250,10 @@ class Gateway:
             "OCADE_WORKSPACE": self.workspace,
             "OCADE_AGENT_HOME": self.home,
         } | {name: os.environ[name] for name in PASS_THROUGH if name in os.environ}
+        if key not in KEEPS_PROXY_LOGIN:
+            for name in PROXY_VARIABLES:
+                if name in environment:
+                    environment[name] = without_proxy_login(environment[name])
         # A packaged companion is one executable that runs its own workers
         # (the console build: a windowed executable has no stdout for the MCP protocol).
         if getattr(sys, "frozen", False):

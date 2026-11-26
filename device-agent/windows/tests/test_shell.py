@@ -111,6 +111,35 @@ class Shell(unittest.TestCase):
             self.assertNotIn(value, shown, f"{name}'s value reached the command")
             self.assertNotIn(name, shown, f"{name} reached the command")
 
+    def test_a_proxy_login_reaches_only_the_browser_worker(self):
+        """HTTPS_PROXY may be http://user:password@host: commands see the address, never the login."""
+        from ocade_agent.gateway import without_proxy_login
+
+        with self.subTest("the address without its login"):
+            for given, wanted in (
+                ("http://user:p%40ss@proxy.example:8080", "http://proxy.example:8080"),
+                ("http://user@proxy.example", "http://proxy.example"),
+                ("http://[::1]:3128", "http://[::1]:3128"),
+                ("http://user:pw@[::1]:3128/path?q=1", "http://[::1]:3128/path?q=1"),
+                ("http://127.0.0.1:43747", "http://127.0.0.1:43747"),
+                ("http://:pw@", ""),
+            ):
+                self.assertEqual(without_proxy_login(given), wanted, given)
+        secret = "proxy-canary-" + os.urandom(6).hex()
+        os.environ["HTTPS_PROXY"] = f"http://person:{secret}@127.0.0.1:9"
+        try:
+            gateway = Gateway(str(self.root))
+            commands = gateway._parameters("ocade_agent.command_worker").env
+            browser = gateway._parameters("ocade_agent.web_worker").env
+            [result] = self.run_steps({"command": "env" if not WINDOWS else
+                                       "Get-ChildItem Env: | ForEach-Object { $_.Name + '=' + $_.Value }"})
+        finally:
+            os.environ.pop("HTTPS_PROXY", None)
+        self.assertEqual(commands["HTTPS_PROXY"], "http://127.0.0.1:9")
+        self.assertIn(secret, browser["HTTPS_PROXY"], "the browser worker keeps the login it needs")
+        self.assertIn("HTTPS_PROXY=http://127.0.0.1:9", result["evidence"]["stdout"])
+        self.assertNotIn(secret, result["evidence"]["stdout"])
+
     @unittest.skipUnless(WINDOWS, "needs a Windows desktop")
     def test_commands_and_jobs_hold_no_privileges(self):
         [privileges, groups] = self.run_steps({"command": "whoami /priv /fo csv"}, {"command": "whoami /groups /fo csv"})

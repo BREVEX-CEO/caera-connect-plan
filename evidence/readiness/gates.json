@@ -385,7 +385,7 @@
             "device-agent/windows/tests/test_shell.py",
             "scripts/jarvis-live.mjs"
           ],
-          "reason": "worker environment is the SDK's minimal one plus a fixed pass-through list; test_shell.test_no_account_secret_reaches_a_command_whatever_it_is_called sets 11 secret-named canaries in the companion and proves none (name or value) reaches a command through the real gateway and command worker, and fails when one name is added to the pass-through list. HTTPS_PROXY/HTTP_PROXY are passed through by design and would carry any credentials in a proxy URL; consumer Windows/macOS runs and the other workers (verify, web, office) are not canary-tested."
+          "reason": "worker environment is the SDK's minimal one plus a fixed pass-through list; test_shell.test_no_account_secret_reaches_a_command_whatever_it_is_called sets 11 secret-named canaries in the companion and proves none (name or value) reaches a command through the real gateway and command worker, and fails when one name is added to the pass-through list. A proxy address is passed through without its user:password login to every worker except the browser worker (test_shell.test_a_proxy_login_reaches_only_the_browser_worker, with a negative control); consumer Windows/macOS runs and the verify, web and office workers are not canary-tested."
         },
         {
           "id": "backup_restore",
