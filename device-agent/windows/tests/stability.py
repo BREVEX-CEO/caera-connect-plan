@@ -18,6 +18,7 @@ run is `python -m tests.stability --minutes 240 --out <folder>` on the target co
 from __future__ import annotations
 
 import argparse
+import gc
 import json
 import os
 import shutil
@@ -42,6 +43,11 @@ def _tree(process: psutil.Process) -> list[psutil.Process]:
 
 
 def sample(process: psutil.Process, workspace: Path) -> dict:
+    # Pipe and socket objects the gateway has dropped hold their handle until the collector runs;
+    # without this an ordinary, bounded pile of them reads as a handle leak (windows-2025, 26 Nov 2026:
+    # 1291 to 1302 handles over 12 cycles, 0.73 a cycle against the 0.5 limit, on a run that passed
+    # on the same code three times). A handle that survives a collection is a real leak.
+    gc.collect()
     rss = cpu = files = threads = 0
     members = _tree(process)
     for member in members:
