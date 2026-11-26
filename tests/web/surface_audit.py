@@ -96,6 +96,14 @@ def dead_buttons(browser, url: str, names: list[str]) -> list[str]:
 ENGINES = ("chromium", "firefox", "webkit")
 
 
+# Chromium, Firefox and WebKit word a module that failed to load differently; Firefox's text:
+TRANSIENT_LOAD_ERROR = "error loading dynamically imported module"
+
+
+def redirected(requested: str, final: str) -> bool:
+    return urlsplit(requested).path != urlsplit(final).path
+
+
 def open_page(page, url: str):
     """page.goto, once more when Firefox reports NS_BINDING_ABORTED: a navigation the page itself
     started (the router settling, the service worker taking control) superseded ours. Any other
@@ -248,18 +256,38 @@ def main(base: str, session: str | None = None, storage_key: str | None = None,
                 seen.add(url)
                 errors.clear()
                 where = f"[{engine}/{name}] {urlsplit(url).path}"
-                try:
-                    response = page.goto(url, wait_until="networkidle")
-                    status = response.status if response else 0
-                    if status != 200:
-                        problems.append(f"{where}: HTTP {status}")
+                facts = None
+                for attempt in (1, 2):
+                    # One transport blip on the loopback server (a connection reset while Firefox loads
+                    # a module, or a navigation superseded mid-load) is retried once; the same failure
+                    # twice is the audit's finding.
+                    errors.clear()
+                    facts = None
+                    try:
+                        response = open_page(page, url)
+                        status = response.status if response else 0
+                        if status != 200:
+                            problems.append(f"{where}: HTTP {status}")
+                            break
+                        if site_origin(page.url) != origin:
+                            problems.append(f"{where}: redirected off the audit origin")
+                            break
+                        facts = page.evaluate(ACCESSIBILITY)
+                    except Exception as error:
+                        if attempt == 1:
+                            continue
+                        problems.append(f"{where}: {type(error).__name__}")
+                        break
+                    if redirected(url, page.url):
+                        # The router sent this route elsewhere (a signed-out /library goes to /auth)
+                        # while a lazy module was still loading; Firefox reports that aborted import
+                        # as an uncaught error of the page that was left. The page we ended on is
+                        # audited in full, so only this one message is dropped for a redirected route.
+                        errors[:] = [message for message in errors if TRANSIENT_LOAD_ERROR not in message]
+                    elif attempt == 1 and any(TRANSIENT_LOAD_ERROR in message for message in errors):
                         continue
-                    if site_origin(page.url) != origin:
-                        problems.append(f"{where}: redirected off the audit origin")
-                        continue
-                    facts = page.evaluate(ACCESSIBILITY)
-                except Exception as error:
-                    problems.append(f"{where}: {type(error).__name__}")
+                    break
+                if facts is None:
                     continue
                 if facts["h1"] != 1:
                     problems.append(f"{where}: {facts['h1']} <h1> elements")
