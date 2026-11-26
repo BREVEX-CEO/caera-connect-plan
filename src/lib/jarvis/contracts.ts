@@ -1342,6 +1342,21 @@ export function effectPossible(action: Pick<ActionIntent, "operation" | "risk">)
   return action.risk !== "read" || !pureReadOperations.has(action.operation);
 }
 
+/**
+ * What a person should know before allowing a step: whether the effect can be taken back.
+ * Shown beside every approval (UX-27 Tesler: a consequential choice is never hidden).
+ */
+export function consequenceOf(risk: ActionIntent["risk"]): string {
+  switch (risk) {
+    case "read":
+      return "Only looks. Nothing changes.";
+    case "reversible_write":
+      return "Changes something on this computer. OCADE keeps a way to undo it.";
+    case "external_effect":
+      return "Reaches beyond this computer. It cannot be taken back.";
+  }
+}
+
 /** Build a registry-consistent intent; the only way the planner makes one. */
 export function intent<O extends Operation>(
   operation: O,

@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type Dispatch,
+  type SetStateAction,
+} from "react";
 
 /**
  * UX-29 Working Memory: words typed into a composer survive navigating away and back (and a page
@@ -45,15 +52,12 @@ export function useStoredDraft(key: string | null): [string, Dispatch<SetStateAc
   const latest = useRef("");
   const keyRef = useRef(key);
   keyRef.current = key;
-  const setDraft = useCallback<Dispatch<SetStateAction<string>>>(
-    (action) => {
-      const next = typeof action === "function" ? action(latest.current) : action;
-      latest.current = next;
-      setState(next);
-      if (keyRef.current) saveDraft(tabStore(), keyRef.current, next);
-    },
-    [],
-  );
+  const setDraft = useCallback<Dispatch<SetStateAction<string>>>((action) => {
+    const next = typeof action === "function" ? action(latest.current) : action;
+    latest.current = next;
+    setState(next);
+    if (keyRef.current) saveDraft(tabStore(), keyRef.current, next);
+  }, []);
   const owner = useRef(key);
   useEffect(() => {
     // Another account's words are never carried over to this one.

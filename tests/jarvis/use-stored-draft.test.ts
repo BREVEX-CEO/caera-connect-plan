@@ -1,6 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { DRAFT_MAX_LENGTH, draftKey, loadDraft, saveDraft } from "../../src/lib/use-stored-draft.ts";
+import {
+  DRAFT_MAX_LENGTH,
+  draftKey,
+  loadDraft,
+  saveDraft,
+} from "../../src/lib/use-stored-draft.ts";
 
 function memory() {
   const map = new Map<string, string>();
@@ -37,9 +42,15 @@ test("a very long draft is bounded", () => {
 
 test("missing or throwing storage never throws", () => {
   const broken = {
-    getItem: () => { throw new Error("denied"); },
-    setItem: () => { throw new Error("full"); },
-    removeItem: () => { throw new Error("denied"); },
+    getItem: () => {
+      throw new Error("denied");
+    },
+    setItem: () => {
+      throw new Error("full");
+    },
+    removeItem: () => {
+      throw new Error("denied");
+    },
   };
   assert.doesNotThrow(() => saveDraft(broken, "k", "text"));
   assert.equal(loadDraft(broken, "k"), "");

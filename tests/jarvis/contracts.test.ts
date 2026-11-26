@@ -748,3 +748,10 @@ test("an older observation is clipped without breaking its structure", async () 
   assert.deepEqual(clip({ matches: true }, 300), { matches: true }, "a small result is unchanged");
   assert.equal(clip("x".repeat(10), 4), "xxxx…");
 });
+
+test("every risk level states whether the effect can be taken back (UX-27)", async () => {
+  const { consequenceOf } = await import("../../src/lib/jarvis/contracts.ts");
+  assert.match(consequenceOf("read"), /nothing changes/i);
+  assert.match(consequenceOf("reversible_write"), /undo/i);
+  assert.match(consequenceOf("external_effect"), /cannot be taken back/i);
+});

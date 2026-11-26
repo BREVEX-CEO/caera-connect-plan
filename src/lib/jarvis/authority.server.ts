@@ -28,6 +28,7 @@ import {
   effectPossible,
   intent,
   type OutcomeCheck,
+  consequenceOf,
 } from "./contracts.ts";
 import { assignLanes } from "./lanes.ts";
 import { namedSkills, type Skill } from "./skills.ts";
@@ -1155,6 +1156,10 @@ export async function taskView(admin: Admin, userId: string, taskId: string) {
         disposition,
         needsConfirmation: step.status === "needs_confirmation",
         scope: step.status === "needs_confirmation" ? approvalScope(step.intent) : null,
+        consequence:
+          step.status === "needs_confirmation" && intent.success
+            ? consequenceOf(intent.data.risk)
+            : null,
         needsAnswer,
         resolution: step.resolution,
         // What the person allows or answers about is the exact operation and arguments.

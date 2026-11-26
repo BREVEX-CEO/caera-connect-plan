@@ -1484,6 +1484,11 @@ export function TaskPanel({
             <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
               {duration(step.durationMs)}
             </span>
+            {step.consequence ? (
+              <p className="mt-1 w-full basis-full text-xs text-muted-foreground">
+                {step.consequence}
+              </p>
+            ) : null}
             {step.effect ? (
               <pre className="mt-1 max-h-48 w-full basis-full overflow-auto whitespace-pre-wrap break-all rounded bg-muted p-2 text-xs">
                 {step.effect}
