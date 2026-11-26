@@ -2,6 +2,10 @@
 
 Historical paths in preserved progress entries refer to the pre-cleanup repository snapshot at https://github.com/BREVEX-CEO/caera-connect-plan/blob/5b88b0c5c830ad719dd4cabd8635db53a7a18586/plan.md; use the same commit for retired documents. Current progress belongs here.
 
+## Progress reporting correction
+
+Previous plan.md snapshot (historical, not a new verification): Overall coding completion: 3/100% (4 of 148 Part 0A items independently verified; reconciled in PROGRESS.md). All current progress, counts and blockers belong exclusively in this ledger. No completion status changed by this instruction update.
+
 ## Documentation cleanup (25 November 2026)
 
 The owner retired obsolete Markdown reports, archived plans, prior research notes and evidence Markdown from the tracked working tree. All 266 historical requirement IDs are now present in plan.md, and its 84 architecture concept rows and 148 task IDs remain intact. The pre-cleanup snapshot is [`5b88b0c5c830ad719dd4cabd8635db53a7a18586`](https://github.com/BREVEX-CEO/caera-connect-plan/tree/5b88b0c5c830ad719dd4cabd8635db53a7a18586). Historical paths in the copied reports below refer to that snapshot when the files no longer exist in the current tree. The retired [72-entry repository ledger](https://github.com/BREVEX-CEO/caera-connect-plan/blob/5b88b0c5c830ad719dd4cabd8635db53a7a18586/docs/JARVIS_REPO_LEDGER.md) is historical evidence; record any new REPO-01–72 dispositions here. Retain raw non-Markdown evidence and all automated verification. No readiness status is promoted by this cleanup.
