@@ -134,7 +134,7 @@ def opened_views(page, url: str) -> list[str]:
             for i in range(page.get_by_role("button", name=named).count())]
 
     for index in range(min(len(openers()), 16)):
-        page.goto(url, wait_until="networkidle")
+        surface_audit.open_page(page, url)
         found = openers()
         if index >= len(found):
             break
@@ -160,7 +160,7 @@ def opened_views(page, url: str) -> list[str]:
 
 def reflow(page, url: str) -> list[str]:
     page.set_viewport_size({"width": 683, "height": 450})
-    response = page.goto(url, wait_until="networkidle")
+    response = surface_audit.open_page(page, url)
     if response and not (response.headers.get("content-type") or "").startswith("text/html"):
         page.set_viewport_size({"width": 1366, "height": 900})
         return []
@@ -172,7 +172,7 @@ def reflow(page, url: str) -> list[str]:
 def jarvis_mobile_navigation(page, url: str) -> None:
     page.set_viewport_size({"width": 320, "height": 740})
     try:
-        page.goto(url, wait_until="networkidle")
+        surface_audit.open_page(page, url)
         opener = page.get_by_role("button", name="Open navigation")
         opener.focus()
         opener.press("Enter")
@@ -195,7 +195,7 @@ def settings_keyboard(page, url: str) -> None:
     """A stacked command palette dismisses independently of Settings."""
     page.set_viewport_size({"width": 320, "height": 740})
     try:
-        page.goto(url + "?settings=preferences", wait_until="networkidle")
+        surface_audit.open_page(page, url + "?settings=preferences")
         settings = page.get_by_role("dialog", name="Settings", exact=True)
         close = settings.get_by_role("button", name="Close settings", exact=True)
         expect(close).to_be_focused()
@@ -222,7 +222,7 @@ def settings_keyboard(page, url: str) -> None:
 def chat_mobile_navigation(page, url: str) -> None:
     page.set_viewport_size({"width": 320, "height": 740})
     try:
-        page.goto(url, wait_until="networkidle")
+        surface_audit.open_page(page, url)
         opener = page.get_by_role("button", name="Open navigation")
         opener.focus()
         opener.press("Enter")
@@ -248,7 +248,7 @@ def chat_mobile_navigation(page, url: str) -> None:
 def chat_first_draft(page, url: str) -> None:
     page.set_viewport_size({"width": 320, "height": 400})
     try:
-        page.goto(url, wait_until="networkidle")
+        surface_audit.open_page(page, url)
         drawer = page.get_by_role("dialog", name="Navigation", exact=True)
         expect(drawer).to_have_count(0)
         example = page.get_by_role("button", name="Try an email draft")
@@ -272,7 +272,7 @@ def help_keyboard(page, url: str) -> None:
     """Help supports a word-order-independent search and a keyboard return from long answers."""
     page.set_viewport_size({"width": 320, "height": 740})
     try:
-        page.goto(url, wait_until="networkidle")
+        surface_audit.open_page(page, url)
         page.keyboard.press("Tab")
         skip = page.get_by_role("link", name="Skip to content")
         expect(skip).to_be_focused()
@@ -304,7 +304,7 @@ def help_keyboard(page, url: str) -> None:
 
 
 def legal_keyboard(page, url: str) -> None:
-    page.goto(url, wait_until="networkidle")
+    surface_audit.open_page(page, url)
     skip = page.get_by_role("link", name="Skip to content")
     page.keyboard.press("Tab")
     expect(skip).to_be_focused()
@@ -334,7 +334,7 @@ def legal_keyboard(page, url: str) -> None:
 def library_mobile_filters(page, url: str) -> None:
     page.set_viewport_size({"width": 320, "height": 740})
     try:
-        page.goto(url, wait_until="networkidle")
+        surface_audit.open_page(page, url)
         expect(page.get_by_role("heading", name="Library", exact=True)).to_be_visible(timeout=15_000)
         filters = page.get_by_role("group", name="Filter library")
         all_items = filters.get_by_role("button", name="All", exact=True)

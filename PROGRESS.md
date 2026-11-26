@@ -109,6 +109,9 @@ Cloud validation run 45818442908: 10 of 12 jobs green or still running; `Python 
 - macOS bundle qualification [45831622011](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/45831622011): macos-15-intel and syntax jobs success; the macos-15 job was cancelled at 13:56 with no runner ever assigned and no step run (runner capacity, not code). Its failed job was re-run; the result is not recorded here yet.
 The windows-2025 ffmpeg failure on `7270937` did not recur with the retrying install step (`10aa0f4` and `cf6502c` windows-2025 green).
 
+### Cause of the one-off audit failure on `10aa0f4` (session 2)
+The saved log of the failed Linux "Portable build" job (run 45822981236) shows the Firefox accessibility audit reporting `could not audit: Page.goto: NS_BINDING_ABORTED` for `/`, with every other audit in that job at 0 problems. `surface_audit.open_page` already retried that Firefox error once; `accessibility_audit.py` still called `page.goto` directly in nine places. All nine now use `surface_audit.open_page`. Local Chromium results are identical before and after the change (same 10 pages flagged by this machine's own Chromium build, which differs from CI's; CI Chromium passes on `cf6502c`), so the change is behaviour-neutral except for the retry.
+
 ### Debloat re-check at `376e32f` (items 97–98)
 CodeMap `--unused`: 0 unreferenced module-private TypeScript functions; `--duplicates`: 0 byte-identical source groups; `--cycles`: 18 static cycle witnesses (type-level and sibling imports, none changed this session, none removed without proof). Nothing was deleted: no proven-useless code was found. Earlier knip result stands (`docs/DEBLOAT_REPORT.md`).
 
