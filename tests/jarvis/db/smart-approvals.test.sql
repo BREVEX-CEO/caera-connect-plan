@@ -8,6 +8,11 @@ CREATE FUNCTION pg_temp.check(p_ok boolean, p_what text) RETURNS void LANGUAGE p
 BEGIN
   IF p_ok IS NOT TRUE THEN RAISE EXCEPTION 'smart approvals: %', p_what; END IF;
 END $$;
+CREATE FUNCTION pg_temp.edit(p_key text, p_path text, p_deadline text) RETURNS jsonb LANGUAGE sql AS $$
+  SELECT jsonb_build_object('v', 1, 'key', p_key, 'operation', 'fs.edit_text', 'capability', 'files',
+    'risk', 'external_effect', 'arguments', jsonb_build_object('path', p_path, 'expectSha256', repeat('a', 64)),
+    'target', jsonb_build_object('path', p_path), 'deadlineUtc', p_deadline);
+$$;
 CREATE TEMP TABLE sa_ids AS SELECT gen_random_uuid() AS u, gen_random_uuid() AS c;
 INSERT INTO auth.users (id, email) SELECT u, u::text || '@example.test' FROM sa_ids;
 INSERT INTO public.ocade_conversations (id, user_id, title, surface) SELECT c, u, 'SA', 'jarvis' FROM sa_ids;
@@ -22,6 +27,8 @@ DECLARE
   v_deadline text := to_char((now() AT TIME ZONE 'UTC') + interval '5 minutes', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"');
   v_batch jsonb;
   v_ordinary integer := 0;
+  v_pending uuid;
+  v_key_n integer := 0;
 BEGIN
   PERFORM public.jarvis_enroll_device(v_key, 'SA fixture', 'windows', 'test', repeat('e', 64));
   v_device := public.jarvis_approve_device(v_user, public.jarvis_device_code(v_key));
@@ -59,9 +66,39 @@ BEGIN
   PERFORM pg_temp.check((SELECT count(*) FROM public.jarvis_activity
                           WHERE task_id = v_task.task_id AND status = 'needs_confirmation') = 1,
                         'exactly the external effect waits for approval');
-  PERFORM pg_temp.check((SELECT count(*) FROM public.jarvis_activity
-                          WHERE task_id = v_task.task_id AND status = 'done') = 50,
-                        'the ordinary steps were not held back');
+
+  -- A command-like step cannot be allowed for the rest of the task: it is confirmed alone.
+  v_pending := (SELECT id FROM public.jarvis_activity WHERE task_id = v_task.task_id AND status = 'needs_confirmation');
+  BEGIN
+    PERFORM public.jarvis_confirm_action(v_user, v_pending, true);
+    RAISE EXCEPTION 'smart approvals: an unscopable step was allowed for the task';
+  EXCEPTION WHEN insufficient_privilege THEN
+    IF SQLERRM <> 'approval_not_scopable' THEN RAISE; END IF;
+  END;
+  PERFORM pg_temp.check(public.jarvis_task_approvals(v_task.task_id) = 0, 'no scope was recorded');
+  PERFORM pg_temp.check(public.jarvis_confirm_action(v_user, v_pending, false), 'it is confirmed once');
+
+  -- An edit of one exact file can be allowed for the task: the same file again is spared,
+  -- another file is a new decision.
+  PERFORM public.jarvis_queue_actions(v_task.task_id, v_task.controller, jsonb_build_array(jsonb_build_object(
+    'summary', 'Edit a', 'action', pg_temp.edit('edit-1', 'a.txt', v_deadline))));
+  v_pending := (SELECT id FROM public.jarvis_activity WHERE action ->> 'key' = 'edit-1');
+  PERFORM pg_temp.check((SELECT status FROM public.jarvis_activity WHERE id = v_pending) = 'needs_confirmation', 'a first file edit asks');
+  PERFORM pg_temp.check(public.jarvis_confirm_action(v_user, v_pending, true), 'the person allows this file for the task');
+  UPDATE public.jarvis_activity SET status = 'done' WHERE task_id = v_task.task_id AND status = 'queued';
+  PERFORM public.jarvis_queue_actions(v_task.task_id, v_task.controller, jsonb_build_array(
+    jsonb_build_object('summary', 'Edit a again', 'action', pg_temp.edit('edit-2', 'a.txt', v_deadline))));
+  PERFORM pg_temp.check((SELECT status FROM public.jarvis_activity WHERE action ->> 'key' = 'edit-2') = 'queued',
+                        'the same file is not asked about twice');
+  PERFORM public.jarvis_queue_actions(v_task.task_id, v_task.controller, jsonb_build_array(
+    jsonb_build_object('summary', 'Edit b', 'action', pg_temp.edit('edit-3', 'b.txt', v_deadline))));
+  PERFORM pg_temp.check((SELECT status FROM public.jarvis_activity WHERE action ->> 'key' = 'edit-3') = 'needs_confirmation',
+                        'another file is a new decision');
+
+  -- "Ask me again" withdraws every scope.
+  PERFORM pg_temp.check(public.jarvis_task_approvals(v_task.task_id) = 1, 'one scope recorded');
+  PERFORM public.jarvis_clear_approvals(v_user, v_task.task_id);
+  PERFORM pg_temp.check(public.jarvis_task_approvals(v_task.task_id) = 0, 'ask me again withdraws the scope');
 END $$;
 RESET ROLE;
 ROLLBACK;
