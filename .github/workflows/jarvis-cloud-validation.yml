@@ -627,6 +627,19 @@ jobs:
         if: runner.os == 'macOS'
         working-directory: device-agent/windows
         run: python -m tests.run_required "needs a Windows desktop" "needs Windows process handles" "needs Windows UI Automation and COM" "needs a display and OCADE_PUBLIC_WEB=1" "needs the Windows credential store" "macOS does not enforce an address-space limit"
+      # VERIFY-07 evidence on Windows and macOS: the verifier suites repeated in fresh interpreters; any changed outcome is a flake.
+      - name: Verifier flake quantification (5 fresh-interpreter runs)
+        if: matrix.os == 'windows-2025' || matrix.os == 'macos-15'
+        continue-on-error: true
+        timeout-minutes: 20
+        run: python scripts/verifier-flake.py --runs 5 --out verifier-flake/verifier-flake.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always() && (matrix.os == 'windows-2025' || matrix.os == 'macos-15')
+        with:
+          name: verifier-flake-${{ matrix.os }}-${{ github.run_id }}
+          path: verifier-flake
+          if-no-files-found: warn
+          retention-days: 14
       # Evidence, never a gate: what the real bridge does in real application windows (plan.md 19.4).
       - name: Install the second "already open" benchmark application for the desktop probe
         if: runner.os != 'Linux' && matrix.os != 'macos-15-intel' && matrix.os != 'windows-2022'
