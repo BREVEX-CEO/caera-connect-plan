@@ -34,6 +34,7 @@ Local branch was a stale shallow clone with unrelated roots; unshallowed and fas
 
 - Goal set by owner: complete the coding scope, one overall percentage kept in plan.md line 3 (`3/100%` = 4 of 148 Part 0A items verified, not an estimate of effort).
 - UX-02 Choice Overload: new AUTO check (a dialog offers at most 4 buttons; an ungrouped select lists at most 15 options) in `tests/web/ux_laws_audit.py`, negative control `UX-02` in `tests/web/ux_laws_fixtures.py`. Local Chromium: `ux_laws_fixtures.py` exit 0 (all negative controls fire, good fixture clean). Site-wide run not repeated locally; CI runs it.
+- UX-32 Progressive Disclosure: new AUTO check (a `details` section named advanced, developer or expert is not open on first view); negative control `UX-32`; no `<details open>` exists in `src`. Local `ux_laws_fixtures.py` exit 0.
 
 ## Session 26 Nov 2026 — dependency-ordered execution checklist
 

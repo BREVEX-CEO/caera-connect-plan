@@ -30,6 +30,7 @@ BAD = {
     "UX-15 link": '<main><h1>F</h1><a href="https://fixture.test/a">Settings</a><a href="https://fixture.test/b">Settings</a></main>',
     "UX-03": "<main><h1>F</h1>" + "".join(f'<button>Item {n}</button>' for n in range(14)) + "</main>",
     "UX-02": '<main><h1>F</h1><div role="dialog" aria-label="Pick">' + "".join(f"<button>Opt {n}</button>" for n in range(6)) + "</div></main>",
+    "UX-32": '<main><h1>F</h1><details open><summary>Advanced options</summary><p>x</p></details></main>',
     "UX-09": '<main><h1>F</h1><progress value="-5" max="10"></progress></main>',
 }
 

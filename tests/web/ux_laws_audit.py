@@ -25,6 +25,7 @@ the UX matrix in `PROGRESS.md` says which check backs which principle and what s
 - UX-15 Similarity: buttons with one name on one page look alike, and one link name never leads to two pages.
 - UX-03 Chunking: a page body never shows more than 12 controls outside a named group, list or table.
 - UX-02 Choice Overload: a dialog offers at most 4 buttons, and a select without groups at most 15 options.
+- UX-32 Progressive Disclosure: a section named advanced, developer or expert is folded on first view.
 - UX-09 Goal-Gradient: a progress bar has a name and only a valid value, never an invented one.
 
     python3 tests/web/ux_laws_audit.py http://127.0.0.1:8787 [session.json storage-key] [--engine E]
@@ -230,6 +231,13 @@ MEASURE = """({minTarget, maxNav, maxFields, maxGap, maxUngrouped, opened}) => {
   for (const sel of document.querySelectorAll('select:not([multiple])'))
     if (visible(sel) && !sel.querySelector('optgroup') && sel.options.length > 15)
       out.push(`UX-02 select ${JSON.stringify(name(sel))} lists ${sel.options.length} ungrouped options (max 15)`);
+  // UX-32 Progressive Disclosure: advanced controls start folded; a newcomer opens them on purpose.
+  if (!opened)
+    for (const d of document.querySelectorAll('details[open]')) {
+      const head = d.querySelector('summary');
+      if (head && visible(d) && /advanced|developer|expert/i.test(head.textContent))
+        out.push(`UX-32 ${JSON.stringify(name(head))} is open on first view`);
+    }
   // UX-09 Goal-Gradient: a progress bar either states its true value or says it cannot know.
   for (const bar of document.querySelectorAll('progress, [role=progressbar]')) {
     if (!visible(bar)) continue;
