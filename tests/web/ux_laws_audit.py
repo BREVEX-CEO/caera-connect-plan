@@ -26,6 +26,7 @@ the UX matrix in `PROGRESS.md` says which check backs which principle and what s
 - UX-03 Chunking: a page body never shows more than 12 controls outside a named group, list or table.
 - UX-02 Choice Overload: a dialog offers at most 4 buttons, and a select without groups at most 15 options.
 - UX-32 Progressive Disclosure: a section named advanced, developer or expert is folded on first view.
+- UX-19 Occam's Razor: no container repeats a button or link with the same name beside its twin.
 - UX-09 Goal-Gradient: a progress bar has a name and only a valid value, never an invented one.
 
     python3 tests/web/ux_laws_audit.py http://127.0.0.1:8787 [session.json storage-key] [--engine E]
@@ -225,7 +226,8 @@ MEASURE = """({minTarget, maxNav, maxFields, maxGap, maxUngrouped, opened}) => {
   if (loose.length > maxUngrouped) out.push(`UX-03 ${loose.length} controls outside any named group (max ${maxUngrouped}): ${JSON.stringify(name(loose[0]))}...`);
   // UX-02 Choice Overload: one dialog, or one ungrouped list of options, never asks for too many decisions.
   for (const d of document.querySelectorAll('dialog[open], [role=dialog], [role=alertdialog]')) {
-    const n = [...d.querySelectorAll('button, [role=button]')].filter(visible).length;
+    // Buttons inside a navigation landmark or tab list are destinations (UX-10 counts them), not decisions.
+    const n = [...d.querySelectorAll('button, [role=button]')].filter(b => visible(b) && !b.closest('nav, [role=tablist]')).length;
     if (visible(d) && n > 4) out.push(`UX-02 dialog ${JSON.stringify(name(d))} offers ${n} buttons (max 4)`);
   }
   for (const sel of document.querySelectorAll('select:not([multiple])'))
@@ -238,6 +240,17 @@ MEASURE = """({minTarget, maxNav, maxFields, maxGap, maxUngrouped, opened}) => {
       if (head && visible(d) && /advanced|developer|expert/i.test(head.textContent))
         out.push(`UX-32 ${JSON.stringify(name(head))} is open on first view`);
     }
+  // UX-19 Occam's Razor: one container never repeats a control with the same name (a duplicate adds a choice, not a capability).
+  for (const group of new Set([...document.querySelectorAll('button, [role=button], a[href]')].map(el => el.parentElement))) {
+    if (!group || group.closest('nav, footer')) continue;
+    const seen = new Set();
+    for (const el of group.children) {
+      if (!el.matches('button, [role=button], a[href]') || !visible(el)) continue;
+      const key = name(el).toLowerCase();
+      if (key && seen.has(key)) out.push(`UX-19 duplicate control ${JSON.stringify(key)} beside its twin`);
+      seen.add(key);
+    }
+  }
   // UX-09 Goal-Gradient: a progress bar either states its true value or says it cannot know.
   for (const bar of document.querySelectorAll('progress, [role=progressbar]')) {
     if (!visible(bar)) continue;

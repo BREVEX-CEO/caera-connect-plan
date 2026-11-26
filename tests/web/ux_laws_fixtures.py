@@ -20,8 +20,8 @@ GOOD = """<main><h1>Fixture</h1>
 <form><label for="e">Email</label><input id="e" type="email" autocomplete="email">
 <input id="x" aria-invalid="true" aria-describedby="why" aria-label="Code"><span id="why">Use six digits.</span>
 <fieldset><legend>Plan</legend><input type="radio" name="p" aria-label="A"><input type="radio" name="p" aria-label="B"></fieldset>
-<button>Save</button><button>Save</button><progress aria-label="Upload" value="3" max="10"></progress>
-<progress aria-label="Working"></progress><a href="https://fixture.test/a">Home</a><a href="https://fixture.test/a">Home</a></form></main>"""
+<p><button>Save</button></p><p><button>Save</button></p><progress aria-label="Upload" value="3" max="10"></progress>
+<progress aria-label="Working"></progress><p><a href="https://fixture.test/a">Home</a></p><p><a href="https://fixture.test/a">Home</a></p></form></main>"""
 
 BAD = {
     "UX-13": '<main><h1>F</h1><label for="a" style="display:block">Email</label><div style="height:300px"></div><input id="a" type="email" autocomplete="email"></main>',
@@ -30,6 +30,7 @@ BAD = {
     "UX-15 link": '<main><h1>F</h1><a href="https://fixture.test/a">Settings</a><a href="https://fixture.test/b">Settings</a></main>',
     "UX-03": "<main><h1>F</h1>" + "".join(f'<button>Item {n}</button>' for n in range(14)) + "</main>",
     "UX-02": '<main><h1>F</h1><div role="dialog" aria-label="Pick">' + "".join(f"<button>Opt {n}</button>" for n in range(6)) + "</div></main>",
+    "UX-19": '<main><h1>F</h1><p><button>Export</button><button>Export</button></p></main>',
     "UX-32": '<main><h1>F</h1><details open><summary>Advanced options</summary><p>x</p></details></main>',
     "UX-09": '<main><h1>F</h1><progress value="-5" max="10"></progress></main>',
 }
