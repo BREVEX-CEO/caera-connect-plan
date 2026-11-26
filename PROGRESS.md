@@ -97,6 +97,13 @@ Cloud validation run 45818442908: 10 of 12 jobs green or still running; `Python 
 ### MALWARE-01 generated-output guard (session 2)
 `sandbox.write_atomically` now refuses a generated deliverable that is a program (`.exe .dll .msi .scr .com .sys`) or a macro Office type (`.docm .dotm .xlsm .xltm .xlam .pptm .potm .ppam .sldm`), by name or by its first bytes (PE header with signature, ELF, Mach-O), or an Office package holding a `vbaProject.bin`; the temporary file is removed and nothing is created. A text file that merely begins with "MZ" is written. Saved web downloads pass `downloaded=True`: `test_download_mark` (existing, expects a same-site `setup.exe` saved with its Zone.Identifier mark) proved that keeping them is designed behaviour, so I did not refuse them. Evidence: `tests.test_sandbox` and `tests.test_download_mark` 20 tests OK; whole companion suite before the download exception: 360 run, 1 error (the download test, since fixed), 46 platform skips. Windows and macOS runs happen in CI. Triage row MALWARE-01 stays PARTIAL (no antivirus engine).
 
+### CI evidence for `cf6502c` (session 2, exact SHA, attempt 1)
+- CI [45831615770](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/45831615770): success.
+- JARVIS cloud validation, manual matrix [45831609327](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/45831609327): conclusion success (the Linux "Portable build" audit job that failed once on `10aa0f4` passed here with the same audit code; the cause of that one failure was never read from its log, so it is treated as an unexplained flake, not as fixed).
+- Dependency and static security [45831601885](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/45831601885): success.
+- macOS bundle qualification [45831622011](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/45831622011): macos-15-intel and syntax jobs success; the macos-15 job was cancelled at 13:56 with no runner ever assigned and no step run (runner capacity, not code). Its failed job was re-run; the result is not recorded here yet.
+The windows-2025 ffmpeg failure on `7270937` did not recur with the retrying install step (`10aa0f4` and `cf6502c` windows-2025 green).
+
 ### Debloat re-check at `376e32f` (items 97–98)
 CodeMap `--unused`: 0 unreferenced module-private TypeScript functions; `--duplicates`: 0 byte-identical source groups; `--cycles`: 18 static cycle witnesses (type-level and sibling imports, none changed this session, none removed without proof). Nothing was deleted: no proven-useless code was found. Earlier knip result stands (`docs/DEBLOAT_REPORT.md`).
 
