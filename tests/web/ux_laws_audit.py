@@ -20,6 +20,10 @@ the UX matrix in `PROGRESS.md` says which check backs which principle and what s
 - UX-20 Paradox of the Active User: no dialog covers a page on first load, so use starts at once.
 - UX-25 Selective Attention: no media plays sound on its own.
 - UX-34 Feedback Loops: a field marked invalid points to visible text that says why.
+- UX-13 Proximity: a field's label and stated reason sit within 48 px of it.
+- UX-12 Common Region: the choices of one radio group share a named boundary.
+- UX-15 Similarity: buttons with one name on one page look alike.
+- UX-09 Goal-Gradient: a progress bar has a name and only a valid value, never an invented one.
 
     python3 tests/web/ux_laws_audit.py http://127.0.0.1:8787 [session.json storage-key] [--engine E]
 """
@@ -44,8 +48,9 @@ MIN_TARGET = 24
 MAX_NAV_CHOICES = 9
 READY_MS = 1000
 MAX_FORM_FIELDS = 8
+MAX_LABEL_GAP = 48
 
-MEASURE = """({minTarget, maxNav, maxFields, opened}) => {
+MEASURE = """({minTarget, maxNav, maxFields, maxGap, opened}) => {
   const out = [];
   const visible = el => {
     const s = getComputedStyle(el);
@@ -159,6 +164,51 @@ MEASURE = """({minTarget, maxNav, maxFields, opened}) => {
     const said = ids.some(id => { const t = document.getElementById(id); return t && t.textContent.trim() && visible(t); });
     if (!said) out.push(`UX-34 invalid field gives no reason: ${JSON.stringify(name(field))}`);
   }
+  // UX-13 Proximity: a field's label and its stated reason sit next to it, not across the page.
+  const gap = (a, b) => Math.hypot(Math.max(0, a.left - b.right, b.left - a.right), Math.max(0, a.top - b.bottom, b.top - a.bottom));
+  for (const field of document.querySelectorAll('input:not([type=hidden]):not([type=checkbox]):not([type=radio]), select, textarea')) {
+    if (!visible(field)) continue;
+    const fieldBox = field.getBoundingClientRect();
+    const near = [...(field.labels || [])].filter(visible);
+    for (const id of `${field.getAttribute('aria-describedby') || ''}`.split(/\\s+/).filter(Boolean)) {
+      const t = document.getElementById(id);
+      if (t && visible(t) && field.getAttribute('aria-invalid') === 'true') near.push(t);
+    }
+    for (const t of near) {
+      const d = gap(fieldBox, t.getBoundingClientRect());
+      if (d > maxGap) out.push(`UX-13 ${Math.round(d)}px between a field and its label or reason: ${JSON.stringify(name(field))}`);
+    }
+  }
+  // UX-12 Common Region: choices of one radio group share a named group boundary.
+  const groups = new Map();
+  for (const radio of document.querySelectorAll('input[type=radio]')) {
+    if (!visible(radio) || !radio.name) continue;
+    const key = (radio.form ? 'f' : '') + radio.name;
+    groups.set(key, [...(groups.get(key) || []), radio]);
+  }
+  for (const radios of groups.values()) {
+    if (radios.length < 2) continue;
+    const g = radios[0].closest('fieldset, [role=radiogroup], [role=group]');
+    const named = g && (g.getAttribute('aria-label') || g.getAttribute('aria-labelledby') || (g.querySelector('legend') || {}).textContent);
+    if (!named || !radios.every(r => g.contains(r))) out.push(`UX-12 radio group ${JSON.stringify(radios[0].name)} has no named boundary around all its choices`);
+  }
+  // UX-15 Similarity: buttons with one name on one page look alike.
+  const looks = new Map();
+  for (const b of document.querySelectorAll('button, [role=button], input[type=submit]')) {
+    if (!visible(b) || !b.textContent.trim()) continue;
+    const s = getComputedStyle(b);
+    const key = name(b), look = [s.fontSize, s.fontWeight, s.borderRadius, s.backgroundColor, s.color].join('|');
+    if (looks.has(key) && looks.get(key) !== look) out.push(`UX-15 two buttons named ${JSON.stringify(key)} look different`);
+    looks.set(key, look);
+  }
+  // UX-09 Goal-Gradient: a progress bar either states its true value or says it cannot know.
+  for (const bar of document.querySelectorAll('progress, [role=progressbar]')) {
+    if (!visible(bar)) continue;
+    const known = bar.tagName === 'PROGRESS' ? bar.hasAttribute('value') : bar.hasAttribute('aria-valuenow');
+    const label = bar.getAttribute('aria-label') || bar.getAttribute('aria-labelledby') || (bar.labels && bar.labels.length);
+    if (!label) out.push('UX-09 progress bar without a name');
+    if (known && !(Number(bar.getAttribute('aria-valuenow') ?? bar.getAttribute('value')) >= 0)) out.push('UX-09 progress bar with an invalid value');
+  }
   return out;
   }
 }"""
@@ -180,11 +230,16 @@ LONG_MOTION = """() => document.getAnimations().filter(a => {
 }).map(a => (a.animationName || a.transitionProperty || 'animation') + ' on ' + (a.effect.target && a.effect.target.tagName))"""
 
 
+def measure_args(opened: bool) -> dict:
+    return {"minTarget": MIN_TARGET, "maxNav": MAX_NAV_CHOICES, "maxFields": MAX_FORM_FIELDS,
+            "maxGap": MAX_LABEL_GAP, "opened": opened}
+
+
 def audit_page(page, url: str) -> list[str]:
     response = surface_audit.open_page(page, url)
     if response and not (response.headers.get("content-type") or "").startswith("text/html"):
         return []
-    problems = page.evaluate(MEASURE, {"minTarget": MIN_TARGET, "maxNav": MAX_NAV_CHOICES, "maxFields": MAX_FORM_FIELDS, "opened": False})
+    problems = page.evaluate(MEASURE, measure_args(False))
     problems += page.evaluate(FIRST_LOAD)
     ready = page.evaluate(READY)
     if ready > READY_MS:
@@ -219,7 +274,7 @@ def opened_views(page, url: str) -> list[str]:
             page.wait_for_timeout(300)
         except Exception:  # noqa: BLE001, S112 - an unpressable control is the surface audit's finding
             continue
-        for problem in page.evaluate(MEASURE, {"minTarget": MIN_TARGET, "maxNav": MAX_NAV_CHOICES, "maxFields": MAX_FORM_FIELDS, "opened": True}):
+        for problem in page.evaluate(MEASURE, measure_args(True)):
             problems.append(f"after opening {label!r}: {problem}")
         page.keyboard.press("Escape")
     return problems
@@ -233,7 +288,7 @@ def settings_categories(page, url: str) -> list[str]:
         if not page.get_by_role("dialog", name="Settings", exact=True).is_visible():
             problems.append(f"Settings > {category} did not open")
             continue
-        for problem in page.evaluate(MEASURE, {"minTarget": MIN_TARGET, "maxNav": MAX_NAV_CHOICES, "maxFields": MAX_FORM_FIELDS, "opened": True}):
+        for problem in page.evaluate(MEASURE, measure_args(True)):
             problems.append(f"Settings > {category}: {problem}")
     return problems
 

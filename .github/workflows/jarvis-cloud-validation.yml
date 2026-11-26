@@ -544,6 +544,7 @@ jobs:
             python tests/web/accessibility_audit.py http://127.0.0.1:8787 --engine "$engine"
             # Measurable UX-law checks (target size, choices per navigation, hierarchy, motion, STOP).
             python tests/web/ux_laws_audit.py http://127.0.0.1:8787 --engine "$engine"
+            python tests/web/ux_laws_fixtures.py --engine "$engine"
           done
       - name: Launch readiness is computed only from existing evidence
         if: success() || failure()
