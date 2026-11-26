@@ -37,6 +37,12 @@ import {
   type OcadeConversationRow,
 } from "@/lib/ocade.functions";
 import {
+  applyRename,
+  expectedRevision,
+  RENAME_CONFLICT_MESSAGE,
+  type RenameResult,
+} from "./rename-sync";
+import {
   describeStorageError,
   flushUnsyncedTurns,
   isUnreachable,
@@ -1014,12 +1020,32 @@ export function useChat(): ChatState & ChatActions {
     async (id: string, title: string) => {
       const trimmed = title.trim().slice(0, 200);
       if (!trimmed) return;
-      await mutateConversations(
-        (rows) => rows.map((row) => (row.id === id ? { ...row, title: trimmed } : row)),
-        updateConversation({ data: { id, title: trimmed } }),
-      );
+      const before = conversationsRef.current;
+      const expected = expectedRevision(before, id);
+      setConversations(before.map((row) => (row.id === id ? { ...row, title: trimmed } : row)));
+      try {
+        const result = (await updateConversation({
+          data: {
+            id,
+            title: trimmed,
+            ...(expected === undefined ? {} : { expectedTitleRevision: expected }),
+          },
+        })) as RenameResult;
+        const applied = applyRename(before, id, trimmed, result);
+        if (applied.conflict) {
+          // Another device saved a newer title first: nothing was overwritten. Show it.
+          setConversations(before);
+          setProblem(RENAME_CONFLICT_MESSAGE);
+          void refreshConversations();
+        } else {
+          setConversations((current) => applyRename(current, id, trimmed, result).rows);
+        }
+      } catch (cause) {
+        setConversations(before);
+        setProblem(describeStorageError(cause));
+      }
     },
-    [mutateConversations],
+    [setConversations, refreshConversations],
   );
 
   const setArchived = useCallback(

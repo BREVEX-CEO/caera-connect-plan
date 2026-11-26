@@ -31,9 +31,16 @@ export interface OcadeConversationRow {
   model_id: string | null;
   updated_at: string;
   created_at: string;
+  /**
+   * How many times the title has changed (OFFLINE-03). A rename names the revision it saw; the
+   * account refuses it when the title moved on since. Absent on a conversation created offline
+   * that the account has not stored yet.
+   */
+  title_revision?: number;
 }
 
-const CONVERSATION_COLUMNS = "id, title, pinned, archived, model_id, updated_at, created_at";
+const CONVERSATION_COLUMNS =
+  "id, title, pinned, archived, model_id, updated_at, created_at, title_revision";
 
 export const listConversations = createServerFn({ method: "GET" })
   .middleware([requireSession])
@@ -140,6 +147,8 @@ const updateInput = z.object({
   pinned: z.boolean().optional(),
   archived: z.boolean().optional(),
   modelId: z.string().max(200).nullable().optional(),
+  /** With `title`: the title revision this device last read; a newer one refuses the rename. */
+  expectedTitleRevision: z.int().min(0).optional(),
 });
 
 export const updateConversation = createServerFn({ method: "POST" })
@@ -147,16 +156,36 @@ export const updateConversation = createServerFn({ method: "POST" })
   .validator((i) => updateInput.parse(i))
   .handler(async ({ data, context }) => {
     const patch: Record<string, unknown> = {};
-    if (data.title !== undefined) patch.title = data.title;
+    let titleRevision: number | null = null;
+    if (data.title !== undefined && data.expectedTitleRevision !== undefined) {
+      // OFFLINE-03: the rename names the revision it read; the account refuses a stale one.
+      const { data: revision, error } = await context.supabase.rpc(
+        "ocade_rename_conversation_checked",
+        {
+          p_id: data.id,
+          p_expected_revision: data.expectedTitleRevision,
+          p_title: data.title,
+        },
+      );
+      if (error) {
+        if (error.code === "40001") return { ok: false as const, conflict: true as const };
+        throw new Error(error.message);
+      }
+      titleRevision = typeof revision === "number" ? revision : null;
+    } else if (data.title !== undefined) {
+      patch.title = data.title;
+    }
     if (data.pinned !== undefined) patch.pinned = data.pinned;
     if (data.archived !== undefined) patch.archived = data.archived;
     if (data.modelId !== undefined) patch.model_id = data.modelId;
-    const { error } = await context.supabase
-      .from("ocade_conversations")
-      .update(patch as never)
-      .eq("id", data.id);
-    if (error) throw new Error(error.message);
-    return { ok: true as const };
+    if (Object.keys(patch).length > 0) {
+      const { error } = await context.supabase
+        .from("ocade_conversations")
+        .update(patch as never)
+        .eq("id", data.id);
+      if (error) throw new Error(error.message);
+    }
+    return { ok: true as const, titleRevision };
   });
 
 /**

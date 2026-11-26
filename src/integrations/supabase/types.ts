@@ -1071,6 +1071,7 @@ export type Database = {
           provider_id: string | null
           surface: string
           title: string
+          title_revision: number
           updated_at: string
           user_id: string
         }
@@ -1083,6 +1084,7 @@ export type Database = {
           provider_id?: string | null
           surface?: string
           title?: string
+          title_revision?: number
           updated_at?: string
           user_id: string
         }
@@ -1095,6 +1097,7 @@ export type Database = {
           provider_id?: string | null
           surface?: string
           title?: string
+          title_revision?: number
           updated_at?: string
           user_id?: string
         }
@@ -3000,6 +3003,10 @@ export type Database = {
       }
       ocade_revoke_other_account_sessions: {
         Args: { p_keep_session_id?: string; p_user_id: string }
+        Returns: number
+      }
+      ocade_rename_conversation_checked: {
+        Args: { p_expected_revision: number; p_id: string; p_title: string }
         Returns: number
       }
       ocade_save_notification_preferences_checked: {
