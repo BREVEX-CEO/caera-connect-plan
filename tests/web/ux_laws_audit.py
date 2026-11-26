@@ -26,6 +26,7 @@ the UX matrix in `PROGRESS.md` says which check backs which principle and what s
 - UX-03 Chunking: a page body never shows more than 12 controls outside a named group, list or table.
 - UX-02 Choice Overload: a dialog offers at most 4 buttons, and a select without groups at most 15 options.
 - UX-32 Progressive Disclosure: a section named advanced, developer or expert is folded on first view.
+- UX-26 Serial Position: a dialog's cancel or close control is its first or last button, never in the middle.
 - UX-01 Aesthetic-Usability: a page uses at most 3 type families (monospace code excepted).
 - UX-19 Occam's Razor: no container repeats a button or link with the same name beside its twin.
 - UX-09 Goal-Gradient: a progress bar has a name and only a valid value, never an invented one.
@@ -234,6 +235,15 @@ MEASURE = """({minTarget, maxNav, maxFields, maxGap, maxUngrouped, opened}) => {
   for (const sel of document.querySelectorAll('select:not([multiple])'))
     if (visible(sel) && !sel.querySelector('optgroup') && sel.options.length > 15)
       out.push(`UX-02 select ${JSON.stringify(name(sel))} lists ${sel.options.length} ungrouped options (max 15)`);
+  // UX-26 Serial Position: in a dialog with three or more choices, the way out sits first or last, never lost in the middle.
+  for (const d of document.querySelectorAll('dialog[open], [role=dialog], [role=alertdialog]')) {
+    if (!visible(d)) continue;
+    const btns = [...d.querySelectorAll('button, [role=button]')].filter(b => visible(b) && !b.closest('nav, [role=tablist]'));
+    btns.forEach((b, i) => {
+      if (btns.length >= 3 && i > 0 && i < btns.length - 1 && /^(cancel|close|dismiss|no thanks|not now)\\b/i.test(name(b)))
+        out.push(`UX-26 ${JSON.stringify(name(b))} is buried at position ${i + 1} of ${btns.length} in dialog ${JSON.stringify(name(d))}`);
+    });
+  }
   // UX-32 Progressive Disclosure: advanced controls start folded; a newcomer opens them on purpose.
   if (!opened)
     for (const d of document.querySelectorAll('details[open]')) {

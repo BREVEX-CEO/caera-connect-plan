@@ -31,6 +31,7 @@ BAD = {
     "UX-03": "<main><h1>F</h1>" + "".join(f'<button>Item {n}</button>' for n in range(14)) + "</main>",
     "UX-02": '<main><h1>F</h1><div role="dialog" aria-label="Pick">' + "".join(f"<button>Opt {n}</button>" for n in range(6)) + "</div></main>",
     "UX-01": '<main><h1 style="font-family:Arial">F</h1><p style="font-family:Georgia">a</p><p style="font-family:Verdana">b</p><p style="font-family:Impact">c</p></main>',
+    "UX-26": '<main><h1>F</h1><div role="dialog" aria-label="Pick"><button>Save</button><button>Cancel</button><button>Delete</button></div></main>',
     "UX-19": '<main><h1>F</h1><p><button>Export</button><button>Export</button></p></main>',
     "UX-32": '<main><h1>F</h1><details open><summary>Advanced options</summary><p>x</p></details></main>',
     "UX-09": '<main><h1>F</h1><progress value="-5" max="10"></progress></main>',
