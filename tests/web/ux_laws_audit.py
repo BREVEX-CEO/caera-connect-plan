@@ -17,6 +17,8 @@ the UX matrix in `PROGRESS.md` says which check backs which principle and what s
 - UX-14 Prägnanz / UX-31: no text is cut off by its container without an ellipsis.
 - UX-04 Cognitive Bias: no consent or marketing checkbox is pre-checked.
 - UX-05 Cognitive Load: one form never shows more than 8 fields at once.
+- UX-20 Paradox of the Active User: no dialog covers a page on first load, so use starts at once.
+- UX-25 Selective Attention: no media plays sound on its own.
 - UX-34 Feedback Loops: a field marked invalid points to visible text that says why.
 
     python3 tests/web/ux_laws_audit.py http://127.0.0.1:8787 [session.json storage-key] [--engine E]
@@ -162,6 +164,17 @@ MEASURE = """({minTarget, maxNav, maxFields, opened}) => {
 }"""
 
 READY = "() => { const n = performance.getEntriesByType('navigation')[0]; return n ? n.domContentLoadedEventEnd : 0; }"
+FIRST_LOAD = """() => {
+  const out = [];
+  for (const d of document.querySelectorAll('dialog[open], [role="dialog"], [role="alertdialog"], [aria-modal="true"]')) {
+    const b = d.getBoundingClientRect(), s = getComputedStyle(d);
+    if (s.display !== 'none' && s.visibility !== 'hidden' && b.width > 0 && b.height > 0)
+      out.push('UX-20 dialog open on first load: ' + (d.getAttribute('aria-label') || d.textContent.trim().slice(0, 40)));
+  }
+  for (const m of document.querySelectorAll('audio, video'))
+    if (!m.paused && !m.muted && m.volume > 0) out.push('UX-25 media plays sound on its own: ' + m.tagName);
+  return out;
+}"""
 LONG_MOTION = """() => document.getAnimations().filter(a => {
   const t = a.effect && a.effect.getComputedTiming(); return a.playState === 'running' && t && t.duration > 10;
 }).map(a => (a.animationName || a.transitionProperty || 'animation') + ' on ' + (a.effect.target && a.effect.target.tagName))"""
@@ -172,6 +185,7 @@ def audit_page(page, url: str) -> list[str]:
     if response and not (response.headers.get("content-type") or "").startswith("text/html"):
         return []
     problems = page.evaluate(MEASURE, {"minTarget": MIN_TARGET, "maxNav": MAX_NAV_CHOICES, "maxFields": MAX_FORM_FIELDS, "opened": False})
+    problems += page.evaluate(FIRST_LOAD)
     ready = page.evaluate(READY)
     if ready > READY_MS:
         problems.append(f"UX-06 document ready after {round(ready)} ms (want <= {READY_MS})")
