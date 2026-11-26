@@ -756,7 +756,8 @@ def office_write_workbook(path: str, sheets: list[dict]) -> dict:
 
 
 if __name__ == "__main__":
-    from .sandbox import cap_memory
+    from .sandbox import cap_cpu, cap_memory
 
     cap_memory()  # a hostile file ends this parser, never the computer (MALWARE-03)
+    cap_cpu()
     app.run("stdio")

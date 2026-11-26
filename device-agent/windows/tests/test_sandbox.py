@@ -196,5 +196,26 @@ class ParserMemoryCap(unittest.TestCase):
                          result.stderr)
 
 
+class ParserCpuCap(unittest.TestCase):
+    """MALWARE-03: a parser that spins ends alone; an idle one is left alone."""
+
+    def run_worker(self, body: str):
+        program = ("from ocade_agent.sandbox import cap_cpu, PARSER_CPU_EXIT\n"
+                   "cap_cpu(budget=1.0, window=30.0, poll=0.05)\n" + body)
+        return subprocess.run([sys.executable, "-c", program], capture_output=True, text=True, timeout=60,
+                              cwd=Path(__file__).resolve().parents[1])
+
+    def test_a_spinning_worker_is_stopped(self):
+        from ocade_agent.sandbox import PARSER_CPU_EXIT
+
+        result = self.run_worker("while True:\n    pass\n")
+        self.assertEqual(result.returncode, PARSER_CPU_EXIT, result.stderr)
+        self.assertIn("CPU-seconds", result.stderr)
+
+    def test_an_idle_worker_is_left_alone(self):
+        result = self.run_worker("import time\ntime.sleep(2.5)\nprint('done')\n")
+        self.assertEqual((result.returncode, result.stdout.strip()), (0, "done"), result.stderr)
+
+
 if __name__ == "__main__":
     unittest.main()

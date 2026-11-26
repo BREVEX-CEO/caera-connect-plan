@@ -23,6 +23,7 @@ import os
 import re
 import sys
 import tempfile
+import time
 import zipfile
 from contextvars import ContextVar
 from pathlib import Path
@@ -314,6 +315,41 @@ def cap_memory(limit: int = PARSER_MEMORY_LIMIT) -> str:
 
 
 _memory_jobs: list = []
+
+PARSER_CPU_BUDGET = 300.0  # CPU-seconds a parser may burn ...
+PARSER_CPU_WINDOW = 600.0  # ... within this many wall-clock seconds
+PARSER_CPU_EXIT = 75
+
+
+def cap_cpu(budget: float = PARSER_CPU_BUDGET, window: float = PARSER_CPU_WINDOW, poll: float = 1.0):
+    """MALWARE-03: a document crafted to spin a parser (decompression or regex blow-up, an
+    endless loop) ends its own worker instead of holding a core until the owner notices.
+
+    A watchdog thread samples the worker's CPU time; once the worker has used more than `budget`
+    CPU-seconds inside any `window` wall-clock seconds it exits with PARSER_CPU_EXIT. An idle
+    worker uses almost none, and a legitimate render or large workbook stays well under the
+    budget. Portable: unlike a per-process rlimit it also works on macOS and needs no reset
+    between calls. Returns the watchdog thread.
+    """
+    import collections
+    import threading
+
+    def watch() -> None:
+        samples = collections.deque([(time.monotonic(), time.process_time())])
+        while True:
+            time.sleep(poll)
+            now, cpu = time.monotonic(), time.process_time()
+            while len(samples) > 1 and now - samples[1][0] >= window:
+                samples.popleft()
+            if cpu - samples[0][1] > budget:
+                sys.stderr.write(f"parser worker stopped: more than {budget:g} CPU-seconds in {window:g} s\n")
+                sys.stderr.flush()
+                os._exit(PARSER_CPU_EXIT)
+            samples.append((now, cpu))
+
+    thread = threading.Thread(target=watch, name="ocade-cpu-watchdog", daemon=True)
+    thread.start()
+    return thread
 
 
 def run_restricted(module: str) -> None:
