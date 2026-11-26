@@ -194,6 +194,67 @@ class X11Ladder(unittest.TestCase):
         finally:
             subprocess_kill(self.exe)
 
+    def test_a_look_alike_window_stacked_over_the_leased_one_never_receives_the_click(self):
+        """Overlapping windows: the leased window is raised first, so the click lands in it and
+        the identical-looking window above it is untouched (the same pixels cannot fool the bridge)."""
+        import subprocess
+
+        async def steps():
+            async with Gateway(str(self.root)) as gateway:
+                return await self.launch(gateway)
+
+        other_log = self.root / "other.log"
+        covering = None
+        try:
+            window = anyio.run(steps)
+            direct = {k: window[k] for k in ("exe", "pid", "hwnd", "started")}
+            linux_worker.ui_inspect(window=direct)
+            covering = subprocess.Popen([sys.executable, str(FIXTURE), str(other_log)])
+            deadline = time.monotonic() + 10
+            while not other_log.exists() and time.monotonic() < deadline:
+                time.sleep(0.1)
+            self.assertTrue(other_log.exists(), "the covering window never appeared")
+            self.quiet()
+            result = linux_worker.ui_click_point(window=direct, x=0.5, y=0.5, expectTitle="Fixture")
+            self.assertNotIn("refused", result, result)
+            self.assertEqual(sum(line.startswith("click ") for line in self.lines()), 1, "it lands in the leased window")
+            self.assertNotIn("click ", other_log.read_text(), "and never in the window that only looks the same")
+        finally:
+            if covering is not None:
+                covering.kill()
+            subprocess_kill(self.exe)
+
+    def test_when_the_window_cannot_be_raised_a_covered_point_is_refused_untouched(self):
+        """A window manager that refuses the raise leaves the other window on top: no click at all."""
+        import subprocess
+        from unittest.mock import patch as patch_object
+
+        async def steps():
+            async with Gateway(str(self.root)) as gateway:
+                return await self.launch(gateway)
+
+        other_log = self.root / "other.log"
+        covering = None
+        try:
+            window = anyio.run(steps)
+            direct = {k: window[k] for k in ("exe", "pid", "hwnd", "started")}
+            linux_worker.ui_inspect(window=direct)
+            covering = subprocess.Popen([sys.executable, str(FIXTURE), str(other_log)])
+            deadline = time.monotonic() + 10
+            while not other_log.exists() and time.monotonic() < deadline:
+                time.sleep(0.1)
+            self.quiet()
+            with patch_object.object(linux_worker, "_front", lambda _window: None):
+                result = linux_worker.ui_click_point(window=direct, x=0.5, y=0.5, expectTitle="Fixture")
+            self.assertEqual(result.get("refused"), "point_obscured", result)
+            self.assertFalse(result["maybeChanged"])
+            self.assertNotIn("click ", other_log.read_text())
+            self.assertFalse(any(line.startswith("click ") for line in self.lines()))
+        finally:
+            if covering is not None:
+                covering.kill()
+            subprocess_kill(self.exe)
+
     def test_a_person_using_the_keyboard_stops_the_bridge_before_any_input(self):
         async def steps():
             async with Gateway(str(self.root)) as gateway:
