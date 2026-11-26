@@ -114,6 +114,9 @@ The windows-2025 ffmpeg failure on `7270937` did not recur with the retrying ins
 ### Cause of the one-off audit failure on `10aa0f4` (session 2)
 The saved log of the failed Linux "Portable build" job (run 45822981236) shows the Firefox accessibility audit reporting `could not audit: Page.goto: NS_BINDING_ABORTED` for `/`, with every other audit in that job at 0 problems. `surface_audit.open_page` already retried that Firefox error once; `accessibility_audit.py` still called `page.goto` directly in nine places. All nine now use `surface_audit.open_page`. Local Chromium results are identical before and after the change (same 10 pages flagged by this machine's own Chromium build, which differs from CI's; CI Chromium passes on `cf6502c`), so the change is behaviour-neutral except for the retry.
 
+### Local gate evidence at `2fed810` plus the audit retry (session 2)
+`npm run typecheck` exit 0; `npm run lint` exit 0 (0 errors, 7 warnings, unchanged from baseline); `npm run verify:full` exit 0, 8 gates; `npm run test:jarvis` exit 0 (TypeScript 41 pass 0 fail, companion 361 tests OK, 46 platform skips); `npm run test:jarvis-db` on the local PostgreSQL 16 cluster exit 0, 43 PASS lines, no FAIL; CodeMap `--unused` 0 candidates and `--duplicates` 0 groups; Firefox first-visit script bytes 904 684 of the 950 000 budget. These are local results; the exact-SHA GitHub results are listed above and below.
+
 ### Debloat re-check at `376e32f` (items 97–98)
 CodeMap `--unused`: 0 unreferenced module-private TypeScript functions; `--duplicates`: 0 byte-identical source groups; `--cycles`: 18 static cycle witnesses (type-level and sibling imports, none changed this session, none removed without proof). Nothing was deleted: no proven-useless code was found. Earlier knip result stands (`docs/DEBLOAT_REPORT.md`).
 
