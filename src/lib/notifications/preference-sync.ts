@@ -22,8 +22,8 @@
  * about it, and neither will this browser after a reload.
  */
 
-import { normalisePreferences, type NotificationPreferences } from "./preferences";
-import type { NotificationChannelId } from "./channels";
+import { normalisePreferences, type NotificationPreferences } from "./preferences.ts";
+import type { NotificationChannelId } from "./channels.ts";
 import type { Json } from "@/integrations/supabase/types";
 
 /** The database calls this module makes, injected so they can be tested. */
@@ -31,7 +31,8 @@ export interface PreferenceBackend {
   read(): Promise<{ row: StoredPreferenceRow | null; error: string | null }>;
   save(
     preferences: NotificationPreferences,
-  ): Promise<{ revision: number | null; error: string | null }>;
+    expectedRevision: number,
+  ): Promise<{ revision: number | null; error: string | null; stale?: boolean }>;
 }
 
 export interface StoredPreferenceRow {
@@ -44,12 +45,16 @@ export interface StoredPreferenceRow {
 export type SaveOutcome =
   | { state: "saved"; revision: number }
   | { state: "session_only"; reason: string }
-  | { state: "failed"; reason: string };
+  | { state: "failed"; reason: string }
+  /** Another device saved a newer choice first; nothing was overwritten. */
+  | { state: "changed_elsewhere"; reason: string };
 
 export interface LoadedPreferences {
   preferences: NotificationPreferences;
   /** Where the value on screen came from, so the screen can say so. */
   source: "account" | "defaults";
+  /** The revision this copy was read at (0 when the account has no row yet). */
+  revision: number;
   /** Present when the account copy could not be read. */
   unavailable?: string;
 }
@@ -68,10 +73,10 @@ export async function loadNotificationPreferences(input: {
   availableChannelIds: readonly NotificationChannelId[];
 }): Promise<LoadedPreferences> {
   const fallback = normalisePreferences(null, input.availableChannelIds);
-  if (!input.backend) return { preferences: fallback, source: "defaults" };
+  if (!input.backend) return { preferences: fallback, source: "defaults", revision: 0 };
 
   const { row, error } = await input.backend.read();
-  if (error) return { preferences: fallback, source: "defaults", unavailable: error };
+  if (error) return { preferences: fallback, source: "defaults", revision: 0, unavailable: error };
 
   /*
    * No row yet is not a failure: it is somebody who has never changed a
@@ -79,7 +84,7 @@ export async function loadNotificationPreferences(input: {
    * on for them, and writing a row here would record a choice they did not
    * make.
    */
-  if (!row) return { preferences: fallback, source: "account" };
+  if (!row) return { preferences: fallback, source: "account", revision: 0 };
 
   return {
     preferences: normalisePreferences(
@@ -91,6 +96,7 @@ export async function loadNotificationPreferences(input: {
       input.availableChannelIds,
     ),
     source: "account",
+    revision: row.revision,
   };
 }
 
@@ -103,6 +109,8 @@ export async function loadNotificationPreferences(input: {
  */
 export async function saveNotificationPreferences(input: {
   preferences: NotificationPreferences;
+  /** The revision the person last saw; a newer account copy is never overwritten. */
+  expectedRevision: number;
   backend: PreferenceBackend | null;
 }): Promise<SaveOutcome> {
   if (!input.backend) {
@@ -112,7 +120,17 @@ export async function saveNotificationPreferences(input: {
     };
   }
 
-  const { revision, error } = await input.backend.save(input.preferences);
+  const { revision, error, stale } = await input.backend.save(
+    input.preferences,
+    input.expectedRevision,
+  );
+  if (stale) {
+    return {
+      state: "changed_elsewhere",
+      reason:
+        "These settings were changed on another device since you opened this screen. Nothing was overwritten; reload to see the newer choices.",
+    };
+  }
   if (error) {
     return {
       state: "failed",

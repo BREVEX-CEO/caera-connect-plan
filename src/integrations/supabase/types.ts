@@ -3002,6 +3002,15 @@ export type Database = {
         Args: { p_keep_session_id?: string; p_user_id: string }
         Returns: number
       }
+      ocade_save_notification_preferences_checked: {
+        Args: {
+          p_categories: Json
+          p_expected_revision: number
+          p_mute_optional: boolean
+          p_quiet_hours: Json
+        }
+        Returns: number
+      }
       ocade_save_notification_preferences: {
         Args: {
           p_categories: Json

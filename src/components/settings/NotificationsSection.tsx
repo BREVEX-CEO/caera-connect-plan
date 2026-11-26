@@ -38,6 +38,7 @@ export function NotificationsSection() {
   const { user } = useSession();
   const [preferences, setPreferences] = useState<NotificationPreferences>(defaultPreferences());
   const [source, setSource] = useState<"account" | "defaults">("defaults");
+  const [revision, setRevision] = useState(0);
   const [saved, setSaved] = useState<string | null>(null);
   const allChannels = resolveChannels(deploymentChannelConfiguration());
   const channels = allChannels.filter((channel) => channel.available);
@@ -59,6 +60,7 @@ export function NotificationsSection() {
       if (cancelled) return;
       setPreferences(loaded.preferences);
       setSource(loaded.source);
+      setRevision(loaded.revision);
     });
     /*
      * AND WHAT WAS ACTUALLY SENT. A protected category is recorded even when
@@ -82,7 +84,9 @@ export function NotificationsSection() {
     const outcome = await saveNotificationPreferences({
       backend: supabasePreferenceBackend(user?.id ?? null),
       preferences: next,
+      expectedRevision: revision,
     });
+    if (outcome.state === "saved") setRevision(outcome.revision);
     setSaved(
       outcome.state === "saved"
         ? "Saved to your account."

@@ -27,8 +27,8 @@ import {
   NOTIFICATION_CATEGORIES,
   type NotificationCategoryId,
   type NotificationFrequency,
-} from "./categories";
-import type { NotificationChannel, NotificationChannelId } from "./channels";
+} from "./categories.ts";
+import type { NotificationChannel, NotificationChannelId } from "./channels.ts";
 
 export interface QuietHoursPreference {
   enabled: boolean;

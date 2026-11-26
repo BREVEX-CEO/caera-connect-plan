@@ -43,7 +43,7 @@ export function supabasePreferenceBackend(userId: string | null): PreferenceBack
       }
     },
 
-    async save(preferences: NotificationPreferences) {
+    async save(preferences: NotificationPreferences, expectedRevision: number) {
       try {
         const supabase = await loadSupabaseClient();
         /*
@@ -53,12 +53,18 @@ export function supabasePreferenceBackend(userId: string | null): PreferenceBack
          * the same statement, which a client-side read-modify-write could not
          * do safely from two devices at once.
          */
-        const { data, error } = await supabase.rpc("ocade_save_notification_preferences", {
+        const { data, error } = await supabase.rpc("ocade_save_notification_preferences_checked", {
+          p_expected_revision: expectedRevision,
           p_mute_optional: preferences.muteOptional,
           p_quiet_hours: preferences.quietHours as unknown as Json,
           p_categories: preferences.categories as unknown as Json,
         });
-        if (error) return { revision: null, error: error.message };
+        // 40001: the account moved on since this copy was read (OFFLINE-03).
+        if (error) {
+          return error.code === "40001"
+            ? { revision: null, error: null, stale: true }
+            : { revision: null, error: error.message };
+        }
         return { revision: typeof data === "number" ? data : null, error: null };
       } catch {
         /*
