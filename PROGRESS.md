@@ -28,6 +28,12 @@ Classification of the 148 Part 0A items against the owner's scope (coding only; 
 - `test:jarvis`: TypeScript 45 tests, 44 pass, 0 fail (1 skipped); companion Python 356 tests OK, 46 platform skips (deps from `device-agent/windows/requirements.txt` + reportlab, opentimelineio).
 - `test:jarvis-db` on local PostgreSQL 16: exit 0, 43 PASS lines including 60 rollbacks and the permit and reservation race harnesses.
 
+### MODEL-08 / O-09 assessment (no code change)
+Every BYOK connection test already probes tool calling and picture sight on the exact model (`byok-handler.ts` `testConnection`). What is missing is detection of a provider-side model version change and a versioned qualification suite against real models; that needs a schema change plus real-provider evidence and stays PARTIAL/OPEN (Stage 5, excluded from this scope).
+
+### CI dispatched on `ce67076`
+Push runs: static security and JARVIS cloud validation. Manual runs dispatched on the branch head: CI (`ci.yml`) and macOS bundle qualification (`jarvis-macos-package.yml`). Results are recorded below only after each job is read.
+
 ### Debloat re-check at `376e32f` (items 97–98)
 CodeMap `--unused`: 0 unreferenced module-private TypeScript functions; `--duplicates`: 0 byte-identical source groups; `--cycles`: 18 static cycle witnesses (type-level and sibling imports, none changed this session, none removed without proof). Nothing was deleted: no proven-useless code was found. Earlier knip result stands (`docs/DEBLOAT_REPORT.md`).
 
