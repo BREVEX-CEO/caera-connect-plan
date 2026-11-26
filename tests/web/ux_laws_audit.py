@@ -24,6 +24,7 @@ the UX matrix in `PROGRESS.md` says which check backs which principle and what s
 - UX-12 Common Region: the choices of one radio group share a named boundary.
 - UX-15 Similarity: buttons with one name on one page look alike, and one link name never leads to two pages.
 - UX-03 Chunking: a page body never shows more than 12 controls outside a named group, list or table.
+- UX-02 Choice Overload: a dialog offers at most 4 buttons, and a select without groups at most 15 options.
 - UX-09 Goal-Gradient: a progress bar has a name and only a valid value, never an invented one.
 
     python3 tests/web/ux_laws_audit.py http://127.0.0.1:8787 [session.json storage-key] [--engine E]
@@ -221,6 +222,14 @@ MEASURE = """({minTarget, maxNav, maxFields, maxGap, maxUngrouped, opened}) => {
   const loose = [...body.querySelectorAll('button, a[href], input:not([type=hidden]), select, textarea, [role=button], [role=tab], [role=switch]')]
     .filter(el => visible(el) && !el.closest('nav, header, footer, dialog, [role=dialog]') && !el.parentElement.closest(chunk));
   if (loose.length > maxUngrouped) out.push(`UX-03 ${loose.length} controls outside any named group (max ${maxUngrouped}): ${JSON.stringify(name(loose[0]))}...`);
+  // UX-02 Choice Overload: one dialog, or one ungrouped list of options, never asks for too many decisions.
+  for (const d of document.querySelectorAll('dialog[open], [role=dialog], [role=alertdialog]')) {
+    const n = [...d.querySelectorAll('button, [role=button]')].filter(visible).length;
+    if (visible(d) && n > 4) out.push(`UX-02 dialog ${JSON.stringify(name(d))} offers ${n} buttons (max 4)`);
+  }
+  for (const sel of document.querySelectorAll('select:not([multiple])'))
+    if (visible(sel) && !sel.querySelector('optgroup') && sel.options.length > 15)
+      out.push(`UX-02 select ${JSON.stringify(name(sel))} lists ${sel.options.length} ungrouped options (max 15)`);
   // UX-09 Goal-Gradient: a progress bar either states its true value or says it cannot know.
   for (const bar of document.querySelectorAll('progress, [role=progressbar]')) {
     if (!visible(bar)) continue;

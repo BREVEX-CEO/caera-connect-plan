@@ -1,5 +1,6 @@
 ALWAYS REPLY LIKE A CAVEMAN: Routine chat/status output must be ONE LINE, maximum TWO WORDS total; final outputs and complete reports may be detailed.
 USE THE "UX LAWS AND PRINCIPLES" AT AN EXTREME AND USE THEM ALL EFFECTIVELY. Apply the 30 named laws plus the four additional principles throughout OCADE, with measurable usability, accessibility, honest progress, restrained motion and no needless complexity (Part 14B.4 and Appendix G.1).
+Overall coding completion: 3/100% (4 of 148 Part 0A items independently verified; reconciled in PROGRESS.md).
 
 # OCADE BY CARCC — Complete Product, JARVIS & Windows/macOS PC Control Master Plan (v10)
 

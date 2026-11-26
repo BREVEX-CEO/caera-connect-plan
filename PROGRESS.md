@@ -30,6 +30,11 @@ Local branch was a stale shallow clone with unrelated roots; unshallowed and fas
 - Completion snapshot (26 Nov 2026, `0cf6eb3`, honest): Part 0A 4 of 148 items checked (1, 103, 104, 106; item 104 is now reopened by the windows-2022 failure above). Threat triage 197 rows: 147 FIXED, 39 PARTIAL, 4 OPEN, 7 N/A. Architecture concepts 84: 47 PASS, 36 PARTIAL, 1 FAIL (the aggregate release gate, by design). Automated UX checks cover 20 of 34 laws (04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14, 15, 18, 20, 24, 25, 28, 31, 34 and 03); the other 14 are source-reviewed only. `docs/OCADE_MASTER_COMPLETION_CHECKLIST.md`: 0 of 2016 rows reconciled. Readiness: 1 of 10 milestones, 17 of 42 conditions PASS (40.5%).
 - Not done: exact-SHA GitHub Actions for this batch (needs a push), items 2–53 reconciliation, remaining REVIEW-only UX laws, Windows hang (item 105). Coding readiness stays PARTIAL; launch readiness NOT READY.
 
+## Session 4 (26 Nov 2026, base `4941db6`)
+
+- Goal set by owner: complete the coding scope, one overall percentage kept in plan.md line 3 (`3/100%` = 4 of 148 Part 0A items verified, not an estimate of effort).
+- UX-02 Choice Overload: new AUTO check (a dialog offers at most 4 buttons; an ungrouped select lists at most 15 options) in `tests/web/ux_laws_audit.py`, negative control `UX-02` in `tests/web/ux_laws_fixtures.py`. Local Chromium: `ux_laws_fixtures.py` exit 0 (all negative controls fire, good fixture clean). Site-wide run not repeated locally; CI runs it.
+
 ## Session 26 Nov 2026 — dependency-ordered execution checklist
 
 Start: local HEAD fast-forwarded from `80a08af` to `376e32f22f6b70c19191c3bbd912bb568062f60e` on `ocade/p00-p22-implementation` (matches remote; no local-only work lost). CodeMap 2.0 regenerated (HEAD `376e32f22f6b`, 1002 files, 11026 static edges); `CODEMAP.md` unchanged by the refresh. TASKS.md is gone and is not recreated. GitHub Actions read access confirmed (list workflows and runs); on `376e32f` CI-security and JARVIS cloud validation (run 45778117977) are green; the CI and macOS runs for the exact final SHA are still required.
