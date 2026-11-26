@@ -99,6 +99,18 @@ BEGIN
   PERFORM pg_temp.check(public.jarvis_task_approvals(v_task.task_id) = 1, 'one scope recorded');
   PERFORM public.jarvis_clear_approvals(v_user, v_task.task_id);
   PERFORM pg_temp.check(public.jarvis_task_approvals(v_task.task_id) = 0, 'ask me again withdraws the scope');
+
+  -- "Deny and stop" ends the task: nothing is queued afterwards and the person is not asked again.
+  PERFORM public.jarvis_stop_task(v_user, v_task.task_id);
+  BEGIN
+    PERFORM public.jarvis_queue_actions(v_task.task_id, v_task.controller, jsonb_build_array(
+      jsonb_build_object('summary', 'Retry', 'action', pg_temp.edit('edit-4', 'b.txt', v_deadline))));
+    RAISE EXCEPTION 'smart approvals: a stopped task accepted a step';
+  EXCEPTION WHEN insufficient_privilege THEN
+    IF SQLERRM <> 'stale_controller' THEN RAISE; END IF;
+  END;
+  PERFORM pg_temp.check((SELECT count(*) FROM public.jarvis_activity WHERE action ->> 'key' = 'edit-4') = 0,
+                        'no prompt after the task was stopped');
 END $$;
 RESET ROLE;
 ROLLBACK;
