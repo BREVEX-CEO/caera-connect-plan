@@ -35,6 +35,7 @@
     "test:jarvis": "node --experimental-strip-types --no-warnings --test tests/jarvis/*.test.ts && cd device-agent/windows && python3 -m unittest discover -s tests -t .",
     "test:jarvis-db": "bash tests/jarvis/db/run.sh",
     "jarvis:traceability": "node scripts/jarvis-traceability.mjs",
+    "metrics:runs": "node scripts/run-metrics.mjs",
     "jarvis:no-hardcoded": "node scripts/jarvis-no-hardcoded-journeys.mjs",
     "readiness": "node scripts/launch-readiness.mjs",
     "model:availability": "node --experimental-strip-types --no-warnings scripts/model-availability.ts",

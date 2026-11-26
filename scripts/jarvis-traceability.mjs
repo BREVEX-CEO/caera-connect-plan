@@ -233,7 +233,7 @@ const C = {
     "L2",
     ["gateway", "authority"],
     ["gateway", "e2e"],
-    "per-action and model durations recorded; no p50/p95 from real runs",
+    "per-action and model durations recorded; `npm run metrics:runs` reports p50/p95 over the recorded live runs (not a CPU/memory benchmark; Windows/macOS runs untested)",
   ],
   49: [
     "PARTIAL",
@@ -370,7 +370,7 @@ const C = {
     "L4",
     ["authority"],
     ["staging"],
-    `per-run outcome and confirmations recorded in ${LIVE_RUNS}; no aggregated product metric`,
+    `per-run outcome and confirmations recorded in ${LIVE_RUNS}; \`npm run metrics:runs\` aggregates outcome counts and the share of runs that asked for confirmation; no production telemetry`,
   ],
   84: ["FAIL", "L0", [], [], "release gate not met: concepts above are FAIL/BLOCKED/PARTIAL"],
 };
