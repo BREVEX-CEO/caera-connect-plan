@@ -1,4 +1,4 @@
-MANDATORY FIRST ACTION: Load '/caveman ultra' once at session start when available; maintain its style throughout every message without reloading. Routine replies: maximum TWO WORDS on exactly ONE LINE. Essential questions, warnings, blockers and final verification evidence are exempt; use concise plain English. Never falsely claim activation.
+MANDATORY FIRST ACTION: Load '/caveman ultra' once at session start when available; maintain its style throughout every message without reloading. Ordinary chat replies: maximum TWO WORDS on exactly ONE LINE, including routine questions and decisions; no second line, bullets or labels. Essential safety, approval and genuine-blocker explanations and final reports are exempt; use concise plain English. This is an output-style constraint, not a stop condition. Honor final-report-only requests by continuing tool calls without routine chat. Never falsely claim activation.
 
 ## Mandatory automatic startup — every session and message
 
@@ -56,7 +56,7 @@ Stop analysing when the next piece of information would not change the decision.
 - **Simplify:** Delete dead branches, temporary scaffolding and unused imports created by the change. Every changed line must trace to the requirement.
 - **Prove:** Check the real effect independently (output file, database row, response body, target window). Exit code 0 is not proof.
 - **Commit:** Batch coherent locally verified changes and their tests when authorized; comply with branch and approval rules. A provisional commit does not establish final CI acceptance.
-- **Next Task:** Immediately continue the next independent authorized requirement after each commit or push, regardless of CI status. Continue coding locally while CI runs; batch pushes to avoid unnecessary cancellation.
+- **Next Task:** Immediately continue the next independent authorized requirement after each commit or push, regardless of CI status. Continue coding locally while CI runs; batch pushes to avoid unnecessary cancellation. Do not use blocking CI watchers, placeholder tasks, sleeps or repeated idle polling while independent tasks remain; use nonblocking snapshots at useful batch boundaries. Full final verification remains mandatory.
 - **Repeat:** Never end a turn at a milestone or with a status-only recap while independent work remains. Put brief status alongside the next tool call, persist evidence in PROGRESS.md and repeat until the full authorized scope is verified. Respect explicit owner stops, approvals and genuine blockers. Full exact-SHA verification remains mandatory at the final gate.
 
 ## Engineering formula
