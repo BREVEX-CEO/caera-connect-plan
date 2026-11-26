@@ -28,6 +28,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { useSession } from "@/lib/session";
+import { draftKey, useStoredDraft } from "@/lib/use-stored-draft";
 import { ModelSource } from "@/components/settings/ModelSource";
 import { EnhancePrompt } from "@/components/chat/EnhancePrompt";
 import { useFollowBottom } from "@/lib/use-follow-bottom";
@@ -93,7 +94,7 @@ export function JarvisWorkspace({
   const prefs = useJarvisPreferences();
 
   const [turns, setTurns] = useState<Turn[]>([]);
-  const [draft, setDraft] = useState("");
+  const [draft, setDraft] = useStoredDraft(user ? draftKey("jarvis", user.id) : null);
   const composer = useRef<HTMLTextAreaElement>(null);
   // The box grows with what is typed (as Chat's does), so a long instruction stays readable
   // (Working Memory); empty, CSS sizes it to its whole hint instead of clipping it on a phone.
@@ -116,7 +117,7 @@ export function JarvisWorkspace({
     const handed = takeHandOff()?.text;
     const typed = typedBeforeHydration("jarvis-composer") || handed;
     if (typed) setDraft((current) => current || typed);
-  }, []);
+  }, [setDraft]);
   // Taken once and dropped from the address, so a reload or Back does not type it again.
   const asked = useRef(false);
   useEffect(() => {
@@ -128,7 +129,7 @@ export function JarvisWorkspace({
       search: (previous) => ({ ...previous, ask: undefined }),
       replace: true,
     });
-  }, [ask, navigate]);
+  }, [ask, navigate, setDraft]);
   const [section, setSection] = useState<Section | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const drawer = useRef<HTMLDivElement>(null);

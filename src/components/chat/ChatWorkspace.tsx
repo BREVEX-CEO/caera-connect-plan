@@ -22,6 +22,7 @@ import { useEffect, useRef, useState, type MouseEvent } from "react";
 import { ArrowUp, ArrowLeft, ArrowRight, Mic, Plus, Square, X } from "lucide-react";
 import { AppShell } from "@/components/shell/AppShell";
 import { useSession } from "@/lib/session";
+import { draftKey, useStoredDraft } from "@/lib/use-stored-draft";
 import { offlineRelease } from "@/lib/brain/offline-release";
 import { useInstallation } from "@/lib/brain/use-installation";
 import { useOnline } from "@/lib/use-online";
@@ -75,12 +76,12 @@ export function ChatWorkspace() {
   const { user, loading } = useSession();
   const navigate = useNavigate();
   const chat = useChat();
-  const [draft, setDraft] = useState("");
+  const [draft, setDraft] = useStoredDraft(user ? draftKey("chat", user.id) : null);
   // Words typed while the page was still loading become the draft.
   useEffect(() => {
     const typed = typedBeforeHydration("ocade-composer");
     if (typed) setDraft((current) => current || typed);
-  }, []);
+  }, [setDraft]);
   const [choice, setChoice] = useState<IntelligenceChoice>("auto");
   const online = useOnline();
   const offlineInstall = useInstallation();
@@ -140,7 +141,7 @@ export function ChatWorkspace() {
     } catch {
       /* Storage can be blocked; the composer still works. */
     }
-  }, [user]);
+  }, [user, setDraft]);
 
   /*
    * NEW CHAT ACTUALLY STARTS ONE.
@@ -222,7 +223,7 @@ export function ChatWorkspace() {
     newConversation();
     setDraft("");
     void navigate({ to: "/", search: {}, replace: true });
-  }, [startNew, newConversation, navigate]);
+  }, [startNew, newConversation, navigate, setDraft]);
 
   /*
    * `+` ATTACHES THE FILE TO THE QUESTION, AND KEEPS IT IN THE LIBRARY.

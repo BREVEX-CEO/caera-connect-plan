@@ -65,6 +65,11 @@ Every PARTIAL or OPEN row of `docs/OCADE_THREAT_TRIAGE.md` (33 PARTIAL, 2 OPEN) 
 - Stage-gated, excluded by owner scope (real models, hosted platforms, payments, staging): O-07, O-09, O-12, O-13, MODEL-08, AGENTS-06, DESKTOP-07, VERIFY-03, VERIFY-07 (Windows and macOS repeats), BILLING-03, BILLING-07.
 - Needs OS work I cannot prove on this Linux machine (Windows or macOS native): O-05, O-06, MCP-01, MCP-05, DESKTOP-06, TENANT-07, AGENTS-08 and RELIABILITY-05 (GPU reading).
 
+### UX-29 Working Memory fix (session 2)
+A source review (read-only helper, then my own check of `ChatWorkspace.tsx` and `JarvisWorkspace.tsx`) found the Chat and JARVIS composer drafts were plain `useState`, lost on navigation. Fix: `src/lib/use-stored-draft.ts` (`useStoredDraft`) keeps the draft in `sessionStorage` per surface and account (ends with the tab, never crosses accounts, bounded to 20 000 characters, no-op when storage is unavailable); both composers use it. Evidence: `tests/jarvis/use-stored-draft.test.ts` 4 pass, 0 fail; typecheck exit 0; eslint on the three files clean. NOT proven in a signed-in browser (needs the local Supabase stack), so UX-29 stays PARTIAL.
+
+Read-only source review of the other REVIEW laws (claims from a Haiku helper, spot-checked only for UX-29 and PermissionGuide; the helper's R12-05 claim was wrong, so treat the rest as leads, not proof): UX-17, 26, 27, 30, 32 look applied; UX-02, 03, 16, 19, 22, 23, 33 have named gaps (no single primary JARVIS step, no settings search, no step connectors, duplicate Chat and Files entries in two rails, no per-task limit shown, no managed-model cost, no recent-file memory); UX-21 is process evidence. These stay open.
+
 ### Debloat re-check at `376e32f` (items 97–98)
 CodeMap `--unused`: 0 unreferenced module-private TypeScript functions; `--duplicates`: 0 byte-identical source groups; `--cycles`: 18 static cycle witnesses (type-level and sibling imports, none changed this session, none removed without proof). Nothing was deleted: no proven-useless code was found. Earlier knip result stands (`docs/DEBLOAT_REPORT.md`).
 
