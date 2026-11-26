@@ -21,12 +21,13 @@ GOOD = """<main><h1>Fixture</h1>
 <input id="x" aria-invalid="true" aria-describedby="why" aria-label="Code"><span id="why">Use six digits.</span>
 <fieldset><legend>Plan</legend><input type="radio" name="p" aria-label="A"><input type="radio" name="p" aria-label="B"></fieldset>
 <button>Save</button><button>Save</button><progress aria-label="Upload" value="3" max="10"></progress>
-<progress aria-label="Working"></progress></form></main>"""
+<progress aria-label="Working"></progress><a href="https://fixture.test/a">Home</a><a href="https://fixture.test/a">Home</a></form></main>"""
 
 BAD = {
     "UX-13": '<main><h1>F</h1><label for="a" style="display:block">Email</label><div style="height:300px"></div><input id="a" type="email" autocomplete="email"></main>',
     "UX-12": '<main><h1>F</h1><form><input type="radio" name="p" aria-label="A"><input type="radio" name="p" aria-label="B"></form></main>',
     "UX-15": '<main><h1>F</h1><button>Save</button><button style="font-weight:700;background:#c00;color:#fff">Save</button></main>',
+    "UX-15 link": '<main><h1>F</h1><a href="https://fixture.test/a">Settings</a><a href="https://fixture.test/b">Settings</a></main>',
     "UX-09": '<main><h1>F</h1><progress value="-5" max="10"></progress></main>',
 }
 
@@ -45,7 +46,7 @@ def main(engine: str) -> int:
         if clean:
             failed.append(f"good fixture flagged: {clean}")
         for law, html in BAD.items():
-            if not any(p.startswith(law) for p in measure(page, html)):
+            if not any(p.startswith(law.split()[0]) for p in measure(page, html)):
                 failed.append(f"{law} negative control was not flagged")
         browser.close()
     print("\n".join(failed) or "all UX-law negative controls behave")

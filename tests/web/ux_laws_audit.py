@@ -22,7 +22,7 @@ the UX matrix in `PROGRESS.md` says which check backs which principle and what s
 - UX-34 Feedback Loops: a field marked invalid points to visible text that says why.
 - UX-13 Proximity: a field's label and stated reason sit within 48 px of it.
 - UX-12 Common Region: the choices of one radio group share a named boundary.
-- UX-15 Similarity: buttons with one name on one page look alike.
+- UX-15 Similarity: buttons with one name on one page look alike, and one link name never leads to two pages.
 - UX-09 Goal-Gradient: a progress bar has a name and only a valid value, never an invented one.
 
     python3 tests/web/ux_laws_audit.py http://127.0.0.1:8787 [session.json storage-key] [--engine E]
@@ -201,6 +201,18 @@ MEASURE = """({minTarget, maxNav, maxFields, maxGap, opened}) => {
     if (looks.has(key) && looks.get(key) !== look) out.push(`UX-15 two buttons named ${JSON.stringify(key)} look different`);
     looks.set(key, look);
   }
+  // UX-15 Similarity (consistent identification): one link name never leads to two different pages.
+  const targets = new Map();
+  for (const a of document.querySelectorAll('a[href]')) {
+    const label = (a.getAttribute('aria-label') || a.textContent).trim().replace(/\\s+/g, ' ').toLowerCase();
+    if (!visible(a) || !label) continue;
+    const raw = a.getAttribute('href');
+    let path = raw;
+    try { path = new URL(raw, location.href).pathname; } catch { /* a href the browser cannot resolve stays as written */ }
+    targets.set(label, new Set([...(targets.get(label) || []), path]));
+  }
+  for (const [label, paths] of targets)
+    if (paths.size > 1) out.push(`UX-15 link ${JSON.stringify(label)} leads to ${paths.size} different pages`);
   // UX-09 Goal-Gradient: a progress bar either states its true value or says it cannot know.
   for (const bar of document.querySelectorAll('progress, [role=progressbar]')) {
     if (!visible(bar)) continue;
