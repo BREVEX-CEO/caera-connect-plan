@@ -1,14 +1,16 @@
 name: CI
 
 on:
+  push:
+    branches: ["ocade/p00-p22-implementation"]
   workflow_dispatch:
 
 # One job, one gate list. `npm run verify:full` is the same command a
 # contributor runs locally, so a red CI is reproducible in one line.
 #
-# Do not burn GitHub-hosted minutes for documentation-only commits or every
-# temporary implementation/checkpoint branch. Real code reaching main, PRs,
-# and explicit manual runs still execute the complete gate.
+# Check every push to the implementation branch on an isolated hosted runner.
+# No concurrency group: newer pushes do not cancel earlier checks.
+# Manual runs remain available for final exact-commit verification.
 permissions:
   contents: read
 
