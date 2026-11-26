@@ -89,6 +89,9 @@ Helpers were asked to map checklist sections to code and tests. Their verdicts a
 - Owner requirements 001–120 (section 2): helper checked 66 of 120 only; 53 not checked; rows 074–087 have no owner wording in plan.md (already owner-blocked).
 - Concepts and repository entries (section 5): helper's pass was partial; it listed missing tests such as crash-during-save recovery (REPO-17), phishing-page credential request (REPO-55), and focus-change revalidation for held input (REPO-34).
 
+### CI finding on `7270937` (session 2)
+Cloud validation run 45818442908: 10 of 12 jobs green or still running; `Python MCP / journal / browser · windows-2025` failed although every test passed (356 run, OK, 17 skipped): three REQUIRED media tests skipped with "needs FFmpeg", and the runner treats a skipped required test as a failure. The same install step succeeded on windows-2022 and on the earlier green run for `22bc0df`, and no change in this session touches media or the install. Cause: the hosted Windows install can exit 0 and leave ffmpeg unavailable. Fix: the Windows engine-install step now retries up to three times and fails with a clear reason if ffmpeg or ffprobe is still missing (`.github/workflows/jarvis-cloud-validation.yml`). A green rerun of the same failing job would not have proved this fixed, so the fix is checked by a full fresh dispatch on the new SHA.
+
 ### Debloat re-check at `376e32f` (items 97–98)
 CodeMap `--unused`: 0 unreferenced module-private TypeScript functions; `--duplicates`: 0 byte-identical source groups; `--cycles`: 18 static cycle witnesses (type-level and sibling imports, none changed this session, none removed without proof). Nothing was deleted: no proven-useless code was found. Earlier knip result stands (`docs/DEBLOAT_REPORT.md`).
 

@@ -594,7 +594,17 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         # Not added to PATH: LibreOffice's folder holds its own python.exe, and OCADE finds it where it installs.
-        run: choco install ffmpeg libreoffice-fresh --yes --no-progress
+        # A hosted-runner install can exit 0 and still leave ffmpeg missing (windows-2025, 26 Nov, run
+        # 45818442908: the media tests then skipped as REQUIRED). Check the tools exist; retry the
+        # install up to three times; fail here, with the reason, if they still do not.
+        run: |
+          for ($try = 1; $try -le 3; $try++) {
+            choco install ffmpeg libreoffice-fresh --yes --no-progress --force
+            $env:Path = [Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' + [Environment]::GetEnvironmentVariable('Path', 'User')
+            if ((Get-Command ffmpeg -ErrorAction SilentlyContinue) -and (Get-Command ffprobe -ErrorAction SilentlyContinue)) { break }
+            Write-Host "ffmpeg or ffprobe not found after install attempt $try"
+          }
+          if (-not ((Get-Command ffmpeg -ErrorAction SilentlyContinue) -and (Get-Command ffprobe -ErrorAction SilentlyContinue))) { throw 'ffmpeg and ffprobe are not installed' }
       - name: Install test-runner engines (ffmpeg, LibreOffice) on macOS
         if: runner.os == 'macOS'
         run: |
