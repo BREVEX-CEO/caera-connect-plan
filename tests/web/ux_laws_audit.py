@@ -2,7 +2,7 @@
 
 Each check is a fact a browser can measure. It does not certify that a principle is "applied";
 it catches the regressions that break one. The per-principle evidence matrix in
-`evidence/2026-11-24-ux-laws/MATRIX.md` says which check backs which principle and what stays a human review.
+the UX matrix in `PROGRESS.md` says which check backs which principle and what stays a human review.
 
 - UX-07 Fitts's Law: every visible control is at least 24 x 24 CSS px (WCAG 2.5.8), except a link
   inside running text.
@@ -15,6 +15,8 @@ it catches the regressions that break one. The per-principle evidence matrix in
 - UX-08 Flow / UX-01: with reduced motion requested, nothing animates for longer than 10 ms.
 - UX-28 Von Restorff Effect: a visible STOP control does not share its colour with any other button.
 - UX-14 Prägnanz / UX-31: no text is cut off by its container without an ellipsis.
+- UX-04 Cognitive Bias: no consent or marketing checkbox is pre-checked.
+- UX-05 Cognitive Load: one form never shows more than 8 fields at once.
 
     python3 tests/web/ux_laws_audit.py http://127.0.0.1:8787 [session.json storage-key] [--engine E]
 """
@@ -38,8 +40,9 @@ import surface_audit
 MIN_TARGET = 24
 MAX_NAV_CHOICES = 9
 READY_MS = 1000
+MAX_FORM_FIELDS = 8
 
-MEASURE = """({minTarget, maxNav, opened}) => {
+MEASURE = """({minTarget, maxNav, maxFields, opened}) => {
   const out = [];
   const visible = el => {
     const s = getComputedStyle(el);
@@ -133,6 +136,19 @@ MEASURE = """({minTarget, maxNav, opened}) => {
     const same = buttons.filter(b => b !== stop && !/^stop\\b/i.test(name(b)) && paint(b) === paint(stop));
     if (same.length) out.push(`UX-28 STOP looks like ${JSON.stringify(name(same[0]))}`);
   }
+  // UX-04: a pre-checked consent or marketing box is a misleading default.
+  for (const box of document.querySelectorAll('input[type=checkbox]')) {
+    if (!visible(box) || !box.defaultChecked) continue;
+    const label = (box.labels && box.labels[0] ? box.labels[0].textContent : name(box)) || '';
+    if (/consent|agree|marketing|newsletter|updates|share|promotion/i.test(label))
+      out.push(`UX-04 pre-checked consent box: ${JSON.stringify(label.trim().slice(0, 60))}`);
+  }
+  // UX-05: one form with too many visible fields is too much to hold at once.
+  for (const form of document.querySelectorAll('form')) {
+    const fields = [...form.querySelectorAll('input, select, textarea')]
+      .filter(f => visible(f) && !['hidden', 'submit', 'button', 'checkbox', 'radio'].includes(f.type));
+    if (fields.length > maxFields) out.push(`UX-05 form shows ${fields.length} fields at once (max ${maxFields})`);
+  }
   return out;
   }
 }"""
@@ -147,7 +163,7 @@ def audit_page(page, url: str) -> list[str]:
     response = surface_audit.open_page(page, url)
     if response and not (response.headers.get("content-type") or "").startswith("text/html"):
         return []
-    problems = page.evaluate(MEASURE, {"minTarget": MIN_TARGET, "maxNav": MAX_NAV_CHOICES, "opened": False})
+    problems = page.evaluate(MEASURE, {"minTarget": MIN_TARGET, "maxNav": MAX_NAV_CHOICES, "maxFields": MAX_FORM_FIELDS, "opened": False})
     ready = page.evaluate(READY)
     if ready > READY_MS:
         problems.append(f"UX-06 document ready after {round(ready)} ms (want <= {READY_MS})")
@@ -181,7 +197,7 @@ def opened_views(page, url: str) -> list[str]:
             page.wait_for_timeout(300)
         except Exception:  # noqa: BLE001, S112 - an unpressable control is the surface audit's finding
             continue
-        for problem in page.evaluate(MEASURE, {"minTarget": MIN_TARGET, "maxNav": MAX_NAV_CHOICES, "opened": True}):
+        for problem in page.evaluate(MEASURE, {"minTarget": MIN_TARGET, "maxNav": MAX_NAV_CHOICES, "maxFields": MAX_FORM_FIELDS, "opened": True}):
             problems.append(f"after opening {label!r}: {problem}")
         page.keyboard.press("Escape")
     return problems
@@ -195,7 +211,7 @@ def settings_categories(page, url: str) -> list[str]:
         if not page.get_by_role("dialog", name="Settings", exact=True).is_visible():
             problems.append(f"Settings > {category} did not open")
             continue
-        for problem in page.evaluate(MEASURE, {"minTarget": MIN_TARGET, "maxNav": MAX_NAV_CHOICES, "opened": True}):
+        for problem in page.evaluate(MEASURE, {"minTarget": MIN_TARGET, "maxNav": MAX_NAV_CHOICES, "maxFields": MAX_FORM_FIELDS, "opened": True}):
             problems.append(f"Settings > {category}: {problem}")
     return problems
 

@@ -10,6 +10,31 @@ Sole live progress ledger. plan.md remains the sole requirements and stage-order
 
 Source: plan.md at `a96cba4ab1d63b8360a7dd8af3851b57729364d3`. Part 0A status notes and the four historical sections below were transferred without altering their evidence.
 
+## Session 26 Nov 2026 — dependency-ordered execution checklist
+
+Start: local HEAD fast-forwarded from `80a08af` to `376e32f22f6b70c19191c3bbd912bb568062f60e` on `ocade/p00-p22-implementation` (matches remote; no local-only work lost). CodeMap 2.0 regenerated (HEAD `376e32f22f6b`, 1002 files, 11026 static edges); `CODEMAP.md` unchanged by the refresh. TASKS.md is gone and is not recreated. GitHub Actions read access confirmed (list workflows and runs); on `376e32f` CI-security and JARVIS cloud validation (run 45778117977) are green; the CI and macOS runs for the exact final SHA are still required.
+
+Classification of the 148 Part 0A items against the owner's scope (coding only; no payments, benchmarks, cloud-computer testing, deployment or `main` merge):
+
+- Coding-now, in plan physical order: 2–53 (requirements; inventory `docs/OCADE_MASTER_COMPLETION_CHECKLIST.md`, 2016 unchecked rows, none verified-complete), then UX 54–89, security 90–96, debloat 97–102, gates 103–106.
+- Reopened: 103 and 104 were proven on older SHAs; any later code commit needs a fresh same-SHA run.
+- Excluded by owner scope: 107–119 (staging, benchmarks, cloud and real devices), 132 (payments), 146–148 (deploy, merge, launch). 120–145 need staging, real customers or real devices; only locally verifiable parts (for example 136, 137) are in scope.
+- Owner-blocked (asked once): wording of owner rows 72–73 and 86–87 (item 3); antivirus or content-disarm engine for MALWARE-02.
+- Known hard blocker: item 105 (windows-2022 IocpProactor teardown hang) needs a Windows machine for root cause.
+
+### Baseline at `376e32f` (before any edit)
+- `npm run typecheck` exit 0; `npm run lint` exit 0 (0 errors, 7 warnings).
+- `verify:full` exit 0, 8 gates passed (local, Node 22.23.5).
+- `test:jarvis`: TypeScript 45 tests, 44 pass, 0 fail (1 skipped); companion Python 356 tests OK, 46 platform skips (deps from `device-agent/windows/requirements.txt` + reportlab, opentimelineio).
+- `test:jarvis-db` on local PostgreSQL 16: exit 0, 43 PASS lines including 60 rollbacks and the permit and reservation race harnesses.
+
+### UX principle matrix (replaces the retired `evidence/2026-11-24-ux-laws/MATRIX.md`)
+
+Evidence classes: AUTO = measured by `tests/web/ux_laws_audit.py` on every reachable page (CI, three engines); REVIEW = needs source or human review, not yet re-done this session. Local run on the signed-out loopback build at `376e32f` plus the two new checks: Chromium, 0 pages with problems (signed-in, Firefox and WebKit run in CI only).
+
+- AUTO: UX-04 (no pre-checked consent box, new), UX-05 (at most 8 fields per form, new), UX-06, UX-07, UX-08, UX-10, UX-11, UX-14, UX-18, UX-24, UX-28, UX-31. UX-01 is covered in part by the reduced-motion and axe audits.
+- REVIEW (no automated check): UX-02, UX-03, UX-09, UX-12, UX-13, UX-15, UX-16, UX-17, UX-19, UX-20, UX-21, UX-22, UX-23, UX-25, UX-26, UX-27, UX-29, UX-30 (partly: unfinished-work labels, `zeigarnik-conversations.png`), UX-32, UX-33, UX-34. Items 54–89 stay open until each has source evidence recorded here.
+
 ## Part 0A — Task status (148 stable IDs)
 
 Cross-check (23 Nov 2026): every master-checklist section M§0–M§17 maps to at least one item below; every item maps to at least one master section. No master section is uncovered.
