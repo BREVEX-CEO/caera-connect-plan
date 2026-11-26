@@ -42,6 +42,9 @@ All four required workflows ran on this exact SHA, attempt 1, and every job was 
 
 Earlier runs on `a611145`, `ce67076` and `122a02a` that were cancelled by newer pushes are not counted. The independent Opus verifier did not review this evidence; the verifier agent was not available during the run. This documentation commit changes the SHA, so the green results above belong to `22bc0df`, not to it; fresh runs on the documentation commit are recorded only in the session report, not in a further commit.
 
+### Session 2 status summary (updated at `bac40cb`)
+Done and pushed or committed with local proof: UX-09, 12, 13, 15 automated checks with negative controls; UX-29 draft persistence; UX-27 consequence label; UX-16 step connector; UX-22 milestone step limit; UX-15 label rename; MALWARE-01 generated-output guard; CI hardening for the Windows ffmpeg install. Part 0A is still 4 of 148 checked: none of these closes a whole numbered requirement, and the independent verifier agent was not available. Not started because they are new subsystems needing owner scoping: Human Expert Escalation, LegacyBridge, Ghost Cursor overlay, UI Repair Network, Skill Marketplace (P2). Still blocked: owner wording for rows 72–73 and 86–87, antivirus engine choice (MALWARE-02), Windows hang root cause (item 105), real-model work (MODEL-08, O-09, O-13).
+
 ### Completion percentage (honest)
 - Part 0A checked items: 4 of 148 (2.7%): items 1, 103, 104, 106. Item 104 is re-proven for `22bc0df` for the coding checks.
 - In-scope coding items 2–102: 0 of 101 complete (87 OPEN, 14 IN PROGRESS). Nothing was promoted because none has independent whole-requirement verification.
@@ -80,6 +83,8 @@ UX-03 / UX-19 decision: Settings already groups everything into six labelled cat
 UX-33 correction: the helper said the Library had only a file picker. `src/routes/_authenticated/library.tsx` shows a filter group (`aria-label="Filter library"`), a search box and the stored items, so files are recognised, not recalled. Recent chats, device "Last used" and "Do again" habits cover the other parts. UX-33 is source-evidenced; no rendered signed-in proof yet.
 
 UX-22 bound: each task milestone payload now carries its `stepBudget` (already enforced by the planner) and the current milestone says "stops after at most N steps" (`authority.server.ts`, `JarvisPanels.tsx`). It states a limit, not a progress percentage (UX-09). A task-wide time limit is not shown; UX-22 stays PARTIAL.
+
+UX-02 source check: the JARVIS empty state (`JarvisWorkspace.tsx`) asks one question ("What should JARVIS do?") with the composer as the one primary action; outcome packages and habits are optional and the packages sit behind a disclosure. The rail's nine navigation controls are unchanged, so UX-02 is source-evidenced for the empty state; the rail count stays an open design question tied to UX-19.
 
 Read-only source review of the other REVIEW laws (claims from a Haiku helper, spot-checked only for UX-29 and PermissionGuide; the helper's R12-05 claim was wrong, so treat the rest as leads, not proof): UX-17, 26, 27, 30, 32 look applied; UX-02, 03, 16, 19, 22, 23, 33 have named gaps (no single primary JARVIS step, no settings search, no step connectors, duplicate Chat and Files entries in two rails, no per-task limit shown, no managed-model cost, no recent-file memory); UX-21 is process evidence. These stay open.
 
