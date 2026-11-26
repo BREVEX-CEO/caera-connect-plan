@@ -1463,7 +1463,11 @@ export function TaskPanel({
           </span>
         </div>
       ) : null}
-      <ol aria-label="Task actions" className="mt-2 space-y-1">
+      {/* UX-16: a line joins the steps only while all of them show; a filtered list would link steps that were not neighbours. */}
+      <ol
+        aria-label="Task actions"
+        className={`mt-2 space-y-1 ${shown.length === task.steps.length ? "ml-1 border-l-2 border-border pl-3" : ""}`}
+      >
         {shown.map((step) => (
           <li key={step.id} className="flex flex-wrap items-center gap-2">
             {parallel ? (

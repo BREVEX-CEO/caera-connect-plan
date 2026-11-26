@@ -73,6 +73,8 @@ A source check found no step approval said whether the effect can be taken back 
 
 UX-15 / UX-19 label: the JARVIS rail and its empty state said "New conversation" for the action the app shell calls "New chat"; both now say "New chat" (`src/jarvis/JarvisWorkspace.tsx`). The two rails themselves (shell and JARVIS) remain; merging them is a larger design change, left OPEN.
 
+UX-16 connector: the task's step list now hangs from one continuous line while every step shows, and drops it when a filter hides steps so no false link is drawn (`JarvisPanels.tsx`). Typecheck exit 0, eslint clean; visual result not screenshot-verified (needs a signed-in task), status PARTIAL.
+
 Read-only source review of the other REVIEW laws (claims from a Haiku helper, spot-checked only for UX-29 and PermissionGuide; the helper's R12-05 claim was wrong, so treat the rest as leads, not proof): UX-17, 26, 27, 30, 32 look applied; UX-02, 03, 16, 19, 22, 23, 33 have named gaps (no single primary JARVIS step, no settings search, no step connectors, duplicate Chat and Files entries in two rails, no per-task limit shown, no managed-model cost, no recent-file memory); UX-21 is process evidence. These stay open.
 
 ### Unverified leads from read-only helper reviews (session 2; not evidence, one helper claim already proved wrong)
