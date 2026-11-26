@@ -1043,7 +1043,7 @@ async def web_download(page: dict, selector: str, output: str) -> dict:
         await download.cancel()
         raise Refused("download_off_origin")
     staged = Path(await download.path())
-    digest = write_atomically(target, lambda temporary: shutil.copyfile(staged, temporary))
+    digest = write_atomically(target, lambda temporary: shutil.copyfile(staged, temporary), downloaded=True)
     with open(target, "rb") as stream:
         head = stream.read(8)
     return {

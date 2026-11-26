@@ -3,6 +3,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+import zipfile
 from unittest.mock import patch
 from pathlib import Path
 
@@ -115,6 +116,64 @@ class SandboxTest(unittest.TestCase):
             write_atomically(target, crash)
         self.assertFalse(target.exists())
         self.assertEqual(list(target.parent.iterdir()), [])
+
+
+class ActiveContentOutputs(unittest.TestCase):
+    """MALWARE-01: a deliverable that is a program or carries a macro project is never created."""
+
+    def setUp(self):
+        self.root = Path(tempfile.mkdtemp())
+
+    def write(self, name: str, data: bytes):
+        target = output_path(self.root, f"OCADE output/{name}")
+        return target, lambda: write_atomically(target, lambda tmp: tmp.write_bytes(data))
+
+    def refused(self, name: str, data: bytes):
+        target, run = self.write(name, data)
+        with self.assertRaises(Refused) as caught:
+            run()
+        self.assertEqual(caught.exception.code, "active_content_output")
+        self.assertFalse(target.exists())
+        self.assertEqual([p.name for p in target.parent.iterdir()], [])  # no temporary left behind
+
+    def package(self, *members: str) -> bytes:
+        path = self.root / "package.zip"
+        with zipfile.ZipFile(path, "w") as archive:
+            for member in members:
+                archive.writestr(member, b"x")
+        return path.read_bytes()
+
+    def test_programs_and_macro_names_are_refused(self):
+        for name in ("setup.exe", "lib.DLL", "Report.docm", "model.xlsm", "deck.pptm"):
+            with self.subTest(name=name):
+                self.refused(name, b"anything")
+
+    def test_a_program_renamed_to_a_document_is_refused_by_its_bytes(self):
+        pe = bytearray(0x100)
+        pe[:2] = b"MZ"
+        pe[0x3C:0x40] = (0x80).to_bytes(4, "little")
+        pe[0x80:0x84] = b"PE\0\0"
+        self.refused("invoice.docx", bytes(pe))
+        self.refused("notes.txt", b"\x7fELF" + bytes(60))
+
+    def test_an_office_package_with_a_macro_project_is_refused(self):
+        self.refused("budget.xlsx", self.package("[Content_Types].xml", "xl/vbaProject.bin"))
+
+    def test_a_saved_download_is_kept_as_it_came(self):
+        target = output_path(self.root, "OCADE output/setup.exe")
+        write_atomically(target, lambda tmp: tmp.write_bytes(b"MZ payload"), downloaded=True)
+        self.assertEqual(target.read_bytes(), b"MZ payload")
+
+    def test_ordinary_deliverables_are_written(self):
+        for name, data in (
+            ("book.xlsx", self.package("[Content_Types].xml", "xl/workbook.xml")),
+            ("note.txt", b"MZ is how the file begins, as plain text"),
+            ("picture.png", b"\x89PNG\r\n\x1a\n" + bytes(20)),
+        ):
+            with self.subTest(name=name):
+                target, run = self.write(name, data)
+                run()
+                self.assertEqual(target.read_bytes(), data)
 
 
 class ParserMemoryCap(unittest.TestCase):

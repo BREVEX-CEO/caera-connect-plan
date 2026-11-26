@@ -23,6 +23,7 @@ import os
 import re
 import sys
 import tempfile
+import zipfile
 from contextvars import ContextVar
 from pathlib import Path
 
@@ -170,14 +171,50 @@ def plain_text(path: Path, limit: int = 2_000_000) -> str | None:
     return None if b"\0" in data else data.decode("utf-8", errors="replace")
 
 
-def write_atomically(target: Path, produce) -> str:
-    """Call `produce(temporary_path)`, then move the finished file into place. Returns its SHA-256."""
+# MALWARE-01: JARVIS writes documents, pictures, media and saved web pages, never programs or
+# macro-enabled Office files. A deliverable that is one (by name or by its first bytes, or an
+# Office package that carries a macro project) is refused before it appears in the output folder.
+ACTIVE_OUTPUT_SUFFIXES = frozenset(
+    {".exe", ".dll", ".msi", ".scr", ".com", ".sys", ".docm", ".dotm", ".xlsm", ".xltm", ".xlam",
+     ".pptm", ".potm", ".ppam", ".sldm"}
+)
+_NATIVE_MAGIC = (b"\x7fELF", b"\xcf\xfa\xed\xfe", b"\xce\xfa\xed\xfe", b"\xca\xfe\xba\xbe")
+
+
+def is_active_content(path: Path, name: str | None = None) -> bool:
+    """Whether a finished output is a program or carries a macro project, judged on its name and bytes."""
+    if Path(name or path.name).suffix.lower() in ACTIVE_OUTPUT_SUFFIXES:
+        return True
+    with open(path, "rb") as stream:
+        head = stream.read(4096)
+    if head.startswith(_NATIVE_MAGIC):
+        return True
+    if head[:2] == b"MZ" and len(head) >= 0x40:  # a Windows program: MZ header pointing at a PE signature
+        offset = int.from_bytes(head[0x3C:0x40], "little")
+        if 0 < offset <= len(head) - 4 and head[offset : offset + 4] == b"PE\0\0":
+            return True
+    if head[:2] == b"PK":
+        try:
+            with zipfile.ZipFile(path) as package:
+                return any(entry.lower().endswith("vbaproject.bin") for entry in package.namelist())
+        except zipfile.BadZipFile:
+            return False
+    return False
+
+
+def write_atomically(target: Path, produce, *, downloaded: bool = False) -> str:
+    """Call `produce(temporary_path)`, then move the finished file into place. Returns its SHA-256.
+
+    A file JARVIS generated is never a program or macro file. A `downloaded` file is the person's
+    own saved download: it is kept as it came, with the internet-origin mark, and never run."""
     target.parent.mkdir(parents=True, exist_ok=True)
     handle, temporary = tempfile.mkstemp(dir=target.parent, prefix=".ocade-", suffix=target.suffix)
     os.close(handle)
     os.chmod(temporary, 0o666 & ~_UMASK)  # a deliverable gets ordinary file permissions, not mkstemp's 0600
     try:
         produce(Path(temporary))
+        if not downloaded and is_active_content(Path(temporary), target.name):
+            raise Refused("active_content_output")
         if target.exists():
             raise Refused("output_exists")
         try:
