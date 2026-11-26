@@ -56,6 +56,15 @@ Earlier runs on `a611145`, `ce67076` and `122a02a` that were cancelled by newer 
 - Item 105: Windows hang root cause needs a Windows machine.
 - Owner input still missing: wording of rows 72–73 and 86–87.
 
+### Security ledger classification (items 90–96, session 2, base `9de9c3d`)
+
+Every PARTIAL or OPEN row of `docs/OCADE_THREAT_TRIAGE.md` (33 PARTIAL, 2 OPEN) sorted by what blocks it. Nothing here is promoted; the table only bounds what code can still do.
+
+- Code-fixable now (investigate, failing test first, then fix): MALWARE-03 (CPU cap per parser), MALWARE-04 and MALWARE-01 (refuse macro-bearing files the companion opens or generates), MCP-07 (per-plugin CPU fuel), PLANNER-05 (grounded-citation check), EFFECT-06 (list what a deletion affects), OFFLINE-03 (divergent edit handling), SUPPLY-02 (build-provenance attestation step, only in a non-deploying workflow).
+- Owner or provider setting (no code can close): AUTH-01, AUTH-06, AUTH-08, SESSION-04, SESSION-06, FRONTEND-05 (platform browser session storage; provider settings; OAuth provider), MALWARE-02, O-04, O-15, UPLOAD-01, UPLOAD-03 (antivirus or disarm engine choice), SUPPLY-03, OPS-07 (OIDC deploy identity), SUPPLY-08, RELIABILITY-07 (independent environment, assistive-technology studies).
+- Stage-gated, excluded by owner scope (real models, hosted platforms, payments, staging): O-07, O-09, O-12, O-13, MODEL-08, AGENTS-06, DESKTOP-07, VERIFY-03, VERIFY-07 (Windows and macOS repeats), BILLING-03, BILLING-07.
+- Needs OS work I cannot prove on this Linux machine (Windows or macOS native): O-05, O-06, MCP-01, MCP-05, DESKTOP-06, TENANT-07, AGENTS-08 and RELIABILITY-05 (GPU reading).
+
 ### Debloat re-check at `376e32f` (items 97–98)
 CodeMap `--unused`: 0 unreferenced module-private TypeScript functions; `--duplicates`: 0 byte-identical source groups; `--cycles`: 18 static cycle witnesses (type-level and sibling imports, none changed this session, none removed without proof). Nothing was deleted: no proven-useless code was found. Earlier knip result stands (`docs/DEBLOAT_REPORT.md`).
 
