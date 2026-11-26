@@ -35,8 +35,8 @@ CodeMap `--unused`: 0 unreferenced module-private TypeScript functions; `--dupli
 
 Evidence classes: AUTO = measured by `tests/web/ux_laws_audit.py` on every reachable page (CI, three engines); REVIEW = needs source or human review, not yet re-done this session. Local run on the signed-out loopback build at `376e32f` plus the two new checks: Chromium, 0 pages with problems (signed-in, Firefox and WebKit run in CI only).
 
-- AUTO: UX-04 (no pre-checked consent box, new), UX-05 (at most 8 fields per form, new), UX-06, UX-07, UX-08, UX-10, UX-11, UX-14, UX-18, UX-24, UX-28, UX-31. UX-01 is covered in part by the reduced-motion and axe audits.
-- REVIEW (no automated check): UX-02, UX-03, UX-09, UX-12, UX-13, UX-15, UX-16, UX-17, UX-19, UX-20, UX-21, UX-22, UX-23, UX-25, UX-26, UX-27, UX-29, UX-30 (partly: unfinished-work labels, `zeigarnik-conversations.png`), UX-32, UX-33, UX-34. Items 54–89 stay open until each has source evidence recorded here.
+- AUTO: UX-04 (no pre-checked consent box, new), UX-05 (at most 8 fields per form, new), UX-34 (an invalid field points to visible reason text, new; negative control: a bad fixture fires UX-04 and UX-34, the fixed fixture is clean), UX-06, UX-07, UX-08, UX-10, UX-11, UX-14, UX-18, UX-24, UX-28, UX-31. UX-01 is covered in part by the reduced-motion and axe audits.
+- REVIEW (no automated check): UX-02, UX-03, UX-09, UX-12, UX-13, UX-15, UX-16, UX-17, UX-19, UX-20, UX-21, UX-22, UX-23, UX-25, UX-26, UX-27, UX-29, UX-30 (partly: unfinished-work labels, `zeigarnik-conversations.png`), UX-32, UX-33. Items 54–89 stay open until each has source evidence recorded here.
 
 ## Part 0A — Task status (148 stable IDs)
 

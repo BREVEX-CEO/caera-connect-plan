@@ -17,6 +17,7 @@ the UX matrix in `PROGRESS.md` says which check backs which principle and what s
 - UX-14 Prägnanz / UX-31: no text is cut off by its container without an ellipsis.
 - UX-04 Cognitive Bias: no consent or marketing checkbox is pre-checked.
 - UX-05 Cognitive Load: one form never shows more than 8 fields at once.
+- UX-34 Feedback Loops: a field marked invalid points to visible text that says why.
 
     python3 tests/web/ux_laws_audit.py http://127.0.0.1:8787 [session.json storage-key] [--engine E]
 """
@@ -148,6 +149,13 @@ MEASURE = """({minTarget, maxNav, maxFields, opened}) => {
     const fields = [...form.querySelectorAll('input, select, textarea')]
       .filter(f => visible(f) && !['hidden', 'submit', 'button', 'checkbox', 'radio'].includes(f.type));
     if (fields.length > maxFields) out.push(`UX-05 form shows ${fields.length} fields at once (max ${maxFields})`);
+  }
+  // UX-34: a field marked invalid must point to visible text that says what is wrong.
+  for (const field of document.querySelectorAll('[aria-invalid="true"]')) {
+    if (!visible(field)) continue;
+    const ids = `${field.getAttribute('aria-describedby') || ''} ${field.getAttribute('aria-errormessage') || ''}`.split(/\\s+/).filter(Boolean);
+    const said = ids.some(id => { const t = document.getElementById(id); return t && t.textContent.trim() && visible(t); });
+    if (!said) out.push(`UX-34 invalid field gives no reason: ${JSON.stringify(name(field))}`);
   }
   return out;
   }
