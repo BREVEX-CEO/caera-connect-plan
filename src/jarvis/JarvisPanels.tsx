@@ -1396,6 +1396,12 @@ export function TaskPanel({
                     : "Pending"}
               </span>{" "}
               {milestone.description}
+              {milestone.state === "current" ? (
+                <span className="text-muted-foreground">
+                  {" "}
+                  (stops after at most {milestone.stepBudget} steps)
+                </span>
+              ) : null}
             </li>
           ))}
           {task.finalVerification && open ? (

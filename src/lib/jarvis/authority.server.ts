@@ -1029,6 +1029,8 @@ export async function taskView(admin: Admin, userId: string, taskId: string) {
     savedMilestones.success && savedMilestones.data.length > 1
       ? savedMilestones.data.map((milestone, index) => ({
           description: milestone.description,
+          // The most steps this milestone may take before JARVIS stops and asks (UX-22: bounded work).
+          stepBudget: milestone.stepBudget,
           state:
             index < milestoneIndex ? "verified" : index === milestoneIndex ? "current" : "pending",
         }))

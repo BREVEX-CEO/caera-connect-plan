@@ -79,6 +79,8 @@ UX-03 / UX-19 decision: Settings already groups everything into six labelled cat
 
 UX-33 correction: the helper said the Library had only a file picker. `src/routes/_authenticated/library.tsx` shows a filter group (`aria-label="Filter library"`), a search box and the stored items, so files are recognised, not recalled. Recent chats, device "Last used" and "Do again" habits cover the other parts. UX-33 is source-evidenced; no rendered signed-in proof yet.
 
+UX-22 bound: each task milestone payload now carries its `stepBudget` (already enforced by the planner) and the current milestone says "stops after at most N steps" (`authority.server.ts`, `JarvisPanels.tsx`). It states a limit, not a progress percentage (UX-09). A task-wide time limit is not shown; UX-22 stays PARTIAL.
+
 Read-only source review of the other REVIEW laws (claims from a Haiku helper, spot-checked only for UX-29 and PermissionGuide; the helper's R12-05 claim was wrong, so treat the rest as leads, not proof): UX-17, 26, 27, 30, 32 look applied; UX-02, 03, 16, 19, 22, 23, 33 have named gaps (no single primary JARVIS step, no settings search, no step connectors, duplicate Chat and Files entries in two rails, no per-task limit shown, no managed-model cost, no recent-file memory); UX-21 is process evidence. These stay open.
 
 ### Unverified leads from read-only helper reviews (session 2; not evidence, one helper claim already proved wrong)
