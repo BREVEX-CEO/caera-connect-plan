@@ -75,6 +75,14 @@ UX-15 / UX-19 label: the JARVIS rail and its empty state said "New conversation"
 
 Read-only source review of the other REVIEW laws (claims from a Haiku helper, spot-checked only for UX-29 and PermissionGuide; the helper's R12-05 claim was wrong, so treat the rest as leads, not proof): UX-17, 26, 27, 30, 32 look applied; UX-02, 03, 16, 19, 22, 23, 33 have named gaps (no single primary JARVIS step, no settings search, no step connectors, duplicate Chat and Files entries in two rails, no per-task limit shown, no managed-model cost, no recent-file memory); UX-21 is process evidence. These stay open.
 
+### Unverified leads from read-only helper reviews (session 2; not evidence, one helper claim already proved wrong)
+Helpers were asked to map checklist sections to code and tests. Their verdicts are leads to verify before any work; none promotes a requirement.
+- R12 features (checklist section 7): helper found no test importing `PermissionGuide.tsx`; its claim that the guide lacks a verify action was wrong (`Check permission report` exists). Tests and states for R12-01, 02, 03, 05, 08, 09, 12 still need a real check.
+- Packages BMA-01/02, UFCA-03..05, PFA-06/07, BLA-08: helper says `packages.ts` holds prompt rules only, with no invoice or cashflow logic under test; confirm whether the plan requires code or a prompt.
+- T12 and named concepts (section 8): helper reports no code for Human Expert Escalation, LegacyBridge, Ghost Cursor overlay, UI Repair Network; Skill Marketplace is P2 and not an approved launch item. These are new subsystems; they need owner scoping before coding.
+- Owner requirements 001–120 (section 2): helper checked 66 of 120 only; 53 not checked; rows 074–087 have no owner wording in plan.md (already owner-blocked).
+- Concepts and repository entries (section 5): helper's pass was partial; it listed missing tests such as crash-during-save recovery (REPO-17), phishing-page credential request (REPO-55), and focus-change revalidation for held input (REPO-34).
+
 ### Debloat re-check at `376e32f` (items 97–98)
 CodeMap `--unused`: 0 unreferenced module-private TypeScript functions; `--duplicates`: 0 byte-identical source groups; `--cycles`: 18 static cycle witnesses (type-level and sibling imports, none changed this session, none removed without proof). Nothing was deleted: no proven-useless code was found. Earlier knip result stands (`docs/DEBLOAT_REPORT.md`).
 
