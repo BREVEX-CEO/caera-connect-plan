@@ -31,8 +31,30 @@ Classification of the 148 Part 0A items against the owner's scope (coding only; 
 ### MODEL-08 / O-09 assessment (no code change)
 Every BYOK connection test already probes tool calling and picture sight on the exact model (`byok-handler.ts` `testConnection`). What is missing is detection of a provider-side model version change and a versioned qualification suite against real models; that needs a schema change plus real-provider evidence and stays PARTIAL/OPEN (Stage 5, excluded from this scope).
 
-### CI dispatched on `ce67076`
-Push runs: static security and JARVIS cloud validation. Manual runs dispatched on the branch head: CI (`ci.yml`) and macOS bundle qualification (`jarvis-macos-package.yml`). Results are recorded below only after each job is read.
+### Final CI evidence for `22bc0df150b5bc38198a001bfcd590fb2819ea0a` (26 Nov 2026)
+All four required workflows ran on this exact SHA, attempt 1, and every job was read individually (no job failed; skipped steps are only failure-only diagnostics or other-operating-system steps):
+
+- CI (manual) [45792811627](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/45792811627): 1 of 1 job success (Portable core, Ubuntu, Node 22).
+- JARVIS cloud validation, full manual matrix [45795034057](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/45795034057): 12 of 12 jobs success (Coding gate Linux, Whole website build, Planner safety, Permission revocation / receipt locks on PostgreSQL, Portable build / model contracts / ephemeral DB with the Chromium, Firefox and WebKit audits, Windows native receipt/COM safety, Windows unsigned installer / frozen MCP smoke, and the Python MCP / journal / browser matrix on ubuntu-latest, windows-2022, windows-2025, macos-15 and macos-15-intel). The windows-2022 hang (item 105) did not recur in this run; one pass is not proof that the cause is fixed.
+- macOS bundle qualification [45792817214](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/45792817214): 3 of 3 jobs success (syntax registration, macos-15, macos-15-intel).
+- Dependency and static security [45792805020](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/45792805020): 2 of 2 jobs success (Semgrep, production dependency audit).
+- Push-triggered JARVIS coding gate [45792805158](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/45792805158): success; its platform-matrix jobs skip by design on push, so the manual matrix above is the counted evidence.
+
+Earlier runs on `a611145`, `ce67076` and `122a02a` that were cancelled by newer pushes are not counted. The independent Opus verifier did not review this evidence; the verifier agent was not available during the run. This documentation commit changes the SHA, so the green results above belong to `22bc0df`, not to it; fresh runs on the documentation commit are recorded only in the session report, not in a further commit.
+
+### Completion percentage (honest)
+- Part 0A checked items: 4 of 148 (2.7%): items 1, 103, 104, 106. Item 104 is re-proven for `22bc0df` for the coding checks.
+- In-scope coding items 2–102: 0 of 101 complete (87 OPEN, 14 IN PROGRESS). Nothing was promoted because none has independent whole-requirement verification.
+- Excluded by owner scope: 107–119, 132, 146–148. Owner-blocked or external: 105, 107, 113–115, 118, 119, 132, 140, 146–148.
+- Coding readiness is therefore PARTIAL. Launch readiness is NOT READY (benchmarks, real devices, staging and owner approvals are not done).
+
+### Remaining coding tasks (not done)
+- Items 2–53: reconcile all rows of `docs/OCADE_MASTER_COMPLETION_CHECKLIST.md` (2016 unchecked) against code and tests.
+- UX items 54–89: 15 of 34 principles have an automated check (UX-04, 05, 06, 07, 08, 10, 11, 14, 18, 20, 24, 25, 28, 31, 34 are measured; the earlier session summary said 12 because it omitted UX-20, 25 and 34); the other 19 principles still need source or human review; signed-in, tablet and screen-reader runs are open.
+- Security items 90–96: 33 PARTIAL and 2 OPEN rows in `docs/OCADE_THREAT_TRIAGE.md` still need splitting into code-fixable and owner or stage-gated; MALWARE-02 needs an owner choice of engine; MODEL-08, O-09 and O-13 need real models.
+- Items 99–102: performance measurement and cleanup re-audit are not repeated.
+- Item 105: Windows hang root cause needs a Windows machine.
+- Owner input still missing: wording of rows 72–73 and 86–87.
 
 ### Debloat re-check at `376e32f` (items 97–98)
 CodeMap `--unused`: 0 unreferenced module-private TypeScript functions; `--duplicates`: 0 byte-identical source groups; `--cycles`: 18 static cycle witnesses (type-level and sibling imports, none changed this session, none removed without proof). Nothing was deleted: no proven-useless code was found. Earlier knip result stands (`docs/DEBLOAT_REPORT.md`).
@@ -151,7 +173,7 @@ Cross-check (23 Nov 2026): every master-checklist section M§0–M§17 maps to a
 - [ ] 101. OPEN
 - [ ] 102. OPEN
 - [x] 103. DONE (23 Nov, `20a3432`: `verify:full` 8/8 locally (typecheck, lint, Prettier, build, secrets, install scripts, Supabase types), DB suite with 59 rollbacks on PostgreSQL 16; hosted coding gate and disposable-PostgreSQL jobs in run 45257604364)
-- [x] 104. DONE for `605fade` (24 Nov): CI [45340704930](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/45340704930), JARVIS cloud validation full matrix [45340701204](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/45340701204) (attempt 2: attempt 1's only failure was the known windows-2022 teardown hang, item 105), macOS bundle [45340710702](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/45340710702), static security [45340697326](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/45340697326). Earlier: green on `20a3432` (23 Nov). Any later code commit needs a fresh same-SHA run
+- [x] 104. DONE for `22bc0df` (26 Nov, coding checks; see the final CI evidence section) and earlier for `605fade` (24 Nov): CI [45340704930](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/45340704930), JARVIS cloud validation full matrix [45340701204](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/45340701204) (attempt 2: attempt 1's only failure was the known windows-2022 teardown hang, item 105), macOS bundle [45340710702](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/45340710702), static security [45340697326](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/45340697326). Earlier: green on `20a3432` (23 Nov). Any later code commit needs a fresh same-SHA run
 - [ ] 105. IN PROGRESS (24 Nov: the hang recurred on windows-2022 at `5254aaa` and `605fade` (attempt 1), same test, same place; a keep-the-handle mitigation in a keep-the-handle mitigation did not prevent it and was removed again, so the cause is inside asyncio's IocpProactor wait handling, not handle garbage collection; the re-run passed; still needs a Windows machine. 23 Nov: every failed job fixed and the four workflows green on `20a3432`; the windows-2022 teardown hang passed there but recurred on `5f366b8` (run 45238233189): intermittent, root cause narrowed (unobserved worker exit in `IocpProactor.close`), not fixed; needs a Windows machine to reproduce)
 - [x] 106. DONE (23 Nov): each job was read; failures fixed at the cause (WebKit audit race, DNS-dependent browser test) and not by retry; the only re-run was a job that never received a runner; skipped steps are failure-only diagnostics
 - [ ] 107. BLOCKED (owner): applying the 18+ outstanding branch migrations (now incl. `20261123120000`, `20261123150000`, `20261124090000`) to shared staging needs the owner's go-ahead
