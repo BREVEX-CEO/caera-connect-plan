@@ -23,6 +23,7 @@ the UX matrix in `PROGRESS.md` says which check backs which principle and what s
 - UX-13 Proximity: a field's label and stated reason sit within 48 px of it.
 - UX-12 Common Region: the choices of one radio group share a named boundary.
 - UX-15 Similarity: buttons with one name on one page look alike, and one link name never leads to two pages.
+- UX-03 Chunking: a page body never shows more than 12 controls outside a named group, list or table.
 - UX-09 Goal-Gradient: a progress bar has a name and only a valid value, never an invented one.
 
     python3 tests/web/ux_laws_audit.py http://127.0.0.1:8787 [session.json storage-key] [--engine E]
@@ -49,8 +50,9 @@ MAX_NAV_CHOICES = 9
 READY_MS = 1000
 MAX_FORM_FIELDS = 8
 MAX_LABEL_GAP = 48
+MAX_UNGROUPED = 12
 
-MEASURE = """({minTarget, maxNav, maxFields, maxGap, opened}) => {
+MEASURE = """({minTarget, maxNav, maxFields, maxGap, maxUngrouped, opened}) => {
   const out = [];
   const visible = el => {
     const s = getComputedStyle(el);
@@ -213,6 +215,12 @@ MEASURE = """({minTarget, maxNav, maxFields, maxGap, opened}) => {
   }
   for (const [label, paths] of targets)
     if (paths.size > 1) out.push(`UX-15 link ${JSON.stringify(label)} leads to ${paths.size} different pages`);
+  // UX-03 Chunking: controls the page body shows outside any named group, list or table.
+  const body = document.querySelector('main') || document.body;
+  const chunk = 'fieldset, [role=group], [role=region], [role=tabpanel], [role=radiogroup], [role=toolbar], ul, ol, table, details, form[aria-label], section[aria-label], section[aria-labelledby], article';
+  const loose = [...body.querySelectorAll('button, a[href], input:not([type=hidden]), select, textarea, [role=button], [role=tab], [role=switch]')]
+    .filter(el => visible(el) && !el.closest('nav, header, footer, dialog, [role=dialog]') && !el.parentElement.closest(chunk));
+  if (loose.length > maxUngrouped) out.push(`UX-03 ${loose.length} controls outside any named group (max ${maxUngrouped}): ${JSON.stringify(name(loose[0]))}...`);
   // UX-09 Goal-Gradient: a progress bar either states its true value or says it cannot know.
   for (const bar of document.querySelectorAll('progress, [role=progressbar]')) {
     if (!visible(bar)) continue;
@@ -244,7 +252,7 @@ LONG_MOTION = """() => document.getAnimations().filter(a => {
 
 def measure_args(opened: bool) -> dict:
     return {"minTarget": MIN_TARGET, "maxNav": MAX_NAV_CHOICES, "maxFields": MAX_FORM_FIELDS,
-            "maxGap": MAX_LABEL_GAP, "opened": opened}
+            "maxGap": MAX_LABEL_GAP, "maxUngrouped": MAX_UNGROUPED, "opened": opened}
 
 
 def audit_page(page, url: str) -> list[str]:

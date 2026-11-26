@@ -451,18 +451,24 @@ function HelpPage() {
             : `${shown.length} ${shown.length === 1 ? "answer" : "answers"} found.`
           : ""}
       </p>
-      <div
-        className={cn(
-          "mt-6",
-          shown.length > 0 && "divide-y divide-border/50 border-y border-border/50",
-        )}
-      >
-        {shown.map((entry) => (
-          <Faq key={entry.question} question={entry.question}>
-            {entry.answer}
-          </Faq>
-        ))}
-      </div>
+      {CATEGORIES.map((name, at) => {
+        const group = shown.filter((entry) => entry.category === name);
+        if (group.length === 0) return null;
+        return (
+          <section key={name} aria-labelledby={`help-topic-${at}`} className="mt-6">
+            <h2 id={`help-topic-${at}`} className="text-xs font-medium text-muted-foreground">
+              {name}
+            </h2>
+            <div className="mt-1 divide-y divide-border/50 border-y border-border/50">
+              {group.map((entry) => (
+                <Faq key={entry.question} question={entry.question}>
+                  {entry.answer}
+                </Faq>
+              ))}
+            </div>
+          </section>
+        );
+      })}
 
       {!shown.includes(CONTACT) ? (
         <div className="mt-6 border-y border-border/50">

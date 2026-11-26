@@ -10,6 +10,17 @@ Sole live progress ledger. plan.md remains the sole requirements and stage-order
 
 Source: plan.md at `a96cba4ab1d63b8360a7dd8af3851b57729364d3`. Part 0A status notes and the four historical sections below were transferred without altering their evidence.
 
+## Session 3 (26 Nov 2026, base `355530e`)
+
+Local branch was a stale shallow clone with unrelated roots; unshallowed and fast-forwarded to `355530e` (no local-only work lost). Environment: Node 22.23.5, Python 3.13, companion deps installed.
+
+- MALWARE-03 (CPU): `sandbox.cap_cpu` watchdog stops a parser worker that burns more than 300 CPU-seconds in 600 s (exit 75); wired into the office and media workers. Tests `test_sandbox.ParserCpuCap` (spinner stopped, idle left alone). Row stays PARTIAL (macOS is not sandboxed, O-06).
+- MALWARE-04: `sandbox.resolve_openable` makes `apps_launch` (Windows and macOS workers) refuse a macro-bearing file or program (`active_content_not_opened`). Tests `test_sandbox.OpenableFiles`. Row stays PARTIAL (a person can open such a file by hand; no antivirus scan, O-04).
+- UX-03 Chunking: new AUTO check (more than 12 controls outside a named group, list or table). It flagged `/help` (28 loose controls, before the fix); `/help` now groups its answers into seven labelled topic sections (`src/routes/help.tsx`). Negative control `UX-03` in `tests/web/ux_laws_fixtures.py`. Local Chromium run on the rebuilt loopback site: 30 pages, 0 problems.
+- Local gates on the working tree: `verify:full` exit 0 (8 gates, run before the UX-03 edit); companion suite 365 tests OK (46 platform skips); typecheck exit 0; lint 0 errors (7 warnings).
+- Judged not code-fixable this session: MCP-07 (no plugin runtime exists), SUPPLY-02 (build-provenance attestation needs repository attestation support that cannot be proven here), PLANNER-05 (a citation verifier needs a model-backed check), EFFECT-06 and OFFLINE-03 (new subsystems needing owner scoping).
+- Not done: exact-SHA GitHub Actions for this batch (needs a push), items 2–53 reconciliation, remaining REVIEW-only UX laws, Windows hang (item 105). Coding readiness stays PARTIAL; launch readiness NOT READY.
+
 ## Session 26 Nov 2026 — dependency-ordered execution checklist
 
 Start: local HEAD fast-forwarded from `80a08af` to `376e32f22f6b70c19191c3bbd912bb568062f60e` on `ocade/p00-p22-implementation` (matches remote; no local-only work lost). CodeMap 2.0 regenerated (HEAD `376e32f22f6b`, 1002 files, 11026 static edges); `CODEMAP.md` unchanged by the refresh. TASKS.md is gone and is not recreated. GitHub Actions read access confirmed (list workflows and runs); on `376e32f` CI-security and JARVIS cloud validation (run 45778117977) are green; the CI and macOS runs for the exact final SHA are still required.
@@ -149,8 +160,9 @@ CodeMap `--unused`: 0 unreferenced module-private TypeScript functions; `--dupli
 Evidence classes: AUTO = measured by `tests/web/ux_laws_audit.py` on every reachable page (CI, three engines); REVIEW = needs source or human review, not yet re-done this session. Local run on the signed-out loopback build at `376e32f` plus the two new checks: Chromium, 0 pages with problems (signed-in, Firefox and WebKit run in CI only).
 
 - AUTO: UX-04 (no pre-checked consent box, new), UX-05 (at most 8 fields per form, new), UX-20 (no dialog open on first load, new), UX-25 (no self-playing sound, new; negative control fires on a first-load dialog fixture), UX-34 (an invalid field points to visible reason text, new; negative control: a bad fixture fires UX-04 and UX-34, the fixed fixture is clean), UX-06, UX-07, UX-08, UX-10, UX-11, UX-14, UX-18, UX-24, UX-28, UX-31. UX-01 is covered in part by the reduced-motion and axe audits.
+- AUTO added in session 3: UX-03 (at most 12 controls outside a named group; `/help` regrouped by topic).
 - AUTO added in session 2 (this batch): UX-09 (progress bars named and truthful), UX-12 (radio groups inside a named boundary), UX-13 (label or reason within 48 px of its field), UX-15 (same-name buttons look alike). Negative controls: `tests/web/ux_laws_fixtures.py` (bad fixture flagged for each, good fixture clean; wired into the CI browser audit). Local Chromium run on the signed-out build: 30 pages, 0 problems.
-- REVIEW (no automated check): UX-02, UX-03, UX-16, UX-17, UX-19, UX-21, UX-22, UX-23, UX-26, UX-27, UX-29, UX-30 (partly: unfinished-work labels, `zeigarnik-conversations.png`), UX-32, UX-33. Items 54–89 stay open until each has source evidence recorded here.
+- REVIEW (no automated check): UX-02, UX-16, UX-17, UX-19, UX-21, UX-22, UX-23, UX-26, UX-27, UX-29, UX-30 (partly: unfinished-work labels, `zeigarnik-conversations.png`), UX-32, UX-33. Items 54–89 stay open until each has source evidence recorded here.
 
 ## Part 0A — Task status (148 stable IDs)
 
