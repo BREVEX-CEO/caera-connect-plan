@@ -45,7 +45,7 @@ Stop analysing when the next piece of information would not change the decision.
 
 ## Coding process
 
-**Understand → Locate → Reproduce → Design → Implement → Check → Simplify → Prove → Commit.**
+**Understand → Locate → Reproduce → Design → Implement → Check → Simplify → Prove → Commit → Next Task → Repeat.**
 
 - **Understand:** Restate the requirement and its acceptance. List what is out of scope.
 - **Locate:** Find the existing owner of the concern, its callers and its tests. Read the real execution path end to end before editing. Most "new" code should be an edit of existing code.
@@ -55,7 +55,9 @@ Stop analysing when the next piece of information would not change the decision.
 - **Check:** Run the formatter, type checker or linter, focused tests, then relevant sibling/integration tests. Run the full suite at the required integration or release gate, not after every trivial edit.
 - **Simplify:** Delete dead branches, temporary scaffolding and unused imports created by the change. Every changed line must trace to the requirement.
 - **Prove:** Check the real effect independently (output file, database row, response body, target window). Exit code 0 is not proof.
-- **Commit:** One coherent verified change with its tests and a message stating what changed and why; comply with the project's branch and approval rules.
+- **Commit:** Batch coherent locally verified changes and their tests when authorized; comply with branch and approval rules. A provisional commit does not establish final CI acceptance.
+- **Next Task:** Immediately continue the next independent authorized requirement after each commit or push, regardless of CI status. Continue coding locally while CI runs; batch pushes to avoid unnecessary cancellation.
+- **Repeat:** Never end a turn at a milestone or with a status-only recap while independent work remains. Put brief status alongside the next tool call, persist evidence in PROGRESS.md and repeat until the full authorized scope is verified. Respect explicit owner stops, approvals and genuine blockers. Full exact-SHA verification remains mandatory at the final gate.
 
 ## Engineering formula
 
@@ -68,7 +70,7 @@ Stop analysing when the next piece of information would not change the decision.
 - **Proof:** Run relevant checks and independently verify the actual result.
 - **Simplify:** Remove only redundancy made unnecessary by the verified change.
 - **Record:** Save evidence, unresolved issues and completion status where the next agent can find them.
-- **Next:** Continue with the next dependency-ready task.
+- **Next:** Continue with the next dependency-ready task immediately; never make pending CI a barrier to independent work. Apply the continuous-execution rules in CLAUDE.md.
 
 ## Repository navigation
 
