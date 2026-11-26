@@ -71,6 +71,8 @@ A source review (read-only helper, then my own check of `ChatWorkspace.tsx` and 
 ### UX-27 / R12-09 consequence label (session 2)
 A source check found no step approval said whether the effect can be taken back (no match for "revers" in `src/jarvis`), although every intent already carries a `risk`. Fix: `consequenceOf(risk)` in `src/lib/jarvis/contracts.ts`; `authority.server.ts` adds `consequence` to each step waiting for approval; `JarvisPanels.tsx` shows it under the step. Evidence: `tests/jarvis/contracts.test.ts` 28 pass, 0 fail (new test covers all three risk levels); typecheck exit 0; eslint clean; `verify:full` exit 0, 8 gates passed. Not proven in a rendered signed-in browser (needs the local Supabase stack); status PARTIAL.
 
+UX-15 / UX-19 label: the JARVIS rail and its empty state said "New conversation" for the action the app shell calls "New chat"; both now say "New chat" (`src/jarvis/JarvisWorkspace.tsx`). The two rails themselves (shell and JARVIS) remain; merging them is a larger design change, left OPEN.
+
 Read-only source review of the other REVIEW laws (claims from a Haiku helper, spot-checked only for UX-29 and PermissionGuide; the helper's R12-05 claim was wrong, so treat the rest as leads, not proof): UX-17, 26, 27, 30, 32 look applied; UX-02, 03, 16, 19, 22, 23, 33 have named gaps (no single primary JARVIS step, no settings search, no step connectors, duplicate Chat and Files entries in two rails, no per-task limit shown, no managed-model cost, no recent-file memory); UX-21 is process evidence. These stay open.
 
 ### Debloat re-check at `376e32f` (items 97–98)

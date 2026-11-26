@@ -336,7 +336,7 @@ export function JarvisWorkspace({
         </Link>
         <RailButton
           icon={PenSquare}
-          label="New conversation"
+          label="New chat"
           expanded={expanded}
           onClick={() => {
             setDrawerOpen(false);
@@ -500,7 +500,7 @@ export function JarvisWorkspace({
                       onClick={() => void navigate({ to: "/ocade-jarvis", search: {} })}
                       className="rounded-full bg-foreground px-4 py-1.5 text-background"
                     >
-                      New conversation
+                      New chat
                     </button>
                   </div>
                 </div>
