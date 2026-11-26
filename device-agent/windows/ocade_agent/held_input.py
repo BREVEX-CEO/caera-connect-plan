@@ -52,6 +52,69 @@ def release_mac(quartz) -> list[str]:
     return released
 
 
+# X11 keysyms: Shift, Control, Alt (either side), Super (either side); pointer buttons 1-3 and their masks.
+X11_KEYS = {0xFFE1: "LShift", 0xFFE2: "RShift", 0xFFE3: "LCtrl", 0xFFE4: "RCtrl", 0xFFE9: "LAlt", 0xFFEA: "RAlt",
+            0xFFEB: "LSuper", 0xFFEC: "RSuper"}
+X11_BUTTONS = {1: ("LeftButton", 0x100), 2: ("MiddleButton", 0x200), 3: ("RightButton", 0x400)}
+
+
+def release_x11(x11, xtest, display) -> list[str]:
+    """Release the X11 modifiers and pointer buttons that are down (libX11 and libXtst, as ctypes
+    libraries with their argument types set). Reads the server's own key and button state."""
+    import ctypes
+
+    keymap = ctypes.create_string_buffer(32)
+    x11.XQueryKeymap(display, keymap)
+    released = []
+    for keysym, name in X11_KEYS.items():
+        code = x11.XKeysymToKeycode(display, keysym)
+        if code and keymap.raw[code // 8] & (1 << (code % 8)):
+            xtest.XTestFakeKeyEvent(display, code, False, 0)
+            released.append(name)
+    root, child = ctypes.c_ulong(), ctypes.c_ulong()
+    numbers = [ctypes.c_int() for _ in range(4)]
+    mask = ctypes.c_uint()
+    x11.XQueryPointer(display, x11.XDefaultRootWindow(display), ctypes.byref(root), ctypes.byref(child),
+                      *(ctypes.byref(n) for n in numbers), ctypes.byref(mask))
+    for button, (name, bit) in X11_BUTTONS.items():
+        if mask.value & bit:
+            xtest.XTestFakeButtonEvent(display, button, False, 0)
+            released.append(name)
+    if released:
+        x11.XFlush(display)
+    return released
+
+
+def _release_x11_here() -> list[str]:
+    import ctypes
+    import ctypes.util
+    import os
+
+    if not os.environ.get("DISPLAY") or os.environ.get("XDG_SESSION_TYPE", "").lower() == "wayland":
+        return []
+    x11 = ctypes.CDLL(ctypes.util.find_library("X11") or "libX11.so.6")
+    xtest = ctypes.CDLL(ctypes.util.find_library("Xtst") or "libXtst.so.6")
+    x11.XOpenDisplay.restype = ctypes.c_void_p
+    x11.XOpenDisplay.argtypes = [ctypes.c_char_p]
+    x11.XDefaultRootWindow.restype = ctypes.c_ulong
+    x11.XDefaultRootWindow.argtypes = [ctypes.c_void_p]
+    x11.XKeysymToKeycode.restype = ctypes.c_ubyte
+    x11.XKeysymToKeycode.argtypes = [ctypes.c_void_p, ctypes.c_ulong]
+    x11.XQueryKeymap.argtypes = [ctypes.c_void_p, ctypes.c_char_p]
+    x11.XQueryPointer.argtypes = [ctypes.c_void_p, ctypes.c_ulong] + [ctypes.c_void_p] * 7
+    x11.XFlush.argtypes = [ctypes.c_void_p]
+    x11.XCloseDisplay.argtypes = [ctypes.c_void_p]
+    xtest.XTestFakeKeyEvent.argtypes = [ctypes.c_void_p, ctypes.c_uint, ctypes.c_int, ctypes.c_ulong]
+    xtest.XTestFakeButtonEvent.argtypes = [ctypes.c_void_p, ctypes.c_uint, ctypes.c_int, ctypes.c_ulong]
+    display = x11.XOpenDisplay(None)
+    if not display:
+        return []
+    try:
+        return release_x11(x11, xtest, display)
+    finally:
+        x11.XCloseDisplay(display)
+
+
 def release_held() -> list[str]:
     """Release what is held on this computer; the names released (none on other platforms).
     Never raises: a STOP must complete even where key state cannot be read."""
@@ -64,6 +127,8 @@ def release_held() -> list[str]:
             import Quartz  # type: ignore[import-not-found]
 
             return release_mac(Quartz)
+        if sys.platform.startswith("linux"):
+            return _release_x11_here()
     except Exception:
         pass
     return []

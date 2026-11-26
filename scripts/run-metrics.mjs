@@ -4,7 +4,7 @@
  *
  * Every live or evaluation run writes a report with `status`, `timing` and `confirmations`
  * (see `evidence/*`). This reads those reports and prints, per run set, the outcome counts,
- * how often the person was asked to confirm, and p50/p95/max of total time, active execution,
+ * how often the person was asked to confirm, and p50/p95/p99/max of total time, active execution,
  * model time, model calls, wait time and per-step time. Percentiles use the nearest-rank
  * method on the recorded values; nothing is estimated or filled in. Reports without a `timing`
  * object are counted as unmeasured, never dropped silently.
@@ -28,6 +28,7 @@ function spread(values) {
     n: finite.length,
     p50: percentile(finite, 50),
     p95: percentile(finite, 95),
+    p99: percentile(finite, 99),
     max: finite.length ? Math.max(...finite) : null,
   };
 }

@@ -34,6 +34,14 @@ _MAC_CHARACTERS = {
     "2": 0x13, "3": 0x14, "4": 0x15, "6": 0x16, "5": 0x17, "9": 0x19, "7": 0x1A, "8": 0x1C, "0": 0x1D,
     "o": 0x1F, "u": 0x20, "i": 0x22, "p": 0x23, "l": 0x25, "j": 0x26, "k": 0x28, "n": 0x2D, "m": 0x2E,
 }
+# X11 keysyms (X11/keysymdef.h) of the named keys; a letter or digit is its own character's keysym.
+_X11_NAMED = {
+    "Enter": 0xFF0D, "Tab": 0xFF09, "Escape": 0xFF1B, "Backspace": 0xFF08, "Delete": 0xFFFF, "Space": 0x20,
+    "Home": 0xFF50, "End": 0xFF57, "PageUp": 0xFF55, "PageDown": 0xFF56, "Up": 0xFF52, "Down": 0xFF54,
+    "Left": 0xFF51, "Right": 0xFF53, "Insert": 0xFF63,
+    **{f"F{number}": 0xFFBD + number for number in range(1, 13)},
+}
+_X11_MODIFIERS = {"Mod": 0xFFE3, "Ctrl": 0xFFE3, "Alt": 0xFFE9, "Shift": 0xFFE1}  # Control_L, Alt_L, Shift_L
 _WINDOWS_MODIFIERS = {"Mod": "^", "Ctrl": "^", "Alt": "%", "Shift": "+"}
 _MAC_MODIFIERS = {"Mod": "command", "Cmd": "command", "Ctrl": "control", "Alt": "option", "Shift": "shift"}
 
@@ -90,4 +98,19 @@ def mac_events(keys) -> list[tuple]:
         modifiers, key = _press(value)
         code = NAMED[key][1] if key in NAMED else _MAC_CHARACTERS[key.lower()]
         out.append(("key", code, list(dict.fromkeys(_MAC_MODIFIERS[m] for m in modifiers))))
+    return out
+
+
+def x11_events(keys) -> list[tuple]:
+    """[("text", string) | ("key", keysym, [modifier keysyms])] for a key list (Mod is Ctrl)."""
+    out: list[tuple] = []
+    for kind, value in _items(keys):
+        if kind == "text":
+            out.append(("text", value))
+            continue
+        modifiers, key = _press(value)
+        if "Cmd" in modifiers:
+            raise Refused("key_unsupported")  # no such key here; Mod is the portable shortcut key
+        keysym = _X11_NAMED[key] if key in _X11_NAMED else ord(key.lower())
+        out.append(("key", keysym, list(dict.fromkeys(_X11_MODIFIERS[m] for m in modifiers))))
     return out

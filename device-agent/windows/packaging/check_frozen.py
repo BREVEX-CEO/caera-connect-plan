@@ -23,8 +23,8 @@ from mcp.client.stdio import StdioServerParameters, stdio_client
 from PIL import Image
 
 WORKERS = ("ocade_agent.office_worker", "ocade_agent.verify_worker", "ocade_agent.media_worker",
-           "ocade_agent.web_worker", "ocade_agent.mac_worker" if sys.platform == "darwin"
-           else "ocade_agent.windows_worker", "ocade_agent.command_worker")
+           "ocade_agent.web_worker", {"darwin": "ocade_agent.mac_worker", "linux": "ocade_agent.linux_worker"}.get(
+               sys.platform, "ocade_agent.windows_worker"), "ocade_agent.command_worker")
 
 
 def facts(answer) -> dict:

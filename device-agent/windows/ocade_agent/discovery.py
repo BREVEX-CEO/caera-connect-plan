@@ -86,6 +86,10 @@ def installed_apps(limit: int = 300) -> list[dict]:
         from .mac_worker import installed_apps as mac_apps
 
         return [{"name": a["name"], "exe": a["exe"]} for a in mac_apps(limit)]
+    if sys.platform.startswith("linux"):
+        from .linux_worker import installed_apps as linux_apps
+
+        return [{"name": a["name"], "exe": a["exe"]} for a in linux_apps(limit)]
     apps = [{"name": app["name"], "exe": exe} for exe, app in _windows_apps().items() if len(exe) <= 80]
     return sorted(apps, key=lambda app: app["name"].lower())[:limit]
 
@@ -272,6 +276,10 @@ def app_path(exe: str) -> str | None:
         from .mac_worker import installed_apps as mac_apps
 
         return next((a["program"] for a in mac_apps() if a["exe"] == exe.lower()), None)
+    if sys.platform.startswith("linux"):
+        from .linux_worker import installed_apps as linux_apps
+
+        return next((a["program"] for a in linux_apps() if a["exe"] == exe.lower()), None)
     if sys.platform != "win32":
         return None
     import shutil

@@ -231,9 +231,14 @@
         {
           "id": "linux_desktop",
           "text": "Linux X11/Wayland desktop control",
-          "status": "FAIL",
-          "evidence": [],
-          "reason": "not implemented"
+          "status": "PARTIAL",
+          "evidence": [
+            "device-agent/windows/ocade_agent/linux_worker.py",
+            "device-agent/windows/tests/test_linux_ui.py",
+            "device-agent/windows/tests/x11_fixture.py",
+            "device-agent/windows/tests/test_held_input.py"
+          ],
+          "reason": "X11 only, window level: linux_worker.py lists mapped windows with exact leases, takes an image of the leased window, clicks through a fresh vision match and types through XTest only while the leased window holds the focus, waits for the person to be idle, and releases held keys on STOP; tested on a virtual X server (Xvfb) against a real X11 app that records every key and click (test_linux_ui.py, with negative controls for the vision check and the idle check). No accessibility tree (AT-SPI is not used), so named controls, scroll and recording refuse with no_accessibility_tree and protected fields cannot be detected; Wayland sessions are refused with wayland_unsupported; no consumer Linux desktop, distribution matrix or tray STOP control was tested."
         },
         {
           "id": "visual_grounding",

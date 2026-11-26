@@ -16,6 +16,13 @@ test("percentile uses the nearest rank and ignores non-numbers", () => {
   assert.equal(percentile([5], 95), 5);
   assert.equal(percentile([1, 2, 3, 4], 50), 2);
   assert.equal(percentile([10, 20, 30, 40, 50, 60, 70, 80, 90, 100], 95), 100);
+  assert.equal(
+    percentile(
+      Array.from({ length: 200 }, (_, i) => i + 1),
+      99,
+    ),
+    198,
+  );
   assert.equal(percentile([3, Number.NaN, 1, undefined as unknown as number], 100), 3);
 });
 
@@ -41,6 +48,7 @@ test("summarize counts outcomes, confirmations and percentiles from recorded val
   assert.equal(result.totalElapsedMs.n, 3);
   assert.equal(result.totalElapsedMs.p50, 2000);
   assert.equal(result.totalElapsedMs.p95, 9000);
+  assert.equal(result.totalElapsedMs.p99, 9000);
   assert.equal(result.stepMs.n, 6);
 });
 
