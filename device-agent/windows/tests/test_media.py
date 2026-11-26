@@ -227,7 +227,8 @@ class Media(unittest.TestCase):
             "render": {"width": 96, "height": 54, "samples": 1},
         }
         render, broken, verify = self.run_all([
-            ("scene.render", {"scene": scene, "output": "OCADE output/still.png", "project": "OCADE output/scene.json"}),
+            ("scene.render", {"scene": scene, "output": "OCADE output/still.png", "project": "OCADE output/scene.json",
+                              "interchange": "OCADE output/scene.gltf"}),
             ("scene.render", {"scene": {**scene, "render": {"samples": 1}}, "output": "OCADE output/y.png",
                               "project": "OCADE output/y.json"}),
             ("verify.checks", {"checks": [
@@ -247,6 +248,13 @@ class Media(unittest.TestCase):
         self.assertEqual((render["evidence"]["shapes"], render["evidence"]["materials"]), (2, 1))
         self.assertEqual((broken["status"], broken["errorCode"]), ("not_applied", "invalid_intent"))
         self.assertEqual(verify["evidence"]["predicates"], {"bound": True, "size": True})
+        # D19: the same scene leaves as a standalone glTF 2.0 mesh that names the project it came from.
+        mesh = json.loads((self.root / "OCADE output/scene.gltf").read_text(encoding="utf-8"))
+        self.assertEqual(mesh["asset"]["version"], "2.0")
+        self.assertTrue(mesh["meshes"] and mesh["accessors"])
+        self.assertEqual(mesh["extras"]["sourceProject"], "OCADE output/scene.json")
+        self.assertEqual(mesh["extras"]["sourceProjectSha256"], render["evidence"]["sha256"]["project"])
+        self.assertEqual(set(render["evidence"]["sha256"]), {"image", "project", "interchange"})
         with Image.open(self.root / "OCADE output/still.png") as still:
             self.assertGreater(len(still.convert("L").getcolors(256)), 20)  # shaded, not a flat fill
         # The project is the editable scene; edited after rendering, the still no longer proves it.
