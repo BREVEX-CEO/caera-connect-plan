@@ -1,6 +1,6 @@
-MANDATORY FIRST ACTION: Load '/caveman ultra' once at session start when available; maintain its style throughout every message without reloading. Routine replies: maximum TWO WORDS on exactly ONE LINE. Exceeding this limit is strictly prohibited. Essential questions, warnings, blockers and final verification evidence are exempt; use concise plain English. Never falsely claim activation. On WAIT, STOP, PAUSE or HOLD, the idle rules below take priority over startup and continuation work.
+MANDATORY FIRST ACTION: Always run `/caveman ultra` at the start of every active session when available. Keep Caveman Ultra active throughout every message; do not reload unnecessarily. All non-final user-facing replies: maximum TWO WORDS on ONE LINE. Only final reports may use normal prose. Tool calls, code, commands and required safety or approval prompts are unaffected. This reply rule overrides conflicting style guidance. Never falsely claim activation. WAIT, STOP, PAUSE and HOLD take priority.
 
-MANDATORY SECOND ACTION: Immediately after Caveman Ultra, DO NOT read or scan the whole repository. Read the compact CodeMap summary instead (injected by SessionStart; if absent, run `python3 scripts/codemap.py --summary`). CodeMap is the mandatory first navigation tool for every coding task: run `python3 scripts/codemap.py --query 'task or symbol' --budget 650` before exploring source. Never load the entire CODEMAP.md. Use --trace, --impact, --tests, --security, --related or --path A B for targeted relationships. Read only the necessary source lines to verify facts before edits. Fall back to targeted source search if coverage is incomplete; preserve explicitly authorized exhaustive audits. WAIT, STOP, PAUSE and HOLD take priority.
+MANDATORY SECOND ACTION: Immediately after Caveman Ultra, read the CodeMap at `./CODEMAP.md` (repository root) instead of the whole codebase. Use its compact startup summary (or `python3 scripts/codemap.py --summary`) and query it with `python3 scripts/codemap.py --query 'task or symbol' --budget 650` before exploring source. Never load the full map or scan the whole repository unless explicitly authorized. Use bounded reads and --trace, --impact, --tests, --security, --related or --path A B for targeted relationships. Verify necessary source lines before edits; use targeted source search if coverage is incomplete. WAIT, STOP, PAUSE and HOLD take priority.
 
 ## Idle and pause rules — highest priority
 - If the owner says WAIT, STOP, PAUSE or HOLD, stop substantive work immediately. Acknowledge briefly and do not start research, coding, testing, delegation or skill workflows.
@@ -37,7 +37,7 @@ Owner: CARCC (does not write code). Product: OCADE. @AGENTS.md product and safet
 
 ## Talking to the owner
 - Routine progress: maximum TWO WORDS on exactly ONE LINE. No recaps; continue working in the same turn.
-- Questions, real blockers, risks and final reports: short, complete plain English. This exception also protects tool calls, code, commands and evidence from compression.
+- Only final reports may use normal plain English; non-final replies follow the two-word, one-line limit. Tool calls, code, commands and required safety or approval prompts are unaffected.
 - Status: DONE only with independent proof; otherwise OPEN, PARTIAL, BLOCKED or UNTESTED. Never claim success from a model opinion, a checkbox or a passing exit code alone.
 
 ## Finding things
