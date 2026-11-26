@@ -1906,7 +1906,8 @@
               "environment",
               "associations",
               "registry",
-              "browsers"
+              "browsers",
+              "protection"
             ]
           },
           "filter": {

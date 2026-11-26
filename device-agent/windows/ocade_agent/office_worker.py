@@ -14,6 +14,7 @@ from __future__ import annotations
 import hashlib
 import io
 import os
+import re
 import secrets
 import shutil
 import sys
@@ -590,6 +591,8 @@ def system_diagnose(topic: str, filter: str | None = None) -> dict:
                 "missingPathEntries": missing[:40]}
     if topic == "registry":
         return _registry_values(filter or "")
+    if topic == "protection":
+        return _file_protection(filter or "")
     if topic == "associations":
         if os.name != "nt" or not wanted.startswith("."):
             raise Refused("diagnostic_unavailable")  # Windows, for one extension like ".pdf"
@@ -597,6 +600,77 @@ def system_diagnose(topic: str, filter: str | None = None) -> dict:
         program = _run(["cmd", "/d", "/c", "ftype", kind.split("=", 1)[1]]).strip() if "=" in kind else ""
         return {"topic": topic, "extension": wanted, "type": kind, "opensWith": program}
     raise Refused("unknown_topic")
+
+
+ZONES = {0: "local computer", 1: "local intranet", 2: "trusted sites", 3: "internet", 4: "restricted sites"}
+
+
+def _host_of(address: str) -> str | None:
+    """Only the host of an address a download recorded: its path and query can carry a token."""
+    from urllib.parse import urlsplit
+
+    try:
+        return (urlsplit(address.strip()).hostname or None)
+    except ValueError:
+        return None
+
+
+def _zone_identifier(text: str) -> dict:
+    """The Windows Mark of the Web a browser or mail client attached to a file (Zone.Identifier)."""
+    fields = {}
+    for line in text.splitlines()[:20]:
+        key, _, value = line.partition("=")
+        fields.setdefault(key.strip(), value.strip())
+    try:
+        zone = int(fields.get("ZoneId", ""))
+    except ValueError:
+        return {"markOfTheWeb": None}
+    marked = {"zoneId": zone, "zone": ZONES.get(zone, "unknown")}
+    for key, name in (("HostUrl", "downloadedFrom"), ("ReferrerUrl", "referrer")):
+        host = _host_of(fields.get(key, ""))
+        if host:
+            marked[name] = host
+    return {"markOfTheWeb": marked}
+
+
+def _quarantine_flag(text: str) -> dict:
+    """macOS `com.apple.quarantine`: flags;hex-seconds;application;uuid."""
+    parts = text.strip().split(";")
+    if len(parts) < 3 or not re.fullmatch(r"[0-9a-fA-F]{4}", parts[0]):
+        return {"quarantine": None}
+    flagged = {"flags": parts[0], "application": parts[2][:80]}
+    try:
+        flagged["at"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(int(parts[1], 16)))
+    except (ValueError, OverflowError, OSError):
+        pass
+    return {"quarantine": flagged}
+
+
+def _file_protection(path: str) -> dict:
+    """What the platform recorded about where a workspace file came from, read-only and bounded. OCADE
+    never removes a mark, flag or protection setting: the facts explain a block, they do not lift it."""
+    if not path:
+        raise Refused("path_required")
+    target = resolve(WORKSPACE, path)
+    if not target.is_file():
+        raise Refused("not_a_file")
+    facts: dict = {"topic": "protection", "path": _relative(target)}
+    if os.name == "nt":
+        try:
+            with open(f"{target}:Zone.Identifier", "rb") as stream:
+                facts.update(_zone_identifier(stream.read(2048).decode("utf-8", "replace")))
+        except OSError:
+            facts["markOfTheWeb"] = None
+    elif sys.platform == "darwin":
+        facts.update(_quarantine_flag(_run(["xattr", "-p", "com.apple.quarantine", str(target)], 400)))
+    else:
+        try:
+            origin = os.getxattr(target, "user.xdg.origin.url").decode("utf-8", "replace")
+            facts["origin"] = {"downloadedFrom": _host_of(origin)}
+        except (OSError, AttributeError):
+            facts["origin"] = None
+    facts["note"] = "Read only: no mark is removed and no SmartScreen, Gatekeeper or antivirus setting is changed."
+    return facts
 
 
 REGISTRY_ROOTS = {"HKCU": "HKEY_CURRENT_USER", "HKEY_CURRENT_USER": "HKEY_CURRENT_USER",

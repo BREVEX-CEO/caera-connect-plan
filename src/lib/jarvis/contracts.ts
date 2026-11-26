@@ -855,7 +855,7 @@ export const OPERATIONS = {
   },
   "system.diagnose": {
     summary:
-      "Read-only facts for diagnosing a problem on this computer: running processes, services, recent crash/error events, environment variable names and PATH entries (never values) with PATH folders that do not exist, which program opens a file extension (Windows), the values of one registry key (Windows; filter is the key, under HKCU or HKLM), or the browsers installed. Optional filter keeps matching lines.",
+      "Read-only facts for diagnosing a problem on this computer: running processes, services, recent crash/error events, environment variable names and PATH entries (never values) with PATH folders that do not exist, which program opens a file extension (Windows), the values of one registry key (Windows; filter is the key, under HKCU or HKLM), the browsers installed, or the download protection recorded on one workspace file (filter is its path: the Windows internet-zone mark, the macOS quarantine flag, or where Linux recorded it came from; nothing is removed or bypassed). Optional filter keeps matching lines.",
     role: "sys_core",
     capability: "apps",
     risk: "read",
@@ -868,6 +868,7 @@ export const OPERATIONS = {
         "associations",
         "registry",
         "browsers",
+        "protection",
       ]),
       filter: z.string().min(1).max(260).optional(),
     }),
