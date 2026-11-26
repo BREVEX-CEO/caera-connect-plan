@@ -397,6 +397,38 @@ def _mkdir(path: str) -> dict:
     return {"path": _relative(target), "created": not existed}
 
 
+_REFERENCE_SCAN_FILES = 400
+_REFERENCE_SCAN_BYTES = 1_000_000
+_REFERENCE_LIMIT = 20
+
+
+def _referenced_by(target: Path) -> list[str]:
+    """EFFECT-06: workspace text files that mention `target` by name, so a deletion says what
+    else it may break. Bounded: at most 400 files of 1 MB, 20 names reported; binary files skipped."""
+    root = Path(os.path.realpath(WORKSPACE))
+    needle = target.name.encode("utf-8")
+    found: list[str] = []
+    scanned = 0
+    for current, folders, names in os.walk(root):
+        folders[:] = [name for name in folders if name != OUTPUT_DIR]
+        for name in names:
+            candidate = Path(current) / name
+            if candidate == target or target in candidate.parents or candidate.is_symlink():
+                continue
+            scanned += 1
+            if scanned > _REFERENCE_SCAN_FILES or len(found) >= _REFERENCE_LIMIT:
+                return found
+            try:
+                if candidate.stat().st_size > _REFERENCE_SCAN_BYTES:
+                    continue
+                data = candidate.read_bytes()
+            except OSError:
+                continue
+            if b"\0" not in data and needle in data:
+                found.append(_relative(candidate))
+    return found
+
+
 def _trash(path: str) -> dict:
     """Move a workspace file or folder to the computer's Recycle Bin or Trash, where the
     person can restore it. Nothing is deleted outright."""
@@ -406,6 +438,7 @@ def _trash(path: str) -> dict:
     if not target.exists():
         raise Refused("not_found")
     digest = sha256(target) if target.is_file() else None
+    references = _referenced_by(target)
     mark_effect()
     try:
         send2trash(str(target))
@@ -413,7 +446,8 @@ def _trash(path: str) -> dict:
         raise Refused("trash_unavailable") from None  # nothing is deleted when the Trash refuses
     if target.exists():
         raise Refused("trash_unavailable")
-    return {"trashed": _relative(target), **({"sha256": digest} if digest else {})}
+    return {"trashed": _relative(target), **({"sha256": digest} if digest else {}),
+            **({"referencedBy": references} if references else {})}
 
 
 def _set_attributes(path: str, executable: bool | None = None, readOnly: bool | None = None) -> dict:
