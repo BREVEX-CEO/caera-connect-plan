@@ -66,6 +66,51 @@ class Sessions(unittest.TestCase):
             self.assertEqual(linux_worker.apps_list()["refused"], "wayland_unsupported")
 
 
+class DesktopEntries(unittest.TestCase):
+    """What a person could open by hand is listed; what they could not is not."""
+
+    def test_only_launchable_entries_are_listed_with_the_program_they_start(self):
+        home = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, home, True)
+        applications = home / ".local/share/applications"
+        applications.mkdir(parents=True)
+        tool = home / "ocade-listed-tool"
+        tool.write_text("#!/bin/sh\n")
+        tool.chmod(0o755)
+        plain = tool.with_name("plain-file")
+        plain.write_text("not executable")
+        entries = {
+            "good": f"Type=Application\nName=Good\nExec={tool} --flag %U\n",
+            "wrapped": f"Type=Application\nName=Wrapped\nExec=env LANG=C {tool} \"two words\" %f\n",
+            "nodisplay": f"Type=Application\nName=No Display\nNoDisplay=true\nExec={tool}\n",
+            "hidden": f"Type=Application\nName=Hidden\nHidden=true\nExec={tool}\n",
+            "terminal": f"Type=Application\nName=Terminal\nTerminal=true\nExec={tool}\n",
+            "link": "Type=Link\nName=A link\nURL=https://example.test\n",
+            "missing": "Type=Application\nName=Missing\nExec=/no/such/program-ocade\n",
+            "notexecutable": f"Type=Application\nName=Not Executable\nExec={plain}\n",
+            "noname": f"Type=Application\nExec={tool}\n",
+            "otherSection": f"[Desktop Action x]\nType=Application\nName=Action\nExec={tool}\n",
+        }
+        for name, body in entries.items():
+            text = body if name == "otherSection" else "[Desktop Entry]\n" + body
+            (applications / f"{name}.desktop").write_text(text)
+        with patch.dict(os.environ, {"HOME": str(home), "XDG_DATA_HOME": str(home / ".local/share"),
+                                     "XDG_DATA_DIRS": str(home / "nowhere")}):
+            found = linux_worker.installed_apps()
+        by_name = {entry["name"]: entry for entry in found}
+        # Good and Wrapped start the same program: one app per program, the first by file name.
+        self.assertEqual(set(by_name), {"Good"}, by_name.keys())
+        self.assertEqual(by_name["Good"]["program"], str(tool))
+        self.assertEqual(by_name["Good"]["arguments"], ["--flag"])
+        self.assertEqual({entry["exe"] for entry in found}, {"ocade-listed-tool"})
+        (applications / "good.desktop").unlink()
+        with patch.dict(os.environ, {"HOME": str(home), "XDG_DATA_HOME": str(home / ".local/share"),
+                                     "XDG_DATA_DIRS": str(home / "nowhere")}):
+            wrapped = linux_worker.installed_apps()
+        self.assertEqual([(a["name"], a["program"], a["arguments"]) for a in wrapped],
+                         [("Wrapped", str(tool), ["two words"])], "env VAR=x is skipped, %f is dropped")
+
+
 @unittest.skipUnless(x_server(), "needs an X11 display (Xvfb is enough)")
 class X11Ladder(unittest.TestCase):
     def setUp(self):

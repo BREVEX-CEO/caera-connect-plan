@@ -398,8 +398,9 @@ def _desktop_entry(path: Path) -> dict | None:
         elif in_entry and "=" in line and not line.startswith("#"):
             key, _, value = line.partition("=")
             fields.setdefault(key.strip(), value.strip())
-    if fields.get("Type") != "Application" or fields.get("NoDisplay", "").lower() == "true" \
-            or fields.get("Hidden", "").lower() == "true" or not fields.get("Exec") or not fields.get("Name"):
+    # Terminal programs need a terminal to run in, and hidden entries are not meant to be opened by hand.
+    if fields.get("Type") != "Application" or not fields.get("Exec") or not fields.get("Name") \
+            or any(fields.get(key, "").lower() == "true" for key in ("NoDisplay", "Hidden", "Terminal")):
         return None
     try:
         words = shlex.split(fields["Exec"])
