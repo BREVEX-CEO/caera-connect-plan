@@ -45,6 +45,12 @@ WORKERS = {
     "shell": "ocade_agent.command_worker",
 }
 MAX_CALL_SECONDS = 300
+# MCP-07: one external server (a plugin) may not drain the computer or the quota by retrying or
+# delegating in a loop: at most this many calls, and this many seconds of its tools running,
+# in any rolling minute. The next call is refused untouched until the window has room.
+EXTERNAL_CALLS_PER_MINUTE = 60
+EXTERNAL_BUSY_SECONDS_PER_MINUTE = 120.0
+FUEL_WINDOW_SECONDS = 60.0
 DISCARD_SECONDS = 15
 # These implementations only inspect local paths/data/resources; they neither
 # dispatch to an app nor invoke browser, network, COM or command operations.
@@ -160,6 +166,18 @@ class Gateway:
         # True when an external server's state changed since the last inventory was reported.
         self.inventory_stale = False
         self._workers: dict[str, dict] = {}
+        self._fuel: dict[str, list[tuple[float, float]]] = {}  # server -> (start, seconds) of recent calls
+
+    def _fuel_left(self, server: str) -> bool:
+        """Whether `server` is inside its per-minute call and busy-time budget."""
+        now = time.monotonic()
+        recent = [(at, seconds) for at, seconds in self._fuel.get(server, []) if now - at < FUEL_WINDOW_SECONDS]
+        self._fuel[server] = recent
+        return len(recent) < EXTERNAL_CALLS_PER_MINUTE and sum(s for _, s in recent) < EXTERNAL_BUSY_SECONDS_PER_MINUTE
+
+    def _spend(self, key: str, started: float, finished: float) -> None:
+        if key.startswith("mcp:"):
+            self._fuel.setdefault(key[4:], []).append((started, finished - started))
 
     async def __aenter__(self) -> "Gateway":
         self._group = await anyio.create_task_group().__aenter__()
@@ -365,6 +383,8 @@ class Gateway:
             key = f"{key}#{lane}"
 
         uncertain = effect_possible(intent)
+        if key.startswith("mcp:") and not self._fuel_left(key[4:]):
+            return timed("not_applied", False, error="plugin_fuel_exhausted")
         worker_started = time.monotonic()
         try:
             session = await self._session(key)
@@ -390,15 +410,18 @@ class Gateway:
                 # The session's own 30 s request timeout is for start-up; a call gets its operation's bound.
                 result = await session.call_tool(tool, arguments, read_timeout_seconds=bound + 5)
             tool_finished = time.monotonic()
+            self._spend(key, tool_started, tool_finished)
         except anyio.get_cancelled_exc_class():
             await self._discard(key)
             raise
         except TimeoutError:
             tool_finished = time.monotonic()
+            self._spend(key, tool_started, tool_finished)
             await self._discard(key)
             return timed("unknown" if uncertain else "not_applied", uncertain, error="timeout")
         except Exception:
             tool_finished = time.monotonic()
+            self._spend(key, tool_started, tool_finished)
             await self._discard(key)
             return timed("unknown" if uncertain else "not_applied", uncertain, error="worker_lost")
 

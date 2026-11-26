@@ -143,6 +143,21 @@ class Catalog(unittest.TestCase):
         self.assertEqual([r["errorCode"] for r in (write, bad, unknown, nobody)],
                          ["risk_mismatch", "invalid_intent", "unknown_tool", "server_not_trusted"])
 
+    def test_a_server_that_calls_in_a_loop_runs_out_of_fuel(self):
+        """MCP-07: a plugin gets a bounded number of calls a minute; the call past it is refused untouched."""
+        from unittest import mock
+
+        from ocade_agent import gateway
+
+        self.write("a.json", manifest())
+        external, _ = catalog.load(self.home)
+        echo = ("mcp.read", {"server": "echo", "tool": "echo", "arguments": {"text": "hi"}})
+        with mock.patch.object(gateway, "EXTERNAL_CALLS_PER_MINUTE", 3):
+            results, _ = self.call(external, *[echo] * 5)
+        self.assertEqual([r["status"] for r in results], ["observed"] * 3 + ["not_applied"] * 2)
+        self.assertEqual([r["errorCode"] for r in results[3:]], ["plugin_fuel_exhausted"] * 2)
+        self.assertFalse(any(r["maybeChanged"] for r in results[3:]))
+
     def test_an_untrusted_tool_cannot_leak_a_credential_or_claim_a_status(self):
         """Threat 170: a third-party tool's output is redacted data, never a status or an instruction."""
         self.write("a.json", manifest())
