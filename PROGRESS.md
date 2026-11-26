@@ -28,6 +28,9 @@ Classification of the 148 Part 0A items against the owner's scope (coding only; 
 - `test:jarvis`: TypeScript 45 tests, 44 pass, 0 fail (1 skipped); companion Python 356 tests OK, 46 platform skips (deps from `device-agent/windows/requirements.txt` + reportlab, opentimelineio).
 - `test:jarvis-db` on local PostgreSQL 16: exit 0, 43 PASS lines including 60 rollbacks and the permit and reservation race harnesses.
 
+### Debloat re-check at `376e32f` (items 97–98)
+CodeMap `--unused`: 0 unreferenced module-private TypeScript functions; `--duplicates`: 0 byte-identical source groups; `--cycles`: 18 static cycle witnesses (type-level and sibling imports, none changed this session, none removed without proof). Nothing was deleted: no proven-useless code was found. Earlier knip result stands (`docs/DEBLOAT_REPORT.md`).
+
 ### UX principle matrix (replaces the retired `evidence/2026-11-24-ux-laws/MATRIX.md`)
 
 Evidence classes: AUTO = measured by `tests/web/ux_laws_audit.py` on every reachable page (CI, three engines); REVIEW = needs source or human review, not yet re-done this session. Local run on the signed-out loopback build at `376e32f` plus the two new checks: Chromium, 0 pages with problems (signed-in, Firefox and WebKit run in CI only).
