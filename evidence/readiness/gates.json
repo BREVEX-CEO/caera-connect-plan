@@ -242,7 +242,7 @@
           "evidence": [
             "device-agent/windows/tests/test_windows_ui.py"
           ],
-          "reason": "window image and control boxes go to the model; no template matching or confidence score"
+          "reason": "device-agent/windows/ocade_agent/vision.py matches the patch around the chosen point against a fresh capture with a confidence score and refuses a changed target, an ambiguous match, a resized window or an overlay (test_vision.py, 9 pass); real clicks on a consumer Windows/macOS desktop and DPI/multi-monitor are untested."
         }
       ]
     },
@@ -298,7 +298,7 @@
             "device-agent/windows/tests/test_gateway.py",
             "tests/jarvis/e2e.test.ts"
           ],
-          "reason": "D25: script_runnable accepts a non-runnable escaped or missing interpreter line; two completed repairs fail the independent invocation. Interpreter validation and live confirmed-invocation retest pending. Historical report(s): https://github.com/BREVEX-CEO/caera-connect-plan/blob/5b88b0c5c830ad719dd4cabd8635db53a7a18586/evidence/2026-11-05-e1/README.md."
+          "reason": "D25: script_runnable now rejects an escaped, missing, relative or non-executable interpreter line and compiles Python without running it (test_verify_kinds.py); the live confirmed-invocation retest is still pending. Historical report(s): https://github.com/BREVEX-CEO/caera-connect-plan/blob/5b88b0c5c830ad719dd4cabd8635db53a7a18586/evidence/2026-11-05-e1/README.md."
         },
         {
           "id": "no_gaming",
@@ -355,7 +355,7 @@
             "tests/jarvis/contracts.test.ts",
             "tests/security/confirmation.test.ts"
           ],
-          "reason": "The authority truncates serialized approval arguments at 4000 characters, hiding a valid command/edit suffix. Full exact-effect and opaque-handler risk regressions are the next candidate; authenticated dialog qualification remains incomplete."
+          "reason": "The approval shows every character of the validated operation and arguments (exactEffect; tests/security/confirmation.test.ts proves a 4000-character command, a 50 000-character replacement and a 10 000-character edit are byte-identical to the validated arguments). Authenticated dialog qualification on a signed-in browser is still incomplete."
         },
         {
           "id": "onboarding",
