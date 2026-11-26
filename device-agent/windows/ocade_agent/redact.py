@@ -30,6 +30,12 @@ _ASSIGNMENT = re.compile(
     r"(?i)\b((?:password|passwd|pwd|passphrase|secret|client[_-]?secret|api[_-]?key|access[_-]?key|"
     r"secret[_-]?key|access[_-]?token|auth[_-]?token|refresh[_-]?token|private[_-]?key)\b\"?\s*[:=]\s*[\"']?)"
     r"[^\s\"',;]{4,}")
+# R12-03: a card's security code, a PIN or a one-time/MFA code is never evidence a model may read,
+# even when the person authorised the form it was typed into. Labelled values only.
+_PAYMENT_CODE = re.compile(
+    r"(?i)\b((?:cvv2?|cvc2?|cid|card\s+security\s+code|security\s+code|pin(?:\s+code)?|otp|"
+    r"one[-\s]?time\s+(?:code|password)|(?:mfa|2fa|verification|authenticator|sms)\s+code|passcode)\b\"?\s*[:=]\s*[\"']?)"
+    r"\d{3,8}\b")
 _URL_CREDENTIALS = re.compile(r"(?i)\b([a-z][a-z0-9+.-]*://)[^/\s:@]+:[^/\s@]+@")
 
 
@@ -39,6 +45,7 @@ def redact_text(text: str) -> tuple[str, int]:
         text, found = pattern.subn(REDACTED, text)
         count += found
     for pattern, replacement in ((_HEADER, r"\1" + REDACTED), (_ASSIGNMENT, r"\1" + REDACTED),
+                                 (_PAYMENT_CODE, r"\1" + REDACTED),
                                  (_URL_CREDENTIALS, r"\1" + REDACTED + "@")):
         text, found = pattern.subn(replacement, text)
         count += found

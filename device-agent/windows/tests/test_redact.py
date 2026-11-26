@@ -25,6 +25,8 @@ class Patterns(unittest.TestCase):
             f"OPENAI_API_KEY={OPENAI}": OPENAI, f"cert:\n{PEM}\nend": "MIIEvQIBADANBg",
             "Authorization: Bearer abc.def-ghi": "abc.def-ghi", "password = hunter22": "hunter22",
             '{"client_secret": "s3cr3tvalue"}': "s3cr3tvalue",
+            "CVV: 123": "123", "card pin = 4821": "4821", "Your verification code: 902114": "902114",
+            '{"otp": "551203"}': "551203", "MFA code=7788": "7788",
             "git clone https://alice:pa55word@example.test/repo.git": "pa55word",
         }
         for text, secret in cases.items():
@@ -37,7 +39,7 @@ class Patterns(unittest.TestCase):
     def test_ordinary_facts_stay_exact(self):
         for text in ("sha256 " + "ab12" * 16, "task 0f8e3b2a-1c4d-4e5f-8a9b-0c1d2e3f4a5b",
                      "Reset your password from the account page.", "total 3048.92 rows=7",
-                     "https://example.test/path?x=1", "secret garden chapter 3"):
+                     "https://example.test/path?x=1", "secret garden chapter 3", "pin the tab, 3 of 5", "ZIP code: 94107", "invoice 123456 total 4821.50"):
             self.assertEqual(redact_text(text), (text, 0), text)
 
     def test_nested_values_are_copied_not_changed(self):
