@@ -87,6 +87,30 @@ class Shell(unittest.TestCase):
         with self.subTest("SHELL-004 its effect is real and checked on disk"):
             self.assertEqual((self.root / "fixed.txt").read_text().strip(), "repaired")
 
+    def test_no_account_secret_reaches_a_command_whatever_it_is_called(self):
+        """SHELL-003 for every kind of secret the companion's own environment can hold."""
+        names = (
+            "SUPABASE_SERVICE_ROLE_KEY", "GEMINI_API_KEY", "GOOGLE_API_KEY", "GITHUB_TOKEN",
+            "AWS_SECRET_ACCESS_KEY", "OPENAI_API_KEY", "ANTHROPIC_API_KEY", "OCADE_DEVICE_PRIVATE_KEY",
+            "DATABASE_URL", "MY_PASSWORD", "SESSION_COOKIE",
+        )
+        canaries = {name: f"canary-{name.lower()}-{os.urandom(6).hex()}" for name in names}
+        os.environ.update(canaries)
+        try:
+            dump = (
+                "Get-ChildItem Env: | ForEach-Object { $_.Name + '=' + $_.Value }" if WINDOWS else "env"
+            )
+            [result] = self.run_steps({"command": dump})
+        finally:
+            for name in names:
+                os.environ.pop(name, None)
+        self.assertEqual(result["evidence"]["exitCode"], 0, result)
+        shown = result["evidence"]["stdout"]
+        self.assertIn("OCADE_WORKSPACE", shown, "the dump must be the command's real environment")
+        for name, value in canaries.items():
+            self.assertNotIn(value, shown, f"{name}'s value reached the command")
+            self.assertNotIn(name, shown, f"{name} reached the command")
+
     @unittest.skipUnless(WINDOWS, "needs a Windows desktop")
     def test_commands_and_jobs_hold_no_privileges(self):
         [privileges, groups] = self.run_steps({"command": "whoami /priv /fo csv"}, {"command": "whoami /groups /fo csv"})
