@@ -55,8 +55,8 @@ Stop analysing when the next piece of information would not change the decision.
 - **Check:** Run the formatter, type checker or linter, focused tests, then relevant sibling/integration tests. Run the full suite at the required integration or release gate, not after every trivial edit.
 - **Simplify:** Delete dead branches, temporary scaffolding and unused imports created by the change. Every changed line must trace to the requirement.
 - **Prove:** Check the real effect independently (output file, database row, response body, target window). Exit code 0 is not proof.
-- **Commit:** Batch coherent locally verified changes and their tests when authorized; comply with branch and approval rules. A provisional commit does not establish final CI acceptance.
-- **Next Task:** Immediately continue the next independent authorized requirement after each commit or push, regardless of CI status. Continue coding locally while CI runs; batch pushes to avoid unnecessary cancellation. Do not use blocking CI watchers, placeholder tasks, sleeps or repeated idle polling while independent tasks remain; use nonblocking snapshots at useful batch boundaries. Full final verification remains mandatory.
+- **Commit:** After each coherent requirement or small related group passes applicable local checks, commit and push immediately to the authorized branch. Do not wait for earlier CI. Provisional commits are not final CI acceptance.
+- **Next Task:** Immediately implement the next independent requirement after every commit and push, regardless of CI status. Repeat commits and pushes as each change passes local checks. Never block on CI watchers, sleeps or placeholder tasks while requirements remain actionable. Fix confirmed failures; full final verification remains mandatory.
 - **Repeat:** Never end a turn at a milestone or with a status-only recap while independent work remains. Put brief status alongside the next tool call, persist evidence in PROGRESS.md and repeat until the full authorized scope is verified. Respect explicit owner stops, approvals and genuine blockers. Full exact-SHA verification remains mandatory at the final gate.
 
 ## Engineering formula
