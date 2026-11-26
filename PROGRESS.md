@@ -86,6 +86,8 @@ UX-22 bound: each task milestone payload now carries its `stepBudget` (already e
 
 UX-02 source check: the JARVIS empty state (`JarvisWorkspace.tsx`) asks one question ("What should JARVIS do?") with the composer as the one primary action; outcome packages and habits are optional and the packages sit behind a disclosure. The rail's nine navigation controls are unchanged, so UX-02 is source-evidenced for the empty state; the rail count stays an open design question tied to UX-19.
 
+UX-17 / UX-26 / UX-27 / UX-30 / UX-32 spot check by me (not the helper): `JarvisPanels.tsx` contains the ask, scope, approve, execute, monitor, stop and verify controls (`Allow this step` line 1521, `Deny and stop` 1546, `What JARVIS looked at` 1288, `Action preview` 1419, `Done and checked` 541, `Needs you` 539, `Checking the whole result independently` 1408) and the disclosure patterns; these laws are source-evidenced. They have no rendered signed-in proof and no automated check, so they stay REVIEW.
+
 Read-only source review of the other REVIEW laws (claims from a Haiku helper, spot-checked only for UX-29 and PermissionGuide; the helper's R12-05 claim was wrong, so treat the rest as leads, not proof): UX-17, 26, 27, 30, 32 look applied; UX-02, 03, 16, 19, 22, 23, 33 have named gaps (no single primary JARVIS step, no settings search, no step connectors, duplicate Chat and Files entries in two rails, no per-task limit shown, no managed-model cost, no recent-file memory); UX-21 is process evidence. These stay open.
 
 ### Unverified leads from read-only helper reviews (session 2; not evidence, one helper claim already proved wrong)
