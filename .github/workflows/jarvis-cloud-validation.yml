@@ -19,10 +19,6 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  group: jarvis-cloud-${{ github.ref }}-${{ inputs.candidate_sha || 'branch' }}
-  cancel-in-progress: true
-
 jobs:
   coding-gate:
     name: Coding gate · Linux · no qualification

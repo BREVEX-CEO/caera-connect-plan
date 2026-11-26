@@ -13,7 +13,8 @@ permissions:
 
 concurrency:
   group: ocade-mac-package-${{ github.ref }}-${{ inputs.candidate_sha || github.sha }}
-  cancel-in-progress: true
+  cancel-in-progress: false
+  queue: max
 
 jobs:
   registration:

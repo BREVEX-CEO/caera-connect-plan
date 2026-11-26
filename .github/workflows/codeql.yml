@@ -18,10 +18,6 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  group: private-dependency-audit-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
   production-dependencies:
     name: Audit production dependencies
