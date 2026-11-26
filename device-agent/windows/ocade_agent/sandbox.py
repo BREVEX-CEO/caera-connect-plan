@@ -154,6 +154,15 @@ def resolve(workspace: str | os.PathLike, relative: str) -> Path:
     return target
 
 
+def resolve_openable(workspace: str | os.PathLike, relative: str) -> Path:
+    """MALWARE-04: a workspace file JARVIS hands to an app is never a program or a macro-bearing
+    Office file already on the computer, whose app could run it. A missing file is the app's to report."""
+    target = resolve(workspace, relative)
+    if target.is_file() and is_active_content(target):
+        raise Refused("active_content_not_opened")
+    return target
+
+
 def output_path(workspace: str | os.PathLike, relative: str) -> Path:
     """A new deliverable's path: under `OCADE output/`, and not already there."""
     target = resolve(workspace, relative)

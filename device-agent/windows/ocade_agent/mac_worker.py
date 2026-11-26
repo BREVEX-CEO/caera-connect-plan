@@ -30,7 +30,7 @@ from mcp.server.mcpserver import MCPServer
 
 from . import keys as key_contract
 from . import capture, refs, skillforge, vision
-from .sandbox import Refused, guarded, mark_effect, preview_jpeg, resolve
+from .sandbox import Refused, guarded, mark_effect, preview_jpeg, resolve, resolve_openable
 
 _seen: dict = {}  # the last image ui.inspect captured of each leased window
 app = MCPServer("ocade-ui")
@@ -388,7 +388,7 @@ def apps_launch(exe: str, open: str | None = None) -> dict:
     if bundle is None:
         raise Refused("app_not_installed")
     before = {w["hwnd"] for w in open_windows(400)}
-    arguments = ["open", "-n", "-a", bundle["path"]] + (["--args", str(resolve(WORKSPACE, open))] if open else [])
+    arguments = ["open", "-n", "-a", bundle["path"]] + (["--args", str(resolve_openable(WORKSPACE, open))] if open else [])
     mark_effect()
     # nosemgrep: dangerous-subprocess-use-tainted-env-args -- argument list from the approved step, never a shell
     subprocess.run(arguments, check=False, capture_output=True)  # argument list, no shell

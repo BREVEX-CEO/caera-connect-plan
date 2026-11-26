@@ -1,3 +1,4 @@
+import io
 import os
 import subprocess
 import sys
@@ -7,7 +8,7 @@ import zipfile
 from unittest.mock import patch
 from pathlib import Path
 
-from ocade_agent.sandbox import Refused, output_path, resolve, write_atomically
+from ocade_agent.sandbox import Refused, output_path, resolve, resolve_openable, write_atomically
 
 
 class SandboxTest(unittest.TestCase):
@@ -215,6 +216,30 @@ class ParserCpuCap(unittest.TestCase):
     def test_an_idle_worker_is_left_alone(self):
         result = self.run_worker("import time\ntime.sleep(2.5)\nprint('done')\n")
         self.assertEqual((result.returncode, result.stdout.strip()), (0, "done"), result.stderr)
+
+
+class OpenableFiles(unittest.TestCase):
+    """MALWARE-04: JARVIS never hands a program or macro-bearing file to an app."""
+
+    def setUp(self):
+        self.root = Path(tempfile.mkdtemp())
+
+    def test_macro_and_program_files_are_refused(self):
+        macro = io.BytesIO()
+        with zipfile.ZipFile(macro, "w") as package:
+            package.writestr("[Content_Types].xml", "")
+            package.writestr("xl/vbaProject.bin", b"x")
+        for name, data in (("book.xlsx", macro.getvalue()), ("tool.exe", b"MZ"), ("note.docm", b"x")):
+            with self.subTest(name=name):
+                (self.root / name).write_bytes(data)
+                with self.assertRaises(Refused) as caught:
+                    resolve_openable(self.root, name)
+                self.assertEqual(caught.exception.code, "active_content_not_opened")
+
+    def test_an_ordinary_or_missing_file_resolves(self):
+        (self.root / "note.txt").write_text("hello")
+        self.assertEqual(resolve_openable(self.root, "note.txt"), (self.root / "note.txt").resolve())
+        self.assertEqual(resolve_openable(self.root, "later.txt"), (self.root / "later.txt").resolve())
 
 
 if __name__ == "__main__":
