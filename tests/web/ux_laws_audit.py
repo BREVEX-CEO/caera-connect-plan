@@ -26,6 +26,7 @@ the UX matrix in `PROGRESS.md` says which check backs which principle and what s
 - UX-03 Chunking: a page body never shows more than 12 controls outside a named group, list or table.
 - UX-02 Choice Overload: a dialog offers at most 4 buttons, and a select without groups at most 15 options.
 - UX-32 Progressive Disclosure: a section named advanced, developer or expert is folded on first view.
+- UX-01 Aesthetic-Usability: a page uses at most 3 type families (monospace code excepted).
 - UX-19 Occam's Razor: no container repeats a button or link with the same name beside its twin.
 - UX-09 Goal-Gradient: a progress bar has a name and only a valid value, never an invented one.
 
@@ -251,6 +252,14 @@ MEASURE = """({minTarget, maxNav, maxFields, maxGap, maxUngrouped, opened}) => {
       seen.add(key);
     }
   }
+  // UX-01 Aesthetic-Usability: a coherent look uses few type families; many families read as clutter.
+  const families = new Set();
+  for (const el of document.querySelectorAll('body *')) {
+    if (!visible(el) || ![...el.childNodes].some(n => n.nodeType === 3 && n.textContent.trim())) continue;
+    families.add(getComputedStyle(el).fontFamily.split(',')[0].trim().replace(/['"]/g, '').toLowerCase());
+  }
+  families.delete('monospace');
+  if (families.size > 3) out.push(`UX-01 ${families.size} type families on one page (max 3): ${[...families].join(', ')}`);
   // UX-09 Goal-Gradient: a progress bar either states its true value or says it cannot know.
   for (const bar of document.querySelectorAll('progress, [role=progressbar]')) {
     if (!visible(bar)) continue;
