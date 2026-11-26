@@ -9,6 +9,10 @@ import { test } from "node:test";
 import { anthropicBody, anthropicResponse } from "../../src/lib/intelligence/anthropic.ts";
 import { answerText, calledTool, toolProbe } from "../../src/lib/intelligence/byok-handler.ts";
 
+/** Provider payloads are inspected field by field; the shape is the thing under test. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type Loose = any;
+
 test("the request has system text, alternating turns, tool blocks, images and a forced call", () => {
   const body = anthropicBody(
     {
@@ -38,7 +42,7 @@ test("the request has system text, alternating turns, tool blocks, images and a 
     1024,
     "claude-test",
     new Set(["forced_call"]),
-  ) as Record<string, any>;
+  ) as Record<string, Loose>;
   assert.equal(body.system, "Be careful.");
   assert.equal(body.stream, true);
   assert.deepEqual(body.tool_choice, { type: "any" });
@@ -116,7 +120,7 @@ const callEvents = [
 test("a complete stream yields text, then the call with usage, and no private reasoning", async () => {
   const out = (await read(
     anthropicResponse(stream(callEvents), AbortSignal.timeout(5000)),
-  )) as any[];
+  )) as Loose[];
   assert.equal(JSON.stringify(out).includes("secret"), false, "reasoning never forwarded");
   assert.equal(out[0].candidates[0].content.parts[0].text, "Summing.");
   const final = out.at(-1).candidates[0];
@@ -152,14 +156,14 @@ test("max_tokens is reported as MAX_TOKENS and releases no call", async () => {
     { type: "message_delta", delta: { stop_reason: "max_tokens" } },
     { type: "message_stop" },
   ];
-  const out = (await read(anthropicResponse(stream(events), AbortSignal.timeout(5000)))) as any[];
+  const out = (await read(anthropicResponse(stream(events), AbortSignal.timeout(5000)))) as Loose[];
   const final = out.at(-1).candidates[0];
   assert.equal(final.finishReason, "MAX_TOKENS");
   assert.deepEqual(final.content.parts, []);
 });
 
 test("the connection test speaks Messages and reads its answers", () => {
-  const probe = toolProbe("anthropic", "claude-test") as Record<string, any>;
+  const probe = toolProbe("anthropic", "claude-test") as Record<string, Loose>;
   assert.deepEqual(probe.tool_choice, { type: "any" });
   assert.equal(probe.tools[0].name, "ok");
   assert.equal(

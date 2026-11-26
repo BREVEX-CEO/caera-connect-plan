@@ -9,6 +9,10 @@ import { test } from "node:test";
 import { responsesBody, responsesResponse } from "../../src/lib/intelligence/openai-responses.ts";
 import { answerText, calledTool, toolProbe } from "../../src/lib/intelligence/byok-handler.ts";
 
+/** Provider payloads are inspected field by field; the shape is the thing under test. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type Loose = any;
+
 test("the request has instructions, input items, images, store false and a forced call", () => {
   const body = responsesBody(
     {
@@ -28,7 +32,7 @@ test("the request has instructions, input items, images, store false and a force
     512,
     "gpt-test",
     new Set(["forced_call"]),
-  ) as Record<string, any>;
+  ) as Record<string, Loose>;
   assert.equal(body.instructions, "Be careful.");
   assert.equal(body.store, false);
   assert.equal(body.tool_choice, "required");
@@ -65,7 +69,7 @@ function stream(events: Record<string, unknown>[]): Response {
     headers: { "Content-Type": "text/event-stream" },
   });
 }
-async function read(response: Response): Promise<any[]> {
+async function read(response: Response): Promise<Loose[]> {
   return (await response.text())
     .split("\n\n")
     .filter(Boolean)
@@ -127,7 +131,7 @@ test("incomplete, failed or truncated answers release no call", async () => {
 });
 
 test("the connection test speaks Responses and reads its answers", () => {
-  const probe = toolProbe("responses", "gpt-test") as Record<string, any>;
+  const probe = toolProbe("responses", "gpt-test") as Record<string, Loose>;
   assert.equal(probe.tool_choice, "required");
   assert.equal(probe.store, false);
   assert.equal(calledTool("responses", { output: [{ type: "function_call", name: "ok" }] }), true);
