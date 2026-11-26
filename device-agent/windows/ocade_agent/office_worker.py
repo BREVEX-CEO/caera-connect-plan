@@ -16,6 +16,7 @@ import io
 import os
 import secrets
 import shutil
+import sys
 import tempfile
 import time
 from pathlib import Path
@@ -498,7 +499,8 @@ def fs_manage(action: str, path: str, to: str | None = None, executable: bool | 
 @app.tool()
 @_evidence
 def system_inspect(programs: list[str] | None = None) -> dict:
-    """OS, architecture, free workspace disk and where named programs resolve; nothing is run."""
+    """OS, architecture, free workspace disk and where named programs resolve, with what the platform
+    itself records about each (a read-only package-database or bundle lookup); no program named is run."""
     import platform
 
     from . import discovery
@@ -509,7 +511,7 @@ def system_inspect(programs: list[str] | None = None) -> dict:
         path = shutil.which(name) or discovery.app_path(name) or (
             None if name.lower().endswith(".exe") else discovery.app_path(f"{name}.exe"))
         if path and os.path.isfile(path):
-            found[name] = {"path": path[:300], "bytes": os.path.getsize(path), **_file_version(path)}
+            found[name] = {"path": path[:300], "bytes": os.path.getsize(path), **_platform_facts(path)}
         else:
             found[name] = {"path": None}
     return {
@@ -645,6 +647,55 @@ def _file_version(path: str) -> dict:
         return {"fileVersion": f"{ms >> 16}.{ms & 0xFFFF}.{ls >> 16}.{ls & 0xFFFF}"}
     except Exception:
         return {}
+
+
+def _bundle_version(path: str) -> dict:
+    """The version a macOS app bundle records, read from its Info.plist (nothing is run)."""
+    import plistlib
+
+    parts = Path(path).parts
+    for index, part in enumerate(parts):
+        if part.endswith(".app"):
+            try:
+                info = plistlib.loads((Path(*parts[: index + 1]) / "Contents" / "Info.plist").read_bytes())
+            except (OSError, plistlib.InvalidFileException, ValueError):
+                return {}
+            version = info.get("CFBundleShortVersionString") or info.get("CFBundleVersion")
+            return {"bundleVersion": str(version)[:60]} if version else {}
+    return {}
+
+
+def _package_owner(path: str) -> dict:
+    """The system package that owns a program file, from the package manager's own database
+    (dpkg or rpm), so a name that merely appears on PATH is not taken for an installed package."""
+    real = os.path.realpath(path)
+    if shutil.which("dpkg-query"):
+        owner = _run(["dpkg-query", "-S", real], 2_000).split(":", 1)[0].strip()
+        if not owner or " " in owner or owner.startswith("dpkg-query"):
+            return {}
+        owner = owner.split(",")[0].strip()  # "pkg1, pkg2: /path": the first owner
+        version = _run(["dpkg-query", "-W", "-f=${Version}", owner], 200).strip()
+        return {"package": {"manager": "dpkg", "name": owner[:80], "version": version[:80]}} if version else {}
+    if shutil.which("rpm"):
+        said = _run(["rpm", "-qf", "--qf", "%{NAME}\\t%{VERSION}-%{RELEASE}", real], 400).strip()
+        name, _, version = said.partition("\t")
+        return {"package": {"manager": "rpm", "name": name[:80], "version": version[:80]}} if name and version else {}
+    return {}
+
+
+def _platform_facts(path: str) -> dict:
+    """What the platform itself records about a program file: Windows file resources, a macOS bundle's
+    Info.plist or the owning dpkg/rpm package. Empty when the platform records nothing."""
+    try:
+        if os.name == "nt":
+            return _file_version(path)
+        if sys.platform == "darwin":
+            return _bundle_version(path)
+        if sys.platform.startswith("linux"):
+            return _package_owner(path)
+    except Refused:
+        return {}  # a package tool that is missing or slow is not an error of the inspection
+    return {}
 
 
 def _presentation(data: bytes):
