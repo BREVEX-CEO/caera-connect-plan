@@ -203,7 +203,7 @@ const C = {
     "L2",
     ["windows", "planner"],
     ["windowsUi"],
-    "the window image and each control's box go to the model, which grounds ui.click_point; no OpenCV template matching or confidence score",
+    "the window image and each control's box go to the model, which grounds ui.click_point; vision.py then matches the chosen patch against a fresh capture with a confidence score and refuses a changed, ambiguous, resized or overlaid target (test_vision.py); no OpenCV, and real clicks on consumer desktops are untested",
   ],
   37: ["PASS", "L1", ["planner", "discovery"], ["unit"], ""],
   38: ["PASS", "L2", ["sandbox", "office"], ["sandbox", "gateway"], ""],

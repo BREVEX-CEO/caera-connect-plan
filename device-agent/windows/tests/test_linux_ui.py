@@ -168,6 +168,32 @@ class X11Ladder(unittest.TestCase):
             self.assertEqual(out["forged"].get("errorCode"), "window_changed", out["forged"])
             self.assertEqual(out["gone"].get("errorCode"), "window_gone", out["gone"])
 
+    def test_watch_reports_a_real_change_in_the_leased_window_and_stays_quiet_otherwise(self):
+        import threading
+
+        async def steps():
+            async with Gateway(str(self.root)) as gateway:
+                return await self.launch(gateway)
+
+        try:
+            window = anyio.run(steps)
+            direct = {k: window[k] for k in ("exe", "pid", "hwnd", "started")}
+            linux_worker.ui_inspect(window=direct)
+            self.quiet()
+            still = linux_worker.ui_watch(window=direct, timeoutMs=1500)
+            self.assertEqual(still.get("refused"), "not_changed", still)
+            clicked: list[dict] = []
+            timer = threading.Timer(0.8, lambda: clicked.append(linux_worker.ui_click_point(
+                window=direct, x=0.5, y=0.5, expectTitle="Fixture")))
+            timer.start()
+            moved = linux_worker.ui_watch(window=direct, timeoutMs=8000)
+            timer.join()
+            self.assertTrue(moved["changed"], moved)
+            self.assertTrue(any(line.startswith("click ") for line in self.lines()), "the change was a real click")
+            self.assertEqual(clicked[0]["after"]["imageChanged"], True)
+        finally:
+            subprocess_kill(self.exe)
+
     def test_a_person_using_the_keyboard_stops_the_bridge_before_any_input(self):
         async def steps():
             async with Gateway(str(self.root)) as gateway:
