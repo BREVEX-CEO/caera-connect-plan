@@ -374,10 +374,14 @@ def _grab(bounds):
 # ---- installed apps -------------------------------------------------------------------------
 
 
+# The XDG Base Directory specification's default for XDG_DATA_DIRS.
+_XDG_DEFAULT_DATA_DIRS = os.pathsep.join(str(Path(os.sep, "usr", *tail)) for tail in (("local", "share"), ("share",)))
+
+
 def _application_dirs() -> list[Path]:
-    data = os.environ.get("XDG_DATA_DIRS") or "/usr/local/share:/usr/share"
+    data = os.environ.get("XDG_DATA_DIRS") or _XDG_DEFAULT_DATA_DIRS
     home = os.environ.get("XDG_DATA_HOME") or str(Path.home() / ".local/share")
-    return [Path(home) / "applications"] + [Path(part) / "applications" for part in data.split(":") if part]
+    return [Path(home) / "applications"] + [Path(part) / "applications" for part in data.split(os.pathsep) if part]
 
 
 def _desktop_entry(path: Path) -> dict | None:
