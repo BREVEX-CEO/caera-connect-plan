@@ -2,9 +2,9 @@
 
 Historical paths in preserved progress entries refer to the pre-cleanup repository snapshot at https://github.com/BREVEX-CEO/caera-connect-plan/blob/5b88b0c5c830ad719dd4cabd8635db53a7a18586/plan.md; use the same commit for retired documents. Current progress belongs here.
 
-## Progress reporting correction
+## Progress reporting
 
-Previous plan.md snapshot (historical, not a new verification): Overall coding completion: 3/100% (4 of 148 Part 0A items independently verified; reconciled in PROGRESS.md). All current progress, counts and blockers belong exclusively in this ledger. No completion status changed by this instruction update.
+The only completion calculation is the `Requirement audit` section at the end of this file, generated from `docs/REQUIREMENTS_LEDGER.md`. Earlier percentages (3/100%, 77.9%, 46.4%, 147/190) were removed because they mixed overlapping or incomparable bases; they remain in Git history.
 
 ## Documentation cleanup (25 November 2026)
 
@@ -31,12 +31,10 @@ Local branch was a stale shallow clone with unrelated roots; unshallowed and fas
 - OFFLINE-03 source finding (row stays PARTIAL): Chat turns are append-only rows keyed by a per-turn `clientKey` the server refuses to store twice (`src/lib/chat/unsynced-turns.ts`), so two devices writing offline add separate turns and cannot overwrite each other. Editable records (settings, notification preferences with a `revision`, conversation titles, task instructions) have no cross-device merge or conflict view, and no two-device test exists.
 - Judged not code-fixable this session: SUPPLY-02 (build-provenance attestation needs repository attestation support that cannot be proven here), PLANNER-05 (a citation verifier needs a model-backed check), OFFLINE-03 (a cross-device sync design needing owner scoping).
 - Exact-SHA CI for `0cf6eb3f897fa0fd65e195715839c5bffb79e30e` (attempt 1): CI [45876496694](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/45876496694) success; macOS bundle [45876502644](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/45876502644) success; dependency and static security [45876484262](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/45876484262) success; full JARVIS cloud validation [45876490573](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/45876490573) FAILURE: 11 of 12 jobs success, `Python MCP / journal / browser · windows-2022` hit the 25-minute step timeout inside `tests.test_effect_receipts.NativeEffectReceipts.test_a_window_that_does_not_come_forward_changed_nothing`, the item 105 windows-2022 hang (the other three Windows and macOS matrix jobs and the Windows installer smoke passed). The code of this session does not touch that test path. Not GREEN: the final gate cannot be claimed until item 105 is root-caused on a Windows machine.
-- Completion snapshot (26 Nov 2026, `0cf6eb3`, honest): Part 0A 4 of 148 items checked (1, 103, 104, 106; item 104 is now reopened by the windows-2022 failure above). Threat triage 197 rows: 147 FIXED, 39 PARTIAL, 4 OPEN, 7 N/A. Architecture concepts 84: 47 PASS, 36 PARTIAL, 1 FAIL (the aggregate release gate, by design). Automated UX checks cover 20 of 34 laws (04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14, 15, 18, 20, 24, 25, 28, 31, 34 and 03); the other 14 are source-reviewed only. `docs/OCADE_MASTER_COMPLETION_CHECKLIST.md`: 0 of 2016 rows reconciled. Readiness: 1 of 10 milestones, 17 of 42 conditions PASS (40.5%).
 - Not done: exact-SHA GitHub Actions for this batch (needs a push), items 2–53 reconciliation, remaining REVIEW-only UX laws, Windows hang (item 105). Coding readiness stays PARTIAL; launch readiness NOT READY.
 
 ## Session 4 (26 Nov 2026, base `4941db6`)
 
-- Goal set by owner: complete the coding scope, one overall percentage kept in plan.md line 3 (`3/100%` = 4 of 148 Part 0A items verified, not an estimate of effort).
 - UX-02 Choice Overload: new AUTO check (a dialog offers at most 4 buttons; an ungrouped select lists at most 15 options) in `tests/web/ux_laws_audit.py`, negative control `UX-02` in `tests/web/ux_laws_fixtures.py`. Local Chromium: `ux_laws_fixtures.py` exit 0 (all negative controls fire, good fixture clean). Site-wide run not repeated locally; CI runs it.
 - UX-32 Progressive Disclosure: new AUTO check (a `details` section named advanced, developer or expert is not open on first view); negative control `UX-32`; no `<details open>` exists in `src`. Local `ux_laws_fixtures.py` exit 0.
 - UX-19 Occam's Razor: new AUTO check (no container repeats a button or link with the same name beside its twin; nav and footer exempt) in `tests/web/ux_laws_audit.py`, negative control `UX-19` in `tests/web/ux_laws_fixtures.py`. Local Chromium `ux_laws_fixtures.py` exit 0. Local Chromium site audit (30 pages) exit 0 after fixing a false positive in UX-02 (navigation buttons inside a dialog, such as the Settings categories, are destinations and are no longer counted as decisions).
@@ -188,6 +186,8 @@ Evidence classes: AUTO = measured by `tests/web/ux_laws_audit.py` on every reach
 - REVIEW (no automated check): UX-02, UX-16, UX-17, UX-19, UX-21, UX-22, UX-23, UX-26, UX-27, UX-29, UX-30 (partly: unfinished-work labels, `zeigarnik-conversations.png`), UX-32, UX-33. Items 54–89 stay open until each has source evidence recorded here.
 
 ## Part 0A — Task status (148 stable IDs)
+
+Part 0A is a task list over the units in `docs/REQUIREMENTS_LEDGER.md`, not a source of percentages (its 4 checked boxes are tasks 1, 103, 104, 106; 103, 104 and 106 were proven on earlier SHAs). Items 1–106 are coding and audit tasks; 107–148 are staging, benchmark, cloud-computer, customer-journey, legal and release tasks and are excluded from the coding percentage. Group counts are in the `Requirement audit` section.
 
 Cross-check (23 Nov 2026): every master-checklist section M§0–M§17 maps to at least one item below; every item maps to at least one master section. No master section is uncovered.
 
@@ -1140,49 +1140,68 @@ UX-19 decision (27 Nov 2026): the JARVIS rail's "Files" entry (to `/library`) an
 ### Signed-in UX-law audit now reports 0 problems (27 Nov 2026)
 `tests/web/ux_laws_audit.py` now gives a settings dialog (one that contains its own category navigation) a limit of 7 buttons because each row there offers one action and the rows are chunked by category; every other dialog keeps 4. Negative controls (`ux_laws_fixtures.py`) still behave. Signed in on the local stack at `c54ce81` plus this change, Chromium, three viewport profiles, nine page views: 0 problems (before the fixes of the earlier entry: 7 distinct findings). Not covered: Firefox and WebKit signed in (not installed here), pages that need a paired computer, a real model.
 
-## Coding audit from the repository (27 Nov 2026, owner instruction: coding only, no manual browser testing or benchmarks)
-Manual browser testing, screenshots and the local stack are stopped (stack and site server shut down; no more audits in browsers until all applicable coding is complete).
-New `scripts/coding-audit.py` computes the status of the 208 security rows in `docs/OCADE_THREAT_TRIAGE.md` from the working tree instead of from checkboxes: every file, test and migration a row cites must exist; a FIXED row is VERIFIED only when it cites an existing test, TESTED_BY_REFERENCE when a test file mentions a symbol it cites, NO_TEST_FOUND otherwise. First result at `33fa5d3`: 208 rows, 190 applicable to code (7 N/A, 11 owner/provider). VERIFIED 98 (51.6%), TESTED_BY_REFERENCE 17 (8.9%), NO_TEST_FOUND 32 (16.8%), PARTIAL 39 (20.5%), OPEN 4 (2.1%), EVIDENCE_MISSING 0. So about 60% of applicable security rows have test evidence, 17% are claimed FIXED with no test, and 23% are partial or open. The completion checklist (868 rows) and `plan.md` are measured separately below as that audit proceeds.
-
 ### Continuous-work configuration moved out of the repository (27 Nov 2026, owner-approved)
 The Stop hook `scripts/continue-coding.py` and its `.claude/settings.json` entry were removed. The general rule (loop after every push, no text-only turn endings, "done" defined by checks on one pushed SHA and a re-audit, blocked items recorded, owner STOP/WAIT/PAUSE/HOLD and no merge/deploy/spend without approval) now lives in the user-level `~/.claude/CLAUDE.md`, so it applies to every repository; this repository's `CLAUDE.md` keeps only the OCADE specifics (Part 0A queue, staging rule). Verified: the files contain the text and the hook is gone. Not verified: whether instructions alone keep a session going; that is the point of this change and needs a real run. The user-level file lives in the session container's home; it persists only if that home is synced to the owner's account.
 
-## Coding completion audit (27 Nov 2026, `aa3eb5d`; read from source and evidence, not from checkbox state)
-Scope: coding only. Manual testing, benchmarks, runtime qualification, staging, deployment and consumer-hardware runs are excluded from every number below and listed separately.
-
-| Group | Units | Completed (evidence) | Partial | Not done | Blocked / owner / not coding here |
-| --- | ---: | ---: | ---: | ---: | ---: |
-| Security triage rows (`docs/OCADE_THREAT_TRIAGE.md`, 16 `O-` rows plus 192 register roots) | 208 | 119 (102 with a cited existing test, 17 tested by reference) | 39 | 4 open, 28 claimed FIXED with no test found | 7 N/A, 11 owner or provider |
-| Appendix E coding ledger (this file) | 189 | 140 BUILDS | 0 | 0 | 25 qualification-only, 20 standing, 2 optional, 2 excluded |
-| Architecture concepts (84; `evidence/2026-11-23-traceability/architecture-ledger.json`) | 84 | 47 PASS | 36 PARTIAL (35 need hardware, live models, a certificate or owner decisions) | 1 FAIL (the aggregate gate) | counted in partial |
-| Part 0A task IDs (148) | 148 | 4 | 16 in progress | 112 never audited against code | 16 blocked |
-| Original requirement rows (`REQ-001..266`) | 266 | not determinable | not determinable | not determinable | no `REQ-nnn` is cited anywhere in code, tests or evidence |
-| Repository-integration entries (`REPO-01..72`, ledger at `c4c80d7`) | 72 | 41 coded (+ REPO-03, 04, 05, 51 improved today) | 11 | 7 (benchmark- or hardware-dependent: 12, 31, 40, 52, 62, 72) | 1 owner, 12 deferred |
-
-**Evidence-backed coding completion.** Units that can be finished by coding here: security rows applicable to code (190) + Appendix E coding items (154) + architecture concepts not blocked by hardware, live models, a certificate or an owner decision (49) = 393. Completed with evidence: 119 + 140 + 47 = 306. **306 / 393 = 77.9% complete, 22.1% remaining.** The 266 original requirements cannot be traced to code, so this figure covers only what is traceable; if they were counted as unverified the figure would be 306 / 659 = 46.4%. The percentages measure traceable evidence, not product readiness.
-
-**Remaining coding (87 units):** 28 security rows claimed FIXED without a test; 39 partial security rows (about 20 are codable here, the rest are provider, owner, sandbox or Stage 4/5 gaps); 4 open (all need an engine choice or live models); Appendix E has 14 coding items not BUILDS; 2 architecture concepts (stale text or the aggregate gate). **Remaining security fixes:** MALWARE-01 (generated-artifact scan), OFFLINE-03 (divergent edits beyond preferences and titles), BROWSER-05 (page-screenshot redaction), EFFECT-06 (dependency map), PLANNER-05, VERIFY-03, SUPPLY-02/03/08, TENANT-07; the other partial rows are blocked outside coding. **Debloat:** no current report (`docs/DEBLOAT_REPORT.md` is missing); a fresh pass is owed.
-**Blocked or not coding:** items 107-119 and 132-148 of Part 0A (staging authorization, live providers, benchmarks, consumer Windows/macOS, signing, payment, production), and the readiness conditions that need them (17 of 42 pass).
-
-The audit script is `scripts/coding-audit.py` (security rows only); the other groups are counted from the documents named above.
-
 ### Security rows claimed FIXED now all carry a test (27 Nov 2026)
-The 28 rows that the audit found FIXED with no test now cite one that exists and asserts the claim: new `tests/security/{served-content,client-authority,offline-isolation,external-risk,agent-authority,bounded-reads,status-words,bundle-secret-scan}.test.ts`, `tests/jarvis/db/{support-share,commercial-server-owned,admin-accountability}.test.sql`, `device-agent/windows/tests/test_invariants.py` (local STOP command, browser profile), plus citations of existing tests (`test_refs.py`, `test_agent.py`, `smart-approvals.test.sql`, `byok-route.test.ts`, `memory.test.*`). Three conversation-share rows (TENANT-08, PRIVACY-06, ADMIN-02) were stale: the share links were removed (`20260912120000`) and the support share replaced them. Several of the new tests are static (source or schema) invariants, so they prove a rule cannot silently disappear, not that every behaviour was exercised live. `scripts/coding-audit.py` now reports for the 190 applicable rows: VERIFIED 130 (68.4%), TESTED_BY_REFERENCE 17 (8.9%), PARTIAL 39 (20.5%), OPEN 4 (2.1%), NO_TEST_FOUND 0. Local: `tests/security/*.test.ts` 408 pass, the three DB tests pass on a disposable PostgreSQL 16 with all migrations replayed, typecheck, eslint and Prettier clean.
+The 28 rows that the audit found FIXED with no test now cite one that exists and asserts the claim: new `tests/security/{served-content,client-authority,offline-isolation,external-risk,agent-authority,bounded-reads,status-words,bundle-secret-scan}.test.ts`, `tests/jarvis/db/{support-share,commercial-server-owned,admin-accountability}.test.sql`, `device-agent/windows/tests/test_invariants.py` (local STOP command, browser profile), plus citations of existing tests (`test_refs.py`, `test_agent.py`, `smart-approvals.test.sql`, `byok-route.test.ts`, `memory.test.*`). Three conversation-share rows (TENANT-08, PRIVACY-06, ADMIN-02) were stale: the share links were removed (`20260912120000`) and the support share replaced them. Several of the new tests are static (source or schema) invariants, so they prove a rule cannot silently disappear, not that every behaviour was exercised live. `scripts/coding-audit.py` now reports for the 190 applicable rows: VERIFIED 130 (68.4%), TESTED_BY_REFERENCE 17 (8.9%), PARTIAL 39 (20.5%), OPEN 4 (2.1%), NO_TEST_FOUND 0. Local: `tests/security/*.test.ts` 408 pass, the three DB tests pass on a disposable PostgreSQL 16 with all 220 migrations replayed, typecheck, eslint and Prettier clean.
 
-## Final coding status report (27 Nov 2026, base `8ac1938`, report-only on owner STOP)
+## Requirement audit (27 Nov 2026, audited checkout `44d8ea4` plus the audit scripts; documentation-only change)
 
-Source: `python3 scripts/coding-audit.py` (208 threat rows, 190 applicable to code; 7 N/A, 11 owner/provider) plus the 27 Nov audit table above. Manual testing and benchmarks excluded.
+Single calculation. Replaces every earlier percentage. Generated by `python3 scripts/requirements-ledger.py --results <file> --write` after `python3 scripts/test-evidence.py <file>`; full per-unit table and pending-work list: [docs/REQUIREMENTS_LEDGER.md](docs/REQUIREMENTS_LEDGER.md). Manual testing, benchmarks, cloud-computer testing, deployment and qualification-only measurements are excluded; their harness code is counted.
 
-| Bucket | Rows | Share of 190 |
-|---|---|---|
-| Done: VERIFIED (named test asserts it) | 130 | 68.4% |
-| Done: TESTED_BY_REFERENCE (test cited, not yet named) | 17 | 8.9% |
-| Partial (code present, residual gap) | 39 | 20.5% |
-| Open (not implemented) | 4 | 2.1% |
+**Unit definition (each counted once, namespaces disjoint by identifier).** REQ 266 original requirements (plan.md Appendix A; coding state from Appendix E above), ARCH 84 concepts, SEC 208 triage rows, REPO 72 integration entries, UX 34 laws, P27/28 38 named features. Part 0A (148 tasks), Part 8's 120 requirements, the 1,152 negative scenarios and both master checklists are views over these units and are not counted. Excluded from the percentage: N/A 9, DUPLICATE 10 (nine SEC rows that say "as X" plus the Mini-Apps feature, which is R12-06), STANDING 20 (gate rules), QUALIFICATION 26 (25 measurement/real-device REQ rows and the aggregate release-gate concept 84).
 
-- Security-row coding done: 147/190 = 77.4%; remaining 43/190 = 22.6%.
-- Whole-plan estimate (306/393 requirements evidence-backed): done 77.9%, remaining 22.1%. If the 266 `REQ-nnn` rows with no cited ID in code were counted unverified, done = 46.4%.
-- Remaining work: 39 partial rows mostly blocked on owner decision, provider keys, hardware or platform CI; codable leftovers MCP-05, EFFECT-06, OFFLINE-03, TENANT-07, VERIFY-03 (verifier-diversity guard drafted, dropped uncommitted because failing); debloat report (`docs/DEBLOAT_REPORT.md`) missing; REPO ledger refresh; `REQ-nnn` traceability; 112 Part 0A items not yet audited against code.
-- CI: no single SHA has an all-green full platform matrix yet; mandatory checks are NOT verified green on one final SHA. Completion not claimed.
-- Added this pass: MCP-07 busy-time test in `device-agent/windows/tests/test_catalog.py` (passes locally).
-- CLAUDE.md (repo and `~/.claude`): added mode-switch rule so report/audit/STOP requests end coding in the same turn, then resume only when told.
+**Test evidence.** `scripts/test-evidence.py` ran every test file on its own: 183 PASS, 0 FAIL, 2 skipped (`test_web_rebind.py`, `test_web_scope.py`, need a browser), 1 timeout (`tests/jarvis/e2e.test.ts`, needs a live stack); all 220 migrations replay cleanly into a disposable PostgreSQL 16. Push-triggered CI on `44d8ea4`: CI, static security and JARVIS cloud validation (coding gate) all success. The dispatched full platform matrix was last green on `732100c` (22 Nov) and has not been run on `44d8ea4`.
+
+| Class | Units | Share of 637 applicable |
+|---|---:|---:|
+| VERIFIED COMPLETE (every cited test file ran and passed here) | 142 | 22.3% |
+| PARTIAL | 60 | 9.4% |
+| NOT IMPLEMENTED | 6 | 0.9% |
+| BROKEN | 0 | 0.0% |
+| UNVERIFIED (recorded as implemented, no row-level proof here) | 368 | 57.8% |
+| BLOCKED (owner decision, provider, hardware, platform) | 61 | 9.6% |
+
+- Total remaining coding that Claude can do without the owner (PARTIAL + NOT IMPLEMENTED + BROKEN): 66 units, 10.4%.
+- Verification debt (UNVERIFIED): 368 units, 57.8%. This is not missing code, but it is not proven either.
+- Blocked: 61 units, 9.6%.
+- Implemented or better (VERIFIED + UNVERIFIED): 510 of 637, 80.1%. Only 22.3% is proven.
+
+| Category | Applicable | Verified | Partial | Not impl. | Unverified | Blocked | Verified share |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| SEC security rows | 192 | 113 | 17 | 1 | 26 | 35 | 58.9% |
+| REQ original requirements | 219 | 0 | 0 | 2 | 217 | 0 | 0.0% |
+| ARCH concepts | 83 | 29 | 17 | 0 | 18 | 19 | 34.9% |
+| REPO integrations | 72 | 0 | 0 | 0 | 66 | 6 | 0.0% |
+| UX laws | 34 | 0 | 14 | 0 | 20 | 0 | 0.0% |
+| P27/28 features | 37 | 0 | 12 | 3 | 21 | 1 | 0.0% |
+
+**Release readiness (separate, from `node scripts/launch-readiness.mjs` at `44d8ea44`):** 1 of 10 milestones (10%); 17 of 42 conditions PASS (40.5%); PARTIAL 18, FAIL 1, BLOCKED 5, UNTESTED 1. Public launch: NO-GO. Part 0A items 107–148 (staging, benchmarks, cloud computers, customer journeys, legal, deployment) are all unstarted or blocked.
+
+**Part 0A reconciliation (148 tasks: 4 done, 16 in progress, 112 open, 16 blocked).**
+
+| Items | Meaning | Count | Done | In progress | Open | Blocked |
+|---|---|---:|---:|---:|---:|---:|
+| 1–2 | sync, read plan | 2 | 1 | 0 | 1 | 0 |
+| 3–8 | audit the 120/266/84/72/research registers | 6 | 0 | 3 | 3 | 0 |
+| 9–18 | coding areas | 10 | 0 | 3 | 7 | 0 |
+| 19–53 | Part 27/28 features and acceptance | 35 | 0 | 1 | 34 | 0 |
+| 54–89 | 34 UX laws and UX verification | 36 | 0 | 3 | 33 | 0 |
+| 90–96 | security | 7 | 0 | 3 | 4 | 0 |
+| 97–102 | debloat, re-audit | 6 | 0 | 2 | 4 | 0 |
+| 103–106 | build and CI on one SHA | 4 | 3 | 1 | 0 | 0 |
+| 107–120 | staging, benchmarks, cloud (excluded) | 14 | 0 | 0 | 3 | 11 |
+| 121–148 | customer journeys, legal, release (readiness) | 28 | 0 | 0 | 23 | 5 |
+
+**Answers to the audit questions.**
+1. 77.9% (306/393) was computed from three overlapping bases (security rows, Appendix E, which is a state layer over the 266 requirements, and architecture concepts) and left out Parts 27/28, REPO and UX. It is retired. No 85.0% figure exists in the repository, its history or this session's records; its basis is unknown to me. The only figure now is 22.3% verified (80.1% implemented-or-better, of which 57.8 points unproven).
+2. The checklists were generated with every box unchecked "until independently reverified" and nothing ever checked one. The 2,016 completion boxes were 805 restatements of units already in the registers (sections 1–5), 38 UX boxes, 1,174 clause-level and gate boxes. The 1,375 security boxes were 11 gates, 16 findings, 192 roots, 1,152 generated scenarios (six per root) and a few closing boxes. Now: security checklist 223 boxes (113 checked, 110 open); completion checklist 1,174 open boxes (sections 6–8 clause detail and gates; sections 1–5 point to the ledger). The 1,152 scenarios are listed nowhere as executed; they stay in the register and count as UNVERIFIED.
+3. The 266 requirements: 77 historical runtime PASS + 140 BUILDS = 217 UNVERIFIED, 25 qualification-only, 20 standing, 2 excluded, 2 optional Linux items not coded (REQ-134, REQ-135). No `REQ-nnn` is cited in code, so none can be proven row by row. The 148 Part 0A items are tasks over the units (table above).
+4. The VERIFY-03 test was an uncommitted draft whose scan failed on the test's own parser (`web_text_contains` negative cases exist but the regex missed them); it was never in Git. I removed it rather than push a red test under an owner STOP. That was a shortcut, not a fix: VERIFY-03 stays PARTIAL and the guard is a pending task.
+5. `coding-audit.py` previously checked only that cited files exist and that one of them is a test; it did not run anything or read assertions. It now takes `--results` and calls a FIXED row VERIFIED only if every cited test file ran and passed here; a failing one is BROKEN, an unrun or skipped one is UNVERIFIED. That dropped the security rows from 130 to 113 (plus 10 duplicates removed). Whether a passing test's assertions match its row is reviewed only for the rows whose tests I wrote on 27 Nov.
+6. Yes, earlier: Appendix E over REQ, aliases ("as X"), Mini-Apps over R12-06, checklist restatements. All removed from the count (10 duplicate units; checklists collapsed). Cross-namespace overlap that has no ID link (for example an ARCH concept restating a REQ row) cannot be proven absent; it would lower both numerator and denominator.
+7. The repository `CLAUDE.md` persists through Git for this repository only. The user-level `~/.claude/CLAUDE.md` persists only through the environment setup script of `caera-connect-plan`, which appends the older block guarded by a marker, so a fresh container gets the continuous-work rule WITHOUT the new mode-switch bullet. The `Default` and `OCADE Browser Testing` environments have no such script. Fixing this needs an environment edit that needs owner approval (not made here).
+8. Every remaining unit is in the pending-work table of the ledger with actor (Claude or Owner/external), gap and files.
+
+**Unresolved uncertainties.** (a) VERIFIED rests on file-level pass; relevance of assertions is unreviewed. (b) The Claude/Owner split for PARTIAL and OPEN SEC rows is keyword-classified from the triage text, not read row by row. (c) REPO, UX and P27/28 classes are derived from recorded notes and code-name searches, not tests. (d) `e2e.test.ts` timed out here, so ARCH concepts citing it stay UNVERIFIED. (e) Windows/macOS test files were run on Linux only (platform-only tests skip). (f) The dispatched platform matrix has not run on the audited SHA.

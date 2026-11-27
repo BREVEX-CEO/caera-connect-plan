@@ -3,7 +3,7 @@
 Source: `docs/OCADE_SECURITY_THREAT_MODEL_AND_NEGATIVE_TEST_REGISTER.md`. Updated 18 November 2026
 on branch `ocade/p00-p22-implementation`. Status words: **FIXED** (code and a negative test that
 fails without the fix), **PARTIAL** (part fixed, the gap named), **OPEN** (not addressed), **OWNER**
-(needs an owner decision). A status here is coding evidence only; nothing below is qualified
+(needs an owner decision). The status words below are the triage's own claims. The checked result of each row (VERIFIED only when every cited test file ran and passed) is in `docs/REQUIREMENTS_LEDGER.md`; 113 of 192 unique roots are VERIFIED, nine rows that say "as X" are duplicates, and counts elsewhere in this file's history are superseded. A status here is coding evidence only; nothing below is qualified
 against a live attacker, a real provider or a customer device.
 
 ## The 16 code-observed findings

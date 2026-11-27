@@ -3,7 +3,8 @@
 
 For each row of docs/OCADE_THREAT_TRIAGE.md it resolves every file, test and migration the row cites against
 the working tree. A FIXED row counts as VERIFIED only when every cited file exists and at least one cited
-file is a test. Otherwise it is listed so the gap can be repaired. PARTIAL, OPEN and OWNER rows are reported
+file is a test. With --results (scripts/test-evidence.py) VERIFIED additionally needs every cited test file to
+have actually run and passed; existence alone is not verification. Otherwise it is listed so the gap can be repaired. PARTIAL, OPEN and OWNER rows are reported
 as the triage states them. Usage: python3 scripts/coding-audit.py [--json] [--list STATUS]
 """
 import collections
@@ -59,7 +60,9 @@ def referenced_by_tests(tokens: list[str], corpus: str) -> list[str]:
     return sorted(set(hits))[:3]
 
 
-def main() -> int:
+def compute(results: dict | None = None) -> dict:
+    """Per-row verdicts. With results (scripts/test-evidence.py output) a FIXED row is VERIFIED only if every
+    cited test file actually passed; a failing one is BROKEN; unrun or skipped ones are UNVERIFIED."""
     by_name, migrations = tree()
     corpus = test_corpus()
     triage = open(os.path.join(ROOT, "docs/OCADE_THREAT_TRIAGE.md"), encoding="utf-8").read()
@@ -94,13 +97,34 @@ def main() -> int:
                 verdict = "NO_TEST_FOUND"
         else:
             verdict = status
-        result[ident] = {"triage": status, "verdict": verdict, "missing": missing, "tests": sorted(set(tests))[:3]}
+        result[ident] = {"triage": status, "verdict": verdict, "missing": missing, "tests": sorted(set(tests))[:3], "all_tests": sorted(set(tests)), "evidence": evidence}
     # "as TENANT-03" inherits that row's verdict.
     for ident, status, evidence in rows:
         reference = re.fullmatch(r"\s*as ([A-Z]+-?[A-Z]*-?\d+)\b.*", evidence)
+        if reference and reference[1] in result:
+            result[ident]["alias_of"] = reference[1]
         if reference and status == "FIXED" and reference[1] in result:
             result[ident]["verdict"] = result[reference[1]]["verdict"]
             result[ident]["tests"] = result[reference[1]]["tests"]
+            result[ident]["all_tests"] = result[reference[1]]["all_tests"]
+    if results is not None:
+        for v in result.values():
+            if v["verdict"] != "VERIFIED":
+                continue
+            states = [results.get(t, {}).get("status", "NOT_RUN") for t in v["all_tests"]]
+            v["test_states"] = dict(zip(v["all_tests"], states))
+            if "FAIL" in states:
+                v["verdict"] = "BROKEN"
+            elif not all(x == "PASS" for x in states):
+                v["verdict"] = "UNVERIFIED"
+    return result
+
+
+def main() -> int:
+    results = None
+    if "--results" in sys.argv:
+        results = json.load(open(sys.argv[sys.argv.index("--results") + 1]))
+    result = compute(results)
     counts = collections.Counter(v["verdict"] for v in result.values())
     if "--json" in sys.argv:
         print(json.dumps({"counts": counts, "rows": result}, indent=1))
