@@ -32,6 +32,7 @@ import {
   type Operation,
   type OutcomeCheck,
 } from "./contracts.ts";
+import { MAX_FAILED_STEPS } from "./limits.ts";
 import {
   evidenceOf,
   followJobs,
@@ -53,7 +54,7 @@ import {
   type IntelligencePermit,
 } from "../intelligence/contract.ts";
 
-const MAX_FAILURES = 5;
+const MAX_FAILURES = MAX_FAILED_STEPS;
 /** An operation whose argument schema is larger than this is sent only once the task needs it. */
 const DEFERRED_SCHEMA_CHARS = 1_500;
 const MAX_EXTERNAL_TOOLS = 12;

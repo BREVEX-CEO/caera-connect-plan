@@ -29,6 +29,7 @@ import { buildPassport, passportReport } from "@/lib/jarvis/proof-passport";
 import { saveSkill } from "@/lib/jarvis/skills.functions";
 import { workflowBody } from "@/lib/jarvis/skillforge";
 import { unfinishedByConversation } from "@/lib/jarvis/unfinished";
+import { LIMIT_NOTE } from "@/lib/jarvis/limits";
 import { PermissionGuide } from "./PermissionGuide";
 import { ControlModePicker, type ControlMode } from "./ControlMode";
 import { Watches } from "./Watches";
@@ -1273,6 +1274,7 @@ export function TaskPanel({
       {task.blocker && !task.form ? (
         <p className="mt-1 text-muted-foreground">{task.blocker}</p>
       ) : null}
+      {open ? <p className="mt-1 text-xs text-muted-foreground">{LIMIT_NOTE}</p> : null}
       <p className="mt-1 text-xs text-muted-foreground">
         {task.source
           ? `Your key: ${task.source.alias} · ${task.source.model}${
