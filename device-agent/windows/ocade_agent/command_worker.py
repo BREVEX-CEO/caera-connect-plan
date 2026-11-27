@@ -18,6 +18,7 @@ from __future__ import annotations
 import asyncio
 import atexit
 import os
+import secrets
 import signal
 import subprocess
 import sys
@@ -74,7 +75,27 @@ def _contain_children() -> None:
     atexit.register(end_groups)
 
 
-def _end_tree(process) -> None:
+COMMAND_TAG = "OCADE_COMMAND_TAG"
+
+
+def _end_tagged(tag: str) -> int:
+    """End every process of this account that carries the command's tag in its environment. A program
+    that left the command's process group on purpose (setsid, a double fork) keeps the tag it was
+    born with, so it is still found; nothing that was not started by this command has it."""
+    import psutil
+
+    ended = 0
+    for other in psutil.process_iter():
+        try:
+            if other.pid != os.getpid() and other.environ().get(COMMAND_TAG) == tag:
+                other.kill()
+                ended += 1
+        except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess, OSError):
+            continue
+    return ended
+
+
+def _end_tree(process, tag: str | None = None) -> None:
     if sys.platform == "win32":
         subprocess.run(["taskkill", "/T", "/F", "/PID", str(process.pid)], capture_output=True)
     else:
@@ -82,6 +103,8 @@ def _end_tree(process) -> None:
             os.killpg(process.pid, signal.SIGKILL)
         except ProcessLookupError:
             pass
+        if tag:
+            _end_tagged(tag)
 
 
 def _bounded(data: bytes) -> str:
@@ -116,8 +139,9 @@ async def shell_run(command: str, timeoutSeconds: int = 60, shell: str | None = 
     mark_effect()  # process creation can execute a command before the await fails
     from .discovery import command_environment
 
+    tag = secrets.token_hex(8)
     process = await asyncio.create_subprocess_exec(
-        *argv, cwd=WORKSPACE, env=command_environment(HOME),
+        *argv, cwd=WORKSPACE, env=command_environment(HOME) | {COMMAND_TAG: tag},
         stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
         start_new_session=sys.platform != "win32",
         creationflags=subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0,
@@ -134,11 +158,11 @@ async def shell_run(command: str, timeoutSeconds: int = 60, shell: str | None = 
             except asyncio.TimeoutError:
                 held = True
         if timed_out or held:
-            _end_tree(process)
+            _end_tree(process, tag)
         out, err = await output
     finally:
         if process.returncode is None:
-            _end_tree(process)  # cancelled by STOP
+            _end_tree(process, tag)  # cancelled by STOP
         _running.discard(process.pid)
     return {
         "exitCode": None if timed_out else process.returncode,

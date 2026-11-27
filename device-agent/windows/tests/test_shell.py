@@ -155,6 +155,23 @@ class Shell(unittest.TestCase):
         print("OCADE_RESTRICTED_GROUPS:", [row for row in groups["evidence"]["stdout"].splitlines()
                                            if "S-1-5-32-544" in row])
 
+    @unittest.skipIf(WINDOWS, "a process that leaves its group is a POSIX case (Windows uses a job object)")
+    def test_a_program_that_left_the_command_group_ends_with_a_timed_out_command(self):
+        import psutil
+
+        marker = self.root / "escaped.pid"
+        script = f"setsid sh -c 'echo $$ > {marker}; exec sleep 300' >/dev/null 2>&1 < /dev/null & sleep 300"
+        [result] = self.run_steps({"command": script, "timeoutSeconds": 2})
+        self.assertTrue(result["evidence"]["timedOut"], result)
+        pid = int(marker.read_text())
+        deadline = time.monotonic() + 5
+        while time.monotonic() < deadline and psutil.pid_exists(pid) and psutil.Process(pid).status() != psutil.STATUS_ZOMBIE:
+            time.sleep(0.1)
+        alive = psutil.pid_exists(pid) and psutil.Process(pid).status() != psutil.STATUS_ZOMBIE
+        if alive:
+            psutil.Process(pid).kill()
+        self.assertFalse(alive, "a program that left the command's process group outlived the timeout")
+
     def test_timeout_ends_the_whole_process_tree(self):
         [result] = self.run_steps({"command": LATE_WRITE, "timeoutSeconds": 2})
         self.assertEqual((result["evidence"]["timedOut"], result["evidence"]["exitCode"]), (True, None))
