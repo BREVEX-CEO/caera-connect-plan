@@ -106,6 +106,27 @@ class SandboxTest(unittest.TestCase):
         self.assertEqual(target.read_bytes(), b"customer work")
         self.assertEqual(list(target.parent.glob(".ocade-*")), [])
 
+    @unittest.skipIf(os.name == "nt", "creating a link needs a privilege the test runner may not have")
+    def test_a_folder_swapped_for_a_link_after_the_check_is_never_written_through(self):
+        import shutil
+
+        outside = Path(tempfile.mkdtemp(prefix="ocade-outside-"))
+        self.addCleanup(shutil.rmtree, outside, True)
+        target = output_path(self.root, "OCADE output/swap/report.txt")
+        target.parent.mkdir(parents=True)
+        real = target.parent
+
+        def swap_during_production(temporary):
+            temporary.write_bytes(b"agent output")
+            moved = real.with_name("swap-moved")
+            real.rename(moved)  # the folder the path named is replaced by a link elsewhere
+            real.symlink_to(outside, target_is_directory=True)
+
+        with self.assertRaises(Refused) as caught:
+            write_atomically(target, swap_during_production)
+        self.assertEqual(caught.exception.code, "path_changed_during_write")
+        self.assertEqual(list(outside.iterdir()), [], "nothing reached the folder outside the workspace")
+
     def test_interrupted_write_leaves_nothing(self):
         target = output_path(self.root, "OCADE output/t/half.xlsx")
 

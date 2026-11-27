@@ -212,17 +212,27 @@ def is_active_content(path: Path, name: str | None = None) -> bool:
     return False
 
 
+def _same_place(folder: Path) -> None:
+    """`folder` came from `resolve`, so it is already a real path. If its real path differs now, a
+    folder on the way was replaced by a link after the check, and nothing may be written through it."""
+    if os.path.realpath(folder) != str(folder):
+        raise Refused("path_changed_during_write")
+
+
 def write_atomically(target: Path, produce, *, downloaded: bool = False) -> str:
     """Call `produce(temporary_path)`, then move the finished file into place. Returns its SHA-256.
 
     A file JARVIS generated is never a program or macro file. A `downloaded` file is the person's
     own saved download: it is kept as it came, with the internet-origin mark, and never run."""
+    _same_place(target.parent)
     target.parent.mkdir(parents=True, exist_ok=True)
+    _same_place(target.parent)
     handle, temporary = tempfile.mkstemp(dir=target.parent, prefix=".ocade-", suffix=target.suffix)
     os.close(handle)
     os.chmod(temporary, 0o666 & ~_UMASK)  # a deliverable gets ordinary file permissions, not mkstemp's 0600
     try:
         produce(Path(temporary))
+        _same_place(target.parent)
         if not downloaded and is_active_content(Path(temporary), target.name):
             raise Refused("active_content_output")
         if target.exists():
