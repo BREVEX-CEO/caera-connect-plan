@@ -1088,3 +1088,5 @@ Exact-SHA push-triggered JARVIS coding gate results read from GitHub (27 Nov 202
 
 ### CI finding: Windows skip list was on the wrong step (27 Nov 2026)
 Matrix run 45924052821, windows-2022: all 391 companion tests passed (`OK (skipped=16)`), yet the step failed with `REQUIRED TEST SKIPPED: desktop entries are a POSIX convention (shlex, executable bits)`. I had put that reason on the macOS step (line 629) instead of the Windows step (line 622), where it is skipped. Moved it; macOS (which runs those tests) no longer lists it. Verified only by reading the log; the next matrix is the check.
+
+Decision (27 Nov 2026): a resumable, journaled dependency download is not added. The approved artifact is at most 100 MB (`DEPENDENCY_BYTES`), fetched in a 75-second window, verified by SHA-256 and published by one rename; a failed attempt costs one repeat download, and a killed one is now swept. Resume logic would add a partial-file state to a path whose safety rests on having none (YAGNI). Matrix dispatched on `67f1672` to verify the Windows skip-list fix; windows-2022 of run 45924052821 finished (391 tests OK) with the skip-list error only.
