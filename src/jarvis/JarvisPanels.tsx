@@ -1282,7 +1282,11 @@ export function TaskPanel({
                 ? ` · ${task.source.estimated ? "about " : ""}${task.source.spent} so far`
                 : ""
             }`
-          : "OCADE-managed models"}
+          : `OCADE-managed models${
+              task.timing.modelCalls
+                ? ` · ${task.timing.modelCalls} model ${task.timing.modelCalls === 1 ? "call" : "calls"} so far`
+                : ""
+            }`}
       </p>
       {task.contextUsed.length ? (
         <details className="mt-2 text-xs">
