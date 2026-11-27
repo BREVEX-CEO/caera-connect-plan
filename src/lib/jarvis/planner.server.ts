@@ -1104,11 +1104,34 @@ export function history(steps: Step[]): string {
     });
   });
   let text = "";
-  for (const line of lines.reverse()) {
+  let kept = 0;
+  for (const line of [...lines].reverse()) {
     if (text && text.length + line.length > STATE_BUDGET) break;
     text = `${line}\n${text}`;
+    kept += 1;
   }
-  return text;
+  // REPO-03: older steps are dropped for size, but an effect nobody could observe stays on the page as
+  // one short line, so the planner never repeats it blind or forgets to look at it. At most 8 are kept.
+  const obligations = steps
+    .slice(0, steps.length - kept)
+    .flatMap((step, index) =>
+      recoveryOf(step)?.class === "uncertain_effect" && !step.resolution
+        ? [
+            JSON.stringify({
+              step: index + 1,
+              operation: step.intent.operation,
+              arguments: clip(step.intent.arguments, 300),
+              status: step.status,
+              error: step.receipt?.errorCode,
+              recovery: "uncertain_effect",
+              reobserveFirst: true,
+              note: "older step, effect unknown and unresolved: look at the target before any repeat",
+            }),
+          ]
+        : [],
+    )
+    .slice(-8);
+  return obligations.length ? `${obligations.join("\n")}\n${text}` : text;
 }
 
 /** The newest previews (at most two) as image attachments: what the planner last looked at. */
