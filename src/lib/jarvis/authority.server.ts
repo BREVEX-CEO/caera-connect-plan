@@ -12,6 +12,7 @@
  * The next decision is driven by the device's next receipt, so no in-memory
  * loop, timer or open connection is ever the only holder of a task.
  */
+import { failureReason } from "./failure-reason.ts";
 import { proposeWorkflow } from "./skillforge.ts";
 import { z } from "zod";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -1156,6 +1157,10 @@ export async function taskView(admin: Admin, userId: string, taskId: string) {
         operation: intent.success ? intent.data.operation : undefined,
         status: step.status,
         disposition,
+        // REPO-51: only for a step that did not happen, and only when the code has a sentence.
+        reason: ["failed", "refused", "cancelled"].includes(disposition ?? "")
+          ? failureReason(receipt?.errorCode)
+          : null,
         needsConfirmation: step.status === "needs_confirmation",
         scope: step.status === "needs_confirmation" ? approvalScope(step.intent) : null,
         consequence:
