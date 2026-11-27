@@ -1016,6 +1016,38 @@ const REPAIR_HINTS: Record<string, string> = {
   timeout: "the step took too long: for long work start a job and follow it",
 };
 
+/** Codes after which repeating the step cannot help: the task was stopped, or the step is not allowed. */
+const UNRECOVERABLE = new Set([
+  "stopped",
+  "invalid_intent",
+  "worker_rejected",
+  "plugin_fuel_exhausted",
+]);
+
+export type Recovery = {
+  class: "recoverable" | "uncertain_effect" | "unrecoverable";
+  /** An effect that may have happened is never repeated until the target has been looked at again. */
+  reobserveFirst: boolean;
+};
+
+/**
+ * REPO-05: what a failed step allows next, from the receipt alone. A step whose effect nobody
+ * observed (unknown, or maybeChanged without an observation) is quarantined: not repeated, looked
+ * at first. A refusal that changed nothing is recoverable by repairing the cause. A stop or a
+ * step the companion will never accept is final. Nothing else is invented: a step that worked has none.
+ */
+export function recoveryOf(step: Step): Recovery | null {
+  const receipt = step.receipt;
+  if (!receipt || receipt.status === "observed") return null;
+  if (receipt.status === "unknown" || receipt.maybeChanged) {
+    return { class: "uncertain_effect", reobserveFirst: true };
+  }
+  if (receipt.errorCode && UNRECOVERABLE.has(receipt.errorCode)) {
+    return { class: "unrecoverable", reobserveFirst: false };
+  }
+  return { class: "recoverable", reobserveFirst: false };
+}
+
 export function history(steps: Step[]): string {
   let fullBudget = NEWEST_OBSERVATION;
   const limits = steps
@@ -1046,6 +1078,12 @@ export function history(steps: Step[]): string {
       ...(step.receipt?.errorCode && Object.hasOwn(REPAIR_HINTS, step.receipt.errorCode)
         ? { hint: REPAIR_HINTS[step.receipt.errorCode] }
         : {}),
+      ...(() => {
+        const recovery = recoveryOf(step);
+        return recovery
+          ? { recovery: recovery.class, reobserveFirst: recovery.reobserveFirst }
+          : {};
+      })(),
       ...(index === steps.length - 1 && route && (route.observe || route.next.length)
         ? {
             nextRoute: [

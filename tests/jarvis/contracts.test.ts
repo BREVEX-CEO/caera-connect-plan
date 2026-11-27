@@ -501,6 +501,35 @@ test("every result of a batch is seen in full; a repeated pair of steps is a sta
   });
   assert.match(history([refused("file_changed")]), /"hint":"the file changed since it was read/);
   assert.doesNotMatch(history([refused("some_new_code")]), /"hint"/);
+  // REPO-05: the class of failure, so a step that may have taken effect is looked at, not repeated.
+  const { recoveryOf } = await import("../../src/lib/jarvis/planner.server.ts");
+  assert.deepEqual(recoveryOf(refused("file_changed")), {
+    class: "recoverable",
+    reobserveFirst: false,
+  });
+  assert.deepEqual(recoveryOf(refused("stopped")), {
+    class: "unrecoverable",
+    reobserveFirst: false,
+  });
+  const unseen = (receipt: Record<string, unknown>): Step => ({
+    ...read("c.txt", ""),
+    status: "failed",
+    receipt: { ...read("c.txt", "").receipt!, ...receipt } as Step["receipt"],
+  });
+  assert.deepEqual(recoveryOf(unseen({ status: "unknown", maybeChanged: true })), {
+    class: "uncertain_effect",
+    reobserveFirst: true,
+  });
+  assert.equal(
+    recoveryOf(unseen({ status: "not_applied", maybeChanged: true, errorCode: "stopped" }))?.class,
+    "uncertain_effect",
+    "a stop that may have left an effect is quarantined, not final",
+  );
+  assert.equal(recoveryOf(read("c.txt", "")), null, "a step that worked has no recovery");
+  assert.match(
+    history([unseen({ status: "unknown", maybeChanged: true })]),
+    /"recovery":"uncertain_effect","reobserveFirst":true/,
+  );
   const pair = [read("a.py", "a"), read("b.json", "b")];
   assert.equal(stalled([...pair, ...pair]), null);
   assert.match(stalled([...pair, ...pair, ...pair]) ?? "", /repeating/);
