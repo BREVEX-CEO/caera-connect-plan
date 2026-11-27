@@ -1131,3 +1131,5 @@ New `src/lib/jarvis/limits.ts` holds `MAX_FAILED_STEPS = 5` (the planner now imp
 
 ### UX-23 (part): a managed-model task shows how many model calls it has used (27 Nov 2026)
 The task panel's source line, which already showed a customer key's alias, model and spend, now says "OCADE-managed models · N model calls so far" for a task on OCADE's models, from the task's own recorded `model_calls` (`task.timing.modelCalls`, no new data). Checked in Chromium on the local stack with a seeded running task of 7 calls: the panel reads "OCADE-managed models · 7 model calls so far". It is a count, not a price: no per-call cost is stored for managed models, so none is shown or invented. Typecheck and eslint clean.
+
+UX-19 decision (27 Nov 2026): the JARVIS rail's "Files" entry (to `/library`) and the primary navigation's "Library" entry reach the same page under two names. Not renamed: `docs/DECISIONS.md` records an owner instruction of 21 October that the JARVIS sidebar holds "Chat, New conversation, Conversations, Files and Settings". Changing the label is the owner's call; UX-19 keeps this named gap.
