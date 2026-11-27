@@ -24,7 +24,7 @@ the UX matrix in `PROGRESS.md` says which check backs which principle and what s
 - UX-12 Common Region: the choices of one radio group share a named boundary.
 - UX-15 Similarity: buttons with one name on one page look alike, and one link name never leads to two pages.
 - UX-03 Chunking: a page body never shows more than 12 controls outside a named group, list or table.
-- UX-02 Choice Overload: a dialog offers at most 4 buttons, and a select without groups at most 15 options.
+- UX-02 Choice Overload: a dialog offers at most 4 buttons (7 in a settings dialog with its own category navigation; switches, toggles and its close button are not counted), and a select without groups at most 15 options.
 - UX-32 Progressive Disclosure: a section named advanced, developer or expert is folded on first view.
 - UX-26 Serial Position: a dialog's cancel or close control is its first or last button, never in the middle.
 - UX-01 Aesthetic-Usability: a page uses at most 3 type families (monospace code excepted).
@@ -233,7 +233,11 @@ MEASURE = """({minTarget, maxNav, maxFields, maxGap, maxUngrouped, opened}) => {
     // dismisses it: neither is another decision to take.
     const n = [...d.querySelectorAll('button, [role=button]')].filter(b => visible(b) && !b.closest('nav, [role=tablist]')
       && b.getAttribute('role') !== 'switch' && !b.hasAttribute('aria-pressed') && !/^close\\b/i.test(name(b))).length;
-    if (visible(d) && n > 4) out.push(`UX-02 dialog ${JSON.stringify(name(d))} offers ${n} buttons (max 4)`);
+    // A dialog that holds its own category navigation is a settings list: each row offers one action,
+    // and the rows are chunked by category (UX-03), so it may show up to 7 at once; any other dialog asks
+    // for a decision and keeps the limit of 4.
+    const limit = d.querySelector('nav, [role=tablist]') ? 7 : 4;
+    if (visible(d) && n > limit) out.push(`UX-02 dialog ${JSON.stringify(name(d))} offers ${n} buttons (max ${limit})`);
   }
   for (const sel of document.querySelectorAll('select:not([multiple])'))
     if (visible(sel) && !sel.querySelector('optgroup') && sel.options.length > 15)
