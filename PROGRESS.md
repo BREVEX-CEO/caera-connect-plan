@@ -1068,3 +1068,6 @@ On macOS and Linux a program that resolves (links followed) into `<prefix>/Cella
 
 ### SUPPLY-03 (part): workflow privilege is a regression test (27 Nov 2026)
 `tests/security/workflow-privilege.test.ts` (4 pass; runs in the existing `tests/security/*.test.ts` CI steps) fails if any workflow lacks a top-level `permissions: contents: read` only, grants any job a `write` permission, uses `pull_request_target`, or uses a non-local action not pinned to a 40-character commit. The checked-in workflows already satisfy it. Not done and not authorized: an OIDC short-lived deploy identity (deployment). Row stays PARTIAL.
+
+### SUPPLY-08 (part): lockfiles are a regression test (27 Nov 2026)
+`tests/security/lockfile-integrity.test.ts` (2 pass; runs in the existing `tests/security/*.test.ts` CI steps): every `package-lock.json` entry (except the root, links and the six optional wasm packages bundled inside another) resolves to `https://registry.npmjs.org/` and carries an integrity hash; every `device-agent/windows/requirements.lock` requirement is pinned `==` with a 64-hex `--hash=sha256:` and none is a URL, path or VCS reference. Negative control: deleting one integrity field fails it (reverted). This does not prove the registry's bytes are honest, only that the install is hash-pinned. Row stays PARTIAL.
