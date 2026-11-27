@@ -131,6 +131,21 @@ class Shell(unittest.TestCase):
         self.assertIn("HTTPS_PROXY=http://127.0.0.1:9", result["evidence"]["stdout"])
         self.assertNotIn(secret, result["evidence"]["stdout"])
 
+    def test_no_worker_is_started_with_an_account_secret(self):
+        """secrets_isolation for every worker the gateway starts, not only the command worker."""
+        from ocade_agent.gateway import WORKERS
+
+        names = ("SUPABASE_SERVICE_ROLE_KEY", "GEMINI_API_KEY", "GITHUB_TOKEN", "AWS_SECRET_ACCESS_KEY",
+                 "OCADE_DEVICE_PRIVATE_KEY", "DATABASE_URL", "MY_PASSWORD", "SESSION_COOKIE")
+        canaries = {name: f"canary-{name.lower()}-{os.urandom(6).hex()}" for name in names}
+        with mock.patch.dict(os.environ, canaries):
+            gateway = Gateway(str(self.root))
+            for module in sorted(set(WORKERS.values())):
+                shown = " ".join(f"{k}={v}" for k, v in gateway._parameters(module).env.items())
+                for name, value in canaries.items():
+                    self.assertNotIn(name, shown, f"{name} reached {module}")
+                    self.assertNotIn(value, shown, f"{name}'s value reached {module}")
+
     @unittest.skipUnless(WINDOWS, "needs a Windows desktop")
     def test_commands_and_jobs_hold_no_privileges(self):
         [privileges, groups] = self.run_steps({"command": "whoami /priv /fo csv"}, {"command": "whoami /groups /fo csv"})
