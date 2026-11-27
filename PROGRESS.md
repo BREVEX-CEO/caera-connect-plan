@@ -298,11 +298,11 @@ Cross-check (23 Nov 2026): every master-checklist section M§0–M§17 maps to a
 - [ ] 105. IN PROGRESS (24 Nov: the hang recurred on windows-2022 at `5254aaa` and `605fade` (attempt 1), same test, same place; a keep-the-handle mitigation in a keep-the-handle mitigation did not prevent it and was removed again, so the cause is inside asyncio's IocpProactor wait handling, not handle garbage collection; the re-run passed; still needs a Windows machine. 23 Nov: every failed job fixed and the four workflows green on `20a3432`; the windows-2022 teardown hang passed there but recurred on `5f366b8` (run 45238233189): intermittent, root cause narrowed (unobserved worker exit in `IocpProactor.close`), not fixed; needs a Windows machine to reproduce)
 - [x] 106. DONE (23 Nov): each job was read; failures fixed at the cause (WebKit audit race, DNS-dependent browser test) and not by retry; the only re-run was a job that never received a runner; skipped steps are failure-only diagnostics
 - [ ] 107. BLOCKED (owner): applying the 18+ outstanding branch migrations (now incl. `20261123120000`, `20261123150000`, `20261124090000`) to shared staging needs the owner's go-ahead
-- [ ] 108. OPEN
-- [ ] 109. OPEN
-- [ ] 110. OPEN
-- [ ] 111. OPEN
-- [ ] 112. OPEN
+- [ ] 108. BLOCKED (27 Nov, owner/staging): needs authorized real AI providers, quotas and pricing on staging, which item 107 (owner authorization) gates
+- [ ] 109. BLOCKED (27 Nov, owner/staging): needs identical-task runs on real models and Windows/macOS real applications, which items 107 and 113 gate
+- [ ] 110. BLOCKED (27 Nov, owner/staging): measures live-model accuracy, latency, tokens and cost; needs staging provider access (item 107)
+- [ ] 111. BLOCKED (27 Nov, owner/staging): general fixes are driven by the measurements of items 109-110; none exist yet to fix against
+- [ ] 112. BLOCKED (27 Nov, owner/staging): reruns checks after the fixes of item 111; nothing to rerun until 109-111 produce failures
 - [ ] 113. BLOCKED: needs Stage 4 green on the final SHA, owner-authorized staging and hosted Windows/macOS real-app runners with real model quota
 - [ ] 114. BLOCKED: as 113, plus 100 hidden tasks over at least three days
 - [ ] 115. BLOCKED: as 113
@@ -1112,3 +1112,6 @@ New `src/lib/jarvis/failure-reason.ts` maps 33 companion refusal codes (stale el
 ### CI finding on `cd6fa7f` (windows-2022 and windows-2025) and its fix (27 Nov 2026)
 Read from the job log: the Windows companion step ran 399 tests with one error and three unlisted skip reasons. The error was my own test: `test_jobs.test_a_killed_install_leaves_no_old_staging_behind` called `os.utime(..., follow_symlinks=False)`, which Windows does not support (`NotImplementedError`); the test now sets the folder time normally and creates and ages the link only where links are available. The Windows list now allows `creating a link needs a privilege the test runner may not have`, `needs a Linux ELF program`, and the two POSIX-only process-escape reasons added later (`shell` and `jobs` tests); the macOS list allows `needs a Linux ELF program`. The macOS companion step of the same run was still running when read. Lesson recorded: a new test must run (or be reasoned through) on all three operating systems before it is pushed; the first Windows matrix after a change is the real check.
 Also changed: the shell process-escape test no longer calls `setsid` (a Linux command; macOS has none): it starts the escaping child with `subprocess.Popen(start_new_session=True)` through the interpreter, as the jobs test does. Passes on Linux; macOS and Windows are checked by the next matrix.
+
+### Part 0A reclassification and gate evidence (27 Nov 2026, head `a339edb`)
+Items 108-112 (live providers, benchmarks and the fixes they drive) are marked BLOCKED: each needs real model access on staging, which the owner has not authorized (item 107), and no benchmark may run before that. `npm run verify:full` passed all 8 gates on this working tree (typecheck, lint, Prettier, build, secret scan, install scripts, Supabase types, generated routes; log in this session), adding to item 103's evidence. A local Docker daemon can be started here (`dockerd`), and the first image pull from the Supabase registry worked; the full local stack for signed-in browser checks is tried next, but the registry returned "Data limit exceeded" on later pulls.
