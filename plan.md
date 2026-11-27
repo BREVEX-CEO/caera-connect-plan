@@ -1,4 +1,4 @@
-ALWAYS REPLY LIKE A CAVEMAN: Follow the original one-line, maximum two-word Caveman Ultra rule in CLAUDE.md. During coding, record intermediate reports in PROGRESS.md; honor final-report-only requests. Essential safety and required approvals take priority.
+Routine chat: follow the one-line, maximum two-word rule in CLAUDE.md. During coding, keep intermediate reports in PROGRESS.md and honor final-report-only requests. Essential safety and required approvals take priority.
 USE THE "UX LAWS AND PRINCIPLES" AT AN EXTREME AND USE THEM ALL EFFECTIVELY. Apply the 30 named laws plus the four additional principles throughout OCADE, with measurable usability, accessibility, honest progress, restrained motion and no needless complexity (Part 14B.4 and Appendix G.1).
 
 # OCADE BY CARCC — Complete Product, JARVIS & Windows/macOS PC Control Master Plan (v10)
