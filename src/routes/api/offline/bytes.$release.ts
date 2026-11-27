@@ -74,6 +74,10 @@ function parseRange(header: string | null, size: number): R2Range | null | "unsa
   return { offset: start, length: end - start + 1 };
 }
 
+/** A refusal is never kept by a shared cache: a 403 held for one link must not answer another person's. */
+const refuse = (status: number, headers: Record<string, string> = {}) =>
+  new Response(null, { status, headers: { "cache-control": "no-store", ...headers } });
+
 export const Route = createFileRoute("/api/offline/bytes/$release")({
   server: {
     handlers: {
@@ -81,7 +85,7 @@ export const Route = createFileRoute("/api/offline/bytes/$release")({
         const releaseId = String((params as { release?: string }).release ?? "");
         // Validated before it is used to build a key, so a crafted id cannot
         // reach for another object.
-        if (!/^ocr-[0-9a-f]{16}$/.test(releaseId)) return new Response(null, { status: 404 });
+        if (!/^ocr-[0-9a-f]{16}$/.test(releaseId)) return refuse(404);
 
         const url = new URL(request.url);
         const verdict = await verifyDelivery({
@@ -90,28 +94,22 @@ export const Route = createFileRoute("/api/offline/bytes/$release")({
           signature: url.searchParams.get("s"),
           now: Date.now(),
         }).catch(() => ({ ok: false as const, status: 403 as const }));
-        if (!verdict.ok) return new Response(null, { status: verdict.status });
+        if (!verdict.ok) return refuse(verdict.status);
 
         const store = bucket();
         // Said as what it is, so the installer stops at once instead of retrying a store that
         // this server (a local build, a test server) will never have.
         if (!store) {
-          return new Response(null, {
-            status: 503,
-            headers: { "x-ocade-delivery": "unconfigured" },
-          });
+          return refuse(503, { "x-ocade-delivery": "unconfigured" });
         }
 
         const parts = await partObjects(store, releaseId).catch(() => null);
-        if (!parts) return new Response(null, { status: 404 });
+        if (!parts) return refuse(404);
         const size = parts.reduce((sum, part) => sum + part.size, 0);
 
         const range = parseRange(request.headers.get("range"), size);
         if (range === "unsatisfiable") {
-          return new Response(null, {
-            status: 416,
-            headers: { "content-range": `bytes */${size}` },
-          });
+          return refuse(416, { "content-range": `bytes */${size}` });
         }
         const start = range
           ? range.suffix !== undefined
