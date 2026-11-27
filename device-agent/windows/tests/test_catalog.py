@@ -143,6 +143,25 @@ class Catalog(unittest.TestCase):
         self.assertEqual([r["errorCode"] for r in (write, bad, unknown, nobody)],
                          ["risk_mismatch", "invalid_intent", "unknown_tool", "server_not_trusted"])
 
+    def test_a_server_that_keeps_the_tool_busy_runs_out_of_busy_time_and_gets_it_back(self):
+        """MCP-07: busy time (not only call count) is budgeted per server per minute, and ages out."""
+        from unittest import mock
+
+        from ocade_agent import gateway
+        from ocade_agent.gateway import Gateway
+
+        engine = Gateway(str(self.home))
+        now = 1000.0
+        with mock.patch.object(gateway.time, "monotonic", return_value=now):
+            self.assertTrue(engine._fuel_left("slow"), "a server with no calls has fuel")
+            engine._spend("mcp:slow", now - 30, now - 30 + 70.0)   # 70 s busy
+            self.assertTrue(engine._fuel_left("slow"), "70 s of 120 s is inside the budget")
+            engine._spend("mcp:slow", now - 20, now - 20 + 60.0)   # 130 s busy in the window
+            self.assertFalse(engine._fuel_left("slow"), "130 s of 120 s must be refused")
+            self.assertTrue(engine._fuel_left("another"), "one server's busy time is not another's")
+        with mock.patch.object(gateway.time, "monotonic", return_value=now + gateway.FUEL_WINDOW_SECONDS + 1):
+            self.assertTrue(engine._fuel_left("slow"), "the spend ages out of the one-minute window")
+
     def test_a_server_that_calls_in_a_loop_runs_out_of_fuel(self):
         """MCP-07: a plugin gets a bounded number of calls a minute; the call past it is refused untouched."""
         from unittest import mock

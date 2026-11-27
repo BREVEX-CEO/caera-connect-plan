@@ -1168,3 +1168,21 @@ The audit script is `scripts/coding-audit.py` (security rows only); the other gr
 
 ### Security rows claimed FIXED now all carry a test (27 Nov 2026)
 The 28 rows that the audit found FIXED with no test now cite one that exists and asserts the claim: new `tests/security/{served-content,client-authority,offline-isolation,external-risk,agent-authority,bounded-reads,status-words,bundle-secret-scan}.test.ts`, `tests/jarvis/db/{support-share,commercial-server-owned,admin-accountability}.test.sql`, `device-agent/windows/tests/test_invariants.py` (local STOP command, browser profile), plus citations of existing tests (`test_refs.py`, `test_agent.py`, `smart-approvals.test.sql`, `byok-route.test.ts`, `memory.test.*`). Three conversation-share rows (TENANT-08, PRIVACY-06, ADMIN-02) were stale: the share links were removed (`20260912120000`) and the support share replaced them. Several of the new tests are static (source or schema) invariants, so they prove a rule cannot silently disappear, not that every behaviour was exercised live. `scripts/coding-audit.py` now reports for the 190 applicable rows: VERIFIED 130 (68.4%), TESTED_BY_REFERENCE 17 (8.9%), PARTIAL 39 (20.5%), OPEN 4 (2.1%), NO_TEST_FOUND 0. Local: `tests/security/*.test.ts` 408 pass, the three DB tests pass on a disposable PostgreSQL 16 with all migrations replayed, typecheck, eslint and Prettier clean.
+
+## Final coding status report (27 Nov 2026, base `8ac1938`, report-only on owner STOP)
+
+Source: `python3 scripts/coding-audit.py` (208 threat rows, 190 applicable to code; 7 N/A, 11 owner/provider) plus the 27 Nov audit table above. Manual testing and benchmarks excluded.
+
+| Bucket | Rows | Share of 190 |
+|---|---|---|
+| Done: VERIFIED (named test asserts it) | 130 | 68.4% |
+| Done: TESTED_BY_REFERENCE (test cited, not yet named) | 17 | 8.9% |
+| Partial (code present, residual gap) | 39 | 20.5% |
+| Open (not implemented) | 4 | 2.1% |
+
+- Security-row coding done: 147/190 = 77.4%; remaining 43/190 = 22.6%.
+- Whole-plan estimate (306/393 requirements evidence-backed): done 77.9%, remaining 22.1%. If the 266 `REQ-nnn` rows with no cited ID in code were counted unverified, done = 46.4%.
+- Remaining work: 39 partial rows mostly blocked on owner decision, provider keys, hardware or platform CI; codable leftovers MCP-05, EFFECT-06, OFFLINE-03, TENANT-07, VERIFY-03 (verifier-diversity guard drafted, dropped uncommitted because failing); debloat report (`docs/DEBLOAT_REPORT.md`) missing; REPO ledger refresh; `REQ-nnn` traceability; 112 Part 0A items not yet audited against code.
+- CI: no single SHA has an all-green full platform matrix yet; mandatory checks are NOT verified green on one final SHA. Completion not claimed.
+- Added this pass: MCP-07 busy-time test in `device-agent/windows/tests/test_catalog.py` (passes locally).
+- CLAUDE.md (repo and `~/.claude`): added mode-switch rule so report/audit/STOP requests end coding in the same turn, then resume only when told.
