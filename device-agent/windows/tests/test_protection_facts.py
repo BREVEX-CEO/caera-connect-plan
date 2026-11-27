@@ -13,10 +13,9 @@ from unittest.mock import patch
 
 from ocade_agent.sandbox import Refused
 
-root = tempfile.mkdtemp(prefix="ocade-protection-")
-os.environ["OCADE_WORKSPACE"] = root
+from ocade_agent import office_worker
 
-from ocade_agent import office_worker  # noqa: E402
+root = tempfile.mkdtemp(prefix="ocade-protection-")
 
 
 class Parsers(unittest.TestCase):

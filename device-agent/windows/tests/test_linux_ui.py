@@ -66,6 +66,7 @@ class Sessions(unittest.TestCase):
             self.assertEqual(linux_worker.apps_list()["refused"], "wayland_unsupported")
 
 
+@unittest.skipIf(os.name == "nt", "desktop entries are a POSIX convention (shlex, executable bits)")
 class DesktopEntries(unittest.TestCase):
     """What a person could open by hand is listed; what they could not is not."""
 

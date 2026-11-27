@@ -12,12 +12,18 @@ import tempfile
 import unittest
 from pathlib import Path
 
-os.environ.setdefault("OCADE_WORKSPACE", tempfile.gettempdir())
+from unittest.mock import patch
 
-from ocade_agent import office_worker  # noqa: E402
+from ocade_agent import office_worker
 
 
 class PlatformFacts(unittest.TestCase):
+    def setUp(self):
+        # Other test modules may already have imported the worker with their own (or no) workspace.
+        workspace = patch.object(office_worker, "WORKSPACE", tempfile.gettempdir())
+        workspace.start()
+        self.addCleanup(workspace.stop)
+
     @unittest.skipUnless(sys.platform.startswith("linux") and shutil.which("dpkg-query"), "needs a dpkg system")
     def test_a_program_is_attributed_to_the_package_dpkg_says_owns_it(self):
         program = os.path.realpath(shutil.which("sh") or "/bin/sh")
