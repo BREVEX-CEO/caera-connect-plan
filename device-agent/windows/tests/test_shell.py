@@ -10,6 +10,7 @@ import tempfile
 import time
 import unittest
 from pathlib import Path
+from unittest import mock
 
 import anyio
 
@@ -54,8 +55,7 @@ class Shell(unittest.TestCase):
         self.assertIn("shell success", success["evidence"]["stdout"])
 
     def test_commands_run_in_the_workspace_and_report_honestly(self):
-        os.environ["OCADE_TEST_SECRET"] = "do-not-leak"
-        try:
+        with mock.patch.dict(os.environ, {"OCADE_TEST_SECRET": "do-not-leak"}):
             if WINDOWS:
                 listing, failing, secret, written = self.run_steps(
                     {"command": "(Get-Location).Path; Get-Content input.txt | Measure-Object -Line | % Lines"},
@@ -70,8 +70,6 @@ class Shell(unittest.TestCase):
                     {"command": "if [ -n \"$OCADE_TEST_SECRET\" ]; then echo LEAKED; else echo clean; fi"},
                     {"command": "echo repaired > fixed.txt"},
                 )
-        finally:
-            os.environ.pop("OCADE_TEST_SECRET")
         with self.subTest("SHELL-001 runs in the workspace folder"):
             self.assertEqual(listing["status"], "observed", listing)
             self.assertEqual(listing["evidence"]["exitCode"], 0)
@@ -95,15 +93,11 @@ class Shell(unittest.TestCase):
             "DATABASE_URL", "MY_PASSWORD", "SESSION_COOKIE",
         )
         canaries = {name: f"canary-{name.lower()}-{os.urandom(6).hex()}" for name in names}
-        os.environ.update(canaries)
-        try:
+        with mock.patch.dict(os.environ, canaries):
             dump = (
                 "Get-ChildItem Env: | ForEach-Object { $_.Name + '=' + $_.Value }" if WINDOWS else "env"
             )
             [result] = self.run_steps({"command": dump})
-        finally:
-            for name in names:
-                os.environ.pop(name, None)
         self.assertEqual(result["evidence"]["exitCode"], 0, result)
         shown = result["evidence"]["stdout"]
         self.assertIn("OCADE_WORKSPACE", shown, "the dump must be the command's real environment")
@@ -126,15 +120,12 @@ class Shell(unittest.TestCase):
             ):
                 self.assertEqual(without_proxy_login(given), wanted, given)
         secret = "proxy-canary-" + os.urandom(6).hex()
-        os.environ["HTTPS_PROXY"] = f"http://person:{secret}@127.0.0.1:9"
-        try:
+        with mock.patch.dict(os.environ, {"HTTPS_PROXY": f"http://person:{secret}@127.0.0.1:9"}):
             gateway = Gateway(str(self.root))
             commands = gateway._parameters("ocade_agent.command_worker").env
             browser = gateway._parameters("ocade_agent.web_worker").env
             [result] = self.run_steps({"command": "env" if not WINDOWS else
                                        "Get-ChildItem Env: | ForEach-Object { $_.Name + '=' + $_.Value }"})
-        finally:
-            os.environ.pop("HTTPS_PROXY", None)
         self.assertEqual(commands["HTTPS_PROXY"], "http://127.0.0.1:9")
         self.assertIn(secret, browser["HTTPS_PROXY"], "the browser worker keeps the login it needs")
         self.assertIn("HTTPS_PROXY=http://127.0.0.1:9", result["evidence"]["stdout"])

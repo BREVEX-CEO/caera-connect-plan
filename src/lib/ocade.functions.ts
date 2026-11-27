@@ -133,12 +133,20 @@ export const createConversation = createServerFn({ method: "POST" })
           title: data.title ?? "New chat",
           model_id: data.modelId ?? null,
         },
-        { onConflict: "id" },
+        // A retried create must not rewrite a title renamed since: keep the existing row.
+        { onConflict: "id", ignoreDuplicates: true },
       )
       .select(CONVERSATION_COLUMNS)
-      .single();
+      .maybeSingle();
     if (error) throw new Error(error.message);
-    return row;
+    if (row) return row;
+    const { data: existing, error: readError } = await context.supabase
+      .from("ocade_conversations")
+      .select(CONVERSATION_COLUMNS)
+      .eq("id", data.id as string)
+      .single();
+    if (readError) throw new Error(readError.message);
+    return existing;
   });
 
 const updateInput = z.object({
