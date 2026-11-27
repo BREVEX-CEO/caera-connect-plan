@@ -160,9 +160,16 @@ class Shell(unittest.TestCase):
         import psutil
 
         marker = self.root / "escaped.pid"
-        script = f"setsid sh -c 'echo $$ > {marker}; exec sleep 300' >/dev/null 2>&1 < /dev/null & sleep 300"
-        [result] = self.run_steps({"command": script, "timeoutSeconds": 2})
+        # A portable way to leave the group (macOS has no setsid command): start the child in a new session.
+        spawn = ("import subprocess,sys,time; p=subprocess.Popen([sys.executable,'-c','import time; time.sleep(300)'],"
+                 f" start_new_session=True); open(r'{marker}','w').write(str(p.pid)); time.sleep(300)")
+        script = f'"{sys.executable}" -c "{spawn}"'
+        [result] = self.run_steps({"command": script, "timeoutSeconds": 3})
         self.assertTrue(result["evidence"]["timedOut"], result)
+        for _ in range(50):  # the file is written just before the command is ended
+            if marker.exists() and marker.read_text():
+                break
+            time.sleep(0.1)
         pid = int(marker.read_text())
         deadline = time.monotonic() + 5
         while time.monotonic() < deadline and psutil.pid_exists(pid) and psutil.Process(pid).status() != psutil.STATUS_ZOMBIE:
