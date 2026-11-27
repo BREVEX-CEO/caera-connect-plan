@@ -109,6 +109,26 @@ class Jobs(unittest.TestCase):
         self.assertEqual(by_stop, [stopped["evidence"]["jobId"]])
         self.assertEqual(after_stop["state"], "cancelled")
 
+    @unittest.skipIf(sys.platform == "win32", "leaving the process group is a POSIX case")
+    def test_cancel_ends_a_program_that_left_the_jobs_process_group(self):
+        child = self.root / "escaped-child.pid"
+        spawn = ("import subprocess,sys,time; p=subprocess.Popen([sys.executable,'-c','import time; time.sleep(120)'],"
+                 f" start_new_session=True); open(r'{child}','w').write(str(p.pid)); time.sleep(120)")
+        home = str(self.home)
+
+        def while_running(started):
+            deadline = time.monotonic() + 20
+            while not child.exists() and time.monotonic() < deadline:
+                time.sleep(0.1)
+            escaped = int(child.read_text())
+            ended = jobs.cancel(home, started["evidence"]["jobId"])
+            time.sleep(1)
+            return ended, alive(escaped)
+
+        _, (ended, escaped_alive) = self.call(intent("job.start", {"command": py(spawn)}), then=while_running)
+        self.assertEqual(ended["state"], "cancelled", ended)
+        self.assertFalse(escaped_alive, "a program that left the job's process group outlived its cancel")
+
     def test_the_deadline_ends_a_job(self):
         started, ended = self.call(
             intent("job.start", {"command": py("import time; time.sleep(120)"), "timeoutSeconds": 10}),

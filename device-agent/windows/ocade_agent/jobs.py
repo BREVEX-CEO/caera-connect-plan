@@ -149,6 +149,21 @@ def end_tree(pid: int) -> None:
         pass
 
 
+def end_tagged(variable: str, value: str) -> int:
+    """End every process of this account whose environment holds `variable=value`, except this one.
+    A program that left its command's process group on purpose (setsid, a double fork) keeps the tag
+    it was born with, so it is still found; nothing the command did not start carries it."""
+    ended = 0
+    for other in psutil.process_iter():
+        try:
+            if other.pid != os.getpid() and other.environ().get(variable) == value:
+                other.kill()
+                ended += 1
+        except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess, OSError):
+            continue
+    return ended
+
+
 def runner_command() -> list[str]:
     if getattr(sys, "frozen", False):  # the packaged agent hosts its own modules
         executable = Path(sys.executable)

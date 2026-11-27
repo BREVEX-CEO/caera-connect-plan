@@ -78,23 +78,6 @@ def _contain_children() -> None:
 COMMAND_TAG = "OCADE_COMMAND_TAG"
 
 
-def _end_tagged(tag: str) -> int:
-    """End every process of this account that carries the command's tag in its environment. A program
-    that left the command's process group on purpose (setsid, a double fork) keeps the tag it was
-    born with, so it is still found; nothing that was not started by this command has it."""
-    import psutil
-
-    ended = 0
-    for other in psutil.process_iter():
-        try:
-            if other.pid != os.getpid() and other.environ().get(COMMAND_TAG) == tag:
-                other.kill()
-                ended += 1
-        except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess, OSError):
-            continue
-    return ended
-
-
 def _end_tree(process, tag: str | None = None) -> None:
     if sys.platform == "win32":
         subprocess.run(["taskkill", "/T", "/F", "/PID", str(process.pid)], capture_output=True)
@@ -104,7 +87,7 @@ def _end_tree(process, tag: str | None = None) -> None:
         except ProcessLookupError:
             pass
         if tag:
-            _end_tagged(tag)
+            jobs.end_tagged(COMMAND_TAG, tag)
 
 
 def _bounded(data: bytes) -> str:

@@ -10,7 +10,7 @@ import sys
 import time
 from pathlib import Path
 
-from .jobs import _write, end_tree, process_start
+from .jobs import _write, end_tagged, end_tree, process_start
 
 
 def main() -> None:
@@ -41,6 +41,8 @@ def main() -> None:
                 state = "timed_out"
             if state != "finished":
                 end_tree(command.pid)
+                if sys.platform != "win32":
+                    end_tagged("OCADE_JOB", str(here))  # also what left the command's group
                 command.wait()
                 break
             time.sleep(0.25)
