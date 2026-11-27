@@ -114,7 +114,7 @@ export function ConversationList({
         <button
           type="button"
           onClick={onRetry}
-          className="mt-1 text-[0.8125rem] text-foreground underline underline-offset-2"
+          className="mt-1 inline-flex min-h-6 min-w-6 items-center px-1 text-[0.8125rem] text-foreground underline underline-offset-2"
         >
           Retry
         </button>

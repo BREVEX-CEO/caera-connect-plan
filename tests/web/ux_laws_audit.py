@@ -229,7 +229,10 @@ MEASURE = """({minTarget, maxNav, maxFields, maxGap, maxUngrouped, opened}) => {
   // UX-02 Choice Overload: one dialog, or one ungrouped list of options, never asks for too many decisions.
   for (const d of document.querySelectorAll('dialog[open], [role=dialog], [role=alertdialog]')) {
     // Buttons inside a navigation landmark or tab list are destinations (UX-10 counts them), not decisions.
-    const n = [...d.querySelectorAll('button, [role=button]')].filter(b => visible(b) && !b.closest('nav, [role=tablist]')).length;
+    // A switch or a pressed/unpressed choice is a state the person sets, and the dialog's own close control
+    // dismisses it: neither is another decision to take.
+    const n = [...d.querySelectorAll('button, [role=button]')].filter(b => visible(b) && !b.closest('nav, [role=tablist]')
+      && b.getAttribute('role') !== 'switch' && !b.hasAttribute('aria-pressed') && !/^close\\b/i.test(name(b))).length;
     if (visible(d) && n > 4) out.push(`UX-02 dialog ${JSON.stringify(name(d))} offers ${n} buttons (max 4)`);
   }
   for (const sel of document.querySelectorAll('select:not([multiple])'))

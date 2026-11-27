@@ -184,7 +184,7 @@ export function OfflineModeOffer() {
         }
         className="inline-block py-1 text-foreground underline underline-offset-2"
       >
-        Set up Offline Mode
+        Set up on this device
       </button>
       <button
         type="button"

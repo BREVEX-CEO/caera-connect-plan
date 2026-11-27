@@ -6,7 +6,7 @@
  */
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { ArrowUp, ChevronDown, Maximize2, Mic } from "lucide-react";
+import { ArrowUp, ChevronDown, Maximize2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { MAX_OBJECTIVE_LENGTH } from "@/lib/jarvis/objective";
@@ -157,14 +157,6 @@ export function Bubble({ placement }: { placement: Placement }) {
                 className="h-10 w-full bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
               />
             </label>
-            <button
-              type="button"
-              disabled
-              aria-label="Talk to JARVIS"
-              className="flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground transition-colors disabled:opacity-40"
-            >
-              <Mic className="h-4 w-4" aria-hidden />
-            </button>
             <button
               type="submit"
               disabled={!words.trim()}

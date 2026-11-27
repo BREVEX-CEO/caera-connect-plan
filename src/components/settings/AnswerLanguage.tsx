@@ -33,11 +33,19 @@ function AnswerLanguageSelect({ account }: { account: string }) {
         }}
         className="rounded-md border border-border bg-background px-2 py-1 text-sm"
       >
-        {ANSWER_LANGUAGES.map((option) => (
+        {/* UX-02: two common choices first, the rest in a labelled group, so no flat list of 19. */}
+        {ANSWER_LANGUAGES.slice(0, 2).map((option) => (
           <option key={option} value={option}>
             {option}
           </option>
         ))}
+        <optgroup label="Other languages">
+          {ANSWER_LANGUAGES.slice(2).map((option) => (
+            <option key={option} value={option}>
+              {option}
+            </option>
+          ))}
+        </optgroup>
       </select>
     </Row>
   );
