@@ -809,6 +809,39 @@ def _package_owner(path: str) -> dict:
     return {}
 
 
+_ELF_MACHINES = {3: "x86", 40: "arm", 62: "x86_64", 183: "arm64", 243: "riscv"}
+_PE_MACHINES = {0x14C: "x86", 0x1C4: "arm", 0x8664: "x86_64", 0xAA64: "arm64"}
+_MACHO_CPUS = {7: "x86", 12: "arm", 0x01000007: "x86_64", 0x0100000C: "arm64"}
+
+
+def _binary_architecture(path: str) -> dict:
+    """The processor type recorded in the header of an ELF, PE or Mach-O file (the first bytes only;
+    the file is never run). A script, a missing file or an unknown header reports nothing."""
+    import struct
+
+    try:
+        with open(path, "rb") as handle:
+            head = handle.read(64)
+            if head[:4] == b"\x7fELF" and len(head) >= 20:
+                order = ">" if head[5] == 2 else "<"
+                machine = _ELF_MACHINES.get(struct.unpack_from(order + "H", head, 18)[0])
+            elif head[:2] == b"MZ" and len(head) >= 64:
+                handle.seek(struct.unpack_from("<I", head, 60)[0])
+                header = handle.read(6)
+                machine = _PE_MACHINES.get(struct.unpack_from("<H", header, 4)[0]) if header[:4] == b"PE\0\0" else None
+            elif head[:4] in (b"\xcf\xfa\xed\xfe", b"\xce\xfa\xed\xfe") and len(head) >= 8:
+                machine = _MACHO_CPUS.get(struct.unpack_from("<I", head, 4)[0])
+            elif head[:4] in (b"\xfe\xed\xfa\xcf", b"\xfe\xed\xfa\xce") and len(head) >= 8:
+                machine = _MACHO_CPUS.get(struct.unpack_from(">I", head, 4)[0])
+            elif head[:4] == b"\xca\xfe\xba\xbe":
+                machine = "universal"
+            else:
+                machine = None
+    except (OSError, struct.error):
+        return {}
+    return {"architecture": machine} if machine else {}
+
+
 def _homebrew_owner(path: str) -> dict:
     """A Homebrew program resolves into `<prefix>/Cellar/<formula>/<version>/...`; the folder names
     are what Homebrew itself records, so nothing is run."""
@@ -835,16 +868,17 @@ def _owner_from_apk(said: str) -> dict:
 def _platform_facts(path: str) -> dict:
     """What the platform itself records about a program file: Windows file resources, a macOS bundle's
     Info.plist or the owning dpkg/rpm package. Empty when the platform records nothing."""
+    facts = _binary_architecture(path)
     try:
         if os.name == "nt":
-            return {**_file_version(path), **_installed_program(path, _uninstall_entries())}
-        if sys.platform == "darwin":
-            return _bundle_version(path) or _homebrew_owner(path)
-        if sys.platform.startswith("linux"):
-            return _package_owner(path) or _homebrew_owner(path)
+            facts.update(_file_version(path), **_installed_program(path, _uninstall_entries()))
+        elif sys.platform == "darwin":
+            facts.update(_bundle_version(path) or _homebrew_owner(path))
+        elif sys.platform.startswith("linux"):
+            facts.update(_package_owner(path) or _homebrew_owner(path))
     except Refused:
-        return {}  # a package tool that is missing or slow is not an error of the inspection
-    return {}
+        pass  # a package tool that is missing or slow is not an error of the inspection
+    return facts
 
 
 def _presentation(data: bytes):

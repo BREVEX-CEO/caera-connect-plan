@@ -91,6 +91,40 @@ class PlatformFacts(unittest.TestCase):
             self.assertEqual(office_worker._homebrew_owner(str(Path(folder) / "plain")), {})
             self.assertEqual(office_worker._homebrew_owner(str(real.parent)), {}, "no program inside the version folder")
 
+    @unittest.skipUnless(sys.platform.startswith("linux"), "needs a Linux ELF program")
+    def test_a_real_program_reports_the_processor_the_machine_runs(self):
+        import platform
+
+        want = {"x86_64": "x86_64", "AMD64": "x86_64", "aarch64": "arm64", "arm64": "arm64"}.get(platform.machine())
+        if want is None:
+            self.skipTest("unmapped machine " + platform.machine())
+        self.assertEqual(office_worker._binary_architecture(os.path.realpath(sys.executable)), {"architecture": want})
+
+    def test_headers_of_other_binary_formats_and_non_binaries(self):
+        import struct
+
+        def write(folder, name, data):
+            path = Path(folder) / name
+            path.write_bytes(data)
+            return str(path)
+
+        with tempfile.TemporaryDirectory() as folder:
+            pe = bytearray(64)
+            pe[:2] = b"MZ"
+            struct.pack_into("<I", pe, 60, 64)
+            arch = lambda code: office_worker._binary_architecture(write(folder, "x.exe", bytes(pe) + b"PE\0\0" + struct.pack("<H", code)))
+            self.assertEqual(arch(0x8664), {"architecture": "x86_64"})
+            self.assertEqual(arch(0xAA64), {"architecture": "arm64"})
+            self.assertEqual(arch(0x9999), {})
+            macho = b"\xcf\xfa\xed\xfe" + struct.pack("<I", 0x0100000C) + bytes(8)
+            self.assertEqual(office_worker._binary_architecture(write(folder, "m", macho)), {"architecture": "arm64"})
+            self.assertEqual(office_worker._binary_architecture(write(folder, "u", b"\xca\xfe\xba\xbe" + bytes(8))), {"architecture": "universal"})
+            elf_be = b"\x7fELF\x02\x02\x01" + bytes(11) + struct.pack(">H", 183) + bytes(8)
+            self.assertEqual(office_worker._binary_architecture(write(folder, "e", elf_be)), {"architecture": "arm64"})
+            self.assertEqual(office_worker._binary_architecture(write(folder, "s", b"#!/bin/sh\necho\n")), {})
+            self.assertEqual(office_worker._binary_architecture(write(folder, "t", b"MZ")), {})
+            self.assertEqual(office_worker._binary_architecture(str(Path(folder) / "missing")), {})
+
     def test_a_macos_bundle_reports_the_version_its_info_plist_records(self):
         with tempfile.TemporaryDirectory() as folder:
             contents = Path(folder) / "Fixture.app" / "Contents"
