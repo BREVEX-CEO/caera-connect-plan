@@ -1146,3 +1146,22 @@ New `scripts/coding-audit.py` computes the status of the 208 security rows in `d
 
 ### Continuous-work configuration moved out of the repository (27 Nov 2026, owner-approved)
 The Stop hook `scripts/continue-coding.py` and its `.claude/settings.json` entry were removed. The general rule (loop after every push, no text-only turn endings, "done" defined by checks on one pushed SHA and a re-audit, blocked items recorded, owner STOP/WAIT/PAUSE/HOLD and no merge/deploy/spend without approval) now lives in the user-level `~/.claude/CLAUDE.md`, so it applies to every repository; this repository's `CLAUDE.md` keeps only the OCADE specifics (Part 0A queue, staging rule). Verified: the files contain the text and the hook is gone. Not verified: whether instructions alone keep a session going; that is the point of this change and needs a real run. The user-level file lives in the session container's home; it persists only if that home is synced to the owner's account.
+
+## Coding completion audit (27 Nov 2026, `aa3eb5d`; read from source and evidence, not from checkbox state)
+Scope: coding only. Manual testing, benchmarks, runtime qualification, staging, deployment and consumer-hardware runs are excluded from every number below and listed separately.
+
+| Group | Units | Completed (evidence) | Partial | Not done | Blocked / owner / not coding here |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Security triage rows (`docs/OCADE_THREAT_TRIAGE.md`, 16 `O-` rows plus 192 register roots) | 208 | 119 (102 with a cited existing test, 17 tested by reference) | 39 | 4 open, 28 claimed FIXED with no test found | 7 N/A, 11 owner or provider |
+| Appendix E coding ledger (this file) | 189 | 140 BUILDS | 0 | 0 | 25 qualification-only, 20 standing, 2 optional, 2 excluded |
+| Architecture concepts (84; `evidence/2026-11-23-traceability/architecture-ledger.json`) | 84 | 47 PASS | 36 PARTIAL (35 need hardware, live models, a certificate or owner decisions) | 1 FAIL (the aggregate gate) | counted in partial |
+| Part 0A task IDs (148) | 148 | 4 | 16 in progress | 112 never audited against code | 16 blocked |
+| Original requirement rows (`REQ-001..266`) | 266 | not determinable | not determinable | not determinable | no `REQ-nnn` is cited anywhere in code, tests or evidence |
+| Repository-integration entries (`REPO-01..72`, ledger at `c4c80d7`) | 72 | 41 coded (+ REPO-03, 04, 05, 51 improved today) | 11 | 7 (benchmark- or hardware-dependent: 12, 31, 40, 52, 62, 72) | 1 owner, 12 deferred |
+
+**Evidence-backed coding completion.** Units that can be finished by coding here: security rows applicable to code (190) + Appendix E coding items (154) + architecture concepts not blocked by hardware, live models, a certificate or an owner decision (49) = 393. Completed with evidence: 119 + 140 + 47 = 306. **306 / 393 = 77.9% complete, 22.1% remaining.** The 266 original requirements cannot be traced to code, so this figure covers only what is traceable; if they were counted as unverified the figure would be 306 / 659 = 46.4%. The percentages measure traceable evidence, not product readiness.
+
+**Remaining coding (87 units):** 28 security rows claimed FIXED without a test; 39 partial security rows (about 20 are codable here, the rest are provider, owner, sandbox or Stage 4/5 gaps); 4 open (all need an engine choice or live models); Appendix E has 14 coding items not BUILDS; 2 architecture concepts (stale text or the aggregate gate). **Remaining security fixes:** MALWARE-01 (generated-artifact scan), OFFLINE-03 (divergent edits beyond preferences and titles), BROWSER-05 (page-screenshot redaction), EFFECT-06 (dependency map), PLANNER-05, VERIFY-03, SUPPLY-02/03/08, TENANT-07; the other partial rows are blocked outside coding. **Debloat:** no current report (`docs/DEBLOAT_REPORT.md` is missing); a fresh pass is owed.
+**Blocked or not coding:** items 107-119 and 132-148 of Part 0A (staging authorization, live providers, benchmarks, consumer Windows/macOS, signing, payment, production), and the readiness conditions that need them (17 of 42 pass).
+
+The audit script is `scripts/coding-audit.py` (security rows only); the other groups are counted from the documents named above.
