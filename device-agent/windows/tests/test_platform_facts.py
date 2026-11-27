@@ -44,6 +44,24 @@ class PlatformFacts(unittest.TestCase):
         finally:
             os.unlink(path)
 
+    def test_pacman_and_apk_owners_are_read_from_their_exact_output(self):
+        self.assertEqual(
+            office_worker._owner_from_pacman("/usr/bin/sh is owned by bash 5.2.015-1\n", "/usr/bin/sh"),
+            {"package": {"manager": "pacman", "name": "bash", "version": "5.2.015-1"}},
+        )
+        for said in ("error: No package owns /usr/bin/sh", "/other is owned by bash 5.2-1", "", "/usr/bin/sh is owned by bash"):
+            self.assertEqual(office_worker._owner_from_pacman(said, "/usr/bin/sh"), {}, said)
+        self.assertEqual(
+            office_worker._owner_from_apk("/bin/busybox is owned by busybox-1.36.1-r5\n"),
+            {"package": {"manager": "apk", "name": "busybox", "version": "1.36.1-r5"}},
+        )
+        self.assertEqual(
+            office_worker._owner_from_apk("/usr/bin/x is owned by ca-certificates-bundle-20230506-r0"),
+            {"package": {"manager": "apk", "name": "ca-certificates-bundle", "version": "20230506-r0"}},
+        )
+        for said in ("ERROR: /tmp/x: Could not find owner package", "", "/bin/x is owned by nover"):
+            self.assertEqual(office_worker._owner_from_apk(said), {}, said)
+
     def test_a_macos_bundle_reports_the_version_its_info_plist_records(self):
         with tempfile.TemporaryDirectory() as folder:
             contents = Path(folder) / "Fixture.app" / "Contents"

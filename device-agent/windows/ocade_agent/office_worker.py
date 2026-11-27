@@ -754,7 +754,24 @@ def _package_owner(path: str) -> dict:
         said = _run(["rpm", "-qf", "--qf", "%{NAME}\\t%{VERSION}-%{RELEASE}", real], 400).strip()
         name, _, version = said.partition("\t")
         return {"package": {"manager": "rpm", "name": name[:80], "version": version[:80]}} if name and version else {}
+    if shutil.which("pacman"):
+        return _owner_from_pacman(_run(["pacman", "-Qo", real], 2_000), real)
+    if shutil.which("apk"):
+        return _owner_from_apk(_run(["apk", "info", "-W", real], 2_000))
     return {}
+
+
+def _owner_from_pacman(said: str, real: str) -> dict:
+    """`pacman -Qo` prints "<file> is owned by <package> <version>"; anything else means no owner."""
+    match = re.fullmatch(re.escape(real) + r" is owned by (\S+) (\S+)\s*", said.strip())
+    return {"package": {"manager": "pacman", "name": match[1][:80], "version": match[2][:80]}} if match else {}
+
+
+def _owner_from_apk(said: str) -> dict:
+    """`apk info -W` prints "<file> is owned by <package>-<version>"; the version starts at the first
+    `-` followed by a digit. Anything else (including no owner) reports nothing."""
+    match = re.fullmatch(r"\S+ is owned by (.+?)-(\d\S*)\s*", said.strip())
+    return {"package": {"manager": "apk", "name": match[1][:80], "version": match[2][:80]}} if match else {}
 
 
 def _platform_facts(path: str) -> dict:
