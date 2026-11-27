@@ -619,14 +619,14 @@ jobs:
       - name: Windows companion tests (real desktop UI, browser, shell)
         if: runner.os == 'Windows'
         working-directory: device-agent/windows
-        run: python -m tests.run_required "Start-Process children do not inherit the command's output" "needs a Mac desktop with Accessibility granted" "needs a display and OCADE_PUBLIC_WEB=1" "needs the macOS Keychain" "needs Linux extended attributes" "needs a dpkg system" "needs an X11 display" "needs an X11 display (Xvfb is enough)" "desktop entries are a POSIX convention (shlex, executable bits)"
+        run: python -m tests.run_required "Start-Process children do not inherit the command's output" "needs a Mac desktop with Accessibility granted" "needs a display and OCADE_PUBLIC_WEB=1" "needs the macOS Keychain" "needs Linux extended attributes" "needs a dpkg system" "needs an X11 display" "needs an X11 display (Xvfb is enough)" "desktop entries are a POSIX convention (shlex, executable bits)" "creating a link needs a privilege the test runner may not have" "needs a Linux ELF program" "a process that leaves its group is a POSIX case (Windows uses a job object)" "leaving the process group is a POSIX case"
       - name: Probe whether this macOS runner grants Accessibility trust (decides if AX can be qualified here)
         if: runner.os == 'macOS'
         run: python -c "import ctypes; ax = ctypes.cdll.LoadLibrary('/System/Library/Frameworks/ApplicationServices.framework/ApplicationServices'); print('AXIsProcessTrusted =', ax.AXIsProcessTrusted())"
       - name: macOS companion tests
         if: runner.os == 'macOS'
         working-directory: device-agent/windows
-        run: python -m tests.run_required "needs a Windows desktop" "needs Windows process handles" "needs Windows UI Automation and COM" "needs a display and OCADE_PUBLIC_WEB=1" "needs the Windows credential store" "macOS does not enforce an address-space limit" "needs Linux extended attributes" "needs a dpkg system" "needs an X11 display" "needs an X11 display (Xvfb is enough)"
+        run: python -m tests.run_required "needs a Windows desktop" "needs Windows process handles" "needs Windows UI Automation and COM" "needs a display and OCADE_PUBLIC_WEB=1" "needs the Windows credential store" "macOS does not enforce an address-space limit" "needs Linux extended attributes" "needs a dpkg system" "needs an X11 display" "needs an X11 display (Xvfb is enough)" "needs a Linux ELF program"
       # VERIFY-07 evidence on Windows and macOS: the verifier suites repeated in fresh interpreters; any changed outcome is a flake.
       - name: Verifier flake quantification (5 fresh-interpreter runs)
         if: matrix.os == 'windows-2025' || matrix.os == 'macos-15'

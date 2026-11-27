@@ -338,11 +338,13 @@ class DependencyInstall(unittest.TestCase):
             target = root / "target"
             target.mkdir()
             (target / "precious").write_bytes(b"1")
-            link.symlink_to(target, target_is_directory=True)
+            if os.name != "nt":  # creating a link needs a privilege the Windows runner may not have
+                link.symlink_to(target, target_is_directory=True)
             (root / ".ocade-dependency-file").write_bytes(b"not a folder")
             hour = command_worker.STALE_STAGING_SECONDS
-            for folder in (old, link):
-                os.utime(folder, (time.time() - hour - 60,) * 2, follow_symlinks=False)
+            os.utime(old, (time.time() - hour - 60,) * 2)
+            if link.is_symlink():
+                os.utime(link, (time.time() - hour - 60,) * 2, follow_symlinks=False)
             self.assertEqual(command_worker._remove_stale_staging(root), 1)
             self.assertFalse(old.exists())
             self.assertTrue(fresh.exists() and other.exists(), "a running install's folder and unrelated folders stay")
