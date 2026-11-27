@@ -809,6 +809,16 @@ def _package_owner(path: str) -> dict:
     return {}
 
 
+def _homebrew_owner(path: str) -> dict:
+    """A Homebrew program resolves into `<prefix>/Cellar/<formula>/<version>/...`; the folder names
+    are what Homebrew itself records, so nothing is run."""
+    parts = Path(os.path.realpath(path)).parts
+    for index in range(1, len(parts) - 3):
+        if parts[index] == "Cellar":
+            return {"package": {"manager": "homebrew", "name": parts[index + 1][:80], "version": parts[index + 2][:80]}}
+    return {}
+
+
 def _owner_from_pacman(said: str, real: str) -> dict:
     """`pacman -Qo` prints "<file> is owned by <package> <version>"; anything else means no owner."""
     match = re.fullmatch(re.escape(real) + r" is owned by (\S+) (\S+)\s*", said.strip())
@@ -829,9 +839,9 @@ def _platform_facts(path: str) -> dict:
         if os.name == "nt":
             return {**_file_version(path), **_installed_program(path, _uninstall_entries())}
         if sys.platform == "darwin":
-            return _bundle_version(path)
+            return _bundle_version(path) or _homebrew_owner(path)
         if sys.platform.startswith("linux"):
-            return _package_owner(path)
+            return _package_owner(path) or _homebrew_owner(path)
     except Refused:
         return {}  # a package tool that is missing or slow is not an error of the inspection
     return {}

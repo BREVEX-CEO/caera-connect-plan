@@ -78,6 +78,19 @@ class PlatformFacts(unittest.TestCase):
             self.assertEqual(office_worker._installed_program("C:\\Other\\x.exe", entries), {})
             self.assertEqual(office_worker._installed_program("C:\\Apps\\Tools.exe", entries[:1]), {})
 
+    def test_a_homebrew_program_is_attributed_from_its_cellar_folder(self):
+        with tempfile.TemporaryDirectory() as folder:
+            real = Path(folder).resolve() / "opt" / "homebrew" / "Cellar" / "jq" / "1.7.1" / "bin"
+            real.mkdir(parents=True)
+            (real / "jq").write_bytes(b"\x00")
+            link = Path(folder) / "jq-link"
+            link.symlink_to(real / "jq")
+            expected = {"package": {"manager": "homebrew", "name": "jq", "version": "1.7.1"}}
+            self.assertEqual(office_worker._homebrew_owner(str(real / "jq")), expected)
+            self.assertEqual(office_worker._homebrew_owner(str(link)), expected, "a link is followed first")
+            self.assertEqual(office_worker._homebrew_owner(str(Path(folder) / "plain")), {})
+            self.assertEqual(office_worker._homebrew_owner(str(real.parent)), {}, "no program inside the version folder")
+
     def test_a_macos_bundle_reports_the_version_its_info_plist_records(self):
         with tempfile.TemporaryDirectory() as folder:
             contents = Path(folder) / "Fixture.app" / "Contents"

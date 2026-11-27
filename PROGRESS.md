@@ -1050,3 +1050,6 @@ Local full companion suite (Xvfb absent here, 53 platform skips): `unittest disc
 
 ### system.inspect: Windows installed-program entry (plan W9 item 100) (27 Nov 2026)
 On Windows `system.inspect` now adds `installedProgram` {name, version, publisher} from the Uninstall registry keys (HKLM 64/32-bit and HKCU, read-only, at most 2000 entries per hive) whose `InstallLocation` folder contains the program file; the longest folder wins; entries with no folder or a non-containing folder never match. `_installed_program` is tested on fixture entries with Windows path rules patched (`test_platform_facts` 6 pass); the registry read `_uninstall_entries` ran on no real Windows machine here, so it is UNTESTED until the Windows CI/desktop run. Not done: Homebrew owners, binary architecture.
+
+### system.inspect: Homebrew owner (plan W9 item 100) (27 Nov 2026)
+On macOS and Linux a program that resolves (links followed) into `<prefix>/Cellar/<formula>/<version>/…` reports `package` {manager homebrew, name, version} from those folder names; nothing is run. Used only when no app bundle (macOS) or dpkg/rpm/pacman/apk owner exists. `test_platform_facts` 7 pass (real folders and a symlink; a plain path and a version folder with no program report nothing). Not tested on a real Homebrew install. Remaining for item 100: binary architecture of the installed file.
