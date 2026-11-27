@@ -1047,3 +1047,6 @@ Local full companion suite (Xvfb absent here, 53 platform skips): `unittest disc
 
 ### system.inspect: pacman and apk package owners (plan W9 item 100) (27 Nov 2026)
 `_package_owner` now also asks `pacman -Qo` and `apk info -W` (read-only, no shell) when neither dpkg nor rpm exists. Parsers `_owner_from_pacman`/`_owner_from_apk` accept only the exact "is owned by" line and report nothing for errors, other paths or a missing version. `test_platform_facts` 5 pass (parsers on exact text; neither tool is installed here, so no real pacman/apk run). Not done: Windows installed-programs registry/MSI versions, Homebrew owners, binary architecture.
+
+### system.inspect: Windows installed-program entry (plan W9 item 100) (27 Nov 2026)
+On Windows `system.inspect` now adds `installedProgram` {name, version, publisher} from the Uninstall registry keys (HKLM 64/32-bit and HKCU, read-only, at most 2000 entries per hive) whose `InstallLocation` folder contains the program file; the longest folder wins; entries with no folder or a non-containing folder never match. `_installed_program` is tested on fixture entries with Windows path rules patched (`test_platform_facts` 6 pass); the registry read `_uninstall_entries` ran on no real Windows machine here, so it is UNTESTED until the Windows CI/desktop run. Not done: Homebrew owners, binary architecture.

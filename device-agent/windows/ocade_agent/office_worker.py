@@ -723,6 +723,54 @@ def _file_version(path: str) -> dict:
         return {}
 
 
+def _installed_program(path: str, entries: list) -> dict:
+    """The Windows uninstall entry (name, version, publisher) whose install folder holds `path`.
+    `entries` are the registry values of each Uninstall subkey; the longest matching folder wins, and
+    an entry with no folder, or a folder that does not contain the file, never matches."""
+    real = os.path.normcase(os.path.normpath(path))
+    best = None
+    for entry in entries:
+        folder = str(entry.get("InstallLocation") or "").strip().strip('"')
+        if not folder or not entry.get("DisplayName"):
+            continue
+        folder = os.path.normcase(os.path.normpath(folder))
+        if real.startswith(folder.rstrip("\\/") + os.sep) and (best is None or len(folder) > best[0]):
+            best = (len(folder), entry)
+    if best is None:
+        return {}
+    entry = best[1]
+    facts = {"name": str(entry["DisplayName"])[:120], "version": str(entry.get("DisplayVersion") or "")[:60],
+             "publisher": str(entry.get("Publisher") or "")[:120]}
+    return {"installedProgram": facts}
+
+
+def _uninstall_entries() -> list:
+    """Every readable Uninstall entry of the machine and the account (read-only registry access)."""
+    import winreg  # type: ignore[import-not-found]
+
+    entries = []
+    for hive, view in ((winreg.HKEY_LOCAL_MACHINE, winreg.KEY_WOW64_64KEY), (winreg.HKEY_LOCAL_MACHINE, winreg.KEY_WOW64_32KEY),
+                       (winreg.HKEY_CURRENT_USER, 0)):
+        try:
+            root = winreg.OpenKey(hive, r"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall", 0, winreg.KEY_READ | view)
+        except OSError:
+            continue
+        with root:
+            for index in range(min(winreg.QueryInfoKey(root)[0], 2000)):
+                try:
+                    with winreg.OpenKey(root, winreg.EnumKey(root, index)) as sub:
+                        entry = {}
+                        for name in ("DisplayName", "DisplayVersion", "Publisher", "InstallLocation"):
+                            try:
+                                entry[name] = winreg.QueryValueEx(sub, name)[0]
+                            except OSError:
+                                pass
+                        entries.append(entry)
+                except OSError:
+                    continue
+    return entries
+
+
 def _bundle_version(path: str) -> dict:
     """The version a macOS app bundle records, read from its Info.plist (nothing is run)."""
     import plistlib
@@ -779,7 +827,7 @@ def _platform_facts(path: str) -> dict:
     Info.plist or the owning dpkg/rpm package. Empty when the platform records nothing."""
     try:
         if os.name == "nt":
-            return _file_version(path)
+            return {**_file_version(path), **_installed_program(path, _uninstall_entries())}
         if sys.platform == "darwin":
             return _bundle_version(path)
         if sys.platform.startswith("linux"):

@@ -62,6 +62,22 @@ class PlatformFacts(unittest.TestCase):
         for said in ("ERROR: /tmp/x: Could not find owner package", "", "/bin/x is owned by nover"):
             self.assertEqual(office_worker._owner_from_apk(said), {}, said)
 
+    def test_a_windows_uninstall_entry_matches_only_a_folder_that_holds_the_program(self):
+        entries = [
+            {"DisplayName": "Tool", "DisplayVersion": "1.0", "Publisher": "A", "InstallLocation": "C:\\Apps\\Tool"},
+            {"DisplayName": "Suite", "DisplayVersion": "2.0", "InstallLocation": "C:\\Apps"},
+            {"DisplayName": "Toolbox", "DisplayVersion": "9", "InstallLocation": "C:\\Apps\\Tool2"},
+            {"DisplayName": "No folder", "DisplayVersion": "3"},
+            {"InstallLocation": "C:\\Apps\\Tool\\bin"},
+        ]
+        with patch.object(office_worker.os, "sep", "\\"), patch.object(office_worker.os.path, "normcase", str.lower), \
+                patch.object(office_worker.os.path, "normpath", lambda p: p.replace("/", "\\")):
+            found = office_worker._installed_program("C:\\Apps\\Tool\\tool.exe", entries)
+            self.assertEqual(found, {"installedProgram": {"name": "Tool", "version": "1.0", "publisher": "A"}})
+            self.assertEqual(office_worker._installed_program("C:\\Apps\\Tool2\\x.exe", entries)["installedProgram"]["name"], "Toolbox")
+            self.assertEqual(office_worker._installed_program("C:\\Other\\x.exe", entries), {})
+            self.assertEqual(office_worker._installed_program("C:\\Apps\\Tools.exe", entries[:1]), {})
+
     def test_a_macos_bundle_reports_the_version_its_info_plist_records(self):
         with tempfile.TemporaryDirectory() as folder:
             contents = Path(folder) / "Fixture.app" / "Contents"
