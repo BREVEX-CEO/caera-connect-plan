@@ -18,11 +18,6 @@
             "type": "command",
             "command": "cd \"${CLAUDE_PROJECT_DIR:-$(git rev-parse --show-toplevel)}\" && python3 scripts/codemap.py",
             "timeout": 60
-          },
-          {
-            "type": "command",
-            "command": "cd \"${CLAUDE_PROJECT_DIR:-$(git rev-parse --show-toplevel)}\" && python3 scripts/continue-coding.py",
-            "timeout": 30
           }
         ]
       }
