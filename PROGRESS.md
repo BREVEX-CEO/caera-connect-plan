@@ -1059,3 +1059,6 @@ On macOS and Linux a program that resolves (links followed) into `<prefix>/Cella
 
 ### secrets_isolation: every worker's environment (27 Nov 2026)
 `test_shell.test_no_worker_is_started_with_an_account_secret` sets 8 secret-named canaries in the companion and checks the environment `Gateway._parameters` builds for every worker module in `gateway.WORKERS` (office, verify, UI bridge, web, media, command): no name and no value appears. Negative control: adding `GITHUB_TOKEN` to `PASS_THROUGH` makes it fail (reverted). This covers what each worker is started with, not what a worker's own code later reads from disk; no consumer Windows/macOS run. Readiness status stays PARTIAL.
+
+### dependency install: stale staging is swept (readiness `dependency_manager`) (27 Nov 2026)
+`system.install_dependency` stages into `.ocade-dependency-*` and renames only after the digest matches; a kill mid-download left that folder behind and kept the 3x free-space reserve. `_remove_stale_staging` now deletes such folders older than an hour (never a link, a file, a fresh folder or an unrelated name) before the space check. Test `test_jobs.test_a_killed_install_leaves_no_old_staging_behind` (16 `test_jobs` tests pass); `test_gateway` OK, protocol and no-hardcode guards green. Still open for the gate: a journaled resumable download, licence resolution, clean-machine tests.

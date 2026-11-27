@@ -294,6 +294,34 @@ def _stage_dependency(stage: Path, proposal: dict, executable_name: str) -> None
             raise Refused("dependency_security_policy") from None
 
 
+STALE_STAGING_SECONDS = 3600
+
+
+def _remove_stale_staging(parent: Path, now: float | None = None) -> int:
+    """Delete staging folders (`.ocade-dependency-*`) a killed install left behind, so a crash
+    mid-download cannot keep taking disk. Only folders of this prefix older than an hour, never a
+    link, and never anything else in the folder."""
+    import shutil
+
+    now = time.time() if now is None else now
+    removed = 0
+    try:
+        candidates = [p for p in parent.iterdir() if p.name.startswith(".ocade-dependency-")]
+    except OSError:
+        return 0
+    for candidate in candidates:
+        try:
+            if candidate.is_symlink() or not candidate.is_dir():
+                continue
+            if now - candidate.stat().st_mtime < STALE_STAGING_SECONDS:
+                continue
+            shutil.rmtree(candidate)
+            removed += 1
+        except OSError:
+            continue
+    return removed
+
+
 @app.tool()
 @guarded
 def system_install_dependency(name: str, version: str, platform: str, architecture: str,
@@ -317,6 +345,7 @@ def system_install_dependency(name: str, version: str, platform: str, architectu
         raise Refused("dependency_destination_conflict")
     try:
         executable.parent.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+        _remove_stale_staging(executable.parent.parent)
         if shutil.disk_usage(executable.parent.parent).free < 3 * discovery.DEPENDENCY_BYTES:
             raise Refused("insufficient_storage")
         with tempfile.TemporaryDirectory(prefix=".ocade-dependency-", dir=executable.parent.parent) as temp:

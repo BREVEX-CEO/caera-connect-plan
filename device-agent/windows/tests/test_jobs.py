@@ -305,6 +305,30 @@ class DependencyInstall(unittest.TestCase):
         self.assertEqual(result["evidence"]["name"], "python")
         self.assertIn(result["evidence"]["state"], ("detected", "manual_installation_required"))
 
+    def test_a_killed_install_leaves_no_old_staging_behind(self):
+        from ocade_agent import command_worker
+
+        with tempfile.TemporaryDirectory() as parent:
+            root = Path(parent)
+            old, fresh, other, link = (root / ".ocade-dependency-old", root / ".ocade-dependency-new",
+                                       root / "keep-me", root / ".ocade-dependency-link")
+            for folder in (old, fresh, other):
+                folder.mkdir()
+                (folder / "partial.bin").write_bytes(b"x" * 10)
+            target = root / "target"
+            target.mkdir()
+            (target / "precious").write_bytes(b"1")
+            link.symlink_to(target, target_is_directory=True)
+            (root / ".ocade-dependency-file").write_bytes(b"not a folder")
+            hour = command_worker.STALE_STAGING_SECONDS
+            for folder in (old, link):
+                os.utime(folder, (time.time() - hour - 60,) * 2, follow_symlinks=False)
+            self.assertEqual(command_worker._remove_stale_staging(root), 1)
+            self.assertFalse(old.exists())
+            self.assertTrue(fresh.exists() and other.exists(), "a running install's folder and unrelated folders stay")
+            self.assertTrue((target / "precious").exists(), "a link is never followed")
+            self.assertEqual(command_worker._remove_stale_staging(root / "missing"), 0)
+
     def test_interrupted_and_untrusted_downloads_never_publish(self):
         import hashlib
         import io
