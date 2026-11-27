@@ -174,6 +174,9 @@ def _rewrite(path: str, expect: str, change) -> dict:
     return evidence
 
 
+CHECKPOINT_RESERVE_BYTES = 50_000_000
+
+
 def _swap(path: str, expect: str, produce, office: bool) -> tuple[dict, Path, object]:
     """The one in-place writer: same version as read, original kept, mode kept, atomic swap.
     `produce(data, staged_path)` writes the new content; office files (docx/xlsx) only when
@@ -202,6 +205,9 @@ def _swap(path: str, expect: str, produce, office: bool) -> tuple[dict, Path, ob
     if any((target.parent / lock).exists()
            for lock in (f".~lock.{target.name}#", f"~${target.name}", f"~${target.name[2:]}")):
         raise Refused("file_open_in_app")
+    # REPO-04: the original and the staged copy both need room; refuse before touching anything.
+    if shutil.disk_usage(target.parent).free < 2 * len(data) + CHECKPOINT_RESERVE_BYTES:
+        raise Refused("insufficient_storage")
     handle, temporary = tempfile.mkstemp(dir=target.parent, prefix=".ocade-", suffix=target.suffix)
     os.close(handle)
     staged = Path(temporary)
@@ -236,7 +242,11 @@ def _swap(path: str, expect: str, produce, office: bool) -> tuple[dict, Path, ob
         staged.unlink(missing_ok=True)
         if aside.exists():  # never leave the person without their file
             aside.unlink() if target.exists() else os.rename(aside, target)
-    evidence = {"sha256Before": before, "sha256": sha256(target), "original": original.relative_to(root).as_posix()}
+    after = sha256(target)
+    saved = original.relative_to(root).as_posix()
+    evidence = {"sha256Before": before, "sha256": after, "original": saved,
+                # How to undo only this edit: valid while the file still has the hash it was left with.
+                "restore": {"copy": saved, "to": relative.as_posix(), "onlyIfSha256": after}}
     return evidence, target, result
 
 

@@ -74,6 +74,26 @@ class RewriteRace(unittest.TestCase):
         self.assertEqual((self.root / result["original"]).read_text(encoding="utf-8"), "print('old')\n")
         self.assertEqual([p.name for p in self.root.iterdir() if p.name.startswith(".ocade-")], [])
 
+    def test_the_result_carries_a_restore_recipe_that_undoes_only_this_edit(self):
+        result = office_worker._rewrite(self.target.name, self.read, lambda _: "print('repaired')\n")
+        recipe = result["restore"]
+        after = hashlib.sha256(self.target.read_bytes()).hexdigest()
+        self.assertEqual(recipe, {"copy": result["original"], "to": self.target.name, "onlyIfSha256": after})
+        # Following the recipe while the file is still as left restores the original exactly...
+        self.assertEqual((self.root / recipe["copy"]).read_bytes(), b"print('old')\n")
+        # ...and a later edit by the person changes the hash, so the recipe no longer applies.
+        self.target.write_text("print('person edited later')\n", encoding="utf-8")
+        self.assertNotEqual(hashlib.sha256(self.target.read_bytes()).hexdigest(), recipe["onlyIfSha256"])
+
+    def test_too_little_disk_for_the_original_refuses_before_anything_changes(self):
+        usage = type("Usage", (), {"total": 10, "used": 10, "free": 1_000})()
+        with patch.object(office_worker.shutil, "disk_usage", return_value=usage):
+            with self.assertRaises(Refused) as refused:
+                office_worker._rewrite(self.target.name, self.read, lambda _: "print('repaired')\n")
+        self.assertEqual(refused.exception.code, "insufficient_storage")
+        self.assertEqual(self.target.read_text(encoding="utf-8"), "print('old')\n")
+        self.assertEqual([p.name for p in self.root.iterdir()], [self.target.name], "no staged file or original left")
+
 
 if __name__ == "__main__":
     unittest.main()
