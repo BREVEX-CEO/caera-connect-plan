@@ -351,11 +351,12 @@
       "redistributedParts": "Language weights and vision projector are governed by the same model licence.",
       "commercialUse": "Free commercial use is conditional on the licensee/Legal Entity having less than USD 10,000,000 annual revenue; otherwise obtain a separate commercial licence.",
       "ownerRevenueAttestation": {
-        "status": "OWNER-DECLARED \u2014 NOT INDEPENDENTLY VERIFIED",
+        "status": "OWNER-DECLARED — NOT INDEPENDENTLY VERIFIED",
         "date": "2026-11-20",
         "assertion": "The owner confirmed in conversation that OCADE's applicable legal entity has annual revenue below USD 10,000,000.",
         "nextReview": "Reconfirm annually and if revenue or corporate control changes; confirm Legal Entity scope and threshold with legal counsel before commercial release."
-      }
+      },
+      "replacement": "If the licence terms change or the owner withdraws this model: ship the previous qualified release, switch Offline Mode to the next model in release/OCADE_OFFLINE_RELEASE.json that passes the offline qualification suite, update THIRD_PARTY_NOTICES.txt with npm run licences:write, and tell customers in the release notes."
     }
   }
 }

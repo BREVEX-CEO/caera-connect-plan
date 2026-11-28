@@ -171,8 +171,18 @@ ${rows(npm.sort((a, b) => a.name.localeCompare(b.name)))}
 }
 
 if (process.argv.includes("--check")) {
-  for (const [item, action] of Object.entries(inventory.ownerReview ?? {}))
+  // SUPPLY-07: an item under owner review fails the check until the owner has confirmed it on a
+  // dated line; the replacement plan for an item that is later withdrawn is the `replacement` field.
+  for (const [item, action] of Object.entries(inventory.ownerReview ?? {})) {
     console.log(`OWNER REVIEW: ${item}: ${action}`);
+    if (!/^OWNER CONFIRMED on \d{4}-\d{2}-\d{2}/.test(String(action)))
+      problems.push(`owner review not confirmed: ${item}`);
+  }
+  for (const [name, entry] of modelEntries)
+    if (!entry.replacement || String(entry.replacement).trim().length < 20)
+      problems.push(
+        `model ${name}: no replacement plan recorded (release/third-party-licences.json)`,
+      );
   const notices = readFileSync("THIRD_PARTY_NOTICES.txt", "utf8");
   for (const [name, entry] of modelEntries)
     if (

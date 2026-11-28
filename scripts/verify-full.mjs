@@ -20,6 +20,7 @@ const commands = [
   "format:check",
   "build:stable",
   "audit:secrets",
+  "licences:check",
   "audit:install-scripts",
   "supabase:types-check",
 ];
