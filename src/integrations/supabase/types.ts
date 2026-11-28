@@ -3012,6 +3012,7 @@ export type Database = {
         Returns: boolean
       }
       ocade_staff_revoke: { Args: { p_reason: string; p_user: string }; Returns: boolean }
+      ocade_housekeeping: { Args: never; Returns: Json }
       ocade_grant_unlimited: {
         Args: { p_reason: string; p_until: string; p_user: string }
         Returns: string

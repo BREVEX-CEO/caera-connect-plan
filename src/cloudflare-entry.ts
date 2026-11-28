@@ -35,6 +35,24 @@ async function runScheduleSweep(): Promise<void> {
   }
 }
 
+/** Diagnostic retention and the generation-permit audit (PRIVACY-04, QUOTA-08), at most once an hour. */
+let lastHousekeeping = 0;
+async function runHousekeepingSweep(): Promise<void> {
+  if (Date.now() - lastHousekeeping < 60 * 60 * 1000) return;
+  lastHousekeeping = Date.now();
+  try {
+    const { supabaseAdmin } = await import("./integrations/supabase/client.server");
+    const { data, error } = await supabaseAdmin.rpc("ocade_housekeeping");
+    if (error) throw new Error("rpc_failed");
+    const audit = (data as { permit_audit?: Record<string, number> } | null)?.permit_audit ?? {};
+    // Counts only: a permit audit line never carries an account, key or amount.
+    if (Object.values(audit).some((count) => count !== 0))
+      console.warn("permits.audit", JSON.stringify(audit));
+  } catch (error) {
+    console.error("housekeeping.sweep", error instanceof Error ? error.message : "failed");
+  }
+}
+
 type WaitUntilContext = {
   waitUntil(promise: Promise<unknown>): void;
 };
@@ -170,6 +188,7 @@ export default {
           Promise.resolve(),
         runErasureSweep(),
         runScheduleSweep(),
+        runHousekeepingSweep(),
       ]),
     );
   },

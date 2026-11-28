@@ -55,3 +55,10 @@ test("the runbook names the real switches, functions and scanners", () => {
   for (const heading of ["Detect", "Contain", "Assess", "Recover", "Record and learn", "Drill"])
     assert.match(runbook, new RegExp(`## \\d+\\. ${heading}`));
 });
+
+test("the scheduled sweep runs the housekeeping function and logs only counts", () => {
+  const entry = readFileSync("src/cloudflare-entry.ts", "utf8");
+  assert.match(entry, /rpc\("ocade_housekeeping"\)/);
+  assert.match(entry, /runHousekeepingSweep\(\),/);
+  assert.match(entry, /console\.warn\("permits\.audit", JSON\.stringify\(audit\)\)/);
+});
