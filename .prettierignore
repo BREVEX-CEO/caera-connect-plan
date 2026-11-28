@@ -16,3 +16,6 @@ release/**/*.json
 device-agent/windows/ocade_agent/protocol.json
 evidence/
 
+
+# Audit report, held as written by the auditor.
+VERIFICATION_AUDIT.md
