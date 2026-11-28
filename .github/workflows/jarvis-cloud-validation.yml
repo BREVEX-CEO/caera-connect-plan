@@ -535,6 +535,7 @@ jobs:
           curl -sf -o /dev/null http://127.0.0.1:8787/
           for engine in chromium firefox webkit; do
             python tests/web/surface_audit.py http://127.0.0.1:8787 --engine "$engine" --pwa
+            if [ "$engine" = chromium ]; then python tests/web/android_offline.py http://127.0.0.1:8787; fi
             python tests/web/objective_handoff.py http://127.0.0.1:8787 --engine "$engine"
             # WCAG 2.2 A/AA (axe-core), 200% reflow and keyboard focus on every reachable page.
             python tests/web/accessibility_audit.py http://127.0.0.1:8787 --engine "$engine"
