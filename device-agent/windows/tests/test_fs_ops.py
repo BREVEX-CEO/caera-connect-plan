@@ -119,6 +119,18 @@ class TypedFileOperations(unittest.TestCase):
         self.assertEqual(trashed["evidence"]["referencedBy"], ["report.txt"], trashed)
         self.assertNotIn("referencedBy", plain["evidence"], plain)
 
+    def test_references_are_listed_before_anything_changes(self):
+        """EFFECT-06: the same dependency list is available as a read before approval."""
+        (self.root / "report.txt").write_text("see notes.txt for the numbers")
+        listed, missing = self.run_all([
+            intent("fs.references", {"path": "notes.txt"}),
+            intent("fs.references", {"path": "nope.txt"}),
+        ])
+        self.assertEqual(listed["status"], "observed", listed)
+        self.assertEqual(listed["evidence"]["referencedBy"], ["report.txt"], listed)
+        self.assertTrue((self.root / "notes.txt").exists())
+        self.assertEqual(missing["errorCode"], "not_found")
+
     def test_attributes_change_and_report_how_to_undo(self):
         script = self.root / "run.sh"
         script.write_text("#!/bin/sh\necho ok\n")

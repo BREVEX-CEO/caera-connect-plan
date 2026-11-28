@@ -509,6 +509,17 @@ def fs_manage(action: str, path: str, to: str | None = None, executable: bool | 
 
 @app.tool()
 @_evidence
+def fs_references(path: str) -> dict:
+    """EFFECT-06: before a deletion or move is approved, name the workspace text files that
+    mention this file or folder. Read-only; changes nothing."""
+    target = resolve(WORKSPACE, path)
+    if not target.exists():
+        raise Refused("not_found")
+    return {"path": _relative(target), "referencedBy": _referenced_by(target)}
+
+
+@app.tool()
+@_evidence
 def system_inspect(programs: list[str] | None = None) -> dict:
     """OS, architecture, free workspace disk and where named programs resolve, with what the platform
     itself records about each (a read-only package-database or bundle lookup); no program named is run."""

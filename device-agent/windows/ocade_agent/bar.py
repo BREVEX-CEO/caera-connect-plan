@@ -36,7 +36,7 @@ AGENTS = (
     ("Agent 4", "#c026d3", "◆"),
 )
 WORDS = {
-    "fs.list": "Looking at files", "fs.read_text": "Reading a file", "fs.write_text": "Writing a file",
+    "fs.list": "Looking at files", "fs.read_text": "Reading a file", "fs.references": "Checking what uses a file", "fs.write_text": "Writing a file",
     "fs.replace_text": "Replacing a file", "fs.edit_text": "Editing a file", "fs.manage": "Organising files",
     "office.inspect_workbook": "Reading a workbook", "office.write_document": "Writing a document",
     "office.write_workbook": "Writing a workbook", "office.write_presentation": "Writing slides",

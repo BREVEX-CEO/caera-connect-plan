@@ -19,6 +19,7 @@ export const DESKTOP = "desktop";
 const PATHS: Readonly<Record<string, readonly string[]>> = {
   "fs.list": ["path"],
   "fs.read_text": ["path"],
+  "fs.references": ["path"],
   "fs.write_text": ["path"],
   "fs.manage": ["path", "to"],
   "office.inspect_workbook": ["path"],

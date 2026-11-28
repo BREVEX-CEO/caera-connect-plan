@@ -468,6 +468,7 @@ const SYSTEM = [
   "and run it with shell.run or job.start, using the program path system.inspect returns for the app's exe.",
   "For a missing prerequisite, call system.dependency. Use system.install_dependency only with its exact proposal.",
   "If it has no approved package, ask the person for manual installation. The independent verifier checks it before work continues.",
+  "Before fs.manage move or trash of a file or folder, call fs.references on it and tell the person which files mention it.",
   "To change an existing text file, fs.read_text it, then fs.edit_text the exact passages that must change (or",
   "fs.replace_text for a whole rewrite) with the sha256 that read returned, leaving everything else as it was; never",
   "write file contents through a command. Never change where the person's own scripts or programs read or write:",

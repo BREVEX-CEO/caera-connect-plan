@@ -536,6 +536,14 @@ export const OPERATIONS = {
       offset: z.int().min(0).max(100_000_000).optional(),
     }),
   },
+  "fs.references": {
+    summary:
+      "Before moving or trashing a workspace file or folder, list the other workspace text files that mention it by name, so the person sees what may break before approving. Reads only.",
+    role: "fs_sandbox",
+    capability: "files",
+    risk: "read",
+    arguments: z.strictObject({ path: workspacePath }),
+  },
   "fs.write_text": {
     summary:
       "Write a new plain-text file (txt, csv, tsv, md, json, xml, html, yaml, ini, log, ps1, py, sql): the person's originals are never changed.",
@@ -1267,6 +1275,7 @@ export type Operation = keyof typeof OPERATIONS;
 export const PURE_READ_OPERATIONS = [
   "fs.list",
   "fs.read_text",
+  "fs.references",
   "office.inspect_workbook",
   "system.inspect",
   "job.status",

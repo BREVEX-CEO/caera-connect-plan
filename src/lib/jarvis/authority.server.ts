@@ -1185,6 +1185,7 @@ export async function taskView(admin: Admin, userId: string, taskId: string) {
           switch (step.operation) {
             case "fs.list":
             case "fs.read_text":
+            case "fs.references":
             case "office.inspect_workbook":
             case "media.analyze":
             case "media.inspect":
