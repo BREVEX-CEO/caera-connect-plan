@@ -76,6 +76,34 @@ interface ZipEntry {
   uncompressed: number;
 }
 
+function zip64Sizes(
+  view: DataView,
+  start: number,
+  length: number,
+  wantUncompressed: boolean,
+  wantCompressed: boolean,
+) {
+  const stop = Math.min(start + length, view.byteLength);
+  for (let at = start; at + 4 <= stop;) {
+    const id = view.getUint16(at, true);
+    const size = view.getUint16(at + 2, true);
+    if (id === 0x0001) {
+      let field = at + 4;
+      const read = () => {
+        if (field + 8 > stop) return undefined;
+        const value = Number(view.getBigUint64(field, true));
+        field += 8;
+        return value;
+      };
+      const uncompressed = wantUncompressed ? read() : undefined;
+      const compressed = wantCompressed ? read() : undefined;
+      return { uncompressed, compressed };
+    }
+    at += 4 + size;
+  }
+  return undefined;
+}
+
 /** The entries of a ZIP's central directory, or null when it cannot be read. */
 export function zipEntries(bytes: Uint8Array): ZipEntry[] | null {
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
@@ -91,13 +119,31 @@ export function zipEntries(bytes: Uint8Array): ZipEntry[] | null {
   const count = view.getUint16(end + 10, true);
   let at = view.getUint32(end + 16, true);
   const entries: ZipEntry[] = [];
-  for (let n = 0; n < count; n += 1) {
+  // Work is bounded by the entry cap, not by what the archive declares: one entry past the cap is
+  // enough for archiveRefusal to refuse, so a 65,535-entry directory is never walked in full.
+  for (let n = 0; n < Math.min(count, MAX_ENTRIES + 1); n += 1) {
     if (at + 46 > bytes.length || view.getUint32(at, true) !== 0x02014b50) return null;
-    const compressed = view.getUint32(at + 20, true);
-    const uncompressed = view.getUint32(at + 24, true);
+    let compressed = view.getUint32(at + 20, true);
+    let uncompressed = view.getUint32(at + 24, true);
     const nameLength = view.getUint16(at + 28, true);
     const extra = view.getUint16(at + 30, true);
     const comment = view.getUint16(at + 32, true);
+    if (uncompressed === 0xffffffff || compressed === 0xffffffff) {
+      // ZIP64: the real sizes are 8-byte values in the extra field with id 0x0001 (uncompressed
+      // first, then compressed). An unreadable field is read as the largest size, never as zero.
+      const sizes = zip64Sizes(
+        view,
+        at + 46 + nameLength,
+        extra,
+        uncompressed === 0xffffffff,
+        compressed === 0xffffffff,
+      );
+      uncompressed =
+        sizes?.uncompressed ??
+        (uncompressed === 0xffffffff ? Number.MAX_SAFE_INTEGER : uncompressed);
+      compressed =
+        sizes?.compressed ?? (compressed === 0xffffffff ? Number.MAX_SAFE_INTEGER : compressed);
+    }
     const name = new TextDecoder().decode(bytes.subarray(at + 46, at + 46 + nameLength));
     entries.push({ name, compressed, uncompressed });
     at += 46 + nameLength + extra + comment;

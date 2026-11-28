@@ -15,7 +15,9 @@ import {
 } from "../../src/lib/library/intake.ts";
 
 /** A real ZIP built in memory: stored or deflated entries with a correct central directory. */
-function zip(files: { name: string; data: Buffer; claimSize?: number }[]): Uint8Array {
+function zip(
+  files: { name: string; data: Buffer; claimSize?: number; zip64Size?: number }[],
+): Uint8Array {
   const locals: Buffer[] = [];
   const central: Buffer[] = [];
   let offset = 0;
@@ -32,11 +34,22 @@ function zip(files: { name: string; data: Buffer; claimSize?: number }[]): Uint8
     entry.writeUInt32LE(0x02014b50, 0);
     entry.writeUInt16LE(8, 10);
     entry.writeUInt32LE(body.length, 20);
-    entry.writeUInt32LE(file.claimSize ?? file.data.length, 24);
+    entry.writeUInt32LE(
+      file.zip64Size === undefined ? (file.claimSize ?? file.data.length) : 0xffffffff,
+      24,
+    );
     entry.writeUInt16LE(name.length, 28);
     entry.writeUInt32LE(offset, 42);
+    // ZIP64 extra field (id 0x0001) carrying the real 8-byte uncompressed size.
+    const extra = Buffer.alloc(file.zip64Size === undefined ? 0 : 12);
+    if (file.zip64Size !== undefined) {
+      extra.writeUInt16LE(1, 0);
+      extra.writeUInt16LE(8, 2);
+      extra.writeBigUInt64LE(BigInt(file.zip64Size), 4);
+      entry.writeUInt16LE(extra.length, 30);
+    }
     locals.push(local, name, body);
-    central.push(entry, name);
+    central.push(entry, name, extra);
     offset += local.length + name.length + body.length;
   }
   const directory = Buffer.concat(central);
@@ -193,4 +206,26 @@ test("UPLOAD-08: a name reads the same as it is checked; invisible and direction
   // Composed and decomposed forms of one name are one name.
   assert.equal(libraryName("café.txt"), libraryName("café.txt"));
   assert.equal(libraryName("  ordinary name.docx "), "ordinary name.docx");
+});
+
+test("an archive with more than the entry cap is refused without walking it all", () => {
+  const many = zip(
+    Array.from({ length: 20_001 }, (_, n) => ({ name: `f${n}.txt`, data: Buffer.from("x") })),
+  );
+  assert.equal(intakeRefusal(many, "many.zip")?.code, "archive_bomb");
+  assert.equal(zipEntries(many)?.length, 20_001, "the walk stops one past the cap");
+});
+
+test("a ZIP64 entry's real size is measured, and an unreadable ZIP64 size is the largest, not zero", () => {
+  const big = zip([{ name: "huge.bin", data: Buffer.alloc(10), zip64Size: 5 * 1024 ** 3 }]);
+  assert.equal(zipEntries(big)?.[0]?.uncompressed, 5 * 1024 ** 3);
+  assert.equal(intakeRefusal(big, "huge.zip")?.code, "archive_bomb");
+  const small = zip([{ name: "ok.bin", data: Buffer.alloc(10), zip64Size: 10 }]);
+  assert.equal(zipEntries(small)?.[0]?.uncompressed, 10);
+  // a marker with no extra field behind it
+  const broken = Buffer.from(small);
+  const at = broken.indexOf(Buffer.from([0x50, 0x4b, 0x01, 0x02]));
+  broken.writeUInt16LE(0, at + 30);
+  assert.equal(zipEntries(broken)?.[0]?.uncompressed, Number.MAX_SAFE_INTEGER);
+  assert.equal(intakeRefusal(broken, "broken.zip")?.code, "archive_bomb");
 });
