@@ -14,6 +14,9 @@ Sole live progress ledger. plan.md remains the sole requirements and stage-order
 
 Source: plan.md at `a96cba4ab1d63b8360a7dd8af3851b57729364d3`. Part 0A status notes and the four historical sections below were transferred without altering their evidence.
 
+## Session 5 (28 Nov 2026, base `b46404a`)
+- KEY-06/KEY-08/KEY-12: `scripts/scan-repo-secrets.mjs` scans every added line of all Git history and raw bytes of images, video, PDFs, logs for secret shapes (shared `scripts/lib/secret-shapes.mjs`, allowlist `secret-allowlist.json`, value never printed, empty scan refused). CI step (full-depth checkout) runs `audit:history-secrets` and `audit:artifact-secrets`. Tests `tests/security/repo-secret-scan.test.ts` (deleted-key found in history, clean passes, key in PNG text chunk found). Local: 6 of 6 pass; history 51 commits clean; artifacts 292 files clean. GitHub push protection setting remains an owner action.
+
 ## Session 3 (26 Nov 2026, base `355530e`)
 
 Local branch was a stale shallow clone with unrelated roots; unshallowed and fast-forwarded to `355530e` (no local-only work lost). Environment: Node 22.23.5, Python 3.13, companion deps installed.
