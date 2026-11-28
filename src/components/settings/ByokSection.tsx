@@ -219,6 +219,11 @@ function Connection({
         />
         <span>Send pictures (screenshots and images you attach) to this provider</span>
       </label>
+      <p className="ml-6 text-xs text-muted-foreground">
+        {connection.send_images
+          ? "On: the picture leaves your computer for the provider at the address above, under that provider's own terms and retention. OCADE does not control where they keep it."
+          : "Off by default: pictures stay on your computer and this key's models are treated as unable to see."}
+      </p>
       {testing ? (
         <div className="flex flex-wrap items-center justify-between gap-3 pb-2 text-[0.8125rem] text-muted-foreground">
           <span>A test sends two small requests to your provider and may use your quota.</span>

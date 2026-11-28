@@ -21,6 +21,11 @@ INSERT INTO ids SELECT 'a', public.ocade_byok_save('a1a1a1a1-0000-4000-8000-0000
 SELECT public.ocade_byok_record('a1a1a1a1-0000-4000-8000-0000000000a1', (SELECT id FROM ids WHERE name = 'a'),
   'connected', true, true);
 SELECT public.ocade_byok_choose('a1a1a1a1-0000-4000-8000-0000000000a1', 'chat', (SELECT id FROM ids WHERE name = 'a'));
+SELECT pg_temp.ok(NOT (SELECT send_images FROM public.byok_connections WHERE id = (SELECT id FROM ids WHERE name = 'a')),
+  'a new connection must not send pictures until the person opts in');
+SELECT pg_temp.ok(NOT (SELECT sees_images FROM public.ocade_byok_route('a1a1a1a1-0000-4000-8000-0000000000a1', NULL, 'chat')),
+  'before the opt-in the model is treated as unable to see');
+UPDATE public.byok_connections SET send_images = true;
 SELECT pg_temp.ok((SELECT sees_images FROM public.ocade_byok_route('a1a1a1a1-0000-4000-8000-0000000000a1', NULL, 'chat')),
   'a tested model that sees, with pictures allowed, sees');
 RESET ROLE;
