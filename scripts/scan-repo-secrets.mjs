@@ -31,7 +31,8 @@ export function scanText(text, file) {
   for (const shape of SECRET_SHAPES) {
     for (const match of text.matchAll(shape.test())) {
       if (shape.verify && !shape.verify(match[0])) continue;
-      if (allowed(file, shape.name)) continue;
+      // Provider documentation placeholders (for example AKIAIOSFODNN7EXAMPLE) are not credentials.
+      if (/EXAMPLE/.test(match[0]) || allowed(file, shape.name)) continue;
       found.push({
         file,
         kind: shape.name,
