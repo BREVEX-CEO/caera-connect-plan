@@ -18,7 +18,10 @@ shape() {
                          WHERE n.nspname = 'public' ORDER BY 1" \
                    -c "SELECT table_name || '.' || column_name FROM information_schema.columns
                         WHERE table_schema = 'public' ORDER BY 1" \
-                   -c "SELECT tgname FROM pg_trigger WHERE NOT tgisinternal ORDER BY 1"
+                   -c "SELECT tgname FROM pg_trigger WHERE NOT tgisinternal ORDER BY 1" \
+                   -c "SELECT tablename || ' ' || policyname || ' ' || cmd || ' ' || coalesce(roles::text, '') || ' ' || md5(coalesce(qual, '') || coalesce(with_check, '')) FROM pg_policies WHERE schemaname = 'public' ORDER BY 1" \
+                   -c "SELECT table_name || ' ' || grantee || ' ' || privilege_type FROM information_schema.role_table_grants WHERE table_schema = 'public' AND grantee IN ('anon', 'authenticated', 'service_role', 'PUBLIC') ORDER BY 1" \
+                   -c "SELECT p.proname || '(' || pg_get_function_identity_arguments(p.oid) || ') ' || coalesce(nullif(array_to_string(ARRAY(SELECT CASE WHEN x.grantee = 0 THEN 'public' ELSE x.grantee::regrole::text END || ':' || x.privilege_type FROM aclexplode(p.proacl) x ORDER BY 1), ','), ''), 'default') FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace WHERE n.nspname IN ('public', 'private') ORDER BY 1"
 }
 for db in "$a" "$b"; do run "$db" tests/jarvis/db/supabase-stub.sql 2>/dev/null; done
 newer=()
