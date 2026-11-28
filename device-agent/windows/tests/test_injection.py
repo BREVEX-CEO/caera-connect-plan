@@ -64,3 +64,17 @@ class Injection(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class BrowserExtensionPolicy(unittest.TestCase):
+    """BROWSER-03: the companion's browser never loads extensions, whatever the loopback setting."""
+
+    def test_extensions_are_off_in_both_modes(self):
+        from ocade_agent import web_worker
+
+        for private in (False, True):
+            args = web_worker.launch_args(private)
+            self.assertIn("--disable-extensions", args)
+            self.assertIn("--disable-component-extensions-with-background-pages", args)
+        self.assertIn("--disable-features=LocalNetworkAccessChecks", web_worker.launch_args(True))
+        self.assertNotIn("--disable-features=LocalNetworkAccessChecks", web_worker.launch_args(False))

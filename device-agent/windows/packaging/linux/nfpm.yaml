@@ -1,0 +1,22 @@
+# Builds a .deb and an .rpm from the frozen Linux agent: nfpm package -f nfpm.yaml -p deb|rpm
+name: ocade-agent
+arch: amd64
+platform: linux
+version: ${OCADE_AGENT_VERSION}
+section: utils
+maintainer: OCADE <support@ocade.invalid>
+description: OCADE companion for Linux X11 sessions.
+license: See THIRD_PARTY_NOTICES.txt
+contents:
+  - src: ./dist/ocade-agent
+    dst: /opt/ocade/ocade-agent
+    file_info: { mode: 0755 }
+  - src: ./packaging/linux/ocade-agent.desktop
+    dst: /usr/share/applications/ocade-agent.desktop
+  - src: ./packaging/linux/ocade-agent.service
+    dst: /usr/lib/systemd/user/ocade-agent.service
+overrides:
+  deb:
+    depends: [libx11-6, libxtst6, libxss1]
+  rpm:
+    depends: [libX11, libXtst, libXScrnSaver]

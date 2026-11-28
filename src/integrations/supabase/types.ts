@@ -986,7 +986,10 @@ export type Database = {
           actor: string | null
           created_at: string
           id: string
+          prev_hash: string | null
           reason: string
+          row_hash: string | null
+          seq: number
           subject: string | null
           target_user: string | null
         }
@@ -995,7 +998,9 @@ export type Database = {
           actor?: string | null
           created_at?: string
           id?: string
+          prev_hash?: string | null
           reason: string
+          row_hash?: string | null
           subject?: string | null
           target_user?: string | null
         }
@@ -1004,7 +1009,9 @@ export type Database = {
           actor?: string | null
           created_at?: string
           id?: string
+          prev_hash?: string | null
           reason?: string
+          row_hash?: string | null
           subject?: string | null
           target_user?: string | null
         }

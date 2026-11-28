@@ -387,7 +387,9 @@ function AccountRow() {
               void import("@/integrations/supabase/on-demand")
                 .then(({ loadSupabaseClient }) =>
                   loadSupabaseClient().then((supabase) =>
-                    supabase.auth.signOut({ scope: "local" }),
+                    import("@/lib/security/clear-device-caches").then(({ signOutThisDevice }) =>
+                      signOutThisDevice(() => supabase.auth.signOut({ scope: "local" })),
+                    ),
                   ),
                 )
                 .catch(() =>

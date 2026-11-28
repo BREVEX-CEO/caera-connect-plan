@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=OCADE Companion
+Comment=Lets OCADE use your apps when you ask, and stops when you say stop
+Exec=/opt/ocade/ocade-agent
+Icon=ocade-agent
+Terminal=false
+Categories=Utility;
+StartupNotify=false
+X-GNOME-Autostart-enabled=true

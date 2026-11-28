@@ -218,7 +218,11 @@ function AccountSettings() {
             void import("@/integrations/supabase/on-demand")
               .then(({ loadSupabaseClient }) =>
                 // This device only: signing out here must not end the person's other devices.
-                loadSupabaseClient().then((supabase) => supabase.auth.signOut({ scope: "local" })),
+                loadSupabaseClient().then((supabase) =>
+                  import("@/lib/security/clear-device-caches").then(({ signOutThisDevice }) =>
+                    signOutThisDevice(() => supabase.auth.signOut({ scope: "local" })),
+                  ),
+                ),
               )
               .catch(() =>
                 toast.error("OCADE could not sign you out. Check your connection and try again."),

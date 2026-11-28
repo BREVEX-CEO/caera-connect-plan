@@ -42,6 +42,20 @@ from .sandbox import Refused, guarded as _refusals, mark_effect, non_public_addr
 
 WORKSPACE = os.environ.get("OCADE_WORKSPACE", "")
 PROFILE = Path(os.environ.get("OCADE_AGENT_HOME") or Path.home() / ".ocade-agent") / "browser-profile"
+
+
+def launch_args(private_allowed: bool) -> list[str]:
+    """Chromium switches for the companion's own browser (BROWSER-03).
+
+    Extensions are always off: the profile is the companion's own, so no extension the person
+    installed elsewhere reads or changes a page the companion works on, and none is added to it.
+    """
+    args = ["--disable-extensions", "--disable-component-extensions-with-background-pages"]
+    if private_allowed:
+        # A checked navigation is fulfilled without a remote address, so Chromium would hold
+        # its loopback subresources for a local-network prompt; loopback is already allowed here.
+        args.append("--disable-features=LocalNetworkAccessChecks")
+    return args
 PRIVATE_ALLOWED = os.environ.get("OCADE_ALLOW_PRIVATE_WEB") == "1"
 TEXT_LIMIT = 8_000
 EVIDENCE_LIMIT = 15_000  # leaves room for popups beside an observation
@@ -458,11 +472,8 @@ async def _context():
         try:
             PROFILE.mkdir(parents=True, exist_ok=True)
             options = {"user_data_dir": str(PROFILE), "headless": False,
-                       "accept_downloads": True, "service_workers": "block"}
-            if PRIVATE_ALLOWED:
-                # A checked navigation is fulfilled without a remote address, so Chromium would hold
-                # its loopback subresources for a local-network prompt; loopback is already allowed here.
-                options["args"] = ["--disable-features=LocalNetworkAccessChecks"]
+                       "accept_downloads": True, "service_workers": "block",
+                       "args": launch_args(PRIVATE_ALLOWED)}
             proxy = os.environ.get("HTTPS_PROXY") or os.environ.get("https_proxy")
             if not PRIVATE_ALLOWED:
                 # Every browser connection is resolved once and pinned to a checked public address

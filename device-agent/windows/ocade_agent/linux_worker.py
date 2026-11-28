@@ -36,7 +36,7 @@ from pathlib import Path
 
 from mcp.server.mcpserver import MCPServer
 
-from . import capture, vision
+from . import capture, linux_env, vision
 from . import keys as key_contract
 from .sandbox import Refused, guarded, mark_effect, preview_jpeg, resolve_openable
 
@@ -448,7 +448,8 @@ def installed_apps(limit: int = 300) -> list[dict]:
 def apps_list() -> dict:
     """Installed apps and open windows (with their exact leases)."""
     return {"installed": [{"name": a["name"], "exe": a["exe"]} for a in installed_apps(100)],
-            "windows": [{k: w[k] for k in ("exe", "pid", "hwnd", "started", "title")} for w in open_windows(40)]}
+            "windows": [{k: w[k] for k in ("exe", "pid", "hwnd", "started", "title")} for w in open_windows(40)],
+            "environment": linux_env.describe()}
 
 
 @app.tool()
