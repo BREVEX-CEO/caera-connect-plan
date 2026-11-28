@@ -863,33 +863,181 @@ export interface AuditEntry {
   reason: string;
 }
 
+async function readAuditRows(supabase: Parameters<typeof assertStaff>[0]): Promise<AuditEntry[]> {
+  await assertStaff(supabase, "audit.read");
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data: rows, error } = await supabaseAdmin
+    .from("ocade_admin_actions")
+    .select("id, created_at, action, actor, target_user, reason")
+    .order("created_at", { ascending: false })
+    .limit(100);
+  if (error) throw new Error("The audit record could not be read.");
+  const ids = [
+    ...new Set(
+      (rows ?? []).flatMap((row) => [row.actor, row.target_user]).filter(Boolean) as string[],
+    ),
+  ];
+  const { data: profiles } = ids.length
+    ? await supabaseAdmin.from("profiles").select("id, email").in("id", ids).limit(ids.length)
+    : { data: [] as { id: string; email: string | null }[] };
+  const name = (id: string | null) =>
+    id ? ((profiles ?? []).find((row) => row.id === id)?.email ?? id) : null;
+  return (rows ?? []).map((row) => ({
+    id: row.id,
+    at: row.created_at,
+    action: row.action,
+    actor: name(row.actor),
+    target: name(row.target_user),
+    reason: row.reason,
+  }));
+}
+
 export const listAudit = createServerFn({ method: "GET" })
   .middleware([requireSession])
-  .handler(async ({ context }): Promise<AuditEntry[]> => {
-    await assertStaff(context.supabase, "audit.read");
+  .handler(async ({ context }): Promise<AuditEntry[]> => readAuditRows(context.supabase));
+
+/* ------------------------------------------------- two-person controls -- */
+
+const approvalSecret = () => process.env.OCADE_ADMIN_APPROVAL_SECRET ?? "";
+
+const kindSchema = z.enum(["audit_export", "break_glass"]);
+
+/**
+ * A SECOND staff member approves another's export or break-glass request. The
+ * token it returns is signed, expires (an hour for break-glass, a day for an
+ * export) and names the requester, so the requester cannot approve themselves
+ * and nobody can reuse it for another action. The approval is on the record.
+ */
+export const approveDualControl = createServerFn({ method: "POST" })
+  .middleware([requireAssurance(HIGH_RISK)])
+  .validator((input) =>
+    z
+      .object({
+        kind: kindSchema,
+        scope: z.string().trim().min(1).max(80),
+        requester: uuid,
+        minutes: z
+          .number()
+          .int()
+          .min(1)
+          .max(60 * 24),
+        reason,
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }): Promise<{ token: string; expiresAt: string }> => {
+    await assertStaff(context.supabase, "staff.manage");
+    const { issueGrant, MAX_TTL_MS } = await import("./dual-control");
+    const ttlMs = Math.min(data.minutes * 60_000, MAX_TTL_MS[data.kind]);
+    const now = Date.now();
+    let token: string;
+    try {
+      token = issueGrant(
+        {
+          kind: data.kind,
+          scope: data.scope,
+          requester: data.requester,
+          approver: context.userId,
+          ttlMs,
+          now,
+        },
+        approvalSecret(),
+      );
+    } catch (cause) {
+      throw new Error(messageOf(cause));
+    }
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: rows, error } = await supabaseAdmin
-      .from("ocade_admin_actions")
-      .select("id, created_at, action, actor, target_user, reason")
-      .order("created_at", { ascending: false })
-      .limit(100);
-    if (error) throw new Error("The audit record could not be read.");
-    const ids = [
-      ...new Set(
-        (rows ?? []).flatMap((row) => [row.actor, row.target_user]).filter(Boolean) as string[],
-      ),
-    ];
-    const { data: profiles } = ids.length
-      ? await supabaseAdmin.from("profiles").select("id, email").in("id", ids).limit(ids.length)
-      : { data: [] as { id: string; email: string | null }[] };
-    const name = (id: string | null) =>
-      id ? ((profiles ?? []).find((row) => row.id === id)?.email ?? id) : null;
-    return (rows ?? []).map((row) => ({
-      id: row.id,
-      at: row.created_at,
-      action: row.action,
-      actor: name(row.actor),
-      target: name(row.target_user),
-      reason: row.reason,
-    }));
+    const { error } = await supabaseAdmin.from("ocade_admin_actions").insert({
+      actor: context.userId,
+      target_user: data.requester,
+      action: `${data.kind}_approved`,
+      reason: `${data.reason.slice(0, 380)} (scope ${data.scope}, ${Math.round(ttlMs / 60_000)} min)`,
+    });
+    if (error) throw new Error("The approval could not be recorded, so it was not given.");
+    return { token, expiresAt: new Date(now + ttlMs).toISOString() };
+  });
+
+/**
+ * The only operator export. Needs a second person's approval, redacts secrets,
+ * emails and long digit runs field by field, says when the file must be
+ * deleted, and writes the export on the record.
+ */
+export const exportAudit = createServerFn({ method: "POST" })
+  .middleware([requireAssurance(HIGH_RISK)])
+  .validator((input) => z.object({ approval: z.string().min(10).max(2000), reason }).parse(input))
+  .handler(
+    async ({
+      data,
+      context,
+    }): Promise<{ rows: AuditEntry[]; deleteBy: string; redacted: true }> => {
+      await assertStaff(context.supabase, "audit.read");
+      const { verifyGrant, redactForExport, retentionDeadline } = await import("./dual-control");
+      try {
+        verifyGrant(
+          data.approval,
+          { kind: "audit_export", scope: "audit", requester: context.userId, now: Date.now() },
+          approvalSecret(),
+        );
+      } catch (cause) {
+        throw new Error(messageOf(cause));
+      }
+      const rows = await readAuditRows(context.supabase);
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { error } = await supabaseAdmin.from("ocade_admin_actions").insert({
+        actor: context.userId,
+        target_user: null,
+        action: "audit_exported",
+        reason: data.reason.slice(0, 480),
+      });
+      if (error) throw new Error("The export could not be recorded, so it was not given.");
+      return {
+        rows: redactForExport(rows),
+        deleteBy: retentionDeadline(Date.now()),
+        redacted: true,
+      };
+    },
+  );
+
+/**
+ * Break-glass for an emergency switch: the same database-checked change as
+ * `setServiceControl`, but only with a second person's time-boxed approval for
+ * that exact switch, and it leaves its own `break_glass_used` line on the record.
+ */
+export const breakGlassServiceControl = createServerFn({ method: "POST" })
+  .middleware([requireAssurance(HIGH_RISK)])
+  .validator((input) =>
+    z
+      .object({
+        key: z.enum(["jarvis_agent", "jarvis_execution", "jarvis_android"]),
+        pause: z.boolean(),
+        approval: z.string().min(10).max(2000),
+        reason,
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }): Promise<{ paused: boolean }> => {
+    const { verifyGrant } = await import("./dual-control");
+    try {
+      verifyGrant(
+        data.approval,
+        { kind: "break_glass", scope: data.key, requester: context.userId, now: Date.now() },
+        approvalSecret(),
+      );
+    } catch (cause) {
+      throw new Error(messageOf(cause));
+    }
+    const { data: changed, error } = await context.supabase.rpc("ocade_set_service_control", {
+      control_key: data.key,
+      pause: data.pause,
+      change_reason: `BREAK-GLASS: ${data.reason}`.slice(0, 500),
+    });
+    if (error) throw new Error(staffFailure(error.message, context.userId));
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    await supabaseAdmin.from("ocade_admin_actions").insert({
+      actor: context.userId,
+      target_user: null,
+      action: "break_glass_used",
+      reason: `${data.key} ${data.pause ? "paused" : "resumed"}: ${data.reason.slice(0, 400)}`,
+    });
+    return { paused: changed?.paused === true };
   });
