@@ -1269,6 +1269,39 @@ export type Database = {
         }
         Relationships: []
       }
+      ocade_free_identity: {
+        Row: {
+          identity_key: string
+          recorded_at: string
+          window_anchor: string
+        }
+        Insert: {
+          identity_key: string
+          recorded_at?: string
+          window_anchor: string
+        }
+        Update: {
+          identity_key?: string
+          recorded_at?: string
+          window_anchor?: string
+        }
+        Relationships: []
+      }
+      ocade_free_identity_salt: {
+        Row: {
+          only_row: boolean
+          salt: string
+        }
+        Insert: {
+          only_row?: boolean
+          salt?: string
+        }
+        Update: {
+          only_row?: boolean
+          salt?: string
+        }
+        Relationships: []
+      }
       ocade_jarvis_task_charges: {
         Row: {
           charged_at: string
